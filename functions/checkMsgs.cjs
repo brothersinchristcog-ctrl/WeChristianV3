@@ -1,0 +1,1 @@
+const admin = require('firebase-admin'); admin.initializeApp({ projectId: 'wechristian-67f07' }); const db = admin.firestore(); db.collection('unmappedWhatsappMessages').get().then(snap => { console.log('unmapped:', snap.size); snap.forEach(d => console.log(d.data())); process.exit(0); }).catch(e => { console.error(e); process.exit(1); });

@@ -30,6 +30,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FirestoreService, { WorshipSong } from '../services/FirestoreService';
 import { useTheme } from '../context/ThemeContext';
+import { CustomAlert } from '../components/CustomAlert';
 
 const { width, height } = Dimensions.get('window');
 
@@ -73,6 +74,18 @@ export default function SongsScreen({ navigation }: any) {
   // ── Lyrics Modal ──────────────────────────────────
   const [selectedSong, setSelectedSong] = useState<WorshipSong | null>(null);
 
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'info' | 'error' | 'warning';
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'success'
+  });
+
   // ── Load songs ────────────────────────────────────
   const fetchSongs = async () => {
     try {
@@ -107,10 +120,10 @@ export default function SongsScreen({ navigation }: any) {
     let newIds: string[];
     if (isAlreadySaved) {
       newIds = savedIds.filter(id => id !== song.id);
-      Alert.alert('Removed', `"${song.title}" has been removed from your Songbook.`);
+      setAlertConfig({ visible: true, title: 'Song Removed', message: `"${song.title}" has been removed from your Songbook.`, type: 'info' });
     } else {
       newIds = [...savedIds, song.id];
-      Alert.alert('✅ Saved!', `"${song.title}" has been added to your Songbook.`);
+      setAlertConfig({ visible: true, title: 'Song Saved Successfully', message: `"${song.title}" has been added to your Songbook.`, type: 'success' });
     }
     setSavedIds(newIds);
     await AsyncStorage.setItem(SONGBOOK_KEY, JSON.stringify(newIds));
@@ -158,7 +171,7 @@ export default function SongsScreen({ navigation }: any) {
         delayLongPress={400}
       >
         <View style={[styles.indexBox, { backgroundColor: isDark ? '#0f172a' : '#f3f4f6' }]}>
-          <Text style={styles.indexTxt}>{index + 1}</Text>
+          <Text style={[styles.indexTxt, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{index + 1}</Text>
         </View>
         <View style={styles.info}>
           <Text style={[styles.title, { color: isDark ? '#fff' : '#111827' }]} numberOfLines={1}>{item.title}</Text>
@@ -173,8 +186,16 @@ export default function SongsScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]} edges={['top']}>
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+      
+      <CustomAlert 
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
 
       {/* ── Header ── */}
       <View style={styles.pageHeader}>
@@ -258,17 +279,18 @@ export default function SongsScreen({ navigation }: any) {
           </View>
         ) : (
           <FlatList
+            style={{ flex: 1 }}
             data={filteredBrowse}
             keyExtractor={item => item.id}
             renderItem={renderSongCard}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />}
-            ListHeaderComponent={() => (
+            ListHeaderComponent={
               <Text style={styles.secLbl}>
-                {selectedCategory === 'All' ? 'ALL SONGS' : selectedCategory.toUpperCase()} · {filteredBrowse.length} Songs
+                {selectedCategory === 'All' ? 'ALL SONGS' : selectedCategory.toUpperCase()} • {filteredBrowse.length} Songs
               </Text>
-            )}
+            }
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <AlertCircle size={44} color="#cbd5e1" />
@@ -283,14 +305,15 @@ export default function SongsScreen({ navigation }: any) {
       {/* ── My Songbook ── */}
       {activeTab === 'songbook' && (
         <FlatList
+          style={{ flex: 1 }}
           data={filteredSongbook}
           keyExtractor={item => item.id}
           renderItem={renderSongCard}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={() => (
-            <Text style={styles.secLbl}>MY SAVED SONGS · {filteredSongbook.length} Songs</Text>
-          )}
+          ListHeaderComponent={
+            <Text style={styles.secLbl}>MY SAVED SONGS • {filteredSongbook.length} Songs</Text>
+          }
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <BookMarked size={44} color="#cbd5e1" />
@@ -309,17 +332,18 @@ export default function SongsScreen({ navigation }: any) {
           </View>
         ) : (
           <FlatList
+            style={{ flex: 1 }}
             data={filteredTheme}
             keyExtractor={item => item.id}
             renderItem={renderSongCard}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />}
-            ListHeaderComponent={() => (
+            ListHeaderComponent={
               <Text style={styles.secLbl}>
-                THEME SONGS · {filteredTheme.length} Songs
+                THEME SONGS • {filteredTheme.length} Songs
               </Text>
-            )}
+            }
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>No Theme Songs</Text>
@@ -395,7 +419,7 @@ const styles = StyleSheet.create({
   tabTxtActive: { color: '#fff' },
 
   // Category chips
-  chipScroll: { marginTop: 12, maxHeight: 44 },
+  chipScroll: { marginTop: 12, maxHeight: 52 },
   chip: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, backgroundColor: '#e2e8f0', borderWidth: 1, borderColor: '#e2e8f0' },
   chipActive: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
   chipTxt: { fontSize: 12, fontWeight: '700', color: '#475569' },

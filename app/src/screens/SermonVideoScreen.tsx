@@ -24,7 +24,7 @@ import {
   ChevronRight,
   Heart
 } from 'lucide-react-native';
-import FirestoreService, { FirestoreVideo } from '../services/FirestoreService';
+import FirestoreService from '../services/FirestoreService';
 import { useChurch } from '../context/ChurchContext';
 
 const { width } = Dimensions.get('window');
@@ -37,18 +37,21 @@ const extractYoutubeId = (url: string) => {
   return id;
 };
 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 export default function SermonVideoScreen({ navigation, route }: any) {
-  const [videos, setVideos] = useState<FirestoreVideo[]>([]);
+  const [videos, setVideos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [playing, setPlaying] = useState(false);
-  const [activeVideo, setActiveVideo] = useState<FirestoreVideo | null>(null);
+  const [activeVideo, setActiveVideo] = useState<any | null>(null);
   const { activeChurch } = useChurch();
+  const insets = useSafeAreaInsets();
 
   // Initial load from params or fetch
   useEffect(() => {
     const init = async () => {
       const promiseData = await FirestoreService.getSermons(50);
-      const data: FirestoreVideo[] = promiseData
+      const data: any[] = promiseData
         .filter(p => p.youtubeId && p.youtubeId.trim() !== '' && p.youtubeId !== 'mock')
         .map(p => ({
           id: p.id,
@@ -115,7 +118,7 @@ export default function SermonVideoScreen({ navigation, route }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* ── Page Header ── */}
-      <View style={styles.pageHeader}>
+      <View style={[styles.pageHeader, { paddingTop: Platform.OS === 'ios' ? insets.top || 50 : insets.top || 20 }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft size={20} color="#aac4e8" />
           <Text style={styles.backBtnTxt}>Back</Text>
@@ -220,7 +223,6 @@ const styles = StyleSheet.create({
   // Header
   pageHeader: {
     backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
     paddingHorizontal: 16,
     paddingBottom: 14,
     flexDirection: 'row',

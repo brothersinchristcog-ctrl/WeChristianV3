@@ -234,7 +234,19 @@ export default function BibleScreen({ navigation }: any) {
       {/* Search Input + Dropdown Suggestions Wrapper */}
       <View style={{ marginHorizontal: 20, zIndex: 200 }}>
         <View style={[styles.searchBarContainer, { backgroundColor: isDark ? '#1e293b' : '#fff', marginHorizontal: 0 }]}>
-          <Search size={20} color={isDark ? '#94a3b8' : '#64748b'} style={styles.searchBarIcon} />
+          <TouchableOpacity 
+            style={{ padding: 4, marginRight: 6 }}
+            onPress={() => {
+              if (searchQuery.length > 2 && !parsedRef?.chapter) {
+                navigation.navigate('BibleSearch', {
+                  initialQuery: searchQuery,
+                  initialLang: lang
+                });
+              }
+            }}
+          >
+            <Search size={20} color={isDark ? '#94a3b8' : '#64748b'} />
+          </TouchableOpacity>
           <TextInput
             placeholder={lang === 'English' ? "Reference search (e.g. John 3:16)..." : "రెఫరెన్స్ వెతకండి (ఉదా: యోహాను 3:16)..."}
             placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
@@ -243,9 +255,18 @@ export default function BibleScreen({ navigation }: any) {
             onChangeText={setSearchQuery}
             autoCorrect={false}
             autoCapitalize="none"
+            returnKeyType="search"
+            onSubmitEditing={() => {
+              if (searchQuery.length > 2 && !parsedRef?.chapter) {
+                navigation.navigate('BibleSearch', {
+                  initialQuery: searchQuery,
+                  initialLang: lang
+                });
+              }
+            }}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => { setSearchQuery(''); setSuggestions([]); }} style={styles.searchBarClear}>
+            <TouchableOpacity onPress={() => { setSearchQuery(''); setSuggestions([]); }} style={[styles.searchBarClear, { padding: 4 }]}>
               <Text style={styles.searchBarClearTxt}>×</Text>
             </TouchableOpacity>
           )}
@@ -350,33 +371,32 @@ export default function BibleScreen({ navigation }: any) {
         </View>
       )}
 
-      {/* Deep Verse Search Prompt */}
-      {searchQuery.length > 2 && !parsedRef?.chapter && (
-        <TouchableOpacity 
-          style={styles.deepSearchCard}
-          onPress={() => {
-            navigation.navigate('BibleSearch', {
-              initialQuery: searchQuery,
-              initialLang: lang
-            });
-          }}
-        >
-          <View style={styles.deepSearchLeft}>
-            <View style={styles.deepSearchIcon}>
-              <Search size={18} color="#fff" />
+      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        {/* Deep Verse Search Prompt (moved inside ScrollView) */}
+        {searchQuery.length > 2 && !parsedRef?.chapter && (
+          <TouchableOpacity 
+            style={[styles.deepSearchCard, { marginTop: 10 }]}
+            onPress={() => {
+              navigation.navigate('BibleSearch', {
+                initialQuery: searchQuery,
+                initialLang: lang
+              });
+            }}
+          >
+            <View style={styles.deepSearchLeft}>
+              <View style={styles.deepSearchIcon}>
+                <Search size={18} color="#fff" />
+              </View>
+              <View>
+                <Text style={styles.deepSearchTitle}>
+                  {lang === 'English' ? 'Search all verses for' : 'అన్ని వచనాలలో వెతకండి'}
+                </Text>
+                <Text style={styles.deepSearchQuery}>"{searchQuery}"</Text>
+              </View>
             </View>
-            <View>
-              <Text style={styles.deepSearchTitle}>
-                {lang === 'English' ? 'Search all verses for' : 'అన్ని వచనాలలో వెతకండి'}
-              </Text>
-              <Text style={styles.deepSearchQuery}>"{searchQuery}"</Text>
-            </View>
-          </View>
-          <ChevronLeft color="#1a2d5a" size={20} style={{ transform: [{ rotate: '180deg' }] }} />
-        </TouchableOpacity>
-      )}
-
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+            <ChevronLeft color="#1a2d5a" size={20} style={{ transform: [{ rotate: '180deg' }] }} />
+          </TouchableOpacity>
+        )}
         {filteredBooks.length === 0 ? (
           <View style={styles.noResultsContainer}>
             <Text style={[styles.noResultsTitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>

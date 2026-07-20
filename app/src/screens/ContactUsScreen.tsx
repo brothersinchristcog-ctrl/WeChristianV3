@@ -15,6 +15,7 @@ import { useNavigation } from '@react-navigation/native';
 import { ChevronLeft, ChevronRight, MapPin, Phone, Mail } from 'lucide-react-native';
 import Svg, { Path, Rect, Circle } from 'react-native-svg';
 import firestore from '@react-native-firebase/firestore';
+import firestoreService from '../services/FirestoreService';
 
 interface ContactData {
   churchName: string;
@@ -26,6 +27,7 @@ interface ContactData {
     youtube: string;
     instagram: string;
     facebook: string;
+    whatsapp?: string;
   };
 }
 
@@ -39,6 +41,7 @@ const DEFAULT: ContactData = {
     youtube: '',
     instagram: '',
     facebook: '',
+    whatsapp: '',
   },
 };
 
@@ -64,40 +67,58 @@ const FacebookIcon = ({ size = 26 }: { size?: number }) => (
   </Svg>
 );
 
+const WhatsappIcon = ({ size = 26 }: { size?: number }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="#fff">
+    <Path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.637.834 5.086 2.27 7.086L.517 24l5.05-1.745c1.947 1.282 4.256 2.031 6.464 2.031 6.645 0 12.03-5.386 12.03-12.031S18.675 0 12.031 0zm6.545 17.15c-.279.79-1.516 1.488-2.128 1.547-.565.053-1.272.181-3.64-1.12-2.846-1.564-4.646-4.48-4.783-4.665-.138-.184-1.144-1.523-1.144-2.905 0-1.383.714-2.062.97-2.339.255-.276.554-.345.74-.345.185 0 .37.004.535.011.171.008.401-.064.629.489.234.568.74 1.808.808 1.945.068.138.114.3.023.483-.09.184-.137.3-.275.46-.138.161-.29.345-.411.484-.138.138-.283.29-.12.568.161.276.717 1.18 1.537 1.912 1.058.946 1.936 1.238 2.213 1.376.276.138.437.114.6-.068.161-.184.69-1.28 1.28-1.722.59-.441 1.18-.368 1.436-.276.255.092 1.62.766 1.9.904.279.138.463.207.531.322.069.115.069.667-.21 1.457z" />
+  </Svg>
+);
+
 export default function ContactUsScreen() {
   const navigation = useNavigation();
   const [data, setData] = useState<ContactData>(DEFAULT);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = firestore()
-      .collection('settings')
-      .doc('contact')
-      .onSnapshot(
-        (doc) => {
-          if (doc.exists()) {
-            const d = doc.data() as ContactData;
-            setData({
-              churchName: d.churchName || DEFAULT.churchName,
-              churchSubtitle: d.churchSubtitle || DEFAULT.churchSubtitle,
-              address: d.address || DEFAULT.address,
-              phoneNumbers: d.phoneNumbers?.length ? d.phoneNumbers : DEFAULT.phoneNumbers,
-              emails: d.emails?.length ? d.emails : DEFAULT.emails,
-              socialLinks: {
-                youtube: d.socialLinks?.youtube || DEFAULT.socialLinks.youtube,
-                instagram: d.socialLinks?.instagram || DEFAULT.socialLinks.instagram,
-                facebook: d.socialLinks?.facebook || DEFAULT.socialLinks.facebook,
-              },
-            });
+    let unsub: () => void = () => {};
+
+    const setupListener = async () => {
+      try {
+        const col = await firestoreService.getCollection('settings');
+        unsub = col.doc('contact').onSnapshot(
+          (doc) => {
+            if (doc.exists()) {
+              const d = doc.data() as ContactData;
+              setData({
+                churchName: d.churchName || DEFAULT.churchName,
+                churchSubtitle: d.churchSubtitle || DEFAULT.churchSubtitle,
+                address: d.address || DEFAULT.address,
+                phoneNumbers: d.phoneNumbers?.length ? d.phoneNumbers : DEFAULT.phoneNumbers,
+                emails: d.emails?.length ? d.emails : DEFAULT.emails,
+                socialLinks: {
+                  youtube: d.socialLinks?.youtube || DEFAULT.socialLinks.youtube,
+                  instagram: d.socialLinks?.instagram || DEFAULT.socialLinks.instagram,
+                  facebook: d.socialLinks?.facebook || DEFAULT.socialLinks.facebook,
+                  whatsapp: d.socialLinks?.whatsapp || DEFAULT.socialLinks.whatsapp,
+                },
+              });
+            }
+            setLoading(false);
+          },
+          (err) => {
+            console.warn('ContactUs listener error:', err);
+            setLoading(false);
           }
-          setLoading(false);
-        },
-        (err) => {
-          console.warn('ContactUs listener error:', err);
-          setLoading(false);
-        }
-      );
-    return () => unsub();
+        );
+      } catch (err) {
+        console.warn('Error setting up ContactUs listener:', err);
+        setLoading(false);
+      }
+    };
+
+    setupListener();
+    return () => {
+      if (unsub) unsub();
+    };
   }, []);
 
   const openPhone = (number: string) =>
@@ -109,6 +130,14 @@ export default function ContactUsScreen() {
   const openUrl = (url: string) => {
     if (!url) return;
     Linking.openURL(url).catch(() => Alert.alert('Error', 'Could not open the link.'));
+  };
+
+  const openWhatsapp = (phone?: string) => {
+    if (!phone) return;
+    const cleaned = phone.replace(/[^0-9]/g, '');
+    Linking.openURL(`whatsapp://send?phone=${cleaned}`).catch(() => {
+      Linking.openURL(`https://wa.me/${cleaned}`).catch(() => Alert.alert('Error', 'Could not open WhatsApp.'));
+    });
   };
 
   return (
@@ -196,31 +225,48 @@ export default function ContactUsScreen() {
             <Text style={styles.followUsTitle}>Follow us</Text>
             <View style={styles.socialRow}>
               {/* YouTube */}
-              <TouchableOpacity
-                style={[styles.socialCircle, { backgroundColor: '#ef4444' }]}
-                onPress={() => openUrl(data.socialLinks.youtube)}
-                activeOpacity={0.85}
-              >
-                <YoutubeIcon size={26} />
-              </TouchableOpacity>
+              {!!data.socialLinks.youtube && (
+                <TouchableOpacity
+                  style={[styles.socialCircle, { backgroundColor: '#ef4444' }]}
+                  onPress={() => openUrl(data.socialLinks.youtube)}
+                  activeOpacity={0.85}
+                >
+                  <YoutubeIcon size={26} />
+                </TouchableOpacity>
+              )}
 
               {/* Facebook */}
-              <TouchableOpacity
-                style={[styles.socialCircle, { backgroundColor: '#1877f2' }]}
-                onPress={() => openUrl(data.socialLinks.facebook)}
-                activeOpacity={0.85}
-              >
-                <FacebookIcon size={26} />
-              </TouchableOpacity>
+              {!!data.socialLinks.facebook && (
+                <TouchableOpacity
+                  style={[styles.socialCircle, { backgroundColor: '#1877f2' }]}
+                  onPress={() => openUrl(data.socialLinks.facebook)}
+                  activeOpacity={0.85}
+                >
+                  <FacebookIcon size={26} />
+                </TouchableOpacity>
+              )}
 
               {/* Instagram */}
-              <TouchableOpacity
-                style={[styles.socialCircle, { backgroundColor: '#e1306c' }]}
-                onPress={() => openUrl(data.socialLinks.instagram)}
-                activeOpacity={0.85}
-              >
-                <InstagramIcon size={26} />
-              </TouchableOpacity>
+              {!!data.socialLinks.instagram && (
+                <TouchableOpacity
+                  style={[styles.socialCircle, { backgroundColor: '#e1306c' }]}
+                  onPress={() => openUrl(data.socialLinks.instagram)}
+                  activeOpacity={0.85}
+                >
+                  <InstagramIcon size={26} />
+                </TouchableOpacity>
+              )}
+
+              {/* WhatsApp */}
+              {!!data.socialLinks.whatsapp && (
+                <TouchableOpacity
+                  style={[styles.socialCircle, { backgroundColor: '#25D366' }]}
+                  onPress={() => openWhatsapp(data.socialLinks.whatsapp)}
+                  activeOpacity={0.85}
+                >
+                  <WhatsappIcon size={26} />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 

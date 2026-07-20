@@ -1,12 +1,13 @@
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import { readFileSync } from 'fs';
+import { getApps, initializeApp } from 'firebase-admin/app';
 // Initialize Firebase Admin with credentials from the CLI or a service account
 // Since we are running this locally, we can just initialize without credentials if we run it via firebase exec
 // Actually, let's use the local application default credentials if available, or just run it via the app
 async function seed() {
-    if (!admin.apps.length) {
-        admin.initializeApp();
+    if (!getApps().length) {
+        initializeApp();
     }
     const db = getFirestore();
     // Get all churches

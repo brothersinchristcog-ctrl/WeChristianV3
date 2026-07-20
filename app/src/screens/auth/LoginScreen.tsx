@@ -48,6 +48,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
         try {
           // Explicitly pass activeChurch?.id so the query knows which church to search in
           const result = await FirestoreService.checkContactExists(cleanNum, activeChurch?.id);
+
           if (result && result.exists) {
             setMemberName(result.member?.firstName || result.member?.name || '');
             setContactId(result.member?.id);
@@ -57,7 +58,11 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             setMemberName('');
             setContactId(undefined);
             setIsMember(false);
-            setVerifyingStatus('Number not found in church records.');
+            if (result && result.error) {
+              setVerifyingStatus('Number not found in church records.');
+            } else {
+              setVerifyingStatus('Number not found in church records.');
+            }
           }
         } catch (err) {
           console.error(err);
@@ -105,6 +110,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
   const handleGuestLogin = async () => {
     setLoading(true);
     try {
+      await require('@react-native-async-storage/async-storage').default.setItem('@guest_intent', 'true');
       await signInAnonymously();
     } catch (error: any) {
       Alert.alert('Login Error', 'Unable to enter as guest.');
@@ -124,7 +130,14 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
               style={styles.logoImageLarge}
             />
           </View>
-          <Text style={styles.churchTitleLarge}>{activeChurch?.name || 'We Christian'}</Text>
+          <Text 
+            style={styles.churchTitleLarge}
+            numberOfLines={2}
+            adjustsFontSizeToFit={true}
+            minimumFontScale={0.6}
+          >
+            {activeChurch?.name || 'We Christian'}
+          </Text>
           <Text style={styles.mottoTextLarge}>{activeChurch?.tagline || 'Connect with your community'}</Text>
         </View>
 
@@ -254,11 +267,12 @@ const styles = StyleSheet.create({
   logoCircleLarge: { 
     width: 120, height: 120, borderRadius: 60, backgroundColor: '#fff', 
     justifyContent: 'center', alignItems: 'center', marginBottom: 25,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    borderWidth: 3, borderColor: 'rgba(255,255,255,0.4)',
   },
-  logoImageLarge: { width: 90, height: 90 },
-  churchTitleLarge: { color: '#fff', fontSize: 28, fontWeight: '800', marginBottom: 5 },
-  mottoTextLarge: { color: '#4fd1c5', fontSize: 16, fontWeight: '500', marginBottom: 10 },
+  logoImageLarge: { width: 120, height: 120, resizeMode: 'cover' },
+  churchTitleLarge: { color: '#fff', fontSize: 28, fontWeight: '800', marginBottom: 5, textAlign: 'center' },
+  mottoTextLarge: { color: '#4fd1c5', fontSize: 16, fontWeight: '500', marginBottom: 10, textAlign: 'center' },
   teluguTaglineLarge: { color: '#aac4e8', fontSize: 10, fontWeight: '600', letterSpacing: 1, textAlign: 'center' },
   
   landingBottom: { padding: 40, paddingBottom: 60, gap: 16 },

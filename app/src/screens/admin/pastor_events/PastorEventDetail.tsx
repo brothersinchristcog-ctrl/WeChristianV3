@@ -20,6 +20,9 @@ import { openInMaps } from '../../../utils/maps';
 import EventTypeBadge from '../../../components/EventTypeBadge';
 import DistanceBadge from '../../../components/DistanceBadge';
 import { getStartingLocation } from '../../../utils/locationStore';
+import MapView from 'react-native-maps';
+import * as Speech from 'expo-speech';
+import { SavedLocation } from '../../../utils/locationStore';
 
 export const PastorEventDetail = ({ route, navigation }: { route: any; navigation: any }) => {
   const { event, allEvents = [] } = route.params as { event: PastorEvent; allEvents: PastorEvent[] };
@@ -34,6 +37,40 @@ export const PastorEventDetail = ({ route, navigation }: { route: any; navigatio
   }>({ visible: false, title: '', message: '', type: 'info' });
 
   const closeAlert = () => setAlertConfig(prev => ({ ...prev, visible: false }));
+
+  const [isSpeaking, setIsSpeaking] = React.useState(false);
+  const [homeLocation, setHomeLocation] = React.useState<SavedLocation | null>(null);
+
+  const handleSpeech = async () => {
+    if (isSpeaking) {
+      Speech.stop();
+      setIsSpeaking(false);
+      return;
+    }
+    
+    setIsSpeaking(true);
+    const speechText = `You have an upcoming event: ${event.title}. It is scheduled for ${formatDate(event.date)} at ${event.startTime}. The venue is ${event.venue || event.address || 'Unknown'}. Do you have any questions?`;
+    
+    Speech.speak(speechText, {
+      language: 'en',
+      rate: 0.9,
+      onDone: () => setIsSpeaking(false),
+      onStopped: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false),
+    });
+  };
+
+  React.useEffect(() => {
+    const fetchHome = async () => {
+      const loc = await getStartingLocation();
+      if (loc) setHomeLocation(loc);
+    };
+    fetchHome();
+
+    return () => {
+      Speech.stop();
+    };
+  }, []);
 
   // Format date nicely
   const formatDate = (dateStr: string) => {
@@ -59,25 +96,17 @@ export const PastorEventDetail = ({ route, navigation }: { route: any; navigatio
     return h * 60 + m;
   };
 
-  // Sort all events chronologically so 'next' always means forward in time
-  const sortedAllEvents = [...allEvents].sort((a, b) => {
-    const aDate = a.date || '';
-    const bDate = b.date || '';
-    if (aDate !== bDate) {
-      return aDate.localeCompare(bDate);
-    }
-    return timeToMins(a.startTime) - timeToMins(b.startTime);
-  });
-
-  // Find next event for route planner link (same day only)
-  const sameDayEvents = sortedAllEvents.filter(e => e.date === event.date);
+  // Find next event for route planner link
+  const sameDayEvents = allEvents
+    .filter(e => e.date === event.date)
+    .sort((a, b) => timeToMins(a.startTime) - timeToMins(b.startTime));
   
   const eventIndex = sameDayEvents.findIndex(e => e.id === event.id);
-  const nextEvent = eventIndex >= 0 && eventIndex < sameDayEvents.length - 1 ? sameDayEvents[eventIndex + 1] : undefined;
+  const nextEvent = sameDayEvents[eventIndex + 1];
 
-  // Global Next Event for Distance calculations (across all days)
-  const globalEventIndex = sortedAllEvents.findIndex(e => e.id === event.id);
-  const globalNextEvent = globalEventIndex >= 0 && globalEventIndex < sortedAllEvents.length - 1 ? sortedAllEvents[globalEventIndex + 1] : undefined;
+  // Global Next Event for Distance calculations
+  const globalEventIndex = allEvents.findIndex(e => e.id === event.id);
+  const globalNextEvent = globalEventIndex >= 0 && globalEventIndex < allEvents.length - 1 ? allEvents[globalEventIndex + 1] : undefined;
 
   const [nextEventTravel, setNextEventTravel] = React.useState<{
     loading: boolean;
@@ -150,7 +179,7 @@ export const PastorEventDetail = ({ route, navigation }: { route: any; navigatio
   };
 
   const handleDirections = () => {
-    openInMaps(event.lat || 0, event.lng || 0, event.title, event.address || event.venue);
+    openInMaps(event.lat || 0, event.lng || 0, event.title, [event.venue, event.address, event.city].filter(Boolean).join(', '));
   };
 
   const handleEdit = () => {
@@ -181,7 +210,7 @@ export const PastorEventDetail = ({ route, navigation }: { route: any; navigatio
                   title: 'Deleted',
                   message: 'Event has been deleted.',
                   type: 'success',
-                  buttons: [{ text: 'OK', onPress: () => { closeAlert(); navigation.navigate('AdminRoot'); } }]
+                  buttons: [{ text: 'OK', onPress: () => { closeAlert(); navigation.goBack(); } }]
                 });
               }, 300);
             } catch (err: any) {
@@ -215,108 +244,101 @@ export const PastorEventDetail = ({ route, navigation }: { route: any; navigatio
         onClose={closeAlert}
       />
       
-      {/* Top Navigation Bar */}
       <View style={styles.navBar}>
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => navigation.goBack()}
-          hitSlop={{ top: 20, bottom: 20, left: 20, right: 20 }}
-        >
-          <Ionicons name="arrow-back" size={26} color={colors.textPrimary} />
+        <TouchableOpacity style={styles.backButton} onPress={() => requestAnimationFrame(() => navigation.goBack())}>
+          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.navTitle} numberOfLines={1}>Event Details</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Combined Main Card matching Dashboard layout */}
-        <View style={[styles.card, { padding: 16 }]}>
-          <Text style={{ marginBottom: 16, fontSize: 18, fontWeight: '700', color: '#111827' }}>{event.title}</Text>
-          
-          <View style={{ gap: 8, marginBottom: 16 }}>
+        {/* Unified Main Event Info Card */}
+        <View style={styles.card}>
+          {/* 1. Header Info */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <Text style={[styles.mainTitle, { flex: 1, marginBottom: 16 }]}>{event.title}</Text>
+
+          </View>
+
+          <View style={{ gap: 12, marginBottom: spacing.lg }}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="calendar-outline" size={16} color={colors.primary} />
-              <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '600', color: colors.primary }}>
-                {event.date ? event.date.split('-').reverse().join('-') : 'No Date'}
-              </Text>
+              <Ionicons name="calendar-outline" size={18} color={colors.primary} />
+              <Text style={[styles.timeVal, { marginLeft: 8 }]}>{formatDate(event.date)}</Text>
             </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="time-outline" size={16} color={colors.primary} />
-              <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '600', color: colors.primary }}>
+              <Ionicons name="time-outline" size={18} color={colors.primary} />
+              <Text style={[styles.timeVal, { marginLeft: 8 }]}>
                 Start: {event.startTime}{event.endTime ? ` | End: ${event.endTime}` : ''}
               </Text>
             </View>
 
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Ionicons name="hourglass-outline" size={16} color={colors.primary} />
-              <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '600', color: colors.textSecondary }}>
+              <Ionicons name="hourglass-outline" size={18} color={colors.primary} />
+              <Text style={[styles.timeVal, { marginLeft: 8, color: colors.textSecondary }]}>
                 Meeting length: {event.durationMins >= 60 ? `${Math.round(event.durationMins / 60 * 10) / 10} hours` : `${event.durationMins} mins`}
               </Text>
             </View>
           </View>
-          
-          <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16 }} />
 
-          <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase', marginBottom: 6 }}>
-            VENUE & LOCATION
-          </Text>
-          <Text style={{ fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 }}>
-            {event.venue || 'No Venue'}
-          </Text>
-          <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 16, lineHeight: 20 }}>
-            {event.address || 'No Address'}
-          </Text>
-          
-          <TouchableOpacity 
-            style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#EEF6FF', alignSelf: 'flex-start', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8, marginBottom: event.travel && event.travel.distKm > 0 ? 20 : 0 }}
-            onPress={handleDirections}
-          >
-            <Ionicons name="navigate" size={18} color={colors.primary} />
-            <Text style={{ marginLeft: 8, fontSize: 15, fontWeight: '600', color: colors.primary }}>Get Directions</Text>
-          </TouchableOpacity>
+          <View style={styles.divider} />
 
-          {event.travel && event.travel.distKm > 0 && (
-            <View style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border }}>
-              
-              <View style={{ alignItems: 'center', width: 60 }}>
-                <Ionicons name={event.travel.isFirstEvent ? "home" : "location"} size={26} color={colors.textSecondary} />
-                <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textSecondary, marginTop: 6, textTransform: 'uppercase' }} numberOfLines={1}>
-                  {event.travel.isFirstEvent ? 'HOME' : (event.travel.prevVenue ? event.travel.prevVenue.split(' ')[0].substring(0, 8) : 'PREV')}
-                </Text>
-              </View>
-              
-              <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 8 }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary, marginBottom: 8 }}>
-                  {event.travel.distKm.toFixed(1)} km • {event.travel.car >= 60 ? `${Math.floor(event.travel.car/60)}h ${Math.round(event.travel.car%60)}m` : `${Math.round(event.travel.car)}m`}
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
-                  <View style={{ flex: 1, height: 2, backgroundColor: colors.border }} />
-                  <Ionicons name="car" size={18} color={colors.primary} style={{ marginHorizontal: 8 }} />
-                  <View style={{ flex: 1, height: 2, backgroundColor: colors.border }} />
+          {/* 2. Venue & Location */}
+          <Text style={[styles.cardLabel, { marginTop: spacing.md }]}>Venue & Location</Text>
+          <Text style={styles.venueTitle}>{event.venue}</Text>
+          {event.city && (
+            <Text style={[styles.addressText, { fontWeight: '600', color: colors.primary, marginTop: 2 }]}>
+              {event.city}
+            </Text>
+          )}
+          {event.address && event.address !== event.venue && (
+            <Text style={styles.addressText}>{event.address}</Text>
+          )}
+
+          {(event.lat && event.lng) ? (
+            <TouchableOpacity style={{ height: 160, width: '100%', borderRadius: radius.md, overflow: 'hidden', marginVertical: spacing.md }} onPress={handleDirections} activeOpacity={0.8}>
+              <View pointerEvents="none" style={StyleSheet.absoluteFillObject}>
+                <MapView
+                  style={StyleSheet.absoluteFillObject}
+                  initialRegion={{
+                    latitude: event.lat,
+                    longitude: event.lng,
+                    latitudeDelta: 0.01,
+                    longitudeDelta: 0.01,
+                  }}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  pitchEnabled={false}
+                  rotateEnabled={false}
+                />
+                {/* Custom Marker */}
+                <View style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -16, marginLeft: -12, alignItems: 'center', justifyContent: 'center' }}>
+                  <Ionicons name="location" size={32} color={colors.error} />
                 </View>
               </View>
-
-              <View style={{ alignItems: 'center', width: 60 }}>
-                <Ionicons name="location" size={26} color={colors.primary} />
-                <Text style={{ fontSize: 10, fontWeight: '700', color: colors.primary, marginTop: 6, textTransform: 'uppercase' }} numberOfLines={1}>
-                  {event.venue ? event.venue.split(' ')[0].substring(0, 8) : 'DEST'}
-                </Text>
+              <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(0,0,0,0.6)', padding: 6, alignItems: 'center' }}>
+                <Text style={{ color: '#FFF', fontSize: 12, fontWeight: '600' }}>Tap to open in External Maps</Text>
               </View>
-
-            </View>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={[styles.mapsButton, { marginVertical: spacing.md }]} onPress={handleDirections}>
+              <Ionicons name="navigate-outline" size={18} color="#FFF" />
+              <Text style={styles.mapsButtonText}>Get Directions (External Maps)</Text>
+            </TouchableOpacity>
           )}
-        </View>
 
-        {/* Description Card */}
-        {event.description && event.description.replace(/--- Travel Estimation ---[\s\S]*/, '').trim() ? (
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Description</Text>
-            <Text style={styles.bodyText}>
-              {event.description.replace(/--- Travel Estimation ---[\s\S]*/, '').trim()}
-            </Text>
-          </View>
-        ) : null}
+          {/* 3. Description (if any) */}
+          {event.description && event.description.replace(/--- Travel Estimation ---[\s\S]*/, '').trim() ? (
+            <>
+              <View style={styles.divider} />
+              <Text style={[styles.cardLabel, { marginTop: spacing.md }]}>Description</Text>
+              <Text style={styles.bodyText}>
+                {event.description.replace(/--- Travel Estimation ---[\s\S]*/, '').trim()}
+              </Text>
+            </>
+          ) : null}
+        </View>
 
         {/* Notes Card */}
         {event.notes ? (
@@ -344,131 +366,59 @@ export const PastorEventDetail = ({ route, navigation }: { route: any; navigatio
           </View>
         ) : null}
 
-        {/* Next Leg Action Card */}
-        {nextEvent && (
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Next Stop on Itinerary</Text>
-            <Text style={styles.nextEventTitle} numberOfLines={1}>{nextEvent.title}</Text>
-            <Text style={styles.nextEventTime}>Starts at {nextEvent.startTime}</Text>
-            <TouchableOpacity
-              style={styles.plannerLink}
-              onPress={() => navigation.navigate('RoutePlanner', { events: sameDayEvents })}
-            >
-              <Text style={styles.plannerLinkText}>Open Route Itinerary</Text>
-              <Ionicons name="arrow-forward" size={14} color={colors.primary} />
-            </TouchableOpacity>
-          </View>
-        )}
 
         {/* Next Chronological Event Distance Planning Card */}
         {globalNextEvent && (
           <TouchableOpacity 
-            style={[styles.card, { padding: 16 }]}
+            style={styles.card}
             onPress={() => navigation.push('EventDetail', { event: globalNextEvent, allEvents })}
             activeOpacity={0.7}
           >
-            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase', marginBottom: 12 }}>
-              Next Scheduled Event
-            </Text>
+            <Text style={styles.cardLabel}>Next Scheduled Event</Text>
             
-            <Text style={{ marginBottom: 16, fontSize: 18, fontWeight: '700', color: '#111827' }}>{globalNextEvent.title}</Text>
-            
-            <View style={{ gap: 8, marginBottom: 16 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons name="calendar-outline" size={16} color={colors.primary} />
-                <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '600', color: colors.primary }}>
-                  {globalNextEvent.date ? globalNextEvent.date.split('-').reverse().join('-') : 'No Date'}
+            <View style={{ marginBottom: spacing.md }}>
+              <Text style={styles.venueTitle}>{globalNextEvent.title}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                <Ionicons name="calendar-outline" size={14} color={colors.textSecondary} />
+                <Text style={[styles.timeVal, { marginLeft: 6, fontSize: 13, color: colors.textSecondary }]}>
+                  {formatDate(globalNextEvent.date)} • {globalNextEvent.startTime}
                 </Text>
               </View>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons name="time-outline" size={16} color={colors.primary} />
-                <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '600', color: colors.primary }}>
-                  Start: {globalNextEvent.startTime}{globalNextEvent.endTime ? ` | End: ${globalNextEvent.endTime}` : ''}
-                </Text>
-              </View>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons name="hourglass-outline" size={16} color={colors.primary} />
-                <Text style={{ marginLeft: 8, fontSize: 14, fontWeight: '600', color: colors.textSecondary }}>
-                  Meeting length: {globalNextEvent.durationMins >= 60 ? `${Math.round(globalNextEvent.durationMins / 60 * 10) / 10} hours` : `${globalNextEvent.durationMins} mins`}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                <Ionicons name="location-outline" size={14} color={colors.textSecondary} />
+                <Text style={[styles.timeVal, { marginLeft: 6, fontSize: 13, color: colors.textSecondary }]}>
+                  {globalNextEvent.city ? `${globalNextEvent.city} • ` : ''}{globalNextEvent.venue || globalNextEvent.address || 'Location TBD'}
                 </Text>
               </View>
             </View>
-            
-            <View style={{ height: 1, backgroundColor: colors.border, marginBottom: 16 }} />
-
-            <Text style={{ fontSize: 12, fontWeight: '700', color: colors.textSecondary, textTransform: 'uppercase', marginBottom: 6 }}>
-              VENUE & LOCATION
-            </Text>
-            <Text style={{ fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 }}>
-              {globalNextEvent.venue || 'No Venue'}
-            </Text>
-            <Text style={{ fontSize: 14, color: colors.textSecondary, marginBottom: 16, lineHeight: 20 }}>
-              {globalNextEvent.address || 'No Address'}
-            </Text>
 
             {nextEventTravel.loading ? (
               <ActivityIndicator size="small" color={colors.primary} style={{ marginVertical: spacing.md }} />
             ) : (
-              <View style={{ gap: 8 }}>
-                {nextEventTravel.currentToNextKm > 0 && (
-                  <View style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border }}>
-                    <View style={{ alignItems: 'center', width: 60 }}>
-                      <Ionicons name="location" size={26} color={colors.textSecondary} />
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textSecondary, marginTop: 6, textTransform: 'uppercase' }} numberOfLines={1}>
-                        {event.venue ? event.venue.split(' ')[0].substring(0, 8) : 'PREV'}
-                      </Text>
-                    </View>
-                    
-                    <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 8 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary, marginBottom: 8 }}>
-                        {nextEventTravel.currentToNextKm.toFixed(1)} km • {nextEventTravel.currentToNextMins >= 60 ? `${Math.floor(nextEventTravel.currentToNextMins/60)}h ${Math.round(nextEventTravel.currentToNextMins%60)}m` : `${Math.round(nextEventTravel.currentToNextMins)}m`}
-                      </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
-                        <View style={{ flex: 1, height: 2, backgroundColor: colors.border }} />
-                        <Ionicons name="car" size={18} color={colors.primary} style={{ marginHorizontal: 8 }} />
-                        <View style={{ flex: 1, height: 2, backgroundColor: colors.border }} />
-                      </View>
-                    </View>
-
-                    <View style={{ alignItems: 'center', width: 60 }}>
-                      <Ionicons name="location" size={26} color={colors.primary} />
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: colors.primary, marginTop: 6, textTransform: 'uppercase' }} numberOfLines={1}>
-                        {globalNextEvent.venue ? globalNextEvent.venue.split(' ')[0].substring(0, 8) : 'DEST'}
+              <View style={{ gap: spacing.md, marginTop: spacing.md }}>
+                  <View>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 6, marginLeft: 4 }}>
+                      {event.city ? `${event.city} (${event.venue || 'Event'})` : event.venue || 'Current'} <Ionicons name="arrow-forward" size={10} /> {globalNextEvent.city ? `${globalNextEvent.city} (${globalNextEvent.venue || 'Event'})` : globalNextEvent.venue || 'Next'}
+                    </Text>
+                    <View style={[styles.travelBadge, { justifyContent: 'flex-start', paddingHorizontal: 12 }]}>
+                      <Ionicons name="car" size={16} color={colors.primary} />
+                      <Text style={[styles.travelBadgeText, { fontSize: 13, marginLeft: 8 }]}>
+                        {nextEventTravel.currentToNextKm.toFixed(1)} km • {nextEventTravel.currentToNextMins >= 60 ? `${Math.floor(nextEventTravel.currentToNextMins / 60)}h ${nextEventTravel.currentToNextMins % 60}m` : `${nextEventTravel.currentToNextMins}m`} travel
                       </Text>
                     </View>
                   </View>
-                )}
-
-                {nextEventTravel.homeToNextKm > 0 && (
-                  <View style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: colors.border }}>
-                    <View style={{ alignItems: 'center', width: 60 }}>
-                      <Ionicons name="home" size={26} color={colors.textSecondary} />
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: colors.textSecondary, marginTop: 6, textTransform: 'uppercase' }}>
-                        HOME
-                      </Text>
-                    </View>
-                    
-                    <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 8 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '600', color: colors.primary, marginBottom: 8 }}>
-                        {nextEventTravel.homeToNextKm.toFixed(1)} km • {nextEventTravel.homeToNextMins >= 60 ? `${Math.floor(nextEventTravel.homeToNextMins/60)}h ${Math.round(nextEventTravel.homeToNextMins%60)}m` : `${Math.round(nextEventTravel.homeToNextMins)}m`}
-                      </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
-                        <View style={{ flex: 1, height: 2, backgroundColor: colors.border }} />
-                        <Ionicons name="car" size={18} color={colors.primary} style={{ marginHorizontal: 8 }} />
-                        <View style={{ flex: 1, height: 2, backgroundColor: colors.border }} />
-                      </View>
-                    </View>
-
-                    <View style={{ alignItems: 'center', width: 60 }}>
-                      <Ionicons name="location" size={26} color={colors.primary} />
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: colors.primary, marginTop: 6, textTransform: 'uppercase' }} numberOfLines={1}>
-                        {globalNextEvent.venue ? globalNextEvent.venue.split(' ')[0].substring(0, 8) : 'DEST'}
+                
+                  <View>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: colors.textSecondary, marginBottom: 6, marginLeft: 4 }}>
+                      {homeLocation?.name || 'Home'} <Ionicons name="arrow-forward" size={10} /> {globalNextEvent.city ? `${globalNextEvent.city} (${globalNextEvent.venue || 'Event'})` : globalNextEvent.venue || 'Next'}
+                    </Text>
+                    <View style={[styles.travelBadge, { justifyContent: 'flex-start', paddingHorizontal: 12 }]}>
+                      <Ionicons name="home" size={16} color={colors.primary} />
+                      <Text style={[styles.travelBadgeText, { fontSize: 13, marginLeft: 8 }]}>
+                        {nextEventTravel.homeToNextKm.toFixed(1)} km • {nextEventTravel.homeToNextMins >= 60 ? `${Math.floor(nextEventTravel.homeToNextMins / 60)}h ${nextEventTravel.homeToNextMins % 60}m` : `${nextEventTravel.homeToNextMins}m`} travel
                       </Text>
                     </View>
                   </View>
-                )}
               </View>
             )}
           </TouchableOpacity>
@@ -521,10 +471,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border
   },
   backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'flex-start'
+    padding: spacing.xs
   },
   navTitle: {
     ...typography.h2,
@@ -605,18 +552,43 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md
   },
   mapsButton: {
+    backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: radius.sm,
-    paddingVertical: 10,
-    gap: 6
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: radius.full,
+    marginTop: spacing.sm
   },
   mapsButtonText: {
     color: '#FFF',
-    fontSize: 13,
-    fontWeight: '600'
+    fontSize: 15,
+    fontWeight: '600',
+    marginLeft: 8
+  },
+  travelBadge: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: `${colors.primary}15`,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: `${colors.primary}30`
+  },
+  travelBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.primaryDark,
+    marginLeft: 4
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginVertical: spacing.md,
   },
   bodyText: {
     fontSize: 13,

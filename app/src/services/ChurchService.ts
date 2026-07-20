@@ -19,11 +19,36 @@ export interface ChurchDetails {
   address?: string;
   aboutUs?: string;
   theme: ChurchTheme;
+  whatsappIntegrationEnabled?: boolean;
+  automatedWhatsappWishesEnabled?: boolean;
+  automatedWeCelebrationTemplate?: {
+    themeId?: string;
+    themeColor?: string;
+    imageUrl?: string;
+    message?: string;
+    verseRef?: string;
+    verseText?: string;
+  };
+  monthlyCelebrationTemplates?: Record<string, {
+    themeId?: string;
+    themeColor?: string;
+    message?: string;
+    verseRef?: string;
+    verseText?: string;
+  }>;
   features: {
     hasSermons: boolean;
     hasDailyPromises: boolean;
     hasWorshipSongs: boolean;
     hasGiving: boolean;
+    hasWhatsAppAutomation?: boolean;
+  };
+  customThemes?: any[];
+  subscription?: {
+    status: string;
+    trialEndsAt?: any;
+    validUntil?: string;
+    plan?: string;
   };
   socialLinks?: {
     youtube?: string;
@@ -129,7 +154,7 @@ class ChurchService {
   /**
    * Fetch church secrets (e.g., payment gateway keys)
    */
-  async getChurchSecrets(churchId: string): Promise<{ phonePeMerchantId?: string; phonePeSaltKey?: string; phonePeSaltIndex?: string } | null> {
+  async getChurchSecrets(churchId: string): Promise<{ phonePeMerchantId?: string; phonePeSaltKey?: string; phonePeSaltIndex?: string; whatsappAccessToken?: string; whatsappPhoneId?: string; useWeChristianWhatsApp?: boolean } | null> {
     try {
       const docSnap = await firestore().collection('churches').doc(churchId).collection('secrets').doc('payment').get();
       if (docSnap.exists()) {
@@ -145,7 +170,7 @@ class ChurchService {
   /**
    * Update church secrets
    */
-  async updateChurchSecrets(churchId: string, secrets: { phonePeMerchantId?: string; phonePeSaltKey?: string; phonePeSaltIndex?: string }): Promise<boolean> {
+  async updateChurchSecrets(churchId: string, secrets: { phonePeMerchantId?: string; phonePeSaltKey?: string; phonePeSaltIndex?: string; whatsappAccessToken?: string; whatsappPhoneId?: string; useWeChristianWhatsApp?: boolean }): Promise<boolean> {
     try {
       await firestore().collection('churches').doc(churchId).collection('secrets').doc('payment').set(secrets, { merge: true });
       return true;

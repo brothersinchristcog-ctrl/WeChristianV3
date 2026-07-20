@@ -179,7 +179,9 @@ export default function PrayerWallScreen({ navigation }: any) {
         contactId: member?.id || null,
         request: prayerInput,
         category: category,
-        isAnonymous: false
+        isAnonymous: false,
+        uid: user?.uid || null,
+        type: 'public'
       });
       
       setShowSuccess(true);
@@ -192,14 +194,28 @@ export default function PrayerWallScreen({ navigation }: any) {
     }
   };
 
-  const getTimeAgo = (date: Date) => {
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    if (seconds < 60) return "Just now";
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} minutes ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hours ago`;
-    return Math.floor(hours / 24) + " days ago";
+  const getTimeAgo = (rawDate: any) => {
+    try {
+      // Firestore Timestamp has a .toDate() method
+      const date: Date = rawDate?.toDate ? rawDate.toDate() 
+        : rawDate instanceof Date ? rawDate 
+        : new Date(rawDate);
+
+      if (!date || isNaN(date.getTime())) return 'Recently';
+
+      const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+      if (seconds < 60) return 'Just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      if (days === 1) return 'Yesterday';
+      if (days < 7) return `${days} days ago`;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch {
+      return 'Recently';
+    }
   };
 
   const handlePray = (id: string, isOwner: boolean) => {
@@ -269,7 +285,7 @@ export default function PrayerWallScreen({ navigation }: any) {
               </Text>
             </View>
             <Text style={styles.metaText}>
-              {getTimeAgo(new Date(item.createdAt))} · {item.category || 'General'}
+              {getTimeAgo(item.createdAt)} · {item.category || 'General'}
             </Text>
           </View>
         </View>

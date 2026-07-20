@@ -2,6 +2,7 @@
   "expo": {
     "name": "We Christian",
     "slug": "we-christian",
+    "scheme": "wechristian",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
@@ -17,6 +18,9 @@
       "bundleIdentifier": "com.wechristian.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "config": {
+        "googleMapsApiKey": "AIzaSyAa7M7Xr7W_hNOpy3BeSHMBD6oEYjD78HA"
       }
     },
     "android": {
@@ -27,7 +31,12 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "versionCode": 3
+      "versionCode": 3,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAa7M7Xr7W_hNOpy3BeSHMBD6oEYjD78HA"
+        }
+      }
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -42,7 +51,8 @@
         {
           "microphonePermission": "Allow We Christian to access your microphone to create events via voice."
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "eas": {

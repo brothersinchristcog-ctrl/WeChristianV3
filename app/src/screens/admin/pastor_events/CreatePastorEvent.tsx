@@ -18,6 +18,7 @@ import { colors, spacing, radius, typography, shadow } from '../../../theme/Them
 import FirestoreService from '../../../services/FirestoreService';
 import { useAuth } from '../../../context/AuthContext';
 import { CustomAlert, AlertButton } from '../../../components/CustomAlert';
+import { checkScheduleConflicts } from '../../../utils/schedule';
 
 export const CreatePastorEvent = ({ route, navigation }: { route: any; navigation: any }) => {
   const { member } = useAuth();
@@ -34,9 +35,9 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
 
   const closeAlert = () => setAlertConfig(prev => ({ ...prev, visible: false }));
 
-  // Form State
-  const [step, setStep] = useState(1);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Form State
   const [title, setTitle] = useState('');
   const [eventType, setEventType] = useState('');
   const [date, setDate] = useState(new Date());
@@ -47,8 +48,8 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
     return d;
   });
   const [venue, setVenue] = useState('');
+  const [city, setCity] = useState('');
   const [address, setAddress] = useState('');
-  const [pinCode, setPinCode] = useState('');
   const [description, setDescription] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -57,49 +58,10 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
+  // Wizard state
+  const [step, setStep] = useState(1);
+
   // Derived state
-  const isFormValid = title.length > 2 && venue.length > 2 && address.length > 5;
-
-  useEffect(() => {
-    if (route.params?.prefill) {
-      const p = route.params.prefill;
-      if (p.title) setTitle(p.title);
-      if (p.venue) setVenue(p.venue);
-      if (p.address) setAddress(p.address);
-      if (p.description) setDescription(p.description);
-      if (p.notes) setNotes(p.notes);
-      
-      if (p.date) {
-        const d = new Date(p.date);
-        if (!isNaN(d.getTime())) setDate(d);
-      }
-      
-      if (p.startTime) {
-        try {
-          const st = new Date();
-          const [time, modifier] = p.startTime.split(' ');
-          let [h, m] = time.split(':').map(Number);
-          if (modifier === 'PM' && h < 12) h += 12;
-          if (modifier === 'AM' && h === 12) h = 0;
-          st.setHours(h, m, 0);
-          setStartTime(st);
-        } catch (e) {}
-      }
-      
-      if (p.endTime) {
-        try {
-          const et = new Date();
-          const [time, modifier] = p.endTime.split(' ');
-          let [h, m] = time.split(':').map(Number);
-          if (modifier === 'PM' && h < 12) h += 12;
-          if (modifier === 'AM' && h === 12) h = 0;
-          et.setHours(h, m, 0);
-          setEndTime(et);
-        } catch (e) {}
-      }
-    }
-  }, [route.params?.prefill]);
-
   const durationMinsNum = Math.max(0, (endTime.getTime() - startTime.getTime()) / 60000);
   const durationHoursDerived = durationMinsNum > 0 ? (durationMinsNum / 60).toFixed(1).replace(/\.0$/, '') : '0';
 
@@ -112,7 +74,7 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
       
       if (editEvent.date) setDate(new Date(editEvent.date));
       
-      if (editEvent.startTime && typeof editEvent.startTime === 'string') {
+      if (editEvent.startTime) {
         const timeDate = new Date();
         const [time, modifier] = editEvent.startTime.split(' ');
         if (time && modifier) {
@@ -132,8 +94,8 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
       }
       
       setVenue(editEvent.venue || '');
+      setCity(editEvent.city || '');
       
-      // Attempt to strip out the venue from the location string if it matches our pattern "Venue — Address"
       let addr = editEvent.address || '';
       if (editEvent.venue && addr.startsWith(`${editEvent.venue} — `)) {
         addr = addr.substring(editEvent.venue.length + 3);
@@ -143,27 +105,53 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
     }
   }, [editEvent]);
 
-  useEffect(() => {
-    // If not authenticated or member profile is missing, search Salesforce for an admin contact
-    if (!member?.id) {
-      const loadFallbackContact = async () => {
-        try {
-          const admins = await FirestoreService.getAdminMembers();
-          if (admins && admins.length > 0) {
-            setFallbackContactId(admins[0].Id);
-          }
-        } catch (e) {
-          console.warn('Failed to load fallback admin contact', e);
-        }
-      };
-      loadFallbackContact();
+  // Salesforce fallback logic removed for Firebase migration
+
+  const handleNext = () => {
+    setErrors({});
+    let newErrors: { [key: string]: string } = {};
+
+    if (step === 1) {
+      if (!title.trim()) newErrors.title = 'Please enter an event title.';
+      if (endTime <= startTime) newErrors.time = 'End Time must be greater than Start Time.';
+      
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        return;
+      }
+      setStep(2);
+    } else if (step === 2) {
+      if (!venue.trim()) newErrors.venue = 'Please enter a venue name.';
+      if (!city.trim()) newErrors.city = 'Please enter a Town / Village.';
+      if (!address.trim()) newErrors.address = 'Please enter a full address for maps integration.';
+      
+      if (Object.keys(newErrors).length > 0) {
+        setErrors(newErrors);
+        return;
+      }
+      setStep(3);
     }
-  }, [member]);
+  };
+
+  const handlePrev = () => {
+    if (step > 1) setStep(step - 1);
+  };
 
   const handleSave = async () => {
-    const targetContactId = member?.id || fallbackContactId;
-    if (!targetContactId) {
-      setAlertConfig({ visible: true, title: 'Salesforce Error', message: 'Could not locate an Admin Contact record to link this event to. Please check your internet connection.', type: 'error' });
+    setErrors({});
+    let newErrors: { [key: string]: string } = {};
+
+    if (!title.trim()) newErrors.title = 'Please enter an event title.';
+    if (!venue.trim()) newErrors.venue = 'Please enter a venue name.';
+    if (!city.trim()) newErrors.city = 'Please enter a Town / Village.';
+    if (!address.trim()) newErrors.address = 'Please enter a full address for maps integration.';
+    if (endTime <= startTime) newErrors.time = 'End Time must be greater than Start Time.';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      // Determine which step has errors to navigate back to it
+      if (newErrors.title || newErrors.time) setStep(1);
+      else if (newErrors.venue || newErrors.city || newErrors.address) setStep(2);
       return;
     }
 
@@ -180,41 +168,48 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
       const endDateTime = new Date(startDateTime.getTime() + durationMinsNum * 60 * 1000);
 
       // Build full address with PIN code for geocoding
-      const fullAddress = pinCode
-        ? `${address.trim()}, ${pinCode.trim()}`
-        : address.trim();
+      const fullLocation = [venue.trim(), city.trim(), address.trim()]
+        .filter(Boolean)
+        .join(' — ');
 
-      let lat = 0;
-      let lng = 0;
+      // Pre-geocode the location to save it in Firebase natively
+      let eventLat = 0;
+      let eventLng = 0;
       const GOOGLE_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY || '';
-
-      if (GOOGLE_KEY && fullAddress) {
+      if (GOOGLE_KEY) {
         try {
-          const geoResp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullAddress)}&key=${GOOGLE_KEY}`);
+          const geoResp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(fullLocation)}&key=${GOOGLE_KEY}`);
           const geoData = await geoResp.json();
           if (geoData.status === 'OK' && geoData.results.length > 0) {
-            lat = geoData.results[0].geometry.location.lat;
-            lng = geoData.results[0].geometry.location.lng;
+            eventLat = geoData.results[0].geometry.location.lat;
+            eventLng = geoData.results[0].geometry.location.lng;
+          } else {
+            console.warn('Geocoding failed during save (Status not OK):', geoData.status);
+            Alert.alert('Location Warning', `Google Maps could not find the exact coordinates for this address (${geoData.status}). The Live Tracker will not work for this event.`);
           }
         } catch (e) {
-          console.warn('Geocoding failed for event creation', e);
+          console.warn('Geocoding failed during save:', e);
+          Alert.alert('Location Warning', 'Network error while finding coordinates. The Live Tracker will not work for this event.');
         }
+      } else {
+        Alert.alert('Location Warning', 'Google Maps API Key missing. The Live Tracker will not work for this event.');
       }
 
-      // Construct Firestore Event payload matching PastorEvent interface
+      // Construct Firebase Event payload
       const payload: any = {
-        title,
+        title: title,
         type: eventType || 'meeting',
         date: startDateTime.toISOString().split('T')[0],
-        startTime: startTime.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }),
-        endTime: endTime.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true }),
+        startTime: startDateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+        endTime: endDateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
         durationMins: durationMinsNum,
         venue: venue.trim(),
-        address: fullAddress,
-        lat,
-        lng,
+        city: city.trim(),
+        address: address.trim(),
+        lat: eventLat,
+        lng: eventLng,
         description: description.trim(),
-        notes: notes.trim()
+        notes: notes.trim(),
       };
 
       const executeSave = async () => {
@@ -247,23 +242,47 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
         }
       };
 
-      // --- Schedule Conflict Detection Logic ---
+      // --- Schedule Overlap Conflict Detection ---
       try {
+        const conflicts = await checkScheduleConflicts(
+          startDateTime.toISOString(),
+          startDateTime.getTime(),
+          durationMinsNum,
+          editEvent?.id
+        );
+        
+        if (conflicts && conflicts.length > 0) {
+          setAlertConfig({
+            visible: true,
+            title: 'Schedule Conflict',
+            message: `You already have another event scheduled at this exact same time:\n\n${conflicts.join('\n')}\n\nAre you sure you want to double-book?`,
+            type: 'warning',
+            buttons: [
+              { text: 'Cancel', style: 'cancel', onPress: () => { setLoading(false); closeAlert(); } },
+              { text: 'Proceed Anyway', onPress: () => { closeAlert(); executeSave(); } }
+            ]
+          });
+          return; // Pause here!
+        }
+      } catch (err) {
+        console.warn('Overlap check failed', err);
+      }
+
+      // --- Travel Time Detection Logic ---
+      try {
+        const GOOGLE_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_KEY || '';
         if (GOOGLE_KEY) {
           const existingEvents = await FirestoreService.getPastorEvents();
           
           // Helper to parse the 12-hour AM/PM string into a comparable Date
           const parseTime = (timeStr: string, dateObj: Date) => {
-            if (!timeStr) return new Date(dateObj);
-            const parts = timeStr.split(' ');
-            if (parts.length < 2) return new Date(dateObj);
-            const [time, modifier] = parts;
+            const [time, modifier] = timeStr.split(' ');
             let [hours, minutes] = time.split(':');
-            let h = parseInt(hours || '0', 10);
+            let h = parseInt(hours, 10);
             if (h === 12) h = 0;
-            if (modifier && modifier.toUpperCase() === 'PM') h += 12;
+            if (modifier === 'PM') h += 12;
             const d = new Date(dateObj);
-            d.setHours(h, parseInt(minutes || '0', 10), 0, 0);
+            d.setHours(h, parseInt(minutes, 10), 0, 0);
             return d;
           };
 
@@ -281,33 +300,43 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
           if (prevEvents.length > 0) {
             const prevEvent = prevEvents[prevEvents.length - 1];
 
-            if (lat && lng && prevEvent.lat && prevEvent.lng) {
-              const origins = `${prevEvent.lat},${prevEvent.lng}`;
-              const destinations = `${lat},${lng}`;
-              const distResp = await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origins}&destinations=${destinations}&key=${GOOGLE_KEY}`);
-              const distData = await distResp.json();
+            // Get lat/lng of the NEW event
+            const combinedAddress = [address.trim(), city.trim()].filter(Boolean).join(', ');
+            const geoResp = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(combinedAddress)}&key=${GOOGLE_KEY}`);
+            const geoData = await geoResp.json();
+            
+            if (geoData.status === 'OK' && geoData.results.length > 0) {
+              const newLat = geoData.results[0].geometry.location.lat;
+              const newLng = geoData.results[0].geometry.location.lng;
 
-              if (distData.status === 'OK' && distData.rows[0].elements[0].status === 'OK') {
-                const travelTimeSeconds = distData.rows[0].elements[0].duration.value;
-                const travelTimeMins = Math.round(travelTimeSeconds / 60);
-                
-                const prevStartTimeMs = parseTime(prevEvent.startTime, startDateTime).getTime();
-                const prevEndTimeMs = prevStartTimeMs + ((prevEvent.durationMins || 60) * 60000);
-                
-                const requiredArrivalTimeMs = prevEndTimeMs + (travelTimeMins * 60000);
-                
-                if (requiredArrivalTimeMs > newEventStartMs) {
-                  setAlertConfig({
-                    visible: true,
-                    title: 'Schedule Conflict',
-                    message: `Insufficient travel time between your previous stop (${prevEvent.title}) and this new location.\n\nEstimated travel time is ${travelTimeMins >= 60 ? `${Math.round(travelTimeMins / 60 * 10) / 10} hours` : `${travelTimeMins} minutes`}.`,
-                    type: 'warning',
-                    buttons: [
-                      { text: 'Cancel', style: 'cancel', onPress: () => { setLoading(false); closeAlert(); } },
-                      { text: 'Proceed Anyway', onPress: () => { closeAlert(); executeSave(); } }
-                    ]
-                  });
-                  return; // Pause here!
+              if (newLat && newLng && prevEvent.lat && prevEvent.lng) {
+                const origins = `${prevEvent.lat},${prevEvent.lng}`;
+                const destinations = `${newLat},${newLng}`;
+                const distResp = await fetch(`https://maps.googleapis.com/maps/api/distancematrix/json?origins=${origins}&destinations=${destinations}&key=${GOOGLE_KEY}`);
+                const distData = await distResp.json();
+
+                if (distData.status === 'OK' && distData.rows[0].elements[0].status === 'OK') {
+                  const travelTimeSeconds = distData.rows[0].elements[0].duration.value;
+                  const travelTimeMins = Math.round(travelTimeSeconds / 60);
+                  
+                  const prevStartTimeMs = parseTime(prevEvent.startTime, startDateTime).getTime();
+                  const prevEndTimeMs = prevStartTimeMs + (prevEvent.durationMins * 60000);
+                  
+                  const requiredArrivalTimeMs = prevEndTimeMs + (travelTimeMins * 60000);
+                  
+                  if (requiredArrivalTimeMs > newEventStartMs) {
+                    setAlertConfig({
+                      visible: true,
+                      title: 'Schedule Conflict',
+                      message: `Insufficient travel time between your previous stop (${prevEvent.title}) and this new location.\n\nEstimated travel time is ${travelTimeMins >= 60 ? `${Math.round(travelTimeMins / 60 * 10) / 10} hours` : `${travelTimeMins} minutes`}.`,
+                      type: 'warning',
+                      buttons: [
+                        { text: 'Cancel', style: 'cancel', onPress: () => { setLoading(false); closeAlert(); } },
+                        { text: 'Proceed Anyway', onPress: () => { closeAlert(); executeSave(); } }
+                      ]
+                    });
+                    return; // Pause here!
+                  }
                 }
               }
             }
@@ -339,11 +368,6 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
         buttons={alertConfig.buttons}
         onClose={closeAlert}
       />
-
-      {/* Validation Handlers */}
-      {(() => {
-        // Exposing these for the next buttons, though we could just put them in the component body
-      })()}
       
       {/* Header */}
       <View style={styles.header}>
@@ -354,31 +378,27 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
         <View style={{ width: 40 }} />
       </View>
 
-      {/* Stepper UI */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: spacing.md, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        <View style={{ alignItems: 'center', width: 80 }}>
-          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: step >= 1 ? colors.primary : '#E2E8F0', justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: step >= 1 ? '#FFF' : '#64748B', fontWeight: 'bold' }}>1</Text>
-          </View>
-          <Text style={{ fontSize: 12, marginTop: 4, color: step >= 1 ? colors.primary : '#64748B', fontWeight: step >= 1 ? '700' : '500' }}>Event Info</Text>
-        </View>
-        <View style={{ height: 2, flex: 1, backgroundColor: step >= 2 ? colors.primary : '#E2E8F0', maxWidth: 40 }} />
-        <View style={{ alignItems: 'center', width: 80 }}>
-          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: step >= 2 ? colors.primary : '#E2E8F0', justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: step >= 2 ? '#FFF' : '#64748B', fontWeight: 'bold' }}>2</Text>
-          </View>
-          <Text style={{ fontSize: 12, marginTop: 4, color: step >= 2 ? colors.primary : '#64748B', fontWeight: step >= 2 ? '700' : '500' }}>Destination</Text>
-        </View>
-        <View style={{ height: 2, flex: 1, backgroundColor: step >= 3 ? colors.primary : '#E2E8F0', maxWidth: 40 }} />
-        <View style={{ alignItems: 'center', width: 80 }}>
-          <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: step >= 3 ? colors.primary : '#E2E8F0', justifyContent: 'center', alignItems: 'center' }}>
-            <Text style={{ color: step >= 3 ? '#FFF' : '#64748B', fontWeight: 'bold' }}>3</Text>
-          </View>
-          <Text style={{ fontSize: 12, marginTop: 4, color: step >= 3 ? colors.primary : '#64748B', fontWeight: step >= 3 ? '700' : '500' }}>Notes</Text>
-        </View>
+      {/* Step Indicator */}
+      <View style={styles.stepContainer}>
+        {[1, 2, 3].map((s, idx) => (
+          <React.Fragment key={s}>
+            <View style={[styles.stepCircle, step >= s ? styles.stepCircleActive : null]}>
+              <Text style={[styles.stepText, step >= s ? styles.stepTextActive : null]}>{s}</Text>
+            </View>
+            {s < 3 && (
+              <View style={[styles.stepLine, step > s ? styles.stepLineActive : null]} />
+            )}
+          </React.Fragment>
+        ))}
+      </View>
+      <View style={styles.stepLabels}>
+        <Text style={[styles.stepLabelText, step >= 1 && styles.stepLabelTextActive]}>Event Info</Text>
+        <Text style={[styles.stepLabelText, step >= 2 && styles.stepLabelTextActive, { textAlign: 'center' }]}>Destination</Text>
+        <Text style={[styles.stepLabelText, step >= 3 && styles.stepLabelTextActive, { textAlign: 'right' }]}>Notes</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+        
         {step === 1 && (
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Event Information</Text>
@@ -386,16 +406,16 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Event Title *</Text>
               <TextInput
-                style={[styles.input, errors.title ? { borderColor: colors.error } : null]}
+                style={[styles.input, errors.title && { borderColor: '#ef4444', borderWidth: 1 }]}
                 placeholderTextColor={colors.textTertiary}
                 placeholder="e.g. Sunday Service & Prayer"
                 value={title}
                 onChangeText={(text) => {
                   setTitle(text);
-                  if (errors.title) setErrors(prev => ({ ...prev, title: '' }));
+                  if (errors.title) setErrors({ ...errors, title: '' });
                 }}
               />
-              {errors.title ? <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{errors.title}</Text> : null}
+              {errors.title && <Text style={styles.errorText}>{errors.title}</Text>}
             </View>
 
             <View style={styles.inputGroup}>
@@ -455,7 +475,10 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
 
               <View style={[styles.inputGroup, { flex: 1, marginLeft: spacing.md }]}>
                 <Text style={styles.label}>End Time *</Text>
-                <TouchableOpacity style={styles.dropdown} onPress={() => setShowEndTimePicker(true)}>
+                <TouchableOpacity 
+                  style={[styles.dropdown, errors.time && { borderColor: '#ef4444', borderWidth: 1 }]} 
+                  onPress={() => setShowEndTimePicker(true)}
+                >
                   <Text style={styles.dropdownText}>
                     {endTime.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true })}
                   </Text>
@@ -469,15 +492,18 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
                     is24Hour={false}
                     onChange={(event, selectedTime) => {
                       setShowEndTimePicker(false);
-                      if (selectedTime) setEndTime(selectedTime);
+                      if (selectedTime) {
+                        setEndTime(selectedTime);
+                        if (errors.time) setErrors({ ...errors, time: '' });
+                      }
                     }}
                   />
                 )}
               </View>
             </View>
-            {errors.time ? <Text style={{ color: colors.error, fontSize: 12, marginTop: -8, marginBottom: spacing.md }}>{errors.time}</Text> : null}
+            {errors.time && <Text style={[styles.errorText, { marginTop: -8, marginBottom: 12 }]}>{errors.time}</Text>}
 
-            <View style={[styles.inputGroup, { marginTop: errors.time ? 0 : spacing.md }]}>
+            <View style={[styles.inputGroup, { marginTop: spacing.md }]}>
               <Text style={styles.label}>Meeting Length (Calculated)</Text>
               <View style={[styles.input, { backgroundColor: colors.bgSecondary, justifyContent: 'center' }]}>
                 <Text style={{ color: colors.textPrimary }}>
@@ -485,27 +511,6 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
                 </Text>
               </View>
             </View>
-
-            <TouchableOpacity
-              style={styles.saveButton}
-              onPress={() => {
-                let newErrors: any = {};
-                let valid = true;
-                if (!title.trim()) {
-                  newErrors.title = 'Event Title is required';
-                  valid = false;
-                }
-                if (endTime <= startTime) {
-                  newErrors.time = 'End Time must be after Start Time';
-                  valid = false;
-                }
-                setErrors(newErrors);
-                if (valid) setStep(2);
-              }}
-            >
-              <Text style={styles.saveButtonText}>Next</Text>
-              <Ionicons name="arrow-forward" size={20} color="#FFF" />
-            </TouchableOpacity>
           </View>
         )}
 
@@ -516,83 +521,48 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Venue Name *</Text>
               <TextInput
-                style={[styles.input, errors.venue ? { borderColor: colors.error } : null]}
+                style={[styles.input, errors.venue && { borderColor: '#ef4444', borderWidth: 1 }]}
                 placeholderTextColor={colors.textTertiary}
-                placeholder="e.g. Kurnool"
+                placeholder="e.g. Calvary Temple"
                 value={venue}
                 onChangeText={(text) => {
                   setVenue(text);
-                  if (errors.venue) setErrors(prev => ({ ...prev, venue: '' }));
+                  if (errors.venue) setErrors({ ...errors, venue: '' });
                 }}
               />
-              {errors.venue ? <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{errors.venue}</Text> : null}
+              {errors.venue && <Text style={styles.errorText}>{errors.venue}</Text>}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Town / Village * (For Live Tracker Landmark)</Text>
+              <TextInput
+                style={[styles.input, errors.city && { borderColor: '#ef4444', borderWidth: 1 }]}
+                placeholderTextColor={colors.textTertiary}
+                placeholder="e.g. Guntur"
+                value={city}
+                onChangeText={(text) => {
+                  setCity(text);
+                  if (errors.city) setErrors({ ...errors, city: '' });
+                }}
+              />
+              {errors.city && <Text style={styles.errorText}>{errors.city}</Text>}
             </View>
 
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Full Address * (Used for Maps Routing)</Text>
               <TextInput
-                style={[styles.input, styles.textArea, errors.address ? { borderColor: colors.error } : null]}
+                style={[styles.input, styles.textArea, errors.address && { borderColor: '#ef4444', borderWidth: 1 }]}
                 placeholderTextColor={colors.textTertiary}
-                placeholder="e.g. Nandyal Check Post, Kurnool, AP, 518002"
+                placeholder="e.g. Ring Road, Arundelpet, Guntur, AP, 522002"
                 multiline
                 numberOfLines={3}
                 value={address}
                 onChangeText={(text) => {
                   setAddress(text);
-                  if (errors.address) setErrors(prev => ({ ...prev, address: '' }));
+                  if (errors.address) setErrors({ ...errors, address: '' });
                 }}
               />
-              {errors.address ? <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{errors.address}</Text> : null}
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>PIN Code * (Improves map accuracy)</Text>
-              <TextInput
-                style={[styles.input, errors.pinCode ? { borderColor: colors.error } : null]}
-                placeholderTextColor={colors.textTertiary}
-                placeholder="e.g. 518002"
-                keyboardType="numeric"
-                maxLength={10}
-                value={pinCode}
-                onChangeText={(text) => {
-                  setPinCode(text);
-                  if (errors.pinCode) setErrors(prev => ({ ...prev, pinCode: '' }));
-                }}
-              />
-              {errors.pinCode ? <Text style={{ color: colors.error, fontSize: 12, marginTop: 4 }}>{errors.pinCode}</Text> : null}
-            </View>
-
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: spacing.md }}>
-              <TouchableOpacity
-                style={[styles.saveButton, { flex: 1, backgroundColor: '#FFF', borderWidth: 1, borderColor: colors.border }]}
-                onPress={() => setStep(1)}
-              >
-                <Text style={[styles.saveButtonText, { color: colors.textPrimary }]}>Back</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saveButton, { flex: 1 }]}
-                onPress={() => {
-                  let newErrors: any = {};
-                  let valid = true;
-                  if (!venue.trim()) {
-                    newErrors.venue = 'Venue Name is required';
-                    valid = false;
-                  }
-                  if (!address.trim()) {
-                    newErrors.address = 'Full Address is required for maps routing';
-                    valid = false;
-                  }
-                  if (!pinCode.trim()) {
-                    newErrors.pinCode = 'PIN Code is required';
-                    valid = false;
-                  }
-                  setErrors(newErrors);
-                  if (valid) setStep(3);
-                }}
-              >
-                <Text style={styles.saveButtonText}>Next</Text>
-                <Ionicons name="arrow-forward" size={20} color="#FFF" />
-              </TouchableOpacity>
+              {errors.address && <Text style={styles.errorText}>{errors.address}</Text>}
             </View>
           </View>
         )}
@@ -604,11 +574,11 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Description</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[styles.input, { height: 120, textAlignVertical: 'top' }]}
                 placeholderTextColor={colors.textTertiary}
                 placeholder="What is this itinerary appointment for?"
                 multiline
-                numberOfLines={4}
+                numberOfLines={6}
                 value={description}
                 onChangeText={setDescription}
               />
@@ -617,40 +587,48 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Special Notes</Text>
               <TextInput
-                style={[styles.input, styles.textArea]}
+                style={[styles.input, { height: 120, textAlignVertical: 'top' }]}
                 placeholderTextColor={colors.textTertiary}
                 placeholder="Any items to bring, contacts to meet, or preparations to make?"
                 multiline
-                numberOfLines={3}
+                numberOfLines={6}
                 value={notes}
                 onChangeText={setNotes}
               />
             </View>
-
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: spacing.md }}>
-              <TouchableOpacity
-                style={[styles.saveButton, { flex: 1, backgroundColor: '#FFF', borderWidth: 1, borderColor: colors.border }]}
-                onPress={() => setStep(2)}
-              >
-                <Text style={[styles.saveButtonText, { color: colors.textPrimary }]}>Back</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.saveButton, { flex: 1 }, loading && styles.saveButtonDisabled]}
-                onPress={handleSave}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color="#FFF" />
-                ) : (
-                  <>
-                    <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" />
-                    <Text style={styles.saveButtonText}>{editEvent ? 'Update Event' : 'Create Event'}</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
           </View>
         )}
+
+        {/* Navigation Buttons */}
+        <View style={styles.navigationRow}>
+          {step > 1 && (
+            <TouchableOpacity style={styles.prevButton} onPress={handlePrev} disabled={loading}>
+              <Text style={styles.prevButtonText}>Back</Text>
+            </TouchableOpacity>
+          )}
+          
+          {step < 3 ? (
+            <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+              <Text style={styles.saveButtonText}>Next</Text>
+              <Ionicons name="arrow-forward" size={20} color="#FFF" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[styles.saveButton, loading && styles.saveButtonDisabled, { flex: 1, marginTop: 0, marginBottom: 0 }]}
+              onPress={handleSave}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#FFF" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle-outline" size={20} color="#FFF" />
+                  <Text style={styles.saveButtonText}>{editEvent ? 'Update Event' : 'Create Event'}</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -785,6 +763,102 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 15,
     fontWeight: '700'
+  },
+  stepContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    backgroundColor: colors.bgSecondary,
+  },
+  stepCircle: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.bgTertiary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.border
+  },
+  stepCircleActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary
+  },
+  stepText: {
+    color: colors.textSecondary,
+    fontWeight: 'bold',
+    fontSize: 14
+  },
+  stepTextActive: {
+    color: '#FFF'
+  },
+  stepLine: {
+    width: 50,
+    height: 3,
+    backgroundColor: colors.border,
+    marginHorizontal: 8
+  },
+  stepLineActive: {
+    backgroundColor: colors.primary
+  },
+  stepLabels: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.bgSecondary,
+  },
+  stepLabelText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    width: 80,
+    textAlign: 'left'
+  },
+  stepLabelTextActive: {
+    color: colors.primary,
+    fontWeight: 'bold'
+  },
+  navigationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: spacing.md,
+    marginBottom: spacing.xl,
+    gap: spacing.md
+  },
+  prevButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    backgroundColor: colors.bgPrimary,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  prevButtonText: {
+    color: colors.textPrimary,
+    fontSize: 15,
+    fontWeight: '600'
+  },
+  nextButton: {
+    flex: 1,
+    flexDirection: 'row',
+    paddingVertical: 14,
+    borderRadius: radius.md,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    ...shadow.card
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4
   }
 });
 

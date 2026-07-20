@@ -96,9 +96,9 @@ const styles = StyleSheet.create({
     width: 110, height: 110, borderRadius: 55, backgroundColor: '#fff', 
     alignItems: 'center', justifyContent: 'center', marginBottom: 25,
     elevation: 20, shadowColor: '#fbbf24', shadowOpacity: 0.4, shadowRadius: 15,
-    position: 'relative'
+    position: 'relative', overflow: 'hidden'
   },
-  logoImg: { width: 75, height: 75 },
+  logoImg: { width: 110, height: 110, resizeMode: 'cover' },
   sparkleBadge: { position: 'absolute', top: -5, right: -5, backgroundColor: '#1a2d5a', padding: 8, borderRadius: 20, borderWidth: 1, borderColor: '#fbbf24' },
   
   welcomeTitle: { fontSize: 32, fontWeight: '900', color: '#fff', textAlign: 'center', marginBottom: 5 },

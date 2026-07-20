@@ -80,6 +80,8 @@ export default function BibleReaderScreen({ route, navigation }: any) {
   const [selectedVerses, setSelectedVerses] = useState<Set<number>>(new Set());
   const [savedVerseCount, setSavedVerseCount] = useState(0);
 
+  const [isChapterRead, setIsChapterRead] = useState(false);
+
   const scrollViewRef = React.useRef<ScrollView>(null);
   const [verseLayouts, setVerseLayouts] = useState<{ [key: number]: number }>({});
 
@@ -94,7 +96,24 @@ export default function BibleReaderScreen({ route, navigation }: any) {
     // Exit selection mode when chapter changes
     setSelectionMode(false);
     setSelectedVerses(new Set());
-  }, [bookName, chapter, lang]);
+    
+    // Check read status
+    const checkReadStatus = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('@BibleReadProgress');
+        if (stored) {
+          const progress = JSON.parse(stored);
+          const key = `${bookIndex}-${chapter}`;
+          setIsChapterRead(progress.includes(key));
+        } else {
+          setIsChapterRead(false);
+        }
+      } catch (e) {
+        console.error('Error checking read status', e);
+      }
+    };
+    checkReadStatus();
+  }, [bookName, chapter, lang, bookIndex]);
 
   React.useEffect(() => {
     if (targetVerse && verseLayouts[targetVerse] !== undefined) {
@@ -354,7 +373,7 @@ export default function BibleReaderScreen({ route, navigation }: any) {
                     <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
                       {isSelected && <CheckCircle2 color="#fff" size={14} />}
                     </View>
-                    <Text style={[styles.verseNumber, isSelected && { color: '#1a2d5a' }]}>{item.verse}</Text>
+                    <Text style={[styles.verseNumber, { color: isDark ? (isSelected ? '#bfdbfe' : '#94a3b8') : '#1a2d5a' }]}>{item.verse}</Text>
                     <Text style={[styles.verseText, { color: isDark ? (isSelected ? '#bfdbfe' : '#e2e8f0') : (isSelected ? '#1e3a8a' : '#1e293b') }]}>
                       {item.text}
                     </Text>
@@ -400,7 +419,7 @@ export default function BibleReaderScreen({ route, navigation }: any) {
                     setVerseLayouts(prev => ({...prev, [item.verse]: y}));
                   }}
                 >
-                  <Text style={styles.verseNumber}>{item.verse}</Text>
+                  <Text style={[styles.verseNumber, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{item.verse}</Text>
                   <Text style={[styles.verseText, { color: isDark ? '#e2e8f0' : '#1e293b' }]}>
                     {item.text}
                   </Text>
@@ -413,6 +432,46 @@ export default function BibleReaderScreen({ route, navigation }: any) {
             <View style={styles.chapterEnd}>
               <View style={styles.divider} />
               <Text style={styles.endText}>End of Chapter {chapter}</Text>
+              
+              <TouchableOpacity 
+                style={[
+                  styles.markReadBtn, 
+                  { backgroundColor: isChapterRead ? (isDark ? '#334155' : '#e2e8f0') : '#10b981', marginTop: 20 }
+                ]}
+                onPress={async () => {
+                  try {
+                    const stored = await AsyncStorage.getItem('@BibleReadProgress');
+                    let progress = stored ? JSON.parse(stored) : [];
+                    const key = `${bookIndex}-${chapter}`;
+                    
+                    if (isChapterRead) {
+                      progress = progress.filter((item: string) => item !== key);
+                      await AsyncStorage.setItem('@BibleReadProgress', JSON.stringify(progress));
+                      setIsChapterRead(false);
+                      // Optional: Alert.alert('Success', 'Chapter unmarked as read.');
+                    } else {
+                      if (!progress.includes(key)) {
+                        progress.push(key);
+                        await AsyncStorage.setItem('@BibleReadProgress', JSON.stringify(progress));
+                      }
+                      setIsChapterRead(true);
+                      Alert.alert('Success', 'Chapter marked as read!');
+                    }
+                  } catch (e) {
+                    console.error('Error saving read progress', e);
+                  }
+                }}
+              >
+                <CheckCircle2 color={isChapterRead ? (isDark ? '#94a3b8' : '#64748b') : '#fff'} size={18} />
+                <Text style={{ 
+                  color: isChapterRead ? (isDark ? '#94a3b8' : '#64748b') : '#fff', 
+                  fontSize: 14, 
+                  fontWeight: '700', 
+                  marginLeft: 8 
+                }}>
+                  {isChapterRead ? 'Unmark as Read' : 'Mark as Read'}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
         </View>
@@ -440,23 +499,28 @@ export default function BibleReaderScreen({ route, navigation }: any) {
           </TouchableOpacity>
         </View>
       ) : (
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
           <TouchableOpacity 
-            style={[styles.barAction, chapter <= 1 && { opacity: 0.3 }]} 
-            onPress={() => chapter > 1 && navigation.replace('BibleReader', { bookName, chapter: chapter - 1, lang })}
+            style={[styles.barAction, chapter <= 1 && { opacity: 0.3 }, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]} 
+            onPress={() => chapter > 1 && navigation.push('BibleReader', { bookName, chapter: chapter - 1, lang })}
             disabled={chapter <= 1}
           >
-            <ChevronLeft color="#1a2d5a" size={24} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.barMain}>
-            <Text style={styles.barMainTxt}>Select Chapter</Text>
+            <ChevronLeft color={isDark ? '#e2e8f0' : '#1a2d5a'} size={24} />
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.barAction, chapter >= totalChapters && { opacity: 0.3 }]}
-            onPress={() => chapter < totalChapters && navigation.replace('BibleReader', { bookName, chapter: chapter + 1, lang })}
+            style={styles.barMain}
+            onPress={() => navigation.navigate('BibleChapters', { bookName, lang })}
+          >
+            <Text style={[styles.barMainTxt, { color: isDark ? '#e2e8f0' : '#1a2d5a' }]}>
+              Chapter {chapter} of {totalChapters}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.barAction, chapter >= totalChapters && { opacity: 0.3 }, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}
+            onPress={() => chapter < totalChapters && navigation.push('BibleReader', { bookName, chapter: chapter + 1, lang })}
             disabled={chapter >= totalChapters}
           >
-            <ChevronLeft color="#1a2d5a" size={24} style={{ transform: [{ rotate: '180deg' }] }} />
+            <ChevronLeft color={isDark ? '#e2e8f0' : '#1a2d5a'} size={24} style={{ transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
         </View>
       )}
@@ -767,6 +831,18 @@ const styles = StyleSheet.create({
   chapterEnd: { alignItems: 'center', marginTop: 40 },
   divider: { width: 50, height: 2, backgroundColor: '#e2e8f0', marginBottom: 10 },
   endText: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
+  markReadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    elevation: 3,
+    shadowColor: '#10b981',
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 }
+  },
 
   bottomBar: {
     position: 'absolute',

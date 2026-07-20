@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, Dimensions, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   BookOpen, 
@@ -17,12 +17,15 @@ import {
   Smartphone,
   Info,
   Phone,
-  Settings
+  Settings,
+  CreditCard,
+  MessageCircle
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
 import Theme from '../theme/Theme';
 import { AdminTabContext } from '../context/AdminTabContext';
+import { CustomAlert } from '../components/CustomAlert';
 
 // Import Screens
 import AdminPromiseList from '../screens/admin/AdminPromiseList';
@@ -42,6 +45,9 @@ import AdminContactUsEditor from '../screens/admin/AdminContactUsEditor';
 import AdminChurchSettings from '../screens/admin/AdminChurchSettings';
 import PastorEventDashboard from '../screens/admin/pastor_events/PastorEventDashboard';
 import SuperAdminDashboard from '../screens/admin/SuperAdminDashboard';
+import AdminSubscriptionScreen from '../screens/admin/AdminSubscriptionScreen';
+import AdminWeCelebrations from '../screens/admin/AdminWeCelebrations';
+import AdminWhatsAppInbox from '../screens/admin/AdminWhatsAppInbox';
 import { Shield } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -53,6 +59,12 @@ export default function AdminNavigator({ navigation }: any) {
   const [tabHistory, setTabHistory] = useState<number[]>([]);
   const [editingData, setEditingData] = useState(null);
   const [menuExpanded, setMenuExpanded] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'info' | 'error' | 'warning';
+  }>({ visible: false, title: '', message: '', type: 'info' });
 
   const handleSetTab = (index: number) => {
     if (index !== activeTab) {
@@ -86,9 +98,12 @@ export default function AdminNavigator({ navigation }: any) {
     { name: 'Prayers', icon: Heart, component: AdminPrayerModeration },
     { name: 'Members', icon: Users, component: AdminMembers },
     { name: 'Celebrations', icon: Gift, component: AdminCelebrations },
+    ...((member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin') ? [{ name: 'WeCelebrations', icon: Gift, component: AdminWeCelebrations }] : []),
+    ...((member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin') ? [{ name: 'WhatsApp', icon: MessageCircle, component: AdminWhatsAppInbox }] : []),
     { name: 'About Us', icon: Info, component: AdminAboutUsEditor },
     { name: 'Contact Us', icon: Phone, component: AdminContactUsEditor },
     { name: 'Church Settings', icon: Settings, component: AdminChurchSettings },
+    { name: 'Subscription', icon: CreditCard, component: AdminSubscriptionScreen },
     ...(member?.userType === 'super_admin' ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];
 
@@ -157,6 +172,16 @@ export default function AdminNavigator({ navigation }: any) {
                         key={index} 
                         style={[styles.drawerItem, isActive && styles.drawerItemActive]}
                         onPress={() => {
+                          if ((tab.name === 'WhatsApp' || tab.name === 'WeCelebrations') && !activeChurch?.whatsappIntegrationEnabled) {
+                            setMenuExpanded(false);
+                            setAlertConfig({
+                              visible: true,
+                              title: 'WhatsApp Integration Not Enabled',
+                              message: 'WhatsApp Integration is not enabled for your church. Please contact the We Christian team to activate this feature. Once enabled, you will be able to use WhatsApp Integration from the We Celebration module and Church Settings.',
+                              type: 'info'
+                            });
+                            return;
+                          }
                           handleSetTab(index);
                           setMenuExpanded(false); // Hide remaining tabs
                           if ([1, 4, 5, 8].indexOf(index) === -1) setEditingData(null);
@@ -203,6 +228,14 @@ export default function AdminNavigator({ navigation }: any) {
             </View>
           </View>
         )}
+
+        <CustomAlert
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+        />
 
       </SafeAreaView>
     </AdminTabContext.Provider>

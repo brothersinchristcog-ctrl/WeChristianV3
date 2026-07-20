@@ -31,6 +31,7 @@ import {
   Combine
 } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { CustomAlert } from '../components/CustomAlert';
 
 const { width, height } = Dimensions.get('window');
 
@@ -57,6 +58,18 @@ export default function MemberNotesScreen({ navigation, route }: any) {
   // Merge & Selection states
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<string[]>([]);
+  
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'info' | 'error' | 'warning';
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'success'
+  });
   const [mergeModalVisible, setMergeModalVisible] = useState(false);
   const [mergeTitle, setMergeTitle] = useState('');
 
@@ -151,6 +164,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
             const filtered = notes.filter(n => n.id !== id);
             setNotes(filtered);
             saveNotesToStorage(filtered);
+            setAlertConfig({ visible: true, title: 'Note Deleted', message: 'Sermon Note Deleted Successfully', type: 'success' });
           }
         }
       ]
@@ -293,6 +307,14 @@ export default function MemberNotesScreen({ navigation, route }: any) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]} edges={['top']}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+
+      <CustomAlert 
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
 
       {/* Header */}
       <View style={styles.header}>

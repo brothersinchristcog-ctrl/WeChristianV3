@@ -216,13 +216,12 @@ export default function AdminNotificationBroadcast() {
       // Pushed to broadcasts collection so it appears live on UpdatesScreen immediately!
       try {
         const churchId = await FirestoreService.getChurchId();
-        await addDoc(collection(db, 'broadcasts'), {
+        await FirestoreService.createNotificationBroadcast({
           title: manualBroadcast.title,
           content: manualBroadcast.message,
           date: dateStr,
           type: 'announcement',
           targetChurchId: churchId,
-          createdAt: serverTimestamp()
         });
       } catch (fErr) {
         console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
@@ -263,13 +262,12 @@ export default function AdminNotificationBroadcast() {
       // Save to Firestore dynamic updates
       try {
         const churchId = await FirestoreService.getChurchId();
-        await addDoc(collection(db, 'broadcasts'), {
+        await FirestoreService.createNotificationBroadcast({
           title: `🚨 EMERGENCY MEETING: ${emergencyAlert.title}`,
           content: `⏰ TIME: ${fullTimeStr}\n📍 LOCATION: ${emergencyAlert.location}\n\n${emergencyAlert.message}`,
           date: dateStr,
           type: 'emergency',
           targetChurchId: churchId,
-          createdAt: serverTimestamp()
         });
       } catch (fErr) {
         console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
@@ -328,14 +326,13 @@ export default function AdminNotificationBroadcast() {
                 const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
                 try {
                   const churchId = await FirestoreService.getChurchId();
-                  const db = getFirestore(); await addDoc(collection(db, 'broadcasts'), {
+                  await FirestoreService.createNotificationBroadcast({
                     title: '🎂 Happy Birthday!',
                     content: `Dear Member, ${birthdayNotif.greeting}`,
                     date: dateStr,
                     type: 'birthday',
                     silent: true,
                     targetChurchId: churchId,
-                    createdAt: serverTimestamp()
                   });
                 } catch (fErr) {
                   console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
@@ -352,14 +349,14 @@ export default function AdminNotificationBroadcast() {
         for (const member of bdays) {
           try {
             const churchId = await FirestoreService.getChurchId();
-            const db = getFirestore(); await addDoc(collection(db, 'broadcasts'), {
+            await FirestoreService.createNotificationBroadcast({
               title: `🎂 Happy Birthday, ${member.name}!`,
               content: birthdayNotif.greeting,
               date: dateStr,
               type: 'birthday',
               silent: true,
               targetChurchId: churchId,
-              createdAt: serverTimestamp()
+              targetPhone: member.phone,
             });
           } catch (fErr) {
             console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
@@ -391,14 +388,13 @@ export default function AdminNotificationBroadcast() {
                 const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
                 try {
                   const churchId = await FirestoreService.getChurchId();
-                  const db = getFirestore(); await addDoc(collection(db, 'broadcasts'), {
-                    title: '💐 Happy Wedding Anniversary!',
+                  await FirestoreService.createNotificationBroadcast({
+                    title: '💍 Happy Wedding Anniversary!',
                     content: `Wishing all couples celebrating their wedding anniversary today a wonderful year filled with love & joy! ${anniversaryNotif.greeting}`,
                     date: dateStr,
                     type: 'anniversary',
                     silent: true,
                     targetChurchId: churchId,
-                    createdAt: serverTimestamp()
                   });
                 } catch (fErr) {
                   console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
@@ -413,14 +409,14 @@ export default function AdminNotificationBroadcast() {
         for (const ann of annivs) {
           try {
             const churchId = await FirestoreService.getChurchId();
-            const db = getFirestore(); await addDoc(collection(db, 'broadcasts'), {
-              title: `💐 Happy Wedding Anniversary!`,
+            await FirestoreService.createNotificationBroadcast({
+              title: `💍 Happy Wedding Anniversary!`,
               content: `Wishing Brother ${ann.husband} & Sister ${ann.wife} a wonderful ${ann.years}th Wedding Anniversary! ${anniversaryNotif.greeting}`,
               date: dateStr,
               type: 'anniversary',
               silent: true,
               targetChurchId: churchId,
-              createdAt: serverTimestamp()
+              targetPhone: ann.husbandPhone || ann.wifePhone,
             });
           } catch (fErr) {
             console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);

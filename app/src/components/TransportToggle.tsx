@@ -5,37 +5,45 @@ import { colors, radius, spacing } from '../theme/Theme';
 import { TransportMode } from '../types/event';
 
 const modes: { key: TransportMode; icon: string; label: string }[] = [
-  { key: 'car',  icon: 'car-outline',         label: 'Car'  },
-  { key: 'bike', icon: 'bicycle-outline',      label: 'Bike' },
-  { key: 'bus',  icon: 'bus-outline',         label: 'Bus'  },
+  { key: 'car',  icon: 'car-outline',    label: 'Car'  },
+  { key: 'bike', icon: 'bicycle-outline', label: 'Bike' },
+  { key: 'bus',  icon: 'bus-outline',     label: 'Bus'  },
 ];
 
 export const TransportToggle = ({
   value, onChange
 }: { value: TransportMode; onChange: (m: TransportMode) => void }) => (
   <View style={{ flexDirection: 'row', gap: 8, marginBottom: spacing.md }}>
-    {modes.map(m => (
-      <TouchableOpacity
-        key={m.key}
-        onPress={() => onChange(m.key)}
-        style={{
-          flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-          gap: 4, paddingVertical: 8,
-          borderRadius: radius.sm,
-          borderWidth: 1,
-          borderColor: value === m.key ? colors.primary : colors.border,
-          backgroundColor: colors.bgPrimary,
-        }}
-      >
-        <Ionicons name={m.icon as any} size={16}
-          color={value === m.key ? colors.primary : colors.textSecondary} />
-        <Text style={{ fontSize: 12,
-          color: value === m.key ? colors.primary : colors.textSecondary,
-          fontWeight: value === m.key ? '600' : '400' }}>
-          {m.label}
-        </Text>
-      </TouchableOpacity>
-    ))}
+    {modes.map(m => {
+      const isActive = value === m.key;
+      return (
+        <TouchableOpacity
+          key={m.key}
+          onPress={() => onChange(m.key)}
+          style={{
+            flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+            gap: 4, paddingVertical: 10,
+            borderRadius: radius.sm,
+            borderWidth: isActive ? 2 : 1,
+            borderColor: isActive ? colors.primary : colors.border,
+            backgroundColor: '#FFFFFF',
+          }}
+        >
+          <Ionicons
+            name={m.icon as any}
+            size={16}
+            color={isActive ? colors.primary : colors.textSecondary}
+          />
+          <Text style={{
+            fontSize: 12,
+            color: isActive ? colors.primary : colors.textSecondary,
+            fontWeight: isActive ? '700' : '400'
+          }}>
+            {m.label}
+          </Text>
+        </TouchableOpacity>
+      );
+    })}
   </View>
 );
 

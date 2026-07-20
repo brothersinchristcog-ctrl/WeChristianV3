@@ -18,12 +18,13 @@
  *   npx ts-node src/migrateFirestore.ts
  * ============================================================
  */
-import * as admin from 'firebase-admin';
+import { initializeApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 // ── Initialize Admin SDK (uses Application Default Credentials)
 // Make sure you have run: gcloud auth application-default login
 // OR set GOOGLE_APPLICATION_CREDENTIALS env var to your service account key JSON
-admin.initializeApp();
-const db = admin.firestore();
+initializeApp();
+const db = getFirestore();
 // ── CONFIGURE: Set the target Church ID here ──────────────────
 // This is the document name under the 'churches' collection.
 // Check Firebase Console → churches → your church document ID

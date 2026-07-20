@@ -38,7 +38,7 @@ export default function OnboardingScreen() {
     setLoading(true);
     try {
       // ── Save to Firestore (Triggers RootNavigator redirection) ──
-      await firestore().collection('users').doc(user.uid).set({
+      await firestore().collection('guest_profiles').doc(user.uid).set({
         name: fullName,
         phone: user.phoneNumber || 'Guest',
         cellGroup,

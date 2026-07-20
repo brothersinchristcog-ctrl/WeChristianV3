@@ -67,7 +67,7 @@ export default function AdminPromiseCalendar() {
         copyToCacheDirectory: true
       });
 
-      if (result.canceled) {
+      if (result.canceled || !result.assets || result.assets.length === 0) {
         setImporting(false);
         return;
       }
@@ -285,9 +285,9 @@ const styles = StyleSheet.create({
   cMiss: { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
   cMissNum: { color: '#991B1B' },
   cMissStatus: { color: '#DC2626' },
-  cToday: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
-  cTodayNum: { color: '#FCD34D' },
-  cTodayStatus: { color: '#aac4e8' },
+  cToday: { backgroundColor: '#1a2d5a', borderColor: '#fbbf24', borderWidth: 2, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 },
+  cTodayNum: { color: '#fbbf24', fontWeight: '900', fontSize: 14 },
+  cTodayStatus: { color: '#fbbf24', fontWeight: '800' },
 
   legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },

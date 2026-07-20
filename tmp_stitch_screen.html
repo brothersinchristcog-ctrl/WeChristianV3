@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>We Christian - Subscription Flow</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600;700;800&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@100..900&family=Spectral:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#1b1c16",
+                        "on-tertiary-container": "#6e936f",
+                        "surface-container": "#efeee4",
+                        "brass": "#B8912F",
+                        "on-secondary-fixed": "#251a00",
+                        "on-secondary-fixed-variant": "#5b4300",
+                        "forest-soft": "#E4EBE1",
+                        "paper-raised": "#F7F6EE",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "ink": "#1C2333",
+                        "surface-tint": "#575e71",
+                        "secondary-container": "#ffd169",
+                        "paper": "#EEEDE3",
+                        "secondary-fixed": "#ffdf9b",
+                        "forest": "#2F5233",
+                        "wine": "#7A2E2E",
+                        "secondary-fixed-dim": "#ecc15a",
+                        "primary-fixed": "#dce2f8",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f5f4ea",
+                        "surface-container-high": "#e9e9df",
+                        "surface-container-highest": "#e4e3d9",
+                        "surface-variant": "#e4e3d9",
+                        "tertiary-container": "#05290e",
+                        "surface-dim": "#dbdad1",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-background": "#1b1c16",
+                        "inverse-primary": "#bfc6db",
+                        "surface": "#fbfaf0",
+                        "on-tertiary-fixed": "#002108",
+                        "outline-variant": "#c6c6cd",
+                        "inverse-surface": "#30312a",
+                        "tertiary-fixed": "#c4edc3",
+                        "rule": "#D8D2BF",
+                        "secondary": "#785a00",
+                        "inverse-on-surface": "#f2f1e7",
+                        "on-tertiary-fixed-variant": "#2b4e30",
+                        "on-secondary-container": "#765900",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#060d1c",
+                        "text-soft": "#5B6072",
+                        "background": "#fbfaf0",
+                        "tertiary-fixed-dim": "#a9d1a8",
+                        "rule-strong": "#B9B29A",
+                        "tertiary": "#001103",
+                        "on-primary-fixed": "#141b2b",
+                        "on-surface-variant": "#45464c",
+                        "primary-container": "#1c2333",
+                        "primary-fixed-dim": "#bfc6db",
+                        "on-error": "#ffffff",
+                        "surface-bright": "#fbfaf0",
+                        "outline": "#76777d",
+                        "on-primary-container": "#838a9e",
+                        "brass-deep": "#8F701F",
+                        "on-primary-fixed-variant": "#404758"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gap-xs": "4px",
+                        "padding-button": "15px",
+                        "gap-md": "14px",
+                        "base": "4px",
+                        "padding-card": "18px",
+                        "gap-sm": "8px",
+                        "margin-page": "20px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Spectral"],
+                        "body-lg": ["IBM Plex Sans"],
+                        "body-sm": ["IBM Plex Sans"],
+                        "data-sm": ["IBM Plex Mono"],
+                        "label-caps": ["IBM Plex Sans"],
+                        "data-lg": ["IBM Plex Mono"],
+                        "data-md": ["IBM Plex Mono"],
+                        "headline-md": ["Spectral"],
+                        "body-md": ["IBM Plex Sans"],
+                        "headline-lg": ["Spectral"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["15px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "body-lg": ["14.5px", {"lineHeight": "1.5", "fontWeight": "600"}],
+                        "body-sm": ["12.5px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "data-sm": ["13px", {"lineHeight": "1", "fontWeight": "500"}],
+                        "label-caps": ["9.5px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "data-lg": ["26px", {"lineHeight": "1", "fontWeight": "600"}],
+                        "data-md": ["15px", {"lineHeight": "1", "fontWeight": "600"}],
+                        "headline-md": ["17px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "body-md": ["13px", {"lineHeight": "1.5", "fontWeight": "500"}],
+                        "headline-lg": ["20px", {"lineHeight": "1.2", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .step-hidden { display: none; }
+        .circular-progress {
+            background: radial-gradient(closest-side, #EEEDE3 85%, transparent 86% 100%),
+                        conic-gradient(#B8912F calc(142 / 180 * 100%), #D8D2BF 0);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface min-h-screen selection:bg-brass selection:text-paper">
+<!-- Top Navigation -->
+<header class="w-full top-0 sticky z-50 bg-surface flex items-center px-margin-page h-16 w-full max-w-screen-md mx-auto transition-opacity duration-200">
+<button class="p-2 hover:opacity-80 transition-opacity" id="back-btn">
+<span class="material-symbols-outlined text-ink">arrow_back</span>
+</button>
+<h1 class="ml-4 font-headline-md text-headline-md text-ink">We Christian</h1>
+</header>
+<main class="max-w-screen-md mx-auto px-margin-page pb-32">
+<!-- Progress Bar Indicator -->
+<div class="flex gap-xs my-gap-md">
+<div class="h-1 flex-1 rounded-full bg-brass" id="p-1"></div>
+<div class="h-1 flex-1 rounded-full bg-rule" id="p-2"></div>
+<div class="h-1 flex-1 rounded-full bg-rule" id="p-3"></div>
+<div class="h-1 flex-1 rounded-full bg-rule" id="p-4"></div>
+<div class="h-1 flex-1 rounded-full bg-rule" id="p-5"></div>
+</div>
+<!-- STEP 1: Trial Status -->
+<section class="space-y-6" id="step-1">
+<div class="text-center py-6">
+<h2 class="font-headline-lg text-headline-lg text-ink">Welcome back, David</h2>
+<p class="font-body-md text-text-soft mt-1">Your journey of faith continues.</p>
+</div>
+<div class="relative w-56 h-56 mx-auto rounded-full flex items-center justify-center circular-progress">
+<div class="text-center z-10">
+<span class="font-data-lg text-data-lg text-ink block">142</span>
+<span class="font-label-caps text-label-caps text-text-soft">DAYS REMAINING</span>
+</div>
+</div>
+<div class="bg-paper-raised border border-rule p-padding-card rounded-xl text-center">
+<p class="font-body-md text-ink">You are currently in a 6-month trial. Add a personal subscription now to ensure uninterrupted access to the Sacred Ledger features.</p>
+</div>
+<div class="pt-6">
+<button class="w-full bg-ink text-paper py-padding-button rounded-xl font-body-lg flex justify-center items-center gap-sm" onclick="nextStep(2)">
+                    View Subscription Plans <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</section>
+<!-- STEP 2: Plan Selection -->
+<section class="step-hidden space-y-6" id="step-2">
+<div class="text-center py-4">
+<h2 class="font-headline-lg text-headline-lg text-ink">Choose Your Path</h2>
+<p class="font-body-md text-text-soft">Scholarly access tailored for personal devotion.</p>
+</div>
+<!-- Toggle -->
+<div class="bg-paper-raised p-1 rounded-full flex max-w-[240px] mx-auto border border-rule">
+<button class="flex-1 py-2 text-center rounded-full font-body-md bg-ink text-paper transition-all" id="toggle-monthly" onclick="setCycle('monthly')">Monthly</button>
+<button class="flex-1 py-2 text-center rounded-full font-body-md text-text-soft transition-all" id="toggle-annual" onclick="setCycle('annual')">Annual</button>
+</div>
+<!-- Card -->
+<div class="border-2 border-brass bg-paper-raised p-padding-card rounded-[14px] shadow-sm relative overflow-hidden">
+<div class="absolute top-4 right-4 bg-forest text-paper px-2 py-1 rounded-full font-label-caps opacity-0 transition-opacity" id="save-chip">SAVE ₹89</div>
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline-md text-headline-md text-ink">Personal Access</h3>
+<p class="font-body-sm text-text-soft">Full library & prayer tracking</p>
+</div>
+<div class="text-right">
+<span class="font-data-lg text-data-lg text-brass" id="plan-price">₹49</span>
+<span class="font-body-sm text-text-soft block" id="plan-cycle">/ month</span>
+</div>
+</div>
+<div class="space-y-3 py-4 border-t border-dotted border-rule-strong">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-forest text-[18px]">check_circle</span>
+<span class="font-body-md text-ink">Unlimited access to the Sacred Ledger</span>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-forest text-[18px]">check_circle</span>
+<span class="font-body-md text-ink">Personalized prayer notifications</span>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-forest text-[18px]">check_circle</span>
+<span class="font-body-md text-ink">Offline access for scripture study</span>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-forest text-[18px]">check_circle</span>
+<span class="font-body-md text-ink">Exclusive liturgical commentaries</span>
+</div>
+</div>
+</div>
+<button class="w-full bg-ink text-paper py-padding-button rounded-xl font-body-lg" onclick="nextStep(3)">
+                Continue to Payment
+            </button>
+</section>
+<!-- STEP 3: Payment Method -->
+<section class="step-hidden space-y-6" id="step-3">
+<div class="py-4">
+<h2 class="font-headline-lg text-headline-lg text-ink">Payment Method</h2>
+<p class="font-body-md text-text-soft">Safe and encrypted processing.</p>
+</div>
+<div class="space-y-3">
+<label class="flex items-center p-padding-card bg-paper-raised border border-rule rounded-xl cursor-pointer hover:border-brass-deep transition-colors">
+<input checked="" class="w-5 h-5 text-brass border-rule focus:ring-brass" name="pay" type="radio"/>
+<div class="ml-4 flex-1">
+<p class="font-body-lg text-ink">UPI (GPay, PhonePe, etc.)</p>
+</div>
+<span class="material-symbols-outlined text-text-soft">account_balance_wallet</span>
+</label>
+<label class="flex items-center p-padding-card bg-paper-raised border border-rule rounded-xl cursor-pointer hover:border-brass-deep transition-colors">
+<input class="w-5 h-5 text-brass border-rule focus:ring-brass" name="pay" type="radio"/>
+<div class="ml-4 flex-1">
+<p class="font-body-lg text-ink">Credit / Debit Card</p>
+</div>
+<span class="material-symbols-outlined text-text-soft">credit_card</span>
+</label>
+<label class="flex items-center p-padding-card bg-paper-raised border border-rule rounded-xl cursor-pointer hover:border-brass-deep transition-colors">
+<input class="w-5 h-5 text-brass border-rule focus:ring-brass" name="pay" type="radio"/>
+<div class="ml-4 flex-1">
+<p class="font-body-lg text-ink">Net Banking</p>
+</div>
+<span class="material-symbols-outlined text-text-soft">account_balance</span>
+</label>
+</div>
+<div class="flex items-center justify-center gap-2 py-4">
+<div class="h-px bg-rule flex-1"></div>
+<div class="flex items-center gap-1 opacity-50">
+<span class="font-label-caps text-label-caps">SECURED BY RAZORPAY</span>
+</div>
+<div class="h-px bg-rule flex-1"></div>
+</div>
+<button class="w-full bg-ink text-paper py-padding-button rounded-xl font-body-lg" onclick="nextStep(4)">
+                Review Details
+            </button>
+</section>
+<!-- STEP 4: Review & Confirm -->
+<section class="step-hidden space-y-6" id="step-4">
+<div class="py-4">
+<h2 class="font-headline-lg text-headline-lg text-ink">Confirm Devotion</h2>
+<p class="font-body-md text-text-soft">Verify your subscription details.</p>
+</div>
+<div class="bg-paper-raised border border-rule rounded-xl p-6 relative overflow-hidden">
+<div class="absolute top-0 right-0 w-24 h-24 opacity-[0.03] pointer-events-none">
+<span class="material-symbols-outlined text-[96px]">menu_book</span>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center border-b border-rule pb-2">
+<span class="font-label-caps text-text-soft">MEMBER</span>
+<span class="font-body-md text-ink">David Paul</span>
+</div>
+<div class="flex justify-between items-center border-b border-rule pb-2">
+<span class="font-label-caps text-text-soft">PLAN TYPE</span>
+<span class="font-body-md text-ink">Personal Access</span>
+</div>
+<div class="flex justify-between items-center border-b border-rule pb-2">
+<span class="font-label-caps text-text-soft">BILLING CYCLE</span>
+<span class="font-body-md text-ink" id="review-cycle">Monthly</span>
+</div>
+<div class="flex justify-between items-center border-b border-rule pb-2">
+<span class="font-label-caps text-text-soft">FIRST CHARGE</span>
+<span class="font-body-md text-ink">3 Jan 2027</span>
+</div>
+</div>
+<div class="mt-8 pt-4 border-t border-rule-strong border-dashed flex justify-between items-end">
+<div>
+<p class="font-label-caps text-text-soft">DUE TODAY</p>
+<p class="font-data-lg text-data-lg text-forest">₹0</p>
+</div>
+<p class="font-body-sm text-text-soft text-right italic">Billed after trial concludes</p>
+</div>
+</div>
+<div class="p-padding-card bg-forest-soft rounded-xl border border-rule">
+<p class="font-body-sm text-forest italic leading-relaxed">By clicking 'Confirm Subscription', you authorize We Christian to charge your selected payment method after your trial ends on Jan 3, 2027.</p>
+</div>
+<button class="w-full bg-ink text-paper py-padding-button rounded-xl font-body-lg" onclick="nextStep(5)">
+                Confirm Subscription
+            </button>
+</section>
+<!-- STEP 5: Success -->
+<section class="step-hidden" id="step-5">
+<div class="text-center py-12">
+<div class="w-20 h-20 bg-forest text-paper rounded-full flex items-center justify-center mx-auto mb-6 scale-in">
+<span class="material-symbols-outlined text-[48px]">check</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-ink">Subscription Saved</h2>
+<p class="font-body-md text-text-soft mt-2">Your payment method has been verified.</p>
+</div>
+<div class="border-t border-b border-rule-strong border-dotted py-6 space-y-4">
+<div class="flex justify-between">
+<span class="font-label-caps text-text-soft">TRANSACTION ID</span>
+<span class="font-data-sm text-data-sm text-ink">WC-8923-X91</span>
+</div>
+<div class="flex justify-between">
+<span class="font-label-caps text-text-soft">DATE</span>
+<span class="font-data-sm text-data-sm text-ink">AUG 18, 2023</span>
+</div>
+<div class="flex justify-between">
+<span class="font-label-caps text-text-soft">RECURRING AMOUNT</span>
+<span class="font-data-sm text-data-sm text-ink" id="final-price">₹49.00</span>
+</div>
+</div>
+<div class="mt-12 space-y-4">
+<button class="w-full bg-ink text-paper py-padding-button rounded-xl font-body-lg" onclick="location.reload()">
+                    Back to Library
+                </button>
+<button class="w-full text-text-soft py-2 font-body-md hover:underline">
+                    Download Receipt
+                </button>
+</div>
+</section>
+</main>
+<!-- Bottom Nav (Hidden on Transactional/Success Screens as per mandate) -->
+<nav class="fixed bottom-0 w-full z-50 flex justify-around items-center px-4 py-2 pb-safe-area bg-paper-raised dark:bg-surface-container shadow-sm rounded-t-xl hidden" id="global-nav">
+<div class="flex flex-col items-center justify-center text-text-soft px-3 py-1">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-caps text-label-caps mt-1">Home</span>
+</div>
+<div class="flex flex-col items-center justify-center text-text-soft px-3 py-1">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-label-caps text-label-caps mt-1">Prayers</span>
+</div>
+<div class="flex flex-col items-center justify-center text-text-soft px-3 py-1">
+<span class="material-symbols-outlined">volunteer_activism</span>
+<span class="font-label-caps text-label-caps mt-1">Giving</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-ink text-paper rounded-xl px-3 py-1">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-caps text-label-caps mt-1">Profile</span>
+</div>
+</nav>
+<script>
+        let currentStep = 1;
+        let billingCycle = 'monthly';
+
+        function nextStep(step) {
+            document.getElementById(`step-${currentStep}`).classList.add('step-hidden');
+            document.getElementById(`step-${step}`).classList.remove('step-hidden');
+            
+            // Update progress bar
+            for(let i=1; i<=5; i++) {
+                const bar = document.getElementById(`p-${i}`);
+                if (i <= step) {
+                    bar.classList.replace('bg-rule', 'bg-brass');
+                } else {
+                    bar.classList.replace('bg-brass', 'bg-rule');
+                }
+            }
+
+            // Hide/Show Back Button based on final state
+            if (step === 5) {
+                document.getElementById('back-btn').style.visibility = 'hidden';
+            }
+
+            currentStep = step;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function setCycle(cycle) {
+            billingCycle = cycle;
+            const btnM = document.getElementById('toggle-monthly');
+            const btnA = document.getElementById('toggle-annual');
+            const price = document.getElementById('plan-price');
+            const cycleText = document.getElementById('plan-cycle');
+            const chip = document.getElementById('save-chip');
+            const reviewCycle = document.getElementById('review-cycle');
+            const finalPrice = document.getElementById('final-price');
+
+            if (cycle === 'annual') {
+                btnA.classList.add('bg-ink', 'text-paper');
+                btnA.classList.remove('text-text-soft');
+                btnM.classList.remove('bg-ink', 'text-paper');
+                btnM.classList.add('text-text-soft');
+                price.innerText = '₹499';
+                cycleText.innerText = '/ year';
+                chip.style.opacity = '1';
+                reviewCycle.innerText = 'Annual';
+                finalPrice.innerText = '₹499.00';
+            } else {
+                btnM.classList.add('bg-ink', 'text-paper');
+                btnM.classList.remove('text-text-soft');
+                btnA.classList.remove('bg-ink', 'text-paper');
+                btnA.classList.add('text-text-soft');
+                price.innerText = '₹49';
+                cycleText.innerText = '/ month';
+                chip.style.opacity = '0';
+                reviewCycle.innerText = 'Monthly';
+                finalPrice.innerText = '₹49.00';
+            }
+        }
+
+        document.getElementById('back-btn').addEventListener('click', () => {
+            if (currentStep > 1) {
+                nextStep(currentStep - 1);
+            }
+        });
+    </script>
+</body></html>

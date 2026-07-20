@@ -179,12 +179,13 @@ export default function BibleSearchScreen({ route, navigation }: any) {
     const content = getSelectedVersesText();
     if (!content) return;
     
+    const dateStr = new Date().toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
     try {
-      const dateStr = new Date().toLocaleDateString('en-US', {
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric'
-      });
       const timestampStr = new Date().toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -479,7 +480,9 @@ export default function BibleSearchScreen({ route, navigation }: any) {
       {!hasSearched && (
         <View style={{ marginHorizontal: 20, zIndex: 100 }}>
           <View style={[styles.searchContainer, { backgroundColor: isDark ? '#1e293b' : '#fff', marginHorizontal: 0, marginTop: 16, marginBottom: 0 }]}>
-            <Search size={20} color={isDark ? '#94a3b8' : '#64748b'} />
+            <TouchableOpacity onPress={() => performSearch(query)} style={{ padding: 4, marginRight: 6 }}>
+              <Search size={20} color={isDark ? '#94a3b8' : '#64748b'} />
+            </TouchableOpacity>
             <TextInput
               style={[styles.searchInput, { color: isDark ? '#fff' : '#0f172a' }]}
               placeholder="Search words or phrases..."
@@ -491,7 +494,7 @@ export default function BibleSearchScreen({ route, navigation }: any) {
               autoFocus={!initialQuery}
             />
             {query.length > 0 && (
-              <TouchableOpacity onPress={() => { setQuery(''); setResults([]); setSuggestions([]); }}>
+              <TouchableOpacity onPress={() => { setQuery(''); setResults([]); setSuggestions([]); }} style={{ padding: 8 }}>
                 <Text style={styles.clearBtn}>×</Text>
               </TouchableOpacity>
             )}

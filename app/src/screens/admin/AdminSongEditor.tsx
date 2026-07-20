@@ -147,16 +147,14 @@ export default function AdminSongEditor() {
       });
       setSyncReceipt({ savedTo: 'Firebase DB', id: typeof receipt === 'string' ? receipt : (receipt as any)?.id || 'Unknown' });
 
-      const db = getFirestore();
       try {
         const churchId = await FirestoreService.getChurchId();
-        await addDoc(collection(db, 'broadcasts'), {
+        await FirestoreService.createNotificationBroadcast({
           title: `🎵 New Song: ${titleEn.trim()}`,
           content: `A new worship song "${titleEn.trim()}" has been posted under ${primaryCategory}!`,
           date: new Date().toISOString().split('T')[0],
           type: 'announcement',
           targetChurchId: churchId,
-          createdAt: serverTimestamp()
         });
       } catch { /* rules may block — OK */ }
 
@@ -252,9 +250,12 @@ export default function AdminSongEditor() {
         // Add Theme Songs to existing categories
         newCats = [...currentCats, 'Theme Songs'];
       }
-      await FirestoreService.updateWorshipSong(song.id, { category: newCats.join(';') });
-      fetchPostedSongs();
+      const newCategory = newCats.join(';');
+      setPostedSongs(prev => prev.map(s => s.id === song.id ? { ...s, category: newCategory } : s));
+
+      await FirestoreService.updateWorshipSong(song.id, { category: newCategory });
     } catch (e: any) {
+      fetchPostedSongs();
       Alert.alert('Error', 'Failed to toggle theme status.');
     }
   };
@@ -736,11 +737,7 @@ export default function AdminSongEditor() {
               <Text style={styles.successDesc}>
                 "{titleEn}" has been published under <Text style={{ fontWeight: '800', color: '#1a2d5a' }}>{categories[0] || 'Other'}</Text> and saved to the database!
               </Text>
-              <View style={styles.summaryBox}>
-                <Text style={styles.summaryLbl}>SALESFORCE RECEIPT</Text>
-                <Text style={styles.receiptText}>Object: <Text style={{ fontWeight: '700', color: '#1e293b' }}>{syncReceipt.savedTo}</Text></Text>
-                <Text style={styles.receiptText}>ID: <Text style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace', fontSize: 10, color: '#475569', fontWeight: '700' }}>{syncReceipt.id}</Text></Text>
-              </View>
+
               <TouchableOpacity style={styles.successActionBtn} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(0); }}>
                 <Text style={styles.successActionTxt}>Back to Dashboard</Text>
               </TouchableOpacity>

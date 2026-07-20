@@ -26,7 +26,9 @@ import {
   CreditCard,
   Globe,
   Check,
-  X
+  X,
+  CheckCircle2,
+  HelpCircle
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -67,6 +69,12 @@ export default function ProfileScreen({ navigation }: any) {
   const [updating, setUpdating] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
+  
+  // Custom Alert Modals
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [confirmConfig, setConfirmConfig] = useState<{title: string, message: string, onConfirm: () => Promise<void>, isDestructive?: boolean}>({ title: '', message: '', onConfirm: async () => {}, isDestructive: false });
 
   const fetchProfileData = async () => {
     try {
@@ -96,12 +104,17 @@ export default function ProfileScreen({ navigation }: any) {
     if (!member) return;
     setUpdating(true);
     try {
-      await FirestoreService.updateMemberProfile(member.id, editForm);
-      Alert.alert(
-        'Profile Saved', 
-        'Your personal details (Name, Email, and Address) have been updated directly in your church record in Salesforce.'
-      );
+      const updatedDetails = {
+        ...editForm,
+        name: `${editForm.firstName || ''} ${editForm.lastName || ''}`.trim()
+      };
+      await FirestoreService.updateMemberProfile(member.churchId || activeChurch?.id || '', member.id, updatedDetails);
+      if (user) {
+        await user.updateProfile({ displayName: updatedDetails.name });
+      }
       setIsEditModalVisible(false);
+      setSuccessMessage('Your personal details (Name, Email, and Address) have been updated directly in your church record.');
+      setTimeout(() => setSuccessModalVisible(true), 300);
       fetchProfileData();
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to update profile');
@@ -121,74 +134,105 @@ export default function ProfileScreen({ navigation }: any) {
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const selectedUri = result.assets[0].uri;
       
-      Alert.alert(
-        'Confirm Photo',
-        'Do you want to set this cropped image as your profile photo?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'OK', 
-            onPress: async () => {
-              try {
-                setUpdating(true);
-                // Update UI instantly for fast reflection
-                setLocalPhotoUrl(selectedUri);
-                // Update Firebase Auth Profile
-                if (user) {
-                  await user.updateProfile({
-                    photoURL: selectedUri
-                  });
-                  Alert.alert('Success', 'Profile photo updated successfully!');
-                }
-              } catch (error: any) {
-                Alert.alert('Error', 'Failed to update photo: ' + error.message);
-              } finally {
-                setUpdating(false);
+      setConfirmConfig({
+        title: 'Confirm Photo',
+        message: 'Do you want to set this cropped image as your profile photo?',
+        isDestructive: false,
+        onConfirm: async () => {
+          try {
+            setUpdating(true);
+            setLocalPhotoUrl(selectedUri);
+            if (user) {
+              await user.updateProfile({
+                photoURL: selectedUri
+              });
+              
+              // Sync the photo URL to the Firestore member document so admins can see it
+              if (member && (member.churchId || activeChurch?.id)) {
+                await FirestoreService.updateMemberProfile(member.churchId || activeChurch?.id || '', member.id, {
+                  profilePhoto: selectedUri,
+                  photoRemoved: false
+                });
               }
+
+              setConfirmModalVisible(false);
+              setSuccessMessage('Profile photo updated successfully!');
+              setTimeout(() => setSuccessModalVisible(true), 300);
             }
+          } catch (error: any) {
+            Alert.alert('Error', 'Failed to update photo: ' + error.message);
+          } finally {
+            setUpdating(false);
           }
-        ]
-      );
+        }
+      });
+      setConfirmModalVisible(true);
     }
   };
 
   const handleRemovePhoto = async () => {
-    Alert.alert(
-      'Remove Photo',
-      'Are you sure you want to remove your profile photo?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Remove', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setUpdating(true);
-              if (user) {
-                // Update UI instantly
-                setLocalPhotoUrl(null);
-                
-                await user.updateProfile({
-                  photoURL: ''
-                });
-                Alert.alert('Success', 'Profile photo removed successfully.');
-              }
-            } catch (error: any) {
-              Alert.alert('Error', 'Failed to remove photo: ' + error.message);
-            } finally {
-              setUpdating(false);
+    setConfirmConfig({
+      title: 'Remove Photo',
+      message: 'Are you sure you want to remove your profile photo?',
+      isDestructive: true,
+      onConfirm: async () => {
+        try {
+          setUpdating(true);
+          if (user) {
+            setLocalPhotoUrl(null);
+            await user.updateProfile({
+              photoURL: null as any
+            });
+
+            // Sync the removal to the Firestore member document
+            if (member && (member.churchId || activeChurch?.id)) {
+              await FirestoreService.updateMemberProfile(member.churchId || activeChurch?.id || '', member.id, {
+                profilePhoto: null,
+                photoURL: null,
+                photoUrl: null,
+                profileImageUrl: null,
+                PhotoUrl: null,
+                Photo: null,
+                photoRemoved: true
+              });
             }
+
+            setConfirmModalVisible(false);
+            setSuccessMessage('Profile photo removed successfully.');
+            setTimeout(() => setSuccessModalVisible(true), 300);
           }
+        } catch (error: any) {
+          Alert.alert('Error', 'Failed to remove photo: ' + error.message);
+        } finally {
+          setUpdating(false);
         }
-      ]
-    );
+      }
+    });
+    setConfirmModalVisible(true);
   };
 
-  useEffect(() => {
-    setLocalPhotoUrl(user?.photoURL || null);
-    fetchProfileData();
-    checkBiometrics();
-  }, [user]);
+    useEffect(() => {
+      fetchProfileData();
+      checkBiometrics();
+    }, [user]);
+
+    useEffect(() => {
+      const m: any = member;
+      let dbPhoto = null;
+      if (m) {
+        if (m.photoRemoved || m.profilePhoto === null) {
+          dbPhoto = null;
+        } else {
+          dbPhoto = m.profilePhoto || m.photoURL || m.photoUrl || m.profileImageUrl || m.PhotoUrl || m.Photo;
+        }
+      }
+      
+      if (member) {
+        setLocalPhotoUrl(dbPhoto || null);
+      } else {
+        setLocalPhotoUrl(user?.photoURL || null);
+      }
+    }, [user, member]);
 
   const checkBiometrics = async () => {
     const available = await SecurityService.isBiometricAvailable();
@@ -303,10 +347,10 @@ export default function ProfileScreen({ navigation }: any) {
             onPress={() => setIsEditModalVisible(true)}
           />
           <MenuItem 
-            icon={<CreditCard size={20} color="#c0392b" />} 
-            iconBg="#fff1f2"
+            icon={<CreditCard size={20} color="#94a3b8" />} 
+            iconBg="#f1f5f9"
             title="Giving history" 
-            sub="Receipts & statements" 
+            sub="Available Soon" 
             onPress={() => navigation.navigate('Give')}
           />
           <MenuItem 
@@ -314,9 +358,18 @@ export default function ProfileScreen({ navigation }: any) {
             iconBg="#f5f3ff"
             title="My prayer requests" 
             sub="View & manage your requests" 
-            isLast 
             onPress={() => {
               navigation.navigate('PrayerWall');
+            }}
+          />
+          <MenuItem 
+            icon={<CreditCard size={20} color="#d97706" />} 
+            iconBg="#fffbeb"
+            title="Subscription" 
+            sub="Manage your plan and billing" 
+            isLast 
+            onPress={() => {
+              navigation.navigate('Subscription');
             }}
           />
         </View>
@@ -390,7 +443,7 @@ export default function ProfileScreen({ navigation }: any) {
           />
         </View>
 
-        <Text style={styles.versionTxt}>Version 1.2.5 · Powered by Salesforce</Text>
+        <Text style={styles.versionTxt}>Version 1.2.5 A</Text>
       </ScrollView>
 
       {/* ── Edit Profile Modal (Using View for better reliability) ── */}
@@ -623,6 +676,62 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </View>
       )}
+
+      {/* Success Modal */}
+      <Modal visible={successModalVisible} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '100%', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <CheckCircle2 size={32} color="#16a34a" />
+            </View>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1e293b', marginBottom: 8 }}>Success!</Text>
+            <Text style={{ fontSize: 15, color: '#64748b', textAlign: 'center', marginBottom: 24, lineHeight: 22 }}>
+              {successMessage}
+            </Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: '#1a2d5a', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 24, width: '100%', alignItems: 'center' }}
+              onPress={() => setSuccessModalVisible(false)}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Awesome</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Confirm Modal */}
+      <Modal visible={confirmModalVisible} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '100%', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: confirmConfig.isDestructive ? '#fee2e2' : '#e0e7ff', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <HelpCircle size={32} color={confirmConfig.isDestructive ? '#ef4444' : '#4f46e5'} />
+            </View>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1e293b', marginBottom: 8 }}>{confirmConfig.title}</Text>
+            <Text style={{ fontSize: 15, color: '#64748b', textAlign: 'center', marginBottom: 28, lineHeight: 22 }}>
+              {confirmConfig.message}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <TouchableOpacity 
+                style={{ flex: 1, backgroundColor: '#f1f5f9', paddingVertical: 14, borderRadius: 24, alignItems: 'center' }}
+                onPress={() => setConfirmModalVisible(false)}
+                disabled={updating}
+              >
+                <Text style={{ color: '#64748b', fontSize: 15, fontWeight: '700' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={{ flex: 1, backgroundColor: confirmConfig.isDestructive ? '#ef4444' : '#1a2d5a', paddingVertical: 14, borderRadius: 24, alignItems: 'center' }}
+                onPress={() => confirmConfig.onConfirm()}
+                disabled={updating}
+              >
+                {updating ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{confirmConfig.isDestructive ? 'Remove' : 'Confirm'}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

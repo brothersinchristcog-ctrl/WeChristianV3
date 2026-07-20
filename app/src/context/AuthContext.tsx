@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import messaging from '@react-native-firebase/messaging';
+import firestore from '@react-native-firebase/firestore';
 
 import FirestoreService, { AppMember } from '../services/FirestoreService';
 
@@ -23,6 +24,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [member, setMember] = useState<AppMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'admin' | 'member'>('admin');
+  const memberListenerRef = useRef<(() => void) | null>(null);
 
   const updateMember = (newMember: AppMember | null) => {
     setMember(newMember);
@@ -46,6 +48,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Handle user state changes
     const subscriber = auth().onAuthStateChanged(async (userState) => {
+      if (userState && userState.isAnonymous) {
+        try {
+          const intentStr = await AsyncStorage.getItem('@guest_intent');
+          if (intentStr !== 'true') {
+            console.log('🤫 [Auth] Anonymous user detected, but guest intent not set. Suppressing global auth state.');
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          // Ignore
+        }
+      }
+      
       setUser(userState);
       
       if (userState && !userState.isAnonymous) {
@@ -67,9 +83,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (enabled) {
                 const token = await messaging().getToken();
                 console.log('🔔 [FCM] Token acquired:', token);
-                await require('../services/firebaseConfig').firestore().collection('users').doc(userState.uid).update({
-                  fcmToken: token
-                });
+                if (globalUser?.primaryChurchId) {
+                  await require('../services/firebaseConfig').firestore()
+                    .collection('churches').doc(globalUser.primaryChurchId)
+                    .collection('members').doc(userState.uid).update({
+                      fcmToken: token
+                  });
+                }
               }
             } catch (err) {
               console.log('❌ [FCM] Error setting up notifications:', err);
@@ -81,9 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               
               if (!churchDetails) {
                 console.warn('⚠️ [Auth] User primary church was deleted. Clearing from profile.');
-                await require('../services/firebaseConfig').firestore().collection('users').doc(userState.uid).update({
-                  primaryChurchId: require('../services/firebaseConfig').FieldValue.delete()
-                });
+                // We do not need to delete from a root users collection anymore.
                 setMember(null);
               } else {
                 // Fetch NESTED member profile
@@ -95,10 +113,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   const combinedMember: AppMember = { ...globalUser, ...memberProfile, id: userState.uid, churchId: globalUser.primaryChurchId };
                   setMember(combinedMember);
                   AsyncStorage.setItem('@cached_member', JSON.stringify(combinedMember));
+
+                  // ── Real-time listener on this member's church profile ──
+                  // Cancels any previous listener first.
+                  if (memberListenerRef.current) memberListenerRef.current();
+                  memberListenerRef.current = firestore()
+                    .collection('churches')
+                    .doc(globalUser.primaryChurchId)
+                    .collection('members')
+                    .doc(userState.uid)
+                    .onSnapshot(async snap => {
+                      if (snap.exists() && snap.data()) {
+                        const updated = snap.data() as AppMember;
+                        setMember(prev => {
+                          const next = { ...prev, ...updated, id: userState.uid, churchId: globalUser.primaryChurchId } as AppMember;
+                          AsyncStorage.setItem('@cached_member', JSON.stringify(next));
+                          return next;
+                        });
+                        console.log('🔄 [Auth] Member profile updated in real-time:', updated.userType);
+                      } else {
+                        console.warn('⚠️ [Auth] Member was deleted by admin. Logging out.');
+                        // Root users collection is no longer used.
+                        
+                        try {
+                          if (auth().currentUser) {
+                            await auth().signOut();
+                          }
+                        } catch (e) {}
+                        
+                        setMember(null);
+                        AsyncStorage.removeItem('@cached_member');
+                      }
+                    }, err => console.warn('⚠️ [Auth] Member listener error:', err));
                 } else {
                   console.warn('⚠️ [Auth] No nested member profile found for church:', globalUser.primaryChurchId);
-                  // Set fallback member with just global info so they aren't completely blocked
-                  setMember({ id: userState.uid, name: globalUser.name || 'User', churchId: globalUser.primaryChurchId } as AppMember);
+                  // Member has been removed from this church! Log them out immediately.
+                  // Root users collection is no longer used.
+                  
+                  try {
+                    if (auth().currentUser) {
+                      await auth().signOut();
+                    }
+                  } catch (e) {}
+                  
+                  setMember(null);
+                  AsyncStorage.removeItem('@cached_member');
                 }
               }
             } else {
@@ -113,6 +172,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error('❌ [Auth] Profile Fetch Failed:', err);
         }
       } else {
+        // Cancel member listener when user logs out
+        if (memberListenerRef.current) {
+          memberListenerRef.current();
+          memberListenerRef.current = null;
+        }
         setMember(null);
         AsyncStorage.removeItem('@cached_member');
       }
@@ -125,7 +189,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInAnonymously = async () => {
     try {
-      await auth().signInAnonymously();
+      const cred = await auth().signInAnonymously();
+      setUser(cred.user);
     } catch (error) {
       console.error('Anonymous sign in error:', error);
       throw error;
@@ -135,6 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async () => {
     try {
       await AsyncStorage.removeItem('@cached_member');
+      await AsyncStorage.removeItem('@guest_intent');
       await auth().signOut();
     } catch (error) {
       console.error('Sign out error:', error);

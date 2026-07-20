@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import auth from '@react-native-firebase/auth';
 import { useAuth } from '../../context/AuthContext';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import { Plus, ArrowLeft, Shield, X, Image as ImageIcon } from 'lucide-react-native';

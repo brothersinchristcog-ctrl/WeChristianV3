@@ -13,6 +13,7 @@ import {
   Modal,
   FlatList,
   Image,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -50,7 +51,7 @@ function generateChurchCode(name: string): string {
 
 export default function CreateChurchScreen({ navigation }: Props) {
   const { setChurchId } = useChurch();
-  const { member, setMember } = useAuth();
+  const { member, setMember, setViewMode } = useAuth();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: '',
@@ -179,12 +180,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
 
       const currentUser = auth().currentUser;
       if (currentUser) {
-        // Update or create Global User document to point to this new church
-        await firestore().collection('users').doc(currentUser.uid).set({
-          uid: currentUser.uid,
-          primaryChurchId: docRef.id,
-          updatedAt: FieldValue.serverTimestamp()
-        }, { merge: true });
+        // Global users collection is no longer used. We rely on the nested members collection to find the user's primary church.
 
         // Create Admin member profile nested in this new church
         await firestore().collection('churches').doc(docRef.id).collection('members').doc(currentUser.uid).set({
@@ -206,6 +202,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
           userType: 'Admin'
         };
         setMember(updatedMember as any);
+        setViewMode('admin');
         
         const AsyncStorage = require('@react-native-async-storage/async-storage').default;
         await AsyncStorage.setItem('@cached_member', JSON.stringify(updatedMember));
@@ -341,7 +338,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
               />
             </View>
 
-            <Text style={styles.sectionTitle} style={{ marginTop: 24, marginBottom: 8, color: '#94a3b8', fontSize: 10, fontWeight: '800', letterSpacing: 1.5 }}>ADDRESS DETAILS</Text>
+            <Text style={[styles.sectionTitle, { marginTop: 24, marginBottom: 8, color: '#94a3b8', fontSize: 10, fontWeight: '800', letterSpacing: 1.5 }]}>ADDRESS DETAILS</Text>
             
             <View style={styles.grid}>
               <View style={{ flex: 1 }}>
@@ -409,7 +406,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
               </View>
             </View>
 
-            <Text style={styles.fieldLabel} style={{ marginTop: 24, color: '#cbd5e1', fontSize: 12, fontWeight: '600', marginBottom: 6 }}>Website</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 24, color: '#cbd5e1', fontSize: 12, fontWeight: '600', marginBottom: 6 }]}>Website</Text>
             <View style={styles.inputRow}>
               <Globe size={16} color="#64748b" />
               <TextInput
@@ -505,7 +502,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
                 </TouchableOpacity>
               </View>
               <FlatList
-                data={pickerType === 'state' ? indianStates : availableCities}
+                data={(pickerType === 'state' ? indianStates : availableCities) as any[]}
                 keyExtractor={(item, index) => item.name + index}
                 renderItem={({ item }) => (
                   <TouchableOpacity 
@@ -532,8 +529,8 @@ export default function CreateChurchScreen({ navigation }: Props) {
 
         {/* OTP Modal */}
         <Modal visible={otpModalVisible} animationType="fade" transparent={true}>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContent, { padding: 24 }]}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
+            <View style={[styles.modalContent, { padding: 24, borderRadius: 20 }]}>
               <Text style={styles.modalTitle}>Verify Phone Number</Text>
               <Text style={{ color: '#94a3b8', fontSize: 14, marginTop: 8, marginBottom: 20 }}>
                 Enter the 6-digit code sent to {form.contactPhone}
@@ -562,7 +559,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
                 <Text style={{ color: '#cbd5e1', fontSize: 14 }}>Cancel</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
 
       </SafeAreaView>

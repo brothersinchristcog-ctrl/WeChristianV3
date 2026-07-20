@@ -54,7 +54,7 @@ export default function SplashScreen() {
           <Image
             source={activeChurch?.theme?.logoUrl ? { uri: activeChurch.theme.logoUrl } : require('../../../assets/logo.png')}
             style={styles.logo}
-            resizeMode="contain"
+            resizeMode="cover"
           />
         </View>
 

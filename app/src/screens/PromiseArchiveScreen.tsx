@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
-  TouchableOpacity, 
-  ScrollView, 
+import {
+  StyleSheet,
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
   ActivityIndicator,
   Share,
   Dimensions,
@@ -14,15 +14,16 @@ import {
   Platform,
   RefreshControl
 } from 'react-native';
-import { 
-  ChevronLeft, 
-  Share2, 
-  Play, 
+import {
+  ChevronLeft,
+  Share2,
+  Play,
   BookOpen,
   Calendar,
   ChevronRight
 } from 'lucide-react-native';
 import FirestoreService, { DailyPromise } from '../services/FirestoreService';
+import { useChurch } from '../context/ChurchContext';
 
 const { width } = Dimensions.get('window');
 
@@ -37,14 +38,21 @@ export default function PromiseArchiveScreen({ navigation }: any) {
   const [selectedPromise, setSelectedPromise] = useState<DailyPromise | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const { activeChurch } = useChurch();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const fetchPromises = async () => {
     try {
-      const data = await FirestoreService.getDailyPromisesArchive(30);
-      setPromises(data);
+      const data = await FirestoreService.getDailyPromisesArchive();
+      // Ensure sorted by date descending in case Firestore returns them out of order
+      const sortedData = data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setPromises(sortedData);
+
       const today = new Date().toISOString().split('T')[0];
-      if (data.length > 0 && data[0].date === today) {
-        setSelectedPromise(data[0]);
+      const todayPromise = sortedData.find(p => p.date === today);
+
+      if (todayPromise) {
+        setSelectedPromise(todayPromise);
       } else {
         setSelectedPromise(null);
       }
@@ -64,8 +72,9 @@ export default function PromiseArchiveScreen({ navigation }: any) {
   useFocusEffect(
     React.useCallback(() => {
       const today = new Date().toISOString().split('T')[0];
-      if (promises.length > 0 && promises[0].date === today) {
-        setSelectedPromise(promises[0]);
+      const todayPromise = promises.find(p => p.date === today);
+      if (todayPromise) {
+        setSelectedPromise(todayPromise);
       } else {
         setSelectedPromise(null);
       }
@@ -90,7 +99,7 @@ export default function PromiseArchiveScreen({ navigation }: any) {
       const verse = stripHtml(promise.verse);
       const telugu = stripHtml(promise.verseTelugu);
       const refEn = promise.verseReferenceEn || promise.verseReference || 'Bible';
-      
+
       await Share.share({
         message: `Daily Promise from ${activeChurch?.name || 'Your Church'}:\n\n"${verse}"\n\n${telugu}\n\n- ${refEn}`,
       });
@@ -100,18 +109,18 @@ export default function PromiseArchiveScreen({ navigation }: any) {
   };
 
   const formatDisplayDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric' 
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
     }).toUpperCase();
   };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
-      
+
       {/* ── Page Header ── */}
       <View style={styles.pageHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
@@ -126,6 +135,7 @@ export default function PromiseArchiveScreen({ navigation }: any) {
       </View>
 
       <ScrollView 
+        ref={scrollViewRef}
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scroll}
         refreshControl={
@@ -148,7 +158,7 @@ export default function PromiseArchiveScreen({ navigation }: any) {
 
               <Text style={styles.verseEn}>"{stripHtml(selectedPromise.verse)}"</Text>
               <Text style={styles.verseTe}>"{stripHtml(selectedPromise.verseTelugu) || 'వాగ్దానము'}"</Text>
-              
+
               <View style={styles.heroActions}>
                 <TouchableOpacity style={styles.actionBtn}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -176,8 +186,8 @@ export default function PromiseArchiveScreen({ navigation }: any) {
 
             {/* --- 1-min Devotional Bar --- */}
             {selectedPromise.youtubeId && (
-              <TouchableOpacity 
-                style={styles.devotionalBar} 
+              <TouchableOpacity
+                style={styles.devotionalBar}
                 onPress={() => navigation.navigate('DailyVideo', { youtubeId: selectedPromise.youtubeId, videoTitle: selectedPromise.videoTitle, pastor: selectedPromise.pastor })}
               >
                 <View style={styles.playCircle}>
@@ -208,15 +218,19 @@ export default function PromiseArchiveScreen({ navigation }: any) {
         <View style={styles.historySection}>
           <Text style={styles.historyLabel}>Past promises</Text>
           <View style={styles.historyCard}>
-            {promises.slice(selectedPromise && selectedPromise.date === new Date().toISOString().split('T')[0] ? 1 : 0, 10).map((item, index) => {
+            {promises.filter(p => p.date !== new Date().toISOString().split('T')[0]).slice(0, 10).map((item, index) => {
               const refString = `${item.verseReferenceEn || ''}${item.verseReferenceEn && item.verseReferenceTe ? ' - ' : ''}${item.verseReferenceTe || ''}` || stripHtml(item.verse).substring(0, 25) + '...';
-              
+
               return (
-                <TouchableOpacity 
-                  key={item.id} 
-                  onPress={() => setSelectedPromise(item)}
+                <TouchableOpacity
+                  key={item.id}
+                  onPress={() => {
+                    setSelectedPromise(item);
+                    scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+                  }}
                   style={[
                     styles.historyItem,
+                    selectedPromise?.id === item.id && { backgroundColor: '#f1f5f9' },
                     index === Math.min(promises.length - 1, 9) && { borderBottomWidth: 0 }
                   ]}
                 >
@@ -242,7 +256,7 @@ export default function PromiseArchiveScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f0f2f7' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  
+
   // Header
   pageHeader: {
     backgroundColor: '#1a2d5a',
@@ -269,7 +283,7 @@ const styles = StyleSheet.create({
 
   verseEn: { fontSize: 19, fontWeight: '700', fontStyle: 'italic', color: '#fff', textAlign: 'center', lineHeight: 28, marginBottom: 15 },
   verseTe: { fontSize: 16, fontStyle: 'italic', color: '#aac4e8', textAlign: 'center', lineHeight: 26, marginBottom: 25 },
-  
+
   heroActions: { flexDirection: 'row', gap: 12, marginTop: 10 },
   actionBtn: { flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
   actionBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },

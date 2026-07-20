@@ -2,7 +2,7 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // Helper: Is the user logged in?
     function isAuthenticated() {
       return request.auth != null;
@@ -13,63 +13,220 @@ service cloud.firestore {
       return request.auth.uid == userId;
     }
 
-    // --- COLLECTIONS ---
+    // Helper: Is this user an admin globally?
+    function isAdminGlobally() {
+      return isAuthenticated() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
+    }
 
-    // 1. Users
+    // Legacy fallback for top-level collections
+    function isAdmin() {
+      return isAdminGlobally();
+    }
+
+    // --- TOP-LEVEL COLLECTIONS ---
+
+    // Collection Group queries for members
+    match /{path=**}/members/{memberId} {
+      allow read: if isAuthenticated();
+    }
+
+    // 1. Users (global profiles)
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && (isOwner(userId) || !exists(/databases/$(database)/documents/users/$(userId)));
     }
 
-
-    // 2. Daily Promises & Videos (Publicly readable by members)
+    // 2. Top-level Daily Promises & Videos (legacy, may not be in use)
     match /dailyPromises/{promiseId} {
       allow read: if isAuthenticated();
-      allow write: if false; // Only via Admin Portal (TBD)
+      allow write: if isAdmin();
     }
     match /dailyVideos/{videoId} {
       allow read: if isAuthenticated();
-      allow write: if false;
+      allow write: if isAdmin();
     }
 
-    // 3. Events (RSVP count can be updated)
+    // 3. Top-level Events (legacy, may not be in use)
     match /events/{eventId} {
       allow read: if isAuthenticated();
-      allow write: if false; 
+      allow write: if isAdmin();
     }
 
     // 4. Prayer Requests
     match /prayerRequests/{reqId} {
-      // Public prayers can be read by all. Private only by owner.
       allow read: if isAuthenticated() && (resource.data.type == 'public' || isOwner(resource.data.uid));
       allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
       allow update, delete: if isOwner(resource.data.uid);
+      
+      match /comments/{commentId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated();
+        allow update, delete: if isOwner(resource.data.uid);
+      }
     }
 
     // 5. Announcements
     match /announcements/{id} {
       allow read: if isAuthenticated();
-      allow write: if false;
+      allow write: if isAdmin();
     }
 
-    // 6. Giving Transactions (Strict privacy)
+    // 6. Giving Transactions (legacy)
     match /givingTransactions/{txId} {
-      allow read, write: if isOwner(resource.data.uid);
+      allow read, write: if isAuthenticated() && isOwner(resource.data.uid);
     }
 
-    // 7. Broadcasts (Announcements history and Emergency meeting broadcasts)
+    // 7. Broadcasts
     match /broadcasts/{broadcastId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
-    // 8. Settings (Notification settings configuration)
+    // 8. Settings
     match /settings/{settingId} {
       allow read, write: if isAuthenticated();
     }
 
-    // 9. Worship Songs (Songs lyrics and offline support)
+    // 9. Worship Songs
     match /worshipSongs/{songId} {
       allow read, write: if isAuthenticated();
+    }
+
+    // 10. Subscription Plans
+    match /subscription_plans/{planId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // 11. Payment Transactions
+    match /transactions/{txId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+      allow update: if false; // Only Cloud Functions can update transaction status
+    }
+
+    // 12. Unmapped WhatsApp Messages
+    match /unmappedWhatsappMessages/{docId} {
+      allow read: if isAdminGlobally();
+      allow write: if false;
+    }
+
+    // --- CHURCH-SCOPED COLLECTIONS (all data lives here) ---
+    match /churches/{churchId} {
+      // Helper: Is this user an admin for this specific church?
+      function isChurchAdmin() {
+        return isAuthenticated() && (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'] ||
+          get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin']
+        );
+      }
+
+      // Church info is public — allow lookup by code even before login (needed during signup).
+      allow read: if true;
+      // Any authenticated user can create a new church (they become its admin).
+      // The creator can also update the church (e.g. to save logo URL after upload).
+      // Only existing admins can delete a church.
+      allow create: if isAuthenticated() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isChurchAdmin() || (isAuthenticated() && resource.data.createdBy == request.auth.uid);
+      allow delete: if isChurchAdmin();
+
+      // Promises (Daily Word)
+      match /promises/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Events (Church Schedule)
+      match /events/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Sermons
+      match /sermons/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Songs
+      match /songs/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Updates / Announcements
+      match /updates/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // About Us content
+      match /aboutUs/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Contact Us content
+      match /contactUs/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Members subcollection
+      match /members/{memberId} {
+        allow read: if isAuthenticated() && (isOwner(memberId) || isChurchAdmin());
+        allow create: if isAuthenticated(); // Allow new member creation during signup
+        allow update: if isAuthenticated() && (isOwner(memberId) || isChurchAdmin());
+        allow delete: if isChurchAdmin();
+      }
+
+      // Member Subscriptions
+      match /members/{memberId}/subscriptions/{subId} {
+        allow read, write: if isAuthenticated() && (isOwner(memberId) || isChurchAdmin());
+      }
+
+      // Prayer Requests (church-scoped)
+      match /prayerRequests/{reqId} {
+        allow read: if isAuthenticated() && (resource.data.type == 'public' || isOwner(resource.data.uid));
+        allow create: if isAuthenticated() && request.resource.data.uid == request.auth.uid;
+        allow update, delete: if isOwner(resource.data.uid) || isChurchAdmin();
+        
+        match /comments/{commentId} {
+          allow read: if isAuthenticated();
+          allow create: if isAuthenticated();
+          allow update, delete: if isOwner(resource.data.uid) || isChurchAdmin();
+        }
+      }
+
+      // Notifications
+      match /notifications/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Broadcasts (Church scoped updates)
+      match /broadcasts/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Pastor Events
+      match /pastorEvents/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Secrets subcollection: Only admins. Cloud Functions use Admin SDK and bypass this.
+      match /secrets/{document=**} {
+        allow read, write: if isChurchAdmin();
+      }
+
+      // Any other church subcollection: authenticated members can read, admins can write
+      match /{subcollection}/{docId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
     }
   }
 }

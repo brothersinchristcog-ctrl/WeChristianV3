@@ -49,8 +49,10 @@ import firestore from '@react-native-firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
+import { useTheme } from '../context/ThemeContext';
 import Theme from '../theme/Theme';
 import FirestoreService, { DailyPromise, ScheduleEvent, AppMember, Sermon } from '../services/FirestoreService';
+import { CustomAlert } from '../components/CustomAlert';
 import Svg, { Path, Circle, Rect, Polygon } from 'react-native-svg';
 
 const YoutubeIcon = ({ size = 26, color = '#fff' }: { size?: number; color?: string }) => (
@@ -67,8 +69,6 @@ const stripHtml = (html: string | undefined): string => {
   if (!html) return '';
   return html.replace(/<[^>]+>/g, '').trim();
 };
-
-import { useTheme } from '../context/ThemeContext';
 
 const EventMarquee = ({ events, onEventPress }: { events: any[], onEventPress: (event: any) => void }) => {
   const [contentWidth, setContentWidth] = useState(0);
@@ -225,6 +225,18 @@ export default function HomeScreen() {
   const [promiseThumbnail, setPromiseThumbnail] = useState<string | null>(null);
   const [carouselSlide, setCarouselSlide] = useState(0); // 0 = text, 1 = image
   const carouselScrollRef = useRef<ScrollView>(null);
+  
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'info' | 'error' | 'warning';
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   const fetchData = async () => {
     try {
@@ -336,6 +348,23 @@ export default function HomeScreen() {
     fetchData();
   };
 
+  const isGuest = user?.isAnonymous;
+
+  const handleGuestProtectedNavigation = (screenName: string, params?: any) => {
+    if (isGuest) {
+      Alert.alert(
+        'Sign In Required',
+        'Please sign in to access this feature.',
+        [
+          { text: 'Later', style: 'cancel' },
+          { text: 'Sign In', onPress: () => signOut() }
+        ]
+      );
+    } else {
+      navigation.navigate(screenName, params);
+    }
+  };
+
   const getGreeting = () => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good morning';
@@ -385,6 +414,13 @@ export default function HomeScreen() {
   return (
     <View style={[styles.mainContainer, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+      <CustomAlert 
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
       
       <View style={styles.appHeader}>
         <View style={styles.headerTopRow}>
@@ -396,34 +432,42 @@ export default function HomeScreen() {
                 resizeMode="cover"
               />
             </View>
-            <View style={styles.hdTextGroup}>
+            <View style={styles.titleCol}>
               <Text style={styles.hdTitle}>{activeChurch?.name || 'Welcome'}</Text>
               <Text style={styles.hdSub}>{activeChurch?.tagline || 'kristhunandu sahodarulu sahavasmu'}</Text>
             </View>
           </View>
 
           <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.actionIconButton} onPress={toggleTheme}>
-               <View style={styles.themeIconWrap}>
-                 {isDark ? <Sun size={18} color="#FCD34D" /> : <Moon size={18} color="#FCD34D" />}
-               </View>
-            </TouchableOpacity>
-
             <TouchableOpacity style={styles.actionIconButton} onPress={() => navigation.navigate('Updates')}>
               <Bell color="#fff" size={22} />
               <View style={styles.notifBadge} />
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.avatarWrapper} onPress={() => navigation.navigate('Profile')}>
-              {user?.photoURL ? (
-                <Image source={{ uri: user.photoURL }} style={styles.avatarImg} />
-              ) : (
-                <View style={styles.avatarPlaceholder}>
-                  <Text style={styles.avatarLetter}>
-                    {(member?.firstName || user?.displayName || 'S').charAt(0).toUpperCase()}
-                  </Text>
-                </View>
-              )}
+            <TouchableOpacity style={styles.avatarWrapper} onPress={() => handleGuestProtectedNavigation('Profile')}>
+              {(() => {
+                const m: any = member;
+                let displayPhoto = null;
+                if (m) {
+                  if (m.photoRemoved || m.profilePhoto === null) {
+                    displayPhoto = null;
+                  } else {
+                    displayPhoto = m.profilePhoto || m.photoURL || m.photoUrl || m.profileImageUrl || m.PhotoUrl || m.Photo || user?.photoURL;
+                  }
+                } else {
+                  displayPhoto = user?.photoURL;
+                }
+
+                return displayPhoto ? (
+                  <Image source={{ uri: displayPhoto }} style={styles.avatarImg} />
+                ) : (
+                  <View style={styles.avatarPlaceholder}>
+                    <Text style={styles.avatarLetter}>
+                      {(member?.name || member?.firstName || user?.displayName || 'U').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                );
+              })()}
               <View style={styles.onlineBadge} />
             </TouchableOpacity>
           </View>
@@ -431,7 +475,7 @@ export default function HomeScreen() {
 
         <View style={styles.greetingSection}>
           <Text style={styles.greetingText}>
-            {getGreeting()}, <Text style={styles.userNameGold}>{(`${member?.firstName || ''} ${member?.lastName || ''}`.trim()) || member?.name || user?.displayName || 'Member'}</Text> 🙏
+            {getGreeting()}, <Text style={styles.userNameGold}>{member?.name || (`${member?.firstName || ''} ${member?.lastName || ''}`.trim()) || user?.displayName || 'Guest'}</Text> 🙏
           </Text>
           <Text style={styles.dateText}>
             {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {getTeluguDay()}
@@ -467,7 +511,7 @@ export default function HomeScreen() {
               <TouchableOpacity 
                 activeOpacity={0.8}
                 style={[styles.phSlide, styles.phInner]} 
-                onPress={() => navigation.navigate('PromiseArchive')}
+                onPress={() => handleGuestProtectedNavigation('Promise')}
               >
                 <Text style={styles.phLabel}>TODAY'S PROMISE · ఈ రోజు వాగ్దానం</Text>
                 <Text style={styles.phEn}>{promise ? `"${stripHtml(promise.verse)}"` : ''}</Text>
@@ -483,7 +527,7 @@ export default function HomeScreen() {
                   <TouchableOpacity 
                     style={styles.phWatchBtn} 
                     onPress={() => {
-                      navigation.navigate('DailyVideo', { 
+                      handleGuestProtectedNavigation('DailyVideo', { 
                         youtubeId: promise?.youtubeId,
                         videoTitle: promise?.videoTitle,
                         pastor: promise?.pastor
@@ -523,14 +567,14 @@ export default function HomeScreen() {
           <Text style={styles.secLbl}>QUICK ACCESS</Text>
           <View style={styles.iconGrid}>
             <GridItem icon={<Mic size={26} color="#fff" />} label="Sermons" color="#1a2d5a" onPress={() => navigation.navigate('Sermons')} />
-            <GridItem icon={<Heart size={26} color="#fff" />} label="Prayer Wall" color="#c0392b" onPress={() => navigation.navigate('Prayer')} />
+            <GridItem icon={<Heart size={26} color="#fff" />} label="Prayer Wall" color="#c0392b" onPress={() => handleGuestProtectedNavigation('Prayer')} />
             <GridItem icon={<Calendar size={26} color="#fff" />} label="Events" color="#0F766E" onPress={() => navigation.navigate('Events')} />
-            <GridItem icon={<DollarSign size={26} color="#fff" />} label="Give / Tithe" color="#f0a500" onPress={() => navigation.navigate('Give')} />
+            <GridItem icon={<DollarSign size={26} color="#fff" />} label="Give / Tithe" color="#f0a500" onPress={() => handleGuestProtectedNavigation('Give')} />
             
-            <GridItem icon={<BookOpen size={26} color="#fff" />} label="Bible" color="#7C3AED" onPress={() => navigation.navigate('Bible')} />
-            <GridItem icon={<Music size={26} color="#fff" />} label="Songs" color="#0369a1" onPress={() => navigation.navigate('Songs')} />
-            <GridItem icon={<FileText size={26} color="#fff" />} label="Sermon Notes" color="#BE185D" onPress={() => navigation.navigate('MemberNotes')} />
-            <GridItem icon={<Award size={26} color="#fff" />} label="Bible Plans" color="#374151" onPress={() => navigation.navigate('BiblePlans')} />
+            <GridItem icon={<BookOpen size={26} color="#fff" />} label="Bible" color="#7C3AED" onPress={() => handleGuestProtectedNavigation('Bible')} />
+            <GridItem icon={<Music size={26} color="#fff" />} label="Songs" color="#0369a1" onPress={() => handleGuestProtectedNavigation('Songs')} />
+            <GridItem icon={<FileText size={26} color="#fff" />} label="Sermon Notes" color="#BE185D" onPress={() => handleGuestProtectedNavigation('MemberNotes')} />
+            <GridItem icon={<Award size={26} color="#fff" />} label="Bible Plans" color="#374151" onPress={() => handleGuestProtectedNavigation('BiblePlans')} />
 
             <GridItem icon={<Bell size={26} color="#fff" />} label="Updates" color="#0284c7" onPress={() => navigation.navigate('Updates')} />
             <GridItem 
@@ -538,17 +582,24 @@ export default function HomeScreen() {
               label="YouTube Live" 
               color="#ef4444" 
               onPress={() => {
-                let yUrl = activeChurch?.socialLinks?.youtube || 'https://www.youtube.com/@Brothersinchristfellowship/live';
-                // If it's a channel link and user didn't put /live, we can just open it. 
-                // But let's assume the admin provided the exact link they want people to go to.
-                Linking.openURL(yUrl);
+                const yUrl = activeChurch?.socialLinks?.youtube?.trim();
+                if (yUrl) {
+                  Linking.openURL(yUrl);
+                } else {
+                  setAlertConfig({
+                    visible: true,
+                    title: 'Link Not Configured',
+                    message: 'No YouTube Live link has been configured for this church. Please go to Church Settings and set the YouTube Live link.',
+                    type: 'info'
+                  });
+                }
               }} 
             />
             <GridItem icon={<Users size={26} color="#fff" />} label="Members" color="#db2777" onPress={handleOpenMembers} />
-            <GridItem icon={<Sun size={26} color="#fff" />} label="Devotion" color="#b45309" onPress={() => Alert.alert('Daily Devotion', 'Devotion feeds coming soon!')} />
+            <GridItem icon={<Sun size={26} color="#fff" />} label="Devotion" color="#b45309" onPress={() => setAlertConfig({ visible: true, title: 'Daily Devotion', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })} />
             <GridItem icon={<Info size={26} color="#fff" />} label="About Us" color="#1a2d5a" onPress={() => navigation.navigate('AboutUs')} />
             <GridItem icon={<Phone size={26} color="#fff" />} label="Contact Us" color="#0F766E" onPress={() => navigation.navigate('ContactUs')} />
-            <GridItem icon={<MoreHorizontal size={26} color="#fff" />} label="More" color="#64748b" onPress={() => Alert.alert('More Features', 'More features coming soon!')} />
+            <GridItem icon={<MoreHorizontal size={26} color="#fff" />} label="More" color="#64748b" onPress={() => setAlertConfig({ visible: true, title: 'More Features', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })} />
           </View>
 
           <View style={styles.eventBanner}>
@@ -639,7 +690,7 @@ export default function HomeScreen() {
                 <Text style={styles.scTitle} numberOfLines={1}>
                   {latestSermon?.title} {latestSermon?.titleTelugu ? `|| ${latestSermon.titleTelugu}` : ''}
                 </Text>
-                <Text style={styles.scMeta} numberOfLines={1}>{latestSermon?.pastor || 'Pastor Daniel Raju'} · {latestSermon?.date || 'Apr 13'} · {latestSermon?.duration || '42 min'} · 1,240 views</Text>
+                <Text style={styles.scMeta} numberOfLines={1}>{latestSermon?.pastor || 'Pastor'} · {latestSermon?.date || 'Apr 13'} · {latestSermon?.duration || '42 min'}</Text>
               </View>
               <View style={styles.playBtnCircle}>
                 <Play size={18} color="#1a2d5a" />
@@ -655,7 +706,7 @@ export default function HomeScreen() {
               </View>
               <Text style={styles.pcCount}>{prayerCount} requests</Text>
             </View>
-            <TouchableOpacity style={styles.pcBody} onPress={() => navigation.navigate('Prayer')}>
+            <TouchableOpacity style={styles.pcBody} onPress={() => handleGuestProtectedNavigation('Prayer')}>
               <View style={styles.pcTextContainer}>
                 <Text style={styles.pcText} numberOfLines={3}>
                   {latestPrayer ? `"${latestPrayer.text}" — ${latestPrayer.name}` : '"Please pray for our community and the growth of our church." — Faith Member'}
@@ -688,12 +739,12 @@ function GridItem({ icon, label, color, onPress }: { icon: any; label: string; c
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#f8fafc', paddingBottom: 120 },
+  mainContainer: { flex: 1, backgroundColor: '#f8fafc' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a2d5a' },
   screenLoadingText: { color: '#FCD34D', marginTop: 15, fontSize: 14, fontWeight: '700' },
   
   scroll: { flex: 1 },
-  contentPad: { paddingBottom: 20 },
+  contentPad: { paddingBottom: 140 },
   
   appHeader: {
     backgroundColor: '#1a2d5a',

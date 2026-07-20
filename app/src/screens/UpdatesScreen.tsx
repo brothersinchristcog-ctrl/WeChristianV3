@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking, Alert, Image } from 'react-native';
 import { ChevronLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
@@ -11,6 +11,7 @@ import {
   onSnapshot 
 } from '@react-native-firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import { useChurch } from '../context/ChurchContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.35;
@@ -118,6 +119,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const { user, member } = useAuth();
+  const { activeChurch } = useChurch();
 
   useEffect(() => {
     const loadDeletedIds = async () => {
@@ -144,9 +146,14 @@ export default function UpdatesScreen({ navigation, route }: any) {
   };
 
   useEffect(() => {
+    if (!member?.churchId) {
+      setLoading(false);
+      return;
+    }
+
     const db = getFirestore();
     const q = query(
-      collection(db, 'broadcasts'),
+      collection(db, 'churches', member.churchId, 'broadcasts'),
       orderBy('createdAt', 'desc'),
       limit(20)
     );
@@ -197,14 +204,18 @@ export default function UpdatesScreen({ navigation, route }: any) {
               icon = Calendar;
               color = '#10b981';
               resolvedType = 'event';
-            } else if (data.title?.includes('🎂') || data.content?.includes('Birthday')) {
+            } else if (data.title?.includes('🎂') || data.content?.includes('Birthday') || data.type === 'birthday') {
               icon = Gift;
               color = '#d97706';
               resolvedType = 'birthday';
-            } else if (data.title?.includes('💐') || data.content?.includes('Anniversary')) {
+            } else if (data.title?.includes('💐') || data.content?.includes('Anniversary') || data.type === 'anniversary') {
               icon = Heart;
               color = '#be185d';
               resolvedType = 'anniversary';
+            } else if (data.title?.includes('🎉') || data.title?.includes('🕊️') || data.content?.includes('Baptism') || data.type === 'baptism' || data.type === 'celebration') {
+              icon = Sparkles;
+              color = '#3b82f6';
+              resolvedType = 'celebration';
             } else if (data.type === 'promise' || data.title?.includes('Promise') || data.title?.includes('వాగ్దానం')) {
               icon = BookOpen;
               color = '#8b5cf6';
@@ -226,7 +237,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
               type: resolvedType,
               icon: icon,
               color: color,
-              url: data.url || ''
+              url: data.url || '',
+              imageUrl: data.imageUrl || null
             };
           }).filter(item => item !== null);
           setDynamicUpdates(list);
@@ -240,7 +252,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [member?.churchId, user?.phoneNumber, member?.phone]);
 
   const staticUpdates = [
     {
@@ -422,6 +434,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
               styles.modalCard,
               selectedUpdate?.type === 'birthday' && styles.modalCardBirthday,
               selectedUpdate?.type === 'anniversary' && styles.modalCardAnniversary,
+              selectedUpdate?.type === 'celebration' && styles.modalCardCelebration,
               (selectedUpdate?.type === 'emergency' || selectedUpdate?.title?.includes('🚨')) && styles.modalCardEmergency
             ]}
           >
@@ -488,6 +501,31 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   <Text style={[styles.footerBlessing, { color: '#be185d' }]}>"What therefore God hath joined together, let not man put asunder." - Mark 10:9</Text>
                 </View>
               </View>
+            ) : selectedUpdate?.type === 'celebration' ? (
+              // --- 🎉 BAPTISM / CELEBRATION UI ---
+              <View style={styles.celebrationContainer}>
+                <View style={styles.balloonRow}>
+                  <Text style={styles.emojiDecor}>🕊️</Text>
+                  <Text style={[styles.emojiDecor, { fontSize: 44, marginTop: -15 }]}>🎉</Text>
+                  <Text style={styles.emojiDecor}>🕊️</Text>
+                </View>
+                <Sparkles size={32} color="#3b82f6" style={styles.sparkleIcon} />
+                <Text style={[styles.celebrationTitleEn, { color: '#3b82f6' }]}>{selectedUpdate?.title || 'Celebration!'}</Text>
+                <View style={styles.dividerBlue} />
+
+                <ScrollView style={[styles.modalScroll, { maxHeight: 400 }]} showsVerticalScrollIndicator={false}>
+                  {selectedUpdate?.imageUrl && (
+                    <Image source={{ uri: selectedUpdate.imageUrl }} style={styles.modalImage} resizeMode="cover" />
+                  )}
+                  <Text style={[styles.celebrationGreeting, { color: '#1e3a8a' }]}>
+                    {selectedUpdate?.content}
+                  </Text>
+                </ScrollView>
+
+                <View style={[styles.celebrationFooter, { borderTopColor: '#3b82f6' }]}>
+                  <Text style={[styles.footerBlessing, { color: '#1e3a8a' }]}>"Therefore if any man be in Christ, he is a new creature: old things are passed away; behold, all things are become new." - 2 Cor 5:17</Text>
+                </View>
+              </View>
             ) : (
               // --- 🚨 STANDARD / EMERGENCY BROADCAST UI ---
               <View style={styles.standardModalContainer}>
@@ -524,7 +562,10 @@ export default function UpdatesScreen({ navigation, route }: any) {
 
                 <View style={styles.dividerStd} />
 
-                <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                <ScrollView style={[styles.modalScroll, { maxHeight: 400 }]} showsVerticalScrollIndicator={false}>
+                  {selectedUpdate?.imageUrl && (
+                    <Image source={{ uri: selectedUpdate.imageUrl }} style={styles.modalImage} resizeMode="cover" />
+                  )}
                   <Text style={styles.stdModalContent}>
                     {selectedUpdate?.content}
                   </Text>
@@ -534,8 +575,16 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   <TouchableOpacity
                     style={styles.joinLiveBtn}
                     onPress={() => {
-                    const liveUrl = selectedUpdate?.url || activeChurch?.socialLinks?.youtube || 'https://www.youtube.com/@Brothersinchristfellowship/live';
-                      Linking.openURL(liveUrl).catch(err => console.error(err));
+                    let liveUrl = selectedUpdate?.url || activeChurch?.socialLinks?.youtube;
+                    if (liveUrl) {
+                      let base = liveUrl.split('?')[0];
+                      if (base.includes('@') && !base.includes('/live') && !base.includes('/streams')) {
+                        base = base.endsWith('/') ? `${base}live` : `${base}/live`;
+                      }
+                      Linking.openURL(base).catch(err => console.error(err));
+                    } else {
+                      Alert.alert('Not Configured', 'The YouTube Live link has not been set up by the church admin yet.');
+                    }
                     }}
                   >
                     <Text style={styles.joinLiveBtnTxt}>📺 Join Live Stream</Text>
@@ -630,6 +679,11 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#fda4af',
   },
+  modalCardCelebration: {
+    backgroundColor: '#f0f9ff',
+    borderWidth: 1.5,
+    borderColor: '#3b82f6',
+  },
   modalCardEmergency: {
     borderLeftWidth: 6,
     borderLeftColor: '#ef4444',
@@ -695,10 +749,25 @@ const styles = StyleSheet.create({
     marginVertical: 16,
     borderRadius: 1
   },
+  dividerBlue: {
+    height: 2,
+    backgroundColor: '#3b82f6',
+    width: 80,
+    marginVertical: 16,
+    borderRadius: 1
+  },
   modalScroll: {
     width: '100%',
-    maxHeight: 250,
+    maxHeight: 400,
     marginVertical: 10
+  },
+  modalImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0'
   },
   celebrationGreeting: {
     fontSize: 14,

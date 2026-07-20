@@ -105,6 +105,13 @@ export default function SignUpScreen({ navigation }: any) {
     setLoading(true);
     try {
       const checkResult = await FirestoreService.checkContactExists(formData.phone);
+      
+      if (checkResult?.error) {
+        Alert.alert('Database Error', 'Unable to verify phone number. Please try again later.');
+        setLoading(false);
+        return;
+      }
+      
       if (checkResult?.exists) {
         setShowDuplicateModal(true);
         setLoading(false);
@@ -135,7 +142,11 @@ export default function SignUpScreen({ navigation }: any) {
       });
 
     } catch (error: any) {
-      Alert.alert('Registration Error', error.message || 'Unable to send SMS. Please check your connection.');
+      if (error?.message?.includes('failed-precondition') || error?.message?.includes('index')) {
+        Alert.alert('System Updating', 'The database is currently updating its indexes. Please try registering again in 1-2 minutes.');
+      } else {
+        Alert.alert('Registration Error', error.message || 'Unable to send SMS. Please check your connection.');
+      }
     } finally {
       setLoading(false);
     }

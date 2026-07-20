@@ -222,9 +222,6 @@ export default function EventDetailsScreen({ route, navigation }: any) {
             <View style={styles.locCard}>
               <Text style={styles.locName}>{event.address || event.location || 'Church Main Hall'}</Text>
               {event.location && event.address && <Text style={styles.locSub}>{event.location}</Text>}
-              <TouchableOpacity style={styles.mapBtn}>
-                <Text style={styles.mapBtnText}>View on Maps →</Text>
-              </TouchableOpacity>
             </View>
           </View>
 

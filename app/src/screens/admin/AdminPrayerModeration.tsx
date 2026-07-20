@@ -206,15 +206,27 @@ export default function AdminPrayerModeration() {
   const pendingPrayers = prayers.filter(p => !p.isAnswered);
   const answeredPrayers = prayers.filter(p => p.isAnswered);
 
-  const getTimeAgo = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-    if (seconds < 60) return "Just now";
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return Math.floor(hours / 24) + "d ago";
+  const getTimeAgo = (rawDate: any) => {
+    try {
+      const date: Date = rawDate?.toDate ? rawDate.toDate() 
+        : rawDate instanceof Date ? rawDate 
+        : new Date(rawDate);
+
+      if (!date || isNaN(date.getTime())) return 'Recently';
+
+      const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
+      if (seconds < 60) return 'Just now';
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      if (days === 1) return 'Yesterday';
+      if (days < 7) return `${days} days ago`;
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    } catch {
+      return 'Recently';
+    }
   };
 
   const renderPrayerCard = (item: any, isAnswered = false) => (
@@ -261,7 +273,7 @@ export default function AdminPrayerModeration() {
             <View key={reply.id} style={styles.replyCard}>
               <View style={styles.replyHeader}>
                 <Text style={styles.replyAuthor}>{reply.author}</Text>
-                <Text style={styles.replyDate}>{new Date(reply.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Text>
+                <Text style={styles.replyDate}>{getTimeAgo(reply.date)}</Text>
               </View>
               <Text style={styles.replyBody}>{reply.body}</Text>
             </View>
@@ -546,7 +558,7 @@ export default function AdminPrayerModeration() {
             </View>
             <Text style={styles.successTitle}>Request Published!</Text>
             <Text style={styles.successSub}>
-              The prayer request has been successfully created and linked to Salesforce.
+              The prayer request has been successfully created and published.
             </Text>
             
             <TouchableOpacity style={styles.successBtn} onPress={closeSuccess}>

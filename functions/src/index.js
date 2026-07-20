@@ -6,6 +6,8 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { getMessaging } from 'firebase-admin/messaging';
 import { getStorage } from 'firebase-admin/storage';
 import { SalesforceBackend } from './services/SalesforceBackend.js';
+import { sendWhatsAppTemplateInternal } from './whatsapp.js';
+import { generateCelebrationImage } from './imageGenerator.js';
 // Initialize Firebase Admin once at top level
 initializeApp();
 // TODO: When Salesforce integration becomes multi-tenant, remove this and loop over churches.
@@ -219,7 +221,7 @@ export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZon
  * ⏰ AUTOMATED DAILY BIRTHDAYS SCHEDULER
  * Scheduled to run every day at 08:00 AM IST (02:30 AM UTC)
  */
-export const automatedDailyBirthdays = onSchedule({ schedule: '0 6 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
+export const triggerDailyBirthdays = onSchedule({ schedule: '0 8 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
     try {
         console.log('⏰ Running automatedDailyBirthdays scheduler...');
         const db = getDb();
@@ -227,12 +229,72 @@ export const automatedDailyBirthdays = onSchedule({ schedule: '0 6 * * *', timeZ
         const settingsDoc = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('settings').doc('notifications').get();
         const settings = settingsDoc.data();
         if (settings && settings.birthdayNotif && settings.birthdayNotif.enabled === false) {
-            console.log('🛑 Birthday greetings automation is disabled.');
+            console.log('🔇 Birthday greetings automation is disabled.');
             return;
         }
-        const bdays = await getSf().getTodayBirthdays();
+        // Fetch birthdays from Firestore members collection instead of Salesforce
+        const today = new Date();
+        const m = today.getMonth() + 1;
+        const d = today.getDate();
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const currentMonthStr = monthNames[today.getMonth()];
+        const churchesSnap = await db.collection('churches')
+            .where('whatsappIntegrationEnabled', '==', true)
+            .where('automatedWhatsappWishesEnabled', '==', true)
+            .get();
+        const enabledChurchIds = new Set();
+        const churchTemplates = new Map();
+        churchesSnap.forEach((doc) => {
+            enabledChurchIds.add(doc.id);
+            const data = doc.data();
+            const monthly = data.monthlyCelebrationTemplates;
+            const fallback = data.automatedWeCelebrationTemplate || {};
+            const tpl = (monthly && monthly[currentMonthStr]) ? monthly[currentMonthStr] : fallback;
+            churchTemplates.set(doc.id, tpl);
+        });
+        const legacyMembersSnap = await db.collection('members').get();
+        const churchMembersSnap = await db.collectionGroup('members').get();
+        const processedMemberIds = new Set();
+        const bdays = [];
+        const processDoc = (doc, churchId) => {
+            if (processedMemberIds.has(doc.id))
+                return;
+            processedMemberIds.add(doc.id);
+            const data = doc.data();
+            const dobStr = data.dateOfBirth || data.dob || data.birthday;
+            if (!dobStr)
+                return;
+            const parts = dobStr.split(/[-/]/);
+            if (parts.length < 3)
+                return;
+            let month, day;
+            if (parts[0].length === 4) { // YYYY-MM-DD
+                month = parseInt(parts[1], 10);
+                day = parseInt(parts[2], 10);
+            }
+            else if (parts[2].length === 4) { // DD-MM-YYYY
+                day = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10);
+            }
+            else {
+                return;
+            }
+            if (month === m && day === d) {
+                bdays.push({
+                    id: doc.id,
+                    churchId,
+                    name: data.name || (data.firstName ? data.firstName + ' ' + (data.lastName || '') : 'Unknown'),
+                    phone: data.phone || data.mobile
+                });
+            }
+        };
+        legacyMembersSnap.forEach((doc) => processDoc(doc, DEFAULT_CHURCH_ID));
+        churchMembersSnap.forEach((doc) => {
+            const cId = doc.ref.parent.parent?.id || DEFAULT_CHURCH_ID;
+            processDoc(doc, cId);
+        });
         if (bdays.length === 0) {
-            console.log('ℹ️ No birthdays celebrating today.');
+            console.log('📆 No birthdays celebrating today.');
             return;
         }
         const greetingTemplate = settings?.birthdayNotif?.greeting || 'Wishing you a very Happy Birthday! May God bless you abundantly and fulfill all your prayers today. 🎂🙏';
@@ -296,6 +358,36 @@ export const automatedDailyBirthdays = onSchedule({ schedule: '0 6 * * *', timeZ
                 await getMsg().send(message);
                 console.log(`✅ Individual Birthday FCM sent to ${member.name}`);
             }
+            // Automatically send WhatsApp message
+            if (member.phone && enabledChurchIds.has(member.churchId)) {
+                try {
+                    const tpl = churchTemplates.get(member.churchId) || {};
+                    let msg = tpl.message || greetingTemplate;
+                    let firstWord = member.name.split(' ')[0];
+                    let formattedMsg = msg.includes(firstWord) || msg.toLowerCase().includes('dear ')
+                        ? msg
+                        : `Dear ${firstWord}, ${msg}`;
+                    const verseStr = tpl.verseText ? `"${tpl.verseText}" — ${tpl.verseRef}` : '';
+                    let imageUrl = tpl.imageUrl;
+                    if (tpl.themeColor) {
+                        const pngBuffer = await generateCelebrationImage({
+                            themeColor: tpl.themeColor,
+                            type: 'birthday',
+                            name: member.name,
+                            message: formattedMsg
+                        });
+                        const fileName = `automated_wishes/${member.churchId}/birthday_${Date.now()}.png`;
+                        const file = getStorage().bucket().file(fileName);
+                        await file.save(pngBuffer, { contentType: 'image/png' });
+                        [imageUrl] = await file.getSignedUrl({ action: 'read', expires: '03-09-2491' });
+                    }
+                    await sendWhatsAppTemplateInternal(member.churchId, member.phone, 'birthday_card', 'en', imageUrl, 'Automated Birthday Wish', [formattedMsg, verseStr]);
+                    console.log(`✅ WhatsApp Birthday message sent to ${member.name}`);
+                }
+                catch (waErr) {
+                    console.error(`❌ Failed to send WhatsApp to ${member.name}:`, waErr);
+                }
+            }
         }
     }
     catch (error) {
@@ -306,7 +398,7 @@ export const automatedDailyBirthdays = onSchedule({ schedule: '0 6 * * *', timeZ
  * ⏰ AUTOMATED DAILY ANNIVERSARIES SCHEDULER
  * Scheduled to run every day at 08:30 AM IST (03:00 AM UTC)
  */
-export const automatedDailyAnniversaries = onSchedule({ schedule: '30 6 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
+export const triggerDailyAnnivs = onSchedule({ schedule: '30 6 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
     try {
         console.log('⏰ Running automatedDailyAnniversaries scheduler...');
         const db = getDb();
@@ -314,12 +406,90 @@ export const automatedDailyAnniversaries = onSchedule({ schedule: '30 6 * * *', 
         const settingsDoc = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('settings').doc('notifications').get();
         const settings = settingsDoc.data();
         if (settings && settings.anniversaryNotif && settings.anniversaryNotif.enabled === false) {
-            console.log('🛑 Anniversary greetings automation is disabled.');
+            console.log('🔇 Anniversary greetings automation is disabled.');
             return;
         }
-        const annivs = await getSf().getTodayAnniversaries();
+        // Fetch anniversaries from Firestore members collection
+        const today = new Date();
+        const m = today.getMonth() + 1;
+        const d = today.getDate();
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const currentMonthStr = monthNames[today.getMonth()];
+        const churchesSnap = await db.collection('churches')
+            .where('whatsappIntegrationEnabled', '==', true)
+            .where('automatedWhatsappWishesEnabled', '==', true)
+            .get();
+        const enabledChurchIds = new Set();
+        const churchTemplates = new Map();
+        churchesSnap.forEach((doc) => {
+            enabledChurchIds.add(doc.id);
+            const data = doc.data();
+            const monthly = data.monthlyCelebrationTemplates;
+            const fallback = data.automatedWeCelebrationTemplate || {};
+            const tpl = (monthly && monthly[currentMonthStr]) ? monthly[currentMonthStr] : fallback;
+            churchTemplates.set(doc.id, tpl);
+        });
+        const legacyMembersSnap = await db.collection('members').get();
+        const churchMembersSnap = await db.collectionGroup('members').get();
+        const processedMemberIds = new Set();
+        const annivs = [];
+        const processDoc = (doc, churchId) => {
+            if (processedMemberIds.has(doc.id))
+                return;
+            processedMemberIds.add(doc.id);
+            const data = doc.data();
+            const annivStr = data.marriageDate || data.anniversaryDate || data.anniversary;
+            if (!annivStr)
+                return;
+            const parts = annivStr.split(/[-/]/);
+            if (parts.length < 3)
+                return;
+            let year, month, day;
+            if (parts[0].length === 4) { // YYYY-MM-DD
+                year = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10);
+                day = parseInt(parts[2], 10);
+            }
+            else if (parts[2].length === 4) { // DD-MM-YYYY
+                day = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10);
+                year = parseInt(parts[2], 10);
+            }
+            else {
+                return;
+            }
+            if (month === m && day === d) {
+                const currentYear = new Date().getFullYear();
+                const years = year > 1900 ? currentYear - year : 0;
+                let husband = data.husbandName;
+                let wife = data.wifeName;
+                if (!husband && !wife) {
+                    if (data.gender === 'Male') {
+                        husband = data.name || (data.firstName ? data.firstName + ' ' + (data.lastName || '') : 'Unknown');
+                        wife = data.spouseName || 'Sister';
+                    }
+                    else {
+                        wife = data.name || (data.firstName ? data.firstName + ' ' + (data.lastName || '') : 'Unknown');
+                        husband = data.spouseName || 'Brother';
+                    }
+                }
+                annivs.push({
+                    id: doc.id,
+                    churchId,
+                    husband: husband || 'Brother',
+                    wife: wife || 'Sister',
+                    years: years || '',
+                    phone: data.phone || data.mobile
+                });
+            }
+        };
+        legacyMembersSnap.forEach((doc) => processDoc(doc, DEFAULT_CHURCH_ID));
+        churchMembersSnap.forEach((doc) => {
+            const cId = doc.ref.parent.parent?.id || DEFAULT_CHURCH_ID;
+            processDoc(doc, cId);
+        });
         if (annivs.length === 0) {
-            console.log('ℹ️ No wedding anniversaries celebrating today.');
+            console.log('📆 No wedding anniversaries celebrating today.');
             return;
         }
         const greetingTemplate = settings?.anniversaryNotif?.greeting || 'Wishing you a wonderful wedding anniversary! May God bless your home with love, joy, and peace. 💐💒';
@@ -382,12 +552,228 @@ export const automatedDailyAnniversaries = onSchedule({ schedule: '30 6 * * *', 
                     tokens: targetTokens
                 };
                 await getMsg().sendEachForMulticast(message);
-                console.log(`✅ Anniversary FCM sent to ${coupleNames}`);
+                console.log(`✅ Individual Anniversary FCM sent to couple`);
+            }
+            // Automatically send WhatsApp message
+            if (ann.phone) {
+                try {
+                    if (ann.churchId === DEFAULT_CHURCH_ID || enabledChurchIds.has(ann.churchId)) {
+                        const tpl = churchTemplates.get(ann.churchId) || {};
+                        let msg = tpl.message || greetingTemplate;
+                        let couple = `${ann.husband} & ${ann.wife}`;
+                        let formattedMsg = msg.includes(couple) || msg.toLowerCase().includes('dear ')
+                            ? msg
+                            : `Dear ${couple}, ${msg}`;
+                        const verseStr = tpl.verseText ? `"${tpl.verseText}" — ${tpl.verseRef}` : '';
+                        let imageUrl = tpl.imageUrl;
+                        if (tpl.themeColor) {
+                            const pngBuffer = await generateCelebrationImage({
+                                themeColor: tpl.themeColor,
+                                type: 'anniversary',
+                                name: couple,
+                                message: formattedMsg
+                            });
+                            const fileName = `automated_wishes/${ann.churchId}/anniversary_${Date.now()}.png`;
+                            const file = getStorage().bucket().file(fileName);
+                            await file.save(pngBuffer, { contentType: 'image/png' });
+                            [imageUrl] = await file.getSignedUrl({ action: 'read', expires: '03-09-2491' });
+                        }
+                        await sendWhatsAppTemplateInternal(ann.churchId, ann.phone, 'birthday_card', 'en', imageUrl, 'Automated Anniversary Wish', [formattedMsg, verseStr]);
+                        console.log(`✅ WhatsApp Anniversary message sent to ${ann.husband} & ${ann.wife}`);
+                    }
+                }
+                catch (waErr) {
+                    console.error(`❌ Failed to send WhatsApp Anniversary to ${ann.husband}:`, waErr);
+                }
             }
         }
     }
     catch (error) {
         console.error('Error in automatedDailyAnniversaries scheduler:', error);
+    }
+});
+/**
+ * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES SCHEDULER
+ * Scheduled to run every day at 07:00 AM IST
+ */
+export const triggerDailyBaptisms = onSchedule({ schedule: '30 9 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
+    try {
+        console.log('⏰ Running automatedDailyBaptisms scheduler...');
+        const db = getDb();
+        // Check if enabled
+        const settingsDoc = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('settings').doc('notifications').get();
+        const settings = settingsDoc.data();
+        if (settings && settings.baptismNotif && settings.baptismNotif.enabled === false) {
+            console.log('🔇 Baptism greetings automation is disabled.');
+            return;
+        }
+        // Fetch baptisms from Firestore members collection
+        const today = new Date();
+        const m = today.getMonth() + 1;
+        const d = today.getDate();
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const currentMonthStr = monthNames[today.getMonth()];
+        const churchesSnap = await db.collection('churches')
+            .where('whatsappIntegrationEnabled', '==', true)
+            .where('automatedWhatsappWishesEnabled', '==', true)
+            .get();
+        const enabledChurchIds = new Set();
+        const churchTemplates = new Map();
+        churchesSnap.forEach((doc) => {
+            enabledChurchIds.add(doc.id);
+            const data = doc.data();
+            const monthly = data.monthlyCelebrationTemplates;
+            const fallback = data.automatedWeCelebrationTemplate || {};
+            const tpl = (monthly && monthly[currentMonthStr]) ? monthly[currentMonthStr] : fallback;
+            churchTemplates.set(doc.id, tpl);
+        });
+        const legacyMembersSnap = await db.collection('members').get();
+        const churchMembersSnap = await db.collectionGroup('members').get();
+        const processedMemberIds = new Set();
+        const baptisms = [];
+        const processDoc = (doc, churchId) => {
+            if (processedMemberIds.has(doc.id))
+                return;
+            processedMemberIds.add(doc.id);
+            const data = doc.data();
+            const bapStr = data.baptismDate || data.baptism;
+            if (!bapStr)
+                return;
+            const parts = bapStr.split(/[-/]/);
+            if (parts.length < 3)
+                return;
+            let year, month, day;
+            if (parts[0].length === 4) { // YYYY-MM-DD
+                year = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10);
+                day = parseInt(parts[2], 10);
+            }
+            else if (parts[2].length === 4) { // DD-MM-YYYY
+                day = parseInt(parts[0], 10);
+                month = parseInt(parts[1], 10);
+                year = parseInt(parts[2], 10);
+            }
+            else {
+                return;
+            }
+            if (month === m && day === d) {
+                const currentYear = new Date().getFullYear();
+                const years = year > 1900 ? currentYear - year : 0;
+                baptisms.push({
+                    id: doc.id,
+                    churchId,
+                    name: data.name || (data.firstName ? data.firstName + ' ' + (data.lastName || '') : 'Unknown'),
+                    years: years || '',
+                    phone: data.phone || data.mobile
+                });
+            }
+        };
+        legacyMembersSnap.forEach((doc) => processDoc(doc, DEFAULT_CHURCH_ID));
+        churchMembersSnap.forEach((doc) => {
+            const cId = doc.ref.parent.parent?.id || DEFAULT_CHURCH_ID;
+            processDoc(doc, cId);
+        });
+        if (baptisms.length === 0) {
+            console.log('📆 No baptism anniversaries celebrating today.');
+            return;
+        }
+        const greetingTemplate = settings?.baptismNotif?.greeting || 'Happy Baptism Anniversary! May you continue to grow in faith and walk in His light. 🙏🕊️';
+        const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+        // Send push notifications
+        const snapshot = await db.collection('users').get();
+        const userMap = new Map(); // name/phone -> fcmToken
+        snapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.fcmToken) {
+                if (data.name)
+                    userMap.set(data.name.toLowerCase(), data.fcmToken);
+                if (data.phone)
+                    userMap.set(data.phone.slice(-10), data.fcmToken);
+            }
+        });
+        for (const member of baptisms) {
+            const personalGreeting = `Dear ${member.name}, ${greetingTemplate}`;
+            // Save to broadcasts
+            const docRef = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('broadcasts').add({
+                title: `🕊️ Happy Baptism Anniversary, ${member.name}!`,
+                content: personalGreeting,
+                date: dateStr,
+                type: 'baptism',
+                silent: true,
+                createdAt: FieldValue.serverTimestamp()
+            });
+            // Target individual user token if matches
+            const token = userMap.get(member.name.toLowerCase()) || (member.phone ? userMap.get(member.phone.slice(-10)) : null);
+            if (token) {
+                const message = {
+                    notification: {
+                        title: `🕊️ Happy Baptism Anniversary, ${member.name}!`,
+                        body: greetingTemplate
+                    },
+                    data: {
+                        type: 'baptism',
+                        id: docRef.id
+                    },
+                    android: {
+                        priority: 'high',
+                        notification: {
+                            sound: 'default',
+                            priority: 'max',
+                            channelId: 'church_alerts'
+                        }
+                    },
+                    apns: {
+                        headers: {
+                            'apns-priority': '10'
+                        },
+                        payload: {
+                            aps: {
+                                sound: 'default',
+                                badge: 1
+                            }
+                        }
+                    },
+                    token: token
+                };
+                await getMsg().send(message);
+                console.log(`✅ Individual Baptism FCM sent to ${member.name}`);
+            }
+            // Automatically send WhatsApp message
+            if (member.phone) {
+                try {
+                    if (member.churchId === DEFAULT_CHURCH_ID || enabledChurchIds.has(member.churchId)) {
+                        const tpl = churchTemplates.get(member.churchId) || {};
+                        let msg = tpl.message || greetingTemplate;
+                        let firstWord = member.name.split(' ')[0];
+                        let formattedMsg = msg.includes(firstWord) || msg.toLowerCase().includes('dear ')
+                            ? msg
+                            : `Dear ${firstWord}, ${msg}`;
+                        const verseStr = tpl.verseText ? `"${tpl.verseText}" — ${tpl.verseRef}` : '';
+                        let imageUrl = tpl.imageUrl;
+                        if (tpl.themeColor) {
+                            const pngBuffer = await generateCelebrationImage({
+                                themeColor: tpl.themeColor,
+                                type: 'baptism',
+                                name: member.name,
+                                message: formattedMsg
+                            });
+                            const fileName = `automated_wishes/${member.churchId}/baptism_${Date.now()}.png`;
+                            const file = getStorage().bucket().file(fileName);
+                            await file.save(pngBuffer, { contentType: 'image/png' });
+                            [imageUrl] = await file.getSignedUrl({ action: 'read', expires: '03-09-2491' });
+                        }
+                        await sendWhatsAppTemplateInternal(member.churchId, member.phone, 'birthday_card', 'en', imageUrl, 'Automated Baptism Wish', [formattedMsg, verseStr]);
+                        console.log(`✅ WhatsApp Baptism message sent to ${member.name}`);
+                    }
+                }
+                catch (waErr) {
+                    console.error(`❌ Failed to send WhatsApp Baptism message to ${member.name}:`, waErr);
+                }
+            }
+        }
+    }
+    catch (error) {
+        console.error('Error in automatedDailyBaptisms scheduler:', error);
     }
 });
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';

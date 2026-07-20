@@ -14,6 +14,7 @@ import {
 import { Info, Save, ChevronLeft, RefreshCw, Edit2, Eye, Target } from 'lucide-react-native';
 import firestore from '@react-native-firebase/firestore';
 import { AdminTabContext } from '../../context/AdminTabContext';
+import firestoreService from '../../services/FirestoreService';
 
 interface AboutUsData {
   churchName: string;
@@ -44,7 +45,8 @@ export default function AdminAboutUsEditor() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const doc = await firestore().collection('settings').doc('about').get();
+      const col = await firestoreService.getCollection('settings');
+      const doc = await col.doc('about').get();
       if (doc.exists()) {
         const d = doc.data() as AboutUsData;
         const fetched: AboutUsData = {
@@ -76,7 +78,8 @@ export default function AdminAboutUsEditor() {
     if (!draft.description.trim()) { Alert.alert('Validation', 'Description cannot be empty.'); return; }
     setSaving(true);
     try {
-      await firestore().collection('settings').doc('about').set({
+      const col = await firestoreService.getCollection('settings');
+      await col.doc('about').set({
         ...draft,
         updatedAt: firestore.FieldValue.serverTimestamp(),
       });

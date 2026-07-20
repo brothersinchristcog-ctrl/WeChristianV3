@@ -11,6 +11,7 @@ export interface PastorEvent {
   endTime?:     string;
   durationMins: number;
   venue:        string;
+  city?:        string;
   address:      string;
   lat:          number;
   lng:          number;
@@ -20,10 +21,18 @@ export interface PastorEvent {
   notes:        string;
   section:      'today' | 'upcoming' | 'past';
   travel: {
-    isFirstEvent?: boolean;
     distKm:  number;
     car:     number;             // minutes
     bike:    number;
     bus:     number;
+    isHomeToEvent?: boolean;
+    originLat?: number;
+    originLng?: number;
+    originName?: string;
+    homeDistKm?: number;
+    homeCar?: number;
+    homeLat?: number;
+    homeLng?: number;
+    homeName?: string;
   };
 }

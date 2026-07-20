@@ -35,6 +35,7 @@ import {
   ArrowLeft
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
+import { AppAlert } from '../../components/CustomAlert';
 
 import FirestoreService from '../../services/FirestoreService';
 
@@ -130,7 +131,7 @@ export default function AdminEventEditor() {
   useEffect(() => {
     const discoverMetadata = async () => {
       try {
-        const meta = await FirestoreService.getEventMetadata();
+        const meta = await FirestoreService.getEventMetadata('');
         if (meta) {
           console.log('📖 [AdminEventEditor] Metadata Loaded:', JSON.stringify(meta, null, 2));
           setMetadata(meta);
@@ -250,17 +251,17 @@ export default function AdminEventEditor() {
         try {
           const cloudUrl = await uploadImageToCloud(localUri);
           setBannerUrl(cloudUrl);
-          Alert.alert('Success · విజయం', 'Banner uploaded to cloud successfully! all members will be able to see it.');
+          AppAlert.alert('Success · విజయం', 'Banner uploaded to cloud successfully! all members will be able to see it.', undefined, 'success');
         } catch (err) {
           console.error('Cloud upload error:', err);
           setBannerUrl(localUri);
-          Alert.alert('Upload Failed · అప్‌లోడ్ విఫలమైంది', 'Failed to upload banner to the cloud. You can still save it or manually paste a public web link in the text box.');
+          AppAlert.alert('Upload Failed · అప్‌లోడ్ విఫలమైంది', 'Failed to upload banner to the cloud. You can still save it or manually paste a public web link in the text box.', undefined, 'error');
         } finally {
           setLoading(false);
         }
       }
     } catch (err) {
-      Alert.alert('Picker Error', 'Native module not ready yet. Please use the URL field for now.');
+      AppAlert.alert('Picker Error', 'Native module not ready yet. Please use the URL field for now.', undefined, 'error');
     }
   };
 
@@ -379,13 +380,12 @@ export default function AdminEventEditor() {
           const { getFirestore, collection, addDoc, serverTimestamp } = require('@react-native-firebase/firestore');
           const churchId = await FirestoreService.getChurchId();
           const db = getFirestore();
-          await addDoc(collection(db, 'broadcasts'), {
+          await FirestoreService.createNotificationBroadcast({
             title: `📅 New Event: ${titleEn}`,
             content: `Join us for "${titleEn}" on ${sfDate} at ${startTime}${venueEn ? ` · ${venueEn}` : ''}. ${descEn ? descEn.substring(0, 100) : ''}`,
             date: sfDate,
             type: 'event',
             targetChurchId: churchId,
-            createdAt: serverTimestamp()
           });
           console.log('🔔 Event push notification queued.');
         } catch (notifErr) {

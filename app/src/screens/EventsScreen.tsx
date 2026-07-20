@@ -142,7 +142,7 @@ export default function EventsScreen({ navigation }: any) {
           </View>
           <View style={styles.ebInfo}>
             <Text style={styles.ebTitle} numberOfLines={2}>
-              {item.title || item.name || 'Event'}{item.titleTe || item.titleTelugu ? ` · ${item.titleTe || item.titleTelugu}` : ''}
+              {item.title || item.name || 'Event'}{item.titleTelugu ? ` · ${item.titleTelugu}` : ''}
             </Text>
             
             <View style={styles.highlightRow}>
@@ -163,7 +163,7 @@ export default function EventsScreen({ navigation }: any) {
 
             <View style={[styles.ebMetaRow, { marginTop: 6, alignItems: 'flex-start' }]}>
               <MapPin size={11} color="#64748b" style={{ marginTop: 2 }} />
-              <Text style={styles.ebMetaText}>{item.venueEn || item.address || item.location || 'Church Main Hall'}</Text>
+              <Text style={styles.ebMetaText}>{item.location || item.address || 'Church Main Hall'}</Text>
             </View>
 
             <Text style={styles.ebDetailsLink}>Details →</Text>

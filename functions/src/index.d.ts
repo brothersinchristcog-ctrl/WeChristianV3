@@ -51,12 +51,17 @@ export declare const automatedDailyPromise: import("firebase-functions/v2/schedu
  * ⏰ AUTOMATED DAILY BIRTHDAYS SCHEDULER
  * Scheduled to run every day at 08:00 AM IST (02:30 AM UTC)
  */
-export declare const automatedDailyBirthdays: import("firebase-functions/v2/scheduler").ScheduleFunction;
+export declare const triggerDailyBirthdays: import("firebase-functions/v2/scheduler").ScheduleFunction;
 /**
  * ⏰ AUTOMATED DAILY ANNIVERSARIES SCHEDULER
  * Scheduled to run every day at 08:30 AM IST (03:00 AM UTC)
  */
-export declare const automatedDailyAnniversaries: import("firebase-functions/v2/scheduler").ScheduleFunction;
+export declare const triggerDailyAnnivs: import("firebase-functions/v2/scheduler").ScheduleFunction;
+/**
+ * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES SCHEDULER
+ * Scheduled to run every day at 07:00 AM IST
+ */
+export declare const triggerDailyBaptisms: import("firebase-functions/v2/scheduler").ScheduleFunction;
 /**
  * 📣 ON BROADCAST CREATED TRIGGER (Gen 2)
  * Automatically sends push notifications when a new broadcast is added to Firestore (e.g. Emergency Meeting or custom admin updates)

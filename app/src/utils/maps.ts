@@ -18,22 +18,6 @@ export const openInMaps = (lat: number, lng: number, label: string, address?: st
 };
 
 export const openRoute = (waypoints: { lat: number; lng: number }[]) => {
-  if (waypoints.length === 0) return;
-  if (waypoints.length === 1) {
-    Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${waypoints[0].lat},${waypoints[0].lng}`);
-    return;
-  }
-  
-  const origin = `${waypoints[0].lat},${waypoints[0].lng}`;
-  const destination = `${waypoints[waypoints.length - 1].lat},${waypoints[waypoints.length - 1].lng}`;
-  
-  let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}`;
-  
-  if (waypoints.length > 2) {
-    const middleWaypoints = waypoints.slice(1, waypoints.length - 1);
-    const waypointsStr = middleWaypoints.map(w => `${w.lat},${w.lng}`).join('|');
-    url += `&waypoints=${waypointsStr}`;
-  }
-  
-  Linking.openURL(url);
+  const coords = waypoints.map(w => `${w.lat},${w.lng}`).join('/');
+  Linking.openURL(`https://www.google.com/maps/dir/${coords}`);
 };

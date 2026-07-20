@@ -28,6 +28,9 @@ import {
   ChevronRight,
   CheckCircle2
 } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '../../context/ThemeContext';
+import { AppAlert } from '../../components/CustomAlert';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
@@ -199,11 +202,11 @@ export default function AdminPromiseEditor() {
         setLoading(true);
         const cloudUrl = await uploadImageToCloud(result.assets[0].uri);
         setForm(prev => ({ ...prev, imageUrl: cloudUrl }));
-        Alert.alert('Success', 'Thumbnail uploaded to cloud successfully! Remember to Save Changes.');
+        AppAlert.alert('Success', 'Thumbnail uploaded to cloud successfully! Remember to Save Changes.', undefined, 'success');
       }
     } catch (err) {
       console.error('Upload Error:', err);
-      Alert.alert('Upload Failed', 'There was an issue uploading your image.');
+      AppAlert.alert('Upload Failed', 'There was an issue uploading your image.', undefined, 'error');
     } finally {
       setLoading(false);
     }
@@ -213,9 +216,9 @@ export default function AdminPromiseEditor() {
     const finalStatus = statusOverride || form.status;
     
     // Validation
-    if (!form.date) return Alert.alert('Error', 'Please select a promise date.');
-    if (!form.enVerse?.trim()) return Alert.alert('Error', 'Please enter the English verse.');
-    if (!form.teVerse?.trim()) return Alert.alert('Error', 'Please enter the Telugu verse.');
+    if (!form.date) return AppAlert.alert('Error', 'Please select a promise date.', undefined, 'error');
+    if (!form.enVerse?.trim()) return AppAlert.alert('Error', 'Please enter the English verse.', undefined, 'error');
+    if (!form.teVerse?.trim()) return AppAlert.alert('Error', 'Please enter the Telugu verse.', undefined, 'error');
 
     setLoading(true);
     try {
@@ -241,16 +244,13 @@ export default function AdminPromiseEditor() {
       // 🔔 Push notification to all members when publishing
       if (finalStatus === 'Published') {
         try {
-          const { getFirestore, collection, addDoc, serverTimestamp } = require('@react-native-firebase/firestore');
           const churchId = await FirestoreService.getChurchId();
-          const db = getFirestore();
-          await addDoc(collection(db, 'broadcasts'), {
+          await FirestoreService.createNotificationBroadcast({
             title: `📖 Daily Promise: ${form.enRef || 'Today\'s Verse'}`,
             content: `"${form.enVerse}" ${form.enRef ? `— ${form.enRef}` : ''}`,
             date: form.date,
             type: 'promise',
             targetChurchId: churchId,
-            createdAt: serverTimestamp()
           });
           console.log('🔔 Daily Promise push notification queued.');
         } catch (notifErr) {

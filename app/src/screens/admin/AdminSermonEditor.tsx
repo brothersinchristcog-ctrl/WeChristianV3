@@ -149,7 +149,12 @@ export default function AdminSermonEditor() {
   };
 
   const handleConfirm = (date: Date) => {
-    const formattedDate = date.toISOString().split('T')[0];
+    // Avoid toISOString() as it shifts the date to UTC, causing it to display the previous day in some timezones.
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+    
     setForm({ ...form, date: formattedDate });
     setShowDatePicker(false);
   };
@@ -171,16 +176,13 @@ export default function AdminSermonEditor() {
       // 🔔 Push notification to all members when publishing
       if (payload.status === 'Published') {
         try {
-          const { getFirestore, collection, addDoc, serverTimestamp } = require('@react-native-firebase/firestore');
           const churchId = await FirestoreService.getChurchId();
-          const db = getFirestore();
-          await addDoc(collection(db, 'broadcasts'), {
-            title: `🎙️ New Sermon: ${form.titleEn}`,
+          await FirestoreService.createNotificationBroadcast({
+            title: `🎧 New Sermon: ${form.titleEn}`,
             content: `New sermon "${form.titleEn}" by ${form.pastor || 'Pastor'} is now available. Watch/listen now!`,
             date: form.date,
             type: 'sermon',
             targetChurchId: churchId,
-            createdAt: serverTimestamp()
           });
           console.log('🔔 Sermon push notification queued.');
         } catch (notifErr) {
@@ -243,8 +245,10 @@ export default function AdminSermonEditor() {
             <View style={[styles.fGroup, {flex: 2}]}>
               <Text style={styles.fLabel}>Sermon Date</Text>
               <TouchableOpacity style={styles.inputWithIcon} onPress={() => setShowDatePicker(true)}>
-                <Text style={styles.inputTxt}>{form.date}</Text>
-                <CalendarIcon size={16} color="#1a2d5a" style={{ marginLeft: 'auto' }} />
+                <Text style={[styles.inputTxt, { flex: 1 }]}>
+                  {form.date}
+                </Text>
+                <CalendarIcon size={16} color="#1a2d5a" style={{ marginLeft: 8 }} />
               </TouchableOpacity>
             </View>
             <View style={[styles.fGroup, {flex: 1.2}]}>

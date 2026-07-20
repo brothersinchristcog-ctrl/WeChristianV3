@@ -149,7 +149,17 @@ export default function GivingScreen({ navigation }: any) {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* ── Category Selection ── */}
+        <View style={[styles.comingSoonCard, { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#f1f5f9' }]}>
+          <Coins size={56} color={isDark ? '#475569' : '#94a3b8'} />
+          <Text style={[styles.comingSoonTitle, { color: isDark ? '#fcd34d' : '#1a2d5a' }]}>Option Available Soon</Text>
+          <Text style={[styles.comingSoonText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
+            We are currently working on integrating secure giving options. Please check back later!
+          </Text>
+        </View>
+
+        {false && (
+          <View>
+            {/* ── Category Selection ── */}
         <View style={styles.sectionCard}>
           <Text style={styles.sectionLabel}>SELECT GIVING CATEGORY</Text>
           <View style={styles.grid}>
@@ -276,10 +286,10 @@ export default function GivingScreen({ navigation }: any) {
               {giving?.accountNumber && (
                 <View style={styles.bankSection}>
                   <Text style={styles.upiLabel}>PRIMARY BANK</Text>
-                  <Text style={[styles.upiValue, { color: isDark ? '#fff' : '#1e293b' }]}>{giving.bankName || 'Bank Name Not Set'}</Text>
-                  <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>{giving.accountName || 'Account Name Not Set'}</Text>
-                  <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>A/c: {giving.accountNumber}</Text>
-                  <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>IFSC: {giving.ifscCode}</Text>
+                  <Text style={[styles.upiValue, { color: isDark ? '#fff' : '#1e293b' }]}>{giving?.bankName || 'Bank Name Not Set'}</Text>
+                  <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>{giving?.accountName || 'Account Name Not Set'}</Text>
+                  <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>A/c: {giving?.accountNumber}</Text>
+                  <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>IFSC: {giving?.ifscCode}</Text>
                 </View>
               )}
 
@@ -303,7 +313,9 @@ export default function GivingScreen({ navigation }: any) {
              <Lock size={12} color="#94a3b8" />
              <Text style={styles.securityText}>Secured by Razorpay · UPI · PhonePe · All major banks</Text>
           </View>
-        </View>
+          </View>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
@@ -331,6 +343,29 @@ const styles = StyleSheet.create({
   headerQuote: { fontSize: 11, color: '#aac4e8', marginTop: 10, fontStyle: 'italic' },
 
   scrollContent: { padding: 16, paddingBottom: 40 },
+  comingSoonCard: {
+    borderRadius: 20, 
+    padding: 40, 
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    borderWidth: 1,
+  },
+  comingSoonTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    marginTop: 24,
+    marginBottom: 12
+  },
+  comingSoonText: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 22
+  },
   sectionCard: { 
     backgroundColor: '#fff', 
     borderRadius: 20, 

@@ -13,7 +13,7 @@ export type AuthStackParamList = {
   Login: undefined;
   SignUp: undefined;
   RegistrationSuccess: undefined;
-  VerifyOtp: { confirmation: any; phoneNumber: string; contactId?: string; memberName?: string };
+  VerifyOtp: { confirmation: any; phoneNumber: string; contactId?: string; memberName?: string; formData?: any; isSignUp?: boolean };
   ChurchSelection: undefined;
   CreateChurch: undefined;
   JoinSuccess: { churchName: string; isNewChurch?: boolean; churchCode?: string };

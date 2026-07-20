@@ -12,14 +12,19 @@ import {
   Image,
   Share,
   Clipboard,
+  KeyboardAvoidingView,
+  Platform,
+  Switch
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Save, Palette, Image as ImageIcon, Link, DollarSign, Building2, Plus, Trash2 } from 'lucide-react-native';
+import { ChevronLeft, Save, Palette, Image as ImageIcon, Link, DollarSign, Building2, Plus, Trash2, Plug, Info } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import { useChurch } from '../../context/ChurchContext';
+import { useAuth } from '../../context/AuthContext';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import storage from '@react-native-firebase/storage';
+import { CustomAlert } from '../../components/CustomAlert';
 
 const PRESET_COLORS = [
   '#1a2d5a', '#c0392b', '#16a34a', '#7c3aed',
@@ -27,16 +32,23 @@ const PRESET_COLORS = [
 ];
 
 export default function AdminChurchSettings({ navigation }: any) {
-  const { churchId, setActiveChurch } = useChurch();
+  const { member } = useAuth();
+  const { churchId, activeChurch, setActiveChurch } = useChurch();
   const { goBack } = React.useContext(AdminTabContext);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState<'logo' | 'banner' | null>(null);
 
   const [form, setForm] = useState<Partial<ChurchDetails>>({});
-  const [secrets, setSecrets] = useState<{ phonePeMerchantId?: string; phonePeSaltKey?: string; phonePeSaltIndex?: string }>({});
-  const [activeTab, setActiveTab] = useState<'info' | 'branding' | 'giving'>('info');
+  const [secrets, setSecrets] = useState<{ phonePeMerchantId?: string; phonePeSaltKey?: string; phonePeSaltIndex?: string; whatsappAccessToken?: string; whatsappPhoneId?: string; useWeChristianWhatsApp?: boolean }>({});
+  const [activeTab, setActiveTab] = useState<'info' | 'branding' | 'giving' | 'integrations'>('info');
   const [isEditing, setIsEditing] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'info' | 'error' | 'warning';
+  }>({ visible: false, title: '', message: '', type: 'info' });
 
   useEffect(() => {
     loadChurchData();
@@ -55,7 +67,7 @@ export default function AdminChurchSettings({ navigation }: any) {
     setLoading(false);
   };
 
-  const updateSecret = (field: string, value: string) => {
+  const updateSecret = (field: string, value: string | boolean) => {
     setSecrets(prev => ({ ...prev, [field]: value }));
   };
 
@@ -124,16 +136,16 @@ export default function AdminChurchSettings({ navigation }: any) {
     try {
       const ext = uri.substring(uri.lastIndexOf('.') + 1) || 'jpg';
       const storagePath = `churches/${churchId}/brand/${type}_${Date.now()}.${ext}`;
-      
+
       const reference = storage().ref(storagePath);
       await reference.putFile(uri);
       const downloadURL = await reference.getDownloadURL();
-      
+
       updateField('theme', type === 'logo' ? 'logoUrl' : 'bannerUrl', downloadURL);
       setUploadingImage(null);
     } catch (e: any) {
       console.error(e);
-      Alert.alert('Error', 'Failed to prepare image for upload');
+      setAlertConfig({ visible: true, title: 'Error', message: 'Failed to prepare image for upload', type: 'error' });
       setUploadingImage(null);
     }
   };
@@ -147,10 +159,10 @@ export default function AdminChurchSettings({ navigation }: any) {
       // Refresh the context so the app updates immediately
       const updated = await ChurchService.getChurchDetails(churchId);
       if (updated) setActiveChurch(updated);
-      Alert.alert('Success', 'Church settings updated successfully!');
+      setAlertConfig({ visible: true, title: 'Success', message: 'Church settings updated successfully!', type: 'success' });
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to save settings.');
+      setAlertConfig({ visible: true, title: 'Error', message: 'Failed to save settings.', type: 'error' });
     } finally {
       setSaving(false);
       setIsEditing(false);
@@ -171,6 +183,13 @@ export default function AdminChurchSettings({ navigation }: any) {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+        <CustomAlert 
+          visible={alertConfig.visible}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          type={alertConfig.type}
+          onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+        />
         {/* Header */}
         <View style={[styles.header, { backgroundColor: primaryColor }]}>
           <TouchableOpacity onPress={goBack} style={styles.headerBtn}>
@@ -190,31 +209,50 @@ export default function AdminChurchSettings({ navigation }: any) {
 
         {/* Tabs */}
         <View style={styles.tabs}>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'info' && { borderBottomColor: primaryColor }]} 
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'info' && { borderBottomColor: primaryColor }]}
             onPress={() => setActiveTab('info')}
           >
             <Building2 size={18} color={activeTab === 'info' ? primaryColor : '#64748b'} />
             <Text style={[styles.tabTxt, activeTab === 'info' && { color: primaryColor, fontWeight: '700' }]}>Info</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'branding' && { borderBottomColor: primaryColor }]} 
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'branding' && { borderBottomColor: primaryColor }]}
             onPress={() => setActiveTab('branding')}
           >
             <Palette size={18} color={activeTab === 'branding' ? primaryColor : '#64748b'} />
             <Text style={[styles.tabTxt, activeTab === 'branding' && { color: primaryColor, fontWeight: '700' }]}>Brand</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.tab, activeTab === 'giving' && { borderBottomColor: primaryColor }]} 
-            onPress={() => setActiveTab('giving')}
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'giving' && { borderBottomColor: primaryColor }]}
+            onPress={() => setAlertConfig({ visible: true, title: 'Giving Details', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })}
           >
             <DollarSign size={18} color={activeTab === 'giving' ? primaryColor : '#64748b'} />
             <Text style={[styles.tabTxt, activeTab === 'giving' && { color: primaryColor, fontWeight: '700' }]}>Giving</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'integrations' && { borderBottomColor: primaryColor }]}
+            onPress={() => {
+              if (activeChurch?.whatsappIntegrationEnabled) {
+                setActiveTab('integrations');
+              } else {
+                setAlertConfig({
+                  visible: true,
+                  title: 'WhatsApp Integration Not Enabled',
+                  message: 'WhatsApp Integration is not enabled for your church. Please contact the We Christian team to activate this feature. Once enabled, you will be able to use WhatsApp Integration from the We Celebration module and Church Settings.',
+                  type: 'info'
+                });
+              }
+            }}
+          >
+            <Plug size={18} color={activeTab === 'integrations' ? primaryColor : '#64748b'} />
+            <Text style={[styles.tabTxt, activeTab === 'integrations' && { color: primaryColor, fontWeight: '700' }]}>WhatsApp</Text>
+          </TouchableOpacity>
         </View>
 
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+
           {/* INFO TAB */}
           {activeTab === 'info' && (
             <View>
@@ -234,7 +272,7 @@ export default function AdminChurchSettings({ navigation }: any) {
                       onPress={() => {
                         const code = (form as any).churchCode || (form.subdomain || '').toUpperCase();
                         Clipboard.setString(code);
-                        Alert.alert('Copied!', `Church code "${code}" copied to clipboard.`);
+                        setAlertConfig({ visible: true, title: 'Copied!', message: `Church code "${code}" copied to clipboard.`, type: 'success' });
                       }}
                     >
                       <Text style={[styles.churchCodeBtnTxt, { color: primaryColor }]}>📋 Copy Code</Text>
@@ -256,7 +294,7 @@ export default function AdminChurchSettings({ navigation }: any) {
               ) : null}
 
               <Text style={styles.sectionLabel}>Basic Information</Text>
-              
+
               <Text style={styles.label}>Church Name</Text>
               <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={form.name} onChangeText={v => updateField('name' as any, '', v)} editable={isEditing} />
 
@@ -276,7 +314,7 @@ export default function AdminChurchSettings({ navigation }: any) {
               <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={form.contactEmail} onChangeText={v => updateField('contactEmail' as any, '', v)} keyboardType="email-address" autoCapitalize="none" editable={isEditing} />
 
               <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Social Links</Text>
-              
+
               <View style={[styles.inputRow, !isEditing && styles.inputDisabled]}>
                 <Link size={16} color="#64748b" />
                 <TextInput style={styles.inputFlex} placeholder="Website URL" value={form.socialLinks?.website} onChangeText={v => updateField('socialLinks', 'website', v)} editable={isEditing} />
@@ -293,6 +331,27 @@ export default function AdminChurchSettings({ navigation }: any) {
                 <Text style={styles.socialPrefix}>Instagram</Text>
                 <TextInput style={styles.inputFlex} placeholder="Profile URL" value={form.socialLinks?.instagram} onChangeText={v => updateField('socialLinks', 'instagram', v)} editable={isEditing} />
               </View>
+
+              {member?.userType === 'super_admin' && (
+                <>
+                  <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Advanced Features</Text>
+                  <View style={[styles.switchRow, !isEditing && styles.inputDisabled]}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.switchLabel}>Enable WhatsApp Automation</Text>
+                      <Text style={styles.switchHint}>Unlock the We Celebrations tab and WhatsApp integration settings.</Text>
+                    </View>
+                    <Switch
+                      value={form.features?.hasWhatsAppAutomation || false}
+                      onValueChange={v => {
+                        const currentFeatures = form.features || { hasSermons: false, hasDailyPromises: false, hasWorshipSongs: false, hasGiving: false };
+                        setForm({ ...form, features: { ...currentFeatures, hasWhatsAppAutomation: v } });
+                      }}
+                      disabled={!isEditing}
+                      trackColor={{ false: '#cbd5e1', true: primaryColor }}
+                    />
+                  </View>
+                </>
+              )}
             </View>
           )}
 
@@ -353,7 +412,7 @@ export default function AdminChurchSettings({ navigation }: any) {
               <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 12 }}>
                 These values are stored securely and never exposed to members. Used for automated web checkout.
               </Text>
-              
+
               <Text style={styles.label}>Merchant ID</Text>
               <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeMerchantId} onChangeText={v => updateSecret('phonePeMerchantId', v)} placeholder="e.g. M1234567890" placeholderTextColor="#64748b" editable={isEditing} />
 
@@ -364,7 +423,7 @@ export default function AdminChurchSettings({ navigation }: any) {
               <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeSaltIndex} onChangeText={v => updateSecret('phonePeSaltIndex', v)} placeholder="e.g. 1" placeholderTextColor="#64748b" keyboardType="numeric" editable={isEditing} />
 
               <Text style={[styles.sectionLabel, { marginTop: 12 }]}>Primary UPI & Mobile Payments</Text>
-              
+
               <Text style={styles.label}>UPI ID</Text>
               <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={form.givingDetails?.upiId} onChangeText={v => updateField('givingDetails', 'upiId', v)} placeholder="e.g. church@okicici" placeholderTextColor="#64748b" editable={isEditing} />
 
@@ -375,7 +434,7 @@ export default function AdminChurchSettings({ navigation }: any) {
                 <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>Additional UPI Accounts</Text>
                 {isEditing && (
                   <TouchableOpacity onPress={addUpi} style={styles.addBtn}>
-                    <Plus size={16} color="#1a2d5a"/>
+                    <Plus size={16} color="#1a2d5a" />
                     <Text style={styles.addBtnTxt}>Add</Text>
                   </TouchableOpacity>
                 )}
@@ -392,16 +451,16 @@ export default function AdminChurchSettings({ navigation }: any) {
                     )}
                   </View>
                   <Text style={styles.label}>Label (e.g. Building Fund)</Text>
-                  <TextInput style={[styles.input, !isEditing && {backgroundColor:'transparent', borderColor:'transparent', paddingHorizontal:0, height:30}]} value={upi.name} onChangeText={v => updateUpi(i, 'name', v)} placeholder="Fund Name" placeholderTextColor="#64748b" editable={isEditing} />
+                  <TextInput style={[styles.input, !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 30 }]} value={upi.name} onChangeText={v => updateUpi(i, 'name', v)} placeholder="Fund Name" placeholderTextColor="#64748b" editable={isEditing} />
                   <Text style={styles.label}>UPI ID</Text>
-                  <TextInput style={[styles.input, !isEditing && {backgroundColor:'transparent', borderColor:'transparent', paddingHorizontal:0, height:30}]} value={upi.upiId} onChangeText={v => updateUpi(i, 'upiId', v)} placeholder="church@okicici" placeholderTextColor="#64748b" editable={isEditing} />
+                  <TextInput style={[styles.input, !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 30 }]} value={upi.upiId} onChangeText={v => updateUpi(i, 'upiId', v)} placeholder="church@okicici" placeholderTextColor="#64748b" editable={isEditing} />
                   <Text style={styles.label}>PhonePe Number</Text>
-                  <TextInput style={[styles.input, !isEditing && {backgroundColor:'transparent', borderColor:'transparent', paddingHorizontal:0, height:30}]} value={upi.phonepeNumber} onChangeText={v => updateUpi(i, 'phonepeNumber', v)} placeholder="Optional" placeholderTextColor="#64748b" keyboardType="phone-pad" editable={isEditing} />
+                  <TextInput style={[styles.input, !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 30 }]} value={upi.phonepeNumber} onChangeText={v => updateUpi(i, 'phonepeNumber', v)} placeholder="Optional" placeholderTextColor="#64748b" keyboardType="phone-pad" editable={isEditing} />
                 </View>
               ))}
 
               <Text style={[styles.sectionLabel, { marginTop: 24 }]}>PhonePe Gateway Configuration</Text>
-              
+
               <Text style={styles.label}>Merchant ID</Text>
               <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeMerchantId} onChangeText={v => updateSecret('phonePeMerchantId', v)} placeholder="e.g. PGTESTPAYUAT" placeholderTextColor="#64748b" editable={isEditing} />
 
@@ -412,7 +471,7 @@ export default function AdminChurchSettings({ navigation }: any) {
               <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeSaltIndex} onChangeText={v => updateSecret('phonePeSaltIndex', v)} placeholder="1" placeholderTextColor="#64748b" editable={isEditing} keyboardType="numeric" />
 
               <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Primary Bank Transfer Details</Text>
-              
+
               <Text style={styles.label}>Account Name</Text>
               <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={form.givingDetails?.accountName} onChangeText={v => updateField('givingDetails', 'accountName', v)} placeholder="Brothers in Christ" placeholderTextColor="#64748b" editable={isEditing} />
 
@@ -429,7 +488,7 @@ export default function AdminChurchSettings({ navigation }: any) {
                 <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>Additional Bank Accounts</Text>
                 {isEditing && (
                   <TouchableOpacity onPress={addBank} style={styles.addBtn}>
-                    <Plus size={16} color="#1a2d5a"/>
+                    <Plus size={16} color="#1a2d5a" />
                     <Text style={styles.addBtnTxt}>Add</Text>
                   </TouchableOpacity>
                 )}
@@ -446,24 +505,80 @@ export default function AdminChurchSettings({ navigation }: any) {
                     )}
                   </View>
                   <Text style={styles.label}>Label (e.g. Charity Fund)</Text>
-                  <TextInput style={[styles.input, !isEditing && {backgroundColor:'transparent', borderColor:'transparent', paddingHorizontal:0, height:30}]} value={bank.name} onChangeText={v => updateBank(i, 'name', v)} placeholder="Fund Name" placeholderTextColor="#64748b" editable={isEditing} />
+                  <TextInput style={[styles.input, !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 30 }]} value={bank.name} onChangeText={v => updateBank(i, 'name', v)} placeholder="Fund Name" placeholderTextColor="#64748b" editable={isEditing} />
                   <Text style={styles.label}>Account Name</Text>
-                  <TextInput style={[styles.input, !isEditing && {backgroundColor:'transparent', borderColor:'transparent', paddingHorizontal:0, height:30}]} value={bank.accountName} onChangeText={v => updateBank(i, 'accountName', v)} placeholder="Brothers in Christ" placeholderTextColor="#64748b" editable={isEditing} />
+                  <TextInput style={[styles.input, !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 30 }]} value={bank.accountName} onChangeText={v => updateBank(i, 'accountName', v)} placeholder="Brothers in Christ" placeholderTextColor="#64748b" editable={isEditing} />
                   <Text style={styles.label}>Bank Name</Text>
-                  <TextInput style={[styles.input, !isEditing && {backgroundColor:'transparent', borderColor:'transparent', paddingHorizontal:0, height:30}]} value={bank.bankName} onChangeText={v => updateBank(i, 'bankName', v)} placeholder="HDFC Bank" placeholderTextColor="#64748b" editable={isEditing} />
+                  <TextInput style={[styles.input, !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 30 }]} value={bank.bankName} onChangeText={v => updateBank(i, 'bankName', v)} placeholder="HDFC Bank" placeholderTextColor="#64748b" editable={isEditing} />
                   <Text style={styles.label}>Account Number</Text>
-                  <TextInput style={[styles.input, !isEditing && {backgroundColor:'transparent', borderColor:'transparent', paddingHorizontal:0, height:30}]} value={bank.accountNumber} onChangeText={v => updateBank(i, 'accountNumber', v)} placeholder="50100XXXXXXX" placeholderTextColor="#64748b" keyboardType="numeric" editable={isEditing} />
+                  <TextInput style={[styles.input, !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 30 }]} value={bank.accountNumber} onChangeText={v => updateBank(i, 'accountNumber', v)} placeholder="50100XXXXXXX" placeholderTextColor="#64748b" keyboardType="numeric" editable={isEditing} />
                   <Text style={styles.label}>IFSC Code</Text>
-                  <TextInput style={[styles.input, !isEditing && {backgroundColor:'transparent', borderColor:'transparent', paddingHorizontal:0, height:30}]} value={bank.ifscCode} onChangeText={v => updateBank(i, 'ifscCode', v)} placeholder="HDFC0001234" placeholderTextColor="#64748b" autoCapitalize="characters" editable={isEditing} />
+                  <TextInput style={[styles.input, !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 30 }]} value={bank.ifscCode} onChangeText={v => updateBank(i, 'ifscCode', v)} placeholder="HDFC0001234" placeholderTextColor="#64748b" autoCapitalize="characters" editable={isEditing} />
                 </View>
               ))}
 
             </View>
           )}
 
-          <View style={{ height: 160 }} />
-        </ScrollView>
+          {/* INTEGRATIONS TAB */}
+          {activeTab === 'integrations' && (
+            <View>
+              {!isEditing && <Text style={styles.viewModeHint}>Tap 'Edit' in the top right to make changes.</Text>}
+
+              <Text style={styles.sectionLabel}>WhatsApp Meta Graph API</Text>
+              <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 16 }}>
+                Configure how this church sends automated WhatsApp messages (e.g. Birthdays, Events).
+              </Text>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, backgroundColor: '#f8fafc', padding: 12, borderRadius: 8 }}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1e293b', marginBottom: 4 }}>Use We Christian WhatsApp Account</Text>
+                  <Text style={{ fontSize: 12, color: '#64748b' }}>If enabled, messages will be sent from the official platform number. If disabled, you must provide your own Meta credentials below.</Text>
+                </View>
+                <Switch
+                  value={secrets.useWeChristianWhatsApp ?? false}
+                  onValueChange={v => updateSecret('useWeChristianWhatsApp', v)}
+                  disabled={!isEditing}
+                  trackColor={{ false: '#cbd5e1', true: primaryColor }}
+                />
+              </View>
+              
+              {!(secrets.useWeChristianWhatsApp ?? false) && (
+                <View style={{ marginTop: 16 }}>
+                  <View style={{ backgroundColor: '#eff6ff', borderColor: '#bfdbfe', borderWidth: 1, padding: 16, borderRadius: 12, marginBottom: 20, flexDirection: 'row', alignItems: 'flex-start' }}>
+                    <Info size={20} color="#2563eb" style={{ marginTop: 2, marginRight: 12 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#1e3a8a', marginBottom: 6 }}>Using your own WhatsApp Business Account?</Text>
+                      <Text style={{ fontSize: 13, color: '#1e40af', lineHeight: 20 }}>Please contact the We Christian team. We'll assist you in setting up and verifying your Meta API credentials correctly.</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1e293b', marginBottom: 16 }}>Custom API Credentials</Text>
+                    
+                    <Text style={styles.label}>Access Token (Permanent)</Text>
+                    <TextInput style={[styles.input, !isEditing && styles.inputDisabled, { marginBottom: 16 }]} value={secrets.whatsappAccessToken} onChangeText={v => updateSecret('whatsappAccessToken', v)} placeholder="e.g. EAAH..." placeholderTextColor="#94a3b8" secureTextEntry={!isEditing} editable={isEditing} />
+      
+                    <Text style={styles.label}>Phone Number ID</Text>
+                    <TextInput style={[styles.input, !isEditing && styles.inputDisabled, { marginBottom: 0 }]} value={secrets.whatsappPhoneId} onChangeText={v => updateSecret('whatsappPhoneId', v)} placeholder="e.g. 101452637283" placeholderTextColor="#94a3b8" keyboardType="numeric" editable={isEditing} />
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+
+          <View style={{ height: 40 }} />
+          </ScrollView>
+        </KeyboardAvoidingView>
       </SafeAreaView>
+      
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
     </View>
   );
 }
@@ -476,14 +591,14 @@ const styles = StyleSheet.create({
   },
   headerBtn: { padding: 8 },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  
+
   saveBtn: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
   saveBtnTxt: { fontSize: 13, fontWeight: '700' },
   editBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
   editBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
 
   viewModeHint: { backgroundColor: '#e0f2fe', color: '#0284c7', padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 13, fontWeight: '600', textAlign: 'center' },
-  
+
   tabs: {
     flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0',
   },
@@ -493,9 +608,9 @@ const styles = StyleSheet.create({
   },
   tabTxt: { fontSize: 13, color: '#64748b', fontWeight: '600' },
 
-  content: { padding: 20 },
+  content: { padding: 20, paddingBottom: 60 },
   sectionLabel: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 16 },
-  
+
   label: { fontSize: 12, fontWeight: '600', color: '#475569', marginBottom: 6 },
   input: {
     backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 12,
@@ -510,7 +625,7 @@ const styles = StyleSheet.create({
   },
   socialPrefix: { fontSize: 13, color: '#64748b', fontWeight: '600', width: 70 },
   inputFlex: { flex: 1, fontSize: 15, color: '#0f172a' },
-  
+
   inputDisabled: { backgroundColor: '#f8fafc', borderColor: '#e2e8f0', color: '#475569', opacity: 0.8 },
 
   imageUpload: {
@@ -526,8 +641,31 @@ const styles = StyleSheet.create({
   colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
   colorSwatch: { width: 44, height: 44, borderRadius: 22 },
   colorSwatchSelected: { borderWidth: 3, borderColor: '#0f172a' },
-  colorSwatchDisabled: { opacity: 0.5 },
-  
+  colorSwatchDisabled: {
+    opacity: 0.7,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  switchLabel: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 4,
+  },
+  switchHint: {
+    fontSize: 13,
+    color: '#64748b',
+    lineHeight: 18,
+  },
   sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
   addBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e2e8f0', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
   addBtnTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a', marginLeft: 4 },

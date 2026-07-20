@@ -27,7 +27,7 @@ export default function JoinSuccessScreen({ navigation, route }: Props) {
   const handleShare = () => {
     if (!churchCode) return;
     Share.share({
-      message: `Join "${churchName}" on WeChristian! Use the church code: ${churchCode}`,
+      message: `Join "${churchName}" on WeChristian!\n\nUse the church code: ${churchCode}\n\nDownload the app here: https://play.google.com/store/apps/details?id=com.wechristian.app`,
       title: `Join ${churchName} on WeChristian`,
     });
   };
@@ -64,7 +64,21 @@ export default function JoinSuccessScreen({ navigation, route }: Props) {
 
         <TouchableOpacity
           style={[styles.continueBtn, { backgroundColor: primary }]}
-          onPress={() => navigation.replace('Login')}
+          onPress={() => {
+            const authUser = require('@react-native-firebase/auth').default().currentUser;
+            if (authUser) {
+               // The user is logged in. 
+               // This screen shouldn't even be visible if RootNavigator worked correctly.
+               // Let's trigger an update or just route to Tabs/MainModes if possible.
+               try {
+                 navigation.getParent()?.navigate('MainModes');
+               } catch(e) {
+                 navigation.replace('Login');
+               }
+            } else {
+               navigation.replace('Login');
+            }
+          }}
         >
           <Text style={styles.continueBtnTxt}>Continue to App</Text>
           <ArrowRight size={20} color="#fff" />

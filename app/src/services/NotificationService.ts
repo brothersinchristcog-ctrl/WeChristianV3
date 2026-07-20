@@ -49,14 +49,20 @@ class NotificationService {
         return;
       }
 
-      console.log('📤 Saving token to Firestore for UID:', user.uid);
-      await firestore().collection('users').doc(user.uid).set({
-        fcmToken: token,
-        lastTokenUpdate: firestore.FieldValue.serverTimestamp(),
-        platform: Platform.OS,
-        onboardingComplete: true // Ensure this record exists correctly
-      }, { merge: true });
-      console.log('✨ Token saved successfully!');
+      console.log('📤 Fetching user global church association to save token for UID:', user.uid);
+      const FirestoreService = require('./FirestoreService').default;
+      const globalUser = await FirestoreService.getGlobalUser(user.uid);
+
+      if (globalUser?.primaryChurchId) {
+        await firestore().collection('churches').doc(globalUser.primaryChurchId).collection('members').doc(user.uid).set({
+          fcmToken: token,
+          lastTokenUpdate: firestore.FieldValue.serverTimestamp(),
+          platform: Platform.OS,
+        }, { merge: true });
+        console.log('✨ Token saved successfully to member profile!');
+      } else {
+        console.log('⚠️ Token not saved: User does not belong to a church yet.');
+      }
     } catch (err) {
       console.error('❌ Firestore Token Save Error:', err);
     }
@@ -107,6 +113,30 @@ class NotificationService {
     messaging().setBackgroundMessageHandler(async remoteMessage => {
       console.log('Message handled in the background!', remoteMessage);
     });
+  }
+
+  // Subscribe user to a specific church topic for isolated notifications
+  async subscribeToChurchTopic(churchId: string) {
+    if (!churchId) return;
+    try {
+      const topicName = `church_${churchId}`;
+      await messaging().subscribeToTopic(topicName);
+      console.log(`📡 Subscribed to FCM topic: ${topicName}`);
+    } catch (error) {
+      console.error(`❌ Failed to subscribe to topic church_${churchId}:`, error);
+    }
+  }
+
+  // Unsubscribe user from a church topic (useful when switching churches or logging out)
+  async unsubscribeFromChurchTopic(churchId: string) {
+    if (!churchId) return;
+    try {
+      const topicName = `church_${churchId}`;
+      await messaging().unsubscribeFromTopic(topicName);
+      console.log(`🔌 Unsubscribed from FCM topic: ${topicName}`);
+    } catch (error) {
+      console.error(`❌ Failed to unsubscribe from topic church_${churchId}:`, error);
+    }
   }
 
   // Handle notifications when the app is open (foreground)

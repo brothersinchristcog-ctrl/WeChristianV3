@@ -41,6 +41,7 @@ import BibleReaderScreen from '../screens/BibleReaderScreen';
 import BiblePlansScreen from '../screens/BiblePlansScreen';
 import MemberNotesScreen from '../screens/MemberNotesScreen';
 import MembersScreen from '../screens/MembersScreen';
+import SubscriptionScreen from '../screens/SubscriptionScreen';
 import BibleSearchScreen from '../screens/BibleSearchScreen';
 import AboutUsScreen from '../screens/AboutUsScreen';
 import ContactUsScreen from '../screens/ContactUsScreen';
@@ -81,6 +82,71 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
   </TouchableOpacity>
 );
 
+  const TABS = [
+    { key: 'Home',    label: 'Home',    Icon: Home,     bg: '#1a2d5a', fg: '#1a2d5a' },
+    { key: 'Promise', label: 'Promise', Icon: BookOpen, bg: '#0F766E', fg: '#0F766E' },
+    { key: 'Sermons', label: 'Sermons', Icon: Mic,      bg: '#D8632E', fg: '#D8632E' },
+    { key: 'Prayer',  label: 'Prayer',  Icon: Heart,    bg: '#0284C7', fg: '#0284C7' },
+    { key: 'Profile', label: 'Profile', Icon: UserIcon, bg: '#27272A', fg: '#27272A' },
+  ] as const;
+
+  const getTabConfig = (routeName: string) => {
+    return TABS.find(t => t.key === routeName) || TABS[0];
+  };
+
+  function CustomTabBar({ state, descriptors, navigation }: any) {
+    const currentRoute = state.routes[state.index];
+    const activeConfig = getTabConfig(currentRoute.name);
+
+    return (
+      <View style={[styles.tabBarContainer, { backgroundColor: activeConfig.bg }]}>
+        {state.routes.map((route: any, index: number) => {
+          const { options } = descriptors[route.key];
+          const isFocused = state.index === index;
+          const config = getTabConfig(route.name);
+          const IconComponent = config.Icon;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
+          return (
+            <TouchableOpacity
+              key={index}
+              accessibilityRole="button"
+              accessibilityState={isFocused ? { selected: true } : {}}
+              accessibilityLabel={options.tabBarAccessibilityLabel}
+              testID={options.tabBarTestID}
+              onPress={onPress}
+              style={styles.tabItem}
+              activeOpacity={0.9}
+            >
+              {isFocused ? (
+                <View style={styles.activeCircle}>
+                  <IconComponent color={config.fg} size={22} strokeWidth={2.5} />
+                  <Text style={[styles.activeLabel, { color: config.fg }]}>{config.label}</Text>
+                </View>
+              ) : (
+                <View style={styles.inactiveWrapper}>
+                  <IconComponent color="rgba(255, 255, 255, 0.7)" size={24} strokeWidth={2} />
+                  <Text style={styles.inactiveLabel}>{config.label}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  }
+
 function TabNavigator() {
   const { user, signOut, member, viewMode, setViewMode } = useAuth();
   const insets = useSafeAreaInsets();
@@ -101,63 +167,24 @@ function TabNavigator() {
     }
   };
 
-  const icons: any = {
-    Home: Home,
-    Promise: Book,
-    Sermons: Mic,
-    Prayer: Heart,
-    Profile: UserIcon
-  };
-
   return (
     <>
       <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused }) => {
-          const isSermon = route.name === 'Sermons';
-          const IconComponent = isSermon ? Mic : icons[route.name];
-
-          if (focused) {
-            return (
-              <View style={styles.activePill}>
-                <IconComponent color="#fff" size={20} strokeWidth={2.5} />
-                <Text style={styles.pillText}>{route.name}</Text>
-              </View>
-            );
-          }
-
-          return (
-            <View style={styles.inactiveWrapper}>
-              <IconComponent color="#1a2d5a" size={20} strokeWidth={2} />
-              <Text style={styles.inactiveLabel}>{route.name}</Text>
-            </View>
-          );
-        },
-        tabBarShowLabel: false,
-        tabBarStyle: {
-          backgroundColor: '#cbd5e1', 
-          borderTopWidth: 0,
-          height: 80,
-          paddingHorizontal: 15,
-          position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 45 : 35,
-          left: 15,
-          right: 15,
-          borderRadius: 25,
-          elevation: 20,
-          shadowColor: '#000',
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        },
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Promise" component={PromiseArchiveScreen} /> 
-      <Tab.Screen name="Sermons" component={SermonsScreen} />
+        tabBar={(props) => <CustomTabBar {...props} />}
+        screenOptions={{ headerShown: false }}
+      >
+      <Tab.Screen 
+        name="Home" 
+        component={HomeScreen} 
+      />
+      <Tab.Screen 
+        name="Promise" 
+        component={PromiseArchiveScreen} 
+      /> 
+      <Tab.Screen 
+        name="Sermons" 
+        component={SermonsScreen} 
+      />
       <Tab.Screen 
         name="Prayer" 
         component={PrayerWallScreen} 
@@ -425,6 +452,7 @@ function Navigation() {
             <Stack.Screen name="Members" component={MembersScreen} />
             <Stack.Screen name="AboutUs" component={AboutUsScreen} />
             <Stack.Screen name="ContactUs" component={ContactUsScreen} />
+            <Stack.Screen name="Subscription" component={SubscriptionScreen} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
@@ -449,30 +477,51 @@ export default function RootNavigator() {
 }
 
 const styles = StyleSheet.create({
-  activePill: {
+  tabBarContainer: {
     flexDirection: 'row',
+    height: 75,
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 65 : 50,
+    left: 20,
+    right: 20,
+    borderRadius: 40,
+    elevation: 15,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    paddingHorizontal: 10,
     alignItems: 'center',
-    backgroundColor: '#1a2d5a', 
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    gap: 8
+    justifyContent: 'center',
   },
-  pillText: {
-    color: '#fff',
-    fontSize: 13,
+  tabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 75,
+  },
+  activeCircle: {
+    backgroundColor: '#ffffff',
+    width: 60,
+    height: 60,
+    borderRadius: 30, 
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activeLabel: {
+    fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 0.5
+    letterSpacing: 0.1,
+    marginTop: 2,
   },
   inactiveWrapper: {
     alignItems: 'center',
     justifyContent: 'center',
-    width: 60,
   },
   inactiveLabel: {
-    color: '#1a2d5a',
-    fontSize: 9,
-    fontWeight: '700',
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 10,
+    fontWeight: '600',
     marginTop: 4,
     letterSpacing: 0.2
   }

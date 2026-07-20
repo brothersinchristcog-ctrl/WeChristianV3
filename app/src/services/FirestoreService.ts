@@ -12,6 +12,23 @@ export interface GlobalUser {
   fcmToken?: string;
   createdAt?: any;
   lastLogin?: any;
+  subscription?: {
+    status: string; // 'trial', 'active', 'expired', etc.
+    trialEndsAt?: any;
+    planId?: string;
+    plan?: string;
+    validUntil?: string;
+    lastPaymentId?: string;
+  };
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: number;
+  billingCycle: 'monthly' | 'annual';
+  features: string[];
+  savings?: string;
 }
 
 export interface AppMember {
@@ -23,6 +40,7 @@ export interface AppMember {
   phone?: string;
   userType?: string;
   churchId: string;
+  primaryChurchId?: string;
   joinDate?: string;
   accountId?: string;
   description?: string;
@@ -140,17 +158,34 @@ class FirestoreService {
     return firestore().collection('churches').doc(id).collection(collectionName);
   }
 
+  // ─── Subscriptions ──────────────────────────────────────────────────────────
+  
+  async getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+    try {
+      const plansRef = firestore().collection('subscription_plans');
+      const snapshot = await plansRef.get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SubscriptionPlan));
+    } catch (error) {
+      console.error('Error fetching subscription plans:', error);
+      return [];
+    }
+  }
+
   // --- 👤 Global User & Member Logic ---
 
   async getGlobalUser(uid: string): Promise<GlobalUser | null> {
     try {
-      const docSnap = await firestore().collection('users').doc(uid).get();
-      if (docSnap.exists()) {
-        return { uid: docSnap.id, ...docSnap.data() } as GlobalUser;
+      // Find the member across all churches to determine their primary church
+      const snap = await firestore().collectionGroup('members').where('id', '==', uid).limit(1).get();
+      if (!snap.empty) {
+        const doc = snap.docs[0];
+        // The parent of the member doc is the 'members' collection. The parent of that is the church doc.
+        const churchId = doc.ref.parent.parent?.id;
+        return { uid: doc.id, primaryChurchId: churchId, ...doc.data() } as GlobalUser;
       }
       return null;
     } catch (error) {
-      console.error('Error fetching global user:', error);
+      console.error('Error fetching global user from collectionGroup:', error);
       return null;
     }
   }
@@ -172,34 +207,142 @@ class FirestoreService {
     const rawDigits = phone.replace(/\D/g, '');
     const last10 = rawDigits.slice(-10);
     const plus91 = `+91${last10}`;
+    const spaced1 = `+91 ${last10}`;
+    const spaced2 = `+91 ${last10.slice(0,5)} ${last10.slice(5)}`;
+    const format91 = `91${last10}`;
+    const intFormat = parseInt(last10, 10);
+    const intFormat91 = parseInt(format91, 10);
+    
+    // Array of possible formats that might be in Firestore (including integers), filter out invalid values
+    const formats = [last10, plus91, format91, phone, spaced1, spaced2, intFormat, intFormat91];
+    const possibleFormats = formats.filter(v => v !== undefined && v !== null && !Number.isNaN(v));
     
     try {
       if (!churchId) churchId = await this.getChurchId() || undefined;
       
-      if (!churchId) return { exists: false };
-
-      // Query both common formats
-      const snapshot = await firestore()
-        .collection('churches')
-        .doc(churchId)
-        .collection('members')
-        .where('phone', 'in', [last10, plus91, phone])
-        .limit(1)
-        .get();
-        
-      if (!snapshot.empty) {
-        const doc = snapshot.docs[0];
-        return { exists: true, member: { id: doc.id, ...doc.data() } };
+      const auth = require('@react-native-firebase/auth').default;
+      if (!auth().currentUser) {
+        await auth().signInAnonymously();
       }
+
+      // Helper for manual fallback
+      const runManualFallback = async () => {
+        console.log("Running manual fallback traversal...");
+        const churchesSnap = await firestore().collection('churches').get();
+        for (const churchDoc of churchesSnap.docs) {
+          const queries = possibleFormats.map(format => 
+            churchDoc.ref.collection('members').where('phone', '==', format).limit(1).get()
+          );
+          const results = await Promise.all(queries);
+          for (const snap of results) {
+            if (!snap.empty) {
+              const doc = snap.docs[0];
+              return { exists: true, member: { id: doc.id, ...doc.data() } };
+            }
+          }
+        }
+        return { exists: false };
+      };
+
+      if (!churchId) {
+        try {
+          console.log("Trying collectionGroup search...");
+          const queries = possibleFormats.map(format => 
+            firestore().collectionGroup('members').where('phone', '==', format).limit(1).get()
+          );
+          const results = await Promise.all(queries);
+          for (const snap of results) {
+            if (!snap.empty) {
+              const doc = snap.docs[0];
+              return { exists: true, member: { id: doc.id, ...doc.data() } };
+            }
+          }
+          return { exists: false };
+        } catch (cgError: any) {
+          console.log("Collection group index failed, falling back...", cgError.message);
+          return await runManualFallback();
+        }
+      }
+
+      // Query specific church members
+      try {
+        console.log(`Checking specific church: ${churchId}`);
+        const queries = possibleFormats.map(format => 
+          firestore().collection('churches').doc(churchId).collection('members').where('phone', '==', format).limit(1).get()
+        );
+        const results = await Promise.all(queries);
+        for (const snap of results) {
+          if (!snap.empty) {
+            const doc = snap.docs[0];
+            return { exists: true, member: { id: doc.id, ...doc.data() } };
+          }
+        }
+      } catch (err: any) {
+        console.log("Specific church query failed:", err.message);
+      }
+
+      // Fallback: Check all members collections
+      try {
+        console.log("Not found in specific church. Trying global collectionGroup search...");
+        const globalQueries = possibleFormats.map(format => 
+          firestore().collectionGroup('members').where('phone', '==', format).limit(1).get()
+        );
+        const globalResults = await Promise.all(globalQueries);
+        for (const snap of globalResults) {
+          if (!snap.empty) {
+            const doc = snap.docs[0];
+            return { exists: true, member: { id: doc.id, ...doc.data() } };
+          }
+        }
+      } catch (cgError: any) {
+         console.log("Global collection group index failed, falling back...", cgError.message);
+         return await runManualFallback();
+      }
+
       return { exists: false };
-    } catch (error) {
-      return { exists: false };
+    } catch (error: any) {
+      console.warn("Firestore search error:", error);
+      return { exists: false, error: error?.message || 'Database error' };
+    }
+  }
+
+  async adminAddMember(churchId: string, details: any) {
+    try {
+      const docRef = await firestore().collection('churches').doc(churchId).collection('members').add({
+        ...details,
+        joinDate: new Date().toISOString(),
+        onboardingComplete: false,
+      });
+      return { success: true, id: docRef.id };
+    } catch (error: any) {
+      console.error("Error adding member manually:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async adminUpdateMember(churchId: string, memberId: string, details: any) {
+    try {
+      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).update(details);
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error updating member:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async adminRemoveMember(churchId: string, memberId: string) {
+    try {
+      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).delete();
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error removing member:", error);
+      return { success: false, error: error.message };
     }
   }
 
   async updateMemberProfile(churchId: string, memberId: string, details: any) {
     try {
-      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).update(details);
+      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).set(details, { merge: true });
       return true;
     } catch (error) {
       console.error('Error updating member profile', error);
@@ -238,7 +381,20 @@ class FirestoreService {
 
   async syncMember(churchId: string, contactId: string, uid: string) {
     try {
-      await firestore().collection('churches').doc(churchId).collection('members').doc(contactId).update({ uid });
+      if (contactId === uid) return;
+      
+      const membersRef = firestore().collection('churches').doc(churchId).collection('members');
+      const oldDoc = await membersRef.doc(contactId).get();
+      
+      if (oldDoc.exists()) {
+        // Move data to new document with the correct UID
+        await membersRef.doc(uid).set({ ...oldDoc.data(), uid }, { merge: true });
+        // Delete the old document with the random ID
+        await membersRef.doc(contactId).delete();
+      } else {
+        // Just in case it was already moved or we only have the uid to update
+        await membersRef.doc(contactId).update({ uid }).catch(() => {});
+      }
     } catch (e) {
       console.warn('Error syncing member', e);
     }
@@ -642,9 +798,19 @@ class FirestoreService {
       const col = await this.getCollection('promises');
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const snapshot = await col.where('date', '==', todayStr).limit(1).get();
+      const snapshot = await col
+        .where('date', '==', todayStr)
+        .where('status', 'in', ['Published', 'Scheduled'])
+        .get();
       if (!snapshot.empty) {
-        return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as DailyPromise;
+        const promises = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DailyPromise));
+        promises.sort((a: any, b: any) => {
+          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+          return tB - tA;
+        });
+        const withImage = promises.find(p => p.imageUrl && p.imageUrl.trim().length > 0);
+        return withImage || promises[0];
       }
       return null;
     } catch (e) {
@@ -705,17 +871,22 @@ class FirestoreService {
       const d = String(current.getDate()).padStart(2, '0');
       dates.push(`${y}-${m}-${d}`);
       
-      if (recurringType === 'Every week' || recurringType === 'Every Sunday') {
+      const typeLower = (recurringType || '').toLowerCase();
+
+      if (typeLower.includes('week') || typeLower.includes('every sunday')) {
         current.setDate(current.getDate() + 7);
-      } else if (recurringType === 'Monthly') {
+      } else if (typeLower.includes('monthly') || typeLower === 'month') {
         current.setMonth(current.getMonth() + 1);
-      } else if (recurringType === 'First Sunday') {
+      } else if (typeLower.includes('first sunday')) {
         current.setMonth(current.getMonth() + 1);
         current.setDate(1);
         while (current.getDay() !== 0) {
           current.setDate(current.getDate() + 1);
         }
+      } else if (typeLower.includes('daily') || typeLower.includes('every day')) {
+        current.setDate(current.getDate() + 1);
       } else {
+        console.warn(`[FirestoreService] Unsupported recurrence type: ${recurringType}`);
         break; // Unsupported recurrence type
       }
     }
@@ -858,19 +1029,34 @@ class FirestoreService {
   // --- 🎉 Celebrations ---
 
   async getAllCelebrations(): Promise<any[]> {
+    const normalizeDate = (dateStr: string) => {
+      if (!dateStr) return null;
+      const parts = dateStr.split(/[-/]/);
+      if (parts.length < 3) return null;
+      if (parts[0].length === 4) {
+        return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+      } else if (parts[2].length === 4) {
+        return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+      return dateStr;
+    };
+
     try {
       const col = await this.getCollection('members');
       const snapshot = await col.get();
       return snapshot.docs.map(doc => {
         const data = doc.data();
         return {
+          ...data,
           Id: doc.id,
           Name: data.name || (data.firstName ? data.firstName + ' ' + (data.lastName || '') : 'Unknown'),
           Phone: data.phone || data.mobile,
-          Birthdate: data.dateOfBirth || data.dob || data.birthday, // YYYY-MM-DD
-          Anniversary_Date__c: data.marriageDate || data.anniversaryDate || data.anniversary, // YYYY-MM-DD
+          Birthdate: normalizeDate(data.dateOfBirth || data.dob || data.birthday), // always YYYY-MM-DD
+          Anniversary_Date__c: normalizeDate(data.marriageDate || data.anniversaryDate || data.anniversary), // always YYYY-MM-DD
+          Baptism_Date__c: normalizeDate(data.baptismDate || data.baptism), // always YYYY-MM-DD
           Gender__c: data.gender || data.Gender__c,
-          AccountId: data.accountId || data.familyId || doc.id
+          AccountId: data.accountId || data.familyId || doc.id,
+          ProfilePhoto: data.profilePhoto || data.photoURL || data.photoUrl || data.profileImageUrl || null
         };
       });
     } catch (e) {
@@ -885,7 +1071,21 @@ class FirestoreService {
       const today = new Date();
       const m = today.getMonth() + 1;
       const d = today.getDate();
-      return all.filter(c => c.type === 'birthday' && parseInt(c.date.split('-')[1]) === m && parseInt(c.date.split('-')[2]) === d);
+      
+      return all.filter(c => {
+        if (!c.Birthdate) return false;
+        const parts = c.Birthdate.split('-');
+        if (parts.length < 3) return false;
+        let month, day;
+        if (parts[0].length === 4) { // YYYY-MM-DD
+          month = parseInt(parts[1], 10);
+          day = parseInt(parts[2], 10);
+        } else { // DD-MM-YYYY
+          day = parseInt(parts[0], 10);
+          month = parseInt(parts[1], 10);
+        }
+        return month === m && day === d;
+      });
     } catch (e) {
       return [];
     }
@@ -897,7 +1097,21 @@ class FirestoreService {
       const today = new Date();
       const m = today.getMonth() + 1;
       const d = today.getDate();
-      return all.filter(c => c.type === 'anniversary' && parseInt(c.date.split('-')[1]) === m && parseInt(c.date.split('-')[2]) === d);
+
+      return all.filter(c => {
+        if (!c.Anniversary_Date__c) return false;
+        const parts = c.Anniversary_Date__c.split('-');
+        if (parts.length < 3) return false;
+        let month, day;
+        if (parts[0].length === 4) { // YYYY-MM-DD
+          month = parseInt(parts[1], 10);
+          day = parseInt(parts[2], 10);
+        } else { // DD-MM-YYYY
+          day = parseInt(parts[0], 10);
+          month = parseInt(parts[1], 10);
+        }
+        return month === m && day === d;
+      });
     } catch (e) {
       return [];
     }
@@ -975,6 +1189,38 @@ class FirestoreService {
     } catch (e) {
       console.error('Error deleting pastor event:', e);
       return { success: false };
+    }
+  }
+  async query(soql: string): Promise<any> { return null; }
+  extractYoutubeId(url: string): string { return url; }
+  async getDashboardStats(): Promise<any> { return { members: 0, promises: 0 }; }
+  async getEventMetadata(eventId: string): Promise<any> { return null; }
+  async searchMembers(query: string): Promise<any[]> {
+    try {
+      const col = await this.getCollection('members');
+      const snapshot = await col.get();
+      const lowerQuery = query.toLowerCase();
+      
+      const results: any[] = [];
+      snapshot.forEach((doc: any) => {
+        const data = doc.data();
+        const name = (data.name || data.firstName || '').toLowerCase();
+        const phone = (data.phone || data.mobile || '').toLowerCase();
+        
+        if (name.includes(lowerQuery) || phone.includes(lowerQuery)) {
+          results.push({
+            id: doc.id,
+            name: data.name || data.firstName || 'Unknown',
+            phone: data.phone || data.mobile || '',
+            ...data
+          });
+        }
+      });
+      
+      return results;
+    } catch (error) {
+      console.error('Error in searchMembers:', error);
+      return [];
     }
   }
 }

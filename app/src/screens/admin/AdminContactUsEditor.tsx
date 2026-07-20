@@ -15,6 +15,7 @@ import { Phone, Mail, MapPin, Save, ChevronLeft, Plus, Trash2, RefreshCw, Edit2,
 import Svg, { Path, Rect, Circle } from 'react-native-svg';
 import firestore from '@react-native-firebase/firestore';
 import { AdminTabContext } from '../../context/AdminTabContext';
+import firestoreService from '../../services/FirestoreService';
 
 interface ContactData {
   churchName: string;
@@ -26,6 +27,7 @@ interface ContactData {
     youtube: string;
     instagram: string;
     facebook: string;
+    whatsapp?: string;
   };
   updatedAt?: any;
 }
@@ -40,6 +42,7 @@ const DEFAULT_CONTACT: ContactData = {
     youtube: '',
     instagram: '',
     facebook: '',
+    whatsapp: '',
   },
 };
 
@@ -62,6 +65,11 @@ const FbIcon = () => (
     <Path d="M24 12.073C24 5.406 18.627 0 12 0S0 5.406 0 12.073c0 6.028 4.388 11.023 10.125 11.927v-8.434H7.078v-3.493h3.047V9.43c0-3.007 1.793-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.493h-2.796v8.434C19.612 23.096 24 18.101 24 12.073z" />
   </Svg>
 );
+const WaIcon = () => (
+  <Svg width={16} height={16} viewBox="0 0 24 24" fill="#fff">
+    <Path d="M12.031 0C5.385 0 0 5.385 0 12.031c0 2.637.834 5.086 2.27 7.086L.517 24l5.05-1.745c1.947 1.282 4.256 2.031 6.464 2.031 6.645 0 12.03-5.386 12.03-12.031S18.675 0 12.031 0zm6.545 17.15c-.279.79-1.516 1.488-2.128 1.547-.565.053-1.272.181-3.64-1.12-2.846-1.564-4.646-4.48-4.783-4.665-.138-.184-1.144-1.523-1.144-2.905 0-1.383.714-2.062.97-2.339.255-.276.554-.345.74-.345.185 0 .37.004.535.011.171.008.401-.064.629.489.234.568.74 1.808.808 1.945.068.138.114.3.023.483-.09.184-.137.3-.275.46-.138.161-.29.345-.411.484-.138.138-.283.29-.12.568.161.276.717 1.18 1.537 1.912 1.058.946 1.936 1.238 2.213 1.376.276.138.437.114.6-.068.161-.184.69-1.28 1.28-1.722.59-.441 1.18-.368 1.436-.276.255.092 1.62.766 1.9.904.279.138.463.207.531.322.069.115.069.667-.21 1.457z" />
+  </Svg>
+);
 
 export default function AdminContactUsEditor() {
   const { goBack } = useContext(AdminTabContext);
@@ -75,7 +83,8 @@ export default function AdminContactUsEditor() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const doc = await firestore().collection('settings').doc('contact').get();
+      const col = await firestoreService.getCollection('settings');
+      const doc = await col.doc('contact').get();
       if (doc.exists()) {
         const d = doc.data() as ContactData;
         const fetched: ContactData = {
@@ -88,6 +97,7 @@ export default function AdminContactUsEditor() {
             youtube: d.socialLinks?.youtube || DEFAULT_CONTACT.socialLinks.youtube,
             instagram: d.socialLinks?.instagram || DEFAULT_CONTACT.socialLinks.instagram,
             facebook: d.socialLinks?.facebook || DEFAULT_CONTACT.socialLinks.facebook,
+            whatsapp: d.socialLinks?.whatsapp || DEFAULT_CONTACT.socialLinks.whatsapp,
           },
         };
         setData(fetched);
@@ -115,7 +125,8 @@ export default function AdminContactUsEditor() {
     setSaving(true);
     try {
       const toSave = { ...draft, phoneNumbers: cleanedPhones, emails: cleanedEmails, updatedAt: firestore.FieldValue.serverTimestamp() };
-      await firestore().collection('settings').doc('contact').set(toSave);
+      const col = await firestoreService.getCollection('settings');
+      await col.doc('contact').set(toSave);
       setData({ ...draft, phoneNumbers: cleanedPhones, emails: cleanedEmails });
       setIsEditing(false);
       Alert.alert('✅ Saved', 'Contact Us information updated!');
@@ -333,6 +344,10 @@ export default function AdminContactUsEditor() {
                 <View style={styles.socialEditRow}>
                   <View style={[styles.socialIconBadge, { backgroundColor: '#1877f2' }]}><FbIcon /></View>
                   <TextInput style={[styles.input, styles.socialInput]} value={draft.socialLinks.facebook} onChangeText={(t) => setDraft((p) => ({ ...p, socialLinks: { ...p.socialLinks, facebook: t } }))} placeholder="Facebook URL" placeholderTextColor="#94a3b8" autoCapitalize="none" keyboardType="url" />
+                </View>
+                <View style={styles.socialEditRow}>
+                  <View style={[styles.socialIconBadge, { backgroundColor: '#25D366' }]}><WaIcon /></View>
+                  <TextInput style={[styles.input, styles.socialInput]} value={draft.socialLinks.whatsapp} onChangeText={(t) => setDraft((p) => ({ ...p, socialLinks: { ...p.socialLinks, whatsapp: t } }))} placeholder="WhatsApp Number (with country code)" placeholderTextColor="#94a3b8" autoCapitalize="none" keyboardType="phone-pad" />
                 </View>
               </View>
 

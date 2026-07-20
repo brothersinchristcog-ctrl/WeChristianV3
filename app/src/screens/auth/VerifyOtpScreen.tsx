@@ -48,15 +48,7 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
       if (result?.user && isSignUp && formData && activeChurchId) {
         setStatus('Creating your member profile...');
         
-        // 1. Create global user document
-        await firestore().collection('users').doc(result.user.uid).set({
-          uid: result.user.uid,
-          name: `${formData.firstName} ${formData.lastName}`.trim(),
-          phone: formData.phone,
-          email: formData.email || '',
-          primaryChurchId: activeChurchId,
-          createdAt: FieldValue.serverTimestamp()
-        });
+        // Global users collection is no longer used. Members are strictly stored in the church.
 
         // 2. Create nested member profile
         const createResult = await FirestoreService.createMember(activeChurchId, { 
@@ -97,16 +89,9 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
       if (result?.user && contactId && !isSignUp) {
         setStatus('Linking church profile...');
         try {
-          await FirestoreService.syncMember(contactId, result.user.uid);
+          await FirestoreService.syncMember(activeChurchId || '', contactId, result.user.uid);
 
-          // Save profile details to Firestore
-          await firestore().collection('users').doc(result.user.uid).set({
-            name: memberName || '',
-            phone: phoneNumber || '',
-            role: 'Member',
-            onboardingComplete: true
-          }, { merge: true });
-          console.log('✨ Saved member profile to Firestore successfully!');
+          // Global users collection is no longer used.
         } catch (syncError) {
           console.error('❌ Sync failed:', syncError);
         }
@@ -114,11 +99,9 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
 
       // After OTP confirmed: if user has no primaryChurchId yet
       if (result?.user) {
-        const { firestore } = require('../../services/firebaseConfig');
-        const userDoc = await firestore().collection('users').doc(result.user.uid).get();
-        const userData = userDoc.data();
+        const globalUser = await FirestoreService.getGlobalUser(result.user.uid);
         
-        if (!userData?.primaryChurchId) {
+        if (!globalUser?.primaryChurchId) {
           if (activeChurchId) {
             navigation.replace('SignUp');
           } else {

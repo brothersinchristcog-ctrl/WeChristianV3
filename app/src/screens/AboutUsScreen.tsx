@@ -11,7 +11,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { ChevronLeft, Target, Eye, Heart } from 'lucide-react-native';
+import { useTheme } from '../context/ThemeContext';
+import { useChurch } from '../context/ChurchContext';
 import firestore from '@react-native-firebase/firestore';
+import firestoreService from '../services/FirestoreService';
 
 interface AboutUsData {
   churchName: string;
@@ -31,33 +34,46 @@ const DEFAULT: AboutUsData = {
 
 export default function AboutUsScreen() {
   const navigation = useNavigation();
+  const { colors, isDark } = useTheme();
+  const { activeChurch } = useChurch();
   const [data, setData] = useState<AboutUsData>(DEFAULT);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = firestore()
-      .collection('settings')
-      .doc('about')
-      .onSnapshot(
-        (doc) => {
-          if (doc.exists()) {
-            const d = doc.data() as AboutUsData;
-            setData({
-              churchName: d.churchName || DEFAULT.churchName,
-              churchSubtitle: d.churchSubtitle || DEFAULT.churchSubtitle,
-              description: d.description || DEFAULT.description,
-              mission: d.mission || DEFAULT.mission,
-              vision: d.vision || DEFAULT.vision,
-            });
+    let unsub: () => void = () => {};
+
+    const setupListener = async () => {
+      try {
+        const col = await firestoreService.getCollection('settings');
+        unsub = col.doc('about').onSnapshot(
+          (doc) => {
+            if (doc.exists()) {
+              const d = doc.data() as AboutUsData;
+              setData({
+                churchName: d.churchName || DEFAULT.churchName,
+                churchSubtitle: d.churchSubtitle || DEFAULT.churchSubtitle,
+                description: d.description || DEFAULT.description,
+                mission: d.mission || DEFAULT.mission,
+                vision: d.vision || DEFAULT.vision,
+              });
+            }
+            setLoading(false);
+          },
+          (err) => {
+            console.warn('AboutUs listener error:', err);
+            setLoading(false);
           }
-          setLoading(false);
-        },
-        (err) => {
-          console.warn('AboutUs listener error:', err);
-          setLoading(false);
-        }
-      );
-    return () => unsub();
+        );
+      } catch (err) {
+        console.warn('Error setting up AboutUs listener:', err);
+        setLoading(false);
+      }
+    };
+
+    setupListener();
+    return () => {
+      if (unsub) unsub();
+    };
   }, []);
 
   return (
@@ -83,13 +99,15 @@ export default function AboutUsScreen() {
         >
           {/* Church Logo Hero */}
           <View style={styles.heroCard}>
-            <View style={styles.logoCircle}>
-              <Image
-                source={require('../../assets/logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
+            {activeChurch?.theme?.logoUrl ? (
+              <View style={styles.logoCircle}>
+                <Image
+                  source={{ uri: activeChurch.theme.logoUrl }}
+                  style={styles.logo}
+                  resizeMode="cover"
+                />
+              </View>
+            ) : null}
             <Text style={styles.churchName}>{data.churchName}</Text>
             <Text style={styles.churchSubtitle}>{data.churchSubtitle}</Text>
             <View style={styles.goldDivider} />
@@ -202,7 +220,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
-  logo: { width: 68, height: 68 },
+  logo: { width: 90, height: 90, resizeMode: 'cover' },
   churchName: {
     fontSize: 22,
     fontWeight: '900',

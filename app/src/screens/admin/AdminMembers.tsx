@@ -9,14 +9,22 @@ import {
   Dimensions, 
   Platform,
   ActivityIndicator,
-  RefreshControl
+  RefreshControl,
+  Alert,
+  Modal,
+  Share,
+  KeyboardAvoidingView
 } from 'react-native';
-import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck } from 'lucide-react-native';
+import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2 } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
+import { useChurch } from '../../context/ChurchContext';
+import { CustomAlert, AlertButton } from '../../components/CustomAlert';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
 const { width } = Dimensions.get('window');
 
 export default function AdminMembers() {
+  const { activeChurch } = useChurch();
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -24,6 +32,31 @@ export default function AdminMembers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Inactive'>('All');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Add/Edit Member State
+  const [addModalVisible, setAddModalVisible] = useState(false);
+  const [editMemberId, setEditMemberId] = useState<string | null>(null);
+  const [addMemberLoading, setAddMemberLoading] = useState(false);
+  const [newMemberForm, setNewMemberForm] = useState({
+    name: '',
+    phone: '',
+    userType: 'member',
+    dob: ''
+  });
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'info' | 'error' | 'warning';
+    buttons?: AlertButton[];
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
 
   const fetchMembers = async (isRefresh = false) => {
     if (isRefresh) {
@@ -51,11 +84,24 @@ export default function AdminMembers() {
   const handlePromoteAdmin = async (memberId: string) => {
     try {
       setLoading(true);
-      const success = await FirestoreService.updateMemberRole(memberId, 'admin');
+      const success = await FirestoreService.updateMemberRole(memberId, 'Admin');
       if (success) {
-        setMembers(prev => prev.map(m => m.id === memberId ? { ...m, userType: 'admin' } : m));
+        setMembers(prev => prev.map(m => m.id === memberId ? { ...m, userType: 'Admin' } : m));
+        setAlertConfig({
+          visible: true,
+          title: 'Promoted',
+          message: 'Member has been promoted to Admin.',
+          type: 'success',
+          buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+        });
       } else {
-        setError('Failed to promote member');
+        setAlertConfig({
+          visible: true,
+          title: 'Error',
+          message: 'Failed to promote member.',
+          type: 'error',
+          buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+        });
       }
     } catch (err) {
       console.error(err);
@@ -64,10 +110,194 @@ export default function AdminMembers() {
     }
   };
 
+  const handleRemoveAdmin = (memberId: string, memberName: string) => {
+    setAlertConfig({
+      visible: true,
+      title: 'Remove Admin Permission',
+      message: `Are you sure you want to remove admin access from ${memberName}? They will be reverted to a regular member.`,
+      type: 'warning',
+      buttons: [
+        { text: 'Cancel', style: 'cancel', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) },
+        {
+          text: 'Remove Admin',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              setAlertConfig(prev => ({ ...prev, visible: false }));
+              const success = await FirestoreService.updateMemberRole(memberId, 'Member');
+              if (success) {
+                setMembers(prev => prev.map(m => m.id === memberId ? { ...m, userType: 'Member' } : m));
+                setTimeout(() => {
+                  setAlertConfig({
+                    visible: true,
+                    title: 'Access Removed',
+                    message: `${memberName} is now a regular member.`,
+                    type: 'success',
+                    buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+                  });
+                }, 500);
+              } else {
+                setAlertConfig({
+                  visible: true,
+                  title: 'Error',
+                  message: 'Failed to remove admin role.',
+                  type: 'error',
+                  buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+                });
+              }
+            } catch (err) {
+              console.error(err);
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    });
+  };
+
+  const handleDeleteMember = (memberId: string, memberName: string) => {
+    setAlertConfig({
+      visible: true,
+      title: 'Remove Member',
+      message: `Are you sure you want to remove ${memberName || 'this member'} from the church?`,
+      type: 'warning',
+      buttons: [
+        { 
+          text: 'Cancel', 
+          style: 'cancel',
+          onPress: () => setAlertConfig(prev => ({ ...prev, visible: false }))
+        },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              setAlertConfig(prev => ({ ...prev, visible: false }));
+              if (activeChurch?.id) {
+                const success = await FirestoreService.adminRemoveMember(activeChurch.id, memberId);
+                if (success.success) {
+                  setMembers(prev => prev.filter(m => m.id !== memberId));
+                  setTimeout(() => {
+                    setAlertConfig({
+                      visible: true,
+                      title: 'Success!',
+                      message: `${memberName} has been removed.`,
+                      type: 'success',
+                      buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+                    });
+                  }, 500);
+                } else {
+                  setError('Failed to remove member');
+                }
+              }
+            } catch (err) {
+              console.error(err);
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    });
+  };
+
   // Stats calculation
   const totalMembers = members.length;
   const activeMembers = members.length; // Assuming all firebase members are active for now
   const inactiveMembers = 0;
+
+  const handleAddMember = async () => {
+    if (!newMemberForm.name.trim() || !newMemberForm.phone.trim()) {
+      setAlertConfig({
+        visible: true,
+        title: 'Missing Info',
+        message: 'Please provide both name and phone number.',
+        type: 'warning',
+        buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+      });
+      return;
+    }
+    
+    let formattedPhone = newMemberForm.phone.trim();
+    if (!formattedPhone.startsWith('+')) {
+       formattedPhone = `+91${formattedPhone}`;
+    }
+
+    try {
+      setAddMemberLoading(true);
+      
+      let res;
+      if (editMemberId) {
+        res = await FirestoreService.adminUpdateMember(activeChurch?.id || '', editMemberId, {
+          name: newMemberForm.name,
+          phone: formattedPhone,
+          userType: newMemberForm.userType,
+          dob: newMemberForm.dob,
+        });
+      } else {
+        res = await FirestoreService.adminAddMember(activeChurch?.id || '', {
+          name: newMemberForm.name,
+          phone: formattedPhone,
+          userType: newMemberForm.userType,
+          dob: newMemberForm.dob,
+          churchId: activeChurch?.id,
+        });
+      }
+
+      if (res.success) {
+        setAddModalVisible(false);
+        setEditMemberId(null);
+        setNewMemberForm({ name: '', phone: '', userType: 'member', dob: '' });
+        fetchMembers();
+
+        setTimeout(() => {
+          setAlertConfig({
+            visible: true,
+            title: 'Success!',
+            message: editMemberId ? 'Member updated successfully!' : 'Member added successfully!',
+            type: 'success',
+            buttons: [{ 
+              text: 'OK', 
+              onPress: () => {
+                setAlertConfig(prev => ({ ...prev, visible: false }));
+                if (!editMemberId) {
+                  // Share functionality after OK for new members
+                  const churchName = activeChurch?.name || 'WeChristian Church';
+                  const churchCode = (activeChurch as any)?.churchCode || '';
+                  Share.share({
+                    message: `Hello ${newMemberForm.name},\n\nYou have been added to "${churchName}" on WeChristian!\n\nPlease download the app here: https://play.google.com/store/apps/details?id=com.wechristian.app\n\nOnce downloaded, sign in with your phone number. If asked, use Church Code: ${churchCode}`,
+                    title: `Join ${churchName}`,
+                  });
+                }
+              }
+            }]
+          });
+        }, 500);
+
+      } else {
+        setAlertConfig({
+          visible: true,
+          title: 'Error',
+          message: res.error || 'Failed to add member',
+          type: 'error',
+          buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+        });
+      }
+    } catch (e: any) {
+      setAlertConfig({
+        visible: true,
+        title: 'Error',
+        message: e.message,
+        type: 'error',
+        buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+      });
+    } finally {
+      setAddMemberLoading(false);
+    }
+  };
 
   const handleToggleExpand = (id: string) => {
     setExpandedId(prev => (prev === id ? null : id));
@@ -160,6 +390,14 @@ export default function AdminMembers() {
 
   return (
     <View style={styles.container}>
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scroll}
@@ -178,9 +416,13 @@ export default function AdminMembers() {
             <Text style={styles.title}>Church Members</Text>
             <Text style={styles.subtitle}>Directory & Status Tracking</Text>
           </View>
-          <View style={styles.headerIconCircle}>
-            <Users size={20} color="#fff" />
-          </View>
+          <TouchableOpacity 
+            style={[styles.headerIconCircle, { width: 'auto', paddingHorizontal: 16, flexDirection: 'row', gap: 6, borderRadius: 20 }]}
+            onPress={() => setAddModalVisible(true)}
+          >
+            <Plus size={18} color="#fff" />
+            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Add Member</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Stats Row */}
@@ -272,12 +514,32 @@ export default function AdminMembers() {
                       </View>
                     </View>
                   </View>
-                  <View style={styles.chevronWrap}>
-                    {isExpanded ? (
-                      <ChevronUp size={18} color="#6B7280" />
-                    ) : (
-                      <ChevronDown size={18} color="#6B7280" />
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    {isExpanded && (
+                      <TouchableOpacity 
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          setEditMemberId(member.id);
+                          setNewMemberForm({
+                            name: member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim(),
+                            phone: member.phone || '',
+                            userType: member.userType || 'member',
+                            dob: member.dob || ''
+                          });
+                          setAddModalVisible(true);
+                        }}
+                        style={{ padding: 4 }}
+                      >
+                        <Edit2 size={18} color="#2563EB" />
+                      </TouchableOpacity>
                     )}
+                    <View style={styles.chevronWrap}>
+                      {isExpanded ? (
+                        <ChevronUp size={18} color="#6B7280" />
+                      ) : (
+                        <ChevronDown size={18} color="#6B7280" />
+                      )}
+                    </View>
                   </View>
                 </TouchableOpacity>
 
@@ -317,15 +579,44 @@ export default function AdminMembers() {
                     </View>
 
                     {/* Admin Actions */}
-                    {displayRole !== 'admin' && (
-                      <TouchableOpacity 
-                        style={styles.promoteBtn}
-                        onPress={() => handlePromoteAdmin(member.id)}
-                      >
-                        <UserCheck size={14} color="#fff" />
-                        <Text style={styles.promoteBtnTxt}>Promote to Admin</Text>
-                      </TouchableOpacity>
-                    )}
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <View style={{ flex: 1 }}>
+                        {member.userType?.toLowerCase() === 'super_admin' || member.userType?.toLowerCase() === 'super admin' ? (
+                          <View style={[styles.promoteBtn, { backgroundColor: '#7c3aed', opacity: 0.8 }]}>
+                            <Shield size={14} color="#fff" />
+                            <Text style={styles.promoteBtnTxt}>Super Admin</Text>
+                          </View>
+                        ) : displayRole.toLowerCase() === 'admin' ? (
+                          <TouchableOpacity 
+                            style={[styles.promoteBtn, { backgroundColor: '#dc2626' }]}
+                            onPress={() => handleRemoveAdmin(member.id, displayName)}
+                          >
+                            <UserX size={14} color="#fff" />
+                            <Text style={styles.promoteBtnTxt}>Remove Admin</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <TouchableOpacity 
+                            style={styles.promoteBtn}
+                            onPress={() => handlePromoteAdmin(member.id)}
+                          >
+                            <UserCheck size={14} color="#fff" />
+                            <Text style={styles.promoteBtnTxt}>Promote Admin</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+
+                      {member.userType?.toLowerCase() !== 'super_admin' && member.userType?.toLowerCase() !== 'super admin' && (
+                        <View style={{ flex: 1 }}>
+                          <TouchableOpacity 
+                            style={[styles.promoteBtn, { backgroundColor: '#4b5563' }]}
+                            onPress={() => handleDeleteMember(member.id, displayName)}
+                          >
+                            <Trash2 size={14} color="#fff" />
+                            <Text style={styles.promoteBtnTxt}>Remove</Text>
+                          </TouchableOpacity>
+                        </View>
+                      )}
+                    </View>
 
                     {/* Household Members breakdown */}
                     <Text style={styles.householdHeader}>
@@ -361,6 +652,97 @@ export default function AdminMembers() {
         <Text style={styles.footerBranding}>Church Admin · Member Activity Logs</Text>
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Add/Edit Member Modal */}
+      <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => { setAddModalVisible(false); setEditMemberId(null); }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ width: width * 0.9, backgroundColor: '#fff', borderRadius: 16, padding: 24 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1a2d5a' }}>
+                {editMemberId ? 'Edit Member' : 'Add New Member'}
+              </Text>
+              <TouchableOpacity onPress={() => { setAddModalVisible(false); setEditMemberId(null); }}>
+                <X size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 16 }}>
+              {editMemberId ? 'Update member details below.' : `They will receive a shareable link to join ${activeChurch?.name}`}
+            </Text>
+
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>Full Name</Text>
+              <TextInput
+                style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 10, backgroundColor: '#F9FAFB', color: '#111827' }}
+                placeholder="Enter member's name"
+                value={newMemberForm.name}
+                onChangeText={(t) => setNewMemberForm({...newMemberForm, name: t})}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>Phone Number</Text>
+              <TextInput
+                style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 10, backgroundColor: '#F9FAFB', color: '#111827' }}
+                placeholder="e.g. 9876543210"
+                keyboardType="phone-pad"
+                value={newMemberForm.phone}
+                onChangeText={(t) => setNewMemberForm({...newMemberForm, phone: t})}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>Date of Birth (DOB)</Text>
+              <TouchableOpacity
+                style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 10, backgroundColor: '#F9FAFB' }}
+                onPress={() => setDatePickerVisibility(true)}
+              >
+                <Text style={{ color: newMemberForm.dob ? '#111827' : '#9CA3AF' }}>
+                  {newMemberForm.dob || 'Select Date'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ marginBottom: 24 }}>
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>Role</Text>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity 
+                  style={{ flex: 1, padding: 10, borderRadius: 8, borderWidth: 1, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : '#E5E7EB', backgroundColor: newMemberForm.userType.toLowerCase() === 'member' ? '#F0F9FF' : '#fff' }}
+                  onPress={() => setNewMemberForm({...newMemberForm, userType: 'member'})}
+                >
+                  <Text style={{ fontWeight: '600', color: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : '#6B7280' }}>Member</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={{ flex: 1, padding: 10, borderRadius: 8, borderWidth: 1, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : '#E5E7EB', backgroundColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#F0F9FF' : '#fff' }}
+                  onPress={() => setNewMemberForm({...newMemberForm, userType: 'admin'})}
+                >
+                  <Text style={{ fontWeight: '600', color: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : '#6B7280' }}>Admin</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#1a2d5a', padding: 14, borderRadius: 8, alignItems: 'center' }}
+              onPress={handleAddMember}
+              disabled={addMemberLoading}
+            >
+              {addMemberLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: 'bold' }}>{editMemberId ? 'Save Changes' : 'Add Member'}</Text>}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={(date) => {
+          setDatePickerVisibility(false);
+          setNewMemberForm({...newMemberForm, dob: date.toISOString().split('T')[0]});
+        }}
+        onCancel={() => setDatePickerVisibility(false)}
+        maximumDate={new Date()}
+      />
+
     </View>
   );
 }
