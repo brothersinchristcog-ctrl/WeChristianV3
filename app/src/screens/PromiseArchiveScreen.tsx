@@ -12,8 +12,11 @@ import {
   Image,
   StatusBar,
   Platform,
-  RefreshControl
+  RefreshControl,
+  Alert
 } from 'react-native';
+import ViewShot from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
 import {
   ChevronLeft,
   Share2,
@@ -24,6 +27,7 @@ import {
 } from 'lucide-react-native';
 import FirestoreService, { DailyPromise } from '../services/FirestoreService';
 import { useChurch } from '../context/ChurchContext';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
@@ -33,13 +37,15 @@ const stripHtml = (html: string | undefined): string => {
   return html.replace(/<[^>]+>/g, '').trim();
 };
 
-export default function PromiseArchiveScreen({ navigation }: any) {
+export default function PromiseArchiveScreen({ navigation }: { navigation: any }) {
   const [promises, setPromises] = useState<DailyPromise[]>([]);
   const [selectedPromise, setSelectedPromise] = useState<DailyPromise | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { activeChurch } = useChurch();
+  const { colors, isDark } = useTheme();
   const scrollViewRef = useRef<ScrollView>(null);
+  const viewShotRef = useRef<ViewShot>(null);
 
   const fetchPromises = async () => {
     try {
@@ -108,6 +114,25 @@ export default function PromiseArchiveScreen({ navigation }: any) {
     }
   };
 
+  const handleSaveCard = async () => {
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Needed', 'Please grant permission to save images to your gallery.');
+        return;
+      }
+      
+      if (viewShotRef.current && viewShotRef.current.capture) {
+        const uri = await viewShotRef.current.capture();
+        await MediaLibrary.saveToLibraryAsync(uri);
+        Alert.alert('Saved Successfully!', 'The promise card has been saved to your photo gallery.');
+      }
+    } catch (error) {
+      console.error('Save failed:', error);
+      Alert.alert('Error', 'Failed to save the image. Please try again.');
+    }
+  };
+
   const formatDisplayDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-US', {
       weekday: 'long',
@@ -118,7 +143,7 @@ export default function PromiseArchiveScreen({ navigation }: any) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0b1433' : '#f0f2f7' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
 
       {/* ── Page Header ── */}
@@ -147,38 +172,55 @@ export default function PromiseArchiveScreen({ navigation }: any) {
             <Text style={styles.topDate}>{formatDisplayDate(selectedPromise.date)}</Text>
 
             {/* --- Hero Card --- */}
-            <View style={styles.heroCard}>
-              <View style={styles.heroHeader}>
-                <Text style={styles.heroRefEn}>
-                  {selectedPromise.verseReferenceEn || ''}
-                  {selectedPromise.verseReferenceEn && selectedPromise.verseReferenceTe ? ' - ' : ''}
-                  {selectedPromise.verseReferenceTe || (!selectedPromise.verseReferenceEn ? stripHtml(selectedPromise.verse).substring(0, 30) + '...' : '')}
-                </Text>
-              </View>
+            <View style={styles.heroCardOuter}>
+              <ViewShot ref={viewShotRef} options={{ format: 'jpg', quality: 1 }} style={styles.heroCapture}>
+                <View style={{ alignItems: 'center', marginBottom: 20 }}>
+                  <Text style={{ color: '#FCD34D', fontSize: 12, fontWeight: '800', letterSpacing: 1.5 }}>
+                    {activeChurch?.name?.toUpperCase() || "TODAY'S PROMISE"}
+                  </Text>
+                  <View style={{ height: 1.5, width: 30, backgroundColor: 'rgba(255,255,255,0.3)', marginTop: 10 }} />
+                </View>
 
-              <Text style={styles.verseEn}>"{stripHtml(selectedPromise.verse)}"</Text>
-              <Text style={styles.verseTe}>"{stripHtml(selectedPromise.verseTelugu) || 'వాగ్దానము'}"</Text>
+                <View style={styles.heroHeader}>
+                  <Text style={[styles.heroRefEn, { textAlign: 'center' }]}>
+                    {selectedPromise.verseReferenceEn || ''}
+                    {selectedPromise.verseReferenceEn && selectedPromise.verseReferenceTe ? ' - ' : ''}
+                    {selectedPromise.verseReferenceTe || (!selectedPromise.verseReferenceEn ? stripHtml(selectedPromise.verse).substring(0, 30) + '...' : '')}
+                  </Text>
+                </View>
 
-              <View style={styles.heroActions}>
-                <TouchableOpacity style={styles.actionBtn}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Calendar size={18} color="#fff" />
-                    <Text style={styles.actionBtnTxt}>Save card</Text>
-                  </View>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#c0392b' }]} onPress={() => handleShare(selectedPromise)}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Share2 size={18} color="#fff" />
-                    <Text style={styles.actionBtnTxt}>Share</Text>
-                  </View>
-                </TouchableOpacity>
+                <Text style={styles.verseEn}>"{stripHtml(selectedPromise.verse)}"</Text>
+                <Text style={styles.verseTe}>"{stripHtml(selectedPromise.verseTelugu) || 'వాగ్దానము'}"</Text>
+                
+                <View style={{ alignItems: 'center', marginTop: 10 }}>
+                  <Text style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, fontWeight: '600', letterSpacing: 1 }}>
+                    {formatDisplayDate(selectedPromise.date)}
+                  </Text>
+                </View>
+              </ViewShot>
+
+              <View style={styles.heroActionsContainer}>
+                <View style={styles.heroActions}>
+                  <TouchableOpacity style={styles.actionBtn} onPress={handleSaveCard}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Calendar size={18} color="#fff" />
+                      <Text style={styles.actionBtnTxt}>Save card</Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.actionBtn} onPress={() => handleShare(selectedPromise)}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Share2 size={18} color="#fff" />
+                      <Text style={styles.actionBtnTxt}>Share</Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
 
             {/* --- Devotional Note --- */}
-            <View style={styles.reflectionBox}>
-              <Text style={styles.reflectionTitle}>Devotional Note</Text>
-              <Text style={styles.reflectionText}>
+            <View style={[styles.reflectionBox, { backgroundColor: isDark ? '#14234b' : '#fff', borderColor: isDark ? '#1d3266' : '#f1f5f9' }]}>
+              <Text style={[styles.reflectionTitle, { color: isDark ? '#e0e7ff' : '#1a2d5a' }]}>Devotional Note</Text>
+              <Text style={[styles.reflectionText, { color: isDark ? '#94a3b8' : '#475569' }]}>
                 {stripHtml(selectedPromise.devotionalNote) || "In all seasons of life — in trials, in weakness, in uncertainty — we are not alone."}
               </Text>
               <Text style={styles.reflectionAuthor}>— Pastor {selectedPromise.pastor || 'Daniel Raju'}</Text>
@@ -204,20 +246,20 @@ export default function PromiseArchiveScreen({ navigation }: any) {
               </TouchableOpacity>
             )}
           </View>
-        ) : (
-          <View style={styles.noTodayCard}>
-            <View style={styles.noTodayIcon}>
-              <BookOpen size={40} color="#1a2d5a" />
+        ) : !loading ? (
+          <View style={[styles.noTodayCard, { backgroundColor: isDark ? '#14234b' : '#fff', borderColor: isDark ? '#1d3266' : '#f1f5f9' }]}>
+            <View style={[styles.noTodayIcon, { backgroundColor: isDark ? '#1d3266' : '#f1f5f9' }]}>
+              <BookOpen size={30} color={isDark ? '#64748b' : '#64748b'} />
             </View>
-            <Text style={styles.noTodayTxt}>No specific promise for today.</Text>
-            <Text style={styles.noTodaySubTe}>ఈ రోజు వాగ్దానం ఇంకా నవీకరించబడలేదు.</Text>
-            <Text style={styles.noTodayHint}>Please browse our past promises below for daily inspiration.</Text>
+            <Text style={[styles.noTodayTxt, { color: isDark ? '#e0e7ff' : '#1a2d5a' }]}>No Promise Yet</Text>
+            <Text style={styles.noTodaySubTe}>నేటి వాగ్దానం ఇంకా రాలేదు</Text>
+            <Text style={styles.noTodayHint}>Check back later today for an uplifting verse.</Text>
           </View>
-        )}
+        ) : null}
 
         <View style={styles.historySection}>
-          <Text style={styles.historyLabel}>Past promises</Text>
-          <View style={styles.historyCard}>
+          <Text style={[styles.historyLabel, { color: isDark ? '#e0e7ff' : '#1a2d5a' }]}>Past promises</Text>
+          <View style={[styles.historyCard, { backgroundColor: isDark ? '#14234b' : '#fff', borderColor: isDark ? '#1d3266' : '#f1f5f9' }]}>
             {promises.filter(p => p.date !== new Date().toISOString().split('T')[0]).slice(0, 10).map((item, index) => {
               const refString = `${item.verseReferenceEn || ''}${item.verseReferenceEn && item.verseReferenceTe ? ' - ' : ''}${item.verseReferenceTe || ''}` || stripHtml(item.verse).substring(0, 25) + '...';
 
@@ -230,13 +272,14 @@ export default function PromiseArchiveScreen({ navigation }: any) {
                   }}
                   style={[
                     styles.historyItem,
-                    selectedPromise?.id === item.id && { backgroundColor: '#f1f5f9' },
+                    { borderBottomColor: isDark ? '#1d3266' : '#f8fafc' },
+                    selectedPromise?.id === item.id && { backgroundColor: isDark ? '#1c3166' : '#f1f5f9' },
                     index === Math.min(promises.length - 1, 9) && { borderBottomWidth: 0 }
                   ]}
                 >
                   <View style={styles.historyItemContent}>
-                    <Text style={styles.historyItemRef}>{refString}</Text>
-                    <Text style={styles.historyItemVakyam} numberOfLines={1}>{stripHtml(item.verseTelugu) || 'వాగ్దానము'}</Text>
+                    <Text style={[styles.historyItemRef, { color: isDark ? '#f8fafc' : '#111827' }]}>{refString}</Text>
+                    <Text style={[styles.historyItemVakyam, { color: isDark ? '#94a3b8' : '#475569' }]} numberOfLines={1}>{stripHtml(item.verseTelugu) || 'వాగ్దానము'}</Text>
                     <Text style={styles.historyItemDate}>
                       {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · {new Date(item.date).toLocaleDateString('en-US', { weekday: 'short' })}
                     </Text>
@@ -260,9 +303,11 @@ const styles = StyleSheet.create({
   // Header
   pageHeader: {
     backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -276,7 +321,9 @@ const styles = StyleSheet.create({
   mainContent: { padding: 16 },
   topDate: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textAlign: 'center', marginBottom: 15, letterSpacing: 0.5 },
 
-  heroCard: { backgroundColor: '#1a2d5a', borderRadius: 24, padding: 24, elevation: 12, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 15 },
+  heroCardOuter: { backgroundColor: '#1a2d5a', borderRadius: 24, elevation: 12, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 15, overflow: 'hidden' },
+  heroCapture: { padding: 24, backgroundColor: '#1a2d5a' },
+  heroActionsContainer: { paddingHorizontal: 24, paddingBottom: 24 },
   heroHeader: { marginBottom: 20 },
   heroRefEn: { fontSize: 13, fontWeight: '800', color: '#FCD34D' },
   heroRefTe: { color: 'rgba(255,255,255,0.7)', fontWeight: '600' },
@@ -284,8 +331,8 @@ const styles = StyleSheet.create({
   verseEn: { fontSize: 19, fontWeight: '700', fontStyle: 'italic', color: '#fff', textAlign: 'center', lineHeight: 28, marginBottom: 15 },
   verseTe: { fontSize: 16, fontStyle: 'italic', color: '#aac4e8', textAlign: 'center', lineHeight: 26, marginBottom: 25 },
 
-  heroActions: { flexDirection: 'row', gap: 12, marginTop: 10 },
-  actionBtn: { flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 12, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
+  heroActions: { flexDirection: 'row', gap: 12, marginTop: 10, justifyContent: 'center' },
+  actionBtn: { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 25, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
   actionBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
   reflectionBox: { backgroundColor: '#fff', borderRadius: 20, padding: 22, marginTop: 15, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, borderWidth: 1, borderColor: '#f1f5f9' },
@@ -293,7 +340,7 @@ const styles = StyleSheet.create({
   reflectionText: { fontSize: 14, color: '#475569', lineHeight: 24, marginBottom: 15 },
   reflectionAuthor: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
 
-  devotionalBar: { backgroundColor: '#111827', borderRadius: 20, padding: 16, marginTop: 15, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  devotionalBar: { backgroundColor: '#111827', borderRadius: 20, padding: 16, marginTop: 15, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#cbd5e1' },
   playCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
   devotionalInfo: { flex: 1 },
   devotionalTitle: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 2 },

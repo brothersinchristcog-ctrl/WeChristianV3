@@ -112,7 +112,7 @@ export default function PrayerWallScreen({ navigation }: any) {
   const { isDark, toggleTheme, colors } = useTheme();
   const [member, setMember] = useState<AppMember | null>(null);
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [prayedSet, setPrayedSet] = useState(new Set<string>());
   const [replyInputs, setReplyInputs] = useState<{[key: string]: string}>({});
@@ -133,7 +133,7 @@ export default function PrayerWallScreen({ navigation }: any) {
   ];
 
   const fetchPrayers = async (contactId?: string, isRefreshing = false) => {
-    if (!isRefreshing) setLoading(true);
+    // Only set loading to true if we really want a full-screen block, but we want a smooth transition so skip it here.
     try {
       const data = await FirestoreService.getPrayerRequests({ contactId });
       setPrayers(data);
@@ -458,9 +458,11 @@ const styles = StyleSheet.create({
   // Header
   header: {
     backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 25,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingHorizontal: 16,
     paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'

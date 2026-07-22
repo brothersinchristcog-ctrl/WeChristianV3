@@ -242,8 +242,11 @@ const styles = StyleSheet.create({
   // Header
   pageHeader: {
     backgroundColor: '#1a2d5a',
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 45),
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

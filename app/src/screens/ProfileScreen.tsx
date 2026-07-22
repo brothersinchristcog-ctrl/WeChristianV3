@@ -28,7 +28,10 @@ import {
   Check,
   X,
   CheckCircle2,
-  HelpCircle
+  HelpCircle,
+  MapPin,
+  Crown,
+  Award
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -41,11 +44,12 @@ import { Lock } from 'lucide-react-native';
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation }: any) {
-  const { user, signOut } = useAuth();
+  const { user, signOut, member: authMember } = useAuth();
   const { activeChurch } = useChurch();
   const { isDark, toggleTheme, colors } = useTheme();
-  const [member, setMember] = useState<AppMember | null>(null);
-  const [loading, setLoading] = useState(true);
+  
+  const [member, setMember] = useState<AppMember | null>(authMember as AppMember | null);
+  const [loading, setLoading] = useState(!authMember);
   const [refreshing, setRefreshing] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
@@ -59,12 +63,12 @@ export default function ProfileScreen({ navigation }: any) {
   const [eventReminderNotify, setEventReminderNotify] = useState(true);
   const [prayerNotify, setPrayerNotify] = useState(false);
   const [editForm, setEditForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    mailingCity: '',
-    mailingStreet: '',
-    mailingState: ''
+    firstName: authMember?.firstName || '',
+    lastName: authMember?.lastName || '',
+    email: authMember?.email || '',
+    mailingCity: authMember?.mailingCity || '',
+    mailingStreet: authMember?.mailingStreet || '',
+    mailingState: authMember?.mailingState || ''
   });
   const [updating, setUpdating] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -294,7 +298,7 @@ export default function ProfileScreen({ navigation }: any) {
             <Image source={{ uri: localPhotoUrl }} style={styles.avatarImg} />
           ) : (
             <View style={styles.avatarCircle}>
-               <Text style={styles.avatarText}>{getInitials(member?.name || user?.displayName || 'User')}</Text>
+               <User size={45} color="#fff" strokeWidth={1.5} />
             </View>
           )}
           <View style={styles.verifiedBadge}>
@@ -305,25 +309,46 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{member?.firstName ? `${member.firstName} ${member.lastName || ''}` : member?.name || user?.displayName || 'Beloved Member'}</Text>
           <Text style={styles.userSub}>
-            {activeChurch?.name || 'Church'}{member?.mailingCity ? `, ${member.mailingCity}` : ''} · 
+            {activeChurch?.name || 'Church'}{member?.mailingCity ? `, ${member.mailingCity}` : ''}
+          </Text>
+          <Text style={[styles.userSub, { marginTop: 2, marginBottom: 8 }]}>
             Member since {member?.joinDate ? new Date(member.joinDate).getFullYear() : '2026'}
           </Text>
-          
-          <View style={styles.badgeRow}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>Telugu</Text>
-            </View>
-            {member?.mailingCity && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{member.mailingCity}</Text>
+          <View style={styles.statsCard}>
+            <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#3b82f6' }]}>
+                <Award size={14} color="#fff" strokeWidth={2.5} />
               </View>
-            )}
-            <View style={[styles.badge, styles.badgeActive]}>
-              {(member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin') ? (
-                <Text style={styles.badgeText}>🛡️ {member?.userType || 'Admin'}</Text>
-              ) : (
-                <Text style={styles.badgeText}>🙏 {member?.userType || 'Active member'}</Text>
-              )}
+              <View style={styles.statTextCol}>
+                <Text style={styles.statLabel}>Membership</Text>
+                <Text style={styles.statValue} numberOfLines={1}>Free Trial</Text>
+              </View>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#10b981' }]}>
+                <Globe size={14} color="#fff" strokeWidth={2.5} />
+              </View>
+              <View style={styles.statTextCol}>
+                <Text style={styles.statLabel}>Language</Text>
+                <Text style={styles.statValue} numberOfLines={1}>Telugu</Text>
+              </View>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#8b5cf6' }]}>
+                <Crown size={14} color="#fff" strokeWidth={2.5} />
+              </View>
+              <View style={styles.statTextCol}>
+                <Text style={styles.statLabel}>Role</Text>
+                <Text style={styles.statValue} numberOfLines={1}>
+                  {(member?.userType || 'MEMBER').toUpperCase()}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -463,7 +488,7 @@ export default function ProfileScreen({ navigation }: any) {
                    {localPhotoUrl ? (
                      <Image source={{ uri: localPhotoUrl }} style={styles.modalAvatarImg} />
                    ) : (
-                     <Text style={styles.modalAvatarText}>{getInitials(member?.name || 'U')}</Text>
+                     <User size={40} color="#fff" strokeWidth={1.5} />
                    )}
                 </View>
                 <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
@@ -762,7 +787,7 @@ const styles = StyleSheet.create({
   // Hero Section
   heroSection: { 
     backgroundColor: '#1a2d5a', 
-    paddingTop: Platform.OS === 'ios' ? 60 : 20, 
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 45), 
     paddingBottom: 40,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
@@ -805,6 +830,52 @@ const styles = StyleSheet.create({
   badge: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   badgeActive: { backgroundColor: 'rgba(252,211,77,0.2)' },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  
+  statsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 20,
+    width: '100%'
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1
+  },
+  statIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8
+  },
+  statTextCol: {
+    justifyContent: 'center',
+    flex: 1
+  },
+  statLabel: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 2
+  },
+  statValue: {
+    color: '#cbd5e1',
+    fontSize: 9,
+    fontWeight: '500'
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: 10
+  },
 
   scrollContent: { paddingBottom: 150 },
 

@@ -207,22 +207,31 @@ const EventMarquee = ({ events, onEventPress }: { events: any[], onEventPress: (
   );
 };
 
+// --- Memory Cache for Instant Navigation ---
+let cachedPromise: DailyPromise | null = null;
+let cachedPromiseThumbnail: string | null = null;
+let cachedTodayEvents: ScheduleEvent[] = [];
+let cachedEvents: ScheduleEvent[] = [];
+let cachedLatestSermon: Sermon | null = null;
+let cachedLatestPrayer: any | null = null;
+let cachedPrayerCount: number = 0;
+
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
-  const { user, signOut } = useAuth();
+  const { user, signOut, member: authMember } = useAuth();
   const { activeChurch } = useChurch();
   const { mode, isDark, toggleTheme, colors } = useTheme();
-  const [member, setMember] = useState<AppMember | null>(null);
-  const [promise, setPromise] = useState<DailyPromise | null>(null);
-  const [todayEvents, setTodayEvents] = useState<ScheduleEvent[]>([]);
-  const [events, setEvents] = useState<ScheduleEvent[]>([]);
-  const [latestSermon, setLatestSermon] = useState<Sermon | null>(null);
-  const [latestPrayer, setLatestPrayer] = useState<any | null>(null);
-  const [prayerCount, setPrayerCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [member, setMember] = useState<AppMember | null>(authMember as AppMember | null);
+  const [promise, setPromise] = useState<DailyPromise | null>(cachedPromise);
+  const [todayEvents, setTodayEvents] = useState<ScheduleEvent[]>(cachedTodayEvents);
+  const [events, setEvents] = useState<ScheduleEvent[]>(cachedEvents);
+  const [latestSermon, setLatestSermon] = useState<Sermon | null>(cachedLatestSermon);
+  const [latestPrayer, setLatestPrayer] = useState<any | null>(cachedLatestPrayer);
+  const [prayerCount, setPrayerCount] = useState(cachedPrayerCount);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  const [promiseThumbnail, setPromiseThumbnail] = useState<string | null>(null);
+  const [promiseThumbnail, setPromiseThumbnail] = useState<string | null>(cachedPromiseThumbnail);
   const [carouselSlide, setCarouselSlide] = useState(0); // 0 = text, 1 = image
   const carouselScrollRef = useRef<ScrollView>(null);
   
@@ -270,25 +279,33 @@ export default function HomeScreen() {
       }
       if (promiseResult.status === 'fulfilled' && promiseResult.value) {
         const prom = promiseResult.value;
+        cachedPromise = prom;
         setPromise(prom);
         if (prom.imageUrl) {
+          cachedPromiseThumbnail = prom.imageUrl;
           setPromiseThumbnail(prom.imageUrl);
         } else {
+          cachedPromiseThumbnail = null;
           setPromiseThumbnail(null);
         }
       }
       if (todayEventsResult.status === 'fulfilled') {
-        setTodayEvents(todayEventsResult.value || []);
+        cachedTodayEvents = todayEventsResult.value || [];
+        setTodayEvents(cachedTodayEvents);
       }
       if (upcomingEventsResult.status === 'fulfilled') {
-        setEvents(upcomingEventsResult.value || []);
+        cachedEvents = upcomingEventsResult.value || [];
+        setEvents(cachedEvents);
       }
       if (sermonsResult.status === 'fulfilled' && sermonsResult.value?.length > 0) {
-        setLatestSermon(sermonsResult.value[0]);
+        cachedLatestSermon = sermonsResult.value[0];
+        setLatestSermon(cachedLatestSermon);
       }
       if (prayersResult.status === 'fulfilled' && prayersResult.value?.length > 0) {
-        setLatestPrayer(prayersResult.value[0]);
-        setPrayerCount(prayersResult.value.length);
+        cachedLatestPrayer = prayersResult.value[0];
+        cachedPrayerCount = prayersResult.value.length;
+        setLatestPrayer(cachedLatestPrayer);
+        setPrayerCount(cachedPrayerCount);
       }
 
     } catch (error) {
@@ -458,13 +475,22 @@ export default function HomeScreen() {
                   displayPhoto = user?.photoURL;
                 }
 
+                const getInitials = () => {
+                  if (member?.firstName && member?.lastName) {
+                    return (member.firstName.charAt(0) + member.lastName.charAt(0)).toUpperCase();
+                  }
+                  const fullName = member?.name || user?.displayName || 'User';
+                  const parts = fullName.trim().split(/\s+/);
+                  const first = parts[0]?.charAt(0) || 'U';
+                  const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
+                  return (first + last).toUpperCase();
+                };
+
                 return displayPhoto ? (
                   <Image source={{ uri: displayPhoto }} style={styles.avatarImg} />
                 ) : (
                   <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarLetter}>
-                      {(member?.name || member?.firstName || user?.displayName || 'U').charAt(0).toUpperCase()}
-                    </Text>
+                    <Text style={styles.avatarLetter}>{getInitials()}</Text>
                   </View>
                 );
               })()}
@@ -542,11 +568,12 @@ export default function HomeScreen() {
 
               {/* Slide 2 — Thumbnail (only if image exists) */}
               {promiseThumbnail && (
-                <View style={[styles.phSlide, styles.phThumbnailSlide]}>
+                <View style={[styles.phSlide, styles.phThumbnailSlide, { backgroundColor: isDark ? 'transparent' : '#1a2d5a', paddingTop: 16, elevation: isDark ? 0 : 8 }]}>
+                  <Text style={styles.phLabel}>TODAY'S PROMISE · ఈ రోజు వాగ్దానం</Text>
                   <Image
                     source={{ uri: promiseThumbnail }}
-                    style={styles.phThumbnailImg}
-                    resizeMode="cover"
+                    style={[styles.phThumbnailImg, { flex: 1 }]}
+                    resizeMode="contain"
                   />
                 </View>
               )}
@@ -564,20 +591,21 @@ export default function HomeScreen() {
             )}
           </View>
 
-          <Text style={styles.secLbl}>QUICK ACCESS</Text>
+          <Text style={[styles.secLbl, isDark && { color: '#e2e8f0' }]}>QUICK ACCESS</Text>
           <View style={styles.iconGrid}>
-            <GridItem icon={<Mic size={26} color="#fff" />} label="Sermons" color="#1a2d5a" onPress={() => navigation.navigate('Sermons')} />
-            <GridItem icon={<Heart size={26} color="#fff" />} label="Prayer Wall" color="#c0392b" onPress={() => handleGuestProtectedNavigation('Prayer')} />
-            <GridItem icon={<Calendar size={26} color="#fff" />} label="Events" color="#0F766E" onPress={() => navigation.navigate('Events')} />
-            <GridItem icon={<DollarSign size={26} color="#fff" />} label="Give / Tithe" color="#f0a500" onPress={() => handleGuestProtectedNavigation('Give')} />
+            <GridItem isDark={isDark} icon={<Mic size={26} color="#fff" />} label="Sermons" color="#1a2d5a" onPress={() => navigation.navigate('Sermons')} />
+            <GridItem isDark={isDark} icon={<Heart size={26} color="#fff" />} label="Prayer Wall" color="#c0392b" onPress={() => handleGuestProtectedNavigation('Prayer')} />
+            <GridItem isDark={isDark} icon={<Calendar size={26} color="#fff" />} label="Events" color="#0F766E" onPress={() => navigation.navigate('Events')} />
+            <GridItem isDark={isDark} icon={<DollarSign size={26} color="#fff" />} label="Give / Tithe" color="#f0a500" onPress={() => handleGuestProtectedNavigation('Give')} />
             
-            <GridItem icon={<BookOpen size={26} color="#fff" />} label="Bible" color="#7C3AED" onPress={() => handleGuestProtectedNavigation('Bible')} />
-            <GridItem icon={<Music size={26} color="#fff" />} label="Songs" color="#0369a1" onPress={() => handleGuestProtectedNavigation('Songs')} />
-            <GridItem icon={<FileText size={26} color="#fff" />} label="Sermon Notes" color="#BE185D" onPress={() => handleGuestProtectedNavigation('MemberNotes')} />
-            <GridItem icon={<Award size={26} color="#fff" />} label="Bible Plans" color="#374151" onPress={() => handleGuestProtectedNavigation('BiblePlans')} />
+            <GridItem isDark={isDark} icon={<BookOpen size={26} color="#fff" />} label="Bible" color="#7C3AED" onPress={() => handleGuestProtectedNavigation('Bible')} />
+            <GridItem isDark={isDark} icon={<Music size={26} color="#fff" />} label="Songs" color="#0369a1" onPress={() => handleGuestProtectedNavigation('Songs')} />
+            <GridItem isDark={isDark} icon={<FileText size={26} color="#fff" />} label="Sermon Notes" color="#BE185D" onPress={() => handleGuestProtectedNavigation('MemberNotes')} />
+            <GridItem isDark={isDark} icon={<Award size={26} color="#fff" />} label="Bible Plans" color="#374151" onPress={() => handleGuestProtectedNavigation('BiblePlans')} />
 
-            <GridItem icon={<Bell size={26} color="#fff" />} label="Updates" color="#0284c7" onPress={() => navigation.navigate('Updates')} />
+            <GridItem isDark={isDark} icon={<Bell size={26} color="#fff" />} label="Updates" color="#0284c7" onPress={() => navigation.navigate('Updates')} />
             <GridItem 
+              isDark={isDark}
               icon={<YoutubeIcon size={26} color="#fff" />} 
               label="YouTube Live" 
               color="#ef4444" 
@@ -595,11 +623,11 @@ export default function HomeScreen() {
                 }
               }} 
             />
-            <GridItem icon={<Users size={26} color="#fff" />} label="Members" color="#db2777" onPress={handleOpenMembers} />
-            <GridItem icon={<Sun size={26} color="#fff" />} label="Devotion" color="#b45309" onPress={() => setAlertConfig({ visible: true, title: 'Daily Devotion', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })} />
-            <GridItem icon={<Info size={26} color="#fff" />} label="About Us" color="#1a2d5a" onPress={() => navigation.navigate('AboutUs')} />
-            <GridItem icon={<Phone size={26} color="#fff" />} label="Contact Us" color="#0F766E" onPress={() => navigation.navigate('ContactUs')} />
-            <GridItem icon={<MoreHorizontal size={26} color="#fff" />} label="More" color="#64748b" onPress={() => setAlertConfig({ visible: true, title: 'More Features', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })} />
+            <GridItem isDark={isDark} icon={<Users size={26} color="#fff" />} label="Members" color="#db2777" onPress={handleOpenMembers} />
+            <GridItem isDark={isDark} icon={<Sun size={26} color="#fff" />} label="Devotion" color="#b45309" onPress={() => setAlertConfig({ visible: true, title: 'Daily Devotion', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })} />
+            <GridItem isDark={isDark} icon={<Info size={26} color="#fff" />} label="About Us" color="#1a2d5a" onPress={() => navigation.navigate('AboutUs')} />
+            <GridItem isDark={isDark} icon={<Phone size={26} color="#fff" />} label="Contact Us" color="#0F766E" onPress={() => navigation.navigate('ContactUs')} />
+            <GridItem isDark={isDark} icon={<MoreHorizontal size={26} color="#fff" />} label="More" color="#64748b" onPress={() => setAlertConfig({ visible: true, title: 'More Features', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })} />
           </View>
 
           <View style={styles.eventBanner}>
@@ -714,7 +742,7 @@ export default function HomeScreen() {
               </View>
               <View style={styles.pcFoot}>
                 <TouchableOpacity style={styles.prayedBtn} onPress={() => Alert.alert('Prayed', 'Thank you for praying!')}>
-                   <CheckCircle size={14} color="#4C1D95" />
+                   <CheckCircle size={14} color="#1a2d5a" />
                    <Text style={styles.prayedBtnTxt}>I prayed</Text>
                 </TouchableOpacity>
                 <Text style={styles.pcSeeAll}>See all prayers →</Text>
@@ -727,13 +755,13 @@ export default function HomeScreen() {
   );
 }
 
-function GridItem({ icon, label, color, onPress }: { icon: any; label: string; color: string; onPress: () => void }) {
+function GridItem({ icon, label, color, onPress, isDark }: { icon: any; label: string; color: string; onPress: () => void; isDark: boolean }) {
   return (
     <TouchableOpacity style={styles.iconItem} onPress={onPress}>
       <View style={[styles.iconBox, { backgroundColor: color }]}>
         {icon}
       </View>
-      <Text style={styles.iconLbl} numberOfLines={2}>{label}</Text>
+      <Text style={[styles.iconLbl, { color: isDark ? '#e2e8f0' : '#475569' }]} numberOfLines={2}>{label}</Text>
     </TouchableOpacity>
   );
 }
@@ -755,10 +783,10 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 30,
   },
   headerTopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, justifyContent: 'space-between' },
-  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 10 },
   logoCircle: { width: 46, height: 46, backgroundColor: '#fff', borderRadius: 23, justifyContent: 'center', alignItems: 'center', elevation: 4, overflow: 'hidden' },
   logoImg: { width: 46, height: 46, borderRadius: 23 },
-  titleCol: { marginLeft: 10 },
+  titleCol: { marginLeft: 10, flex: 1 },
   hdTitle: { color: '#FCD34D', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
   hdSub: { color: '#aac4e8', fontSize: 8.5, marginTop: 1, fontWeight: '500' },
   
@@ -803,10 +831,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: 'transparent',
     justifyContent: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
   },
   phThumbnailImg: {
     width: '100%',
-    aspectRatio: 16 / 9,
     borderRadius: 20,
   },
   // Dot indicators
@@ -845,8 +877,8 @@ const styles = StyleSheet.create({
   phTe: { color: '#fff', fontSize: 16, fontStyle: 'italic', lineHeight: 26, marginBottom: 4 },
   phRefTe: { color: '#FCD34D', fontSize: 13, fontWeight: '700', marginBottom: 20, textAlign: 'right' },
   phActions: { flexDirection: 'row', gap: 12 },
-  phShareBtn: { flex: 1, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 12, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
-  phWatchBtn: { flex: 1, backgroundColor: '#c0392b', borderRadius: 12, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  phShareBtn: { flex: 1, backgroundColor: 'transparent', borderRadius: 25, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#cbd5e1' },
+  phWatchBtn: { flex: 1, backgroundColor: 'transparent', borderRadius: 25, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#cbd5e1' },
   phBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
   marqueeWrapper: {
@@ -1024,7 +1056,7 @@ const styles = StyleSheet.create({
 
   // Prayer Card
   prayerCard: { margin: 16, marginTop: 4, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, borderWidth: 1, borderColor: '#f1f5f9' },
-  pcHd: { backgroundColor: '#7C3AED', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  pcHd: { backgroundColor: '#1a2d5a', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   pcHdLblRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   pcHdLbl: { fontSize: 12, color: '#fff', fontWeight: '700' },
   pcCount: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
@@ -1032,8 +1064,8 @@ const styles = StyleSheet.create({
   pcTextContainer: { backgroundColor: '#f8fafc', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 15 },
   pcText: { fontSize: 13, color: '#334155', lineHeight: 22, fontStyle: 'italic' },
   pcFoot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  prayedBtn: { backgroundColor: '#f5f3ff', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#ddd6fe' },
-  prayedBtnTxt: { color: '#4C1D95', fontSize: 12, fontWeight: '700' },
+  prayedBtn: { backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#bfdbfe' },
+  prayedBtnTxt: { color: '#1a2d5a', fontSize: 12, fontWeight: '700' },
   pcSeeAll: { fontSize: 11.5, color: '#94a3b8', fontWeight: '600' },
 
   // Modal Styles for Household Members

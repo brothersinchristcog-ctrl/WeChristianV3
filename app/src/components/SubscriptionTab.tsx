@@ -104,12 +104,13 @@ export default function SubscriptionTab() {
     }
     
     // Otherwise, calculate 60 days from their registration date
-    if (globalUser?.createdAt) {
-      const createdDate = globalUser.createdAt.toDate ? globalUser.createdAt.toDate() : new Date(globalUser.createdAt);
+    const dateToUse = globalUser?.createdAt || member?.joinDate;
+    if (dateToUse) {
+      const createdDate = (typeof dateToUse === 'object' && dateToUse.toDate) ? dateToUse.toDate() : new Date(dateToUse);
       const trialEnd = new Date(createdDate);
       trialEnd.setDate(trialEnd.getDate() + 60);
-      const diffTime = Math.max(0, trialEnd.getTime() - new Date().getTime());
-      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const diffTime = trialEnd.getTime() - new Date().getTime();
+      return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
     }
 
     // Default to 60 for brand new users if no data is found yet

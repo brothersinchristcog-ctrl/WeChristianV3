@@ -163,17 +163,17 @@ export default function SermonsScreen({ navigation }: any) {
     const count = sections.find(s => s.title === title)?.data.length || 0;
     return (
       <TouchableOpacity
-        style={[styles.sectionHeader, { borderLeftColor: color, backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}
+        style={[styles.sectionHeader, { borderLeftColor: color, backgroundColor: isDark ? '#1e293b' : '#f8fafc' }]}
         onPress={() => toggleSection(title)}
         activeOpacity={0.7}
       >
         <View style={{ flex: 1 }}>
-          <Text style={[styles.sectionTitle, { color }]}>{title}</Text>
-          <Text style={[styles.sectionCount, { color: isDark ? '#64748b' : '#94a3b8' }]}>{count} sermon{count !== 1 ? 's' : ''}</Text>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#f8fafc' : color }]}>{title}</Text>
+          <Text style={[styles.sectionCount, { color: isDark ? '#94a3b8' : '#94a3b8' }]}>{count} sermon{count !== 1 ? 's' : ''}</Text>
         </View>
         {isCollapsed
-          ? <ChevronRight size={18} color={color} />
-          : <ChevronDown size={18} color={color} />
+          ? <ChevronRight size={18} color={isDark ? '#f8fafc' : color} />
+          : <ChevronDown size={18} color={isDark ? '#f8fafc' : color} />
         }
       </TouchableOpacity>
     );
@@ -265,9 +265,11 @@ const styles = StyleSheet.create({
 
   header: {
     backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 25,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
     paddingHorizontal: 20,
     paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'

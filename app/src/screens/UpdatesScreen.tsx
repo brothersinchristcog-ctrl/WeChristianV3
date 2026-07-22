@@ -208,14 +208,14 @@ export default function UpdatesScreen({ navigation, route }: any) {
               icon = Gift;
               color = '#d97706';
               resolvedType = 'birthday';
-            } else if (data.title?.includes('💐') || data.content?.includes('Anniversary') || data.type === 'anniversary') {
-              icon = Heart;
-              color = '#be185d';
-              resolvedType = 'anniversary';
-            } else if (data.title?.includes('🎉') || data.title?.includes('🕊️') || data.content?.includes('Baptism') || data.type === 'baptism' || data.type === 'celebration') {
+            } else if (data.title?.includes('🎉') || data.title?.includes('🕊️') || data.content?.includes('Baptism') || data.title?.includes('Baptism') || data.type === 'baptism' || data.type === 'celebration') {
               icon = Sparkles;
               color = '#3b82f6';
               resolvedType = 'celebration';
+            } else if (data.title?.includes('💐') || data.content?.includes('Anniversary') || data.title?.includes('Anniversary') || data.type === 'anniversary') {
+              icon = Heart;
+              color = '#be185d';
+              resolvedType = 'anniversary';
             } else if (data.type === 'promise' || data.title?.includes('Promise') || data.title?.includes('వాగ్దానం')) {
               icon = BookOpen;
               color = '#8b5cf6';
@@ -295,13 +295,22 @@ export default function UpdatesScreen({ navigation, route }: any) {
   // Route-triggered Auto Popup Highlights
   useEffect(() => {
     if (hasAutoOpened) return;
+    if (!highlightType) return; // nothing to do
 
+    // If we have a specific broadcast ID, try to find it in the loaded updates
     if (highlightId && allUpdates.length > 0) {
       const match = allUpdates.find(u => u.id === highlightId);
       if (match) {
         setSelectedUpdate(match);
         setHasAutoOpened(true);
-      } else if (highlightType === 'birthday') {
+        return;
+      }
+    }
+
+    // Fallback: show a temp card based on type (handles the case where allUpdates not loaded yet,
+    // or the broadcast was targeted to another user so it won't appear in list)
+    if (!loading) {
+      if (highlightType === 'birthday') {
         setSelectedUpdate({
           id: 'temp-bd',
           title: '🎂 Happy Birthday!',
@@ -321,29 +330,19 @@ export default function UpdatesScreen({ navigation, route }: any) {
           color: '#be185d'
         });
         setHasAutoOpened(true);
+      } else if (highlightType === 'baptism' || highlightType === 'celebration') {
+        setSelectedUpdate({
+          id: 'temp-cel',
+          title: '🕊️ Happy Baptism Anniversary!',
+          content: 'Happy Baptism Anniversary! May you continue to grow in faith and walk in His light. 🙏🕊️',
+          date: 'Today',
+          type: 'celebration',
+          color: '#3b82f6'
+        });
+        setHasAutoOpened(true);
       }
-    } else if (highlightType === 'birthday' && !selectedUpdate) {
-      setSelectedUpdate({
-        id: 'temp-bd',
-        title: '🎂 Happy Birthday!',
-        content: 'Wishing you a very Happy Birthday! May God bless you abundantly and fulfill all your prayers today. 🙏🎈',
-        date: 'Today',
-        type: 'birthday',
-        color: '#d97706'
-      });
-      setHasAutoOpened(true);
-    } else if (highlightType === 'anniversary' && !selectedUpdate) {
-      setSelectedUpdate({
-        id: 'temp-ann',
-        title: '💐 Happy Wedding Anniversary!',
-        content: 'Wishing you a wonderful wedding anniversary! May God bless your home with love, joy, and peace. 💒💖',
-        date: 'Today',
-        type: 'anniversary',
-        color: '#be185d'
-      });
-      setHasAutoOpened(true);
     }
-  }, [highlightId, highlightType, allUpdates, hasAutoOpened, selectedUpdate]);
+  }, [highlightId, highlightType, allUpdates, hasAutoOpened, loading]);
 
   return (
     <View style={styles.container}>
@@ -603,7 +602,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   header: {
     backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 40),
     paddingHorizontal: 16,
     paddingBottom: 20,
     flexDirection: 'row',

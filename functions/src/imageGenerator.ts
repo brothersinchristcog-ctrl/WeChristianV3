@@ -16,13 +16,8 @@ export interface TemplateData {
   type: 'birthday' | 'anniversary' | 'baptism';
   name: string;
   message: string;
+  churchName: string;
 }
-
-const ICONS = {
-  anniversary: '💍',
-  baptism: '✝️',
-  birthday: '🎂'
-};
 
 const TITLES = {
   anniversary: 'WISHING YOU A\nHAPPY ANNIVERSARY',
@@ -31,8 +26,7 @@ const TITLES = {
 };
 
 export async function generateCelebrationImage(data: TemplateData): Promise<Buffer> {
-  const { themeColor, type, name, message } = data;
-  const icon = ICONS[type] || '✨';
+  const { themeColor, type, name, message, churchName } = data;
   const titleLines = (TITLES[type] || 'CELEBRATING WITH YOU').split('\n');
 
   const svg = await satori(
@@ -68,13 +62,6 @@ export async function generateCelebrationImage(data: TemplateData): Promise<Buff
                 textAlign: 'center'
               },
               children: [
-                {
-                  type: 'div',
-                  props: {
-                    style: { fontSize: 60, marginBottom: 20 },
-                    children: icon
-                  }
-                },
                 {
                   type: 'div',
                   props: {
@@ -142,7 +129,7 @@ export async function generateCelebrationImage(data: TemplateData): Promise<Buff
                       textTransform: 'uppercase',
                       color: 'rgba(255, 255, 255, 0.8)'
                     },
-                    children: 'SENT WITH LOVE, CHURCH OF GOD'
+                    children: `SENT WITH LOVE, ${(churchName || 'YOUR CHURCH').toUpperCase()}`
                   }
                 }
               ]

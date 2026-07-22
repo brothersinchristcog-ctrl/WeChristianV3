@@ -242,6 +242,9 @@ function Navigation() {
   // Show admin UI only when userType is admin AND viewMode is admin
   const showAdminView = isAdmin && viewMode === 'admin';
   const navigationKey = showAdminView ? 'admin-root' : 'member-root';
+  
+  const [pendingNotification, setPendingNotification] = useState<any>(null);
+
   // 1. Initial Security Check & App State Listener
   useEffect(() => {
     const handleSecurity = async () => {
@@ -291,13 +294,13 @@ function Navigation() {
   useEffect(() => {
     // 1. When app is in background and user clicks notification
     const unsubscribeOnOpen = NotificationService.messaging().onNotificationOpenedApp(remoteMessage => {
-      NotificationService.handleNotificationNavigation(remoteMessage, navigation);
+      setPendingNotification(remoteMessage);
     });
 
     // 2. When app is closed and user clicks notification
     NotificationService.messaging().getInitialNotification().then(remoteMessage => {
       if (remoteMessage) {
-        NotificationService.handleNotificationNavigation(remoteMessage, navigation);
+        setPendingNotification(remoteMessage);
       }
     });
 
@@ -309,6 +312,15 @@ function Navigation() {
       unsubscribeForeground();
     };
   }, [navigation]);
+
+  useEffect(() => {
+    if (user && !loading && pendingNotification) {
+      setTimeout(() => {
+        NotificationService.handleNotificationNavigation(pendingNotification, navigation);
+        setPendingNotification(null);
+      }, 500); // Give the navigator time to mount the new screens
+    }
+  }, [user, loading, pendingNotification, navigation]);
 
   useEffect(() => {
     if (user && !loading) {
@@ -421,7 +433,7 @@ function Navigation() {
   }
 
   return (
-    <Stack.Navigator key={navigationKey} screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'none' }}>
       {user ? (
         showAdminView ? (
           <>
@@ -430,6 +442,7 @@ function Navigation() {
             <Stack.Screen name="CreateEvent" component={CreatePastorEvent} />
             <Stack.Screen name="RoutePlanner" component={PastorEventRoutePlanner} />
             <Stack.Screen name="EventMap" component={PastorEventMap} />
+            <Stack.Screen name="Updates" component={UpdatesScreen} />
           </>
         ) : onboardingComplete ? (
           <>

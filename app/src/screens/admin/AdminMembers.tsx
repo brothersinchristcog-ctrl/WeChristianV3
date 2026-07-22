@@ -82,19 +82,22 @@ export default function AdminMembers() {
   }, []);
 
   const handlePromoteAdmin = async (memberId: string) => {
+    // Optimistic UI Update
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, userType: 'Admin' } : m));
+    
+    setAlertConfig({
+      visible: true,
+      title: 'Promoted',
+      message: 'Member has been promoted to Admin.',
+      type: 'success',
+      buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+    });
+
     try {
-      setLoading(true);
       const success = await FirestoreService.updateMemberRole(memberId, 'Admin');
-      if (success) {
-        setMembers(prev => prev.map(m => m.id === memberId ? { ...m, userType: 'Admin' } : m));
-        setAlertConfig({
-          visible: true,
-          title: 'Promoted',
-          message: 'Member has been promoted to Admin.',
-          type: 'success',
-          buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
-        });
-      } else {
+      if (!success) {
+        // Revert optimistic update on failure
+        setMembers(prev => prev.map(m => m.id === memberId ? { ...m, userType: 'Member' } : m));
         setAlertConfig({
           visible: true,
           title: 'Error',
@@ -105,56 +108,41 @@ export default function AdminMembers() {
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
+      // Revert optimistic update on failure
+      setMembers(prev => prev.map(m => m.id === memberId ? { ...m, userType: 'Member' } : m));
     }
   };
 
-  const handleRemoveAdmin = (memberId: string, memberName: string) => {
+  const handleRemoveAdmin = async (memberId: string, memberName: string) => {
+    // Optimistic UI Update
+    setMembers(prev => prev.map(m => m.id === memberId ? { ...m, userType: 'Member' } : m));
+    
     setAlertConfig({
       visible: true,
-      title: 'Remove Admin Permission',
-      message: `Are you sure you want to remove admin access from ${memberName}? They will be reverted to a regular member.`,
-      type: 'warning',
-      buttons: [
-        { text: 'Cancel', style: 'cancel', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) },
-        {
-          text: 'Remove Admin',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              setAlertConfig(prev => ({ ...prev, visible: false }));
-              const success = await FirestoreService.updateMemberRole(memberId, 'Member');
-              if (success) {
-                setMembers(prev => prev.map(m => m.id === memberId ? { ...m, userType: 'Member' } : m));
-                setTimeout(() => {
-                  setAlertConfig({
-                    visible: true,
-                    title: 'Access Removed',
-                    message: `${memberName} is now a regular member.`,
-                    type: 'success',
-                    buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
-                  });
-                }, 500);
-              } else {
-                setAlertConfig({
-                  visible: true,
-                  title: 'Error',
-                  message: 'Failed to remove admin role.',
-                  type: 'error',
-                  buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
-                });
-              }
-            } catch (err) {
-              console.error(err);
-            } finally {
-              setLoading(false);
-            }
-          }
-        }
-      ]
+      title: 'Access Removed',
+      message: `${memberName} is now a regular member.`,
+      type: 'success',
+      buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
     });
+
+    try {
+      const success = await FirestoreService.updateMemberRole(memberId, 'Member');
+      if (!success) {
+        // Revert optimistic update on failure
+        setMembers(prev => prev.map(m => m.id === memberId ? { ...m, userType: 'Admin' } : m));
+        setAlertConfig({
+          visible: true,
+          title: 'Error',
+          message: 'Failed to remove admin role.',
+          type: 'error',
+          buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      // Revert optimistic update on failure
+      setMembers(prev => prev.map(m => m.id === memberId ? { ...m, userType: 'Admin' } : m));
+    }
   };
 
   const handleDeleteMember = (memberId: string, memberName: string) => {
@@ -194,9 +182,10 @@ export default function AdminMembers() {
                 }
               }
             } catch (err) {
-              console.error(err);
+                console.error(err);
+                setError('Failed to remove member');
             } finally {
-              setLoading(false);
+                setLoading(false);
             }
           }
         }

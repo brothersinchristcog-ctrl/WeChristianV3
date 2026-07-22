@@ -23,7 +23,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
   const [member, setMember] = useState<AppMember | null>(null);
   const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<'admin' | 'member'>('admin');
+  const [viewMode, setViewMode] = useState<'admin' | 'member'>('member');
   const memberListenerRef = useRef<(() => void) | null>(null);
 
   const updateMember = (newMember: AppMember | null) => {

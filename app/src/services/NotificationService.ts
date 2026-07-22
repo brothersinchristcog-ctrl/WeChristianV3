@@ -87,6 +87,8 @@ class NotificationService {
         break;
       case 'birthday':
       case 'anniversary':
+      case 'baptism':
+      case 'celebration':
       case 'emergency':
         navigation.navigate('Updates', { highlightId: id, highlightType: type });
         break;
