@@ -209,13 +209,13 @@ export default function AdminSermonEditor() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* ── Hero Section ── */}
         <View style={styles.hero}>
-          <TouchableOpacity onPress={() => setActiveTab(3)} style={styles.backBtn}>
-            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
-            <Text style={styles.backBtnTxt}>Sermons</Text>
-          </TouchableOpacity>
-          <View style={{ marginTop: 4 }}>
-            <Text style={styles.heroTitle}>{editingData ? 'Edit Sermon' : 'Add Sermon'}</Text>
-            <Text style={styles.heroSub}>YouTube · Audio · Bilingual</Text>
+          <View style={styles.heroTitleRow}>
+            <TouchableOpacity onPress={() => setActiveTab(3)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <Text style={styles.heroTitle}>{editingData ? 'Edit Sermon' : 'New Sermon'}</Text>
           </View>
         </View>
 
@@ -501,8 +501,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -14,
     marginTop: -14, // counteract scroll padding for hero flush to top
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center' },
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
   heroSub: { color: '#AEB8D4', fontSize: 13, marginTop: 4 },
 
@@ -588,7 +587,7 @@ const styles = StyleSheet.create({
   errorTitle: { fontSize: 20, fontWeight: '800', color: '#c0392b', marginBottom: 10 },
   errorSub: { fontSize: 13, color: '#6B7280', textAlign: 'center', marginBottom: 25 },
 
-  fab: { position: 'absolute', right: 20, bottom: 30, width: 60, height: 60, borderRadius: 30, backgroundColor: '#c0392b', justifyContent: 'center', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10 },
+  fab: { position: 'absolute', right: 20, bottom: 30, width: 60, height: 60, borderRadius: 30, backgroundColor: '#2E6B4F', justifyContent: 'center', alignItems: 'center', elevation: 10, shadowColor: '#1a2d5a', shadowOpacity: 0.3, shadowRadius: 10 },
 
   pickerCardJS: { backgroundColor: '#fff', width: '90%', borderRadius: 16, padding: 20, elevation: 20, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 15 },
   pickerHd: { fontSize: 16, fontWeight: '800', color: '#1a2d5a', marginBottom: 20, textAlign: 'center' },

@@ -35,6 +35,7 @@ export default function AdminSermonList() {
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
   useEffect(() => {
     fetchSermons();
@@ -86,6 +87,8 @@ export default function AdminSermonList() {
               setLoading(true);
               await FirestoreService.deleteSermon(sermon.id);
               fetchSermons(); // Refresh list after delete
+              setShowDeleteSuccess(true);
+              setTimeout(() => setShowDeleteSuccess(false), 2500);
             } catch (err: any) {
               Alert.alert("Delete Failed", err.message || "Could not delete sermon.");
               setLoading(false);
@@ -133,7 +136,7 @@ export default function AdminSermonList() {
           </View>
           <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(4); }}>
             <Plus size={16} color="#1a2d5a" />
-            <Text style={styles.newBtnTxt}>Add</Text>
+            <Text style={styles.newBtnTxt}>New</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -218,6 +221,21 @@ export default function AdminSermonList() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Delete Success Modal */}
+      {showDeleteSuccess && (
+        <View style={styles.toastOverlay}>
+          <View style={styles.toastCard}>
+            <View style={styles.toastIconBox}>
+              <Trash2 size={24} color="#DC2626" />
+            </View>
+            <View>
+              <Text style={styles.toastTitle}>Sermon Deleted</Text>
+              <Text style={styles.toastSub}>The sermon has been permanently removed.</Text>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -344,5 +362,12 @@ const styles = StyleSheet.create({
   editAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1 },
   editActionTxt: { fontSize: 9, fontWeight: '800', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
   deleteAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1, borderTopWidth: 1, borderTopColor: 'rgba(26,45,90,0.08)' },
-  deleteActionTxt: { fontSize: 9, fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', letterSpacing: 0.5 }
+  deleteActionTxt: { fontSize: 9, fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  // Toast
+  toastOverlay: { position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center' },
+  toastCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, paddingRight: 24, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#1a2d5a', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)' },
+  toastIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center' },
+  toastTitle: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
+  toastSub: { fontSize: 11, color: '#6B7280', marginTop: 2, fontWeight: '500' }
 });
