@@ -655,36 +655,38 @@ export default function AdminMembers() {
 
       {/* Add/Edit Member Modal */}
       <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => { setAddModalVisible(false); setEditMemberId(null); }}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ width: width * 0.9, backgroundColor: '#fff', borderRadius: 16, padding: 24 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <Text style={{ fontSize: 18, fontWeight: '700', color: '#1a2d5a' }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(26,45,90,0.6)', justifyContent: 'center', alignItems: 'center' }}>
+          <View style={{ width: width * 0.92, backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 10 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontSize: 20, fontWeight: '800', color: '#1a2d5a', letterSpacing: -0.5 }}>
                 {editMemberId ? 'Edit Member' : 'Add New Member'}
               </Text>
-              <TouchableOpacity onPress={() => { setAddModalVisible(false); setEditMemberId(null); }}>
-                <X size={20} color="#6B7280" />
+              <TouchableOpacity onPress={() => { setAddModalVisible(false); setEditMemberId(null); }} style={{ backgroundColor: '#F3F4F6', padding: 6, borderRadius: 20 }}>
+                <X size={20} color="#1a2d5a" />
               </TouchableOpacity>
             </View>
 
-            <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 16 }}>
+            <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 20, fontWeight: '500' }}>
               {editMemberId ? 'Update member details below.' : `They will receive a shareable link to join ${activeChurch?.name}`}
             </Text>
 
-            <View style={{ marginBottom: 12 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>Full Name</Text>
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Full Name</Text>
               <TextInput
-                style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 10, backgroundColor: '#F9FAFB', color: '#111827' }}
+                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
                 placeholder="Enter member's name"
+                placeholderTextColor="#9CA3AF"
                 value={newMemberForm.name}
                 onChangeText={(t) => setNewMemberForm({...newMemberForm, name: t})}
               />
             </View>
 
             <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>Phone Number</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Phone Number</Text>
               <TextInput
-                style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 10, backgroundColor: '#F9FAFB', color: '#111827' }}
+                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
                 placeholder="e.g. 9876543210"
+                placeholderTextColor="#9CA3AF"
                 keyboardType="phone-pad"
                 value={newMemberForm.phone}
                 onChangeText={(t) => setNewMemberForm({...newMemberForm, phone: t})}
@@ -692,41 +694,41 @@ export default function AdminMembers() {
             </View>
 
             <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>Date of Birth (DOB)</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Date of Birth (DOB)</Text>
               <TouchableOpacity
-                style={{ borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 8, padding: 10, backgroundColor: '#F9FAFB' }}
+                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
                 onPress={() => setDatePickerVisibility(true)}
               >
-                <Text style={{ color: newMemberForm.dob ? '#111827' : '#9CA3AF' }}>
+                <Text style={{ color: newMemberForm.dob ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
                   {newMemberForm.dob || 'Select Date'}
                 </Text>
               </TouchableOpacity>
             </View>
 
             <View style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 4 }}>Role</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Role</Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity 
-                  style={{ flex: 1, padding: 10, borderRadius: 8, borderWidth: 1, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : '#E5E7EB', backgroundColor: newMemberForm.userType.toLowerCase() === 'member' ? '#F0F9FF' : '#fff' }}
+                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.toLowerCase() === 'member' ? '#F9F6F0' : '#FFFFFF' }}
                   onPress={() => setNewMemberForm({...newMemberForm, userType: 'member'})}
                 >
-                  <Text style={{ fontWeight: '600', color: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : '#6B7280' }}>Member</Text>
+                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : '#6B7280' }}>Member</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={{ flex: 1, padding: 10, borderRadius: 8, borderWidth: 1, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : '#E5E7EB', backgroundColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#F0F9FF' : '#fff' }}
+                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#F9F6F0' : '#FFFFFF' }}
                   onPress={() => setNewMemberForm({...newMemberForm, userType: 'admin'})}
                 >
-                  <Text style={{ fontWeight: '600', color: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : '#6B7280' }}>Admin</Text>
+                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : '#6B7280' }}>Admin</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
             <TouchableOpacity 
-              style={{ backgroundColor: '#1a2d5a', padding: 14, borderRadius: 8, alignItems: 'center' }}
+              style={{ backgroundColor: '#1a2d5a', padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 4, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }}
               onPress={handleAddMember}
               disabled={addMemberLoading}
             >
-              {addMemberLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: 'bold' }}>{editMemberId ? 'Save Changes' : 'Add Member'}</Text>}
+              {addMemberLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '800', letterSpacing: 0.5, fontSize: 14 }}>{editMemberId ? 'SAVE CHANGES' : 'ADD MEMBER'}</Text>}
             </TouchableOpacity>
           </View>
         </KeyboardAvoidingView>
