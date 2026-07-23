@@ -327,7 +327,9 @@ export default function AdminPromiseEditor() {
         {/* 1. Schedule */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <CalendarIcon size={15} color="#1a2d5a" />
+            <View style={styles.secHdPill}>
+              <CalendarIcon size={13} color="#fff" />
+            </View>
             <Text style={styles.secHdTXT}>Schedule</Text>
           </View>
           <View style={styles.fGroup}>
@@ -354,7 +356,9 @@ export default function AdminPromiseEditor() {
         {/* 2. English Promise */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <BookOpen size={15} color="#1a2d5a" />
+            <View style={styles.secHdPill}>
+              <BookOpen size={13} color="#fff" />
+            </View>
             <Text style={styles.secHdTXT}>English Promise</Text>
           </View>
           <View style={styles.fGroup}>
@@ -374,7 +378,9 @@ export default function AdminPromiseEditor() {
         {/* 3. Telugu Promise */}
         <View style={[styles.section, styles.secBlue]}>
           <View style={styles.secHd}>
-            <Languages size={15} color="#1a2d5a" />
+            <View style={styles.secHdPill}>
+              <Languages size={13} color="#fff" />
+            </View>
             <Text style={styles.secHdTXT}>Telugu Promise - తెలుగు వాగ్దానం</Text>
           </View>
           <View style={styles.fGroup}>
@@ -394,7 +400,9 @@ export default function AdminPromiseEditor() {
         {/* 3.5 Thumbnail Upload */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <Eye size={15} color="#1a2d5a" />
+            <View style={styles.secHdPill}>
+              <Eye size={13} color="#fff" />
+            </View>
             <Text style={styles.secHdTXT}>Daily Promise Thumbnail</Text>
           </View>
           <View style={styles.fGroup}>
@@ -417,7 +425,9 @@ export default function AdminPromiseEditor() {
         {/* 4. YouTube Link */}
         <View style={[styles.section, styles.secRed]}>
           <View style={styles.secHd}>
-            <Play size={15} color="#1a2d5a" />
+            <View style={styles.secHdPill}>
+              <Play size={13} color="#fff" />
+            </View>
             <Text style={styles.secHdTXT}>YouTube Link</Text>
           </View>
           <View style={styles.fGroup}>
@@ -438,7 +448,9 @@ export default function AdminPromiseEditor() {
         {/* 5. Pastor & Status */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <User size={15} color="#1a2d5a" />
+            <View style={styles.secHdPill}>
+              <User size={13} color="#fff" />
+            </View>
             <Text style={styles.secHdTXT}>Pastor & Status</Text>
           </View>
           <View style={styles.fGroup}>
@@ -449,7 +461,7 @@ export default function AdminPromiseEditor() {
             <Text style={styles.fLabel}>Publish status</Text>
             <TouchableOpacity style={styles.input} onPress={() => setShowStatusPicker(true)}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 13, color: '#111827' }}>{currentStatusLabel}</Text>
+                <Text style={styles.statusDropdownTxt}>{currentStatusLabel}</Text>
                 <ChevronDown size={14} color="#374151" />
               </View>
             </TouchableOpacity>
@@ -509,35 +521,18 @@ export default function AdminPromiseEditor() {
           </View>
         </Modal>
 
-        {/* 6. Live Preview */}
-        <View style={[styles.section, styles.secGreen]}>
-          <View style={styles.secHd}>
-            <Eye size={15} color="#1a2d5a" />
-            <Text style={styles.secHdTXT}>Live preview — member card</Text>
-          </View>
-          <View style={[styles.cardBtnRow, { marginTop: 15 }]}>
-            <TouchableOpacity style={styles.cardBtn} onPress={() => Alert.alert('Coming Soon', 'Save to Gallery will be active after the next app update.')}>
-              <Text style={styles.cardBtnTxt}>💾 Save to Gallery</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.cardBtn, styles.cardBtnRed]}
-              onPress={() => Alert.alert('Coming Soon', 'Share Promise will be active after the next app update.')}
-            >
-              <Text style={styles.cardBtnTxt}>↑ Share Promise</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Footer Actions */}
-        <TouchableOpacity style={styles.btnSave} onPress={() => handleSave()}>
-          <Save size={16} color="#fff" />
-          <Text style={styles.btnSaveTxt}>Save & Publish</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.btnDraft} onPress={() => handleSave('Draft')}>
-          <Save size={16} color="#fff" />
-          <Text style={styles.btnDraftTxt}>Save as Draft</Text>
-        </TouchableOpacity>
+        {/* Side-by-side action buttons: Draft (left) | Save & Publish (right) */}
+        <View style={styles.footerBtnRow}>
+          <TouchableOpacity style={styles.btnDraft} onPress={() => handleSave('Draft')}>
+            <Save size={15} color="#5C6E8A" />
+            <Text style={styles.btnDraftTxt}>Save as Draft</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.btnSave} onPress={() => handleSave()}>
+            <Save size={15} color="#fff" />
+            <Text style={styles.btnSaveTxt}>Save & Publish</Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity style={styles.btnBack} onPress={() => setActiveTab(0)}>
           <Text style={styles.btnBackTxt}>← Back to list</Text>
@@ -604,18 +599,28 @@ const styles = StyleSheet.create({
   secHd: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     marginBottom: 18,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(26,45,90,0.08)',
-    paddingBottom: 12,
+    paddingBottom: 14,
+  },
+  // Navy pill badge wrapping the icon
+  secHdPill: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#1a2d5a',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   secHdTXT: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '800',
     color: '#1a2d5a',
     textTransform: 'uppercase',
-    letterSpacing: 1.2,
+    letterSpacing: 1.4,
+    flex: 1,
   },
 
   // ─── Form Fields ──────────────────────────────────────────────────────────
@@ -630,6 +635,14 @@ const styles = StyleSheet.create({
   },
   fHint: { fontWeight: '500', color: '#9CA3AF', fontSize: 11, textTransform: 'none', letterSpacing: 0 },
   fSub: { fontSize: 11, color: '#6B7280', marginTop: 6, fontStyle: 'italic' },
+
+  // Status dropdown selected value
+  statusDropdownTxt: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1a2d5a',
+    flex: 1,
+  },
 
   // ─── Inputs ───────────────────────────────────────────────────────────────
   inputWrap: {
@@ -721,35 +734,43 @@ const styles = StyleSheet.create({
   cardBtnTxt: { color: '#1a2d5a', fontSize: 11, fontWeight: '700' },
 
   // ─── Footer Action Buttons ────────────────────────────────────────────────
+  // Horizontal container: Draft | Save & Publish side-by-side
+  footerBtnRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  // Primary: gold Save & Publish
   btnSave: {
-    backgroundColor: '#1a2d5a',
+    flex: 1,
+    backgroundColor: '#C9A84C',
     borderRadius: 14,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginBottom: 12,
+    gap: 7,
     elevation: 5,
-    shadowColor: '#1a2d5a',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
   },
-  btnSaveTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  btnSaveTxt: { color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  // Secondary: soft outlined Save as Draft
   btnDraft: {
-    backgroundColor: '#fff',
+    flex: 1,
+    backgroundColor: '#F0EBE0',
     borderRadius: 14,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginBottom: 20,
+    gap: 7,
     borderWidth: 1.5,
-    borderColor: '#D9D3C7',
+    borderColor: '#C9B99A',
   },
-  btnDraftTxt: { color: '#374151', fontSize: 15, fontWeight: '700' },
+  btnDraftTxt: { color: '#5C6E8A', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
   btnBack: { alignItems: 'center', paddingVertical: 10 },
   btnBackTxt: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
 
