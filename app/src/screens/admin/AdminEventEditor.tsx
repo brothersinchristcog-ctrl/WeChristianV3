@@ -978,7 +978,6 @@ export default function AdminEventEditor() {
           </View>
         </View>
 
-        </View>
 
         {/* ── FOOTER BUTTONS ── */}
         <View style={styles.footer}>
