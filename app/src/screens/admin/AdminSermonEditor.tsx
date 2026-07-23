@@ -207,15 +207,15 @@ export default function AdminSermonEditor() {
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* ── Header ── */}
-        <View style={styles.header}>
+        {/* ── Hero Section ── */}
+        <View style={styles.hero}>
           <TouchableOpacity onPress={() => setActiveTab(3)} style={styles.backBtn}>
-            <ChevronLeft size={20} color="#1a2d5a" />
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
             <Text style={styles.backBtnTxt}>Sermons</Text>
           </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>{editingData ? 'Edit Sermon' : 'Add Sermon'}</Text>
-            <Text style={styles.headerSub}>YouTube · Audio · Bilingual</Text>
+          <View style={{ marginTop: 4 }}>
+            <Text style={styles.heroTitle}>{editingData ? 'Edit Sermon' : 'Add Sermon'}</Text>
+            <Text style={styles.heroSub}>YouTube · Audio · Bilingual</Text>
           </View>
         </View>
 
@@ -410,24 +410,15 @@ export default function AdminSermonEditor() {
         </View>
 
         {/* Action Buttons */}
-        <View style={{ marginBottom: 40 }}>
-          <TouchableOpacity style={styles.btnPublishFull} onPress={() => handleSave('Published')}>
-            <Radio size={18} color="#fff" />
-            <Text style={styles.btnPublishFullTxt}>Publish Sermon</Text>
+        <View style={styles.actionRow}>
+          <TouchableOpacity style={styles.btnDraft} onPress={() => handleSave('Draft')}>
+            <FileText size={18} color="#1a2d5a" />
+            <Text style={styles.btnDraftTxt}>Save as Draft</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.btnSaveFull} onPress={() => handleSave('Draft')}>
-            <FileText size={18} color="#fff" />
-            <Text style={styles.btnSaveFullTxt}>Save as Draft</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.btnPreviewOutline}>
-            <Monitor size={18} color="#1a2d5a" />
-            <Text style={styles.btnPreviewOutlineTxt}>App Preview</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.btnBackLink} onPress={() => setActiveTab(3)}>
-            <Text style={styles.btnBackLinkTxt}>← Back to sermons</Text>
+          <TouchableOpacity style={styles.btnPublish} onPress={() => handleSave('Published')}>
+            <CheckCircle2 size={18} color="#fff" />
+            <Text style={styles.btnPublishTxt}>Publish</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -494,66 +485,89 @@ export default function AdminSermonEditor() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f7' },
+  // ─── Layout ──────────────────────────────────────────────────────────────
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
   scroll: { padding: 14, paddingBottom: 100 },
 
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#c0392b', gap: 10 },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: '#1a2d5a' },
-  headerSub: { fontSize: 10, color: '#9CA3AF', marginTop: 2 },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
-  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a' },
+  // ─── Hero ────────────────────────────────────────────────────────────────
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    marginBottom: 14,
+    marginHorizontal: -14,
+    marginTop: -14, // counteract scroll padding for hero flush to top
+  },
+  backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroSub: { color: '#AEB8D4', fontSize: 13, marginTop: 4 },
 
-  modBox: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 15, borderWidth: 0.5, borderColor: '#e5e7eb', elevation: 1, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 3 },
-  modHd: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 14, padding: 10, marginHorizontal: -16, marginTop: -16, borderTopLeftRadius: 12, borderTopRightRadius: 12, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
-  hdBlue: { backgroundColor: '#f0f7ff', borderLeftWidth: 3, borderLeftColor: '#1a2d5a' },
-  hdYellow: { backgroundColor: '#fffbeb', borderLeftWidth: 3, borderLeftColor: '#d97706' },
-  modHdTxt: { fontSize: 11, fontWeight: '700', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
+  // ─── Cards ───────────────────────────────────────────────────────────────
+  modBox: { 
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+    borderTopWidth: 3,
+    borderTopColor: '#1a2d5a',
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  modHd: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(26,45,90,0.08)', paddingBottom: 10 },
+  hdBlue: { },
+  hdYellow: { },
+  modHdTxt: { fontSize: 12, fontWeight: '800', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   fGroup: { marginBottom: 16 },
-  fLabel: { fontSize: 12, fontWeight: '600', color: '#374151', marginBottom: 6 },
-  fHint: { fontSize: 9, color: '#9CA3AF', fontWeight: '400', marginTop: 2 },
+  fLabel: { fontSize: 12, fontWeight: '700', color: '#1a2d5a', marginBottom: 6 },
+  fHint: { fontSize: 9, color: '#9CA3AF', fontWeight: '500', marginTop: 4 },
   row: { flexDirection: 'row', gap: 10 },
 
-  input: { backgroundColor: '#fdfdfd', borderWidth: 0.5, borderColor: '#d1d5db', borderRadius: 8, padding: 12, fontSize: 13, color: '#111827' },
-  inputWithIcon: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fdfdfd', borderWidth: 0.5, borderColor: '#d1d5db', borderRadius: 8, paddingHorizontal: 12, height: 45 },
-  inputTxt: { fontSize: 13, color: '#111827' },
-  teIn: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', color: '#1a2d5a', fontStyle: 'italic', backgroundColor: '#F8FAFF' },
+  input: { backgroundColor: '#FDFDFD', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, padding: 12, fontSize: 13, color: '#1a2d5a' },
+  inputWithIcon: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FDFDFD', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 12, height: 45 },
+  inputTxt: { fontSize: 13, color: '#1a2d5a' },
+  teIn: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', color: '#1a2d5a', fontStyle: 'italic', backgroundColor: '#F9F6F0' },
   textarea: { minHeight: 80, textAlignVertical: 'top' },
 
-  selectBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', borderWidth: 0.5, borderColor: '#d1d5db', borderRadius: 8, padding: 12 },
-  selectTxt: { fontSize: 13, color: '#374151', fontWeight: '500' },
+  selectBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, padding: 12 },
+  selectTxt: { fontSize: 13, color: '#1a2d5a', fontWeight: '600' },
 
-  mediaBanner: { backgroundColor: '#fee2e2', borderLeftWidth: 3, borderLeftColor: '#c0392b', padding: 8, flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 15, marginTop: 5 },
-  mediaBannerTxt: { color: '#c0392b', fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+  mediaBanner: { backgroundColor: '#F9F6F0', borderRadius: 8, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 15, marginTop: 5 },
+  mediaBannerTxt: { color: '#1a2d5a', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  dashBox: { borderStyle: 'dashed', borderWidth: 1, borderColor: '#d1d5db', borderRadius: 10, padding: 25, alignItems: 'center', backgroundColor: '#fafafa' },
-  dashBoxActive: { borderColor: '#059669', backgroundColor: '#F0FDF4', borderStyle: 'solid' },
-  dashTxt: { fontSize: 11, fontWeight: '600', color: '#4b5563', marginTop: 10 },
-  dashHint: { fontSize: 9, color: '#9CA3AF', marginTop: 4 },
+  dashBox: { borderStyle: 'dashed', borderWidth: 1.5, borderColor: '#D1D5DB', borderRadius: 12, padding: 25, alignItems: 'center', backgroundColor: '#FAFAFA' },
+  dashBoxActive: { borderColor: '#2E6B4F', backgroundColor: '#F0FDF4', borderStyle: 'solid' },
+  dashTxt: { fontSize: 11, fontWeight: '700', color: '#1a2d5a', marginTop: 10 },
+  dashHint: { fontSize: 9, color: '#9CA3AF', marginTop: 4, fontWeight: '500' },
 
   toggleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12 },
-  toggleTxt: { fontSize: 12, color: '#374151', fontWeight: '500' },
-  switch: { width: 44, height: 24, borderRadius: 12, backgroundColor: '#d1d5db', padding: 2 },
+  toggleTxt: { fontSize: 12, color: '#1a2d5a', fontWeight: '600' },
+  switch: { width: 44, height: 24, borderRadius: 12, backgroundColor: '#D1D5DB', padding: 2 },
   switchOn: { backgroundColor: '#1a2d5a' },
   switchDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },
   switchDotOn: { alignSelf: 'flex-end' },
 
-  notifPreview: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 },
+  notifPreview: { backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 5 },
   notifHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
   notifLogo: { width: 14, height: 14, backgroundColor: '#1a2d5a', borderRadius: 4, justifyContent: 'center', alignItems: 'center' },
-  notifHeaderTxt: { fontSize: 9, color: '#64748b' },
-  notifTitle: { fontSize: 11, fontWeight: '700', color: '#1e293b' },
-  notifBody: { fontSize: 10, color: '#64748b' },
+  notifHeaderTxt: { fontSize: 9, color: '#64748B', fontWeight: '600' },
+  notifTitle: { fontSize: 11, fontWeight: '800', color: '#1E293B' },
+  notifBody: { fontSize: 10, color: '#64748B', fontWeight: '500' },
 
-  btnPublishFull: { backgroundColor: '#c0392b', borderRadius: 10, padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 },
-  btnPublishFullTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  btnSaveFull: { backgroundColor: '#1a2d5a', borderRadius: 10, padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 },
-  btnSaveFullTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  btnPreviewOutline: { backgroundColor: '#fff', borderRadius: 10, padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 15, borderWidth: 1.5, borderColor: '#d1d5db' },
-  btnPreviewOutlineTxt: { color: '#1a2d5a', fontSize: 14, fontWeight: '700' },
-  btnBackLink: { alignItems: 'center', marginTop: 10 },
-  btnBackLinkTxt: { fontSize: 12, color: '#374151', fontWeight: '600' },
+  actionRow: { flexDirection: 'row', gap: 10, marginTop: 10, marginBottom: 40 },
+  btnDraft: { flex: 1, backgroundColor: '#F5F0E8', borderRadius: 12, paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: '#E2DDD5' },
+  btnDraftTxt: { color: '#1a2d5a', fontSize: 14, fontWeight: '800' },
+  btnPublish: { flex: 1, backgroundColor: '#2E6B4F', borderRadius: 12, paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
+  btnPublishTxt: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
   pickerCard: { backgroundColor: '#fff', width: '90%', borderRadius: 12, padding: 8, elevation: 20, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 15 },
   pickerItem: { padding: 15, borderRadius: 8 },
