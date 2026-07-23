@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { Gift, Heart, PlusCircle } from 'lucide-react-native';
+import { Platform, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { Gift, Heart, PlusCircle, ChevronLeft } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
 import ChurchService from '../../services/ChurchService';
@@ -534,14 +534,17 @@ export default function AdminWeCelebrations({ navigation }: any) {
     }
   };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      
-      {/* Header */}
+    return (
+    <View style={styles.container}>
+      {/* ── Fixed Header ── */}
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>CHURCH COMPANION</Text>
-        <Text style={styles.title}>WeCelebration</Text>
+        <View style={styles.heroTitles}>
+          <Text style={styles.headerTitle}>WeCelebration</Text>
+          <Text style={styles.headerSub}>CHURCH COMPANION</Text>
+        </View>
       </View>
+
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
       {/* Hero Card */}
       <View style={styles.heroCard}>
@@ -623,10 +626,11 @@ export default function AdminWeCelebrations({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.footerText}>
+            <Text style={styles.footerText}>
         <Text style={{color: '#1D4ED8', fontWeight: 'bold'}}>WeChristian</Text> - {activeChurch?.name?.toUpperCase() || ''}
       </Text>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -654,25 +658,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  content: {
+      content: {
     padding: 20,
     paddingBottom: 40,
   },
-  header: {
-    marginBottom: 20,
+  header: { 
+    backgroundColor: '#1a2d5a', 
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    position: 'relative',
+    zIndex: 10,
+    marginBottom: 0,
   },
-  eyebrow: {
-    color: '#B88A2E', // Gold
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 4,
-  },
-  title: {
-    color: '#162057', // Deep navy
-    fontSize: 24,
-    fontWeight: '800',
-  },
+  heroTitles: { flex: 1, paddingLeft: 4 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2, letterSpacing: 1.5, fontWeight: '800' },
   heroCard: {
     backgroundColor: '#162057', // Deep navy
     borderRadius: 24,
@@ -718,19 +724,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 1,
   },
-  sectionTitle: {
+    sectionTitle: {
     color: '#848796',
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.5,
-    marginBottom: 16,
+        marginBottom: 16,
   },
   categoryCard: {
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
   },
-  row: {
+    row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },

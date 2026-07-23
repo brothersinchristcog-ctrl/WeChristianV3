@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, FlatList, Dimensions, Platform } from 'react-native';
-import { ArrowLeft, Search, CheckCircle2, SlidersHorizontal, Gift } from 'lucide-react-native';
+import { ChevronLeft, Search, CheckCircle2, SlidersHorizontal, Gift } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
 
@@ -124,14 +124,15 @@ export default function AdminWeCelebrationsList({ category, onBack, onSelectMemb
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+            {/* ── Fixed Header ── */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <ArrowLeft size={20} color="#162057" />
+        <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+          <ChevronLeft size={22} color="#fff" />
+          <Text style={styles.backBtnTxt}>Back</Text>
         </TouchableOpacity>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.eyebrow}>CELEBRATIONS</Text>
-          <Text style={styles.title}>{category}</Text>
+        <View style={styles.heroTitles}>
+          <Text style={styles.headerTitle}>{category}</Text>
+          <Text style={styles.headerSub}>CELEBRATIONS</Text>
         </View>
       </View>
 
@@ -222,43 +223,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  header: {
+    header: { 
+    backgroundColor: '#1a2d5a', 
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    backgroundColor: '#FAF8F0',
+    gap: 12,
+    position: 'relative',
     zIndex: 10,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    marginRight: 16,
-  },
-  headerTextContainer: {
-    justifyContent: 'center',
-  },
-  eyebrow: {
-    color: '#B88A2E',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 2,
-  },
-  title: {
-    color: '#162057',
-    fontSize: 22,
-    fontWeight: '800',
-  },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  heroTitles: { flex: 1, borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.2)', paddingLeft: 12 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2 },
+  
   content: {
     padding: 20,
     paddingTop: 10,

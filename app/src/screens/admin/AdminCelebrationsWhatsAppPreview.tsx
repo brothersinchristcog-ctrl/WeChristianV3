@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, ActivityIndicator } from 'react-native';
-import { Edit2 } from 'lucide-react-native';
+import { Edit2, ChevronLeft } from 'lucide-react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Circle, G, Path } from 'react-native-svg';
 import { captureRef } from 'react-native-view-shot';
 
@@ -81,10 +81,22 @@ export default function AdminCelebrationsWhatsAppPreview({
     }
   };
 
-  return (
+    return (
     <View style={styles.container}>
+      {/* ── Fixed Header ── */}
+      <View style={styles.waHeader}>
+        <TouchableOpacity style={styles.waHeader} onPress={onEdit}>
+          <ChevronLeft size={22} color="#fff" />
+          <Text style={styles.waHeader}>Back</Text>
+        </TouchableOpacity>
+        <View style={styles.waHeader}>
+          <Text style={styles.waHeader}>{categoryLabel}</Text>
+          <Text style={styles.waHeader}>PREVIEW GREETING</Text>
+        </View>
+      </View>
+
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>PREVIEW</Text>
+
 
         <View style={styles.waHeader}>
           <View style={[styles.avatar, { backgroundColor: colors[1] }]}>
@@ -347,18 +359,19 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  buttonRow: {
+    buttonRow: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 24,
+    alignItems: 'stretch',
   },
   btnOutline: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
+    gap: 6,
+    height: 56,
     borderRadius: 16,
     backgroundColor: '#F1F5F9', // light gray solid background
   },
@@ -367,13 +380,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#475569', // slate gray text
   },
-  btnPrimary: {
+    btnPrimary: {
     flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
+    gap: 6,
+    height: 56,
     borderRadius: 16,
     backgroundColor: '#BE9A3A',
     shadowColor: '#BE9A3A',

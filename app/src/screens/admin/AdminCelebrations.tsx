@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
 import Share from 'react-native-share';
-import { Gift, Heart, PlusCircle } from 'lucide-react-native';
+import { Gift, Heart, PlusCircle, ChevronLeft } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
 import ChurchService from '../../services/ChurchService';
+import { AdminTabContext } from '../../context/AdminTabContext';
 import AdminCelebrationsList from './AdminCelebrationsList';
 import AdminCelebrationsPersonalize from './AdminCelebrationsPersonalize';
 import AdminCelebrationsMemberDetails from './AdminCelebrationsMemberDetails';
@@ -25,6 +26,7 @@ type ViewMode = 'dashboard' | 'list' | 'details' | 'personalize' | 'themePicker'
 
 export default function AdminCelebrations({ navigation }: any) {
   const { activeChurch, setActiveChurch } = useChurch();
+  const { setActiveTab } = React.useContext(AdminTabContext);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -447,12 +449,18 @@ export default function AdminCelebrations({ navigation }: any) {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       
-      {/* Header */}
+      {/* ── Fixed Header ── */}
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>CHURCH COMPANION</Text>
-        <Text style={styles.title}>Celebrations</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => setActiveTab(0)}>
+          <ChevronLeft size={22} color="#fff" />
+          <Text style={styles.backBtnTxt}>Back</Text>
+        </TouchableOpacity>
+        <View style={styles.heroTitles}>
+          <Text style={styles.headerTitle}>Celebrations</Text>
+          <Text style={styles.headerSub}>Manage birthdays & anniversaries</Text>
+        </View>
       </View>
 
       {/* Hero Card */}
@@ -542,29 +550,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  content: {
-    padding: 20,
+    content: {
+    padding: 0,
     paddingBottom: 40,
   },
-  header: {
+  header: { 
+    backgroundColor: '#1a2d5a', 
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    position: 'relative',
+    zIndex: 10,
     marginBottom: 20,
   },
-  eyebrow: {
-    color: '#B88A2E', // Gold
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 4,
-  },
-  title: {
-    color: '#162057', // Deep navy
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  heroCard: {
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  heroTitles: { flex: 1, borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.2)', paddingLeft: 12 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2 },
+    heroCard: {
     backgroundColor: '#162057', // Deep navy
     borderRadius: 24,
     padding: 24,
+    marginHorizontal: 20,
     marginBottom: 32,
   },
   heroEyebrow: {
@@ -606,24 +619,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 1,
   },
-  sectionTitle: {
+    sectionTitle: {
     color: '#848796',
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.5,
     marginBottom: 16,
+    marginHorizontal: 20,
   },
   categoryCard: {
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
+    marginHorizontal: 20,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginHorizontal: 20,
   },
   halfCard: {
     width: '48%',
+    marginHorizontal: 0,
   },
   catIcon: {
     marginBottom: 16,

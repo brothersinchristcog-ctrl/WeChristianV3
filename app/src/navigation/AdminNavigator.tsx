@@ -9,9 +9,9 @@ import {
   PlusSquare, 
   Bell, 
   MapPin, 
-  Heart,
   LogOut,
-  Menu,
+  Grid,
+  Heart,
   Users,
   Gift,
   Smartphone,
@@ -51,6 +51,26 @@ import AdminWhatsAppInbox from '../screens/admin/AdminWhatsAppInbox';
 import { Shield } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
+
+const DotGridIcon = ({ color, size }: { color: string; size: number }) => {
+  const dotSize = size * 0.22;
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'space-between' }}>
+      {[0, 1, 2].map(row => (
+        <View key={row} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          {[0, 1, 2].map(col => (
+            <View key={col} style={{ 
+              width: dotSize, 
+              height: dotSize, 
+              borderRadius: dotSize / 2, 
+              backgroundColor: color 
+            }} />
+          ))}
+        </View>
+      ))}
+    </View>
+  );
+};
 
 export default function AdminNavigator({ navigation }: any) {
   const { signOut, user, member, setViewMode } = useAuth();
@@ -116,22 +136,10 @@ export default function AdminNavigator({ navigation }: any) {
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <TouchableOpacity onPress={() => setMenuExpanded(true)} style={styles.hamburgerBtn}>
-              <Menu color="#fff" size={26} />
+              <DotGridIcon color="#fff" size={24} />
             </TouchableOpacity>
-            {/* Back button removed from global header — handled per editor screen */}
-            <View style={styles.logoCircle}>
-              <Image 
-                source={activeChurch?.theme?.logoUrl ? { uri: activeChurch.theme.logoUrl } : require('../../assets/logo.png')} 
-                style={styles.logoImage}
-                resizeMode="cover"
-              />
-            </View>
             <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>{activeChurch?.name || 'Admin Panel'}</Text>
-              <Text style={styles.headerSub}>Admin Dashboard</Text>
-            </View>
-            <View style={styles.roleBadge}>
-              <Text style={styles.roleTxt}>Pastor</Text>
+              <Text style={styles.headerTitle}>Admin Dashboard</Text>
             </View>
           </View>
         </View>
@@ -242,6 +250,11 @@ export default function AdminNavigator({ navigation }: any) {
   );
 }
 
+const FONTS = {
+  serif: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  sans: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+};
+
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#1a2d5a' },
   container: { flex: 1, backgroundColor: '#f0f2f7' },
@@ -272,8 +285,8 @@ const styles = StyleSheet.create({
     width: 26, 
     height: 26 
   },
-  headerText: { flex: 1 },
-  headerTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  headerText: { flex: 1, marginLeft: 6, marginBottom: 4 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '600', fontFamily: FONTS.serif },
   headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 1 },
   roleBadge: { 
     backgroundColor: 'rgba(255,255,255,0.15)', 

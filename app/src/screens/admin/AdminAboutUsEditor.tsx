@@ -94,9 +94,9 @@ export default function AdminAboutUsEditor() {
   };
 
   if (loading) {
-    return (
+        return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FCD34D" />
+        <ActivityIndicator size="large" color="#BE9A3A" />
         <Text style={styles.loadingText}>Loading About Us…</Text>
       </View>
     );
@@ -106,31 +106,29 @@ export default function AdminAboutUsEditor() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
 
-        {/* ── Header ── */}
-        <View style={styles.header}>
-          {/* Back button */}
-          <TouchableOpacity style={styles.backBtn} onPress={goBack}>
-            <ChevronLeft size={20} color="#fff" />
+                {/* ── Fixed Header ── */}
+                <View style={styles.header}>
+          <TouchableOpacity onPress={goBack} style={styles.backBtn}>
+            <ChevronLeft size={22} color="#fff" />
+            <Text style={styles.backBtnTxt}>Back</Text>
           </TouchableOpacity>
-
-          {/* Title */}
-          <View style={styles.headerCenter}>
-            <Info size={18} color="#FCD34D" />
-            <Text style={styles.headerTitle}>About Us</Text>
+          <View style={[styles.heroTitles, { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.2)', paddingLeft: 12 }]}>
+            <Text style={[styles.headerTitle, { fontSize: 20 }]} numberOfLines={1}>About Us</Text>
+            <Text style={styles.headerSub}>CHURCH COMPANION</Text>
           </View>
 
           {/* Right actions: Refresh + single Edit/View toggle */}
           <View style={styles.headerRight}>
             <TouchableOpacity onPress={fetchData} style={styles.iconBtn}>
-              <RefreshCw size={16} color="#aac4e8" />
+              <RefreshCw size={16} color="#F3EAD9" />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.editToggleBtn}
               onPress={isEditing ? handleCancel : handleEdit}
             >
               {isEditing
-                ? <><Eye size={14} color="#aac4e8" /><Text style={[styles.editToggleTxt, { color: '#aac4e8' }]}>View</Text></>
-                : <><Edit2 size={14} color="#FCD34D" /><Text style={styles.editToggleTxt}>Edit</Text></>
+                ? <><Eye size={14} color="#F3EAD9" /><Text style={[styles.editToggleTxt, { color: '#F3EAD9' }]}>View</Text></>
+                : <><Edit2 size={14} color="#BE9A3A" /><Text style={styles.editToggleTxt}>Edit</Text></>
               }
             </TouchableOpacity>
           </View>
@@ -255,14 +253,14 @@ export default function AdminAboutUsEditor() {
                 <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
                   <Text style={styles.cancelTxt}>Cancel</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
+                                <TouchableOpacity
                   style={[styles.saveBtn, saving && styles.btnDisabled]}
                   onPress={handleSave}
                   disabled={saving}
                 >
                   {saving
-                    ? <ActivityIndicator color="#1a2d5a" size="small" />
-                    : <><Save size={16} color="#1a2d5a" /><Text style={styles.saveTxt}>Save Changes</Text></>
+                    ? <ActivityIndicator color="#162057" size="small" />
+                    : <><Save size={16} color="#162057" /><Text style={styles.saveTxt}>Save Changes</Text></>
                   }
                 </TouchableOpacity>
               </View>
@@ -277,46 +275,60 @@ export default function AdminAboutUsEditor() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f7' },
-  loadingContainer: { flex: 1, backgroundColor: '#1a2d5a', justifyContent: 'center', alignItems: 'center', gap: 12 },
-  loadingText: { color: '#aac4e8', fontSize: 14 },
+  container: { flex: 1, backgroundColor: '#FAF8F0' },
+  loadingContainer: { flex: 1, backgroundColor: '#FAF8F0', justifyContent: 'center', alignItems: 'center', gap: 12 },
+  loadingText: { color: '#64748B', fontSize: 14 },
 
   /* Header */
-  header: { backgroundColor: '#1a2d5a', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 13, gap: 8 },
-  backBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.12)', justifyContent: 'center', alignItems: 'center' },
-  headerCenter: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center' },
-  headerTitle: { color: '#fff', fontSize: 17, fontWeight: '800' },
+  header: { 
+    backgroundColor: '#1a2d5a', 
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    position: 'relative',
+    zIndex: 10,
+  },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  heroTitles: { flex: 1 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2, letterSpacing: 1.5, fontWeight: '800' },
   headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   iconBtn: { padding: 6 },
   editToggleBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
-  editToggleTxt: { color: '#FCD34D', fontSize: 13, fontWeight: '700' },
+  editToggleTxt: { color: '#BE9A3A', fontSize: 13, fontWeight: '700' },
 
   scroll: { flex: 1 },
-  scrollContent: { padding: 14 },
+  scrollContent: { padding: 20 },
 
   /* Mode banner */
-  modeBanner: { backgroundColor: '#e0f2fe', borderRadius: 12, paddingHorizontal: 14, paddingVertical: 9, marginBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  modeBannerTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a' },
+  modeBanner: { backgroundColor: '#E3F2FD', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  modeBannerTxt: { fontSize: 13, fontWeight: '700', color: '#162057' },
 
   /* View cards */
-  viewCard: { backgroundColor: '#fff', borderRadius: 16, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3, overflow: 'hidden' },
-  viewCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 16, paddingBottom: 6 },
-  viewCardBand: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
-  viewCardTitle: { fontSize: 15, fontWeight: '800', color: '#1a2d5a' },
-  viewCardBody: { fontSize: 14, color: '#475569', lineHeight: 22, paddingHorizontal: 16, paddingBottom: 16 },
+  viewCard: { backgroundColor: '#fff', borderRadius: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, overflow: 'hidden' },
+  viewCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20, paddingBottom: 6 },
+  viewCardBand: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 14 },
+  viewCardTitle: { fontSize: 15, fontWeight: '800', color: '#162057' },
+  viewCardBody: { fontSize: 14, color: '#64748B', lineHeight: 22, paddingHorizontal: 20, paddingBottom: 20 },
 
   /* Edit fields */
-  fieldCard: { backgroundColor: '#fff', borderRadius: 16, padding: 14, marginBottom: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 },
-  fieldLabel: { fontSize: 14, fontWeight: '700', color: '#1a2d5a', marginBottom: 4 },
-  fieldHint: { fontSize: 11, color: '#64748b', marginBottom: 10 },
-  input: { borderWidth: 1.5, borderColor: '#e2e8f0', borderRadius: 10, padding: 11, fontSize: 14, color: '#1e293b', backgroundColor: '#f8fafc' },
+  fieldCard: { backgroundColor: '#fff', borderRadius: 20, padding: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3 },
+  fieldLabel: { fontSize: 14, fontWeight: '700', color: '#162057', marginBottom: 4 },
+  fieldHint: { fontSize: 11, color: '#64748B', marginBottom: 12 },
+  input: { borderWidth: 1, borderColor: '#E2E8F0', borderRadius: 12, padding: 14, fontSize: 14, color: '#162057', backgroundColor: '#F1F5F9' },
   textArea: { minHeight: 90, textAlignVertical: 'top' },
 
   /* Action buttons */
-  actionRow: { flexDirection: 'row', gap: 12, marginTop: 6 },
-  cancelBtn: { flex: 1, backgroundColor: '#e2e8f0', borderRadius: 14, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },
-  cancelTxt: { color: '#64748b', fontWeight: '700', fontSize: 15 },
-  saveBtn: { flex: 2, backgroundColor: '#FCD34D', borderRadius: 14, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#FCD34D', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  actionRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  cancelBtn: { flex: 1, backgroundColor: '#E2E8F0', borderRadius: 16, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
+  cancelTxt: { color: '#64748B', fontWeight: '700', fontSize: 15 },
+  saveBtn: { flex: 2, backgroundColor: '#BE9A3A', borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#BE9A3A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
   btnDisabled: { opacity: 0.6 },
-  saveTxt: { color: '#1a2d5a', fontWeight: '800', fontSize: 15 },
+  saveTxt: { color: '#162057', fontWeight: '800', fontSize: 15 },
 });

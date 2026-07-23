@@ -49,19 +49,19 @@ export declare const notifyMembersV2: import("firebase-functions/v2/https").Http
 export declare const automatedDailyPromise: import("firebase-functions/v2/scheduler").ScheduleFunction;
 /**
  * ⏰ AUTOMATED DAILY BIRTHDAYS SCHEDULER
- * Scheduled to run every day at 08:00 AM IST (02:30 AM UTC)
+ * Scheduled to run every day at 06:00 AM IST
  */
-export declare const weChristianBdaysRun: functionsCompat.CloudFunction<unknown>;
+export declare const weChristianBdaysRunV3: functionsCompat.CloudFunction<unknown>;
 /**
  * ⏰ AUTOMATED DAILY ANNIVERSARIES SCHEDULER
- * Scheduled to run every day at 08:30 AM IST (03:00 AM UTC)
- */
-export declare const weChristianAnnivsRun: functionsCompat.CloudFunction<unknown>;
-/**
- * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES SCHEDULER
  * Scheduled to run every day at 07:00 AM IST
  */
-export declare const weChristianBaptismsRun: functionsCompat.CloudFunction<unknown>;
+export declare const weChristianAnnivsRunV3: functionsCompat.CloudFunction<unknown>;
+/**
+ * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES SCHEDULER
+ * Scheduled to run every day at 06:30 AM IST
+ */
+export declare const weChristianBaptismsRunV3: functionsCompat.CloudFunction<unknown>;
 /**
  * 📣 ON BROADCAST CREATED TRIGGER (Gen 2)
  * Automatically sends push notifications when a new broadcast is added to Firestore (e.g. Emergency Meeting or custom admin updates)
@@ -95,9 +95,9 @@ export declare const triggerTestYouTubeLive: import("firebase-functions/v2/https
     broadcastId: any;
     message?: never;
 }>, unknown>;
-export declare const testBdays: import("firebase-functions/v2/https").HttpsFunction;
-export declare const testAnnivs: import("firebase-functions/v2/https").HttpsFunction;
-export declare const testBaptisms: import("firebase-functions/v2/https").HttpsFunction;
+export declare const testBdaysV10: functionsCompat.HttpsFunction;
+export declare const testAnnivsV1: functionsCompat.HttpsFunction;
+export declare const testBaptismsV1: functionsCompat.HttpsFunction;
 export * from './payments.js';
 export * from './checkPaymentStatus.js';
 //# sourceMappingURL=index.d.ts.map

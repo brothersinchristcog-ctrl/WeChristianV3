@@ -157,13 +157,17 @@ export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZon
             console.log('🛑 Daily Promise automation is disabled.');
             return;
         }
-        const promise = await getSf().getDailyPromise();
-        if (!promise) {
-            console.log('⚠️ No daily promise found in Salesforce.');
+        const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+        const dStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const promiseSnap = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('promises').where('date', '==', dStr).limit(1).get();
+        if (promiseSnap.empty) {
+            console.log('⚠️ No daily promise found in Firestore for today (' + dStr + ').');
             return;
         }
-        const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-        const content = promise.Promises__c || promise.Promise_text_telugu__c || 'Grace and Peace be multiplied to you today.';
+        const promise = promiseSnap.docs[0].data();
+        const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+        // Fallbacks for content based on app schema
+        const content = promise.textEn || promise.text || promise.Promises__c || promise.Promise_text_telugu__c || 'Grace and Peace be multiplied to you today.';
         // Pushed to broadcasts collection
         await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('broadcasts').add({
             title: '📖 Today\'s Promise · ఈ రోజు వాగ్దానం',
@@ -220,9 +224,11 @@ export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZon
 });
 /**
  * ⏰ AUTOMATED DAILY BIRTHDAYS SCHEDULER
- * Scheduled to run every day at 08:00 AM IST (02:30 AM UTC)
+ * Scheduled to run every day at 06:00 AM IST
  */
-export const weChristianBdaysRun = functionsCompat.pubsub.schedule('0 6 * * *').timeZone('Asia/Kolkata').onRun(async (context) => {
+export const weChristianBdaysRunV3 = functionsCompat.pubsub.schedule('0 6 * * *')
+    .timeZone('Asia/Kolkata')
+    .onRun(async (context) => {
     try {
         console.log('⏰ Running automatedDailyBirthdays scheduler...');
         const db = getDb();
@@ -411,9 +417,11 @@ export const weChristianBdaysRun = functionsCompat.pubsub.schedule('0 6 * * *').
 });
 /**
  * ⏰ AUTOMATED DAILY ANNIVERSARIES SCHEDULER
- * Scheduled to run every day at 08:30 AM IST (03:00 AM UTC)
+ * Scheduled to run every day at 07:00 AM IST
  */
-export const weChristianAnnivsRun = functionsCompat.pubsub.schedule('0 7 * * *').timeZone('Asia/Kolkata').onRun(async (context) => {
+export const weChristianAnnivsRunV3 = functionsCompat.pubsub.schedule('0 7 * * *')
+    .timeZone('Asia/Kolkata')
+    .onRun(async (context) => {
     try {
         console.log('⏰ Running automatedDailyAnniversaries scheduler...');
         const db = getDb();
@@ -628,9 +636,11 @@ export const weChristianAnnivsRun = functionsCompat.pubsub.schedule('0 7 * * *')
 });
 /**
  * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES SCHEDULER
- * Scheduled to run every day at 07:00 AM IST
+ * Scheduled to run every day at 06:30 AM IST
  */
-export const weChristianBaptismsRun = functionsCompat.pubsub.schedule('30 6 * * *').timeZone('Asia/Kolkata').onRun(async (context) => {
+export const weChristianBaptismsRunV3 = functionsCompat.pubsub.schedule('30 6 * * *')
+    .timeZone('Asia/Kolkata')
+    .onRun(async (context) => {
     try {
         console.log('⏰ Running automatedDailyBaptisms scheduler...');
         const db = getDb();
@@ -1121,7 +1131,7 @@ export const triggerTestYouTubeLive = onCall({ invoker: 'public' }, async (reque
         throw new HttpsError('internal', error.message);
     }
 });
-export const testBdays = onRequest(async (req, res) => {
+export const testBdaysV10 = functionsCompat.https.onRequest(async (req, res) => {
     try {
         const db = getDb();
         const settingsDoc = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('settings').doc('notifications').get();
@@ -1209,7 +1219,7 @@ export const testBdays = onRequest(async (req, res) => {
         res.status(500).send(error.message);
     }
 });
-export const testAnnivs = onRequest(async (req, res) => {
+export const testAnnivsV1 = functionsCompat.https.onRequest(async (req, res) => {
     try {
         const db = getDb();
         const settingsDoc = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('settings').doc('notifications').get();
@@ -1284,7 +1294,7 @@ export const testAnnivs = onRequest(async (req, res) => {
         res.status(500).send(error.message);
     }
 });
-export const testBaptisms = onRequest(async (req, res) => {
+export const testBaptismsV1 = functionsCompat.https.onRequest(async (req, res) => {
     try {
         const db = getDb();
         const today = new Date();

@@ -3,11 +3,6 @@ import {
   StyleSheet, 
   View, 
   Text, 
-import React, { useState } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
   ScrollView, 
   TextInput, 
   TouchableOpacity, 
