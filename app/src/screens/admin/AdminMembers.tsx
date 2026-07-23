@@ -709,16 +709,16 @@ export default function AdminMembers() {
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Role</Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity 
-                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.toLowerCase() === 'member' ? '#F9F6F0' : '#FFFFFF' }}
+                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : '#FFFFFF' }}
                   onPress={() => setNewMemberForm({...newMemberForm, userType: 'member'})}
                 >
-                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : '#6B7280' }}>Member</Text>
+                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.toLowerCase() === 'member' ? '#FFFFFF' : '#6B7280' }}>Member</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#F9F6F0' : '#FFFFFF' }}
+                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : '#FFFFFF' }}
                   onPress={() => setNewMemberForm({...newMemberForm, userType: 'admin'})}
                 >
-                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : '#6B7280' }}>Admin</Text>
+                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.toLowerCase() === 'admin' ? '#FFFFFF' : '#6B7280' }}>Admin</Text>
                 </TouchableOpacity>
               </View>
             </View>
