@@ -190,21 +190,30 @@ export default function AdminChurchSettings({ navigation }: any) {
           type={alertConfig.type}
           onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
         />
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: primaryColor }]}>
-          <TouchableOpacity onPress={goBack} style={styles.headerBtn}>
-            <ChevronLeft size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Church Settings</Text>
-          {isEditing ? (
-            <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.saveBtn}>
-              {saving ? <ActivityIndicator color={primaryColor} size="small" /> : <Text style={[styles.saveBtnTxt, { color: primaryColor }]}>Save</Text>}
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.editBtn}>
-              <Text style={styles.editBtnTxt}>Edit</Text>
-            </TouchableOpacity>
-          )}
+        {/* ── Hero Section ── */}
+        <View style={styles.hero}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <TouchableOpacity onPress={goBack} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+              </TouchableOpacity>
+              <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+              <View>
+                <Text style={styles.heroTitle}>Settings</Text>
+                <Text style={[styles.heroSub, { marginTop: 2 }]}>Church info, branding & APIs</Text>
+              </View>
+            </View>
+            {isEditing ? (
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+                {saving ? <ActivityIndicator color="#1a2d5a" size="small" /> : <Text style={styles.saveBtnTxt}>SAVE</Text>}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditing(true)}>
+                <Text style={styles.editBtnTxt}>EDIT</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Tabs */}
@@ -586,12 +595,19 @@ export default function AdminChurchSettings({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#EDE8DC' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6,
   },
-  headerBtn: { padding: 8 },
-  headerTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroSub: { color: '#AEB8D4', fontSize: 13 },
 
   saveBtn: { backgroundColor: '#C9A84C', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, shadowColor: '#C9A84C', shadowOpacity: 0.4, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
   saveBtnTxt: { fontSize: 13, fontWeight: '800', color: '#1a2d5a', letterSpacing: 0.3 },
