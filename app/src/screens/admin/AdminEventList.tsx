@@ -204,18 +204,18 @@ export default function AdminEventList() {
               <Text style={styles.eiTitle} numberOfLines={1}>{event.name || 'No Title'}</Text>
               <Text style={styles.eiTe} numberOfLines={1}>{event.titleTe || ''}</Text>
               <View style={styles.eiMetaRow}>
-                <Calendar size={10} color="#c0392b" />
-                <Text style={[styles.eiMetaTxt, { color: '#c0392b', fontWeight: '600' }]}>{formatDate(event.date)}</Text>
-                <View style={[styles.eiMetaRow, { flexShrink: 1 }]}>
-                  <Clock size={10} color="#6B7280" style={{ marginLeft: 8 }} />
-                  <Text style={styles.eiMetaTxt} numberOfLines={1}>
-                    {formatDisplayTime(event.startTime)}
-                    {event.endTime ? ` — ${formatDisplayTime(event.endTime)}` : ''}
-                  </Text>
-                </View>
+                <Calendar size={11} color="#c0392b" />
+                <Text style={[styles.eiMetaTxt, { color: '#c0392b', fontWeight: '700' }]}>{formatDate(event.date)}</Text>
               </View>
               <View style={styles.eiMetaRow}>
-                <MapPin size={10} color="#6B7280" />
+                <Clock size={11} color="#6B7280" />
+                <Text style={styles.eiMetaTxt} numberOfLines={1}>
+                  {formatDisplayTime(event.startTime)}
+                  {event.endTime ? ` — ${formatDisplayTime(event.endTime)}` : ''}
+                </Text>
+              </View>
+              <View style={styles.eiMetaRow}>
+                <MapPin size={11} color="#6B7280" />
                 <Text style={styles.eiMetaTxt} numberOfLines={1}>{event.venueEn || event.location || 'No Venue'}</Text>
               </View>
               <View style={styles.eiFoot}>
@@ -356,8 +356,8 @@ const styles = StyleSheet.create({
   eiTitle: { fontSize: 14, fontWeight: '700', color: '#1a2d5a', marginBottom: 2 },
   eiTe: { fontSize: 12, color: '#64748B', marginBottom: 8 },
   
-  eiMetaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  eiMetaTxt: { fontSize: 11, color: '#64748B', marginLeft: 4, flexShrink: 1 },
+  eiMetaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
+  eiMetaTxt: { fontSize: 11.5, color: '#64748B', marginLeft: 6, flexShrink: 1 },
   
   eiFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   badgePub: { backgroundColor: '#F0FDF4', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
