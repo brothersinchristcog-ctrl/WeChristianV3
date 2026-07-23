@@ -46,6 +46,8 @@ export default function AdminEventList() {
   const [events, setEvents] = useState<any[]>([]);
   const [filterType, setFilterType] = useState<'Upcoming' | 'Past'>('Upcoming');
   const [loading, setLoading] = useState(true);
+  const [eventToDelete, setEventToDelete] = useState<any>(null);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
 
   useEffect(() => {
     fetchEvents();
@@ -106,42 +108,24 @@ export default function AdminEventList() {
     setActiveTab(8); // Switch to Event Editor tab
   };
 
-  const handleDelete = (event: any) => {
-    const executeDelete = async (deleteMode?: 'single' | 'future') => {
-      try {
-        setLoading(true);
-        await FirestoreService.deleteEvent(event.id, deleteMode);
-        await fetchEvents();
-      } catch (err) {
-        Alert.alert('Error', 'Failed to delete event');
-        setLoading(false);
-      }
-    };
-
-    if (event.recurringGroupId) {
-      Alert.alert(
-        'Delete Recurring Event',
-        `You are deleting a recurring event. Do you want to delete only this specific occurrence, or this and all future occurrences?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Only this event', style: 'destructive', onPress: () => executeDelete('single') },
-          { text: 'This and future events', style: 'destructive', onPress: () => executeDelete('future') }
-        ]
-      );
-    } else {
-      Alert.alert(
-        'Delete Event',
-        `Are you sure you want to delete "${event.name || 'this event'}"?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Delete', 
-            style: 'destructive',
-            onPress: () => executeDelete('single')
-          }
-        ]
-      );
+  const confirmDeleteEvent = async (deleteMode?: 'single' | 'future') => {
+    if (!eventToDelete?.id) return;
+    try {
+      setLoading(true);
+      await FirestoreService.deleteEvent(eventToDelete.id, deleteMode);
+      await fetchEvents();
+      setEventToDelete(null);
+      setShowDeleteSuccess(true);
+      setTimeout(() => setShowDeleteSuccess(false), 2500);
+    } catch (err: any) {
+      Alert.alert('Delete Failed', err.message || 'Could not delete event.');
+      setEventToDelete(null);
+      setLoading(false);
     }
+  };
+
+  const handleDelete = (event: any) => {
+    setEventToDelete(event);
   };
 
   if (loading && events.length === 0) {
@@ -255,6 +239,64 @@ export default function AdminEventList() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* ── Delete Confirmation Modal ── */}
+      {eventToDelete && (
+        <Modal transparent animationType="fade" visible>
+          <View style={styles.successBg}>
+            <View style={styles.successCard}>
+              <View style={[styles.successIconOuter, { backgroundColor: '#FEF2F2' }]}>
+                <View style={[styles.successIconInner, { backgroundColor: '#DC2626' }]}>
+                  <Trash2 size={28} color="#fff" />
+                </View>
+              </View>
+              <Text style={styles.successTitle}>Delete Event?</Text>
+              <Text style={styles.successDesc}>
+                {eventToDelete.recurringGroupId 
+                  ? `You are deleting a recurring event. Do you want to delete only this specific occurrence, or this and all future occurrences?`
+                  : `Are you sure you want to delete "${eventToDelete.name || 'this event'}"? This action cannot be undone.`}
+              </Text>
+              {eventToDelete.recurringGroupId ? (
+                <View style={{ gap: 10, width: '100%' }}>
+                  <TouchableOpacity style={[styles.successActionBtn, { backgroundColor: '#DC2626', marginBottom: 0 }]} onPress={() => confirmDeleteEvent('single')}>
+                    <Text style={styles.successActionTxt}>Only this event</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.successActionBtn, { backgroundColor: '#DC2626', marginBottom: 0 }]} onPress={() => confirmDeleteEvent('future')}>
+                    <Text style={styles.successActionTxt}>This and future events</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.successSecBtn} onPress={() => setEventToDelete(null)}>
+                    <Text style={styles.successSecTxt}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+                  <TouchableOpacity style={[styles.successSecBtn, { flex: 1 }]} onPress={() => setEventToDelete(null)}>
+                    <Text style={styles.successSecTxt}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.successActionBtn, { flex: 1, backgroundColor: '#DC2626', marginBottom: 0 }]} onPress={() => confirmDeleteEvent('single')}>
+                    <Text style={styles.successActionTxt}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Delete Success Modal */}
+      {showDeleteSuccess && (
+        <View style={styles.toastOverlay}>
+          <View style={styles.toastCard}>
+            <View style={styles.toastIconBox}>
+              <Trash2 size={24} color="#DC2626" />
+            </View>
+            <View>
+              <Text style={styles.toastTitle}>Event Deleted</Text>
+              <Text style={styles.toastSub}>The event has been permanently removed.</Text>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -324,13 +366,32 @@ const styles = StyleSheet.create({
   
   eiEdit: { position: 'absolute', top: 0, right: 0, padding: 4 },
   
-  actionsContainer: { borderLeftWidth: 1, borderLeftColor: 'rgba(26,45,90,0.08)' },
+  actionsContainer: { borderLeftWidth: 1, borderLeftColor: 'rgba(26,45,90,0.15)' },
   editAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1 },
   editActionTxt: { fontSize: 9, fontWeight: '800', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
-  deleteAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1, borderTopWidth: 1, borderTopColor: 'rgba(26,45,90,0.08)' },
+  deleteAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1, borderTopWidth: 1, borderTopColor: 'rgba(26,45,90,0.15)' },
   deleteActionTxt: { fontSize: 9, fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', letterSpacing: 0.5 },
   
   eiLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   eiLocTxt: { fontSize: 11, color: COLORS.inkSoft, flexShrink: 1 },
   eiStatusRow: { marginTop: 7 },
+
+  // Toast
+  toastOverlay: { position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center' },
+  toastCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, paddingRight: 24, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#1a2d5a', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)' },
+  toastIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center' },
+  toastTitle: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
+  toastSub: { fontSize: 11, color: '#6B7280', marginTop: 2, fontWeight: '500' },
+
+  // Confirmation Modal
+  successBg: { flex: 1, backgroundColor: 'rgba(26,45,90, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  successCard: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center', elevation: 10 },
+  successIconOuter: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  successIconInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#2E6B4F', justifyContent: 'center', alignItems: 'center' },
+  successTitle: { fontSize: 20, fontWeight: '900', color: '#1a2d5a', marginBottom: 8, textAlign: 'center' },
+  successDesc: { fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+  successActionBtn: { backgroundColor: '#1a2d5a', height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  successActionTxt: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  successSecBtn: { height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' },
+  successSecTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800' }
 });
