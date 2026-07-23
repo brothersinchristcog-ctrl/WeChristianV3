@@ -753,9 +753,9 @@ const badgeRowStyles = (isActive: boolean) => StyleSheet.create({
 });
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f7' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f2f7', padding: 20 },
-  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f2f7', padding: 20 },
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EDE8DC', padding: 20 },
+  errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#EDE8DC', padding: 20 },
   errorTxt: { fontSize: 14, color: '#c0392b', textAlign: 'center', marginBottom: 15, fontWeight: '600' },
   retryBtn: { backgroundColor: '#1a2d5a', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   retryBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
@@ -791,111 +791,133 @@ const styles = StyleSheet.create({
   },
   newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 15 },
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   statCard: { 
     flex: 1, 
-    backgroundColor: '#fff', 
-    borderRadius: 8, 
-    paddingVertical: 15, 
-    alignItems: 'center', 
-    borderWidth: 0.5, 
-    borderColor: '#e5e7eb' 
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+    borderTopWidth: 3,
+    borderTopColor: '#1a2d5a',
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
   },
-  statVal: { fontSize: 24, fontWeight: '700' },
-  statLbl: { fontSize: 10, color: '#9CA3AF', marginTop: 2 },
+  statVal: { fontSize: 22, fontWeight: '800' },
+  statLbl: { fontSize: 10, color: '#6B7280', marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   searchBarContainer: { 
-    backgroundColor: '#fff', 
-    borderRadius: 8, 
-    paddingHorizontal: 12, 
-    height: 44, 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 12, 
+    paddingHorizontal: 16, 
+    height: 48, 
     justifyContent: 'center', 
-    borderWidth: 0.5, 
-    borderColor: '#d1d5db', 
-    marginBottom: 12 
+    borderWidth: 1.5, 
+    borderColor: 'rgba(26,45,90,0.1)', 
+    marginBottom: 14,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1
   },
-  searchInput: { fontSize: 14, color: '#111827' },
+  searchInput: { fontSize: 14, color: '#1a2d5a', fontWeight: '500' },
 
-  filterRow: { flexDirection: 'row', gap: 8, marginBottom: 15 },
+  filterRow: { flexDirection: 'row', marginBottom: 14 },
   filterChip: { 
     paddingHorizontal: 16, 
     paddingVertical: 8, 
     borderRadius: 20, 
-    backgroundColor: '#E5E7EB', 
-    borderWidth: 0.5, 
-    borderColor: '#D1D5DB' 
+    backgroundColor: '#FFFFFF', 
+    borderWidth: 1.5, 
+    borderColor: 'rgba(26,45,90,0.1)', 
+    marginRight: 8,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1
   },
   filterChipActive: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
-  filterChipTxt: { fontSize: 11, fontWeight: '600', color: '#374151' },
+  filterChipTxt: { fontSize: 11, fontWeight: '700', color: '#1a2d5a' },
   filterChipTxtActive: { color: '#fff' },
 
-  membersList: { gap: 10 },
+  membersList: { gap: 12 },
   memberCard: { 
-    backgroundColor: '#fff', 
-    borderRadius: 10, 
-    padding: 15, 
-    borderWidth: 0.5, 
-    borderColor: '#e5e7eb' 
+    backgroundColor: '#FFFFFF', 
+    borderRadius: 14, 
+    borderWidth: 1, 
+    borderColor: 'rgba(26,45,90,0.08)', 
+    padding: 14, 
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2 
   },
-  memberCardExpanded: { borderColor: '#1a2d5a', borderWidth: 1 },
+  memberCardExpanded: { borderColor: '#C9A84C', borderWidth: 1.5, shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   cardHeader: { 
     flexDirection: 'row', 
     justifyContent: 'space-between', 
-    alignItems: 'center' 
+    alignItems: 'flex-start' 
   },
-  profileSection: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  profileSection: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   avatar: { 
-    width: 40, 
-    height: 40, 
-    borderRadius: 20, 
+    width: 48, 
+    height: 48, 
+    borderRadius: 12, 
     backgroundColor: '#1a2d5a', 
     justifyContent: 'center', 
     alignItems: 'center' 
   },
-  avatarTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
-  nameSection: { flexDirection: 'column', gap: 2 },
-  name: { fontSize: 14, fontWeight: '700', color: '#111827' },
-  badgeRow: { flexDirection: 'row', gap: 6, alignItems: 'center' },
-  roleBadge: { 
-    backgroundColor: '#EFF6FF', 
-    paddingHorizontal: 6, 
-    paddingVertical: 2, 
-    borderRadius: 4 
-  },
-  roleTxt: { fontSize: 9, color: '#1a2d5a', fontWeight: '700' },
-  statusBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  statusActive: { backgroundColor: '#F0FDF4' },
+  avatarTxt: { color: '#fff', fontSize: 16, fontWeight: '800' },
+  nameSection: { flexDirection: 'column', gap: 4, marginTop: 2 },
+  name: { fontSize: 15, fontWeight: '800', color: '#1a2d5a' },
+  badgeRow: { flexDirection: 'row', gap: 6, alignItems: 'center', marginTop: 4 },
+  
+  roleBadge: { backgroundColor: '#F9F6F0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: '#E2DDD5' },
+  roleTxt: { color: '#1a2d5a', fontSize: 9, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.3 },
+  
+  statusBadge: { backgroundColor: '#F0EBE0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
+  statusActive: { backgroundColor: '#E8F5E9' },
   statusInactive: { backgroundColor: '#FEF2F2' },
-  statusTxt: { fontSize: 9, fontWeight: '700', color: '#1a2d5a' },
-  chevronWrap: { padding: 4 },
+  statusTxt: { color: '#1a2d5a', fontSize: 9, fontWeight: '700' },
+  
+  chevronWrap: { padding: 4, marginTop: 2 },
 
   contactDetails: { 
-    marginTop: 10, 
-    borderTopWidth: 0.5, 
-    borderTopColor: '#f3f4f6', 
-    paddingTop: 10, 
-    gap: 6 
+    flexDirection: 'row', 
+    flexWrap: 'wrap', 
+    gap: 12, 
+    marginTop: 14, 
+    alignItems: 'center' 
   },
-  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  contactTxt: { fontSize: 12, color: '#4B5563' },
+  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  contactTxt: { fontSize: 11, color: '#6B7280', fontWeight: '600' },
 
   expandedContent: { 
-    marginTop: 12, 
-    borderTopWidth: 0.5, 
-    borderTopColor: '#e5e7eb', 
-    paddingTop: 12 
+    marginTop: 14, 
+    borderTopWidth: 1, 
+    borderTopColor: 'rgba(26,45,90,0.08)', 
+    paddingTop: 14 
   },
-  statsSubGrid: { gap: 10, marginBottom: 12 },
+  statsSubGrid: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   subStatBox: { 
-    backgroundColor: '#f8fafc', 
-    borderRadius: 8, 
-    padding: 10, 
-    borderWidth: 0.5, 
-    borderColor: '#e5e7eb' 
+    flex: 1,
+    backgroundColor: '#F9F6F0', 
+    borderRadius: 10, 
+    padding: 12, 
+    borderWidth: 1, 
+    borderColor: '#E2DDD5' 
   },
-  subStatLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
-  subStatLabel: { fontSize: 9, textTransform: 'uppercase', color: '#6B7280', fontWeight: '700' },
-  subStatValue: { fontSize: 12, fontWeight: '700', color: '#1e293b' },
+  subStatLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
+  subStatLabel: { fontSize: 9, textTransform: 'uppercase', color: '#6B7280', fontWeight: '800', letterSpacing: 0.5 },
+  subStatValue: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
 
   promoteBtn: {
     backgroundColor: '#1a2d5a',
@@ -903,47 +925,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginBottom: 12,
+    paddingVertical: 12,
+    borderRadius: 12,
+    marginBottom: 14,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3
   },
   promoteBtnTxt: {
     color: '#fff',
-    fontSize: 12,
-    fontWeight: '700'
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3
   },
 
   householdHeader: { 
-    fontSize: 10, 
+    fontSize: 11, 
     fontWeight: '800', 
-    color: '#1a2d5a', 
+    color: '#374151', 
     textTransform: 'uppercase', 
-    letterSpacing: 0.5, 
-    marginBottom: 8, 
-    marginTop: 4 
+    letterSpacing: 0.8, 
+    marginBottom: 10, 
+    marginTop: 4,
+    paddingLeft: 4
   },
-  householdList: { gap: 6 },
+  householdList: { gap: 8 },
   householdItem: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    backgroundColor: '#f9fafb', 
-    borderWidth: 0.5, 
-    borderColor: '#e5e7eb', 
-    borderRadius: 6, 
-    padding: 8 
+    backgroundColor: '#FFFFFF', 
+    borderWidth: 1, 
+    borderColor: 'rgba(26,45,90,0.08)', 
+    borderRadius: 10, 
+    padding: 12 
   },
-  hiLeft: { flex: 1, gap: 2 },
-  hiName: { fontSize: 12, fontWeight: '700', color: '#111827' },
-  hiEmail: { fontSize: 10, color: '#6B7280' },
+  hiLeft: { flex: 1, gap: 4 },
+  hiName: { fontSize: 13, fontWeight: '800', color: '#1a2d5a' },
+  hiEmail: { fontSize: 11, color: '#6B7280', fontWeight: '500' },
   hiRight: { 
-    backgroundColor: '#E5E7EB', 
+    backgroundColor: '#F0EBE0', 
     paddingHorizontal: 8, 
-    paddingVertical: 3, 
-    borderRadius: 4 
+    paddingVertical: 4, 
+    borderRadius: 6 
   },
-  hiRelation: { fontSize: 9, color: '#374151', fontWeight: '600' },
-  emptyHouseholdTxt: { fontSize: 11, color: '#9CA3AF', fontStyle: 'italic' },
+  hiRelation: { fontSize: 9, color: '#1a2d5a', fontWeight: '700' },
+  emptyHouseholdTxt: { fontSize: 11, color: '#9CA3AF', fontStyle: 'italic', paddingLeft: 4 },
 
   footerBranding: { fontSize: 10, color: '#9CA3AF', textAlign: 'center', marginTop: 20 }
 });
