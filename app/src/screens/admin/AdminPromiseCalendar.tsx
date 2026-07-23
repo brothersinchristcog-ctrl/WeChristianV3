@@ -152,71 +152,92 @@ export default function AdminPromiseCalendar() {
             <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>
           <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-          <Text style={styles.heroTitle}>Missing Dates</Text>
+        <Text style={styles.heroTitle}>Promise Calendar</Text>
         </View>
-        <Text style={styles.heroSub}>{getMonthName(month)} {year} — tap any date</Text>
+        <Text style={styles.heroSub}>{getMonthName(month)} {year} — tap any date to edit</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
-        {/* ── Calendar Grid ── */}
-        <View style={styles.calGrid}>
-          {weekDays.map(d => (
-            <View key={d} style={styles.calHeader}><Text style={styles.calHeaderTxt}>{d}</Text></View>
-          ))}
-          
-          {/* Empty days for start of month */}
-          {Array.from({ length: firstDay }).map((_, i) => (
-            <View key={`empty-${i}`} style={styles.calDay} />
-          ))}
+        {/* ── Calendar Card ── */}
+        <View style={styles.calCard}>
+          {/* Month label inside card */}
+          <View style={styles.calMonthRow}>
+            <Text style={styles.calMonthLabel}>{getMonthName(month)} {year}</Text>
+            <Text style={styles.calMonthSub}>Tap any date to edit</Text>
+          </View>
 
-          {days.map(day => {
-            const isToday = day === todayDate;
-            const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const promise = promises.find(p => p.date === dStr);
+          {/* ── Calendar Grid ── */}
+          <View style={styles.calGrid}>
+            {weekDays.map(d => (
+              <View key={d} style={styles.calHeader}><Text style={styles.calHeaderTxt}>{d}</Text></View>
+            ))}
             
-            const isMissing = !promise;
-            const isDraft = promise?.status === 'Draft';
-            const isPublished = promise?.status === 'Published';
-            const isScheduled = promise?.status === 'Scheduled';
+            {/* Empty days for start of month */}
+            {Array.from({ length: firstDay }).map((_, i) => (
+              <View key={`empty-${i}`} style={styles.calDay} />
+            ))}
 
-            return (
-              <TouchableOpacity 
-                key={day} 
-                style={[
-                  styles.calDay,
-                  isToday && styles.cToday,
-                  isMissing && styles.cMiss,
-                  isDraft && styles.cDft,
-                  (isPublished || isScheduled) && styles.cPub
-                ]}
-                onPress={() => { 
-                  setEditingData(promise || { date: dStr }); 
-                  setActiveTab(1); 
-                }}
-              >
-                <Text style={[styles.calNum, isToday && styles.cTodayNum, isMissing && styles.cMissNum, isDraft && styles.cDftNum]}>{day}</Text>
-                <Text style={[styles.calStatus, isToday && styles.cTodayStatus, isMissing && styles.cMissStatus, isDraft && styles.cDftStatus]}>
-                  {isToday ? 'Today' : isMissing ? 'MISSING' : isDraft ? 'DRAFT' : 'OK'}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+            {days.map(day => {
+              const isToday = day === todayDate;
+              const dStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+              const promise = promises.find(p => p.date === dStr);
+              
+              const isMissing = !promise;
+              const isDraft = promise?.status === 'Draft';
+              const isPublished = promise?.status === 'Published';
+              const isScheduled = promise?.status === 'Scheduled';
+
+              return (
+                <TouchableOpacity 
+                  key={day} 
+                  style={[
+                    styles.calDay,
+                    isToday && styles.cToday,
+                    isMissing && styles.cMiss,
+                    isDraft && styles.cDft,
+                    (isPublished || isScheduled) && styles.cPub
+                  ]}
+                  onPress={() => { 
+                    setEditingData(promise || { date: dStr }); 
+                    setActiveTab(1); 
+                  }}
+                >
+                  <Text style={[
+                    styles.calNum,
+                    isToday && styles.cTodayNum,
+                    isMissing && styles.cMissNum,
+                    isDraft && styles.cDftNum,
+                    (isPublished || isScheduled) && styles.cPubNum,
+                  ]}>{day}</Text>
+                  <Text style={[
+                    styles.calStatus,
+                    isToday && styles.cTodayStatus,
+                    isMissing && styles.cMissStatus,
+                    isDraft && styles.cDftStatus,
+                    (isPublished || isScheduled) && styles.cPubStatus,
+                  ]}>
+                    {isToday ? 'Today' : isMissing ? 'Missing' : isDraft ? 'Draft' : 'OK'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
 
         {/* ── Legend ── */}
         <View style={styles.legendRow}>
-          <LegendItem color="#F0FDF4" border="#BBF7D0" label="Published" />
-          <LegendItem color="#FFFBEB" border="#FDE68A" label="Draft" />
-          <LegendItem color="#FEF2F2" border="#FECACA" label="Missing" />
-          <LegendItem color="#1a2d5a" border="#1a2d5a" label="Today" />
+          <LegendItem color="#EDF7F1" border="#A3D9B8" label="Published" />
+          <LegendItem color="#FEFBF0" border="#F5DFA0" label="Draft" />
+          <LegendItem color="#FEF3F3" border="#F5B8B8" label="Missing" />
+          <LegendItem color="#1a2d5a" border="#C9A84C" label="Today" />
         </View>
 
         {/* ── Import ── */}
         <View style={styles.importWrap}>
           <View style={styles.importHd}>
             <Text style={styles.importHdTXT}>📁 Import from CSV / Excel</Text>
-            {importing && <ActivityIndicator size="small" color="#fff" />}
+            {importing && <ActivityIndicator size="small" color="#1a2d5a" />}
           </View>
           
           <View style={styles.importBody}>
@@ -265,12 +286,16 @@ function LegendItem({ color, border, label }: any) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f7' },
-  scroll: { padding: 14, paddingBottom: 80 },
+const CELL_SIZE = Math.floor((width - 28 - 4 * 6) / 7);
 
-  hero: { 
-    backgroundColor: '#1a2d5a', 
+const styles = StyleSheet.create({
+  // ─── Layout ──────────────────────────────────────────────────────────────
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
+  scroll: { padding: 14, paddingBottom: 100 },
+
+  // ─── Hero (DO NOT MODIFY) ─────────────────────────────────────────────────
+  hero: {
+    backgroundColor: '#1a2d5a',
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
     paddingHorizontal: 22,
@@ -278,7 +303,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     overflow: 'visible',
     position: 'relative',
-    marginBottom: 6
+    marginBottom: 6,
   },
   backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginLeft: -6 },
   backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff', marginLeft: 4 },
@@ -290,43 +315,159 @@ const styles = StyleSheet.create({
   alertIcon: { fontSize: 16 },
   alertTxt: { fontSize: 11, color: '#78350F', lineHeight: 16 },
 
-  calGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginBottom: 12 },
-  calHeader: { width: (width - 28 - 24) / 7, textAlign: 'center', paddingVertical: 4 },
-  calHeaderTxt: { fontSize: 9, color: '#9CA3AF', fontWeight: '500', textAlign: 'center' },
-  calDay: { width: (width - 28 - 24) / 7, height: 48, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', borderWidth: 0.5, borderColor: '#e5e7eb' },
-  calNum: { fontSize: 12, fontWeight: '600', color: '#111827' },
-  calStatus: { fontSize: 7, fontWeight: '500', marginTop: 2 },
+  // ─── Calendar Card ────────────────────────────────────────────────────────
+  calCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+    borderTopWidth: 3,
+    borderTopColor: '#1a2d5a',
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  calMonthRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(26,45,90,0.07)',
+  },
+  calMonthLabel: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    letterSpacing: 0.5,
+  },
+  calMonthSub: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
 
-  cPub: { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' },
-  cDft: { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' },
-  cDftNum: { color: '#92400E' },
-  cDftStatus: { color: '#D97706' },
-  cMiss: { backgroundColor: '#FEF2F2', borderColor: '#FECACA' },
+  // ─── Calendar Grid ────────────────────────────────────────────────────────
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 14 },
+  calHeader: { width: CELL_SIZE, alignItems: 'center', paddingVertical: 5 },
+  calHeaderTxt: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#1a2d5a',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    opacity: 0.55,
+  },
+
+  // ─── Calendar Cells ───────────────────────────────────────────────────────
+  calDay: {
+    width: CELL_SIZE,
+    height: 52,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FAFAF9',
+    borderWidth: 1,
+    borderColor: '#E8E3DB',
+  },
+  calNum: { fontSize: 13, fontWeight: '700', color: '#1a2d5a' },
+  calStatus: { fontSize: 7, fontWeight: '700', marginTop: 2, letterSpacing: 0.3 },
+
+  // Published — green
+  cPub: { backgroundColor: '#EDF7F1', borderColor: '#A3D9B8' },
+  cPubNum: { color: '#1a5c38' },
+  cPubStatus: { color: '#2E7D52' },
+
+  // Draft — amber
+  cDft: { backgroundColor: '#FEFBF0', borderColor: '#F5DFA0' },
+  cDftNum: { color: '#7C4A00' },
+  cDftStatus: { color: '#B76E00' },
+
+  // Missing — rose
+  cMiss: { backgroundColor: '#FEF3F3', borderColor: '#F5B8B8' },
   cMissNum: { color: '#991B1B' },
   cMissStatus: { color: '#DC2626' },
-  cToday: { backgroundColor: '#1a2d5a', borderColor: '#fbbf24', borderWidth: 2, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 3.84 },
-  cTodayNum: { color: '#fbbf24', fontWeight: '900', fontSize: 14 },
-  cTodayStatus: { color: '#fbbf24', fontWeight: '800' },
 
-  legendRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  legendBox: { width: 12, height: 12, borderRadius: 3, borderWidth: 0.5 },
-  legendTxt: { fontSize: 10, color: '#6B7280' },
+  // Today — navy + gold ring
+  cToday: {
+    backgroundColor: '#1a2d5a',
+    borderColor: '#C9A84C',
+    borderWidth: 2.5,
+    elevation: 5,
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.30,
+    shadowRadius: 5,
+  },
+  cTodayNum: { color: '#C9A84C', fontWeight: '900', fontSize: 14 },
+  cTodayStatus: { color: '#C9A84C', fontWeight: '800' },
 
-  importWrap: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 0.5, borderColor: '#e5e7eb', overflow: 'hidden' },
-  importHd: { backgroundColor: '#1a2d5a', padding: 10, paddingHorizontal: 14 },
-  importHdTXT: { color: '#fff', fontSize: 11, fontWeight: '500' },
-  importBody: { padding: 12, paddingHorizontal: 14 },
-  importHint: { fontSize: 11, color: '#6B7280', marginBottom: 10, lineHeight: 16 },
-  uploadBox: { borderWidth: 2, borderStyle: 'dashed', borderColor: '#d1d5db', borderRadius: 12, padding: 20, alignItems: 'center', backgroundColor: '#f9fafb' },
-  uploadIcon: { fontSize: 26, marginBottom: 6 },
-  uploadTxt: { fontSize: 11, color: '#6B7280', fontWeight: '500' },
-  uploadSubHint: { fontSize: 10, color: '#9CA3AF', marginTop: 3, textAlign: 'center' },
-  
+  // ─── Legend ───────────────────────────────────────────────────────────────
+  legendRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+  },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendBox: { width: 14, height: 14, borderRadius: 4, borderWidth: 1 },
+  legendTxt: { fontSize: 11, fontWeight: '600', color: '#374151' },
+
+  // ─── Import Card ──────────────────────────────────────────────────────────
+  importWrap: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+    borderTopWidth: 3,
+    borderTopColor: '#1a2d5a',
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  importHd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(26,45,90,0.07)',
+  },
+  importHdTXT: { color: '#1a2d5a', fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  importBody: { padding: 14 },
+  importHint: { fontSize: 12, color: '#6B7280', marginBottom: 12, lineHeight: 18 },
+  uploadBox: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#C9B99A',
+    borderRadius: 12,
+    paddingVertical: 22,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    backgroundColor: '#F9F6F0',
+  },
+  uploadIcon: { fontSize: 28, marginBottom: 8 },
+  uploadTxt: { fontSize: 12, color: '#374151', fontWeight: '600', marginBottom: 4 },
+  uploadSubHint: { fontSize: 10, color: '#9CA3AF', textAlign: 'center', lineHeight: 15 },
+
   progressBox: { alignItems: 'center', padding: 20 },
   progressTxt: { fontSize: 12, fontWeight: '700', color: '#1a2d5a' },
-  
-  statusMsg: { backgroundColor: '#DCFCE7', padding: 15, borderRadius: 10, marginTop: 15, alignItems: 'center' },
+
+  statusMsg: { backgroundColor: '#DCFCE7', padding: 14, borderRadius: 10, marginTop: 12, alignItems: 'center' },
   statusMsgTxt: { fontSize: 12, fontWeight: '700', color: '#166534' },
 
   importTabs: { flexDirection: 'row', backgroundColor: '#f3f4f6', padding: 4, gap: 4 },
@@ -336,7 +477,7 @@ const styles = StyleSheet.create({
   importTabTxtActive: { color: '#1a2d5a' },
 
   manualEntry: { gap: 10 },
-  manualInput: { backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 8, padding: 12, fontSize: 12, color: '#111827', height: 120, textAlignVertical: 'top', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
-  processBtn: { backgroundColor: '#1a2d5a', borderRadius: 8, paddingVertical: 12, alignItems: 'center', marginTop: 5 },
-  processBtnTxt: { color: '#fff', fontSize: 12, fontWeight: '700' }
+  manualInput: { backgroundColor: '#F9F6F0', borderWidth: 1, borderColor: '#E2DDD5', borderRadius: 10, padding: 12, fontSize: 12, color: '#1a2d5a', height: 120, textAlignVertical: 'top', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' },
+  processBtn: { backgroundColor: '#1a2d5a', borderRadius: 10, paddingVertical: 12, alignItems: 'center', marginTop: 5 },
+  processBtnTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
 });
