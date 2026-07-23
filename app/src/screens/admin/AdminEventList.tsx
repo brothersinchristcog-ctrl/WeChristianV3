@@ -157,16 +157,20 @@ export default function AdminEventList() {
       <StatusBar barStyle="light-content" />
       
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* ── Section Heading ── */}
+        {/* ── Hero Section ── */}
         <View style={styles.hero}>
-          <View style={styles.heroTitleRow}>
-            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
-              <ChevronLeft size={20} color="#fff" />
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginLeft: 4 }}>Back</Text>
-            </TouchableOpacity>
-            <View style={{ width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.2)', marginRight: 16 }} />
-            <Text style={styles.heroTitle}>Events</Text>
-            <View style={{ flex: 1 }} />
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+              </TouchableOpacity>
+              <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+              <View>
+                <Text style={styles.heroTitle}>Events</Text>
+                <Text style={[styles.heroSub, { marginTop: 2 }]}>{events.length} total · {upcomingCount} upcoming</Text>
+              </View>
+            </View>
             <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(8); }}>
               <Text style={styles.newBtnTxt}>+ New</Text>
             </TouchableOpacity>
@@ -235,12 +239,15 @@ export default function AdminEventList() {
                     {(event.status || 'Published').toUpperCase()}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => handleDelete(event)} style={{ padding: 4 }}>
-                  <Trash2 size={16} color="#ef4444" />
-                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => handleEdit(event)} style={styles.eiEdit}>
-                <Text style={{ color: '#1a2d5a', fontSize: 10, fontWeight: '800' }}>Edit →</Text>
+            </View>
+            <View style={styles.actionsContainer}>
+              <TouchableOpacity onPress={() => handleEdit(event)} style={styles.editAction}>
+                <Text style={styles.editActionTxt}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleDelete(event)} style={styles.deleteAction}>
+                <Trash2 size={14} color="#DC2626" />
+                <Text style={styles.deleteActionTxt}>Del</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -262,15 +269,31 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
     paddingHorizontal: 22,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight! + 16 : 46,
+    paddingTop: 10,
     paddingBottom: 24,
-    marginBottom: 16,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6,
   },
   heroTitleRow: { flexDirection: 'row', alignItems: 'center' },
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroSub: { color: '#AEB8D4', fontSize: 13 },
   
-  newBtn: { backgroundColor: '#2E6B4F', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 12, elevation: 4, shadowColor: '#2E6B4F', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 },
-  newBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  newBtn: { 
+    backgroundColor: '#C9A84C', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 12,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4
+  },
+  newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
   statsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 20 },
   statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)', shadowColor: '#1a2d5a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 },
@@ -301,11 +324,11 @@ const styles = StyleSheet.create({
   
   eiEdit: { position: 'absolute', top: 0, right: 0, padding: 4 },
   
-  actionsContainer: { borderLeftWidth: 1, borderLeftColor: COLORS.rule, paddingLeft: 8, justifyContent: 'center', gap: 0 },
-  editAction: { alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 4, paddingVertical: 10 },
-  editActionTxt: { fontSize: 9, fontWeight: '700', color: COLORS.ink, textTransform: 'uppercase' },
-  deleteAction: { alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 4, paddingVertical: 10, borderTopWidth: 1, borderTopColor: COLORS.rule },
-  deleteActionTxt: { fontSize: 9, fontWeight: '700', color: COLORS.clay, textTransform: 'uppercase' },
+  actionsContainer: { borderLeftWidth: 1, borderLeftColor: 'rgba(26,45,90,0.08)' },
+  editAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1 },
+  editActionTxt: { fontSize: 9, fontWeight: '800', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
+  deleteAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1, borderTopWidth: 1, borderTopColor: 'rgba(26,45,90,0.08)' },
+  deleteActionTxt: { fontSize: 9, fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', letterSpacing: 0.5 },
   
   eiLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
   eiLocTxt: { fontSize: 11, color: COLORS.inkSoft, flexShrink: 1 },

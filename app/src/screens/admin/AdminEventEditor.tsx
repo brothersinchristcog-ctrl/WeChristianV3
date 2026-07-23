@@ -555,11 +555,11 @@ export default function AdminEventEditor() {
       {/* ── Page Header ── */}
       <View style={styles.hero}>
         <View style={styles.heroTitleRow}>
-          <TouchableOpacity onPress={() => setActiveTab(7)} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
-            <ChevronLeft size={20} color="#fff" />
-            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginLeft: 4 }}>Back</Text>
+          <TouchableOpacity onPress={() => setActiveTab(7)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>
-          <View style={{ width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.2)', marginRight: 16 }} />
+          <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
           <Text style={styles.heroTitle}>{editingData ? 'Edit Event' : 'New Event'}</Text>
         </View>
       </View>
@@ -1038,9 +1038,11 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
     paddingHorizontal: 22,
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight! + 16 : 46,
+    paddingTop: 10,
     paddingBottom: 24,
-    marginBottom: 16,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6,
   },
   heroTitleRow: { flexDirection: 'row', alignItems: 'center' },
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
