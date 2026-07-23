@@ -544,9 +544,9 @@ export default function AdminNotificationBroadcast() {
             />
           </View>
 
-          <TouchableOpacity style={styles.simulateBtn} onPress={handleSimulateBirthdays}>
-            <Gift size={16} color="#1a2d5a" />
-            <Text style={styles.simulateBtnTxt}>Search Today's Birthdays</Text>
+          <TouchableOpacity style={[styles.simulateBtn, { backgroundColor: '#FEFBF0', borderColor: '#F5DFA0' }]} onPress={handleSimulateBirthdays}>
+            <Gift size={16} color="#B76E00" />
+            <Text style={[styles.simulateBtnTxt, { color: '#B76E00' }]}>Search Today's Birthdays</Text>
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -572,9 +572,9 @@ export default function AdminNotificationBroadcast() {
             />
           </View>
 
-          <TouchableOpacity style={styles.simulateBtn} onPress={handleSimulateAnniversaries}>
-            <Heart size={16} color="#1a2d5a" />
-            <Text style={styles.simulateBtnTxt}>Search Today's Anniversaries</Text>
+          <TouchableOpacity style={[styles.simulateBtn, { backgroundColor: '#EDF7F1', borderColor: '#A3D9B8' }]} onPress={handleSimulateAnniversaries}>
+            <Heart size={16} color="#2E7D52" />
+            <Text style={[styles.simulateBtnTxt, { color: '#2E7D52' }]}>Search Today's Anniversaries</Text>
           </TouchableOpacity>
         </View>
 
@@ -594,8 +594,8 @@ export default function AdminNotificationBroadcast() {
             />
           </View>
 
-          <View style={[styles.row, { alignItems: 'flex-start', gap: 10 }]}>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12, width: '100%' }}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.fLabelSmall}>Meeting Date</Text>
               <TouchableOpacity 
                 activeOpacity={0.7} 
@@ -608,7 +608,7 @@ export default function AdminNotificationBroadcast() {
                 <Calendar size={14} color="#64748B" style={{ marginLeft: 'auto' }} />
               </TouchableOpacity>
             </View>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.fLabelSmall}>Meeting Time</Text>
               <TouchableOpacity 
                 activeOpacity={0.7} 
@@ -888,20 +888,20 @@ const styles = StyleSheet.create({
   simulateBtnTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a' },
 
   emergencyBtn: {
-    backgroundColor: '#ef4444',
+    backgroundColor: '#1a2d5a',
+    height: 48,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     borderRadius: 12,
-    paddingVertical: 14,
     marginTop: 15,
     elevation: 2,
-    shadowColor: '#ef4444',
+    shadowColor: '#1a2d5a',
     shadowOpacity: 0.2,
     shadowRadius: 5
   },
-  emergencyBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  emergencyBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
   actionRow: { marginTop: 15 },
   sendBtn: { 
