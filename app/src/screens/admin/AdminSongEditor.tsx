@@ -584,34 +584,35 @@ export default function AdminSongEditor() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Music size={20} color="#FCD34D" />
-          <Text style={styles.headerTitle}>Song Manager</Text>
+      {/* ── Hero Section ── */}
+      <View style={styles.hero}>
+        <View style={styles.heroTitleRow}>
+          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+          </TouchableOpacity>
+          <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+          <Text style={styles.heroTitle}>Song Manager</Text>
         </View>
-      </View>
 
-      {/* Screen Tabs */}
-      <View style={styles.screenTabBar}>
-        <TouchableOpacity
-          style={[styles.screenTab, screenTab === 'post' && styles.screenTabActive]}
-          onPress={() => setScreenTab('post')}>
-          <Save size={14} color={screenTab === 'post' ? '#fff' : '#64748b'} />
-          <Text style={[styles.screenTabTxt, screenTab === 'post' && styles.screenTabTxtActive]}>Post Song</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.screenTab, screenTab === 'list' && styles.screenTabActive]}
-          onPress={() => setScreenTab('list')}>
-          <List size={14} color={screenTab === 'list' ? '#fff' : '#64748b'} />
-          <Text style={[styles.screenTabTxt, screenTab === 'list' && styles.screenTabTxtActive]}>All Songs</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.screenTab, screenTab === 'member' && styles.screenTabActive]}
-          onPress={() => setScreenTab('member')}>
-          <Eye size={14} color={screenTab === 'member' ? '#fff' : '#64748b'} />
-          <Text style={[styles.screenTabTxt, screenTab === 'member' && styles.screenTabTxtActive]}>Member View</Text>
-        </TouchableOpacity>
+        {/* Screen Tabs */}
+        <View style={styles.screenTabBar}>
+          <TouchableOpacity
+            style={[styles.screenTab, screenTab === 'post' && styles.screenTabActive]}
+            onPress={() => setScreenTab('post')}>
+            <Text style={[styles.screenTabTxt, screenTab === 'post' && styles.screenTabTxtActive]}>New Song</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.screenTab, screenTab === 'list' && styles.screenTabActive]}
+            onPress={() => setScreenTab('list')}>
+            <Text style={[styles.screenTabTxt, screenTab === 'list' && styles.screenTabTxtActive]}>All Songs</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.screenTab, screenTab === 'member' && styles.screenTabActive]}
+            onPress={() => setScreenTab('member')}>
+            <Text style={[styles.screenTabTxt, screenTab === 'member' && styles.screenTabTxtActive]}>Member View</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Content */}
@@ -753,97 +754,116 @@ export default function AdminSongEditor() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  header: {
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
+  
+  // Hero Section
+  hero: {
     backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomWidth: 3,
-    borderBottomColor: '#c0392b'
+    paddingBottom: 24,
+    marginBottom: 14,
   },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  heroTitle: { color: '#fff', fontSize: 22, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
 
   // Screen Tab Bar
   screenTabBar: {
     flexDirection: 'row',
-    backgroundColor: '#e2e8f0',
-    margin: 16,
-    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 12,
     padding: 4,
     gap: 4
   },
-  screenTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 21, gap: 6 },
-  screenTabActive: { backgroundColor: '#1a2d5a' },
-  screenTabTxt: { fontSize: 13, fontWeight: '700', color: '#64748b' },
-  screenTabTxtActive: { color: '#fff' },
+  screenTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
+  screenTabActive: { backgroundColor: '#fff' },
+  screenTabTxt: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
+  screenTabTxtActive: { color: '#1a2d5a' },
 
-  scroll: { padding: 16 },
-  card: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginBottom: 16, elevation: 3, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 },
+  scroll: { padding: 14 },
+  
+  // Cards
+  card: { 
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+    borderTopWidth: 3,
+    borderTopColor: '#1a2d5a',
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
   sectionTitle: { fontSize: 12, fontWeight: '800', color: '#1a2d5a', letterSpacing: 1, marginBottom: 20 },
 
   inputGroup: { marginBottom: 16 },
   row: { flexDirection: 'row', alignItems: 'flex-start' },
-  label: { fontSize: 10, fontWeight: '800', color: '#64748b', marginBottom: 8, letterSpacing: 0.5 },
+  label: { fontSize: 11, fontWeight: '800', color: '#1a2d5a', marginBottom: 8, letterSpacing: 0.5 },
   textInput: {
-    backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0',
-    borderRadius: 8, paddingHorizontal: 14, height: 48, fontSize: 13, color: '#1e293b', fontWeight: '600'
+    backgroundColor: '#FDFDFD', borderWidth: 1, borderColor: '#E5E7EB',
+    borderRadius: 10, paddingHorizontal: 14, height: 48, fontSize: 13, color: '#1a2d5a', fontWeight: '600'
   },
-  pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, paddingHorizontal: 12, height: 48 },
-  pickerTxt: { fontSize: 13, color: '#1e293b', fontWeight: '700', flex: 1 },
+  pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#FDFDFD', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 12, height: 48 },
+  pickerTxt: { fontSize: 13, color: '#1a2d5a', fontWeight: '700', flex: 1 },
 
   statusSelectRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
-  statusLabel: { fontSize: 13, color: '#334155', fontWeight: '700' },
+  statusLabel: { fontSize: 13, color: '#1a2d5a', fontWeight: '700' },
   statusBtnGroup: { flexDirection: 'row', gap: 8 },
-  statusBtn: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 8, backgroundColor: '#f1f5f9' },
-  statusBtnActive: { backgroundColor: '#1a2d5a' },
-  statusBtnActiveDraft: { backgroundColor: '#64748b' },
-  statusBtnTxt: { fontSize: 12, color: '#475569', fontWeight: '700' },
+  statusBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#F9F6F0', borderWidth: 1, borderColor: '#E2DDD5' },
+  statusBtnActive: { backgroundColor: '#2E6B4F', borderColor: '#2E6B4F' },
+  statusBtnActiveDraft: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
+  statusBtnTxt: { fontSize: 12, color: '#1a2d5a', fontWeight: '700' },
   statusBtnTxtActive: { color: '#fff' },
 
-  infoBox: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#ecfdf5', padding: 15, borderRadius: 12, borderWidth: 0.5, borderColor: '#a7f3d0', marginBottom: 20 },
-  infoText: { flex: 1, fontSize: 11, color: '#065f46', lineHeight: 18, fontWeight: '500' },
+  infoBox: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F0FDF4', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#A7F3D0', marginBottom: 20 },
+  infoText: { flex: 1, fontSize: 11, color: '#065F46', lineHeight: 18, fontWeight: '600' },
 
-  saveBtn: { backgroundColor: '#c0392b', height: 54, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 4, shadowColor: '#c0392b', shadowOpacity: 0.3, shadowRadius: 5 },
-  saveBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  saveBtn: { backgroundColor: '#2E6B4F', height: 54, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 4, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 5 },
+  saveBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
 
   // List
   listHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  listHeaderTitle: { fontSize: 15, fontWeight: '800', color: '#1a2d5a' },
-  countBadge: { backgroundColor: '#ecfdf5', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
-  countTxt: { fontSize: 11, fontWeight: '800', color: '#059669' },
-  songItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 3 },
-  songIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#f0f4ff', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  songItemTitle: { fontSize: 13, fontWeight: '700', color: '#1e293b' },
-  songItemSub: { fontSize: 11, color: '#64748b', marginTop: 2, fontWeight: '500' },
-  editBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#f0f4ff', justifyContent: 'center', alignItems: 'center' },
+  listHeaderTitle: { fontSize: 16, fontWeight: '800', color: '#1a2d5a' },
+  countBadge: { backgroundColor: '#E0E7FF', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12 },
+  countTxt: { fontSize: 11, fontWeight: '800', color: '#3730A3' },
+  songItem: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, padding: 14, marginBottom: 10, elevation: 2, shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 4, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)' },
+  songIconBox: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  songItemTitle: { fontSize: 13, fontWeight: '800', color: '#1a2d5a' },
+  songItemSub: { fontSize: 11, color: '#64748B', marginTop: 2, fontWeight: '600' },
+  editBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' },
 
   // Picker Modal
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(26,45,90, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   pickerModalBox: { backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 320, maxHeight: '65%', paddingVertical: 15, elevation: 10 },
-  pickerModalTitle: { fontSize: 13, fontWeight: '800', color: '#64748b', paddingHorizontal: 20, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', marginBottom: 5, letterSpacing: 0.5 },
-  pickerModalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#f8fafc' },
-  pickerModalTxt: { fontSize: 15, color: '#1e293b', fontWeight: '600' },
+  pickerModalTitle: { fontSize: 13, fontWeight: '800', color: '#1a2d5a', paddingHorizontal: 20, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', marginBottom: 5, letterSpacing: 0.5 },
+  pickerModalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
+  pickerModalTxt: { fontSize: 15, color: '#1a2d5a', fontWeight: '600' },
 
   // Edit Modal
-  editModalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  editModalCard: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, height: height * 0.88 },
-  editModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
-  editModalTitle: { fontSize: 17, fontWeight: '900', color: '#1e293b' },
-  editCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#f1f5f9', justifyContent: 'center', alignItems: 'center' },
+  editModalBg: { flex: 1, backgroundColor: 'rgba(26,45,90,0.5)', justifyContent: 'flex-end' },
+  editModalCard: { backgroundColor: '#fff', borderTopLeftRadius: 26, borderTopRightRadius: 26, height: height * 0.88 },
+  editModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  editModalTitle: { fontSize: 18, fontWeight: '900', color: '#1a2d5a' },
+  editCloseBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' },
 
   // Success Modal
-  successBg: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  successBg: { flex: 1, backgroundColor: 'rgba(26,45,90, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   successCard: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center', elevation: 10 },
-  successIconOuter: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#ecfdf5', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  successIconInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#10b981', justifyContent: 'center', alignItems: 'center' },
-  successTitle: { fontSize: 20, fontWeight: '900', color: '#1e293b', marginBottom: 8, textAlign: 'center' },
+  successIconOuter: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  successIconInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#2E6B4F', justifyContent: 'center', alignItems: 'center' },
+  successTitle: { fontSize: 20, fontWeight: '900', color: '#1a2d5a', marginBottom: 8, textAlign: 'center' },
   successDesc: { fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
-  summaryBox: { backgroundColor: '#f8fafc', borderRadius: 12, padding: 14, width: '100%', borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 20 },
-  summaryLbl: { fontSize: 9, fontWeight: '800', color: '#94a3b8', letterSpacing: 0.5, marginBottom: 6 },
-  receiptText: { fontSize: 11, color: '#64748b', marginTop: 2 },
+  summaryBox: { backgroundColor: '#F8FAFC', borderRadius: 12, padding: 14, width: '100%', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 20 },
+  summaryLbl: { fontSize: 9, fontWeight: '800', color: '#64748B', letterSpacing: 0.5, marginBottom: 6 },
+  receiptText: { fontSize: 11, color: '#1a2d5a', marginTop: 2, fontWeight: '600' },
   successActionBtn: { backgroundColor: '#1a2d5a', height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
   successActionTxt: { color: '#fff', fontSize: 13, fontWeight: '800' },
-  successSecBtn: { height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#e2e8f0' },
-  successSecTxt: { color: '#475569', fontSize: 13, fontWeight: '800' },
+  successSecBtn: { height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' },
+  successSecTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800' },
 });
