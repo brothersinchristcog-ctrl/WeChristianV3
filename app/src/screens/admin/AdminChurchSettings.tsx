@@ -17,7 +17,7 @@ import {
   Switch
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Save, Palette, Image as ImageIcon, Link, DollarSign, Building2, Plus, Trash2, Plug, Info } from 'lucide-react-native';
+import { ChevronLeft, Save, Palette, Image as ImageIcon, Link, DollarSign, Building2, Plus, Trash2, Plug, Info, Edit2 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import { useChurch } from '../../context/ChurchContext';
@@ -206,11 +206,19 @@ export default function AdminChurchSettings({ navigation }: any) {
             </View>
             {isEditing ? (
               <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
-                {saving ? <ActivityIndicator color="#1a2d5a" size="small" /> : <Text style={styles.saveBtnTxt}>SAVE</Text>}
+                {saving ? (
+                  <ActivityIndicator color="#1a2d5a" size="small" />
+                ) : (
+                  <>
+                    <Save size={16} color="#1a2d5a" />
+                    <Text style={styles.saveBtnTxt}>Save</Text>
+                  </>
+                )}
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditing(true)}>
-                <Text style={styles.editBtnTxt}>EDIT SETTINGS</Text>
+                <Edit2 size={16} color="#1a2d5a" />
+                <Text style={styles.editBtnTxt}>Edit</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -609,10 +617,37 @@ const styles = StyleSheet.create({
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
   heroSub: { color: '#AEB8D4', fontSize: 13 },
 
-  saveBtn: { backgroundColor: '#C9A84C', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, shadowColor: '#C9A84C', shadowOpacity: 0.4, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
-  saveBtnTxt: { fontSize: 13, fontWeight: '800', color: '#1a2d5a', letterSpacing: 0.3 },
-  editBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12 },
-  editBtnTxt: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  saveBtn: { 
+    backgroundColor: '#C9A84C', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 12,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4
+  },
+  saveBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  
+  editBtn: { 
+    backgroundColor: '#C9A84C', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 12,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4
+  },
+  editBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
   viewModeHint: { backgroundColor: '#F0EBE0', color: '#1a2d5a', padding: 12, borderRadius: 12, marginBottom: 16, fontSize: 13, fontWeight: '700', textAlign: 'center', borderWidth: 1, borderColor: '#E2DDD5' },
 
