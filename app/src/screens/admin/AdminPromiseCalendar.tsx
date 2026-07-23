@@ -239,7 +239,7 @@ export default function AdminPromiseCalendar() {
         <View style={styles.importWrap}>
           <View style={styles.importHd}>
             <Text style={styles.importHdTXT}>📁 Import from CSV / Excel</Text>
-            {importing && <ActivityIndicator size="small" color="#1a2d5a" />}
+            {importing && <ActivityIndicator size="small" color="#fff" />}
           </View>
           
           <View style={styles.importBody}>
@@ -445,11 +445,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(26,45,90,0.07)',
-    backgroundColor: '#F9F6F0', // Soft highlight for header
+    backgroundColor: '#1a2d5a', // Navy blue highlight for header
   },
-  importHdTXT: { color: '#1a2d5a', fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  importHdTXT: { color: '#fff', fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
   importBody: { padding: 14 },
   importHint: { fontSize: 12, color: '#6B7280', marginBottom: 12, lineHeight: 18 },
   uploadBox: {
