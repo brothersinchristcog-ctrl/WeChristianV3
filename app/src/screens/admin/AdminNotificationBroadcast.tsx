@@ -144,6 +144,8 @@ export default function AdminNotificationBroadcast() {
     text: 'Easter service reminder'
   });
 
+  const [showSimulateSuccess, setShowSimulateSuccess] = useState({ visible: false, title: '', message: '' });
+
   // ── 1. Fetch Settings on Mount ──
   React.useEffect(() => {
     const fetchSettings = async () => {
@@ -307,10 +309,11 @@ export default function AdminNotificationBroadcast() {
       }
 
       setLastBroadcast(newBroadcast);
-      Alert.alert(
-        '🚨 Emergency Alert Broadcasted', 
-        `Emergency Meeting Broadcast successfully dispatched to all member devices! (Targets: ${count || 1250})`
-      );
+      setShowSimulateSuccess({
+        visible: true,
+        title: 'Emergency Alert Sent',
+        message: `Emergency Meeting Broadcast successfully dispatched to all member devices! (Targets: ${count || 1250})`
+      });
       setEmergencyAlert({ ...emergencyAlert, message: '' });
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to dispatch emergency broadcast.');
@@ -347,7 +350,11 @@ export default function AdminNotificationBroadcast() {
                 } catch (fErr) {
                   console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
                 }
-                Alert.alert('Success', 'Simulated birthday greeting pushed to members updates!');
+                setShowSimulateSuccess({
+                  visible: true,
+                  title: 'Success',
+                  message: 'Simulated birthday greeting pushed to members updates!'
+                });
               }
             }
           ]
@@ -372,7 +379,11 @@ export default function AdminNotificationBroadcast() {
             console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
           }
         }
-        Alert.alert('Success', `Found ${bdays.length} birthdays today: ${names}. Automated push greeting delivered!`);
+        setShowSimulateSuccess({
+          visible: true,
+          title: 'Success',
+          message: `Found ${bdays.length} birthdays today: ${names}. Automated push greeting delivered!`
+        });
       }
     } catch (err: any) {
       Alert.alert('Error', err.message);
@@ -409,7 +420,11 @@ export default function AdminNotificationBroadcast() {
                 } catch (fErr) {
                   console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
                 }
-                Alert.alert('Success', 'Simulated anniversary greeting pushed to members updates!');
+                setShowSimulateSuccess({
+                  visible: true,
+                  title: 'Success',
+                  message: 'Simulated anniversary greeting pushed to members updates!'
+                });
               }
             }
           ]
@@ -432,7 +447,11 @@ export default function AdminNotificationBroadcast() {
             console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
           }
         }
-        Alert.alert('Success', `Anniversary greetings pushed for: ${annivs.map(a => `${a.husband} & ${a.wife}`).join(', ')}`);
+        setShowSimulateSuccess({
+          visible: true,
+          title: 'Success',
+          message: `Anniversary greetings pushed for: ${annivs.map(a => `${a.husband} & ${a.wife}`).join(', ')}`
+        });
       }
     } catch (err: any) {
       Alert.alert('Error', err.message);
@@ -740,7 +759,6 @@ export default function AdminNotificationBroadcast() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Success Settings Saved Modal ── */}
       {showSaveSuccess && (
         <Modal transparent animationType="fade" visible>
           <View style={styles.successBg}>
@@ -754,6 +772,31 @@ export default function AdminNotificationBroadcast() {
               <Text style={styles.successDesc}>
                 Your notification preferences have been successfully updated.
               </Text>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* ── Dynamic Success Simulate Modal ── */}
+      {showSimulateSuccess.visible && (
+        <Modal transparent animationType="fade" visible>
+          <View style={styles.successBg}>
+            <View style={styles.successCard}>
+              <View style={[styles.successIconOuter, { backgroundColor: '#F0FDF4' }]}>
+                <View style={[styles.successIconInner, { backgroundColor: '#2E6B4F' }]}>
+                  <CheckCircle2 size={32} color="#fff" />
+                </View>
+              </View>
+              <Text style={styles.successTitle}>{showSimulateSuccess.title}</Text>
+              <Text style={styles.successDesc}>
+                {showSimulateSuccess.message}
+              </Text>
+              <TouchableOpacity 
+                style={[styles.saveBtn, { marginTop: 24, width: '100%', height: 44 }]} 
+                onPress={() => setShowSimulateSuccess({ visible: false, title: '', message: '' })}
+              >
+                <Text style={styles.saveBtnTxt}>Done</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -878,18 +921,20 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'center', 
     gap: 8, 
-    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: 'rgba(26,45,90,0.1)',
     borderRadius: 12, 
-    paddingVertical: 12, 
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignSelf: 'center',
     marginTop: 10 
   },
   simulateBtnTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a' },
 
   emergencyBtn: {
     backgroundColor: '#1a2d5a',
-    height: 48,
+    height: 44,
+    paddingHorizontal: 24,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
