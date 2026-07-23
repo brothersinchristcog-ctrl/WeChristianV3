@@ -206,12 +206,13 @@ export default function AdminEventList() {
               <View style={styles.eiMetaRow}>
                 <Calendar size={10} color="#c0392b" />
                 <Text style={[styles.eiMetaTxt, { color: '#c0392b', fontWeight: '600' }]}>{formatDate(event.date)}</Text>
-                
-                <Clock size={10} color="#6B7280" style={{ marginLeft: 8 }} />
-                <Text style={styles.eiMetaTxt}>
-                  {formatDisplayTime(event.startTime)}
-                  {event.endTime ? ` — ${formatDisplayTime(event.endTime)}` : ''}
-                </Text>
+                <View style={[styles.eiMetaRow, { flexShrink: 1 }]}>
+                  <Clock size={10} color="#6B7280" style={{ marginLeft: 8 }} />
+                  <Text style={styles.eiMetaTxt} numberOfLines={1}>
+                    {formatDisplayTime(event.startTime)}
+                    {event.endTime ? ` — ${formatDisplayTime(event.endTime)}` : ''}
+                  </Text>
+                </View>
               </View>
               <View style={styles.eiMetaRow}>
                 <MapPin size={10} color="#6B7280" />
@@ -351,12 +352,12 @@ const styles = StyleSheet.create({
   eiThumbImg: { width: '100%', height: '100%' },
   eiThumbTxt: { color: '#fff', fontSize: 10, fontWeight: '800' },
   
-  eiBody: { flex: 1 },
+  eiBody: { flex: 1, paddingRight: 10 },
   eiTitle: { fontSize: 14, fontWeight: '700', color: '#1a2d5a', marginBottom: 2 },
   eiTe: { fontSize: 12, color: '#64748B', marginBottom: 8 },
   
   eiMetaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  eiMetaTxt: { fontSize: 11, color: '#64748B', marginLeft: 4 },
+  eiMetaTxt: { fontSize: 11, color: '#64748B', marginLeft: 4, flexShrink: 1 },
   
   eiFoot: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 },
   badgePub: { backgroundColor: '#F0FDF4', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
@@ -366,10 +367,10 @@ const styles = StyleSheet.create({
   
   eiEdit: { position: 'absolute', top: 0, right: 0, padding: 4 },
   
-  actionsContainer: { borderLeftWidth: 1, borderLeftColor: 'rgba(26,45,90,0.15)' },
+  actionsContainer: { borderLeftWidth: 1.5, borderLeftColor: '#E2E8F0', paddingLeft: 4, justifyContent: 'center' },
   editAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1 },
   editActionTxt: { fontSize: 9, fontWeight: '800', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
-  deleteAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1, borderTopWidth: 1, borderTopColor: 'rgba(26,45,90,0.15)' },
+  deleteAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1, borderTopWidth: 1.5, borderTopColor: '#E2E8F0' },
   deleteActionTxt: { fontSize: 9, fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', letterSpacing: 0.5 },
   
   eiLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
