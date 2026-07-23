@@ -30,11 +30,13 @@ import {
   Plus,
   Send,
   MoreVertical,
-  Megaphone
+  Megaphone,
+  ChevronLeft
 } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
 import { useAuth } from '../../context/AuthContext';
+import { AdminTabContext } from '../../context/AdminTabContext';
 
 const { width } = Dimensions.get('window');
 
@@ -63,6 +65,7 @@ const FONTS = {
 
 export default function AdminPrayerModeration() {
   const { member } = useAuth();
+  const { setActiveTab } = React.useContext(AdminTabContext);
   const adminName = member?.name || 'Administrator';
 
   const [prayers, setPrayers] = useState<any[]>([]);
@@ -338,25 +341,33 @@ export default function AdminPrayerModeration() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
+      {/* ── Hero Section ── */}
+      <View style={styles.hero}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View>
+              <Text style={styles.heroTitle}>Prayers</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]}>{pendingPrayers.length} new · {answeredPrayers.length} processed</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.newBtn} onPress={() => setShowCreateModal(true)}>
+            <Plus size={16} color="#1a2d5a" />
+            <Text style={styles.newBtnTxt}>New</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* ── Section Heading ── */}
-        <View style={[styles.hero, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-          <View>
-            <Text style={styles.heroTitle}>🙏 Prayer Moderation</Text>
-            <Text style={styles.heroSub}>Real-time requests from Salesforce</Text>
-          </View>
-          <TouchableOpacity 
-            style={styles.newBtn}
-            onPress={() => setShowCreateModal(true)}
-          >
-            <Plus size={14} color="#fff" />
-            <Text style={styles.newBtnTxt}>Create</Text>
-          </TouchableOpacity>
-        </View>
+
 
         {/* ── Stats Row ── */}
         <View style={styles.statsRow}>
@@ -598,11 +609,35 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.parchment },
   scroll: { padding: 16, paddingBottom: 100 },
 
-  hero: { backgroundColor: COLORS.goldBright, padding: 20, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 30, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8, marginBottom: 15 },
-  heroTitles: { flex: 1 },
-  heroTitle: { fontSize: 24, fontWeight: '900', color: COLORS.ink, fontFamily: FONTS.serif, marginBottom: 4 },
-  heroSub: { fontSize: 13, color: COLORS.ink2, fontWeight: '600' },
-  heroActionBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.4)', justifyContent: 'center', alignItems: 'center' },
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6,
+  },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroSub: { color: '#AEB8D4', fontSize: 13 },
+  
+  newBtn: { 
+    backgroundColor: '#C9A84C', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 12,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4
+  },
+  newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
   statsRow: { flexDirection: 'row', gap: 12, marginBottom: 18 },
   statCard: { flex: 1, backgroundColor: COLORS.paper, borderRadius: 16, paddingVertical: 18, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, borderWidth: 1, borderColor: COLORS.rule },

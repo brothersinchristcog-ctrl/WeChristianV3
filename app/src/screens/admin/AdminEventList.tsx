@@ -9,11 +9,12 @@ import {
   Dimensions, 
   StatusBar,
   Platform,
-  Image
+  Image,
+  Modal,
+  Alert
 } from 'react-native';
-import { MapPin, Clock, Calendar, Trash2, ChevronLeft } from 'lucide-react-native';
+import { MapPin, Clock, Calendar, Trash2, ChevronLeft, Plus } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
-import { Alert } from 'react-native';
 
 import FirestoreService from '../../services/FirestoreService';
 
@@ -156,7 +157,8 @@ export default function AdminEventList() {
               </View>
             </View>
             <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(8); }}>
-              <Text style={styles.newBtnTxt}>+ New</Text>
+              <Plus size={16} color="#1a2d5a" />
+              <Text style={styles.newBtnTxt}>New</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -367,10 +369,10 @@ const styles = StyleSheet.create({
   
   eiEdit: { position: 'absolute', top: 0, right: 0, padding: 4 },
   
-  actionsContainer: { borderLeftWidth: 1.5, borderLeftColor: '#E2E8F0', paddingLeft: 4, justifyContent: 'center' },
-  editAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1 },
+  actionsContainer: { borderLeftWidth: 1.5, borderLeftColor: '#E2E8F0', paddingLeft: 12, marginLeft: 6, justifyContent: 'center', width: 56 },
+  editAction: { paddingVertical: 10, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1 },
   editActionTxt: { fontSize: 9, fontWeight: '800', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
-  deleteAction: { paddingLeft: 12, paddingRight: 6, paddingVertical: 8, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1, borderTopWidth: 1.5, borderTopColor: '#E2E8F0' },
+  deleteAction: { paddingVertical: 10, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1, borderTopWidth: 1.5, borderTopColor: '#E2E8F0' },
   deleteActionTxt: { fontSize: 9, fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', letterSpacing: 0.5 },
   
   eiLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
@@ -378,21 +380,22 @@ const styles = StyleSheet.create({
   eiStatusRow: { marginTop: 7 },
 
   // Toast
-  toastOverlay: { position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center' },
-  toastCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, paddingRight: 24, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#1a2d5a', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)' },
+  toastOverlay: { position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center', paddingHorizontal: 20 },
+  toastCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, paddingRight: 24, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#1a2d5a', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)', width: '100%' },
   toastIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center' },
   toastTitle: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
   toastSub: { fontSize: 11, color: '#6B7280', marginTop: 2, fontWeight: '500' },
 
   // Confirmation Modal
-  successBg: { flex: 1, backgroundColor: 'rgba(26,45,90, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  successCard: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center', elevation: 10 },
-  successIconOuter: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  successIconInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#2E6B4F', justifyContent: 'center', alignItems: 'center' },
-  successTitle: { fontSize: 20, fontWeight: '900', color: '#1a2d5a', marginBottom: 8, textAlign: 'center' },
-  successDesc: { fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
-  successActionBtn: { backgroundColor: '#1a2d5a', height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-  successActionTxt: { color: '#fff', fontSize: 13, fontWeight: '800' },
-  successSecBtn: { height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' },
-  successSecTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800' }
+  successBg: { flex: 1, backgroundColor: 'rgba(15,23,42, 0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  successCard: { backgroundColor: '#fff', borderRadius: 28, padding: 30, width: '100%', maxWidth: 400, alignItems: 'center', elevation: 12, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+  successIconOuter: { width: 84, height: 84, borderRadius: 42, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', marginBottom: 20, shadowColor: '#DC2626', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
+  successIconInner: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#DC2626', justifyContent: 'center', alignItems: 'center' },
+  successTitle: { fontSize: 22, fontWeight: '900', color: '#1a2d5a', marginBottom: 12, textAlign: 'center', letterSpacing: -0.3 },
+  successDesc: { fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 22, marginBottom: 26, paddingHorizontal: 10 },
+  successActionBtn: { backgroundColor: '#DC2626', height: 52, borderRadius: 14, width: '100%', justifyContent: 'center', alignItems: 'center', marginBottom: 12, shadowColor: '#DC2626', shadowOpacity: 0.25, shadowRadius: 8, shadowOffset: { width: 0, height: 4 } },
+  successActionTxt: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
+  successSecBtn: { height: 52, borderRadius: 14, width: '100%', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' },
+  successSecTxt: { color: '#475569', fontSize: 14, fontWeight: '800' }
 });
+
