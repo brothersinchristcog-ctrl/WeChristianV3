@@ -146,15 +146,17 @@ export default function AdminPromiseCalendar() {
       <StatusBar barStyle="light-content" />
       
       <View style={styles.hero}>
-        <View style={styles.heroTitleRow}>
-          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
             <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
             <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>
           <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-        <Text style={styles.heroTitle}>Promise Calendar</Text>
+          <View>
+            <Text style={styles.heroTitle}>Promise Calendar</Text>
+            <Text style={[styles.heroSub, { marginTop: 2 }]}>{getMonthName(month)} {year}</Text>
+          </View>
         </View>
-        <Text style={styles.heroSub}>{getMonthName(month)} {year}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -230,7 +232,7 @@ export default function AdminPromiseCalendar() {
           <LegendItem color="#EDF7F1" border="#A3D9B8" label="Published" />
           <LegendItem color="#FEFBF0" border="#F5DFA0" label="Draft" />
           <LegendItem color="#FEF3F3" border="#F5B8B8" label="Missing" />
-          <LegendItem color="#1a2d5a" border="#C9A84C" label="Today" />
+          <LegendItem color="#FFFBEB" border="#F59E0B" label="Today" />
         </View>
 
         {/* ── Import ── */}
@@ -286,7 +288,10 @@ function LegendItem({ color, border, label }: any) {
   );
 }
 
-const CELL_SIZE = Math.floor((width - 28 - 4 * 6) / 7);
+// Calculate cell size correctly: 
+// Screen width - (scroll padding * 2) - (card padding * 2) - (gap * 6)
+// width - 28 - 28 - 30 = width - 86
+const CELL_SIZE = Math.floor((width - 86) / 7);
 
 const styles = StyleSheet.create({
   // ─── Layout ──────────────────────────────────────────────────────────────
@@ -391,19 +396,19 @@ const styles = StyleSheet.create({
   cMissNum: { color: '#991B1B' },
   cMissStatus: { color: '#DC2626' },
 
-  // Today — navy + gold ring
+  // Today — gold highlight
   cToday: {
-    backgroundColor: '#1a2d5a',
-    borderColor: '#C9A84C',
-    borderWidth: 2.5,
-    elevation: 5,
-    shadowColor: '#1a2d5a',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.30,
-    shadowRadius: 5,
+    backgroundColor: '#FFFBEB',
+    borderColor: '#F59E0B',
+    borderWidth: 2,
+    elevation: 4,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
   },
-  cTodayNum: { color: '#C9A84C', fontWeight: '900', fontSize: 14 },
-  cTodayStatus: { color: '#C9A84C', fontWeight: '800' },
+  cTodayNum: { color: '#B45309', fontWeight: '900', fontSize: 14 },
+  cTodayStatus: { color: '#B45309', fontWeight: '800' },
 
   // ─── Legend ───────────────────────────────────────────────────────────────
   legendRow: {
@@ -438,10 +443,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(26,45,90,0.07)',
+    backgroundColor: '#F9F6F0', // Soft highlight for header
   },
   importHdTXT: { color: '#1a2d5a', fontSize: 12, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
   importBody: { padding: 14 },
