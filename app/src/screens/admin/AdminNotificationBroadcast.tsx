@@ -618,7 +618,7 @@ export default function AdminNotificationBroadcast() {
               <Text style={styles.fLabelSmall}>Meeting Date</Text>
               <TouchableOpacity 
                 activeOpacity={0.7} 
-                style={styles.inputBoxAlt} 
+                style={styles.pickerBtn} 
                 onPress={() => setShowMeetingDatePicker(true)}
               >
                 <Text style={styles.pickerTxt} numberOfLines={1}>
@@ -631,7 +631,7 @@ export default function AdminNotificationBroadcast() {
               <Text style={styles.fLabelSmall}>Meeting Time</Text>
               <TouchableOpacity 
                 activeOpacity={0.7} 
-                style={styles.inputBoxAlt} 
+                style={styles.pickerBtn} 
                 onPress={() => setShowMeetingTimePicker(true)}
               >
                 <Text style={styles.pickerTxt} numberOfLines={1}>
@@ -932,21 +932,21 @@ const styles = StyleSheet.create({
 
   emergencyBtn: {
     backgroundColor: '#1a2d5a',
-    height: 44,
-    paddingHorizontal: 24,
+    height: 40,
+    paddingHorizontal: 18,
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    borderRadius: 12,
+    borderRadius: 10,
     marginTop: 15,
     elevation: 2,
     shadowColor: '#1a2d5a',
     shadowOpacity: 0.2,
     shadowRadius: 5
   },
-  emergencyBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  emergencyBtnTxt: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
   actionRow: { marginTop: 15 },
   sendBtn: { 
