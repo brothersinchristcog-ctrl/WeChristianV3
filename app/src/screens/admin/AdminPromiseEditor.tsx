@@ -327,7 +327,7 @@ export default function AdminPromiseEditor() {
         {/* 1. Schedule */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <CalendarIcon size={14} color="#1a2d5a" />
+            <CalendarIcon size={15} color="#1a2d5a" />
             <Text style={styles.secHdTXT}>Schedule</Text>
           </View>
           <View style={styles.fGroup}>
@@ -354,7 +354,7 @@ export default function AdminPromiseEditor() {
         {/* 2. English Promise */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <BookOpen size={14} color="#1a2d5a" />
+            <BookOpen size={15} color="#1a2d5a" />
             <Text style={styles.secHdTXT}>English Promise</Text>
           </View>
           <View style={styles.fGroup}>
@@ -374,8 +374,8 @@ export default function AdminPromiseEditor() {
         {/* 3. Telugu Promise */}
         <View style={[styles.section, styles.secBlue]}>
           <View style={styles.secHd}>
-            <Languages size={14} color="#2563eb" />
-            <Text style={[styles.secHdTXT, {color: '#2563eb'}]}>Telugu Promise - తెలుగు వాగ్దానం</Text>
+            <Languages size={15} color="#1a2d5a" />
+            <Text style={styles.secHdTXT}>Telugu Promise - తెలుగు వాగ్దానం</Text>
           </View>
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Verse reference — Telugu <Text style={styles.fHint}>e.g. యోహాను 3:16</Text></Text>
@@ -392,10 +392,10 @@ export default function AdminPromiseEditor() {
         </View>
 
         {/* 3.5 Thumbnail Upload */}
-        <View style={[styles.section, { backgroundColor: '#F3F4F6', borderLeftColor: '#4B5563' }]}>
+        <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <Eye size={14} color="#4B5563" />
-            <Text style={[styles.secHdTXT, {color: '#4B5563'}]}>Daily Promise Thumbnail</Text>
+            <Eye size={15} color="#1a2d5a" />
+            <Text style={styles.secHdTXT}>Daily Promise Thumbnail</Text>
           </View>
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Upload Thumbnail Image <Text style={styles.fHint}>(Visible on member home screen)</Text></Text>
@@ -417,8 +417,8 @@ export default function AdminPromiseEditor() {
         {/* 4. YouTube Link */}
         <View style={[styles.section, styles.secRed]}>
           <View style={styles.secHd}>
-            <Play size={14} color="#c0392b" />
-            <Text style={[styles.secHdTXT, {color: '#c0392b'}]}>YouTube Link</Text>
+            <Play size={15} color="#1a2d5a" />
+            <Text style={styles.secHdTXT}>YouTube Link</Text>
           </View>
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Video Title</Text>
@@ -438,7 +438,7 @@ export default function AdminPromiseEditor() {
         {/* 5. Pastor & Status */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <User size={14} color="#1a2d5a" />
+            <User size={15} color="#1a2d5a" />
             <Text style={styles.secHdTXT}>Pastor & Status</Text>
           </View>
           <View style={styles.fGroup}>
@@ -512,8 +512,8 @@ export default function AdminPromiseEditor() {
         {/* 6. Live Preview */}
         <View style={[styles.section, styles.secGreen]}>
           <View style={styles.secHd}>
-            <Eye size={14} color="#15803D" />
-            <Text style={[styles.secHdTXT, {color: '#15803D'}]}>Live preview — member card</Text>
+            <Eye size={15} color="#1a2d5a" />
+            <Text style={styles.secHdTXT}>Live preview — member card</Text>
           </View>
           <View style={[styles.cardBtnRow, { marginTop: 15 }]}>
             <TouchableOpacity style={styles.cardBtn} onPress={() => Alert.alert('Coming Soon', 'Save to Gallery will be active after the next app update.')}>
@@ -555,9 +555,11 @@ export default function AdminPromiseEditor() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f7' },
-  scroll: { padding: 14, paddingBottom: 100 },
+  // ─── Layout ──────────────────────────────────────────────────────────────
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
+  scroll: { padding: 16, paddingBottom: 110 },
 
+  // ─── Hero (DO NOT MODIFY) ─────────────────────────────────────────────────
   hero: { 
     backgroundColor: '#1a2d5a', 
     borderBottomLeftRadius: 26,
@@ -574,37 +576,112 @@ const styles = StyleSheet.create({
   heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' },
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
 
-  section: { borderRadius: 16, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: '#F3F4F6', borderLeftWidth: 6, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
-  secNavy: { backgroundColor: '#F8FAFC', borderLeftColor: '#1a2d5a' },
-  secBlue: { backgroundColor: '#EFF6FF', borderLeftColor: '#2563eb' },
-  secRed: { backgroundColor: '#FEF2F2', borderLeftColor: '#c0392b' },
-  secGreen: { backgroundColor: '#F0FDF4', borderLeftColor: '#15803D' },
+  // ─── Cards ───────────────────────────────────────────────────────────────
+  // Unified card style matching reference: white bg, rounded corners,
+  // dark navy top accent border, subtle shadow – no colored left borders
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.10)',
+    borderTopWidth: 3,
+    borderTopColor: '#1a2d5a',
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
+  },
+  // Keep variant names for backward compat but all use same card style:
+  secNavy: {},
+  secBlue: {},
+  secRed: {},
+  secGreen: {},
 
-  secHd: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.06)', paddingBottom: 12 },
-  secHdTXT: { fontSize: 13, fontWeight: '800', color: '#1F2937', textTransform: 'uppercase', letterSpacing: 1 },
+  // ─── Section Header ───────────────────────────────────────────────────────
+  secHd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(26,45,90,0.08)',
+    paddingBottom: 12,
+  },
+  secHdTXT: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
 
+  // ─── Form Fields ──────────────────────────────────────────────────────────
   fGroup: { marginBottom: 18 },
-  fLabel: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8 },
-  fHint: { fontWeight: '500', color: '#9CA3AF', fontSize: 11 },
+  fLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#374151',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 8,
+  },
+  fHint: { fontWeight: '500', color: '#9CA3AF', fontSize: 11, textTransform: 'none', letterSpacing: 0 },
   fSub: { fontSize: 11, color: '#6B7280', marginTop: 6, fontStyle: 'italic' },
 
-  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, padding: 14 },
-  inputText: { flex: 1, fontSize: 14, color: '#111827', fontWeight: '500' },
-  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, padding: 14, fontSize: 14, color: '#111827', fontWeight: '500' },
+  // ─── Inputs ───────────────────────────────────────────────────────────────
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAFAF9',
+    borderWidth: 1.5,
+    borderColor: '#D9D3C7',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  inputText: { flex: 1, fontSize: 14, color: '#1a2d5a', fontWeight: '500' },
+  input: {
+    backgroundColor: '#FAFAF9',
+    borderWidth: 1.5,
+    borderColor: '#D9D3C7',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 14,
+    color: '#1a2d5a',
+    fontWeight: '500',
+  },
   inputIcon: { marginLeft: 10 },
-  textarea: { minHeight: 90, textAlignVertical: 'top', paddingTop: 14 },
+  textarea: { minHeight: 96, textAlignVertical: 'top', paddingTop: 14 },
   teIn: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', color: '#1a2d5a', fontSize: 15, lineHeight: 24 },
 
-  themeRow: { flexDirection: 'row', marginTop: 8, gap: 12, paddingVertical: 5 },
-  themeChip: { width: 44, height: 44, borderRadius: 22, borderWidth: 3, borderColor: 'transparent', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
-  themeActive: { borderColor: '#1F2937', transform: [{ scale: 1.1 }] },
+  // ─── Theme Chips ─────────────────────────────────────────────────────────
+  themeRow: { flexDirection: 'row', marginTop: 8, gap: 12, paddingVertical: 6 },
+  themeChip: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 3,
+    borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  // Gold/amber ring for selected theme (matches reference)
+  themeActive: { borderColor: '#C9A84C', transform: [{ scale: 1.12 }] },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  // ─── Modal / Pickers ─────────────────────────────────────────────────────
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
   pickerCard: { backgroundColor: '#fff', width: '85%', borderRadius: 20, padding: 20, elevation: 10 },
   pickerHd: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   pickerTitle: { fontSize: 14, fontWeight: '700', color: '#1a2d5a' },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
-  calCell: { width: (width * 0.85 - 70) / 7, height: 35, justifyContent: 'center', alignItems: 'center', borderRadius: 8, backgroundColor: '#f9fafb' },
+  calCell: { width: (width * 0.85 - 70) / 7, height: 35, justifyContent: 'center', alignItems: 'center', borderRadius: 8, backgroundColor: '#F5F0E8' },
   calCellActive: { backgroundColor: '#1a2d5a' },
   calCellTxt: { fontSize: 11, color: '#374151', fontWeight: '600' },
   calCellTxtActive: { color: '#fff' },
@@ -613,12 +690,13 @@ const styles = StyleSheet.create({
   statusMenuHd: { padding: 20, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
   statusMenuTitle: { fontSize: 14, fontWeight: '700', color: '#1a2d5a', textAlign: 'center' },
   statusItem: { padding: 20, borderBottomWidth: 0.5, borderBottomColor: '#f3f4f6' },
-  statusItemActive: { backgroundColor: '#2563eb' },
+  statusItemActive: { backgroundColor: '#1a2d5a' },
   statusItemTxt: { fontSize: 13, color: '#374151', textAlign: 'center' },
   statusItemTxtActive: { color: '#fff', fontWeight: '700' },
   statusCancel: { padding: 15, alignItems: 'center' },
   statusCancelTxt: { color: '#c0392b', fontWeight: '700' },
 
+  // ─── Success / Error Modals ───────────────────────────────────────────────
   successCard: { backgroundColor: '#fff', width: '80%', borderRadius: 24, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 15 },
   successIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   successTitle: { fontSize: 22, fontWeight: '800', color: '#1a2d5a', marginBottom: 10 },
@@ -631,31 +709,82 @@ const styles = StyleSheet.create({
   errorTitle: { fontSize: 20, fontWeight: '800', color: '#c0392b', marginBottom: 10 },
   errorSub: { fontSize: 13, color: '#6B7280', textAlign: 'center', lineHeight: 20, marginBottom: 25 },
 
+  // ─── Preview Card (Live Preview section) ─────────────────────────────────
   cardPreview: { borderRadius: 14, padding: 20 },
   cardLabel: { fontSize: 10, color: '#FCD34D', fontWeight: '700', marginBottom: 10, letterSpacing: 1 },
   cardVerseEn: { color: '#fff', fontSize: 13, fontStyle: 'italic', lineHeight: 22, marginBottom: 8 },
   cardVerseTe: { color: '#aac4e8', fontSize: 14, fontStyle: 'italic', lineHeight: 22, marginBottom: 12, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
   cardRef: { color: '#FCD34D', fontSize: 11, fontWeight: '700', marginBottom: 15 },
   cardBtnRow: { flexDirection: 'row', gap: 10 },
-  cardBtn: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  cardBtnRed: { backgroundColor: '#c0392b' },
-  cardBtnTxt: { color: '#fff', fontSize: 10, fontWeight: '600' },
+  cardBtn: { flex: 1, backgroundColor: 'rgba(26,45,90,0.08)', paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(26,45,90,0.12)' },
+  cardBtnRed: { backgroundColor: '#c0392b', borderColor: '#c0392b' },
+  cardBtnTxt: { color: '#1a2d5a', fontSize: 11, fontWeight: '700' },
 
-  btnSave: { backgroundColor: '#1a2d5a', borderRadius: 14, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12, elevation: 4 },
+  // ─── Footer Action Buttons ────────────────────────────────────────────────
+  btnSave: {
+    backgroundColor: '#1a2d5a',
+    borderRadius: 14,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 12,
+    elevation: 5,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
   btnSaveTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
-  btnDraft: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 20, borderWidth: 1, borderColor: '#E5E7EB' },
-  btnDraftTxt: { color: '#4B5563', fontSize: 15, fontWeight: '700' },
+  btnDraft: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderColor: '#D9D3C7',
+  },
+  btnDraftTxt: { color: '#374151', fontSize: 15, fontWeight: '700' },
   btnBack: { alignItems: 'center', paddingVertical: 10 },
   btnBackTxt: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
 
-  btnUploadThumb: { backgroundColor: '#fff', borderRadius: 14, padding: 24, alignItems: 'center', borderWidth: 2, borderColor: '#D1D5DB', borderStyle: 'dashed' },
+  // ─── Thumbnail Upload ─────────────────────────────────────────────────────
+  btnUploadThumb: {
+    backgroundColor: '#FAFAF9',
+    borderRadius: 14,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#D9D3C7',
+    borderStyle: 'dashed',
+  },
   btnUploadThumbTxt: { color: '#4B5563', fontSize: 14, fontWeight: '700', marginTop: 8 },
   thumbContainer: { flexDirection: 'row', alignItems: 'center', gap: 15 },
   thumbnailPreviewContainer: { flexDirection: 'row', alignItems: 'center', gap: 15, marginTop: 10 },
-  thumbnailImg: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', borderWidth: 1, borderColor: '#D1D5DB' },
+  thumbnailImg: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', borderWidth: 1, borderColor: '#D9D3C7' },
   btnChangeThumb: { backgroundColor: '#1a2d5a', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
   removeThumbnailBtn: { backgroundColor: '#FEE2E2', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' },
   btnChangeThumbTxt: { color: '#991B1B', fontSize: 13, fontWeight: '700' },
 
-  fab: { position: 'absolute', right: 20, bottom: 30, width: 56, height: 56, borderRadius: 28, backgroundColor: '#c0392b', justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 8 }
+  // ─── FAB ─────────────────────────────────────────────────────────────────
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#C9A84C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  }
 });
