@@ -11,6 +11,7 @@ import {
   TextInput,
   ActivityIndicator
 } from 'react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 
 import FirestoreService from '../../services/FirestoreService';
@@ -144,14 +145,19 @@ export default function AdminPromiseCalendar() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* ── Section Heading ── */}
-        <View style={styles.secHd}>
-          <View>
-            <Text style={styles.secTitle}>📅 Promise Calendar</Text>
-            <Text style={styles.secSub}>{getMonthName(month)} {year} — tap any date</Text>
-          </View>
+      <View style={styles.hero}>
+        <View style={styles.heroTitleRow}>
+          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+          </TouchableOpacity>
+          <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+          <Text style={styles.heroTitle}>Missing Dates</Text>
         </View>
+        <Text style={styles.heroSub}>{getMonthName(month)} {year} — tap any date</Text>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* ── Calendar Grid ── */}
         <View style={styles.calGrid}>
@@ -263,9 +269,22 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f0f2f7' },
   scroll: { padding: 14, paddingBottom: 80 },
 
-  secHd: { marginBottom: 14, paddingBottom: 8, borderBottomWidth: 2, borderBottomColor: '#c0392b' },
-  secTitle: { fontSize: 15, fontWeight: '600', color: '#1a2d5a' },
-  secSub: { fontSize: 10, color: '#6B7280', marginTop: 2 },
+  hero: { 
+    backgroundColor: '#1a2d5a', 
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6
+  },
+  backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginLeft: -6 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff', marginLeft: 4 },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 6 },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroSub: { color: '#AEB8D4', fontSize: 13 },
 
   alertAmber: { backgroundColor: '#FFFBEB', borderRadius: 10, padding: 12, marginBottom: 12, flexDirection: 'row', gap: 8, borderWidth: 0.5, borderColor: '#FDE68A' },
   alertIcon: { fontSize: 16 },

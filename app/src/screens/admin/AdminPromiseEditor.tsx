@@ -28,8 +28,7 @@ import {
   ChevronRight,
   CheckCircle2
 } from 'lucide-react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../context/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
 import { AppAlert } from '../../components/CustomAlert';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import * as MediaLibrary from 'expo-media-library';
@@ -312,18 +311,18 @@ export default function AdminPromiseEditor() {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setActiveTab(0)} style={styles.backBtn}>
-            <ChevronLeft size={20} color="#1a2d5a" />
-            <Text style={styles.backBtnTxt}>Promises</Text>
+      <View style={styles.hero}>
+        <View style={styles.heroTitleRow}>
+          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>{editingData ? 'Edit Promise' : 'Create Promise'}</Text>
-            <Text style={styles.headerSub}>Bilingual · English + Telugu</Text>
-          </View>
+          <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+          <Text style={styles.heroTitle}>{editingData ? 'Edit Promise' : 'New Promise'}</Text>
         </View>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* 1. Schedule */}
         <View style={[styles.section, styles.secNavy]}>
@@ -559,38 +558,46 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f0f2f7' },
   scroll: { padding: 14, paddingBottom: 100 },
 
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#c0392b', gap: 10 },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIcon: { fontSize: 18 },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#1a2d5a' },
-  headerSub: { fontSize: 10, color: '#6B7280' },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
-  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a' },
+  hero: { 
+    backgroundColor: '#1a2d5a', 
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6
+  },
+  backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginLeft: -6 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff', marginLeft: 4 },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
 
-  section: { borderRadius: 12, padding: 14, marginBottom: 15, borderWidth: 0.5, borderColor: '#e5e7eb', borderLeftWidth: 4 },
-  secNavy: { backgroundColor: '#EFF6FF', borderLeftColor: '#1a2d5a' },
-  secBlue: { backgroundColor: '#F8FAFF', borderLeftColor: '#2563eb' },
-  secRed: { backgroundColor: '#fdecea', borderLeftColor: '#c0392b' },
+  section: { borderRadius: 16, padding: 20, marginBottom: 20, borderWidth: 1, borderColor: '#F3F4F6', borderLeftWidth: 6, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  secNavy: { backgroundColor: '#F8FAFC', borderLeftColor: '#1a2d5a' },
+  secBlue: { backgroundColor: '#EFF6FF', borderLeftColor: '#2563eb' },
+  secRed: { backgroundColor: '#FEF2F2', borderLeftColor: '#c0392b' },
   secGreen: { backgroundColor: '#F0FDF4', borderLeftColor: '#15803D' },
 
-  secHd: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
-  secHdTXT: { fontSize: 11, fontWeight: '700', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
+  secHd: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.06)', paddingBottom: 12 },
+  secHdTXT: { fontSize: 13, fontWeight: '800', color: '#1F2937', textTransform: 'uppercase', letterSpacing: 1 },
 
-  fGroup: { marginBottom: 15 },
-  fLabel: { fontSize: 11, fontWeight: '600', color: '#374151', marginBottom: 6 },
-  fHint: { fontWeight: '400', color: '#9CA3AF', fontSize: 9 },
-  fSub: { fontSize: 9, color: '#6B7280', marginTop: 4 },
+  fGroup: { marginBottom: 18 },
+  fLabel: { fontSize: 13, fontWeight: '700', color: '#374151', marginBottom: 8 },
+  fHint: { fontWeight: '500', color: '#9CA3AF', fontSize: 11 },
+  fSub: { fontSize: 11, color: '#6B7280', marginTop: 6, fontStyle: 'italic' },
 
-  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 0.5, borderColor: '#d1d5db', borderRadius: 8, padding: 10 },
-  inputText: { flex: 1, fontSize: 13, color: '#111827' },
-  input: { backgroundColor: '#fff', borderWidth: 0.5, borderColor: '#d1d5db', borderRadius: 8, padding: 10, fontSize: 13, color: '#111827' },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, padding: 14 },
+  inputText: { flex: 1, fontSize: 14, color: '#111827', fontWeight: '500' },
+  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 12, padding: 14, fontSize: 14, color: '#111827', fontWeight: '500' },
   inputIcon: { marginLeft: 10 },
-  textarea: { minHeight: 70, textAlignVertical: 'top' },
-  teIn: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', color: '#1a2d5a', fontStyle: 'italic' },
+  textarea: { minHeight: 90, textAlignVertical: 'top', paddingTop: 14 },
+  teIn: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', color: '#1a2d5a', fontSize: 15, lineHeight: 24 },
 
-  themeRow: { flexDirection: 'row', marginTop: 8, gap: 10 },
-  themeChip: { width: 36, height: 36, borderRadius: 18, borderWidth: 3, borderColor: 'transparent' },
-  themeActive: { borderColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 6 },
+  themeRow: { flexDirection: 'row', marginTop: 8, gap: 12, paddingVertical: 5 },
+  themeChip: { width: 44, height: 44, borderRadius: 22, borderWidth: 3, borderColor: 'transparent', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  themeActive: { borderColor: '#1F2937', transform: [{ scale: 1.1 }] },
 
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
   pickerCard: { backgroundColor: '#fff', width: '85%', borderRadius: 20, padding: 20, elevation: 10 },
@@ -634,21 +641,21 @@ const styles = StyleSheet.create({
   cardBtnRed: { backgroundColor: '#c0392b' },
   cardBtnTxt: { color: '#fff', fontSize: 10, fontWeight: '600' },
 
-  btnSave: { backgroundColor: '#c0392b', borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 },
-  btnSaveTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  btnDraft: { backgroundColor: '#1a2d5a', borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 },
-  btnDraftTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  btnBack: { alignItems: 'center' },
-  btnBackTxt: { fontSize: 12, color: '#374151', fontWeight: '600' },
+  btnSave: { backgroundColor: '#1a2d5a', borderRadius: 14, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12, elevation: 4 },
+  btnSaveTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  btnDraft: { backgroundColor: '#fff', borderRadius: 14, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 20, borderWidth: 1, borderColor: '#E5E7EB' },
+  btnDraftTxt: { color: '#4B5563', fontSize: 15, fontWeight: '700' },
+  btnBack: { alignItems: 'center', paddingVertical: 10 },
+  btnBackTxt: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
 
-  btnUploadThumb: { backgroundColor: '#E5E7EB', borderRadius: 8, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#D1D5DB', borderStyle: 'dashed' },
-  btnUploadThumbTxt: { color: '#4B5563', fontSize: 13, fontWeight: '600' },
+  btnUploadThumb: { backgroundColor: '#fff', borderRadius: 14, padding: 24, alignItems: 'center', borderWidth: 2, borderColor: '#D1D5DB', borderStyle: 'dashed' },
+  btnUploadThumbTxt: { color: '#4B5563', fontSize: 14, fontWeight: '700', marginTop: 8 },
   thumbContainer: { flexDirection: 'row', alignItems: 'center', gap: 15 },
   thumbnailPreviewContainer: { flexDirection: 'row', alignItems: 'center', gap: 15, marginTop: 10 },
-  thumbnailImg: { width: 80, height: 80, borderRadius: 8, backgroundColor: '#d1d5db' },
-  btnChangeThumb: { backgroundColor: '#1a2d5a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
-  removeThumbnailBtn: { backgroundColor: '#c0392b', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
-  btnChangeThumbTxt: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  thumbnailImg: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', borderWidth: 1, borderColor: '#D1D5DB' },
+  btnChangeThumb: { backgroundColor: '#1a2d5a', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
+  removeThumbnailBtn: { backgroundColor: '#FEE2E2', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' },
+  btnChangeThumbTxt: { color: '#991B1B', fontSize: 13, fontWeight: '700' },
 
   fab: { position: 'absolute', right: 20, bottom: 30, width: 56, height: 56, borderRadius: 28, backgroundColor: '#c0392b', justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 8 }
 });

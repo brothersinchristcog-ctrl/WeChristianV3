@@ -1,44 +1,67 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { 
-  StyleSheet, 
+  Platform,
   View, 
   Text, 
+  StyleSheet, 
+  ScrollView, 
   TouchableOpacity, 
   ActivityIndicator, 
-  Platform, 
-  StatusBar,
-  ScrollView,
-  Dimensions
+  RefreshControl,
+  StatusBar
 } from 'react-native';
-import { BookOpen, Languages, Play, AlertCircle, Plus } from 'lucide-react-native';
+import { AlertCircle, Plus, Check, ChevronLeft } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 
 import FirestoreService, { DailyPromise } from '../../services/FirestoreService';
 
-const { width } = Dimensions.get('window');
+const colors = {
+  ink: '#1a2d5a',
+  ink2: '#22304F',
+  inkSoft: '#6B7593',
+  parchment: '#F3EAD9',
+  paper: '#FFFCF5',
+  gold: '#A67C3D',
+  goldDeep: '#8C6428',
+  goldBright: '#D8B369',
+  clay: '#A24B34',
+  clayBg: '#F3E1D6',
+  clayLine: '#E3C3B2',
+  moss: '#3E6B52',
+  mossBg: '#E6EFE7',
+  rule: '#DED0AC',
+};
+
+const serifFont = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
 export default function AdminPromiseList() {
   const { setActiveTab, setEditingData } = useContext(AdminTabContext);
   const [promises, setPromises] = useState<DailyPromise[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [missingDates, setMissingDates] = useState<number[]>([]);
   
-  // Use local date (YYYY-MM-DD) instead of UTC to avoid timezone mismatches
   const todayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
 
   const handleEdit = (item: DailyPromise) => {
     setEditingData(item);
-    setActiveTab(1); // Go to Editor tab
+    setActiveTab(1);
   };
 
   const handleView = (item: DailyPromise) => {
     setEditingData(item);
-    setActiveTab(1); // Go to Editor tab to view/edit details
+    setActiveTab(1);
   };
 
   useEffect(() => {
     loadPromises();
   }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadPromises();
+    setRefreshing(false);
+  };
 
   const loadPromises = async () => {
     setLoading(true);
@@ -66,249 +89,303 @@ export default function AdminPromiseList() {
   const upcoming = promises.filter(p => p.date && p.date > todayStr).sort((a,b) => (a.date || '').localeCompare(b.date || ''));
   const past = promises.filter(p => p.date && p.date < todayStr).sort((a,b) => (b.date || '').localeCompare(a.date || ''));
 
+  const stats = {
+    published: promises.filter(p => p.status === 'Published').length,
+    draft: promises.filter(p => p.status === 'Draft').length,
+    missing: missingDates.length
+  };
+
   if (loading && promises.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#FCD34D" />
+        <ActivityIndicator size="large" color={colors.goldBright} />
       </View>
     );
   }
 
   const stripHtml = (html: string) => {
     if (!html) return '';
-    return html
-      .replace(/<[^>]*>?/gm, '')
-      .replace(/&#39;/g, "'")
-      .replace(/&quot;/g, '"')
-      .replace(/&amp;/g, '&')
-      .replace(/&lt;/g, '<')
-      .replace(/&gt;/g, '>');
+    return html.replace(/<[^>]*>?/gm, '').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
   };
 
   const renderCard = (item: DailyPromise, type: 'today' | 'upcoming' | 'past') => {
     const isMissingTe = !item.verseTelugu;
     const isMissingLink = !item.youtubeId;
 
+    let displayDate = item.date;
+    if (item.date) {
+      const parts = item.date.split('-');
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        displayDate = `${d.getDate()} ${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+      }
+    }
+
+    const verseTextEn = stripHtml(item.verse);
+    const firstChar = verseTextEn.charAt(0);
+    const restChar = verseTextEn.slice(1);
+
     return (
-      <View key={item.id} style={[styles.pCard, type === 'today' && styles.todayCard]}>
-        <View style={styles.pCardHd}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.pDate}>{type === 'today' ? 'Today — ' : ''}{item.date}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-              <Text style={[styles.pDate, { fontSize: 10, color: '#9CA3AF', backgroundColor: '#f3f4f6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }]}>
-                {item.verseReferenceEn || item.verseReference || 'ID Missing'}
-                {item.verseReferenceTe ? ` | ${item.verseReferenceTe}` : ''}
-              </Text>
-              {item.pastor ? <Text style={{ fontSize: 10, fontWeight: '700', color: '#c0392b' }}>• {item.pastor}</Text> : null}
-            </View>
-          </View>
-          <View style={[
-            styles.statusBadge, 
-            type === 'today' ? styles.statusLive : (item.status === 'Draft' ? styles.statusDraft : (type === 'past' ? styles.statusPub : styles.statusSch))
-          ]}>
-            <Text style={styles.statusBadgeTxt}>
-              {type === 'today' ? 'Live now' : (item.status || 'Published').toUpperCase()}
-            </Text>
+      <View key={item.id} style={styles.verseCard}>
+        <View style={styles.vcBand}>
+          <Text style={styles.vcDate}>{displayDate}</Text>
+          <View style={styles.seal}>
+            {type === 'upcoming' ? <Plus size={14} color={colors.ink} /> : <Check size={14} color={colors.ink} strokeWidth={3} />}
           </View>
         </View>
 
-        <Text style={styles.pVerseEn} numberOfLines={2}>"{stripHtml(item.verse)}"</Text>
-        {item.verseTelugu ? (
-          <Text style={styles.pVerseTe} numberOfLines={2}>"{stripHtml(item.verseTelugu)}"</Text>
-        ) : null}
-        
-        {item.videoTitle ? (
-          <Text style={styles.pVideoTitle} numberOfLines={1}>🎬 {stripHtml(item.videoTitle)}</Text>
-        ) : null}
-
-        <View style={styles.pCardFoot}>
-          <View style={styles.assetIcons}>
-            <View style={styles.assetBox}><Text style={styles.assetTxt}>📖 English ✓</Text></View>
-            <View style={styles.assetBox}>
-              <Text style={[styles.assetTxt, isMissingTe && { color: '#c0392b' }]}>
-                🇮🇳 {isMissingTe ? 'te Missing' : 'Telugu ✓'}
-              </Text>
-            </View>
-            <View style={styles.assetBox}>
-              <Text style={[styles.assetTxt, isMissingLink && { color: '#c0392b' }]}>
-                ▶️ {isMissingLink ? 'No link' : 'YouTube ✓'}
-              </Text>
-            </View>
+        <View style={styles.vcBody}>
+          <View style={styles.vcRef}>
+            {(item.verseReferenceEn || item.verseReference) && (
+              <View style={styles.tag}><Text style={styles.tagText}>{item.verseReferenceEn || item.verseReference}</Text></View>
+            )}
+            {item.verseReferenceTe && (
+              <View style={styles.tag}><Text style={[styles.tagText, { fontStyle: 'italic' }]}>{item.verseReferenceTe}</Text></View>
+            )}
+            {(item as any).author && (
+              <>
+                <Text style={styles.dot}>•</Text>
+                <Text style={styles.author}>{(item as any).author}</Text>
+              </>
+            )}
           </View>
-          <TouchableOpacity onPress={() => type === 'past' ? handleView(item) : handleEdit(item)}>
-            <Text style={styles.actionLink}>{type === 'past' ? 'View —' : 'Edit —'}</Text>
-          </TouchableOpacity>
+
+          <Text style={styles.vcQuote}>
+            <Text style={styles.dropCap}>{firstChar}</Text>
+            {restChar}
+          </Text>
+          
+          {item.verseTelugu ? (
+            <Text style={styles.vcQuoteTel}>
+              {stripHtml(item.verseTelugu)}
+            </Text>
+          ) : null}
+
+          <View style={styles.vcBottom}>
+            <View style={styles.vcFlags}>
+              <Text style={styles.flagOn}>✓ English</Text>
+              <Text style={isMissingTe ? styles.flagOff : styles.flagOn}>{isMissingTe ? '✗ Telugu' : '✓ Telugu'}</Text>
+              <Text style={isMissingLink ? styles.flagOff : styles.flagOn}>{isMissingLink ? '▶ No link' : '▶ YouTube'}</Text>
+            </View>
+            <TouchableOpacity onPress={() => type === 'past' ? handleView(item) : handleEdit(item)}>
+              <Text style={styles.viewLink}>View →</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
   };
 
+  // Get current date for Ribbon
+  const d = new Date();
+  const monthNamesShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const todayRibbonStr = `${d.getDate()} ${monthNamesShort[d.getMonth()]}`;
+  const displayDateFullStr = `${d.getDate()} ${['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][d.getMonth()]} ${d.getFullYear()}`;
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Daily Promises</Text>
-            <Text style={styles.subtitle}>English + Telugu · YouTube links</Text>
-          </View>
-          <TouchableOpacity style={styles.newBtnTop} onPress={() => { setEditingData(null); setActiveTab(1); }}>
+
+      <View style={styles.hero}>
+        <View style={styles.heroTitleRow}>
+          <Text style={styles.heroTitle}>Daily Promises</Text>
+          
+          <View style={{ flex: 1 }} />
+          <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(1); }}>
             <Text style={styles.newBtnTxt}>+ New</Text>
           </TouchableOpacity>
         </View>
+      </View>
 
-        {/* Stats Row */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <Text style={[styles.statVal, { color: '#15803D' }]}>{promises.filter(p => p.status === 'Published').length}</Text>
-            <Text style={styles.statLbl}>Published</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statVal, { color: '#D97706' }]}>{promises.filter(p => p.status === 'Draft').length}</Text>
-            <Text style={styles.statLbl}>Drafts</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statVal, { color: '#c0392b' }]}>{missingDates.length}</Text>
-            <Text style={styles.statLbl}>Missing</Text>
-          </View>
-        </View>
+      <ScrollView contentContainerStyle={styles.scroll}>
 
-        {/* Global Alert */}
-        <View style={styles.globalAlert}>
-          <AlertCircle size={14} color="#D97706" />
-          <Text style={styles.globalAlertTxt}>
-            <Text style={{ fontWeight: '700' }}>{missingDates.length} dates missing!</Text> Red cells have no promise. Tap to add quickly.
-          </Text>
-        </View>
-
-        {/* Sections */}
-        <Text style={styles.secHd}>Today</Text>
-        {todayPromise ? renderCard(todayPromise, 'today') : (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTxt}>No promise scheduled for today ({todayStr})</Text>
-            <TouchableOpacity style={styles.emptyAdd} onPress={() => { setEditingData({ date: todayStr }); setActiveTab(1); }}>
-              <Text style={styles.emptyAddTxt}>+ Schedule Today</Text>
-            </TouchableOpacity>
+        <View style={styles.content}>
+          <View style={styles.stats}>
+            <View style={styles.statBox}>
+              <View style={[styles.statNotch, { backgroundColor: colors.moss }]} />
+              <Text style={[styles.num, { color: colors.moss }]}>{stats.published}</Text>
+              <Text style={styles.statLabel}>Published</Text>
+            </View>
+            <View style={styles.statBox}>
+              <View style={[styles.statNotch, { backgroundColor: colors.gold }]} />
+              <Text style={[styles.num, { color: colors.goldDeep }]}>{stats.draft}</Text>
+              <Text style={styles.statLabel}>Drafts</Text>
+            </View>
+            <View style={styles.statBox}>
+              <View style={[styles.statNotch, { backgroundColor: colors.clay }]} />
+              <Text style={[styles.num, { color: colors.clay }]}>{stats.missing}</Text>
+              <Text style={styles.statLabel}>Missing</Text>
+            </View>
           </View>
-        )}
 
-        <Text style={styles.secHd}>Upcoming</Text>
-        {upcoming.length > 0 ? (
-          upcoming.slice(0, 10).map(item => renderCard(item, 'upcoming'))
-        ) : (
-          <View style={styles.emptyCard}>
-            <Text style={styles.emptyTxt}>No upcoming promises scheduled.</Text>
+          <View style={styles.alert}>
+            <AlertCircle size={20} color={colors.clay} style={{ marginTop: 2 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.alertTitle}>{missingDates.length} days are still empty.</Text>
+              <Text style={styles.alertText}>Nothing is scheduled for the dates below. Fill them in before the queue catches up.</Text>
+            </View>
           </View>
-        )}
 
-        <View style={styles.missingSec}>
-          <View style={styles.missingHd}>
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Today</Text>
+            <View style={styles.sectionTitleLine} />
+          </View>
+          {todayPromise ? renderCard(todayPromise, 'today') : (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>Nothing is scheduled for <Text style={styles.dateTag}>{displayDateFullStr}</Text> yet.</Text>
+              <TouchableOpacity style={styles.ghostBtn} onPress={() => { setEditingData({ date: todayStr }); setActiveTab(1); }}>
+                <Text style={styles.ghostBtnTxt}>+ Schedule today's promise</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Upcoming</Text>
+            <View style={styles.sectionTitleLine} />
+          </View>
+          {upcoming.length > 0 ? (
+            upcoming.slice(0, 10).map(item => renderCard(item, 'upcoming'))
+          ) : (
+            <View style={styles.emptyCard}>
+              <Text style={styles.emptyText}>No promises scheduled ahead. Add a few days now to stay ahead of the queue.</Text>
+            </View>
+          )}
+
+          <View style={styles.missingHead}>
             <Text style={styles.missingTitle}>Missing dates ({missingDates.length})</Text>
-            <TouchableOpacity style={styles.fillAllBtn} onPress={() => setActiveTab(2)}>
-              <Text style={styles.fillAllBtnTxt}>Fill all</Text>
+            <TouchableOpacity style={styles.fillAll} onPress={() => {
+              if (missingDates.length > 0) {
+                const now = new Date();
+                const dStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(missingDates[0]).padStart(2, '0')}`;
+                setEditingData({ date: dStr });
+                setActiveTab(1);
+              }
+            }}>
+              <Text style={styles.fillAllTxt}>Fill all</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.mGrid}>
+          <View style={styles.missingGrid}>
             {missingDates.slice(0, 8).map(d => {
-              const now = new Date();
-              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-              const currentMonthShort = monthNames[now.getMonth()];
+              const monthStr = monthNamesShort[(new Date()).getMonth()];
               return (
-                <TouchableOpacity key={d} style={styles.mCell} onPress={() => { 
+                <TouchableOpacity key={d} style={styles.missingCell} onPress={() => { 
+                  const now = new Date();
                   const dStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                   setEditingData({ date: dStr }); 
                   setActiveTab(1); 
                 }}>
-                  <Text style={styles.mDate}>{currentMonthShort} {d}</Text>
-                  <Text style={styles.mAdd}>+ Add</Text>
+                  <View style={styles.missingMonth}><Text style={styles.missingMonthTxt}>{monthStr}</Text></View>
+                  <Text style={styles.missingDay}>{d}</Text>
+                  <View style={styles.missingDash} />
+                  <Text style={styles.missingAdd}>+ Add</Text>
                 </TouchableOpacity>
               );
             })}
           </View>
+
+          <View style={styles.sectionTitleRow}>
+            <Text style={styles.sectionTitle}>Past Promises</Text>
+            <View style={styles.sectionTitleLine} />
+          </View>
+          {past.slice(0, 2).map(item => renderCard(item, 'past'))}
+
+
+
+          <Text style={styles.footerBranding}>Church Admin · Daily Promise Manager</Text>
+          <View style={{ height: 100 }} />
         </View>
-
-        <Text style={styles.secHd}>Recent past</Text>
-        {past.slice(0, 2).map(item => renderCard(item, 'past'))}
-
-        <Text style={styles.footerBranding}>Church Admin · Daily Promise Manager</Text>
-        <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={() => { setEditingData(null); setActiveTab(1); }}>
-        <Plus size={28} color="#fff" />
+        <Plus size={32} color={colors.ink} strokeWidth={3} />
       </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f7' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f0f2f7' },
-  scroll: { padding: 16 },
+  container: { flex: 1, backgroundColor: colors.parchment },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.parchment },
 
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#c0392b', paddingBottom: 10 },
-  title: { fontSize: 16, fontWeight: '700', color: '#1a2d5a' },
-  subtitle: { fontSize: 10, color: '#9CA3AF' },
-  newBtnTop: { backgroundColor: '#c0392b', paddingHorizontal: 15, paddingVertical: 6, borderRadius: 15 },
-  newBtnTxt: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  scroll: { paddingBottom: 20 },
+  
+  // Hero
+  hero: { 
+    backgroundColor: colors.ink, 
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative'
+  },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 6 },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5, marginBottom: 0 },
+  newBtn: { marginLeft: 24, minWidth: 90, alignItems: 'center', backgroundColor: colors.goldBright, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 100, elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: {width: 0, height: 2} },
+  newBtnTxt: { color: colors.ink, fontSize: 12, fontWeight: '700' },
 
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 15 },
-  statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 8, paddingVertical: 15, alignItems: 'center', borderWidth: 0.5, borderColor: '#e5e7eb' },
-  statVal: { fontSize: 24, fontWeight: '700' },
-  statLbl: { fontSize: 10, color: '#9CA3AF', marginTop: 2 },
+  content: { paddingHorizontal: 16 },
 
-  globalAlert: { backgroundColor: '#FFFBEB', borderRadius: 8, padding: 12, marginBottom: 15, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 0.5, borderColor: '#FDE68A' },
-  globalAlertTxt: { flex: 1, fontSize: 11, color: '#B45309', marginLeft: 10, lineHeight: 16 },
- 
-  secHdRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, marginTop: 15 },
-  secHd: { fontSize: 13, fontWeight: '700', color: '#374151' },
-  fillBtn: { backgroundColor: '#c0392b', paddingHorizontal: 15, paddingVertical: 6, borderRadius: 8 },
-  fillBtnTxt: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  // Stats
+  stats: { flexDirection: 'row', gap: 10, marginBottom: 16, marginTop: 16 },
+  statBox: { flex: 1, backgroundColor: colors.paper, borderRadius: 10, paddingVertical: 10, alignItems: 'center', elevation: 2, shadowColor: colors.ink, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, borderWidth: 1, borderColor: 'rgba(21,28,51,0.05)', position: 'relative' },
+  statNotch: { position: 'absolute', top: -1, width: 20, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3 },
+  num: { fontFamily: serifFont, fontSize: 22, fontWeight: '600', marginBottom: 4 },
+  statLabel: { fontSize: 9.5, textTransform: 'uppercase', letterSpacing: 1, color: colors.inkSoft, fontWeight: '600' },
 
-  pCard: { backgroundColor: '#fff', borderRadius: 10, padding: 15, marginBottom: 12, borderWidth: 0.5, borderColor: '#e5e7eb' },
-  todayCard: { borderWidth: 2.5, borderColor: '#1a2d5a', backgroundColor: '#fcfdff' },
-  pCardHd: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  pDate: { fontSize: 13, fontWeight: '800', color: '#1a2d5a' },
-  pRef: { fontSize: 11, fontWeight: '700', color: '#111827', marginTop: 2 },
-  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  statusBadgeTxt: { fontSize: 8, fontWeight: '800', color: '#fff' },
-  statusSch: { backgroundColor: '#2563eb' },
-  statusDraft: { backgroundColor: '#D97706' },
-  statusLive: { backgroundColor: '#c0392b' },
-  statusPub: { backgroundColor: '#15803D' },
+  // Alert
+  alert: { backgroundColor: colors.clayBg, borderColor: colors.clayLine, borderWidth: 1, borderLeftWidth: 3, borderLeftColor: colors.clay, borderRadius: 12, padding: 14, flexDirection: 'row', gap: 12, marginBottom: 26, alignItems: 'flex-start' },
+  alertTitle: { fontFamily: serifFont, color: colors.clay, fontWeight: '600', fontSize: 14.5, marginBottom: 3 },
+  alertText: { fontSize: 13, color: '#7C4028', lineHeight: 18 },
 
-  pVerseEn: { fontSize: 11, color: '#374151', marginBottom: 5 },
-  pVerseTe: { fontSize: 11, color: '#1a2d5a', fontStyle: 'italic', marginBottom: 5, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
-  pVideoTitle: { fontSize: 10, color: '#6B7280', fontStyle: 'italic', marginBottom: 10 },
+  // Sections
+  sectionTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, marginTop: 10 },
+  sectionTitle: { fontFamily: serifFont, fontSize: 14, fontWeight: '600', letterSpacing: 0.5, textTransform: 'uppercase', color: colors.inkSoft, marginRight: 8 },
+  sectionTitleLine: { flex: 1, height: 1, backgroundColor: colors.rule },
 
-  warnRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 12 },
-  warnTxt: { fontSize: 9, color: '#D97706', fontWeight: '600' },
+  // Empty Cards
+  emptyCard: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.gold, borderRadius: 16, backgroundColor: colors.paper, padding: 24, alignItems: 'center', marginBottom: 24 },
+  emptyText: { fontSize: 14, color: colors.inkSoft, lineHeight: 21, textAlign: 'center', marginBottom: 14 },
+  dateTag: { fontFamily: serifFont, fontWeight: '600', color: colors.ink },
+  ghostBtn: { backgroundColor: colors.ink, paddingHorizontal: 20, paddingVertical: 11, borderRadius: 100, borderWidth: 1, borderColor: colors.gold },
+  ghostBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '600' },
 
-  pCardFoot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderTopWidth: 0.5, borderTopColor: '#f3f4f6', paddingTop: 10 },
-  assetIcons: { flexDirection: 'row', gap: 12 },
-  assetBox: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  assetTxt: { fontSize: 9, fontWeight: '700', color: '#1a2d5a' },
-  actionLink: { fontSize: 10, fontWeight: '700', color: '#1a2d5a' },
+  // Missing Dates
+  missingHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  missingTitle: { fontFamily: serifFont, fontSize: 16, fontWeight: '600', color: colors.clay },
+  fillAll: { backgroundColor: colors.clay, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 100 },
+  fillAllTxt: { color: '#fff', fontSize: 12.5, fontWeight: '700' },
+  missingGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 30 },
+  missingCell: { width: '23%', backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.clayLine, borderRadius: 8, alignItems: 'center', overflow: 'hidden', paddingBottom: 6 },
+  missingMonth: { backgroundColor: colors.clay, width: '100%', alignItems: 'center', paddingVertical: 4 },
+  missingMonthTxt: { color: '#fff', fontSize: 8, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  missingDay: { fontFamily: serifFont, fontSize: 14, fontWeight: '600', color: colors.ink, marginVertical: 4 },
+  missingDash: { width: '60%', height: 1, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.clayLine, marginBottom: 4 },
+  missingAdd: { fontSize: 9, color: colors.clay, fontWeight: '700', letterSpacing: 0.5 },
 
-  missingSec: { marginTop: 10, marginBottom: 20 },
-  missingHd: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  missingTitle: { fontSize: 12, fontWeight: '700', color: '#c0392b' },
-  fillAllBtn: { backgroundColor: '#c0392b', paddingHorizontal: 15, paddingVertical: 7, borderRadius: 8 },
-  fillAllBtnTxt: { color: '#fff', fontSize: 11, fontWeight: '700' },
-  mGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  mCell: { width: (width - 32 - 24) / 4, backgroundColor: '#fdf2f2', borderWidth: 0.5, borderColor: '#fecaca', borderRadius: 8, paddingVertical: 12, alignItems: 'center' },
-  mDate: { fontSize: 10, fontWeight: '800', color: '#991B1B' },
-  mAdd: { fontSize: 8, color: '#DC2626', marginTop: 3 },
+  // Verse Card
+  verseCard: { backgroundColor: colors.paper, borderRadius: 10, elevation: 2, shadowColor: colors.ink, shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, marginBottom: 14, borderWidth: 1, borderColor: 'rgba(21,28,51,0.05)', overflow: 'hidden' },
+  vcBand: { backgroundColor: colors.ink, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  vcDate: { fontFamily: serifFont, fontSize: 13, fontWeight: '600', color: '#fff' },
+  seal: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.goldBright, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)', elevation: 3 },
+  vcBody: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
+  vcRef: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 10 },
+  tag: { backgroundColor: colors.parchment, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 100, borderWidth: 1, borderColor: colors.rule },
+  tagText: { fontSize: 10, color: colors.inkSoft, fontWeight: '600' },
+  dot: { color: colors.gold, fontSize: 9 },
+  author: { fontSize: 11, color: colors.goldDeep, fontWeight: '700' },
+  vcQuote: { fontFamily: serifFont, fontStyle: 'italic', fontSize: 14, lineHeight: 20, color: colors.ink, marginBottom: 8 },
+  dropCap: { fontFamily: serifFont, fontSize: 28, fontWeight: '600', color: colors.gold },
+  vcQuoteTel: { fontStyle: 'italic', fontSize: 12.5, lineHeight: 18, color: colors.inkSoft, marginBottom: 10 },
+  vcBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.rule, borderStyle: 'dashed' },
+  vcFlags: { flexDirection: 'row', gap: 10 },
+  flagOn: { fontSize: 10, color: colors.moss, fontWeight: '600' },
+  flagOff: { fontSize: 10, color: '#C4B896', fontWeight: '600' },
+  viewLink: { fontSize: 11, fontWeight: '700', color: colors.ink },
 
-  footerBranding: { fontSize: 10, color: '#9CA3AF', textAlign: 'center', marginTop: 10 },
+  footerBranding: { textAlign: 'center', paddingTop: 20, paddingBottom: 8, fontSize: 11, letterSpacing: 0.8, color: '#B3A67E', textTransform: 'uppercase', fontWeight: '600' },
 
-  emptyCard: { backgroundColor: '#fff', borderRadius: 11, padding: 20, alignItems: 'center', marginBottom: 12, borderStyle: 'dashed', borderWidth: 1.5, borderColor: '#d1d5db' },
-  emptyTxt: { fontSize: 12, color: '#6B7280', marginBottom: 10 },
-  emptyAdd: { backgroundColor: '#1a2d5a', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 8 },
-  emptyAddTxt: { color: '#fff', fontSize: 11, fontWeight: '600' },
-
-  fab: { position: 'absolute', right: 20, bottom: 30, width: 60, height: 60, borderRadius: 30, backgroundColor: '#c0392b', justifyContent: 'center', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10 }
+  fab: { position: 'absolute', bottom: 26, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.goldBright, justifyContent: 'center', alignItems: 'center', elevation: 6, shadowColor: '#8C6428', shadowOpacity: 0.6, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }
 });
