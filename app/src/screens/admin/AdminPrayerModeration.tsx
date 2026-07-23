@@ -718,7 +718,6 @@ const styles = StyleSheet.create({
   replyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
   replyAuthor: { fontSize: 12, fontWeight: '800', color: COLORS.ink, fontFamily: FONTS.serif },
   replyDate: { fontSize: 11, color: COLORS.inkSoft, fontWeight: '600' },
-  newBtn: { position: 'absolute', bottom: -16, right: 24, backgroundColor: COLORS.clay, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 100, elevation: 4 },
-  newBtnTxt: { color: '#fff', fontSize: 11, fontWeight: '800' },
+
   replyBody: { fontSize: 14, color: COLORS.ink2, lineHeight: 22, fontFamily: FONTS.serif }
 });
