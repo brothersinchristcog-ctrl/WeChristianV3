@@ -182,7 +182,7 @@ export default function AdminChurchSettings({ navigation }: any) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+      <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
         <CustomAlert 
           visible={alertConfig.visible}
           title={alertConfig.title}
