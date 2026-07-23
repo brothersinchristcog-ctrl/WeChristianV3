@@ -190,18 +190,16 @@ export default function AdminChurchSettings({ navigation }: any) {
           type={alertConfig.type}
           onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
         />
-        {/* ── Hero Section ── */}
-        <View style={styles.hero}>
+        {/* ── Page Header ── */}
+        <View style={styles.pageHeader}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-              <TouchableOpacity onPress={goBack} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity onPress={goBack} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <ChevronLeft size={22} color="#1a2d5a" style={{ marginLeft: -6, marginRight: 2 }} />
               </TouchableOpacity>
-              <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-              <View>
-                <Text style={styles.heroTitle}>Settings</Text>
-                <Text style={[styles.heroSub, { marginTop: 2 }]}>Church info, branding & APIs</Text>
+              <View style={{ marginLeft: 4 }}>
+                <Text style={styles.pageTitle}>Church Settings</Text>
+                <Text style={styles.pageSub}>Manage your information & branding</Text>
               </View>
             </View>
             {isEditing ? (
@@ -210,7 +208,7 @@ export default function AdminChurchSettings({ navigation }: any) {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditing(true)}>
-                <Text style={styles.editBtnTxt}>EDIT</Text>
+                <Text style={styles.editBtnTxt}>EDIT SETTINGS</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -595,24 +593,19 @@ export default function AdminChurchSettings({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#EDE8DC' },
-  hero: {
-    backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
+  pageHeader: {
+    backgroundColor: 'transparent',
     paddingHorizontal: 22,
-    paddingTop: 10,
+    paddingTop: 16,
     paddingBottom: 24,
-    overflow: 'visible',
-    position: 'relative',
-    marginBottom: 6,
   },
-  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
-  heroSub: { color: '#AEB8D4', fontSize: 13 },
+  pageTitle: { color: '#1a2d5a', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '800', letterSpacing: -0.5 },
+  pageSub: { color: '#6B7280', fontSize: 13, fontWeight: '500' },
 
-  saveBtn: { backgroundColor: '#C9A84C', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12, shadowColor: '#C9A84C', shadowOpacity: 0.4, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
+  saveBtn: { backgroundColor: '#C9A84C', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, shadowColor: '#C9A84C', shadowOpacity: 0.4, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
   saveBtnTxt: { fontSize: 13, fontWeight: '800', color: '#1a2d5a', letterSpacing: 0.3 },
-  editBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 12 },
-  editBtnTxt: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
+  editBtn: { backgroundColor: '#1a2d5a', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 12, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
+  editBtnTxt: { fontSize: 12, fontWeight: '800', color: '#fff', letterSpacing: 0.3 },
 
   viewModeHint: { backgroundColor: '#F0EBE0', color: '#1a2d5a', padding: 12, borderRadius: 12, marginBottom: 16, fontSize: 13, fontWeight: '700', textAlign: 'center', borderWidth: 1, borderColor: '#E2DDD5' },
 
