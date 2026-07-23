@@ -553,13 +553,15 @@ export default function AdminEventEditor() {
       <SuccessModal />
 
       {/* ── Page Header ── */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => setActiveTab(7)} style={styles.backBtn}>
-          <ChevronLeft size={20} color="#1a2d5a" />
-          <Text style={styles.backBtnTxt}>Events</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{editingData ? 'Edit Event' : '+ Create Event'}</Text>
-        <Text style={styles.headerSub}>English + Telugu · RSVP enabled</Text>
+      <View style={styles.hero}>
+        <View style={styles.heroTitleRow}>
+          <TouchableOpacity onPress={() => setActiveTab(7)} style={{ flexDirection: 'row', alignItems: 'center', marginRight: 16 }}>
+            <ChevronLeft size={20} color="#fff" />
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600', marginLeft: 4 }}>Back</Text>
+          </TouchableOpacity>
+          <View style={{ width: 1, height: 24, backgroundColor: 'rgba(255,255,255,0.2)', marginRight: 16 }} />
+          <Text style={styles.heroTitle}>{editingData ? 'Edit Event' : 'New Event'}</Text>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -1028,12 +1030,21 @@ export default function AdminEventEditor() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
   scroll: { paddingBottom: 40 },
 
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', gap: 10 },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: '#1a2d5a', flex: 1 },
-  headerSub: { fontSize: 11, color: '#64748b', marginTop: 2 },
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight! + 16 : 46,
+    paddingBottom: 24,
+    marginBottom: 16,
+  },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center' },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
   backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a' },
 
