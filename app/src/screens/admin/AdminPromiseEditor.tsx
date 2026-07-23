@@ -525,7 +525,7 @@ export default function AdminPromiseEditor() {
         {/* Side-by-side action buttons: Draft (left) | Save & Publish (right) */}
         <View style={styles.footerBtnRow}>
           <TouchableOpacity style={styles.btnDraft} onPress={() => handleSave('Draft')}>
-            <Save size={15} color="#5C6E8A" />
+            <Save size={15} color="#1a2d5a" />
             <Text style={styles.btnDraftTxt}>Save as Draft</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.btnSave} onPress={() => handleSave()}>
@@ -740,27 +740,27 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  // Primary: gold Save & Publish
+  // Primary: deep navy — Save & Publish
   btnSave: {
     flex: 1,
-    backgroundColor: '#C9A84C',
+    backgroundColor: '#1a2d5a',
     borderRadius: 14,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 7,
-    elevation: 5,
-    shadowColor: '#C9A84C',
-    shadowOpacity: 0.35,
+    elevation: 6,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.30,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 5 },
   },
   btnSaveTxt: { color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
-  // Secondary: soft outlined Save as Draft
+  // Secondary: cream with navy border — Save as Draft
   btnDraft: {
     flex: 1,
-    backgroundColor: '#F0EBE0',
+    backgroundColor: '#F5F0E8',
     borderRadius: 14,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -768,9 +768,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     borderWidth: 1.5,
-    borderColor: '#C9B99A',
+    borderColor: 'rgba(26,45,90,0.30)',
   },
-  btnDraftTxt: { color: '#5C6E8A', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
+  btnDraftTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
   btnBack: { alignItems: 'center', paddingVertical: 10 },
   btnBackTxt: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
 
