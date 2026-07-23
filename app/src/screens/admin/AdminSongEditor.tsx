@@ -69,6 +69,7 @@ export default function AdminSongEditor() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+  const [songToDelete, setSongToDelete] = useState<{ id: string, title: string } | null>(null);
   const [syncReceipt, setSyncReceipt] = useState({ savedTo: '', id: '' });
 
   // ── MEMBER VIEW STATE ────────────────────────────
@@ -215,28 +216,18 @@ export default function AdminSongEditor() {
   // ── RENDER POSTED SONG ITEM ──────────────────────
   const [adminSelectedSong, setAdminSelectedSong] = useState<WorshipSong | null>(null);
 
-  const handleDeleteSong = (id: string, title: string) => {
-    Alert.alert(
-      'Delete Song',
-      `Are you sure you want to delete "${title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await FirestoreService.deleteWorshipSong(id);
-              fetchPostedSongs();
-              setShowDeleteSuccess(true);
-              setTimeout(() => setShowDeleteSuccess(false), 2500);
-            } catch (e: any) {
-              Alert.alert('Error', e.message || 'Failed to delete song.');
-            }
-          }
-        }
-      ]
-    );
+  const confirmDeleteSong = async () => {
+    if (!songToDelete) return;
+    try {
+      await FirestoreService.deleteWorshipSong(songToDelete.id);
+      fetchPostedSongs();
+      setSongToDelete(null);
+      setShowDeleteSuccess(true);
+      setTimeout(() => setShowDeleteSuccess(false), 2500);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to delete song.');
+      setSongToDelete(null);
+    }
   };
 
   const handleToggleTheme = async (song: WorshipSong) => {
@@ -292,7 +283,7 @@ export default function AdminSongEditor() {
           <TouchableOpacity onPress={() => openEdit(item)} style={{ padding: 4 }}>
             <Pencil size={15} color="#1a2d5a" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleDeleteSong(item.id, item.title)} style={{ padding: 4 }}>
+          <TouchableOpacity onPress={() => setSongToDelete({ id: item.id, title: item.title })} style={{ padding: 4 }}>
             <Trash2 size={16} color="#ef4444" />
           </TouchableOpacity>
         </View>
@@ -596,25 +587,25 @@ export default function AdminSongEditor() {
           <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
           <Text style={styles.heroTitle}>Song Manager</Text>
         </View>
+      </View>
 
-        {/* Screen Tabs */}
-        <View style={styles.screenTabBar}>
-          <TouchableOpacity
-            style={[styles.screenTab, screenTab === 'post' && styles.screenTabActive]}
-            onPress={() => setScreenTab('post')}>
-            <Text style={[styles.screenTabTxt, screenTab === 'post' && styles.screenTabTxtActive]}>New Song</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.screenTab, screenTab === 'list' && styles.screenTabActive]}
-            onPress={() => setScreenTab('list')}>
-            <Text style={[styles.screenTabTxt, screenTab === 'list' && styles.screenTabTxtActive]}>All Songs</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.screenTab, screenTab === 'member' && styles.screenTabActive]}
-            onPress={() => setScreenTab('member')}>
-            <Text style={[styles.screenTabTxt, screenTab === 'member' && styles.screenTabTxtActive]}>Member View</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Screen Tabs */}
+      <View style={styles.screenTabBar}>
+        <TouchableOpacity
+          style={[styles.screenTab, screenTab === 'post' && styles.screenTabActive]}
+          onPress={() => setScreenTab('post')}>
+          <Text style={[styles.screenTabTxt, screenTab === 'post' && styles.screenTabTxtActive]}>New Song</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.screenTab, screenTab === 'list' && styles.screenTabActive]}
+          onPress={() => setScreenTab('list')}>
+          <Text style={[styles.screenTabTxt, screenTab === 'list' && styles.screenTabTxtActive]}>All Songs</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.screenTab, screenTab === 'member' && styles.screenTabActive]}
+          onPress={() => setScreenTab('member')}>
+          <Text style={[styles.screenTabTxt, screenTab === 'member' && styles.screenTabTxtActive]}>Member View</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Content */}
@@ -752,6 +743,33 @@ export default function AdminSongEditor() {
         </Modal>
       )}
 
+      {/* ── Delete Confirmation Modal ── */}
+      {songToDelete && (
+        <Modal transparent animationType="fade" visible>
+          <View style={styles.successBg}>
+            <View style={styles.successCard}>
+              <View style={[styles.successIconOuter, { backgroundColor: '#FEF2F2' }]}>
+                <View style={[styles.successIconInner, { backgroundColor: '#DC2626' }]}>
+                  <Trash2 size={28} color="#fff" />
+                </View>
+              </View>
+              <Text style={styles.successTitle}>Delete Song?</Text>
+              <Text style={styles.successDesc}>
+                Are you sure you want to delete "{songToDelete.title}"? This action cannot be undone.
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+                <TouchableOpacity style={[styles.successSecBtn, { flex: 1 }]} onPress={() => setSongToDelete(null)}>
+                  <Text style={styles.successSecTxt}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.successActionBtn, { flex: 1, backgroundColor: '#DC2626', marginBottom: 0 }]} onPress={confirmDeleteSong}>
+                  <Text style={styles.successActionTxt}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       {/* Delete Success Modal */}
       {showDeleteSuccess && (
         <View style={styles.toastOverlay}>
@@ -789,15 +807,18 @@ const styles = StyleSheet.create({
   // Screen Tab Bar
   screenTabBar: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 14,
     padding: 4,
-    gap: 4
+    gap: 4,
+    elevation: 2, shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 5, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)'
   },
   screenTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
-  screenTabActive: { backgroundColor: '#fff' },
-  screenTabTxt: { fontSize: 13, fontWeight: '700', color: 'rgba(255,255,255,0.7)' },
-  screenTabTxtActive: { color: '#1a2d5a' },
+  screenTabActive: { backgroundColor: '#1a2d5a' },
+  screenTabTxt: { fontSize: 13, fontWeight: '700', color: '#64748B' },
+  screenTabTxtActive: { color: '#fff' },
 
   scroll: { padding: 14 },
   
