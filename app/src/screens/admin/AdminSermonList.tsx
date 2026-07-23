@@ -10,7 +10,8 @@ import {
   Platform, 
   StatusBar,
   Dimensions,
-  Alert
+  Alert,
+  Modal
 } from 'react-native';
 import { 
   Search, 
@@ -36,6 +37,7 @@ export default function AdminSermonList() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+  const [sermonToDelete, setSermonToDelete] = useState<Sermon | null>(null);
 
   useEffect(() => {
     fetchSermons();
@@ -72,31 +74,20 @@ export default function AdminSermonList() {
     Linking.openURL(url).catch(err => console.error(err));
   };
 
-  const handleDelete = (sermon: Sermon) => {
-    Alert.alert(
-      "Delete Sermon",
-      `Are you sure you want to delete "${sermon.title}"?\n\nThis action cannot be undone.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive",
-          onPress: async () => {
-            if (!sermon.id) return;
-            try {
-              setLoading(true);
-              await FirestoreService.deleteSermon(sermon.id);
-              fetchSermons(); // Refresh list after delete
-              setShowDeleteSuccess(true);
-              setTimeout(() => setShowDeleteSuccess(false), 2500);
-            } catch (err: any) {
-              Alert.alert("Delete Failed", err.message || "Could not delete sermon.");
-              setLoading(false);
-            }
-          }
-        }
-      ]
-    );
+  const confirmDeleteSermon = async () => {
+    if (!sermonToDelete?.id) return;
+    try {
+      setLoading(true);
+      await FirestoreService.deleteSermon(sermonToDelete.id);
+      fetchSermons(); // Refresh list after delete
+      setSermonToDelete(null);
+      setShowDeleteSuccess(true);
+      setTimeout(() => setShowDeleteSuccess(false), 2500);
+    } catch (err: any) {
+      Alert.alert("Delete Failed", err.message || "Could not delete sermon.");
+      setSermonToDelete(null);
+      setLoading(false);
+    }
   };
 
   const stats = {
@@ -211,7 +202,7 @@ export default function AdminSermonList() {
                 <Edit2 size={16} color="#1a2d5a" />
                 <Text style={styles.editActionTxt}>Edit</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteAction} onPress={() => handleDelete(sermon)}>
+              <TouchableOpacity style={styles.deleteAction} onPress={() => setSermonToDelete(sermon)}>
                 <Trash2 size={16} color="#ef4444" />
                 <Text style={styles.deleteActionTxt}>Del</Text>
               </TouchableOpacity>
@@ -221,6 +212,33 @@ export default function AdminSermonList() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* ── Delete Confirmation Modal ── */}
+      {sermonToDelete && (
+        <Modal transparent animationType="fade" visible>
+          <View style={styles.successBg}>
+            <View style={styles.successCard}>
+              <View style={[styles.successIconOuter, { backgroundColor: '#FEF2F2' }]}>
+                <View style={[styles.successIconInner, { backgroundColor: '#DC2626' }]}>
+                  <Trash2 size={28} color="#fff" />
+                </View>
+              </View>
+              <Text style={styles.successTitle}>Delete Sermon?</Text>
+              <Text style={styles.successDesc}>
+                Are you sure you want to delete "{sermonToDelete.title}"? This action cannot be undone.
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+                <TouchableOpacity style={[styles.successSecBtn, { flex: 1 }]} onPress={() => setSermonToDelete(null)}>
+                  <Text style={styles.successSecTxt}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.successActionBtn, { flex: 1, backgroundColor: '#DC2626', marginBottom: 0 }]} onPress={confirmDeleteSermon}>
+                  <Text style={styles.successActionTxt}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
 
       {/* Delete Success Modal */}
       {showDeleteSuccess && (
@@ -369,5 +387,17 @@ const styles = StyleSheet.create({
   toastCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, paddingRight: 24, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#1a2d5a', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)' },
   toastIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center' },
   toastTitle: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
-  toastSub: { fontSize: 11, color: '#6B7280', marginTop: 2, fontWeight: '500' }
+  toastSub: { fontSize: 11, color: '#6B7280', marginTop: 2, fontWeight: '500' },
+
+  // Confirmation Modal
+  successBg: { flex: 1, backgroundColor: 'rgba(26,45,90, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  successCard: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center', elevation: 10 },
+  successIconOuter: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  successIconInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#2E6B4F', justifyContent: 'center', alignItems: 'center' },
+  successTitle: { fontSize: 20, fontWeight: '900', color: '#1a2d5a', marginBottom: 8, textAlign: 'center' },
+  successDesc: { fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
+  successActionBtn: { backgroundColor: '#1a2d5a', height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  successActionTxt: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  successSecBtn: { height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', backgroundColor: '#F8FAFC' },
+  successSecTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800' }
 });
