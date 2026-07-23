@@ -132,10 +132,10 @@ export default function AdminNotificationBroadcast() {
   const [showMeetingTimePicker, setShowMeetingTimePicker] = useState(false);
 
   const [emergencyAlert, setEmergencyAlert] = useState({
-    title: '🚨 EMERGENCY MEETING NOTICE',
+    title: '',
     time: 'Tonight at 7:30 PM',
-    location: 'Main Sanctuary',
-    message: 'URGENT: All church members are requested to join us for an emergency meeting regarding upcoming church events and building project updates.'
+    location: '',
+    message: ''
   });
 
   const [lastBroadcast, setLastBroadcast] = useState({
@@ -608,6 +608,8 @@ export default function AdminNotificationBroadcast() {
             <Text style={styles.fLabelSmall}>Meeting Title</Text>
             <TextInput 
               style={styles.inputBoxAlt} 
+              placeholder="🚨 EMERGENCY MEETING NOTICE"
+              placeholderTextColor="#94A3B8"
               value={emergencyAlert.title}
               onChangeText={(v) => setEmergencyAlert({...emergencyAlert, title: v})}
             />
@@ -651,7 +653,8 @@ export default function AdminNotificationBroadcast() {
             <Text style={styles.fLabelSmall}>Location</Text>
             <TextInput 
               style={styles.inputBoxAlt} 
-              placeholder="e.g. Main Sanctuary, Zoom conference, Fellowship Hall..."
+              placeholder="Main Sanctuary"
+              placeholderTextColor="#94A3B8"
               value={emergencyAlert.location}
               onChangeText={(v) => setEmergencyAlert({...emergencyAlert, location: v})}
             />
@@ -662,6 +665,8 @@ export default function AdminNotificationBroadcast() {
             <TextInput 
               style={[styles.inputBoxAlt, styles.textArea]} 
               multiline
+              placeholder="URGENT: All church members are requested to join us for an emergency meeting regarding upcoming church events and building project updates."
+              placeholderTextColor="#94A3B8"
               value={emergencyAlert.message}
               onChangeText={(v) => setEmergencyAlert({...emergencyAlert, message: v})}
             />
