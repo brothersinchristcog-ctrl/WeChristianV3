@@ -740,10 +740,10 @@ const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 16,
   },
-  // Primary: deep navy — Save & Publish
+  // Primary: forest green — Save & Publish
   btnSave: {
     flex: 1,
-    backgroundColor: '#1a2d5a',
+    backgroundColor: '#2E6B4F',
     borderRadius: 14,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -751,8 +751,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 7,
     elevation: 6,
-    shadowColor: '#1a2d5a',
-    shadowOpacity: 0.30,
+    shadowColor: '#2E6B4F',
+    shadowOpacity: 0.35,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
   },
