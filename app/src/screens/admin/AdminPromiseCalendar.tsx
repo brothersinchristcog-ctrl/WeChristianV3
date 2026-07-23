@@ -154,7 +154,7 @@ export default function AdminPromiseCalendar() {
           <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
         <Text style={styles.heroTitle}>Promise Calendar</Text>
         </View>
-        <Text style={styles.heroSub}>{getMonthName(month)} {year} — tap any date to edit</Text>
+        <Text style={styles.heroSub}>{getMonthName(month)} {year}</Text>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -323,8 +323,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderWidth: 1,
     borderColor: 'rgba(26,45,90,0.08)',
-    borderTopWidth: 3,
-    borderTopColor: '#1a2d5a',
     shadowColor: '#1a2d5a',
     shadowOpacity: 0.06,
     shadowRadius: 8,
@@ -430,8 +428,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(26,45,90,0.08)',
-    borderTopWidth: 3,
-    borderTopColor: '#1a2d5a',
     shadowColor: '#1a2d5a',
     shadowOpacity: 0.06,
     shadowRadius: 8,
