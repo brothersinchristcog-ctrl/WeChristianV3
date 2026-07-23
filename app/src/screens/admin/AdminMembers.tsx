@@ -15,16 +15,18 @@ import {
   Share,
   KeyboardAvoidingView
 } from 'react-native';
-import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2 } from 'lucide-react-native';
+import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2, ChevronLeft } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
 import { CustomAlert, AlertButton } from '../../components/CustomAlert';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { AdminTabContext } from '../../context/AdminTabContext';
 
 const { width } = Dimensions.get('window');
 
 export default function AdminMembers() {
   const { activeChurch } = useChurch();
+  const { setActiveTab } = React.useContext(AdminTabContext);
   const [members, setMembers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -387,6 +389,28 @@ export default function AdminMembers() {
         buttons={alertConfig.buttons}
         onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
       />
+
+      {/* ── Hero Section ── */}
+      <View style={styles.hero}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View>
+              <Text style={styles.heroTitle}>Members</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]}>{members.length} total · {members.filter(m => m.status !== 'Inactive').length} active</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.newBtn} onPress={() => setAddModalVisible(true)}>
+            <Plus size={16} color="#1a2d5a" />
+            <Text style={styles.newBtnTxt}>New</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scroll}
@@ -399,20 +423,7 @@ export default function AdminMembers() {
         }
       >
         
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>Church Members</Text>
-            <Text style={styles.subtitle}>Directory & Status Tracking</Text>
-          </View>
-          <TouchableOpacity 
-            style={[styles.headerIconCircle, { width: 'auto', paddingHorizontal: 16, flexDirection: 'row', gap: 6, borderRadius: 20 }]}
-            onPress={() => setAddModalVisible(true)}
-          >
-            <Plus size={18} color="#fff" />
-            <Text style={{ color: '#fff', fontWeight: 'bold' }}>Add Member</Text>
-          </TouchableOpacity>
-        </View>
+        <View style={{ height: 4 }} />
 
         {/* Stats Row */}
         <View style={styles.statsRow}>
@@ -748,26 +759,37 @@ const styles = StyleSheet.create({
   errorTxt: { fontSize: 14, color: '#c0392b', textAlign: 'center', marginBottom: 15, fontWeight: '600' },
   retryBtn: { backgroundColor: '#1a2d5a', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
   retryBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  scroll: { padding: 16 },
-  header: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    marginBottom: 15, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#c0392b', 
-    paddingBottom: 10 
+  scroll: { padding: 16, paddingBottom: 100 },
+
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6,
   },
-  title: { fontSize: 16, fontWeight: '700', color: '#1a2d5a' },
-  subtitle: { fontSize: 10, color: '#9CA3AF' },
-  headerIconCircle: { 
-    width: 32, 
-    height: 32, 
-    borderRadius: 16, 
-    backgroundColor: '#1a2d5a', 
-    justifyContent: 'center', 
-    alignItems: 'center' 
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroSub: { color: '#AEB8D4', fontSize: 13 },
+  
+  newBtn: { 
+    backgroundColor: '#C9A84C', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 12,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4
   },
+  newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 15 },
   statCard: { 
