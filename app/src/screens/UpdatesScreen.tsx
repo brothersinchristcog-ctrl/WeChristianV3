@@ -393,6 +393,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     navigation.navigate('Sermons');
                   } else if (update.type === 'event') {
                     navigation.navigate('Events');
+                  } else if (update.type === 'attendance') {
+                    navigation.navigate('AttendanceScreen');
                   } else {
                     setSelectedUpdate(update);
                   }
