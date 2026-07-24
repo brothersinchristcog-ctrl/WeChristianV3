@@ -90,12 +90,25 @@ export default function AdminAttendance() {
     setHistoryLoading(true);
     try {
       const all = await FirestoreService.getAttendanceRequests();
-      setHistory(all);
+      // Fetch responses for each to calculate accurate statistics
+      const historyWithStats = await Promise.all(all.map(async (req) => {
+        const resps = await FirestoreService.getAttendanceResponses(req.id);
+        const yesCount = resps.filter((r: any) => r.response === 'Yes').length;
+        const noCount = resps.filter((r: any) => r.response === 'No').length;
+        return { ...req, yesCount, noCount, responses: resps };
+      }));
+      setHistory(historyWithStats);
     } catch (e) {
       console.error('History load error:', e);
     } finally {
       setHistoryLoading(false);
     }
+  };
+
+  const toggleHistoryExpand = (id: string) => {
+    setHistory(prev => prev.map(req => 
+      req.id === id ? { ...req, _expanded: !req._expanded } : req
+    ));
   };
 
   const handleCreateRequest = async () => {
@@ -323,8 +336,9 @@ export default function AdminAttendance() {
         )}
 
         {/* ── Attendance History ── */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeaderRow}>
+        {!showNewForm && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeaderRow}>
             <History size={18} color={COLORS.ink} />
             <Text style={[styles.sectionTitle, { marginLeft: 8, marginBottom: 0 }]}>Attendance History</Text>
           </View>
@@ -341,13 +355,24 @@ export default function AdminAttendance() {
             </View>
           ) : (
             history.map((req) => {
+              const pendingCount = allMembers.filter(m => !req.responses?.find((r: any) => r.memberId === m.id)).length;
               const totalResp = (req.yesCount || 0) + (req.noCount || 0);
               const date = req.date
                 ? new Date(req.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                 : 'N/A';
               const isActive = req.status === 'Active';
+              
+              const yesList = req.responses?.filter((r: any) => r.response === 'Yes') || [];
+              const noList = req.responses?.filter((r: any) => r.response === 'No') || [];
+              const pendingList = allMembers.filter(m => !req.responses?.find((r: any) => r.memberId === m.id));
+
               return (
-                <View key={req.id} style={styles.historyCard}>
+                <TouchableOpacity 
+                  key={req.id} 
+                  style={styles.historyCard}
+                  onPress={() => toggleHistoryExpand(req.id)}
+                  activeOpacity={0.7}
+                >
                   <View style={styles.historyCardHeader}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.historyTitle}>{req.title}</Text>
@@ -362,26 +387,62 @@ export default function AdminAttendance() {
                   <View style={styles.historyStats}>
                     <View style={styles.historyStatItem}>
                       <CheckCircle size={14} color="#10b981" />
-                      <Text style={[styles.historyStatTxt, { color: '#10b981' }]}>Yes: {req.yesCount || '–'}</Text>
+                      <Text style={[styles.historyStatTxt, { color: '#10b981' }]}>Yes: {req.yesCount || 0}</Text>
                     </View>
                     <View style={styles.historyStatItem}>
                       <XCircle size={14} color="#ef4444" />
-                      <Text style={[styles.historyStatTxt, { color: '#ef4444' }]}>No: {req.noCount || '–'}</Text>
+                      <Text style={[styles.historyStatTxt, { color: '#ef4444' }]}>No: {req.noCount || 0}</Text>
                     </View>
                     <View style={styles.historyStatItem}>
                       <Clock size={14} color="#f59e0b" />
-                      <Text style={[styles.historyStatTxt, { color: '#f59e0b' }]}>Pending: {req.pendingCount || '–'}</Text>
-                    </View>
-                    <View style={styles.historyStatItem}>
-                      <Users size={14} color={COLORS.inkSoft} />
-                      <Text style={[styles.historyStatTxt, { color: COLORS.inkSoft }]}>Total: {totalResp}</Text>
+                      <Text style={[styles.historyStatTxt, { color: '#f59e0b' }]}>Pending: {pendingCount}</Text>
                     </View>
                   </View>
-                </View>
+
+                  {/* ── Expandable Detail Section ── */}
+                  {req._expanded && (
+                    <View style={styles.historyDetails}>
+                      <View style={{ height: 1, backgroundColor: COLORS.rule, marginVertical: 16 }} />
+                      
+                      {/* Yes List */}
+                      {yesList.length > 0 && (
+                        <View style={{ marginBottom: 12 }}>
+                          <Text style={styles.detailTitle}>Attending ({yesList.length})</Text>
+                          {yesList.map((r: any) => (
+                            <Text key={r.memberId} style={styles.detailName}>• {r.memberName}</Text>
+                          ))}
+                        </View>
+                      )}
+                      
+                      {/* No List */}
+                      {noList.length > 0 && (
+                        <View style={{ marginBottom: 12 }}>
+                          <Text style={styles.detailTitle}>Not Attending ({noList.length})</Text>
+                          {noList.map((r: any) => (
+                            <Text key={r.memberId} style={styles.detailName}>
+                              • {r.memberName} {r.reason ? <Text style={styles.detailReason}>({r.reason})</Text> : null}
+                            </Text>
+                          ))}
+                        </View>
+                      )}
+
+                      {/* Pending List */}
+                      {pendingList.length > 0 && (
+                        <View>
+                          <Text style={styles.detailTitle}>Pending ({pendingList.length})</Text>
+                          <Text style={styles.detailName} numberOfLines={2}>
+                            {pendingList.map(m => m.name || m.firstName).join(', ')}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+                </TouchableOpacity>
               );
             })
           )}
         </View>
+        )}
 
         <View style={{ height: 50 }} />
       </ScrollView>
@@ -491,4 +552,9 @@ const styles = StyleSheet.create({
   historyStats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   historyStatItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   historyStatTxt: { fontSize: 12, fontWeight: '600' },
+  
+  historyDetails: { marginTop: 4 },
+  detailTitle: { fontSize: 13, fontWeight: '700', color: COLORS.inkSoft, marginBottom: 4 },
+  detailName: { fontSize: 14, color: COLORS.ink, marginBottom: 2, lineHeight: 20 },
+  detailReason: { fontStyle: 'italic', color: '#be185d' }
 });
