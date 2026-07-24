@@ -134,35 +134,47 @@ export default function SongsScreen({ navigation }: any) {
     (song.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
 
   // ── Filtered songs ────────────────────────────────
-  const filteredBrowse = songs.filter(s => {
+  const browseBaseList = songs.filter(s => {
     const cats = getSongCategories(s);
-    // Songs that are ONLY a Theme Song stay in Theme tab; others (including those that are also Theme Song) show in Browse too
+    // Songs that are ONLY a Theme Song stay in Theme tab; others show in Browse too
     if (cats.length === 1 && cats[0] === 'Theme Songs') return false;
+    return selectedCategory === 'All' || cats.includes(selectedCategory);
+  });
+
+  const filteredBrowse = browseBaseList.map((s, idx) => ({ ...s, displayNumber: idx + 1 })).filter(s => {
     const q = search.toLowerCase().trim();
-    const matchCategory = selectedCategory === 'All' || cats.includes(selectedCategory);
-    const matchSearch = !q ||
+    if (!q) return true;
+    return s.displayNumber.toString() === q ||
       s.title.toLowerCase().includes(q) ||
       (s.titleTe && s.titleTe.toLowerCase().includes(q)) ||
       (s.artist && s.artist.toLowerCase().includes(q));
-    return matchCategory && matchSearch;
   });
 
-  const savedSongs = songs.filter(s => savedIds.includes(s.id));
-  const filteredSongbook = savedSongs.filter(s => {
+  const savedSongsBase = songs.filter(s => savedIds.includes(s.id));
+  const filteredSongbook = savedSongsBase.map((s, idx) => ({ ...s, displayNumber: idx + 1 })).filter(s => {
     const q = search.toLowerCase().trim();
-    return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q));
+    if (!q) return true;
+    return s.displayNumber.toString() === q ||
+      s.title.toLowerCase().includes(q) ||
+      (s.titleTe && s.titleTe.toLowerCase().includes(q));
   });
 
-  const filteredTheme = songs.filter(s => {
+  const themeBaseList = songs.filter(s => {
     const cats = getSongCategories(s);
-    if (!cats.includes('Theme Songs')) return false;
+    return cats.includes('Theme Songs');
+  });
+  const filteredTheme = themeBaseList.map((s, idx) => ({ ...s, displayNumber: idx + 1 })).filter(s => {
     const q = search.toLowerCase().trim();
-    return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q));
+    if (!q) return true;
+    return s.displayNumber.toString() === q ||
+      s.title.toLowerCase().includes(q) ||
+      (s.titleTe && s.titleTe.toLowerCase().includes(q));
   });
 
   // ── Song Card ─────────────────────────────────────
-  const renderSongCard = ({ item, index }: { item: WorshipSong; index: number }) => {
+  const renderSongCard = ({ item, index }: { item: WorshipSong & { displayNumber?: number }; index: number }) => {
     const isSaved = savedIds.includes(item.id);
+    const displayIndex = item.displayNumber !== undefined ? item.displayNumber : index + 1;
     return (
       <TouchableOpacity
         style={[styles.songCard, { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#e5e7eb' }]}
@@ -171,7 +183,7 @@ export default function SongsScreen({ navigation }: any) {
         delayLongPress={400}
       >
         <View style={[styles.indexBox, { backgroundColor: isDark ? '#0f172a' : '#f3f4f6' }]}>
-          <Text style={[styles.indexTxt, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{index + 1}</Text>
+          <Text style={[styles.indexTxt, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{displayIndex}</Text>
         </View>
         <View style={styles.info}>
           <Text style={[styles.title, { color: isDark ? '#fff' : '#111827' }]} numberOfLines={1}>{item.title}</Text>
