@@ -279,7 +279,6 @@ export default function AttendanceScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
             )}
-              </View>
             )}
           </View>
         )}
