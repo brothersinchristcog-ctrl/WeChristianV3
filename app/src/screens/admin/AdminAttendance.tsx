@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CheckCircle, XCircle, Clock, Calendar, Users, Send } from 'lucide-react-native';
+import { CheckCircle, XCircle, Clock, Calendar, Users, Send, ChevronLeft, Plus } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
-import { useAuth } from '../../context/AuthContext';
 import { useChurch } from '../../context/ChurchContext';
 import { useTheme } from '../../context/ThemeContext';
+import { AdminTabContext } from '../../context/AdminTabContext';
 
 const { width } = Dimensions.get('window');
 
 export default function AdminAttendance() {
+  const { setActiveTab } = React.useContext(AdminTabContext);
   const { activeChurch } = useChurch();
   const { isDark } = useTheme();
   
@@ -105,9 +106,30 @@ export default function AdminAttendance() {
   }
 
   return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} style={[styles.container, { backgroundColor: bgColor }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+    <View style={[styles.container, { backgroundColor: bgColor }]}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         
+        {/* ── Hero Section ── */}
+        <View style={styles.hero}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+              </TouchableOpacity>
+              <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+              <View>
+                <Text style={styles.heroTitle}>Attendance</Text>
+                <Text style={[styles.heroSub, { marginTop: 2 }]}>{responses.length} responses · {pendingMembers.length} pending</Text>
+              </View>
+            </View>
+            <TouchableOpacity style={styles.newBtn} onPress={() => setShowNewForm(true)}>
+              <Plus size={16} color="#1a2d5a" />
+              <Text style={styles.newBtnTxt}>New</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {!activeRequest || showNewForm ? (
           <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
             <View style={styles.cardHeader}>
@@ -168,9 +190,6 @@ export default function AdminAttendance() {
                   {new Date(activeRequest.createdAt?.toDate?.() || Date.now()).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                 </Text>
               </View>
-              <TouchableOpacity style={styles.newBtn} onPress={() => setShowNewForm(true)}>
-                <Text style={styles.newBtnText}>New</Text>
-              </TouchableOpacity>
             </View>
 
             {/* Stats Row */}
@@ -249,15 +268,40 @@ export default function AdminAttendance() {
         )}
         
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  scrollContent: { padding: 16 },
+  scrollContent: { paddingBottom: 40 },
+
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    marginBottom: 16,
+  },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroSub: { color: '#AEB8D4', fontSize: 13 },
+  
+  newBtn: { 
+    backgroundColor: '#C9A84C', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 12,
+    elevation: 4
+  },
+  newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
   
   card: {
+    marginHorizontal: 16,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
@@ -276,18 +320,16 @@ const styles = StyleSheet.create({
   btnSecondary: { paddingVertical: 16, alignItems: 'center', marginTop: 8 },
   btnSecondaryText: { fontSize: 15, fontWeight: '600' },
 
-  activeHeader: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
+  activeHeader: { marginHorizontal: 16, flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
   activeTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
   activeDate: { fontSize: 13 },
-  newBtn: { backgroundColor: '#1a2d5a', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
-  newBtnText: { color: '#FCD34D', fontWeight: '700', fontSize: 13 },
 
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, gap: 12 },
+  statsRow: { marginHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, gap: 12 },
   statCard: { flex: 1, borderRadius: 16, borderWidth: 1, padding: 16, alignItems: 'center', elevation: 1 },
   statNum: { fontSize: 24, fontWeight: '800', marginVertical: 8 },
   statLbl: { fontSize: 12, fontWeight: '500' },
 
-  section: { marginBottom: 24 },
+  section: { marginHorizontal: 16, marginBottom: 24 },
   sectionTitle: { fontSize: 16, fontWeight: '700', marginBottom: 12, marginLeft: 4 },
   listCard: { borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
   listItem: { flexDirection: 'row', alignItems: 'center', padding: 16 },
