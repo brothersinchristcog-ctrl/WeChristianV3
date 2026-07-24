@@ -1313,6 +1313,35 @@ class FirestoreService {
       return null;
     }
   }
+
+  async listenActiveAttendanceRequest(callback: (request: any) => void) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      return col.where('status', '==', 'Active').orderBy('createdAt', 'desc').limit(1).onSnapshot(snapshot => {
+        if (!snapshot.empty) {
+          callback({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+        } else {
+          callback(null);
+        }
+      });
+    } catch (e) {
+      console.error('Error listening to active attendance request:', e);
+      return () => {};
+    }
+  }
+
+  async listenAttendanceResponses(requestId: string, callback: (responses: any[]) => void) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      return col.doc(requestId).collection('responses').onSnapshot(snapshot => {
+        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        callback(data);
+      });
+    } catch (e) {
+      console.error('Error listening to attendance responses:', e);
+      return () => {};
+    }
+  }
 }
 
 export default new FirestoreService();

@@ -25,29 +25,43 @@ export default function AdminAttendance() {
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const EVENT_TYPES = ['Sunday Worship Service', 'Wednesday Bible Study', 'Youth Meeting', 'Special Event'];
+  
   useEffect(() => {
-    fetchData();
-  }, [activeChurch]);
+    let unsubActive: any = null;
+    let unsubResponses: any = null;
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const request = await FirestoreService.getActiveAttendanceRequest();
-      setActiveRequest(request);
-      
-      const members = await FirestoreService.searchMembers('');
-      setAllMembers(members);
-      
-      if (request) {
-        const resps = await FirestoreService.getAttendanceResponses(request.id);
-        setResponses(resps);
+    const setupListeners = async () => {
+      setLoading(true);
+      try {
+        const members = await FirestoreService.searchMembers('');
+        setAllMembers(members);
+
+        unsubActive = await FirestoreService.listenActiveAttendanceRequest(async (request) => {
+          setActiveRequest(request);
+          if (request) {
+            if (unsubResponses) unsubResponses();
+            unsubResponses = await FirestoreService.listenAttendanceResponses(request.id, (resps) => {
+              setResponses(resps);
+            });
+          } else {
+            setResponses([]);
+          }
+        });
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    setupListeners();
+
+    return () => {
+      if (typeof unsubActive === 'function') unsubActive();
+      if (typeof unsubResponses === 'function') unsubResponses();
+    };
+  }, [activeChurch]);
 
   const handleCreateRequest = async () => {
     if (!title.trim()) {
@@ -77,7 +91,6 @@ export default function AdminAttendance() {
       setShowNewForm(false);
       setTitle('');
       setDescription('');
-      fetchData();
     } catch (e) {
       Alert.alert('Error', 'Failed to create request');
     } finally {
@@ -123,10 +136,6 @@ export default function AdminAttendance() {
                 <Text style={[styles.heroSub, { marginTop: 2 }]}>{responses.length} responses · {pendingMembers.length} pending</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.newBtn} onPress={() => setShowNewForm(true)}>
-              <Plus size={16} color="#1a2d5a" />
-              <Text style={styles.newBtnTxt}>New</Text>
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -140,16 +149,20 @@ export default function AdminAttendance() {
               Create a new request for today's service or event. This will notify all members in the church.
             </Text>
             
-            <Text style={[styles.inputLabel, { color: textColor }]}>Event Title *</Text>
-            <TextInput
-              style={[styles.input, { color: textColor, borderColor }]}
-              placeholder="e.g., Sunday Worship Service"
-              placeholderTextColor={subTextColor}
-              value={title}
-              onChangeText={setTitle}
-            />
+            <Text style={[styles.inputLabel, { color: textColor }]}>Select Event Type *</Text>
+            <View style={styles.typeChipsRow}>
+              {EVENT_TYPES.map(type => (
+                <TouchableOpacity 
+                  key={type} 
+                  style={[styles.typeChip, title === type && { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' }]}
+                  onPress={() => setTitle(type)}
+                >
+                  <Text style={[styles.typeChipTxt, title === type && { color: '#FCD34D' }]}>{type}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             
-            <Text style={[styles.inputLabel, { color: textColor }]}>Description (Optional)</Text>
+            <Text style={[styles.inputLabel, { color: textColor, marginTop: 16 }]}>Description (Optional)</Text>
             <TextInput
               style={[styles.input, { color: textColor, borderColor, height: 80, textAlignVertical: 'top' }]}
               placeholder="e.g., Special guest speaker today..."
@@ -160,9 +173,9 @@ export default function AdminAttendance() {
             />
             
             <TouchableOpacity 
-              style={[styles.btnPrimary, { opacity: isSubmitting ? 0.7 : 1 }]} 
+              style={[styles.btnPrimary, { opacity: (isSubmitting || !title) ? 0.7 : 1, marginTop: 8 }]} 
               onPress={handleCreateRequest}
-              disabled={isSubmitting}
+              disabled={isSubmitting || !title}
             >
               {isSubmitting ? (
                 <ActivityIndicator color="#fff" size="small" />
@@ -190,6 +203,10 @@ export default function AdminAttendance() {
                   {new Date(activeRequest.createdAt?.toDate?.() || Date.now()).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                 </Text>
               </View>
+              <TouchableOpacity style={styles.newBtnSolid} onPress={() => setShowNewForm(true)}>
+                <Plus size={16} color="#FCD34D" />
+                <Text style={styles.newBtnSolidTxt}>Create New Request</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Stats Row */}
@@ -288,18 +305,6 @@ const styles = StyleSheet.create({
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
   heroSub: { color: '#AEB8D4', fontSize: 13 },
   
-  newBtn: { 
-    backgroundColor: '#C9A84C', 
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 16, 
-    paddingVertical: 10, 
-    borderRadius: 12,
-    elevation: 4
-  },
-  newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
-  
   card: {
     marginHorizontal: 16,
     borderRadius: 16,
@@ -312,8 +317,12 @@ const styles = StyleSheet.create({
   cardTitle: { fontSize: 20, fontWeight: '700', marginLeft: 12 },
   cardDesc: { fontSize: 14, lineHeight: 20, marginBottom: 20 },
   
+  typeChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  typeChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: '#f8fafc' },
+  typeChipTxt: { fontSize: 14, fontWeight: '600', color: '#64748b' },
+
   inputLabel: { fontSize: 13, fontWeight: '600', marginBottom: 6, marginLeft: 4 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, marginBottom: 20 },
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, marginBottom: 12 },
   
   btnPrimary: { backgroundColor: '#1a2d5a', borderRadius: 12, paddingVertical: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
   btnPrimaryText: { color: '#fff', fontSize: 16, fontWeight: '700' },
@@ -323,6 +332,9 @@ const styles = StyleSheet.create({
   activeHeader: { marginHorizontal: 16, flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
   activeTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4 },
   activeDate: { fontSize: 13 },
+  
+  newBtnSolid: { backgroundColor: '#1a2d5a', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, gap: 6 },
+  newBtnSolidTxt: { color: '#FCD34D', fontWeight: '700', fontSize: 13 },
 
   statsRow: { marginHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 24, gap: 12 },
   statCard: { flex: 1, borderRadius: 16, borderWidth: 1, padding: 16, alignItems: 'center', elevation: 1 },
