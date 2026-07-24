@@ -116,12 +116,6 @@ export default function AdminAttendance() {
     }
   };
 
-  const toggleHistoryExpand = (id: string) => {
-    setHistory(prev => prev.map(req => 
-      req.id === id ? { ...req, _expanded: !req._expanded } : req
-    ));
-  };
-
   const handleCreateRequest = async () => {
     if (!title.trim()) {
       Alert.alert('Error', 'Please select an event type.');
@@ -378,25 +372,6 @@ export default function AdminAttendance() {
               </View>
             )}
 
-            {/* Pending */}
-            {pendingMembers.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Pending ({pendingMembers.length})</Text>
-                <View style={styles.listCard}>
-                  {pendingMembers.map((m, i) => (
-                    <View key={m.id} style={[styles.listItem, i < pendingMembers.length - 1 && styles.listItemBorder]}>
-                      <View style={[styles.avatar, { backgroundColor: '#f3f4f6' }]}>
-                        <Text style={[styles.avatarTxt, { color: COLORS.inkSoft }]}>
-                          {m.name?.charAt(0) || m.firstName?.charAt(0) || 'U'}
-                        </Text>
-                      </View>
-                      <Text style={styles.listName}>{m.name || m.firstName || 'Unknown Member'}</Text>
-                      <Clock size={16} color="#f59e0b" />
-                    </View>
-                  ))}
-                </View>
-              </View>
-            )}
           </>
         )}
 
@@ -427,16 +402,10 @@ export default function AdminAttendance() {
                 : 'N/A';
               const isActive = req.status === 'Active';
               
-              const yesList = req.responses?.filter((r: any) => r.response === 'Yes') || [];
-              const noList = req.responses?.filter((r: any) => r.response === 'No') || [];
-              const pendingList = allMembers.filter(m => !req.responses?.find((r: any) => r.memberId === m.id));
-
               return (
-                <TouchableOpacity 
+                <View 
                   key={req.id} 
                   style={styles.historyCard}
-                  onPress={() => toggleHistoryExpand(req.id)}
-                  activeOpacity={0.7}
                 >
                   <View style={styles.historyCardHeader}>
                     <View style={{ flex: 1 }}>
@@ -472,46 +441,7 @@ export default function AdminAttendance() {
                       <Text style={[styles.historyStatTxt, { color: '#f59e0b' }]}>Pending: {pendingCount}</Text>
                     </View>
                   </View>
-
-                  {/* ── Expandable Detail Section ── */}
-                  {req._expanded && (
-                    <View style={styles.historyDetails}>
-                      <View style={{ height: 1, backgroundColor: COLORS.rule, marginVertical: 16 }} />
-                      
-                      {/* Yes List */}
-                      {yesList.length > 0 && (
-                        <View style={{ marginBottom: 12 }}>
-                          <Text style={styles.detailTitle}>Attending ({yesList.length})</Text>
-                          {yesList.map((r: any) => (
-                            <Text key={r.memberId} style={styles.detailName}>• {r.memberName}</Text>
-                          ))}
-                        </View>
-                      )}
-                      
-                      {/* No List */}
-                      {noList.length > 0 && (
-                        <View style={{ marginBottom: 12 }}>
-                          <Text style={styles.detailTitle}>Not Attending ({noList.length})</Text>
-                          {noList.map((r: any) => (
-                            <Text key={r.memberId} style={styles.detailName}>
-                              • {r.memberName} {r.reason ? <Text style={styles.detailReason}>({r.reason})</Text> : null}
-                            </Text>
-                          ))}
-                        </View>
-                      )}
-
-                      {/* Pending List */}
-                      {pendingList.length > 0 && (
-                        <View>
-                          <Text style={styles.detailTitle}>Pending ({pendingList.length})</Text>
-                          <Text style={styles.detailName} numberOfLines={2}>
-                            {pendingList.map(m => m.name || m.firstName).join(', ')}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-                </TouchableOpacity>
+                </View>
               );
             })
           )}
@@ -641,9 +571,4 @@ const styles = StyleSheet.create({
   historyStats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   historyStatItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   historyStatTxt: { fontSize: 12, fontWeight: '600' },
-  
-  historyDetails: { marginTop: 4 },
-  detailTitle: { fontSize: 13, fontWeight: '700', color: COLORS.inkSoft, marginBottom: 4 },
-  detailName: { fontSize: 14, color: COLORS.ink, marginBottom: 2, lineHeight: 20 },
-  detailReason: { fontStyle: 'italic', color: '#be185d' }
 });
