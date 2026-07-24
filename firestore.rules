@@ -227,6 +227,17 @@ service cloud.firestore {
         allow read, write: if isChurchAdmin();
       }
 
+      // Attendance Requests & Responses
+      match /attendanceRequests/{requestId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+
+        match /responses/{responseId} {
+          allow read: if isAuthenticated();
+          allow write: if isAuthenticated();
+        }
+      }
+
       // Any other church subcollection: authenticated members can read, admins can write
       match /{subcollection}/{docId} {
         allow read: if isAuthenticated();
