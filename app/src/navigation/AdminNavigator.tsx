@@ -43,6 +43,7 @@ import AdminCelebrations from '../screens/admin/AdminCelebrations';
 import AdminAboutUsEditor from '../screens/admin/AdminAboutUsEditor';
 import AdminContactUsEditor from '../screens/admin/AdminContactUsEditor';
 import AdminChurchSettings from '../screens/admin/AdminChurchSettings';
+import AdminAttendance from '../screens/admin/AdminAttendance';
 import PastorEventDashboard from '../screens/admin/pastor_events/PastorEventDashboard';
 import SuperAdminDashboard from '../screens/admin/SuperAdminDashboard';
 import AdminSubscriptionScreen from '../screens/admin/AdminSubscriptionScreen';
@@ -116,6 +117,7 @@ export default function AdminNavigator({ navigation }: any) {
     { name: 'New Event', icon: PlusSquare, component: AdminEventEditor },
     { name: 'Pastor Event', icon: MapPin, component: PastorEventDashboard },
     { name: 'Prayers', icon: Heart, component: AdminPrayerModeration },
+    { name: 'Attendance', icon: Users, component: AdminAttendance },
     { name: 'Members', icon: Users, component: AdminMembers },
     { name: 'Celebrations', icon: Gift, component: AdminCelebrations },
     ...((member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin') ? [{ name: 'WeCelebrations', icon: Gift, component: AdminWeCelebrations }] : []),

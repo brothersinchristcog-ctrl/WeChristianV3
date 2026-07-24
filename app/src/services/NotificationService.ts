@@ -85,6 +85,9 @@ class NotificationService {
       case 'promise':
         navigation.navigate('Tabs', { screen: 'Home' });
         break;
+      case 'attendance':
+        navigation.navigate('AttendanceScreen');
+        break;
       case 'birthday':
       case 'anniversary':
       case 'baptism':

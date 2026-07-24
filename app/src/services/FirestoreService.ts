@@ -1223,6 +1223,96 @@ class FirestoreService {
       return [];
     }
   }
+
+  // --- 📝 Attendance ---
+
+  async createAttendanceRequest(data: { title: string; date: string; description?: string }) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      const docRef = await col.add({
+        ...data,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        status: 'Active'
+      });
+      return docRef.id;
+    } catch (e) {
+      console.error('Error creating attendance request:', e);
+      throw e;
+    }
+  }
+
+  async getAttendanceRequests() {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      const snapshot = await col.orderBy('createdAt', 'desc').get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+      console.error('Error fetching attendance requests:', e);
+      return [];
+    }
+  }
+
+  async submitAttendanceResponse(requestId: string, memberId: string, memberName: string, response: 'Yes' | 'No', reason?: string) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      const requestRef = col.doc(requestId);
+      const responsesCol = requestRef.collection('responses');
+      
+      // Update or set the response for this member
+      await responsesCol.doc(memberId).set({
+        memberId,
+        memberName,
+        response,
+        reason: reason || null,
+        submittedAt: firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      
+      return true;
+    } catch (e) {
+      console.error('Error submitting attendance response:', e);
+      throw e;
+    }
+  }
+
+  async getAttendanceResponses(requestId: string) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      const responsesCol = col.doc(requestId).collection('responses');
+      const snapshot = await responsesCol.get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+      console.error('Error fetching attendance responses:', e);
+      return [];
+    }
+  }
+
+  async getMemberAttendanceResponse(requestId: string, memberId: string) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      const responseDoc = await col.doc(requestId).collection('responses').doc(memberId).get();
+      if (responseDoc.exists) {
+        return { id: responseDoc.id, ...responseDoc.data() };
+      }
+      return null;
+    } catch (e) {
+      console.error('Error fetching member attendance response:', e);
+      return null;
+    }
+  }
+
+  async getActiveAttendanceRequest() {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      const snapshot = await col.where('status', '==', 'Active').orderBy('createdAt', 'desc').limit(1).get();
+      if (!snapshot.empty) {
+        return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+      }
+      return null;
+    } catch (e) {
+      console.error('Error fetching active attendance request:', e);
+      return null;
+    }
+  }
 }
 
 export default new FirestoreService();

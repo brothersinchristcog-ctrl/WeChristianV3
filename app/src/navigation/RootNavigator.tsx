@@ -45,6 +45,7 @@ import SubscriptionScreen from '../screens/SubscriptionScreen';
 import BibleSearchScreen from '../screens/BibleSearchScreen';
 import AboutUsScreen from '../screens/AboutUsScreen';
 import ContactUsScreen from '../screens/ContactUsScreen';
+import AttendanceScreen from '../screens/AttendanceScreen';
 import PastorEventDetail from '../screens/admin/pastor_events/PastorEventDetail';
 import CreatePastorEvent from '../screens/admin/pastor_events/CreatePastorEvent';
 import PastorEventRoutePlanner from '../screens/admin/pastor_events/PastorEventRoutePlanner';
@@ -447,6 +448,7 @@ function Navigation() {
         ) : onboardingComplete ? (
           <>
             <Stack.Screen name="Tabs" component={TabNavigator} />
+            <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
             <Stack.Screen name="DailyVideo" component={DailyVideoScreen} />
             <Stack.Screen name="SermonVideo" component={SermonVideoScreen} />
             <Stack.Screen name="Events" component={EventsScreen} />
