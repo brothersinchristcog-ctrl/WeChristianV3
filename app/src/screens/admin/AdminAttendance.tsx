@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { CheckCircle, XCircle, Clock, Calendar, Users, Send, ChevronLeft, Plus, History, Trash2 } from 'lucide-react-native';
+import { CustomAlert } from '../../components/CustomAlert';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
 import { AdminTabContext } from '../../context/AdminTabContext';
@@ -43,6 +44,15 @@ export default function AdminAttendance() {
   const [allMembers, setAllMembers] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+
+  // Custom Alert State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'info' | 'error' | 'warning';
+    buttons?: any[];
+  }>({ visible: false, title: '', message: '', type: 'info' });
 
   // Form
   const [showNewForm, setShowNewForm] = useState(false);
@@ -135,23 +145,35 @@ export default function AdminAttendance() {
         targetUrl: 'AttendanceScreen',
       });
 
-      Alert.alert('Success', 'Attendance request sent to all members.');
+      setAlertConfig({
+        visible: true,
+        title: 'Success',
+        message: 'Attendance request sent to all members.',
+        type: 'success'
+      });
       setShowNewForm(false);
       setTitle('');
       setDescription('');
       loadHistory(); // Refresh history after creating
     } catch (e) {
-      Alert.alert('Error', 'Failed to create request. Please try again.');
+      setAlertConfig({
+        visible: true,
+        title: 'Error',
+        message: 'Failed to create request. Please try again.',
+        type: 'error'
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDeleteRequest = (id: string, title: string) => {
-    Alert.alert(
-      'Delete Request',
-      `Are you sure you want to delete "${title}"? This cannot be undone.`,
-      [
+    setAlertConfig({
+      visible: true,
+      title: 'Delete Request',
+      message: `Are you sure you want to delete "${title}"? This cannot be undone.`,
+      type: 'warning',
+      buttons: [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -160,13 +182,24 @@ export default function AdminAttendance() {
             try {
               await FirestoreService.deleteAttendanceRequest(id);
               loadHistory();
+              setAlertConfig({
+                visible: true,
+                title: 'Deleted',
+                message: 'Attendance request deleted successfully.',
+                type: 'success'
+              });
             } catch (e) {
-              Alert.alert('Error', 'Failed to delete request.');
+              setAlertConfig({
+                visible: true,
+                title: 'Error',
+                message: 'Failed to delete request.',
+                type: 'error'
+              });
             }
           }
         }
       ]
-    );
+    });
   };
 
   const yesCount = responses.filter(r => r.response === 'Yes').length;
@@ -487,6 +520,15 @@ export default function AdminAttendance() {
 
         <View style={{ height: 50 }} />
       </ScrollView>
+
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        buttons={alertConfig.buttons}
+        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
+      />
     </View>
   );
 }
