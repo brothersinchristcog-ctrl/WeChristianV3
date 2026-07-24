@@ -123,12 +123,14 @@ export default function AttendanceScreen({ navigation, route }: any) {
             ) : null}
 
             {alreadyResponded ? (
-              <View style={[styles.successBanner, { backgroundColor: response === 'Yes' ? '#ecfdf5' : '#fef2f2', borderColor: response === 'Yes' ? '#a7f3d0' : '#fecaca' }]}>
-                {response === 'Yes' ? <Check color="#059669" size={24} /> : <X color="#dc2626" size={24} />}
-                <View style={{ marginLeft: 12, flex: 1 }}>
-                  <Text style={[styles.successTitle, { color: response === 'Yes' ? '#065f46' : '#991b1b' }]}>Response Submitted</Text>
-                  <Text style={[styles.successSub, { color: response === 'Yes' ? '#047857' : '#b91c1c' }]}>
-                    You selected {response}. {reason ? `Reason: ${reason}` : ''}
+              <View style={[styles.successBanner, { backgroundColor: response === 'Yes' ? '#F3EAD9' : '#fff1f2', borderColor: response === 'Yes' ? '#DED0AC' : '#fecdd3' }]}>
+                {response === 'Yes' ? <CalendarCheck color="#1a2d5a" size={28} /> : <X color="#be185d" size={28} />}
+                <View style={{ marginLeft: 16, flex: 1 }}>
+                  <Text style={[styles.successTitle, { color: response === 'Yes' ? '#1a2d5a' : '#9f1239' }]}>
+                    Response Recorded
+                  </Text>
+                  <Text style={[styles.successSub, { color: response === 'Yes' ? '#334155' : '#be185d' }]}>
+                    You selected <Text style={{fontWeight: '700'}}>{response || 'No'}</Text>. {reason ? `Reason: ${reason}` : ''}
                   </Text>
                 </View>
               </View>
@@ -142,7 +144,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
                     onPress={() => setResponse('Yes')}
                   >
                     <Check color={response === 'Yes' ? '#fff' : subTextColor} size={20} />
-                    <Text style={[styles.radioTxt, response === 'Yes' && { color: '#fff', fontWeight: '700' }, !response && { color: subTextColor }]}>Yes, I'll attend</Text>
+                    <Text style={[styles.radioTxt, response === 'Yes' && { color: '#fff', fontWeight: '700' }, !response && { color: subTextColor }]}>Yes, I'm going</Text>
                   </TouchableOpacity>
                   
                   <TouchableOpacity 
@@ -150,7 +152,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
                     onPress={() => setResponse('No')}
                   >
                     <X color={response === 'No' ? '#fff' : subTextColor} size={20} />
-                    <Text style={[styles.radioTxt, response === 'No' && { color: '#fff', fontWeight: '700' }, !response && { color: subTextColor }]}>No, I won't</Text>
+                    <Text style={[styles.radioTxt, response === 'No' && { color: '#fff', fontWeight: '700' }, !response && { color: subTextColor }]}>No, I can't</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -219,15 +221,16 @@ const styles = StyleSheet.create({
   reqDate: { fontSize: 13, fontWeight: '500' },
   reqDesc: { fontSize: 15, lineHeight: 24, marginBottom: 24 },
   
-  form: { marginTop: 8 },
-  formLabel: { fontSize: 17, fontWeight: '700', marginBottom: 16 },
+  successBanner: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 16, borderWidth: 1, marginTop: 10 },
+  successTitle: { fontSize: 17, fontWeight: '700', marginBottom: 4 },
+  successSub: { fontSize: 14, lineHeight: 20 },
+  
+  form: { marginTop: 16 },
+  formLabel: { fontSize: 18, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
   radioGroup: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  radioBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 16, borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', backgroundColor: 'transparent'
-  },
-  radioBtnYes: { backgroundColor: '#10b981', borderColor: '#10b981' },
-  radioBtnNo: { backgroundColor: '#ef4444', borderColor: '#ef4444' },
+  radioBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, borderWidth: 1.5, borderColor: '#e2e8f0', gap: 8 },
+  radioBtnYes: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
+  radioBtnNo: { backgroundColor: '#be185d', borderColor: '#be185d' },
   radioTxt: { marginLeft: 8, fontSize: 15, fontWeight: '600' },
   
   reasonBlock: { marginBottom: 24 },
