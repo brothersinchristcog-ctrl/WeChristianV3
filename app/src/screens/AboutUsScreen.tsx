@@ -78,13 +78,21 @@ export default function AboutUsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Header */}
+      {/* Hero Header Card */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={22} color="#fff" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>About Us</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <ChevronLeft size={22} color="#fff" />
+            <Text style={styles.backBtnTxt}>Back</Text>
+          </TouchableOpacity>
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeTxt}>⛪ Church</Text>
+          </View>
+        </View>
+        <View style={styles.headerBottom}>
+          <Text style={styles.headerTitle}>About Us</Text>
+          <Text style={styles.headerSub}>Discover our mission and values</Text>
+        </View>
       </View>
 
       {loading ? (
@@ -165,22 +173,61 @@ export default function AboutUsScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#1a2d5a' },
   header: {
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    backgroundColor: '#1a2d5a',
+    marginBottom: 20,
+    paddingTop: 12,
+  },
+  headerBottom: {
+    paddingLeft: 4,
+  },
+  headerBadge: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  headerBadgeTxt: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
   },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
+  backBtnTxt: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  headerSub: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.65)',
+    fontWeight: '500',
+  },
 
   loadingContainer: {
     flex: 1,
