@@ -175,13 +175,13 @@ export default function AttendanceScreen({ navigation }: any) {
 
             <View style={styles.divider} />
 
-            {/* ── Window Closed State ── */}
+            {/* ── Time Window / Form / Banner ── */}
             {isExpired() ? (
               <View style={styles.closedBanner}>
                 <Lock size={32} color="#94a3b8" style={{ marginBottom: 12 }} />
                 <Text style={styles.closedTitle}>Attendance Window Closed</Text>
                 <Text style={styles.closedSub}>
-                  The attendance window for this event closed at {formatTimeStr(request.endTime)}.
+                  The attendance window closed at {formatTimeStr(request.endTime)}.
                   {previousResponse ? `\nYour recorded response was: ${previousResponse}.` : ' No response was recorded.'}
                 </Text>
               </View>
@@ -193,9 +193,7 @@ export default function AttendanceScreen({ navigation }: any) {
                   Attendance opens at {formatTimeStr(request.startTime)}. Please come back then.
                 </Text>
               </View>
-            ) : (
-              /* ── Show banner only after active submission ── */
-              showBanner ? (
+            ) : showBanner ? (
               <View>
                 <View style={[
                   styles.successBanner,
@@ -220,7 +218,6 @@ export default function AttendanceScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
             ) : (
-              // ── Response Form ──
               <View style={styles.form}>
                 <Text style={styles.formLabel}>Will you attend this event?</Text>
 
@@ -278,7 +275,6 @@ export default function AttendanceScreen({ navigation }: any) {
                   )}
                 </TouchableOpacity>
               </View>
-            )}
             )}
           </View>
         )}
