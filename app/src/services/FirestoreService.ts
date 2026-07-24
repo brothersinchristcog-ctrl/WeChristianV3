@@ -1226,7 +1226,7 @@ class FirestoreService {
 
   // --- 📝 Attendance ---
 
-  async createAttendanceRequest(data: { title: string; date: string; description?: string }) {
+  async createAttendanceRequest(data: { title: string; date: string; description?: string; startTime?: string; endTime?: string }) {
     try {
       const col = await this.getCollection('attendanceRequests');
       const docRef = await col.add({

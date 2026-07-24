@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useContext } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, ActivityIndicator, Alert, Platform
+  TextInput, ActivityIndicator, Alert, Platform, Modal
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle, XCircle, Clock, Calendar, Users, Send, ChevronLeft, Plus, History, Trash2 } from 'lucide-react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { CheckCircle, XCircle, Clock, Calendar, Users, Send, ChevronLeft, Plus, History, Trash2, AlarmClock } from 'lucide-react-native';
 import { CustomAlert } from '../../components/CustomAlert';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
@@ -34,6 +35,14 @@ const EVENT_TYPES = [
   { label: 'Other', value: 'Other' },
 ];
 
+const formatTime = (date: Date) => {
+  let h = date.getHours();
+  const m = date.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+};
+
 export default function AdminAttendance() {
   const { setActiveTab } = useContext(AdminTabContext);
   const { activeChurch } = useChurch();
@@ -44,6 +53,7 @@ export default function AdminAttendance() {
   const [allMembers, setAllMembers] = useState<any[]>([]);
   const [history, setHistory] = useState<any[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
   // Custom Alert State
   const [alertConfig, setAlertConfig] = useState<{
@@ -59,6 +69,20 @@ export default function AdminAttendance() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Time Pickers
+  const defaultStart = () => { const d = new Date(); return d; };
+  const defaultEnd = () => { const d = new Date(); d.setHours(d.getHours() + 2, 0, 0, 0); return d; };
+  const [startTime, setStartTime] = useState<Date>(defaultStart());
+  const [endTime, setEndTime] = useState<Date>(defaultEnd());
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+
+  // Tick every minute to re-evaluate active/expired
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     let unsubActive: any = null;
@@ -101,7 +125,6 @@ export default function AdminAttendance() {
     setHistoryLoading(true);
     try {
       const all = await FirestoreService.getAttendanceRequests();
-      // Fetch responses for each to calculate accurate statistics
       const historyWithStats = await Promise.all(all.map(async (req) => {
         const resps = await FirestoreService.getAttendanceResponses(req.id);
         const yesCount = resps.filter((r: any) => r.response === 'Yes').length;
@@ -121,6 +144,10 @@ export default function AdminAttendance() {
       Alert.alert('Error', 'Please select an event type.');
       return;
     }
+    if (endTime <= startTime) {
+      Alert.alert('Invalid Time', 'End time must be after start time.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -129,11 +156,13 @@ export default function AdminAttendance() {
         title: title.trim(),
         description: description.trim(),
         date: todayStr,
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
       });
 
       await FirestoreService.createNotificationBroadcast({
         title: 'Attendance Request',
-        content: `Are you attending ${title.trim()} today?`,
+        content: `Are you attending ${title.trim()} today? (Open until ${formatTime(endTime)})`,
         date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
         type: 'attendance',
         targetUrl: 'AttendanceScreen',
@@ -142,13 +171,15 @@ export default function AdminAttendance() {
       setAlertConfig({
         visible: true,
         title: 'Success',
-        message: 'Attendance request sent to all members.',
+        message: `Attendance request sent! Members can respond from ${formatTime(startTime)} to ${formatTime(endTime)}.`,
         type: 'success'
       });
       setShowNewForm(false);
       setTitle('');
       setDescription('');
-      loadHistory(); // Refresh history after creating
+      setStartTime(defaultStart());
+      setEndTime(defaultEnd());
+      loadHistory();
     } catch (e) {
       setAlertConfig({
         visible: true,
@@ -196,11 +227,40 @@ export default function AdminAttendance() {
     });
   };
 
+  // Determine if the active request window is still open
+  const isWindowOpen = (req: any) => {
+    if (!req) return false;
+    const end = req.endTime ? new Date(req.endTime).getTime() : null;
+    const start = req.startTime ? new Date(req.startTime).getTime() : 0;
+    if (!end) return true; // legacy: no endTime, treat as open
+    return now >= start && now < end;
+  };
+
+  const isWindowExpired = (req: any) => {
+    if (!req || !req.endTime) return false;
+    return now >= new Date(req.endTime).getTime();
+  };
+
+  // Active request from realtime listener, but only show as "Active" if within window
+  const liveActiveRequest = activeRequest && !isWindowExpired(activeRequest) ? activeRequest : null;
+
   const yesCount = responses.filter(r => r.response === 'Yes').length;
   const noCount = responses.filter(r => r.response === 'No').length;
   const noResponses = responses.filter(r => r.response === 'No');
   const yesResponses = responses.filter(r => r.response === 'Yes');
   const pendingMembers = allMembers.filter(m => !responses.find(r => r.memberId === m.id));
+
+  const getTimeWindowLabel = (req: any) => {
+    if (!req.startTime || !req.endTime) return null;
+    return `${formatTime(new Date(req.startTime))} – ${formatTime(new Date(req.endTime))}`;
+  };
+
+  const getHistoryStatus = (req: any) => {
+    if (!req.endTime) return req.status === 'Active' ? 'Active' : 'Closed';
+    const end = new Date(req.endTime).getTime();
+    if (Date.now() < end) return 'Active';
+    return 'Closed';
+  };
 
   if (loading) {
     return (
@@ -212,7 +272,7 @@ export default function AdminAttendance() {
 
   return (
     <View style={styles.container}>
-      {/* ── Hero (fixed top, curved bottom) ── */}
+      {/* ── Hero ── */}
       <View style={styles.hero}>
         <View style={styles.heroRow}>
           <TouchableOpacity onPress={() => setActiveTab(0)} style={styles.heroBackBtn}>
@@ -223,7 +283,7 @@ export default function AdminAttendance() {
           <View>
             <Text style={styles.heroTitle}>Attendance</Text>
             <Text style={styles.heroSub}>
-              {responses.length} responses · {pendingMembers.length} pending
+              {liveActiveRequest ? `${responses.length} responses · ${pendingMembers.length} pending` : 'Manage attendance requests'}
             </Text>
           </View>
         </View>
@@ -232,7 +292,7 @@ export default function AdminAttendance() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* ── New Request Form ── */}
-        {(!activeRequest || showNewForm) && (
+        {(!liveActiveRequest || showNewForm) && (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Calendar color={COLORS.ink} size={22} />
@@ -264,8 +324,56 @@ export default function AdminAttendance() {
               multiline
             />
 
+            {/* ── Time Window ── */}
+            <Text style={styles.inputLabel}>Attendance Time Window *</Text>
+            <View style={styles.timeRow}>
+              <View style={styles.timeField}>
+                <Text style={styles.timeFieldLabel}>Start Time</Text>
+                <TouchableOpacity style={styles.timePicker} onPress={() => setShowStartPicker(true)}>
+                  <AlarmClock size={16} color={COLORS.gold} />
+                  <Text style={styles.timePickerTxt}>{formatTime(startTime)}</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.timeSeparator}>
+                <Text style={styles.timeSeparatorTxt}>to</Text>
+              </View>
+              <View style={styles.timeField}>
+                <Text style={styles.timeFieldLabel}>End Time</Text>
+                <TouchableOpacity style={styles.timePicker} onPress={() => setShowEndPicker(true)}>
+                  <AlarmClock size={16} color="#ef4444" />
+                  <Text style={styles.timePickerTxt}>{formatTime(endTime)}</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Native TimePickers */}
+            {showStartPicker && (
+              <DateTimePicker
+                value={startTime}
+                mode="time"
+                is24Hour={false}
+                display={Platform.OS === 'ios' ? 'spinner' : 'clock'}
+                onChange={(_, selected) => {
+                  setShowStartPicker(Platform.OS === 'ios');
+                  if (selected) setStartTime(selected);
+                }}
+              />
+            )}
+            {showEndPicker && (
+              <DateTimePicker
+                value={endTime}
+                mode="time"
+                is24Hour={false}
+                display={Platform.OS === 'ios' ? 'spinner' : 'clock'}
+                onChange={(_, selected) => {
+                  setShowEndPicker(Platform.OS === 'ios');
+                  if (selected) setEndTime(selected);
+                }}
+              />
+            )}
+
             <View style={styles.formActions}>
-              {activeRequest && (
+              {liveActiveRequest && (
                 <TouchableOpacity style={styles.cancelBtn} onPress={() => setShowNewForm(false)}>
                   <Text style={styles.cancelBtnTxt}>Cancel</Text>
                 </TouchableOpacity>
@@ -289,9 +397,9 @@ export default function AdminAttendance() {
         )}
 
         {/* ── Active Request Dashboard ── */}
-        {activeRequest && !showNewForm && (
+        {liveActiveRequest && !showNewForm && (
           <>
-            <LinearGradient 
+            <LinearGradient
               colors={['#1a2d5a', '#2c478a']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -302,11 +410,18 @@ export default function AdminAttendance() {
               </View>
               <View style={{ flex: 1, marginLeft: 14 }}>
                 <Text style={styles.activeHeaderLabel}>ACTIVE EVENT</Text>
-                <Text style={styles.activeTitle}>{activeRequest.title}</Text>
-                <Text style={styles.activeDate}>
-                  {new Date(activeRequest.createdAt?.toDate?.() || Date.now())
-                    .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                </Text>
+                <Text style={styles.activeTitle}>{liveActiveRequest.title}</Text>
+                {getTimeWindowLabel(liveActiveRequest) ? (
+                  <View style={styles.timeWindowBadge}>
+                    <Clock size={11} color="#FCD34D" />
+                    <Text style={styles.timeWindowTxt}>{getTimeWindowLabel(liveActiveRequest)}</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.activeDate}>
+                    {new Date(liveActiveRequest.createdAt?.toDate?.() || Date.now())
+                      .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                  </Text>
+                )}
               </View>
               <TouchableOpacity style={styles.newBtnSolid} onPress={() => setShowNewForm(true)}>
                 <Plus size={14} color={COLORS.ink} />
@@ -371,7 +486,6 @@ export default function AdminAttendance() {
                 </View>
               </View>
             )}
-
           </>
         )}
 
@@ -379,73 +493,81 @@ export default function AdminAttendance() {
         {!showNewForm && (
           <View style={styles.section}>
             <View style={styles.sectionHeaderRow}>
-            <History size={18} color={COLORS.ink} />
-            <Text style={[styles.sectionTitle, { marginLeft: 8, marginBottom: 0 }]}>Attendance History</Text>
-          </View>
-          <Text style={styles.sectionSub}>All previously created attendance requests</Text>
-
-          {historyLoading ? (
-            <ActivityIndicator color={COLORS.ink} style={{ marginTop: 16 }} />
-          ) : history.length === 0 ? (
-            <View style={[styles.listCard, { padding: 24, alignItems: 'center' }]}>
-              <Calendar size={36} color={COLORS.inkSoft} style={{ marginBottom: 8 }} />
-              <Text style={{ color: COLORS.inkSoft, fontSize: 14, textAlign: 'center' }}>
-                No attendance requests yet. Create your first one above!
-              </Text>
+              <History size={18} color={COLORS.ink} />
+              <Text style={[styles.sectionTitle, { marginLeft: 8, marginBottom: 0 }]}>Attendance History</Text>
             </View>
-          ) : (
-            history.map((req) => {
-              const pendingCount = allMembers.filter(m => !req.responses?.find((r: any) => r.memberId === m.id)).length;
-              const totalResp = (req.yesCount || 0) + (req.noCount || 0);
-              const date = req.date
-                ? new Date(req.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                : 'N/A';
-              const isActive = req.status === 'Active';
-              
-              return (
-                <View 
-                  key={req.id} 
-                  style={styles.historyCard}
-                >
-                  <View style={styles.historyCardHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.historyTitle}>{req.title}</Text>
-                      <Text style={styles.historyDate}>{date}</Text>
+            <Text style={styles.sectionSub}>All previously created attendance requests</Text>
+
+            {historyLoading ? (
+              <ActivityIndicator color={COLORS.ink} style={{ marginTop: 16 }} />
+            ) : history.length === 0 ? (
+              <View style={[styles.listCard, { padding: 24, alignItems: 'center' }]}>
+                <Calendar size={36} color={COLORS.inkSoft} style={{ marginBottom: 8 }} />
+                <Text style={{ color: COLORS.inkSoft, fontSize: 14, textAlign: 'center' }}>
+                  No attendance requests yet. Create your first one above!
+                </Text>
+              </View>
+            ) : (
+              history.map((req) => {
+                const pendingCount = allMembers.filter(m => !req.responses?.find((r: any) => r.memberId === m.id)).length;
+                const totalResp = (req.yesCount || 0) + (req.noCount || 0);
+                const date = req.date
+                  ? new Date(req.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                  : 'N/A';
+                const status = getHistoryStatus(req);
+                const isActive = status === 'Active';
+                const timeWindow = getTimeWindowLabel(req);
+
+                return (
+                  <View key={req.id} style={styles.historyCard}>
+                    <View style={styles.historyCardHeader}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.historyTitle}>{req.title}</Text>
+                        <Text style={styles.historyDate}>{date}</Text>
+                        {timeWindow && (
+                          <View style={styles.historyTimeRow}>
+                            <Clock size={11} color={COLORS.inkSoft} />
+                            <Text style={styles.historyTimeTxt}>{timeWindow}</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={[styles.statusBadge, { backgroundColor: isActive ? '#dcfce7' : '#f1f5f9' }]}>
+                        <Text style={[styles.statusBadgeTxt, { color: isActive ? '#15803d' : COLORS.inkSoft }]}>
+                          {isActive ? 'Active' : 'Closed'}
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteRequest(req.id, req.title)}
+                        style={{ padding: 4, marginLeft: 8 }}
+                      >
+                        <Trash2 size={18} color="#ef4444" />
+                      </TouchableOpacity>
                     </View>
-                    <View style={[styles.statusBadge, { backgroundColor: isActive ? '#dcfce7' : '#f1f5f9' }]}>
-                      <Text style={[styles.statusBadgeTxt, { color: isActive ? '#15803d' : COLORS.inkSoft }]}>
-                        {isActive ? 'Active' : 'Closed'}
-                      </Text>
+
+                    {/* Stats row */}
+                    <View style={styles.historyStatsRow}>
+                      <View style={styles.historyStatChip}>
+                        <Text style={styles.historyStatChipNum}>{totalResp}</Text>
+                        <Text style={styles.historyStatChipLbl}>Total</Text>
+                      </View>
+                      <View style={[styles.historyStatChip, { backgroundColor: '#f0fdf4' }]}>
+                        <Text style={[styles.historyStatChipNum, { color: '#15803d' }]}>{req.yesCount || 0}</Text>
+                        <Text style={styles.historyStatChipLbl}>Yes</Text>
+                      </View>
+                      <View style={[styles.historyStatChip, { backgroundColor: '#fef2f2' }]}>
+                        <Text style={[styles.historyStatChipNum, { color: '#dc2626' }]}>{req.noCount || 0}</Text>
+                        <Text style={styles.historyStatChipLbl}>No</Text>
+                      </View>
+                      <View style={[styles.historyStatChip, { backgroundColor: '#fffbeb' }]}>
+                        <Text style={[styles.historyStatChipNum, { color: '#d97706' }]}>{pendingCount}</Text>
+                        <Text style={styles.historyStatChipLbl}>Pending</Text>
+                      </View>
                     </View>
-                    <TouchableOpacity 
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        handleDeleteRequest(req.id, req.title);
-                      }}
-                      style={{ padding: 4, marginLeft: 8 }}
-                    >
-                      <Trash2 size={18} color="#ef4444" />
-                    </TouchableOpacity>
                   </View>
-                  <View style={styles.historyStats}>
-                    <View style={styles.historyStatItem}>
-                      <CheckCircle size={14} color="#10b981" />
-                      <Text style={[styles.historyStatTxt, { color: '#10b981' }]}>Yes: {req.yesCount || 0}</Text>
-                    </View>
-                    <View style={styles.historyStatItem}>
-                      <XCircle size={14} color="#ef4444" />
-                      <Text style={[styles.historyStatTxt, { color: '#ef4444' }]}>No: {req.noCount || 0}</Text>
-                    </View>
-                    <View style={styles.historyStatItem}>
-                      <Clock size={14} color="#f59e0b" />
-                      <Text style={[styles.historyStatTxt, { color: '#f59e0b' }]}>Pending: {pendingCount}</Text>
-                    </View>
-                  </View>
-                </View>
-              );
-            })
-          )}
-        </View>
+                );
+              })
+            )}
+          </View>
         )}
 
         <View style={{ height: 50 }} />
@@ -508,6 +630,20 @@ const styles = StyleSheet.create({
     color: COLORS.ink, height: 80, textAlignVertical: 'top',
     backgroundColor: '#F9F5ED', marginBottom: 20,
   },
+
+  // Time Picker
+  timeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 8 },
+  timeField: { flex: 1 },
+  timeFieldLabel: { fontSize: 11, color: COLORS.inkSoft, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 },
+  timePicker: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: '#F9F5ED', borderRadius: 12, borderWidth: 1, borderColor: COLORS.rule,
+    paddingHorizontal: 14, paddingVertical: 12,
+  },
+  timePickerTxt: { fontSize: 15, fontWeight: '700', color: COLORS.ink },
+  timeSeparator: { paddingTop: 20, alignItems: 'center' },
+  timeSeparatorTxt: { fontSize: 13, color: COLORS.inkSoft, fontWeight: '600' },
+
   formActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
   cancelBtn: { paddingHorizontal: 16, paddingVertical: 10 },
   cancelBtnTxt: { color: COLORS.inkSoft, fontSize: 14, fontWeight: '600' },
@@ -528,8 +664,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center'
   },
   activeHeaderLabel: { fontSize: 10, fontWeight: '800', color: COLORS.gold, letterSpacing: 1, marginBottom: 4 },
-  activeTitle: { fontSize: 22, fontWeight: '800', color: '#fff', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
+  activeTitle: { fontSize: 20, fontWeight: '800', color: '#fff', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
   activeDate: { fontSize: 13, color: '#aac4e8', marginTop: 2 },
+  timeWindowBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  timeWindowTxt: { fontSize: 12, color: '#FCD34D', fontWeight: '600' },
   newBtnSolid: {
     backgroundColor: COLORS.gold, flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, gap: 4,
@@ -559,16 +697,24 @@ const styles = StyleSheet.create({
 
   // ── History Cards ──
   historyCard: {
-    backgroundColor: COLORS.paper, borderRadius: 14, borderWidth: 1, borderColor: COLORS.rule,
+    backgroundColor: COLORS.paper, borderRadius: 16, borderWidth: 1, borderColor: COLORS.rule,
     padding: 16, marginBottom: 12,
-    elevation: 1, shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+    elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
   },
-  historyCardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
-  historyTitle: { fontSize: 15, fontWeight: '700', color: COLORS.ink, marginBottom: 4, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
+  historyCardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
+  historyTitle: { fontSize: 15, fontWeight: '700', color: COLORS.ink, marginBottom: 2, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
   historyDate: { fontSize: 12, color: COLORS.inkSoft },
+  historyTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  historyTimeTxt: { fontSize: 11, color: COLORS.inkSoft, fontWeight: '600' },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginLeft: 8 },
   statusBadgeTxt: { fontSize: 11, fontWeight: '700' },
-  historyStats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  historyStatItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  historyStatTxt: { fontSize: 12, fontWeight: '600' },
+
+  // Stat chips in history card
+  historyStatsRow: { flexDirection: 'row', gap: 8 },
+  historyStatChip: {
+    flex: 1, backgroundColor: '#f8f4ec', borderRadius: 10,
+    paddingVertical: 8, alignItems: 'center',
+  },
+  historyStatChipNum: { fontSize: 18, fontWeight: '800', color: COLORS.ink },
+  historyStatChipLbl: { fontSize: 10, fontWeight: '600', color: COLORS.inkSoft, marginTop: 2 },
 });

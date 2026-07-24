@@ -4,7 +4,7 @@ import {
   ActivityIndicator, Alert, ScrollView, Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, CalendarCheck, Check, X } from 'lucide-react-native';
+import { ChevronLeft, CalendarCheck, Check, X, Clock, Lock } from 'lucide-react-native';
 import FirestoreService from '../services/FirestoreService';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -26,6 +26,7 @@ export default function AttendanceScreen({ navigation }: any) {
 
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<any>(null);
+  const [now, setNow] = useState(Date.now());
 
   const [response, setResponse] = useState<'Yes' | 'No' | null>(null);
   const [reason, setReason] = useState('');
@@ -36,6 +37,8 @@ export default function AttendanceScreen({ navigation }: any) {
 
   useEffect(() => {
     fetchActiveRequest();
+    const interval = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(interval);
   }, [activeChurch]);
 
   const fetchActiveRequest = async () => {
@@ -70,6 +73,10 @@ export default function AttendanceScreen({ navigation }: any) {
       Alert.alert('Required', 'Please provide a reason for not attending.');
       return;
     }
+    if (!isWindowActive()) {
+      Alert.alert('Window Closed', 'The attendance window for this event has closed.');
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -89,6 +96,26 @@ export default function AttendanceScreen({ navigation }: any) {
 
   const handleChangeResponse = () => {
     setShowBanner(false);
+  };
+
+  const isWindowActive = () => {
+    if (!request) return false;
+    if (!request.endTime) return true;
+    const start = request.startTime ? new Date(request.startTime).getTime() : 0;
+    const end = new Date(request.endTime).getTime();
+    return now >= start && now < end;
+  };
+
+  const isExpired = () => !!(request?.endTime && now >= new Date(request.endTime).getTime());
+  const isNotYetOpen = () => !!(request?.startTime && now < new Date(request.startTime).getTime());
+
+  const formatTimeStr = (iso: string) => {
+    const d = new Date(iso);
+    let h = d.getHours();
+    const m = d.getMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
   };
 
   if (loading) {
@@ -124,12 +151,21 @@ export default function AttendanceScreen({ navigation }: any) {
             {/* Request Title */}
             <View style={styles.reqHeader}>
               <CalendarCheck size={22} color={COLORS.ink} style={{ marginRight: 10 }} />
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={styles.reqTitle}>{request.title}</Text>
                 <Text style={styles.reqDate}>
                   {new Date(request.createdAt?.toDate?.() || Date.now())
                     .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                 </Text>
+                {request.startTime && request.endTime && (
+                  <View style={styles.timeWindowRow}>
+                    <Clock size={12} color={isExpired() ? '#ef4444' : COLORS.gold} />
+                    <Text style={[styles.timeWindowTxt, { color: isExpired() ? '#ef4444' : COLORS.inkSoft }]}>
+                      {formatTimeStr(request.startTime)} – {formatTimeStr(request.endTime)}
+                      {isExpired() ? '  (Closed)' : isNotYetOpen() ? '  (Not open yet)' : '  (Open)'}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
 
@@ -139,8 +175,27 @@ export default function AttendanceScreen({ navigation }: any) {
 
             <View style={styles.divider} />
 
-            {/* ── Show banner only after active submission ── */}
-            {showBanner ? (
+            {/* ── Window Closed State ── */}
+            {isExpired() ? (
+              <View style={styles.closedBanner}>
+                <Lock size={32} color="#94a3b8" style={{ marginBottom: 12 }} />
+                <Text style={styles.closedTitle}>Attendance Window Closed</Text>
+                <Text style={styles.closedSub}>
+                  The attendance window for this event closed at {formatTimeStr(request.endTime)}.
+                  {previousResponse ? `\nYour recorded response was: ${previousResponse}.` : ' No response was recorded.'}
+                </Text>
+              </View>
+            ) : isNotYetOpen() ? (
+              <View style={styles.closedBanner}>
+                <Clock size={32} color={COLORS.gold} style={{ marginBottom: 12 }} />
+                <Text style={[styles.closedTitle, { color: COLORS.ink }]}>Not Open Yet</Text>
+                <Text style={styles.closedSub}>
+                  Attendance opens at {formatTimeStr(request.startTime)}. Please come back then.
+                </Text>
+              </View>
+            ) : (
+              /* ── Show banner only after active submission ── */
+              showBanner ? (
               <View>
                 <View style={[
                   styles.successBanner,
@@ -224,6 +279,8 @@ export default function AttendanceScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
             )}
+              </View>
+            )}
           </View>
         )}
 
@@ -304,4 +361,13 @@ const styles = StyleSheet.create({
 
   emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.ink, marginBottom: 8, textAlign: 'center' },
   emptySub: { fontSize: 14, color: COLORS.inkSoft, textAlign: 'center', lineHeight: 22 },
+
+  // Time window
+  timeWindowRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 },
+  timeWindowTxt: { fontSize: 12, fontWeight: '600' },
+
+  // Closed state
+  closedBanner: { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 16 },
+  closedTitle: { fontSize: 18, fontWeight: '800', color: '#475569', marginBottom: 8, textAlign: 'center' },
+  closedSub: { fontSize: 14, color: COLORS.inkSoft, textAlign: 'center', lineHeight: 22 },
 });
