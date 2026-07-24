@@ -157,9 +157,6 @@ export default function AdminAttendance() {
               <Calendar color={COLORS.ink} size={24} />
               <Text style={[styles.cardTitle, { color: COLORS.ink }]}>New Attendance Request</Text>
             </View>
-            <Text style={[styles.cardDesc, { color: COLORS.inkSoft }]}>
-              Create a new request for today's service or event. This will notify all members in the church.
-            </Text>
             
             <Text style={[styles.inputLabel, { color: COLORS.ink }]}>Select Event Type *</Text>
             <View style={styles.typeChipsRow}>
@@ -323,13 +320,12 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
   cardTitle: { fontSize: 17, fontWeight: '700', marginLeft: 10, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
-  cardDesc: { fontSize: 14, lineHeight: 20, marginBottom: 20 },
   
-  typeChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4, marginBottom: 8 },
-  typeChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: COLORS.rule, backgroundColor: 'transparent' },
-  typeChipTxt: { fontSize: 13, fontWeight: '600', color: COLORS.inkSoft },
+  typeChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4, marginBottom: 12 },
+  typeChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 10, backgroundColor: '#F3EAD9' },
+  typeChipTxt: { fontSize: 13, fontWeight: '600', color: COLORS.ink },
 
   inputLabel: { fontSize: 13, fontWeight: '700', marginBottom: 6, marginLeft: 4, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, marginBottom: 24 },
