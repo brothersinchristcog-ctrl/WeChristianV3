@@ -1,24 +1,38 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import {
+  View, Text, StyleSheet, TouchableOpacity, TextInput,
+  ActivityIndicator, Alert, ScrollView, Platform
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, CalendarCheck, Check, X } from 'lucide-react-native';
 import FirestoreService from '../services/FirestoreService';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
-import { useTheme } from '../context/ThemeContext';
 
-export default function AttendanceScreen({ navigation, route }: any) {
+const COLORS = {
+  ink: '#1a2d5a',
+  gold: '#FCD34D',
+  bg: '#EDE8DC',
+  paper: '#FFFCF5',
+  rule: '#DED0AC',
+  inkSoft: '#6B7593',
+  green: '#15803D',
+  red: '#be185d',
+};
+
+export default function AttendanceScreen({ navigation }: any) {
   const { member, user } = useAuth();
-  const { isDark } = useTheme();
   const { activeChurch } = useChurch();
-  
+
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<any>(null);
-  
+
   const [response, setResponse] = useState<'Yes' | 'No' | null>(null);
   const [reason, setReason] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [alreadyResponded, setAlreadyResponded] = useState(false);
+  // showBanner = true only after the user actively submits
+  const [showBanner, setShowBanner] = useState(false);
+  const [previousResponse, setPreviousResponse] = useState<string | null>(null);
 
   useEffect(() => {
     fetchActiveRequest();
@@ -33,9 +47,10 @@ export default function AttendanceScreen({ navigation, route }: any) {
         if (memberId) {
           const existing: any = await FirestoreService.getMemberAttendanceResponse(activeReq.id, memberId);
           if (existing) {
+            // Pre-fill the form with previous response but DON'T show banner yet
             setResponse(existing.response);
             setReason(existing.reason || '');
-            setAlreadyResponded(true);
+            setPreviousResponse(existing.response);
           }
         }
       }
@@ -63,10 +78,8 @@ export default function AttendanceScreen({ navigation, route }: any) {
       if (!memberId || !request) return;
 
       await FirestoreService.submitAttendanceResponse(request.id, memberId, memberName, response, reason.trim());
-      
-      Alert.alert('Success', 'Your attendance response has been submitted successfully!', [
-        { text: 'OK', onPress: () => navigation.goBack() }
-      ]);
+      setPreviousResponse(response);
+      setShowBanner(true);
     } catch (e) {
       Alert.alert('Error', 'Failed to submit response. Please try again.');
     } finally {
@@ -74,103 +87,117 @@ export default function AttendanceScreen({ navigation, route }: any) {
     }
   };
 
-  const bgColor = isDark ? '#0f172a' : '#f8fafc';
-  const cardBg = isDark ? '#1e293b' : '#ffffff';
-  const textColor = isDark ? '#f8fafc' : '#0f172a';
-  const subTextColor = isDark ? '#94a3b8' : '#64748b';
-  const borderColor = isDark ? '#334155' : '#e2e8f0';
+  const handleChangeResponse = () => {
+    setShowBanner(false);
+  };
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: bgColor, justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#1a2d5a" />
+      <View style={[styles.container, { backgroundColor: COLORS.bg, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={COLORS.ink} />
       </View>
     );
   }
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: bgColor }]}>
-      
-      {/* Header */}
+    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: COLORS.bg }]}>
+
+      {/* ── Header ── */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
+          <ChevronLeft size={22} color="#fff" />
+          <Text style={styles.backTxt}>Back</Text>
         </TouchableOpacity>
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>Attendance</Text>
-        </View>
-        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>Attendance</Text>
+        <View style={{ width: 70 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {!request ? (
-          <View style={[styles.emptyCard, { backgroundColor: cardBg, borderColor }]}>
-            <CalendarCheck size={48} color={subTextColor} style={{ marginBottom: 16 }} />
-            <Text style={[styles.emptyTitle, { color: textColor }]}>No Active Requests</Text>
-            <Text style={[styles.emptySub, { color: subTextColor }]}>There are currently no active attendance requests from the church.</Text>
+          <View style={[styles.card, { alignItems: 'center', paddingVertical: 48 }]}>
+            <CalendarCheck size={52} color={COLORS.inkSoft} style={{ marginBottom: 16 }} />
+            <Text style={styles.emptyTitle}>No Active Requests</Text>
+            <Text style={styles.emptySub}>There are no active attendance requests from the church at this time.</Text>
           </View>
         ) : (
-          <View style={[styles.card, { backgroundColor: cardBg, borderColor }]}>
+          <View style={styles.card}>
+            {/* Request Title */}
             <View style={styles.reqHeader}>
-              <Text style={[styles.reqTitle, { color: textColor }]}>{request.title}</Text>
-              <Text style={[styles.reqDate, { color: subTextColor }]}>
-                {new Date(request.createdAt?.toDate?.() || Date.now()).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </Text>
+              <CalendarCheck size={22} color={COLORS.ink} style={{ marginRight: 10 }} />
+              <View>
+                <Text style={styles.reqTitle}>{request.title}</Text>
+                <Text style={styles.reqDate}>
+                  {new Date(request.createdAt?.toDate?.() || Date.now())
+                    .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </Text>
+              </View>
             </View>
-            
+
             {request.description ? (
-              <Text style={[styles.reqDesc, { color: textColor }]}>{request.description}</Text>
+              <Text style={styles.reqDesc}>{request.description}</Text>
             ) : null}
 
-            {alreadyResponded ? (
+            <View style={styles.divider} />
+
+            {/* ── Show banner only after active submission ── */}
+            {showBanner ? (
               <View>
-                <View style={[styles.successBanner, { backgroundColor: response === 'Yes' ? '#F3EAD9' : '#fff1f2', borderColor: response === 'Yes' ? '#DED0AC' : '#fecdd3' }]}>
-                  {response === 'Yes' ? <CalendarCheck color="#1a2d5a" size={28} /> : <X color="#be185d" size={28} />}
+                <View style={[
+                  styles.successBanner,
+                  { backgroundColor: response === 'Yes' ? '#F3EAD9' : '#fff1f2', borderColor: response === 'Yes' ? COLORS.rule : '#fecdd3' }
+                ]}>
+                  {response === 'Yes'
+                    ? <CalendarCheck color={COLORS.ink} size={28} />
+                    : <X color={COLORS.red} size={28} />
+                  }
                   <View style={{ marginLeft: 16, flex: 1 }}>
-                    <Text style={[styles.successTitle, { color: response === 'Yes' ? '#1a2d5a' : '#9f1239' }]}>
-                      Response Recorded
+                    <Text style={[styles.successTitle, { color: response === 'Yes' ? COLORS.ink : '#9f1239' }]}>
+                      Response Recorded ✓
                     </Text>
-                    <Text style={[styles.successSub, { color: response === 'Yes' ? '#334155' : '#be185d' }]}>
-                      You selected <Text style={{fontWeight: '700'}}>{response || 'No'}</Text>.{reason ? ` Reason: ${reason}` : ''}
+                    <Text style={[styles.successSub, { color: response === 'Yes' ? '#334155' : COLORS.red }]}>
+                      You selected <Text style={{ fontWeight: '700' }}>{response}</Text>.
+                      {reason ? `  Reason: ${reason}` : ''}
                     </Text>
                   </View>
                 </View>
-                <TouchableOpacity
-                  style={styles.changeBtn}
-                  onPress={() => { setAlreadyResponded(false); setResponse(null); setReason(''); }}
-                >
+                <TouchableOpacity style={styles.changeBtn} onPress={handleChangeResponse}>
                   <Text style={styles.changeBtnTxt}>Change My Response</Text>
                 </TouchableOpacity>
               </View>
             ) : (
+              // ── Response Form ──
               <View style={styles.form}>
-                <Text style={[styles.formLabel, { color: textColor }]}>Will you attend today's event?</Text>
-                
+                <Text style={styles.formLabel}>Will you attend this event?</Text>
+
                 <View style={styles.radioGroup}>
-                  <TouchableOpacity 
-                    style={[styles.radioBtn, response === 'Yes' && styles.radioBtnYes]} 
+                  <TouchableOpacity
+                    style={[styles.radioBtn, response === 'Yes' && styles.radioBtnYes]}
                     onPress={() => setResponse('Yes')}
                   >
-                    <Check color={response === 'Yes' ? '#fff' : subTextColor} size={20} />
-                    <Text style={[styles.radioTxt, response === 'Yes' && { color: '#fff', fontWeight: '700' }, !response && { color: subTextColor }]}>Yes, I'm going</Text>
+                    <Check color={response === 'Yes' ? '#fff' : COLORS.inkSoft} size={20} />
+                    <Text style={[styles.radioTxt, { color: response === 'Yes' ? '#fff' : COLORS.inkSoft }]}>
+                      Yes, I'm going
+                    </Text>
                   </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.radioBtn, response === 'No' && styles.radioBtnNo]} 
+
+                  <TouchableOpacity
+                    style={[styles.radioBtn, response === 'No' && styles.radioBtnNo]}
                     onPress={() => setResponse('No')}
                   >
-                    <X color={response === 'No' ? '#fff' : subTextColor} size={20} />
-                    <Text style={[styles.radioTxt, response === 'No' && { color: '#fff', fontWeight: '700' }, !response && { color: subTextColor }]}>No, I can't</Text>
+                    <X color={response === 'No' ? '#fff' : COLORS.inkSoft} size={20} />
+                    <Text style={[styles.radioTxt, { color: response === 'No' ? '#fff' : COLORS.inkSoft }]}>
+                      No, I can't
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
                 {response === 'No' && (
                   <View style={styles.reasonBlock}>
-                    <Text style={[styles.inputLabel, { color: textColor }]}>Reason for not attending *</Text>
+                    <Text style={styles.inputLabel}>Reason for not attending *</Text>
                     <TextInput
-                      style={[styles.input, { color: textColor, borderColor }]}
+                      style={styles.input}
                       placeholder="Please let us know why..."
-                      placeholderTextColor={subTextColor}
+                      placeholderTextColor={COLORS.inkSoft}
                       value={reason}
                       onChangeText={setReason}
                       multiline
@@ -178,8 +205,14 @@ export default function AttendanceScreen({ navigation, route }: any) {
                   </View>
                 )}
 
-                <TouchableOpacity 
-                  style={[styles.submitBtn, { opacity: (isSubmitting || !response) ? 0.6 : 1 }]} 
+                {previousResponse && (
+                  <Text style={styles.previousHint}>
+                    Previously responded: <Text style={{ fontWeight: '700' }}>{previousResponse}</Text>
+                  </Text>
+                )}
+
+                <TouchableOpacity
+                  style={[styles.submitBtn, { opacity: (isSubmitting || !response) ? 0.6 : 1 }]}
                   onPress={handleSubmit}
                   disabled={isSubmitting || !response}
                 >
@@ -193,6 +226,8 @@ export default function AttendanceScreen({ navigation, route }: any) {
             )}
           </View>
         )}
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -200,62 +235,73 @@ export default function AttendanceScreen({ navigation, route }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
   header: {
-    backgroundColor: '#1a2d5a',
+    backgroundColor: COLORS.ink,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 16,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     elevation: 8,
-    shadowColor: '#1a2d5a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8
+    shadowColor: COLORS.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8,
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'flex-start' },
-  headerTitleWrap: { flex: 1, alignItems: 'center' },
-  headerTitle: { color: '#FCD34D', fontSize: 18, fontWeight: '700' },
-  
+  backBtn: { flexDirection: 'row', alignItems: 'center', width: 70 },
+  backTxt: { color: '#fff', fontSize: 15, fontWeight: '600', marginLeft: 2 },
+  headerTitle: { color: COLORS.gold, fontSize: 18, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
+
   content: { padding: 16 },
-  
+
   card: {
+    backgroundColor: COLORS.paper,
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
+    borderColor: COLORS.rule,
     elevation: 4,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12
+    shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12,
   },
-  reqHeader: { marginBottom: 16 },
-  reqTitle: { fontSize: 22, fontWeight: '800', marginBottom: 4 },
-  reqDate: { fontSize: 13, fontWeight: '500' },
-  reqDesc: { fontSize: 15, lineHeight: 24, marginBottom: 24 },
-  
-  successBanner: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 16, borderWidth: 1, marginTop: 10 },
+  reqHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
+  reqTitle: { fontSize: 20, fontWeight: '800', color: COLORS.ink, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
+  reqDate: { fontSize: 13, color: COLORS.inkSoft, marginTop: 2 },
+  reqDesc: { fontSize: 15, lineHeight: 22, color: COLORS.inkSoft, marginBottom: 8 },
+  divider: { height: 1, backgroundColor: COLORS.rule, marginVertical: 20 },
+
+  form: {},
+  formLabel: { fontSize: 17, fontWeight: '700', color: COLORS.ink, marginBottom: 16, textAlign: 'center' },
+  radioGroup: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  radioBtn: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 16, borderRadius: 14, borderWidth: 2, borderColor: COLORS.rule,
+    backgroundColor: '#F3EAD9', gap: 8
+  },
+  radioBtnYes: { backgroundColor: COLORS.ink, borderColor: COLORS.ink },
+  radioBtnNo: { backgroundColor: COLORS.red, borderColor: COLORS.red },
+  radioTxt: { fontSize: 15, fontWeight: '700' },
+
+  reasonBlock: { marginBottom: 20 },
+  inputLabel: { fontSize: 13, fontWeight: '700', color: COLORS.ink, marginBottom: 8 },
+  input: {
+    borderWidth: 1, borderColor: COLORS.rule, borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 15, color: COLORS.ink, height: 100,
+    textAlignVertical: 'top', backgroundColor: '#F9F5ED'
+  },
+
+  previousHint: { fontSize: 12, color: COLORS.inkSoft, textAlign: 'center', marginBottom: 12, fontStyle: 'italic' },
+
+  submitBtn: { backgroundColor: COLORS.green, borderRadius: 14, paddingVertical: 16, alignItems: 'center', marginTop: 4 },
+  submitBtnTxt: { color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
+
+  successBanner: { flexDirection: 'row', alignItems: 'center', padding: 20, borderRadius: 16, borderWidth: 1 },
   successTitle: { fontSize: 17, fontWeight: '700', marginBottom: 4 },
   successSub: { fontSize: 14, lineHeight: 20 },
-  
-  form: { marginTop: 16 },
-  formLabel: { fontSize: 18, fontWeight: '700', marginBottom: 16, textAlign: 'center' },
-  radioGroup: { flexDirection: 'row', gap: 12, marginBottom: 24 },
-  radioBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, borderWidth: 1.5, borderColor: '#e2e8f0', gap: 8 },
-  radioBtnYes: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
-  radioBtnNo: { backgroundColor: '#be185d', borderColor: '#be185d' },
-  radioTxt: { marginLeft: 8, fontSize: 15, fontWeight: '600' },
-  
-  reasonBlock: { marginBottom: 24 },
-  inputLabel: { fontSize: 14, fontWeight: '600', marginBottom: 8 },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, height: 100, textAlignVertical: 'top' },
-  
-  submitBtn: { backgroundColor: '#1a2d5a', borderRadius: 12, paddingVertical: 18, alignItems: 'center' },
-  submitBtnTxt: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  
-  successBanner: { flexDirection: 'row', alignItems: 'flex-start', padding: 16, borderRadius: 12, borderWidth: 1, marginTop: 16 },
-  successTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
-  successSub: { fontSize: 14, lineHeight: 20 },
 
-  changeBtn: { marginTop: 14, paddingVertical: 12, borderRadius: 10, borderWidth: 1.5, borderColor: '#1a2d5a', alignItems: 'center' },
-  changeBtnTxt: { color: '#1a2d5a', fontSize: 14, fontWeight: '700' },
-  
-  emptyCard: { borderRadius: 20, padding: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },
-  emptySub: { fontSize: 14, textAlign: 'center', lineHeight: 20 }
+  changeBtn: { marginTop: 14, paddingVertical: 14, borderRadius: 12, borderWidth: 1.5, borderColor: COLORS.ink, alignItems: 'center' },
+  changeBtnTxt: { color: COLORS.ink, fontSize: 14, fontWeight: '700' },
+
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.ink, marginBottom: 8, textAlign: 'center' },
+  emptySub: { fontSize: 14, color: COLORS.inkSoft, textAlign: 'center', lineHeight: 22 },
 });
