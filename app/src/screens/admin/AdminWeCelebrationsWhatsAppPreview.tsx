@@ -75,14 +75,14 @@ export default function AdminWeCelebrationsWhatsAppPreview({
     return (
     <View style={styles.container}>
       {/* ── Fixed Header ── */}
-      <View style={styles.waHeader}>
-        <TouchableOpacity style={styles.waHeader} onPress={onEdit}>
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.topBarBack} onPress={onEdit}>
           <ChevronLeft size={22} color="#fff" />
-          <Text style={styles.waHeader}>Back</Text>
+          <Text style={styles.topBarBackText}>Back</Text>
         </TouchableOpacity>
-        <View style={styles.waHeader}>
-          <Text style={styles.waHeader}>{categoryLabel}</Text>
-          <Text style={styles.waHeader}>PREVIEW GREETING</Text>
+        <View style={styles.topBarTitleContainer}>
+          <Text style={styles.topBarSub}>{categoryLabel}</Text>
+          <Text style={styles.topBarTitle}>PREVIEW GREETING</Text>
         </View>
       </View>
 
@@ -106,7 +106,7 @@ export default function AdminWeCelebrationsWhatsAppPreview({
                 {theme?.imageUrl && (
                   <Image source={{ uri: theme.imageUrl }} style={[StyleSheet.absoluteFillObject, { resizeMode: 'cover' }]} />
                 )}
-              <Svg width="100%" height={350} viewBox="0 0 400 500">
+              <Svg width="100%" height={350} viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice">
                 <Defs>
                   <LinearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
                     <Stop offset="0%" stopColor={colors[0]} stopOpacity={theme?.imageUrl ? 0.2 : 1} />
@@ -183,7 +183,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
   },
   content: {
     flex: 1,
@@ -198,6 +197,43 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     color: '#64748B',
     marginBottom: 12,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  topBarBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 80,
+  },
+  topBarBackText: {
+    color: '#fff',
+    fontFamily: 'Inter-Medium',
+    fontSize: 15,
+    marginLeft: 4,
+  },
+  topBarTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    paddingRight: 80,
+  },
+  topBarSub: {
+    color: 'rgba(255,255,255,0.8)',
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+  },
+  topBarTitle: {
+    color: '#fff',
+    fontFamily: 'Inter-Bold',
+    fontSize: 14,
+    textTransform: 'uppercase',
   },
   waHeader: {
     flexDirection: 'row',
