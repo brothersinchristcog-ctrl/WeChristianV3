@@ -1318,11 +1318,14 @@ class FirestoreService {
     try {
       const col = await this.getCollection('attendanceRequests');
       return col.where('status', '==', 'Active').orderBy('createdAt', 'desc').limit(1).onSnapshot(snapshot => {
-        if (!snapshot.empty) {
+        if (snapshot && snapshot.docs && !snapshot.empty) {
           callback({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
         } else {
           callback(null);
         }
+      }, (error: any) => {
+        console.error('Active request snapshot error:', error);
+        callback(null);
       });
     } catch (e) {
       console.error('Error listening to active attendance request:', e);
@@ -1334,8 +1337,15 @@ class FirestoreService {
     try {
       const col = await this.getCollection('attendanceRequests');
       return col.doc(requestId).collection('responses').onSnapshot(snapshot => {
-        const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (!snapshot || !snapshot.docs) {
+          callback([]);
+          return;
+        }
+        const data = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
         callback(data);
+      }, (error: any) => {
+        console.error('Responses snapshot error:', error);
+        callback([]);
       });
     } catch (e) {
       console.error('Error listening to attendance responses:', e);
