@@ -19,7 +19,8 @@ import {
   Phone,
   Settings,
   CreditCard,
-  MessageCircle
+  MessageCircle,
+  ClipboardCheck
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -117,7 +118,7 @@ export default function AdminNavigator({ navigation }: any) {
     { name: 'New Event', icon: PlusSquare, component: AdminEventEditor },
     { name: 'Pastor Event', icon: MapPin, component: PastorEventDashboard },
     { name: 'Prayers', icon: Heart, component: AdminPrayerModeration },
-    { name: 'Attendance', icon: Users, component: AdminAttendance },
+    { name: 'Attendance', icon: ClipboardCheck, component: AdminAttendance },
     { name: 'Members', icon: Users, component: AdminMembers },
     { name: 'Celebrations', icon: Gift, component: AdminCelebrations },
     ...((member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin') ? [{ name: 'WeCelebrations', icon: Gift, component: AdminWeCelebrations }] : []),

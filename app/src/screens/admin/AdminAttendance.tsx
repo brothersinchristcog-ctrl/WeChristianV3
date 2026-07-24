@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
   TextInput, ActivityIndicator, Alert, Platform
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { CheckCircle, XCircle, Clock, Calendar, Users, Send, ChevronLeft, Plus, History } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
@@ -241,19 +242,28 @@ export default function AdminAttendance() {
         {/* ── Active Request Dashboard ── */}
         {activeRequest && !showNewForm && (
           <>
-            <View style={styles.activeHeader}>
-              <View style={{ flex: 1 }}>
+            <LinearGradient 
+              colors={['#1a2d5a', '#2c478a']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.activeHeader}
+            >
+              <View style={styles.activeHeaderIconWrap}>
+                <Calendar color="#FCD34D" size={24} />
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <Text style={styles.activeHeaderLabel}>ACTIVE EVENT</Text>
                 <Text style={styles.activeTitle}>{activeRequest.title}</Text>
                 <Text style={styles.activeDate}>
                   {new Date(activeRequest.createdAt?.toDate?.() || Date.now())
                     .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                 </Text>
               </View>
-              <TouchableOpacity style={styles.newBtn} onPress={() => setShowNewForm(true)}>
-                <Plus size={15} color={COLORS.ink} />
-                <Text style={styles.newBtnTxt}>New</Text>
+              <TouchableOpacity style={styles.newBtnSolid} onPress={() => setShowNewForm(true)}>
+                <Plus size={14} color={COLORS.ink} />
+                <Text style={styles.newBtnSolidTxt}>New</Text>
               </TouchableOpacity>
-            </View>
+            </LinearGradient>
 
             {/* Stats */}
             <View style={styles.statsRow}>
@@ -507,16 +517,22 @@ const styles = StyleSheet.create({
   // ── Active Dashboard ──
   activeHeader: {
     marginHorizontal: 16, marginTop: 16, flexDirection: 'row', alignItems: 'center',
-    backgroundColor: COLORS.paper, padding: 16, borderRadius: 16, borderWidth: 1, borderColor: COLORS.rule, marginBottom: 16,
+    padding: 20, borderRadius: 20, marginBottom: 18,
+    elevation: 6, shadowColor: COLORS.ink, shadowOpacity: 0.3, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
   },
-  activeTitle: { fontSize: 18, fontWeight: '700', color: COLORS.ink, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
-  activeDate: { fontSize: 13, color: COLORS.inkSoft, marginTop: 2 },
-  newBtn: {
-    backgroundColor: COLORS.gold + '33', flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 10, gap: 4,
-    borderWidth: 1, borderColor: COLORS.gold,
+  activeHeaderIconWrap: {
+    width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center'
   },
-  newBtnTxt: { color: COLORS.ink, fontWeight: '700', fontSize: 12 },
+  activeHeaderLabel: { fontSize: 10, fontWeight: '800', color: COLORS.gold, letterSpacing: 1, marginBottom: 4 },
+  activeTitle: { fontSize: 22, fontWeight: '800', color: '#fff', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
+  activeDate: { fontSize: 13, color: '#aac4e8', marginTop: 2 },
+  newBtnSolid: {
+    backgroundColor: COLORS.gold, flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, gap: 4,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 4, shadowOffset: { width: 0, height: 2 },
+  },
+  newBtnSolidTxt: { color: COLORS.ink, fontWeight: '800', fontSize: 13 },
 
   statsRow: { marginHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, gap: 10 },
   statCard: {
