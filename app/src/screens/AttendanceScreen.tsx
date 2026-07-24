@@ -123,16 +123,24 @@ export default function AttendanceScreen({ navigation, route }: any) {
             ) : null}
 
             {alreadyResponded ? (
-              <View style={[styles.successBanner, { backgroundColor: response === 'Yes' ? '#F3EAD9' : '#fff1f2', borderColor: response === 'Yes' ? '#DED0AC' : '#fecdd3' }]}>
-                {response === 'Yes' ? <CalendarCheck color="#1a2d5a" size={28} /> : <X color="#be185d" size={28} />}
-                <View style={{ marginLeft: 16, flex: 1 }}>
-                  <Text style={[styles.successTitle, { color: response === 'Yes' ? '#1a2d5a' : '#9f1239' }]}>
-                    Response Recorded
-                  </Text>
-                  <Text style={[styles.successSub, { color: response === 'Yes' ? '#334155' : '#be185d' }]}>
-                    You selected <Text style={{fontWeight: '700'}}>{response || 'No'}</Text>. {reason ? `Reason: ${reason}` : ''}
-                  </Text>
+              <View>
+                <View style={[styles.successBanner, { backgroundColor: response === 'Yes' ? '#F3EAD9' : '#fff1f2', borderColor: response === 'Yes' ? '#DED0AC' : '#fecdd3' }]}>
+                  {response === 'Yes' ? <CalendarCheck color="#1a2d5a" size={28} /> : <X color="#be185d" size={28} />}
+                  <View style={{ marginLeft: 16, flex: 1 }}>
+                    <Text style={[styles.successTitle, { color: response === 'Yes' ? '#1a2d5a' : '#9f1239' }]}>
+                      Response Recorded
+                    </Text>
+                    <Text style={[styles.successSub, { color: response === 'Yes' ? '#334155' : '#be185d' }]}>
+                      You selected <Text style={{fontWeight: '700'}}>{response || 'No'}</Text>.{reason ? ` Reason: ${reason}` : ''}
+                    </Text>
+                  </View>
                 </View>
+                <TouchableOpacity
+                  style={styles.changeBtn}
+                  onPress={() => { setAlreadyResponded(false); setResponse(null); setReason(''); }}
+                >
+                  <Text style={styles.changeBtnTxt}>Change My Response</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.form}>
@@ -243,6 +251,9 @@ const styles = StyleSheet.create({
   successBanner: { flexDirection: 'row', alignItems: 'flex-start', padding: 16, borderRadius: 12, borderWidth: 1, marginTop: 16 },
   successTitle: { fontSize: 16, fontWeight: '700', marginBottom: 4 },
   successSub: { fontSize: 14, lineHeight: 20 },
+
+  changeBtn: { marginTop: 14, paddingVertical: 12, borderRadius: 10, borderWidth: 1.5, borderColor: '#1a2d5a', alignItems: 'center' },
+  changeBtnTxt: { color: '#1a2d5a', fontSize: 14, fontWeight: '700' },
   
   emptyCard: { borderRadius: 20, padding: 32, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   emptyTitle: { fontSize: 18, fontWeight: '700', marginBottom: 8 },

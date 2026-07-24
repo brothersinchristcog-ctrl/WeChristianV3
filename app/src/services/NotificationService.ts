@@ -54,12 +54,22 @@ class NotificationService {
       const globalUser = await FirestoreService.getGlobalUser(user.uid);
 
       if (globalUser?.primaryChurchId) {
+        // Save to church members subcollection
         await firestore().collection('churches').doc(globalUser.primaryChurchId).collection('members').doc(user.uid).set({
           fcmToken: token,
           lastTokenUpdate: firestore.FieldValue.serverTimestamp(),
           platform: Platform.OS,
         }, { merge: true });
-        console.log('✨ Token saved successfully to member profile!');
+
+        // ALSO save to global users collection — Cloud Functions read tokens from here
+        await firestore().collection('users').doc(user.uid).set({
+          fcmToken: token,
+          lastTokenUpdate: firestore.FieldValue.serverTimestamp(),
+          primaryChurchId: globalUser.primaryChurchId,
+          platform: Platform.OS,
+        }, { merge: true });
+
+        console.log('✨ Token saved successfully to member profile AND global users!');
       } else {
         console.log('⚠️ Token not saved: User does not belong to a church yet.');
       }
