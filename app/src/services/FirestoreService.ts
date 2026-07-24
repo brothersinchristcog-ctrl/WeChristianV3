@@ -1252,6 +1252,17 @@ class FirestoreService {
     }
   }
 
+  async deleteAttendanceRequest(requestId: string) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      await col.doc(requestId).delete();
+      return true;
+    } catch (e) {
+      console.error('Error deleting attendance request:', e);
+      throw e;
+    }
+  }
+
   async submitAttendanceResponse(requestId: string, memberId: string, memberName: string, response: 'Yes' | 'No', reason?: string) {
     try {
       const col = await this.getCollection('attendanceRequests');

@@ -4,7 +4,7 @@ import {
   TextInput, ActivityIndicator, Alert, Platform
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { CheckCircle, XCircle, Clock, Calendar, Users, Send, ChevronLeft, Plus, History } from 'lucide-react-native';
+import { CheckCircle, XCircle, Clock, Calendar, Users, Send, ChevronLeft, Plus, History, Trash2 } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
 import { AdminTabContext } from '../../context/AdminTabContext';
@@ -145,6 +145,28 @@ export default function AdminAttendance() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleDeleteRequest = (id: string, title: string) => {
+    Alert.alert(
+      'Delete Request',
+      `Are you sure you want to delete "${title}"? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await FirestoreService.deleteAttendanceRequest(id);
+              loadHistory();
+            } catch (e) {
+              Alert.alert('Error', 'Failed to delete request.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const yesCount = responses.filter(r => r.response === 'Yes').length;
@@ -393,6 +415,15 @@ export default function AdminAttendance() {
                         {isActive ? 'Active' : 'Closed'}
                       </Text>
                     </View>
+                    <TouchableOpacity 
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        handleDeleteRequest(req.id, req.title);
+                      }}
+                      style={{ padding: 4, marginLeft: 8 }}
+                    >
+                      <Trash2 size={18} color="#ef4444" />
+                    </TouchableOpacity>
                   </View>
                   <View style={styles.historyStats}>
                     <View style={styles.historyStatItem}>
