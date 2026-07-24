@@ -234,7 +234,7 @@ export default function AdminPromiseList() {
           {todayPromise ? renderCard(todayPromise, 'today') : (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>Nothing is scheduled for <Text style={styles.dateTag}>{displayDateFullStr}</Text> yet.</Text>
-              <TouchableOpacity style={styles.ghostBtn} onPress={() => { setEditingData({ date: todayStr }); setActiveTab(1); }}>
+              <TouchableOpacity style={styles.ghostBtn} onPress={() => { setEditingData({ date: todayStr }); setActiveTab(2); }}>
                 <Text style={styles.ghostBtnTxt}>+ Schedule today's promise</Text>
               </TouchableOpacity>
             </View>
@@ -259,7 +259,7 @@ export default function AdminPromiseList() {
                 const now = new Date();
                 const dStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(missingDates[0]).padStart(2, '0')}`;
                 setEditingData({ date: dStr });
-                setActiveTab(1);
+                setActiveTab(2);
               }
             }}>
               <Text style={styles.fillAllTxt}>Fill all</Text>
@@ -273,7 +273,7 @@ export default function AdminPromiseList() {
                   const now = new Date();
                   const dStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                   setEditingData({ date: dStr }); 
-                  setActiveTab(1); 
+                  setActiveTab(2); 
                 }}>
                   <View style={styles.missingMonth}><Text style={styles.missingMonthTxt}>{monthStr}</Text></View>
                   <Text style={styles.missingDay}>{d}</Text>

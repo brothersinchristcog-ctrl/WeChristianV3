@@ -1,0 +1,21 @@
+Created At: 2026-07-22T20:24:42Z
+Completed At: 2026-07-22T20:24:45Z
+The following changes were made by the replace_file_content tool to: c:\Users\yraje\WeChristian2\app\src\screens\admin\AdminEventList.tsx. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -372,10 +372,10 @@
+   eiLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+   eiLocTxt: { fontSize: 11, color: COLORS.inkSoft, flexShrink: 1 },
+   eiStatusRow: { marginTop: 7 },
+-  actionsContainer: { borderLeftWidth: 1, borderLeftColor: COLORS.rule, paddingLeft: 8, justifyContent: 'center', gap: 12 },
+-  editAction: { alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 4 },
++  actionsContainer: { borderLeftWidth: 1, borderLeftColor: COLORS.rule, paddingLeft: 8, justifyContent: 'center', gap: 0 },
++  editAction: { alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 4, paddingVertical: 10 },
+   editActionTxt: { fontSize: 9, fontWeight: '700', color: COLORS.ink, textTransform: 'uppercase' },
+-  deleteAction: { alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 4 },
++  deleteAction: { alignItems: 'center', justifyContent: 'center', gap: 3, paddingHorizontal: 4, paddingVertical: 10, borderTopWidth: 1, borderTopColor: COLORS.rule },
+   deleteActionTxt: { fontSize: 9, fontWeight: '700', color: COLORS.clay, textTransform: 'uppercase' },
+ 
+   badgePub: { backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 },
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.

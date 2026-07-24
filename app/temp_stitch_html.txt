@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Promises — Premium</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600;700&family=Noto+Serif+Telugu:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#151C33;
+    --ink-2:#22304F;
+    --ink-soft:#6B7593;
+    --parchment:#F3EAD9;
+    --paper:#FFFCF5;
+    --gold:#A67C3D;
+    --gold-deep:#8C6428;
+    --gold-bright:#D8B369;
+    --clay:#A24B34;
+    --clay-bg:#F3E1D6;
+    --clay-line:#E3C3B2;
+    --moss:#3E6B52;
+    --moss-bg:#E6EFE7;
+    --rule:#DED0AC;
+    --shadow: 0 1px 2px rgba(21,28,51,0.06), 0 16px 32px -18px rgba(21,28,51,0.35);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background: var(--parchment);
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    padding: 0 0 70px;
+  }
+  .device{
+    width:100%;
+    max-width:430px;
+    background: var(--parchment);
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(166,124,61,0.05), transparent 40%),
+      radial-gradient(circle at 90% 30%, rgba(21,28,51,0.03), transparent 35%);
+    position:relative;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{
+    background:
+      repeating-linear-gradient(115deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 7px),
+      linear-gradient(160deg, var(--ink) 0%, var(--ink-2) 100%);
+    border-radius: 0 0 22px 22px;
+    padding: 30px 22px 46px;
+    position:relative;
+    overflow:visible;
+  }
+  .eyebrow{
+    font-size:10.5px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--gold-bright);
+    font-weight:600;
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:16px;height:1px;
+    background:var(--gold-bright);
+    display:inline-block;
+  }
+  .hero h1{
+    font-family:'Fraunces', serif;
+    font-optical-sizing:auto;
+    font-weight:600;
+    font-size:33px;
+    margin:0 0 6px;
+    letter-spacing:-0.01em;
+    background: linear-gradient(115deg, #fff 30%, var(--gold-bright) 95%);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+    max-width: 78%;
+  }
+  .hero .sub{
+    font-size:13px;
+    color:#AEB8D4;
+    display:flex;
+    align-items:center;
+    gap:6px;
+    max-width: 78%;
+  }
+  .hero .sub .tel{ font-family:'Noto Serif Telugu', serif; color:var(--gold-bright); }
+
+  .new-btn{
+    position:absolute;
+    top:28px; right:20px;
+    background: transparent;
+    color:var(--gold-bright);
+    border:1px solid rgba(216,179,105,0.5);
+    padding:8px 15px;
+    border-radius:100px;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+  }
+
+  /* Ribbon bookmark — the signature element: marks "today" like a real bible ribbon */
+  .ribbon{
+    position:absolute;
+    right: 34px;
+    top: 0;
+    width: 30px;
+    height: 118px;
+    background: linear-gradient(180deg, var(--gold-bright), var(--gold) 70%, var(--gold-deep));
+    clip-path: polygon(0 0, 100% 0, 100% 88%, 50% 100%, 0 88%);
+    box-shadow: -2px 3px 10px rgba(0,0,0,0.25);
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+    padding-top:14px;
+  }
+  .ribbon .rlabel{
+    writing-mode: vertical-rl;
+    font-family:'Fraunces', serif;
+    font-size:12.5px;
+    font-weight:700;
+    letter-spacing:.06em;
+    color: var(--ink);
+    text-transform:uppercase;
+  }
+
+  .content{ padding: 0 16px 0; }
+
+  /* ---------- Ledger tabs (stats) ---------- */
+  .stats{
+    display:grid;
+    grid-template-columns: repeat(3,1fr);
+    gap:10px;
+    margin-bottom:22px;
+    margin-top:-30px;
+  }
+  .stat{
+    background:var(--paper);
+    border-radius: 4px 4px 12px 12px;
+    padding:18px 8px 14px;
+    text-align:center;
+    box-shadow: var(--shadow);
+    border:1px solid rgba(21,28,51,0.05);
+    position:relative;
+  }
+  .stat::before{
+    content:"";
+    position:absolute;
+    top:-7px; left:50%;
+    transform:translateX(-50%);
+    width:26px; height:9px;
+    border-radius: 3px 3px 0 0;
+  }
+  .stat.published::before{ background:var(--moss); }
+  .stat.drafts::before{ background:var(--gold); }
+  .stat.missing::before{ background:var(--clay); }
+  .stat .num{
+    font-family:'Fraunces', serif;
+    font-size:27px;
+    font-weight:600;
+    line-height:1;
+    margin-bottom:6px;
+  }
+  .stat.published .num{ color:var(--moss); }
+  .stat.drafts .num{ color:var(--gold-deep); }
+  .stat.missing .num{ color:var(--clay); }
+  .stat .label{
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+
+  /* ---------- Alert ---------- */
+  .alert{
+    background: var(--clay-bg);
+    border:1px solid var(--clay-line);
+    border-left:3px solid var(--clay);
+    border-radius:4px 12px 12px 4px;
+    padding:14px 16px;
+    display:flex;
+    gap:12px;
+    margin-bottom:26px;
+    align-items:flex-start;
+  }
+  .alert .icon{ width:19px;height:19px; flex-shrink:0; color:var(--clay); margin-top:1px; }
+  .alert strong{ font-family:'Fraunces', serif; color:var(--clay); font-weight:600; font-size:14.5px; }
+  .alert p{ margin:3px 0 0; font-size:13px; color:#7C4028; line-height:1.5; }
+
+  .section-title{
+    font-family:'Fraunces', serif;
+    font-size:14px;
+    font-weight:600;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    margin: 0 0 10px 2px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .section-title::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--rule);
+  }
+
+  /* ---------- Empty states ---------- */
+  .empty-card{
+    border: 1.5px dashed var(--gold);
+    border-radius:4px 16px 16px 4px;
+    background: var(--paper);
+    padding: 24px 20px;
+    text-align:center;
+    margin-bottom:24px;
+  }
+  .empty-card p{ margin:0 0 14px; font-size:14px; color:var(--ink-soft); line-height:1.5; }
+  .empty-card .date-tag{ font-family:'Fraunces',serif; font-weight:600; color:var(--ink); }
+  .ghost-btn{
+    background: linear-gradient(135deg, var(--ink), var(--ink-2));
+    color:#fff;
+    border: 1px solid var(--gold);
+    padding:11px 20px;
+    border-radius:100px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+
+  /* ---------- Missing dates: tear-off calendar cells ---------- */
+  .missing-head{ display:flex; justify-content:space-between; align-items:center; margin: 0 0 10px 2px; }
+  .missing-head h2{ font-family:'Fraunces', serif; font-size:16px; font-weight:600; color:var(--clay); margin:0; }
+  .fill-all{
+    background: var(--clay);
+    color:#fff;
+    border:none;
+    padding:9px 16px;
+    border-radius:100px;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+  }
+  .missing-grid{ display:grid; grid-template-columns: repeat(4,1fr); gap:9px; margin-bottom:30px; }
+  .missing-cell{
+    background: var(--paper);
+    border:1px solid var(--clay-line);
+    border-radius:8px;
+    text-align:center;
+    cursor:pointer;
+    transition: transform .15s ease;
+    overflow:hidden;
+  }
+  .missing-cell:hover{ transform: translateY(-2px); }
+  .missing-cell .month{
+    background: var(--clay);
+    color:#fff;
+    font-size:9px;
+    font-weight:700;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    padding:4px 0 3px;
+  }
+  .missing-cell .d{
+    font-family:'Fraunces', serif;
+    font-size:19px;
+    font-weight:600;
+    color:var(--ink);
+    padding:8px 0 2px;
+    border-bottom: 1px dashed var(--clay-line);
+    margin: 0 8px;
+  }
+  .missing-cell .add{ font-size:10px; color:var(--clay); font-weight:700; padding:5px 0 7px; letter-spacing:.03em; }
+
+  /* ---------- Verse cards: manuscript page ---------- */
+  .verse-card{
+    background:var(--paper);
+    border-radius:14px;
+    box-shadow: var(--shadow);
+    margin-bottom:18px;
+    position:relative;
+    border:1px solid rgba(21,28,51,0.05);
+    overflow:hidden;
+  }
+  .vc-band{
+    background: linear-gradient(120deg, var(--ink), var(--ink-2));
+    padding: 12px 18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .vc-date{ font-family:'Fraunces', serif; font-size:15px; font-weight:600; color:#fff; }
+
+  .seal{
+    width:30px; height:30px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, var(--gold-bright), var(--gold) 60%, var(--gold-deep));
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3), inset 0 0 0 2px rgba(255,255,255,0.25);
+    flex-shrink:0;
+  }
+  .seal svg{ width:15px; height:15px; color:var(--ink); }
+
+  .vc-body{ padding: 18px 18px 14px; }
+  .vc-ref{ display:flex; align-items:center; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+  .vc-ref .tag{ font-size:11.5px; background: var(--parchment); color:var(--ink-soft); padding:3px 10px; border-radius:100px; font-weight:600; border:1px solid var(--rule); }
+  .vc-ref .tel-tag{ font-family:'Noto Serif Telugu', serif; }
+  .vc-ref .author{ font-size:12px; color:var(--gold-deep); font-weight:700; }
+  .vc-ref .dot{ color:var(--gold); font-size:10px; }
+
+  .drop-cap{
+    font-family:'Fraunces', serif;
+    font-size:40px;
+    font-weight:600;
+    color:var(--gold);
+    float:left;
+    line-height:0.75;
+    margin: 4px 6px 0 0;
+  }
+  .vc-quote{ font-family:'Source Serif 4', serif; font-style:italic; font-size:16px; line-height:1.55; color:var(--ink); margin: 0 0 10px; }
+  .vc-quote-tel{ font-family:'Noto Serif Telugu', serif; font-size:14.5px; line-height:1.65; color:var(--ink-soft); margin: 0 0 14px; clear:left; }
+
+  .vc-bottom{ display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px dashed var(--rule); }
+  .vc-flags{ display:flex; gap:14px; }
+  .flag{ font-size:12px; color:var(--ink-soft); display:flex; align-items:center; gap:5px; font-weight:600; }
+  .flag.on{ color:var(--moss); }
+  .flag.off{ color:#C4B896; }
+  .view-link{ font-size:12.5px; font-weight:700; color:var(--ink); cursor:pointer; display:flex; align-items:center; gap:4px; }
+
+  .footer{
+    text-align:center;
+    padding: 20px 0 8px;
+    font-size:11px;
+    letter-spacing:.05em;
+    color: #B3A67E;
+    text-transform:uppercase;
+    font-weight:600;
+  }
+
+  .fab{
+    position:fixed;
+    bottom:26px;
+    right: calc(50% - 215px + 18px);
+    width:56px;height:56px;
+    border-radius:50%;
+    background: radial-gradient(circle at 35% 30%, var(--gold-bright), var(--gold) 60%, var(--gold-deep));
+    color:var(--ink);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow: 0 12px 26px -8px rgba(140,100,40,0.6), inset 0 0 0 2px rgba(255,255,255,0.3);
+    cursor:pointer;
+    font-family:'Fraunces', serif;
+    font-size:26px;
+    font-weight:700;
+  }
+  @media (max-width:430px){ .fab{ right: 24px; } }
+</style>
+</head>
+<body>
+<div class="device">
+
+  <div class="hero">
+    <button class="new-btn">+ New</button>
+    <div class="eyebrow">Church Admin · Daily Promise Manager</div>
+    <h1>Daily Promises</h1>
+    <div class="sub">English + <span class="tel">తెలుగు</span> · YouTube links</div>
+    <div class="ribbon"><span class="rlabel">22 Jul</span></div>
+  </div>
+
+  <div class="content">
+    <div class="stats">
+      <div class="stat published"><div class="num">10</div><div class="label">Published</div></div>
+      <div class="stat drafts"><div class="num">0</div><div class="label">Drafts</div></div>
+      <div class="stat missing"><div class="num">18</div><div class="label">Missing</div></div>
+    </div>
+
+    <div class="alert">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.29 3.86l-8.18 14.18A2 2 0 0 0 3.82 21h16.36a2 2 0 0 0 1.71-2.96L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      <div><strong>18 days are still empty.</strong><p>Nothing is scheduled for the dates below. Fill them in before the queue catches up.</p></div>
+    </div>
+
+    <div class="section-title">Today</div>
+    <div class="empty-card">
+      <p>Nothing is scheduled for <span class="date-tag">22 July 2026</span> yet.</p>
+      <button class="ghost-btn">+ Schedule today's promise</button>
+    </div>
+
+    <div class="section-title">Upcoming</div>
+    <div class="empty-card">
+      <p>No promises scheduled ahead. Add a few days now to stay ahead of the queue.</p>
+    </div>
+
+    <div class="missing-head">
+      <h2>Missing dates (18)</h2>
+      <button class="fill-all">Fill all</button>
+    </div>
+    <div class="missing-grid">
+      <div class="missing-cell"><div class="month">Jul</div><div class="d">13</div><div class="add">+ Add</div></div>
+      <div class="missing-cell"><div class="month">Jul</div><div class="d">14</div><div class="add">+ Add</div></div>
+      <div class="missing-cell"><div class="month">Jul</div><div class="d">15</div><div class="add">+ Add</div></div>
+      <div class="missing-cell"><div class="month">Jul</div><div class="d">16</div><div class="add">+ Add</div></div>
+      <div class="missing-cell"><div class="month">Jul</div><div class="d">17</div><div class="add">+ Add</div></div>
+      <div class="missing-cell"><div class="month">Jul</div><div class="d">18</div><div class="add">+ Add</div></div>
+      <div class="missing-cell"><div class="month">Jul</div><div class="d">19</div><div class="add">+ Add</div></div>
+      <div class="missing-cell"><div class="month">Jul</div><div class="d">20</div><div class="add">+ Add</div></div>
+    </div>
+
+    <div class="section-title">Recent past</div>
+
+    <div class="verse-card">
+      <div class="vc-band">
+        <div class="vc-date">21 July 2026</div>
+        <div class="seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+      </div>
+      <div class="vc-body">
+        <div class="vc-ref">
+          <span class="tag">Isaiah 28:16</span>
+          <span class="tag tel-tag">యెషయా 28:16</span>
+          <span class="dot">•</span>
+          <span class="author">Bro. Jeremiah</span>
+        </div>
+        <p class="vc-quote"><span class="drop-cap">H</span>e that believeth shall not make haste.</p>
+        <p class="vc-quote-tel">స్థిరమైన పునాదియైన మూలరాయియైయున్నది విశ్వసించువాడు కలవరపడడు.</p>
+        <div class="vc-bottom">
+          <div class="vc-flags">
+            <span class="flag on">✓ English</span>
+            <span class="flag on">✓ Telugu</span>
+            <span class="flag on">▶ YouTube</span>
+          </div>
+          <span class="view-link">View →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="verse-card">
+      <div class="vc-band">
+        <div class="vc-date">12 July 2026</div>
+        <div class="seal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+      </div>
+      <div class="vc-body">
+        <div class="vc-ref">
+          <span class="tag">John 4:24</span>
+          <span class="tag tel-tag">యోహాను 4:24</span>
+          <span class="dot">•</span>
+          <span class="author">B. Jeremiah</span>
+        </div>
+        <p class="vc-quote"><span class="drop-cap">G</span>od is spirit, and His worshipers must worship in the spirit and in truth…</p>
+        <p class="vc-quote-tel">దేవుడు ఆత్మగనుక ఆయనను ఆరాధించువారు ఆత్మతోను సత్యముతోను ఆరాధింపవలెననెను…</p>
+        <div class="vc-bottom">
+          <div class="vc-flags">
+            <span class="flag on">✓ English</span>
+            <span class="flag on">✓ Telugu</span>
+            <span class="flag off">▶ No link</span>
+          </div>
+          <span class="view-link">View →</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">Church Admin · Daily Promise Manager</div>
+  </div>
+</div>
+
+<div class="fab">+</div>
+</body>
+</html>
