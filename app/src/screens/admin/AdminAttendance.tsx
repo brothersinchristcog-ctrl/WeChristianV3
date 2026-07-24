@@ -132,24 +132,24 @@ export default function AdminAttendance() {
 
   return (
     <View style={[styles.container, { backgroundColor: COLORS.bg }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* ── Hero Section ── */}
-        <View style={styles.hero}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-              <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-                <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
-              </TouchableOpacity>
-              <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-              <View>
-                <Text style={styles.heroTitle}>Attendance</Text>
-                <Text style={[styles.heroSub, { marginTop: 2 }]}>{responses.length} responses · {pendingMembers.length} pending</Text>
-              </View>
+      {/* ── Hero Section (Fixed at Top) ── */}
+      <View style={styles.hero}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View>
+              <Text style={styles.heroTitle}>Attendance</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]}>{responses.length} responses · {pendingMembers.length} pending</Text>
             </View>
           </View>
         </View>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {!activeRequest || showNewForm ? (
           <View style={[styles.card, { backgroundColor: COLORS.paper, borderColor: COLORS.rule }]}>
@@ -185,7 +185,7 @@ export default function AdminAttendance() {
             />
             
             <TouchableOpacity 
-              style={[styles.btnPrimary, { opacity: (isSubmitting || !title) ? 0.7 : 1, marginTop: 8 }]} 
+              style={[styles.btnPrimary, { opacity: (isSubmitting || !title) ? 0.7 : 1 }]} 
               onPress={handleCreateRequest}
               disabled={isSubmitting || !title}
             >
@@ -193,7 +193,7 @@ export default function AdminAttendance() {
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
                 <>
-                  <Send color={COLORS.ink} size={16} style={{ marginRight: 6 }} />
+                  <Send color="#fff" size={16} style={{ marginRight: 6 }} />
                   <Text style={styles.btnPrimaryText}>Send Request</Text>
                 </>
               )}
@@ -307,39 +307,39 @@ const styles = StyleSheet.create({
 
   hero: {
     backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
     paddingHorizontal: 22,
     paddingTop: 10,
     paddingBottom: 24,
-    marginBottom: 16,
+    marginBottom: 0,
+    zIndex: 10,
   },
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
   heroSub: { color: '#AEB8D4', fontSize: 13 },
   
   card: {
     marginHorizontal: 16,
+    marginTop: 16,
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  cardTitle: { fontSize: 20, fontWeight: '700', marginLeft: 12, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
+  cardTitle: { fontSize: 17, fontWeight: '700', marginLeft: 10, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
   cardDesc: { fontSize: 14, lineHeight: 20, marginBottom: 20 },
   
-  typeChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  typeChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 4, marginBottom: 8 },
   typeChip: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 20, borderWidth: 1, borderColor: COLORS.rule, backgroundColor: 'transparent' },
   typeChipTxt: { fontSize: 13, fontWeight: '600', color: COLORS.inkSoft },
 
   inputLabel: { fontSize: 13, fontWeight: '700', marginBottom: 6, marginLeft: 4, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
-  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, marginBottom: 12 },
+  input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14, fontSize: 15, marginBottom: 24 },
   
-  btnPrimary: { backgroundColor: COLORS.gold, borderRadius: 12, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
-  btnPrimaryText: { color: COLORS.ink, fontSize: 14, fontWeight: '700' },
+  btnPrimary: { backgroundColor: '#15803D', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 24, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', alignSelf: 'flex-start' },
+  btnPrimaryText: { color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.3 },
   btnSecondary: { paddingVertical: 16, alignItems: 'center', marginTop: 8 },
   btnSecondaryText: { fontSize: 15, fontWeight: '600' },
 
-  activeHeader: { marginHorizontal: 16, flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
+  activeHeader: { marginHorizontal: 16, marginTop: 16, flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 16, borderWidth: 1, marginBottom: 16 },
   activeTitle: { fontSize: 18, fontWeight: '700', marginBottom: 4, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
   activeDate: { fontSize: 13 },
   
