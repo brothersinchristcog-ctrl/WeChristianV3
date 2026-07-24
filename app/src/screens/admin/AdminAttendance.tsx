@@ -5,12 +5,13 @@ import { CheckCircle, XCircle, Clock, Calendar, Users, Send } from 'lucide-react
 import FirestoreService from '../../services/FirestoreService';
 import { useAuth } from '../../context/AuthContext';
 import { useChurch } from '../../context/ChurchContext';
+import { useTheme } from '../../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
 
 export default function AdminAttendance() {
-  const { isDark } = useAuth();
   const { activeChurch } = useChurch();
+  const { isDark } = useTheme();
   
   const [loading, setLoading] = useState(true);
   const [activeRequest, setActiveRequest] = useState<any>(null);

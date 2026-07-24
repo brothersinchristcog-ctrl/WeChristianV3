@@ -5,9 +5,11 @@ import { ChevronLeft, CalendarCheck, Check, X } from 'lucide-react-native';
 import FirestoreService from '../services/FirestoreService';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
+import { useTheme } from '../context/ThemeContext';
 
 export default function AttendanceScreen({ navigation, route }: any) {
-  const { isDark, member, user } = useAuth();
+  const { member, user } = useAuth();
+  const { isDark } = useTheme();
   const { activeChurch } = useChurch();
   
   const [loading, setLoading] = useState(true);
@@ -29,7 +31,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
         setRequest(activeReq);
         const memberId = member?.id || user?.uid;
         if (memberId) {
-          const existing = await FirestoreService.getMemberAttendanceResponse(activeReq.id, memberId);
+          const existing: any = await FirestoreService.getMemberAttendanceResponse(activeReq.id, memberId);
           if (existing) {
             setResponse(existing.response);
             setReason(existing.reason || '');
