@@ -576,7 +576,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
           <View style={{ flex: 1, paddingRight: 16 }}>
             <Text style={styles.automationTitle}>Automated WhatsApp Wishes</Text>
             <Text style={styles.automationDesc}>
-              Automatically send WhatsApp wishes to members on their special day at 8:00 AM.
+              Sends Birthday wishes at 6:00 AM · Baptism wishes at 6:30 AM · Wedding Anniversary wishes at 7:00 AM (IST) — every day, automatically.
             </Text>
           </View>
           <TouchableOpacity 

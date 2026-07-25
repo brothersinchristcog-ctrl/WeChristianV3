@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Alert } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
@@ -7,6 +7,8 @@ import RootNavigator from './src/navigation/RootNavigator';
 
 // Import Firebase config to initialize it on app start
 import './src/services/firebaseConfig';
+
+export const navigationRef = createNavigationContainerRef();
 
 export default function App() {
   useEffect(() => {
@@ -21,9 +23,10 @@ export default function App() {
   }, []);
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <StatusBar style="light" />
       <RootNavigator />
     </NavigationContainer>
+
   );
 }

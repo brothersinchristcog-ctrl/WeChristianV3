@@ -316,12 +316,24 @@ function Navigation() {
 
   useEffect(() => {
     if (user && !loading && pendingNotification) {
-      setTimeout(() => {
-        NotificationService.handleNotificationNavigation(pendingNotification, navigation);
-        setPendingNotification(null);
-      }, 500); // Give the navigator time to mount the new screens
+      let retryCount = 0;
+      const tryNavigate = () => {
+        const { navigationRef } = require('../../App');
+        if (navigationRef && navigationRef.isReady()) {
+          NotificationService.handleNotificationNavigation(pendingNotification, navigationRef);
+          setPendingNotification(null);
+        } else if (retryCount < 20) {
+          retryCount++;
+          setTimeout(tryNavigate, 200); // Retry every 200ms up to 20 times (4 seconds total)
+        } else {
+          console.warn('⚠️ Navigation took too long to become ready, dropping pending notification.');
+          setPendingNotification(null);
+        }
+      };
+      
+      tryNavigate();
     }
-  }, [user, loading, pendingNotification, navigation]);
+  }, [user, loading, pendingNotification]);
 
   useEffect(() => {
     if (user && !loading) {

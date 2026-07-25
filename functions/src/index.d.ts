@@ -48,20 +48,17 @@ export declare const notifyMembersV2: import("firebase-functions/v2/https").Http
  */
 export declare const automatedDailyPromise: import("firebase-functions/v2/scheduler").ScheduleFunction;
 /**
- * ⏰ AUTOMATED DAILY BIRTHDAYS SCHEDULER
- * Scheduled to run every day at 06:00 AM IST
+ * ⏰ AUTOMATED DAILY BIRTHDAYS TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export declare const weChristianBdaysRunV3: functionsCompat.CloudFunction<unknown>;
+export declare const triggerAutomatedBirthdays: import("firebase-functions/v2/https").HttpsFunction;
 /**
- * ⏰ AUTOMATED DAILY ANNIVERSARIES SCHEDULER
- * Scheduled to run every day at 07:00 AM IST
+ * ⏰ AUTOMATED DAILY ANNIVERSARIES TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export declare const weChristianAnnivsRunV3: functionsCompat.CloudFunction<unknown>;
+export declare const triggerAutomatedAnniversaries: import("firebase-functions/v2/https").HttpsFunction;
 /**
- * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES SCHEDULER
- * Scheduled to run every day at 06:30 AM IST
+ * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export declare const weChristianBaptismsRunV3: functionsCompat.CloudFunction<unknown>;
+export declare const triggerAutomatedBaptisms: import("firebase-functions/v2/https").HttpsFunction;
 /**
  * 📣 ON BROADCAST CREATED TRIGGER (Gen 2)
  * Automatically sends push notifications when a new broadcast is added to Firestore (e.g. Emergency Meeting or custom admin updates)

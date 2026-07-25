@@ -229,11 +229,26 @@ export default function UpdatesScreen({ navigation, route }: any) {
               color = '#6366f1';
               resolvedType = 'sermon';
             }
+            let dateStr = data.date || new Date().toISOString().split('T')[0];
+            
+            // Try to extract exact time if available
+            if (data.createdAt && typeof data.createdAt.toDate === 'function') {
+              const dt = data.createdAt.toDate();
+              const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+              dateStr = `${dateStr} • ${timeStr}`;
+            } else if (typeof data.createdAt === 'number' || typeof data.createdAt === 'string') {
+              const dt = new Date(data.createdAt);
+              if (!isNaN(dt.getTime())) {
+                const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                dateStr = `${dateStr} • ${timeStr}`;
+              }
+            }
+
             return {
               id: doc.id,
               title: data.title || 'Announcement',
               content: stripHtml(data.content || ''),
-              date: data.date || new Date().toISOString().split('T')[0],
+              date: dateStr,
               type: resolvedType,
               icon: icon,
               color: color,

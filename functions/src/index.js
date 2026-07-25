@@ -223,12 +223,9 @@ export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZon
     }
 });
 /**
- * ⏰ AUTOMATED DAILY BIRTHDAYS SCHEDULER
- * Scheduled to run every day at 06:00 AM IST
+ * ⏰ AUTOMATED DAILY BIRTHDAYS TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export const weChristianBdaysRunV3 = functionsCompat.pubsub.schedule('0 6 * * *')
-    .timeZone('Asia/Kolkata')
-    .onRun(async (context) => {
+export const triggerAutomatedBirthdays = onRequest({ timeoutSeconds: 300, cors: true }, async (req, res) => {
     try {
         console.log('⏰ Running automatedDailyBirthdays scheduler...');
         const db = getDb();
@@ -237,6 +234,7 @@ export const weChristianBdaysRunV3 = functionsCompat.pubsub.schedule('0 6 * * *'
         const settings = settingsDoc.data();
         if (settings && settings.birthdayNotif && settings.birthdayNotif.enabled === false) {
             console.log('🔇 Birthday greetings automation is disabled.');
+            res.status(200).send('Birthday greetings automation is disabled.');
             return;
         }
         // Fetch birthdays from Firestore members collection instead of Salesforce
@@ -257,6 +255,8 @@ export const weChristianBdaysRunV3 = functionsCompat.pubsub.schedule('0 6 * * *'
             const monthly = data.monthlyCelebrationTemplates;
             const fallback = data.automatedWeCelebrationTemplate || {};
             const tpl = (monthly && monthly[currentMonthStr]) ? monthly[currentMonthStr] : fallback;
+            // Store the actual church name from the document so we can use it in the image
+            tpl.actualChurchName = data.name || data.churchName || '';
             churchTemplates.set(doc.id, tpl);
         });
         const legacyMembersSnap = await db.collection('members').get();
@@ -302,6 +302,7 @@ export const weChristianBdaysRunV3 = functionsCompat.pubsub.schedule('0 6 * * *'
         });
         if (bdays.length === 0) {
             console.log('📆 No birthdays celebrating today.');
+            res.status(200).send('No birthdays celebrating today.');
             return;
         }
         const greetingTemplate = settings?.birthdayNotif?.greeting || 'Wishing you a very Happy Birthday! May God bless you abundantly and fulfill all your prayers today. 🎂🙏';
@@ -385,7 +386,7 @@ export const weChristianBdaysRunV3 = functionsCompat.pubsub.schedule('0 6 * * *'
                             type: 'birthday',
                             name: member.name,
                             message: formattedMsg,
-                            churchName: tpl.churchName
+                            churchName: tpl.actualChurchName || tpl.churchName
                         });
                         const fileName = `automated_wishes/${member.churchId}/birthday_${Date.now()}.png`;
                         const file = getStorage().bucket().file(fileName);
@@ -410,18 +411,17 @@ export const weChristianBdaysRunV3 = functionsCompat.pubsub.schedule('0 6 * * *'
                 }
             }
         }
+        res.status(200).send(`Birthday automation completed. Processed ${bdays.length} members.`);
     }
     catch (error) {
         console.error('Error in automatedDailyBirthdays:', error);
+        res.status(500).send('Error executing birthday automation.');
     }
 });
 /**
- * ⏰ AUTOMATED DAILY ANNIVERSARIES SCHEDULER
- * Scheduled to run every day at 07:00 AM IST
+ * ⏰ AUTOMATED DAILY ANNIVERSARIES TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export const weChristianAnnivsRunV3 = functionsCompat.pubsub.schedule('0 7 * * *')
-    .timeZone('Asia/Kolkata')
-    .onRun(async (context) => {
+export const triggerAutomatedAnniversaries = onRequest({ timeoutSeconds: 300, cors: true }, async (req, res) => {
     try {
         console.log('⏰ Running automatedDailyAnniversaries scheduler...');
         const db = getDb();
@@ -430,7 +430,7 @@ export const weChristianAnnivsRunV3 = functionsCompat.pubsub.schedule('0 7 * * *
         const settings = settingsDoc.data();
         if (settings && settings.anniversaryNotif && settings.anniversaryNotif.enabled === false) {
             console.log('🔇 Anniversary greetings automation is disabled.');
-            console.log('Anniversary greetings automation is disabled.');
+            res.status(200).send('Anniversary greetings automation is disabled.');
             return;
         }
         // Fetch anniversaries from Firestore members collection
@@ -451,6 +451,7 @@ export const weChristianAnnivsRunV3 = functionsCompat.pubsub.schedule('0 7 * * *
             const monthly = data.monthlyCelebrationTemplates;
             const fallback = data.automatedWeCelebrationTemplate || {};
             const tpl = (monthly && monthly[currentMonthStr]) ? monthly[currentMonthStr] : fallback;
+            tpl.actualChurchName = data.name || data.churchName || '';
             churchTemplates.set(doc.id, tpl);
         });
         const legacyMembersSnap = await db.collection('members').get();
@@ -514,7 +515,7 @@ export const weChristianAnnivsRunV3 = functionsCompat.pubsub.schedule('0 7 * * *
         });
         if (annivs.length === 0) {
             console.log('📆 No wedding anniversaries celebrating today.');
-            console.log('No wedding anniversaries celebrating today.');
+            res.status(200).send('No wedding anniversaries celebrating today.');
             return;
         }
         const greetingTemplate = settings?.anniversaryNotif?.greeting || 'Wishing you a wonderful wedding anniversary! May God bless your home with love, joy, and peace. 💐💒';
@@ -533,7 +534,10 @@ export const weChristianAnnivsRunV3 = functionsCompat.pubsub.schedule('0 7 * * *
         });
         for (const ann of annivs) {
             const coupleNames = `${ann.husband} & ${ann.wife}`;
-            const personalGreeting = `Wishing Brother ${ann.husband} & Sister ${ann.wife} a wonderful ${ann.years}th Wedding Anniversary! ${greetingTemplate}`;
+            const husbandTitle = ann.husband === 'Brother' ? '' : 'Brother ';
+            const wifeTitle = ann.wife === 'Sister' ? '' : 'Sister ';
+            const yearsText = ann.years ? `${ann.years}th ` : '';
+            const personalGreeting = `Wishing ${husbandTitle}${ann.husband} & ${wifeTitle}${ann.wife} a wonderful ${yearsText}Wedding Anniversary! ${greetingTemplate}`;
             // Save to broadcasts (targeted to this couple only)
             const targetChurchId = ann.churchId || DEFAULT_CHURCH_ID;
             const docRef = await db.collection('churches').doc(targetChurchId).collection('broadcasts').add({
@@ -603,7 +607,7 @@ export const weChristianAnnivsRunV3 = functionsCompat.pubsub.schedule('0 7 * * *
                                 type: 'anniversary',
                                 name: couple,
                                 message: formattedMsg,
-                                churchName: tpl.churchName
+                                churchName: tpl.actualChurchName || tpl.churchName
                             });
                             const fileName = `automated_wishes/${ann.churchId}/anniversary_${Date.now()}.png`;
                             const file = getStorage().bucket().file(fileName);
@@ -629,18 +633,17 @@ export const weChristianAnnivsRunV3 = functionsCompat.pubsub.schedule('0 7 * * *
                 }
             }
         }
+        res.status(200).send(`Anniversary automation completed. Processed ${annivs.length} couples.`);
     }
     catch (error) {
         console.error('Error in automatedDailyAnniversaries:', error);
+        res.status(500).send('Error executing anniversary automation.');
     }
 });
 /**
- * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES SCHEDULER
- * Scheduled to run every day at 06:30 AM IST
+ * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export const weChristianBaptismsRunV3 = functionsCompat.pubsub.schedule('30 6 * * *')
-    .timeZone('Asia/Kolkata')
-    .onRun(async (context) => {
+export const triggerAutomatedBaptisms = onRequest({ timeoutSeconds: 300, cors: true }, async (req, res) => {
     try {
         console.log('⏰ Running automatedDailyBaptisms scheduler...');
         const db = getDb();
@@ -649,7 +652,7 @@ export const weChristianBaptismsRunV3 = functionsCompat.pubsub.schedule('30 6 * 
         const settings = settingsDoc.data();
         if (settings && settings.baptismNotif && settings.baptismNotif.enabled === false) {
             console.log('🔇 Baptism greetings automation is disabled.');
-            console.log('Baptism greetings automation is disabled.');
+            res.status(200).send('Baptism greetings automation is disabled.');
             return;
         }
         // Fetch baptisms from Firestore members collection
@@ -670,6 +673,7 @@ export const weChristianBaptismsRunV3 = functionsCompat.pubsub.schedule('30 6 * 
             const monthly = data.monthlyCelebrationTemplates;
             const fallback = data.automatedWeCelebrationTemplate || {};
             const tpl = (monthly && monthly[currentMonthStr]) ? monthly[currentMonthStr] : fallback;
+            tpl.actualChurchName = data.name || data.churchName || '';
             churchTemplates.set(doc.id, tpl);
         });
         const legacyMembersSnap = await db.collection('members').get();
@@ -805,7 +809,7 @@ export const weChristianBaptismsRunV3 = functionsCompat.pubsub.schedule('30 6 * 
                                 type: 'baptism',
                                 name: member.name,
                                 message: formattedMsg,
-                                churchName: tpl.churchName
+                                churchName: tpl.actualChurchName || tpl.churchName
                             });
                             const fileName = `automated_wishes/${member.churchId}/baptism_${Date.now()}.png`;
                             const file = getStorage().bucket().file(fileName);
@@ -831,9 +835,11 @@ export const weChristianBaptismsRunV3 = functionsCompat.pubsub.schedule('30 6 * 
                 }
             }
         }
+        res.status(200).send(`Baptism automation completed. Processed ${baptisms.length} members.`);
     }
     catch (error) {
         console.error('Error in automatedDailyBaptisms:', error);
+        res.status(500).send('Error executing baptism automation.');
     }
 });
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
@@ -1154,6 +1160,7 @@ export const testBdaysV10 = functionsCompat.https.onRequest(async (req, res) => 
             const monthly = data.monthlyCelebrationTemplates;
             const fallback = data.automatedWeCelebrationTemplate || {};
             const tpl = (monthly && monthly[currentMonthStr]) ? monthly[currentMonthStr] : fallback;
+            tpl.actualChurchName = data.name || data.churchName || '';
             churchTemplates.set(doc.id, tpl);
         });
         const legacyMembersSnap = await db.collection('members').get();
