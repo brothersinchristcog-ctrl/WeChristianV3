@@ -137,6 +137,9 @@ export default function AdminFinanceDashboard() {
           if (docData.customExpenseItems) {
             setCustomExpenseItems(docData.customExpenseItems);
           }
+          if (docData.customCategories && Array.isArray(docData.customCategories)) {
+            setCategories(prev => Array.from(new Set([...prev, ...docData.customCategories])));
+          }
         }
       }
 
@@ -146,6 +149,9 @@ export default function AdminFinanceDashboard() {
       ]);
       setExpenses(expData);
       setInvoices(invData);
+      
+      const usedCategories = expData.map(e => e.category).filter(Boolean);
+      setCategories(prev => Array.from(new Set([...prev, ...usedCategories])));
     } catch (err) {
       console.error(err);
     } finally {
@@ -1220,12 +1226,23 @@ export default function AdminFinanceDashboard() {
             
             <TouchableOpacity 
               style={styles.catModalSaveBtn}
-              onPress={() => {
+              onPress={async () => {
                 if (newCategoryName.trim()) {
-                  if (!categories.includes(newCategoryName.trim())) {
-                    setCategories([...categories, newCategoryName.trim()]);
+                  const name = newCategoryName.trim();
+                  if (!categories.includes(name)) {
+                    setCategories([...categories, name]);
+                    try {
+                      const churchId = member?.churchId || member?.primaryChurchId;
+                      if (churchId) {
+                        await firestore().collection('churches').doc(churchId).set({
+                          customCategories: firestore.FieldValue.arrayUnion(name)
+                        }, { merge: true });
+                      }
+                    } catch(e) {
+                      console.error("Failed to save custom category", e);
+                    }
                   }
-                  displayToast(`Category "${newCategoryName}" created!`);
+                  displayToast(`Category "${name}" created!`);
                   setNewCategoryName('');
                   setShowCategoryModal(false);
                 }
