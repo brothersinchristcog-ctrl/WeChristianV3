@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { CheckCircle, XCircle, Clock, Calendar, Users, Send, ChevronLeft, Plus, History, Trash2, AlarmClock } from 'lucide-react-native';
+import { CheckCircle, XCircle, Clock, Calendar, Users, Send, ChevronLeft, Plus, History, Trash2, AlarmClock, Edit2 } from 'lucide-react-native';
 import { CustomAlert } from '../../components/CustomAlert';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
@@ -77,6 +77,7 @@ export default function AdminAttendance() {
   const [endTime, setEndTime] = useState<Date>(defaultEnd());
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
 
   // Tick every minute to re-evaluate active/expired
   useEffect(() => {
@@ -152,44 +153,73 @@ export default function AdminAttendance() {
     setIsSubmitting(true);
     try {
       const todayStr = new Date().toISOString().split('T')[0];
-      await FirestoreService.createAttendanceRequest({
+      const data = {
         title: title.trim(),
         description: description.trim(),
         date: todayStr,
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
-      });
+      };
 
-      await FirestoreService.createNotificationBroadcast({
-        title: 'Attendance Request',
-        content: `Are you attending ${title.trim()} today? (Open until ${formatTime(endTime)})`,
-        date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-        type: 'attendance',
-        targetUrl: 'AttendanceScreen',
-      });
+      if (editingRequestId) {
+        await FirestoreService.updateAttendanceRequest(editingRequestId, data);
+        setAlertConfig({
+          visible: true,
+          title: 'Updated',
+          message: 'Event details updated successfully.',
+          type: 'success'
+        });
+      } else {
+        await FirestoreService.createAttendanceRequest(data);
+        
+        await FirestoreService.createNotificationBroadcast({
+          title: 'Attendance Request',
+          content: `Are you attending ${title.trim()} today? (Open until ${formatTime(endTime)})`,
+          date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+          type: 'attendance',
+          targetUrl: 'AttendanceScreen',
+        });
 
-      setAlertConfig({
-        visible: true,
-        title: 'Success',
-        message: `Attendance request sent! Members can respond from ${formatTime(startTime)} to ${formatTime(endTime)}.`,
-        type: 'success'
-      });
+        setAlertConfig({
+          visible: true,
+          title: 'Success',
+          message: `Attendance request sent! Members can respond from ${formatTime(startTime)} to ${formatTime(endTime)}.`,
+          type: 'success'
+        });
+      }
       setShowNewForm(false);
-      setTitle('');
-      setDescription('');
-      setStartTime(defaultStart());
-      setEndTime(defaultEnd());
-      loadHistory();
+      setEditingRequestId(null);
     } catch (e) {
       setAlertConfig({
         visible: true,
         title: 'Error',
-        message: 'Failed to create request. Please try again.',
+        message: 'Failed to process request. Please try again.',
         type: 'error'
       });
     } finally {
       setIsSubmitting(false);
+      loadHistory();
     }
+  };
+
+  const handleEditRequest = () => {
+    if (liveActiveRequest) {
+      setTitle(liveActiveRequest.title);
+      setDescription(liveActiveRequest.description || '');
+      setStartTime(liveActiveRequest.startTime ? new Date(liveActiveRequest.startTime) : defaultStart());
+      setEndTime(liveActiveRequest.endTime ? new Date(liveActiveRequest.endTime) : defaultEnd());
+      setEditingRequestId(liveActiveRequest.id);
+      setShowNewForm(true);
+    }
+  };
+
+  const handleNewRequest = () => {
+    setTitle('');
+    setDescription('');
+    setStartTime(defaultStart());
+    setEndTime(defaultEnd());
+    setEditingRequestId(null);
+    setShowNewForm(true);
   };
 
   const handleDeleteRequest = (id: string, title: string) => {
@@ -296,7 +326,7 @@ export default function AdminAttendance() {
           <View style={styles.card}>
             <View style={styles.cardHeader}>
               <Calendar color={COLORS.ink} size={22} />
-              <Text style={styles.cardTitle}>New Attendance Request</Text>
+              <Text style={styles.cardTitle}>{editingRequestId ? 'Edit Active Event' : 'New Attendance Request'}</Text>
             </View>
 
             <Text style={styles.inputLabel}>Select Event Type *</Text>
@@ -388,7 +418,7 @@ export default function AdminAttendance() {
                 ) : (
                   <>
                     <Send color="#fff" size={15} />
-                    <Text style={styles.sendBtnTxt}>Send Request</Text>
+                    <Text style={styles.sendBtnTxt}>{editingRequestId ? 'Update Request' : 'Send Request'}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -403,30 +433,42 @@ export default function AdminAttendance() {
               colors={['#1a2d5a', '#2c478a']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={styles.activeHeader}
+              style={[styles.activeHeader, { flexDirection: 'column', alignItems: 'stretch' }]}
             >
-              <View style={styles.activeHeaderIconWrap}>
-                <Calendar color="#FCD34D" size={24} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%' }}>
+                <View style={styles.activeHeaderIconWrap}>
+                  <Calendar color="#FCD34D" size={24} />
+                </View>
+                <View style={{ flex: 1, marginLeft: 14 }}>
+                  <Text style={styles.activeHeaderLabel}>ACTIVE EVENT</Text>
+                  <Text style={styles.activeTitle}>{liveActiveRequest.title}</Text>
+                  {getTimeWindowLabel(liveActiveRequest) ? (
+                    <View style={styles.timeWindowBadge}>
+                      <Clock size={11} color="#FCD34D" />
+                      <Text style={styles.timeWindowTxt}>{getTimeWindowLabel(liveActiveRequest)}</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.activeDate}>
+                      {new Date(liveActiveRequest.createdAt?.toDate?.() || Date.now())
+                        .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                    </Text>
+                  )}
+                </View>
               </View>
-              <View style={{ flex: 1, marginLeft: 14 }}>
-                <Text style={styles.activeHeaderLabel}>ACTIVE EVENT</Text>
-                <Text style={styles.activeTitle}>{liveActiveRequest.title}</Text>
-                {getTimeWindowLabel(liveActiveRequest) ? (
-                  <View style={styles.timeWindowBadge}>
-                    <Clock size={11} color="#FCD34D" />
-                    <Text style={styles.timeWindowTxt}>{getTimeWindowLabel(liveActiveRequest)}</Text>
-                  </View>
-                ) : (
-                  <Text style={styles.activeDate}>
-                    {new Date(liveActiveRequest.createdAt?.toDate?.() || Date.now())
-                      .toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-                  </Text>
-                )}
+
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 16, width: '100%' }}>
+                <TouchableOpacity 
+                  style={[styles.newBtnSolid, { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', elevation: 0, shadowOpacity: 0 }]} 
+                  onPress={handleEditRequest}
+                >
+                  <Edit2 size={14} color="#fff" />
+                  <Text style={[styles.newBtnSolidTxt, { color: '#fff' }]}>Edit Event</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.newBtnSolid} onPress={handleNewRequest}>
+                  <Plus size={14} color={COLORS.ink} />
+                  <Text style={styles.newBtnSolidTxt}>New Event</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity style={styles.newBtnSolid} onPress={() => setShowNewForm(true)}>
-                <Plus size={14} color={COLORS.ink} />
-                <Text style={styles.newBtnSolidTxt}>New</Text>
-              </TouchableOpacity>
             </LinearGradient>
 
             {/* Stats */}

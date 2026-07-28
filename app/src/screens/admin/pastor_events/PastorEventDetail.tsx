@@ -5,13 +5,14 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Linking,
   StatusBar,
   Alert,
   ActivityIndicator
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { ChevronLeft } from 'lucide-react-native';
 import { colors, spacing, radius, typography, shadow } from '../../../theme/Theme';
 import FirestoreService from '../../../services/FirestoreService';
 import { CustomAlert, AlertButton } from '../../../components/CustomAlert';
@@ -26,6 +27,7 @@ import { SavedLocation } from '../../../utils/locationStore';
 
 export const PastorEventDetail = ({ route, navigation }: { route: any; navigation: any }) => {
   const { event, allEvents = [] } = route.params as { event: PastorEvent; allEvents: PastorEvent[] };
+  const insets = useSafeAreaInsets();
   const [deleting, setDeleting] = React.useState(false);
 
   const [alertConfig, setAlertConfig] = React.useState<{
@@ -232,8 +234,8 @@ export const PastorEventDetail = ({ route, navigation }: { route: any; navigatio
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.bgPrimary} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
       
       <CustomAlert 
         visible={alertConfig.visible}
@@ -244,12 +246,21 @@ export const PastorEventDetail = ({ route, navigation }: { route: any; navigatio
         onClose={closeAlert}
       />
       
-      <View style={styles.navBar}>
-        <TouchableOpacity style={styles.backButton} onPress={() => requestAnimationFrame(() => navigation.goBack())}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.navTitle} numberOfLines={1}>Event Details</Text>
-        <View style={{ width: 40 }} />
+      {/* ── Hero Section ── */}
+      <View style={[styles.hero, { paddingTop: insets.top + 16 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <TouchableOpacity onPress={() => requestAnimationFrame(() => navigation.goBack())} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View>
+              <Text style={styles.heroTitle}>Event Details</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]}>{event.title}</Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -451,45 +462,33 @@ export const PastorEventDetail = ({ route, navigation }: { route: any; navigatio
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bgSecondary
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
+  hero: {
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  navBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.md,
-    height: 56,
-    backgroundColor: colors.bgPrimary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border
-  },
-  backButton: {
-    padding: spacing.xs
-  },
-  navTitle: {
-    ...typography.h2,
-    color: colors.textPrimary,
-    flex: 1,
-    textAlign: 'center'
-  },
-  scrollContent: {
-    padding: spacing.lg,
-    gap: spacing.md
-  },
+  heroTitle: { color: '#fff', fontSize: 24, fontWeight: '700' },
+  heroSub: { color: '#aac4e8', fontSize: 13, fontWeight: '500' },
+  scrollContent: { padding: 20, paddingTop: 10, gap: 16 },
   card: {
-    backgroundColor: colors.bgPrimary,
-    borderRadius: radius.md,
-    padding: spacing.md,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
-    borderColor: colors.border,
-    ...shadow.card
+    borderColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   badgeRow: {
     flexDirection: 'row',

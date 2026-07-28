@@ -53,7 +53,7 @@ export default function AuthNavigator() {
       <Stack.Screen
         name="VerifyOtp"
         component={VerifyOtpScreen}
-        options={{ title: 'Verification' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="ChurchSelection"

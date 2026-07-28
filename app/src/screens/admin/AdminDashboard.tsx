@@ -24,7 +24,8 @@ import {
   FileText,
   Activity,
   Heart,
-  Settings
+  Settings,
+  DollarSign
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 

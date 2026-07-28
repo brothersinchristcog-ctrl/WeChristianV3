@@ -125,10 +125,10 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
       style={styles.container}
     >
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
-      <SafeAreaView style={styles.safeArea}>
         
-        {/* ── Page Header ── */}
-        <View style={styles.pageHeader}>
+      {/* ── Page Header ── */}
+      <View style={styles.pageHeader}>
+        <SafeAreaView style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingTop: Platform.OS === 'ios' ? 10 : 30, paddingBottom: 24, paddingHorizontal: 22, justifyContent: 'space-between' }}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <ChevronLeft size={20} color="#aac4e8" />
             <Text style={styles.backBtnTxt}>Change Number</Text>
@@ -138,7 +138,10 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
             <Text style={styles.pageSub}>ధృవీకరణ</Text>
           </View>
           <View style={{ width: 60 }} />
-        </View>
+        </SafeAreaView>
+      </View>
+
+      <SafeAreaView style={styles.safeArea}>
 
         <ScrollView 
           showsVerticalScrollIndicator={false} 
@@ -209,18 +212,21 @@ const styles = StyleSheet.create({
   // Header
   pageHeader: {
     backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 0 : 20,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 8,
+    marginBottom: 10,
+    zIndex: 10,
   },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minWidth: 60 },
   backBtnTxt: { color: '#aac4e8', fontSize: 12, fontWeight: '500' },
   titleCol: { flex: 1, alignItems: 'center' },
-  pageTitle: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  pageSub: { color: '#aac4e8', fontSize: 9, marginTop: 1 },
+  pageTitle: { color: '#fff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  pageSub: { color: '#aac4e8', fontSize: 11, marginTop: 2, fontWeight: '500' },
 
   content: { width: '100%', paddingHorizontal: 25, paddingTop: 40, alignItems: 'center', paddingBottom: 40 },
   scrollContent: { flexGrow: 1 },

@@ -7,12 +7,13 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  SafeAreaView,
   StatusBar,
   Alert,
   Platform
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { ChevronLeft } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors, spacing, radius, typography, shadow } from '../../../theme/Theme';
 import FirestoreService from '../../../services/FirestoreService';
@@ -22,6 +23,7 @@ import { checkScheduleConflicts } from '../../../utils/schedule';
 
 export const CreatePastorEvent = ({ route, navigation }: { route: any; navigation: any }) => {
   const { member } = useAuth();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [fallbackContactId, setFallbackContactId] = useState<string | null>(null);
 
@@ -357,9 +359,8 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.bgPrimary} />
-      
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
       <CustomAlert 
         visible={alertConfig.visible}
         title={alertConfig.title}
@@ -368,14 +369,23 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
         buttons={alertConfig.buttons}
         onClose={closeAlert}
       />
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{editEvent ? 'Edit Pastor Event' : 'Create Pastor Event'}</Text>
-        <View style={{ width: 40 }} />
+      <StatusBar barStyle="light-content" />
+
+      {/* ── Hero Section ── */}
+      <View style={[styles.hero, { paddingTop: insets.top + 16 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View>
+              <Text style={styles.heroTitle}>{editEvent ? 'Edit Event' : 'New Event'}</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]}>Pastor's Itinerary</Text>
+            </View>
+          </View>
+        </View>
       </View>
 
       {/* Step Indicator */}
@@ -630,15 +640,21 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bgSecondary
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
+  hero: {
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
+  heroTitle: { color: '#fff', fontSize: 24, fontWeight: '700' },
+  heroSub: { color: '#aac4e8', fontSize: 13, fontWeight: '500' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -658,17 +674,18 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: 'center'
   },
-  scrollContent: {
-    padding: spacing.lg,
-    gap: spacing.md
-  },
+  scrollContent: { padding: 20, paddingTop: 10, gap: 16 },
   card: {
-    backgroundColor: colors.bgPrimary,
-    borderRadius: radius.md,
-    padding: spacing.md,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
     borderWidth: 1,
-    borderColor: colors.border,
-    ...shadow.card
+    borderColor: '#f1f5f9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   cardTitle: {
     ...typography.h3,
@@ -748,13 +765,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
+    backgroundColor: '#1a2d5a',
+    borderRadius: 16,
     paddingVertical: 14,
     gap: 8,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xl,
-    ...shadow.card
+    marginTop: 8,
+    marginBottom: 32,
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
   saveButtonDisabled: {
     backgroundColor: colors.textTertiary
@@ -847,12 +868,16 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     paddingVertical: 14,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
+    borderRadius: 16,
+    backgroundColor: '#1a2d5a',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    ...shadow.card
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
   errorText: {
     color: '#ef4444',

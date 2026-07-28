@@ -20,7 +20,8 @@ import {
   Settings,
   CreditCard,
   MessageCircle,
-  ClipboardCheck
+  ClipboardCheck,
+  DollarSign
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -50,6 +51,7 @@ import SuperAdminDashboard from '../screens/admin/SuperAdminDashboard';
 import AdminSubscriptionScreen from '../screens/admin/AdminSubscriptionScreen';
 import AdminWeCelebrations from '../screens/admin/AdminWeCelebrations';
 import AdminWhatsAppInbox from '../screens/admin/AdminWhatsAppInbox';
+import AdminFinanceDashboard from '../screens/admin/AdminFinanceDashboard';
 import { Shield } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -126,6 +128,7 @@ export default function AdminNavigator({ navigation }: any) {
     { name: 'About Us', icon: Info, component: AdminAboutUsEditor },
     { name: 'Contact Us', icon: Phone, component: AdminContactUsEditor },
     { name: 'Church Settings', icon: Settings, component: AdminChurchSettings },
+    { name: 'Expense', icon: DollarSign, component: AdminFinanceDashboard },
     { name: 'Subscription', icon: CreditCard, component: AdminSubscriptionScreen },
     ...(member?.userType === 'super_admin' ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];

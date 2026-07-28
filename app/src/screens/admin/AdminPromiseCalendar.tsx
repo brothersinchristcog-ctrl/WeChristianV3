@@ -137,6 +137,9 @@ export default function AdminPromiseCalendar() {
   const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
   const todayDate = now.getDate();
 
+  const totalGridCells = firstDay + daysInMonth;
+  const trailingEmptyDays = totalGridCells % 7 === 0 ? 0 : 7 - (totalGridCells % 7);
+
   const getMonthName = (m: number) => {
     return new Date(2000, m).toLocaleString('en-US', { month: 'long' });
   };
@@ -224,6 +227,11 @@ export default function AdminPromiseCalendar() {
                 </TouchableOpacity>
               );
             })}
+
+            {/* Trailing empty days to ensure last row aligns correctly with space-between */}
+            {Array.from({ length: trailingEmptyDays }).map((_, i) => (
+              <View key={`trailing-empty-${i}`} style={[styles.calDay, { opacity: 0 }]} />
+            ))}
           </View>
         </View>
 
@@ -288,10 +296,7 @@ function LegendItem({ color, border, label }: any) {
   );
 }
 
-// Calculate cell size correctly: 
-// Screen width - (scroll padding * 2) - (card padding * 2) - (gap * 6)
-// width - 28 - 28 - 30 = width - 86
-const CELL_SIZE = Math.floor((width - 86) / 7);
+// We use percentage-based flex layouts instead of fixed pixel widths to prevent flexWrap errors on different devices.
 
 const styles = StyleSheet.create({
   // ─── Layout ──────────────────────────────────────────────────────────────
@@ -356,8 +361,8 @@ const styles = StyleSheet.create({
   },
 
   // ─── Calendar Grid ────────────────────────────────────────────────────────
-  calGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 14 },
-  calHeader: { width: CELL_SIZE, alignItems: 'center', paddingVertical: 5 },
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 14, rowGap: 5 },
+  calHeader: { width: '13.5%', alignItems: 'center', paddingVertical: 5 },
   calHeaderTxt: {
     fontSize: 9,
     fontWeight: '700',
@@ -369,7 +374,7 @@ const styles = StyleSheet.create({
 
   // ─── Calendar Cells ───────────────────────────────────────────────────────
   calDay: {
-    width: CELL_SIZE,
+    width: '13.5%',
     height: 52,
     borderRadius: 10,
     justifyContent: 'center',

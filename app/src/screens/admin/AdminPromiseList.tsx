@@ -266,7 +266,7 @@ export default function AdminPromiseList() {
             </TouchableOpacity>
           </View>
           <View style={styles.missingGrid}>
-            {missingDates.slice(0, 8).map(d => {
+            {missingDates.slice(0, 6).map(d => {
               const monthStr = monthNamesShort[(new Date()).getMonth()];
               return (
                 <TouchableOpacity key={d} style={styles.missingCell} onPress={() => { 
@@ -357,8 +357,8 @@ const styles = StyleSheet.create({
   missingTitle: { fontFamily: serifFont, fontSize: 16, fontWeight: '600', color: colors.clay },
   fillAll: { backgroundColor: colors.clay, paddingHorizontal: 16, paddingVertical: 9, borderRadius: 100 },
   fillAllTxt: { color: '#fff', fontSize: 12.5, fontWeight: '700' },
-  missingGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 9, marginBottom: 30 },
-  missingCell: { width: '23%', backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.clayLine, borderRadius: 8, alignItems: 'center', overflow: 'hidden', paddingBottom: 6 },
+  missingGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 30 },
+  missingCell: { width: '31%', backgroundColor: colors.paper, borderWidth: 1, borderColor: colors.clayLine, borderRadius: 8, alignItems: 'center', overflow: 'hidden', paddingBottom: 6 },
   missingMonth: { backgroundColor: colors.clay, width: '100%', alignItems: 'center', paddingVertical: 4 },
   missingMonthTxt: { color: '#fff', fontSize: 8, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
   missingDay: { fontFamily: serifFont, fontSize: 14, fontWeight: '600', color: colors.ink, marginVertical: 4 },

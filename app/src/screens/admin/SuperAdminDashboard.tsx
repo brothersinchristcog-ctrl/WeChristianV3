@@ -84,7 +84,8 @@ export default function SuperAdminDashboard({ navigation }: any) {
           hasGiving: true,
         },
         subscriptionTier: 'premium',
-        memberCount: 0
+        memberCount: 0,
+        whatsappIntegrationEnabled: false
       });
 
       // 2. Upload image if selected
