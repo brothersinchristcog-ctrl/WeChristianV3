@@ -35,19 +35,19 @@ const CATEGORIES = [
   {
     title: 'Community & Members',
     icon: Users,
-    color: '#4338CA', // Deep Royal Indigo for better contrast
+    color: '#581C87', // Deep Royal Purple/Eggplant for excellent contrast
     keywords: ['Member', 'Attendance', 'Prayer']
   },
   {
     title: 'Events & Celebrations',
     icon: Calendar,
-    color: '#991B1B', // Deep Maroon/Red for maximum contrast
+    color: '#831843', // Deep Ruby/Berry for a festive, elegant look with high contrast
     keywords: ['Event', 'Celebration']
   },
   {
     title: 'Communication',
     icon: Bell,
-    color: '#92400E', // Deep Amber/Brown for maximum contrast
+    color: '#78350F', // Rich Deep Bronze/Chocolate for excellent warm contrast
     keywords: ['Notification', 'WhatsApp']
   },
   {
@@ -278,22 +278,22 @@ const styles = StyleSheet.create({
     width: (width - 62) / 2, 
     backgroundColor: '#ffffff',
     borderRadius: 22, 
-    padding: 18,
+    padding: 14,
     elevation: 6,
     shadowOpacity: 0.12,
     shadowRadius: 16,
     shadowOffset: { width: 0, height: 8 },
     borderWidth: 1,
-    minHeight: 115,
+    minHeight: 100,
   },
   moduleCardFull: {
     width: '100%', 
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
     justifyContent: 'space-between',
-    minHeight: 80,
+    minHeight: 70,
   },
   moduleColumn: {
     flex: 1,
@@ -306,37 +306,37 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   moduleIconWrapper: {
-    width: 46,
-    height: 46,
-    borderRadius: 23, // Perfect circle
+    width: 40,
+    height: 40,
+    borderRadius: 20, // Perfect circle
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 14, 
+    marginBottom: 10, 
   },
   moduleIconWrapperFull: {
-    width: 48,
-    height: 48,
-    borderRadius: 24, // Perfect circle
+    width: 40,
+    height: 40,
+    borderRadius: 20, // Perfect circle
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
   chevronWrapper: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
   moduleTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
     color: '#1e293b',
     fontFamily: FONTS.sans,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   moduleTitleFull: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
     color: '#1e293b',
     fontFamily: FONTS.sans,
