@@ -35,19 +35,19 @@ const CATEGORIES = [
   {
     title: 'Community & Members',
     icon: Users,
-    color: '#6366F1', // Indigo for members
+    color: '#4338CA', // Deep Royal Indigo for better contrast
     keywords: ['Member', 'Attendance', 'Prayer']
   },
   {
     title: 'Events & Celebrations',
     icon: Calendar,
-    color: '#E17055', // Warm orange/coral
+    color: '#991B1B', // Deep Maroon/Red for maximum contrast
     keywords: ['Event', 'Celebration']
   },
   {
     title: 'Communication',
     icon: Bell,
-    color: '#D4A373', // Warm gold/brown
+    color: '#92400E', // Deep Amber/Brown for maximum contrast
     keywords: ['Notification', 'WhatsApp']
   },
   {
@@ -59,7 +59,7 @@ const CATEGORIES = [
   {
     title: 'Administration',
     icon: Settings,
-    color: '#4B5563', // Slate
+    color: '#1E3A8A', // Deep Navy for maximum contrast
     keywords: ['Church Setting', 'Super Admin', 'About', 'Contact', 'Schedule']
   }
 ];
@@ -140,10 +140,10 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                 {/* Elegant Category Header */}
                 <View style={styles.categoryHeader}>
                   <View style={[styles.categoryIconBg, { backgroundColor: `${category.color}20` }]}>
-                    <category.icon size={16} color={category.color} strokeWidth={2} />
+                    <category.icon size={18} color={category.color} strokeWidth={2.5} />
                   </View>
-                  <Text style={styles.categoryTitle}>{category.title}</Text>
-                  <View style={styles.categoryLine} />
+                  <Text style={[styles.categoryTitle, { color: category.color }]}>{category.title}</Text>
+                  <View style={[styles.categoryLine, { backgroundColor: `${category.color}40` }]} />
                 </View>
 
                 {/* Hybrid Grid of Modules */}
