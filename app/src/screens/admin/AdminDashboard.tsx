@@ -114,7 +114,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
           style={[styles.heroSection, { backgroundColor: '#1e2b4d' }]}
         >
           <View style={styles.heroContent}>
-            <Text style={styles.greetingText}>{timeGreeting}</Text>
+            <Text style={[styles.greetingText, { color: '#FDE047' }]}>{timeGreeting}</Text>
             <Text 
               style={styles.nameText}
               numberOfLines={1}
@@ -206,9 +206,9 @@ const styles = StyleSheet.create({
   heroSection: {
     paddingHorizontal: 28,
     paddingTop: 15,
-    paddingBottom: 60, 
-    borderBottomLeftRadius: 60,
-    borderBottomRightRadius: 60,
+    paddingBottom: 30, 
+    borderBottomLeftRadius: 40,
+    borderBottomRightRadius: 40,
   },
   heroContent: {
     paddingTop: Platform.OS === 'android' ? 10 : 0,
