@@ -155,6 +155,20 @@ export interface ChurchExpense {
   createdAt?: any;
 }
 
+export interface ChurchDonation {
+  id?: string;
+  donorName: string;
+  donorPhone?: string;
+  category: string;
+  amount: number;
+  date: string;
+  paymentMethod: string;
+  notes?: string;
+  addedBy?: string;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 export interface ChurchInvoice {
   id: string; // The generated ID like EXP-2026-00028
   category: string;
@@ -164,6 +178,10 @@ export interface ChurchInvoice {
   expenseIds: string[]; // List of related expense IDs
   paymentMethod?: string;
   vendorName?: string;
+  status?: 'Pending Approval' | 'Approved' | 'Rejected' | 'Changes Requested';
+  reportedByUserId?: string;
+  reportedByName?: string;
+  approvalComments?: string;
   createdAt?: any;
 }
 
@@ -281,6 +299,19 @@ class FirestoreService {
       }
     } catch (error) {
       console.error('Error saving invoice:', error);
+      throw error;
+    }
+  }
+
+  async updateInvoice(id: string, data: Partial<ChurchInvoice>): Promise<void> {
+    try {
+      const invoicesRef = await this.getCollection('invoices');
+      await invoicesRef.doc(id).set({
+        ...data,
+        updatedAt: firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (error) {
+      console.error('Error updating invoice:', error);
       throw error;
     }
   }
@@ -859,10 +890,47 @@ class FirestoreService {
 
   // --- 💸 Giving ---
 
+  async getDonations(limitNum = 200): Promise<ChurchDonation[]> {
+    try {
+      const col = await this.getCollection('donations');
+      const snapshot = await col.orderBy('createdAt', 'desc').limit(limitNum).get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChurchDonation));
+    } catch (error) {
+      console.error('Error fetching donations:', error);
+      return [];
+    }
+  }
+
+  async saveDonation(data: Partial<ChurchDonation>): Promise<string> {
+    try {
+      const col = await this.getCollection('donations');
+      if (data.id) {
+        await col.doc(data.id).set({ ...data, updatedAt: firestore.FieldValue.serverTimestamp() }, { merge: true });
+        return data.id;
+      } else {
+        const docRef = await col.add({ ...data, createdAt: firestore.FieldValue.serverTimestamp() });
+        return docRef.id;
+      }
+    } catch (error) {
+      console.error('Error saving donation:', error);
+      throw error;
+    }
+  }
+
+  async deleteDonation(id: string): Promise<void> {
+    try {
+      const col = await this.getCollection('donations');
+      await col.doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting donation:', error);
+      throw error;
+    }
+  }
+
   async createDonation(data: any) {
     try {
       const col = await this.getCollection('donations');
-      await col.add({ ...data, createdAt: FieldValue.serverTimestamp() });
+      await col.add({ ...data, createdAt: firestore.FieldValue.serverTimestamp() });
       return true;
     } catch (e) {
       throw e;

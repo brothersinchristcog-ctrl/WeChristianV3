@@ -1043,5 +1043,7 @@ const styles = StyleSheet.create({
   successBtnPrimary: { backgroundColor: '#1a2d5a', width: '100%', paddingVertical: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10 },
   successBtnPrimaryTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
   successBtnSecondary: { width: '100%', paddingVertical: 15, alignItems: 'center' },
-  successBtnSecondaryTxt: { color: '#1a2d5a', fontWeight: '700', fontSize: 15 }
+  successBtnSecondaryTxt: { color: '#1a2d5a', fontWeight: '700', fontSize: 15 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 16 },
+  sectionHeaderText: { fontFamily: 'Outfit-Bold', fontSize: 14, fontWeight: '700' }
 });

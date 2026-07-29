@@ -52,6 +52,7 @@ import AdminSubscriptionScreen from '../screens/admin/AdminSubscriptionScreen';
 import AdminWeCelebrations from '../screens/admin/AdminWeCelebrations';
 import AdminWhatsAppInbox from '../screens/admin/AdminWhatsAppInbox';
 import AdminFinanceDashboard from '../screens/admin/AdminFinanceDashboard';
+import AdminDonationDashboard from '../screens/admin/AdminDonationDashboard';
 import { Shield } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -129,6 +130,7 @@ export default function AdminNavigator({ navigation }: any) {
     { name: 'Contact Us', icon: Phone, component: AdminContactUsEditor },
     { name: 'Church Settings', icon: Settings, component: AdminChurchSettings },
     { name: 'Expense', icon: DollarSign, component: AdminFinanceDashboard },
+    { name: 'Donations', icon: Gift, component: AdminDonationDashboard },
     { name: 'Subscription', icon: CreditCard, component: AdminSubscriptionScreen },
     ...(member?.userType === 'super_admin' ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];
@@ -196,6 +198,18 @@ export default function AdminNavigator({ navigation }: any) {
                             });
                             return;
                           }
+                          
+                          if (tab.name === 'Donations') {
+                            setMenuExpanded(false);
+                            setAlertConfig({
+                              visible: true,
+                              title: 'Coming Soon',
+                              message: 'The new Donations module is currently under construction and will be available soon!',
+                              type: 'info'
+                            });
+                            return;
+                          }
+                          
                           handleSetTab(index);
                           setMenuExpanded(false); // Hide remaining tabs
                           if ([1, 4, 5, 8].indexOf(index) === -1) setEditingData(null);

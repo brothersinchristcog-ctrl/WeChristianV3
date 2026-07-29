@@ -29,7 +29,8 @@ import {
   FileText,
   Trash2,
   X,
-  Pencil
+  Pencil,
+  Gift
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import FirestoreService, { ChurchExpense, ChurchInvoice } from '../../services/FirestoreService';
@@ -52,6 +53,7 @@ export default function AdminFinanceDashboard() {
   const { member } = useAuth();
   const [expenses, setExpenses] = useState<ChurchExpense[]>([]);
   const [invoices, setInvoices] = useState<ChurchInvoice[]>([]);
+
   const [loading, setLoading] = useState(true);
   
   // Local UI State
@@ -119,6 +121,18 @@ export default function AdminFinanceDashboard() {
   const [showInvoiceCategoryDropdown, setShowInvoiceCategoryDropdown] = useState(false);
   const [selectedInvoiceExpenses, setSelectedInvoiceExpenses] = useState<string[]>([]);
   const [showInvoicePreviewModal, setShowInvoicePreviewModal] = useState(false);
+  
+  // Approval State
+  const [admins, setAdmins] = useState<any[]>([]);
+  const [selectedApproverId, setSelectedApproverId] = useState<string | null>(null);
+  const [selectedApproverName, setSelectedApproverName] = useState<string | null>(null);
+  const [showApproverDropdown, setShowApproverDropdown] = useState(false);
+  const [showApprovalActionModal, setShowApprovalActionModal] = useState(false);
+  const [approvalActionType, setApprovalActionType] = useState<'Approve' | 'Reject' | 'Request Changes' | null>(null);
+  const [approvalComments, setApprovalComments] = useState('');
+  const [selectedInvoiceForApproval, setSelectedInvoiceForApproval] = useState<ChurchInvoice | null>(null);
+
+
 
   const displayToast = (msg: string) => {
     setToastMessage(msg);
@@ -143,12 +157,14 @@ export default function AdminFinanceDashboard() {
         }
       }
 
-      const [expData, invData] = await Promise.all([
+      const [expData, invData, adminsData] = await Promise.all([
         FirestoreService.getExpenses(200),
-        FirestoreService.getInvoices(200)
+        FirestoreService.getInvoices(200),
+        FirestoreService.getAdminMembers()
       ]);
       setExpenses(expData);
       setInvoices(invData);
+      setAdmins(adminsData);
       
       const usedCategories = expData.map(e => e.category).filter(Boolean);
       setCategories(prev => Array.from(new Set([...prev, ...usedCategories])));
@@ -210,6 +226,7 @@ export default function AdminFinanceDashboard() {
   const generateInvoiceHtml = () => {
     const invDate = new Date().toISOString().split('T')[0];
     const cName = churchProfile?.name || member?.churchId || "We Christian Finance";
+    const userName = member?.name || (member?.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : 'Admin');
     const cAddress = churchProfile?.address || churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "12 Mission Road, Kurnool, Andhra Pradesh";
     const cPhone = churchProfile?.phone || "+91 90000 00000";
     const logoUrl = churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto || null;
@@ -299,7 +316,8 @@ export default function AdminFinanceDashboard() {
               <div class="meta-box"><div class="label">INVOICE NO</div><div class="value">EXP-${new Date().getFullYear()}-00024</div></div>
               <div class="meta-box"><div class="label">INVOICE DATE</div><div class="value">${invDate}</div></div>
               <div class="meta-box"><div class="label">CATEGORY</div><div class="value">${invoiceCategory}</div></div>
-              <div class="meta-box"><div class="label">PREPARED BY</div><div class="value">Pastor</div></div>
+              <div class="meta-box"><div class="label">PREPARED BY</div><div class="value">${userName}</div></div>
+              <div class="meta-box"><div class="label">REPORTED BY</div><div class="value">${userName}</div></div>
             </div>
             <table>
               <thead>
@@ -360,6 +378,10 @@ export default function AdminFinanceDashboard() {
       displayToast("Please select at least one expense record");
       return;
     }
+    if (!selectedApproverId) {
+      displayToast("Please select an approver");
+      return;
+    }
     const totalAmt = expenses.filter(e => selectedInvoiceExpenses.includes(e.id!)).reduce((sum, e) => sum + e.amount, 0);
     const newInvId = 'EXP-' + new Date().getFullYear() + '-' + Math.floor(10000 + Math.random() * 90000);
     const invData: Partial<ChurchInvoice> = {
@@ -369,6 +391,9 @@ export default function AdminFinanceDashboard() {
       amount: totalAmt,
       preparedBy: member?.name || 'Pastor',
       expenseIds: selectedInvoiceExpenses,
+      status: 'Pending Approval',
+      reportedByUserId: selectedApproverId,
+      reportedByName: selectedApproverName || '',
     };
     try {
       await FirestoreService.saveInvoice(invData);
@@ -377,6 +402,29 @@ export default function AdminFinanceDashboard() {
       setShowInvoicePreviewModal(true);
     } catch (e) {
       displayToast("Failed to save invoice");
+    }
+  };
+
+  const handleInvoiceApprovalAction = async (actionType: 'Approve' | 'Reject' | 'Request Changes') => {
+    if (!selectedInvoiceForApproval || !selectedInvoiceForApproval.id) return;
+    
+    try {
+      const updateData: Partial<ChurchInvoice> = {
+        status: actionType === 'Approve' ? 'Approved' : (actionType === 'Reject' ? 'Rejected' : 'Changes Requested'),
+        approvalComments: approvalComments || undefined
+      };
+      
+      await FirestoreService.updateInvoice(selectedInvoiceForApproval.id, updateData);
+      
+      displayToast(`Invoice ${actionType === 'Approve' ? 'Approved' : (actionType === 'Reject' ? 'Rejected' : 'Changes Requested')}`);
+      setShowApprovalActionModal(false);
+      setApprovalComments('');
+      
+      // Update local state temporarily to reflect change instantly
+      setSelectedInvoiceForApproval({ ...selectedInvoiceForApproval, ...updateData });
+      fetchData(); // refresh list
+    } catch (e) {
+      displayToast("Failed to update invoice status");
     }
   };
 
@@ -1123,10 +1171,16 @@ export default function AdminFinanceDashboard() {
                 style={styles.searchInput}
                 placeholder="Search invoice no. or category..."
                 placeholderTextColor="#a89f92"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
               />
             </View>
             <View style={styles.catList}>
-              {invoices.map(inv => (
+              {invoices.filter(inv => {
+                if (!searchQuery) return true;
+                const q = searchQuery.toLowerCase();
+                return (inv.id || '').toLowerCase().includes(q) || (inv.category || '').toLowerCase().includes(q);
+              }).map(inv => (
                 <TouchableOpacity 
                   key={inv.id} 
                   style={styles.catCard}
@@ -1134,6 +1188,7 @@ export default function AdminFinanceDashboard() {
                   onPress={() => {
                     setInvoiceCategory(inv.category);
                     setSelectedInvoiceExpenses(inv.expenseIds || []);
+                    setSelectedInvoiceForApproval(inv);
                     setShowInvoicePreviewModal(true);
                   }}
                 >
@@ -1145,6 +1200,11 @@ export default function AdminFinanceDashboard() {
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={[styles.catAmt, { fontSize: 14 }]}>₹{(inv.amount || 0).toLocaleString('en-IN')}</Text>
+                      {inv.status && (
+                        <View style={{ backgroundColor: inv.status === 'Approved' ? '#e6f4ea' : inv.status === 'Pending Approval' ? '#fef7e0' : '#fce8e6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4, marginBottom: 4 }}>
+                          <Text style={{ fontSize: 10, fontFamily: FONTS.sans, fontWeight: '700', color: inv.status === 'Approved' ? '#137333' : inv.status === 'Pending Approval' ? '#b06000' : '#c5221f' }}>{inv.status}</Text>
+                        </View>
+                      )}
                       <TouchableOpacity 
                         onPress={() => handleDeleteInvoice(inv.id)}
                         style={{ marginTop: 6, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#fdf2f2', borderRadius: 4 }}
@@ -1185,7 +1245,7 @@ export default function AdminFinanceDashboard() {
           <DollarSign size={20} color={currentSubTab === 'expenses' ? '#c9973f' : '#645d54'} />
           <Text style={[styles.tabBtnTxt, currentSubTab === 'expenses' && styles.tabBtnTxtActive]}>Expenses</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity 
           style={styles.tabBtn} 
           onPress={() => setCurrentSubTab('invoices')}
@@ -1560,6 +1620,50 @@ export default function AdminFinanceDashboard() {
               )}
             </View>
 
+            <Text style={styles.catModalLabel}>REPORTED BY (APPROVER)</Text>
+            <View style={{ zIndex: 9, marginBottom: 20 }}>
+              <TouchableOpacity 
+                style={[styles.catModalInput, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 12, marginBottom: 0 }]}
+                onPress={() => setShowApproverDropdown(!showApproverDropdown)}
+                activeOpacity={0.8}
+              >
+                <Text style={{ fontSize: 15, fontFamily: FONTS.sans, color: selectedApproverName ? '#241f1a' : '#a89f92' }}>
+                  {selectedApproverName || 'Select an Approver'}
+                </Text>
+                <ChevronRight size={18} color="#241f1a" style={{ transform: [{ rotate: showApproverDropdown ? '-90deg' : '90deg' }] }} />
+              </TouchableOpacity>
+              
+              {showApproverDropdown && (
+                <View style={[styles.dropdownMenu, { top: 48 }]}>
+                  <View style={{ maxHeight: 150 }}>
+                    <ScrollView nestedScrollEnabled>
+                      {admins.map((admin, idx) => {
+                        const adminName = admin.name || (admin.firstName ? `${admin.firstName} ${admin.lastName || ''}`.trim() : 'Admin');
+                        return (
+                          <TouchableOpacity 
+                            key={admin.id || idx} 
+                            style={[styles.dropdownItem, selectedApproverId === admin.id && styles.dropdownItemActive]}
+                            onPress={() => {
+                              setSelectedApproverId(admin.id);
+                              setSelectedApproverName(adminName);
+                              setShowApproverDropdown(false);
+                            }}
+                          >
+                            <Text style={[styles.dropdownItemTxt, selectedApproverId === admin.id && styles.dropdownItemTxtActive]}>{adminName}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                      {admins.length === 0 && (
+                        <View style={{ padding: 12 }}>
+                          <Text style={{ fontFamily: FONTS.sans, color: '#a89f92' }}>No admins found.</Text>
+                        </View>
+                      )}
+                    </ScrollView>
+                  </View>
+                </View>
+              )}
+            </View>
+
             <Text style={styles.catModalLabel}>SELECT EXPENSE RECORDS</Text>
             <ScrollView style={{ maxHeight: 250, marginBottom: 20 }} nestedScrollEnabled={true}>
               {expenses
@@ -1669,7 +1773,11 @@ export default function AdminFinanceDashboard() {
                   </View>
                   <View style={{ width: '45%' }}>
                     <Text style={styles.invLabel}>PREPARED BY</Text>
-                    <Text style={styles.invValue}>Pastor</Text>
+                    <Text style={styles.invValue}>{selectedInvoiceForApproval?.preparedBy || member?.name || 'Pastor'}</Text>
+                  </View>
+                  <View style={{ width: '45%' }}>
+                    <Text style={styles.invLabel}>REPORTED BY</Text>
+                    <Text style={styles.invValue}>{selectedInvoiceForApproval?.reportedByName || selectedApproverName || member?.name || 'Admin'}</Text>
                   </View>
                 </View>
 
@@ -1750,37 +1858,63 @@ export default function AdminFinanceDashboard() {
                 </View>
               </View>
 
-              {/* Action Buttons */}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
-                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={async () => {
-                  try {
-                    const html = generateInvoiceHtml();
-                    const { uri } = await Print.printToFileAsync({ html });
-                    const cleanFileName = `Invoice-${invoiceCategory.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
-                    const newUri = (FileSystem as any).cacheDirectory + cleanFileName;
-                    
-                    // Copy to clean filename using legacy API
-                    await (FileSystem as any).copyAsync({ from: uri, to: newUri });
-                    
-                    // Open the native share/save sheet
-                    await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf' });
-                  } catch (e: any) {
-                    Alert.alert("Download Error", e?.message || "Unknown error");
-                  }
-                }}>
-                  <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>↓ Download</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f', borderWidth: 0 }]} onPress={async () => {
-                  try {
-                    const html = generateInvoiceHtml();
-                    await Print.printAsync({ html });
-                  } catch (e: any) {
-                    Alert.alert("Print Error", e?.message || "Unknown error");
-                  }
-                }}>
-                  <Text style={[styles.invActionBtnTxt, { color: '#1b2a4a' }]}>🖨 Print</Text>
-                </TouchableOpacity>
-              </View>
+              {/* Action Buttons & Approval Flow */}
+              {selectedInvoiceForApproval?.status === 'Pending Approval' && selectedInvoiceForApproval?.reportedByUserId === member?.id ? (
+                <View style={{ marginTop: 20 }}>
+                  <Text style={{ fontFamily: FONTS.serif, fontSize: 16, color: '#1b2a4a', marginBottom: 10, textAlign: 'center' }}>Approval Required</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+                    <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#137333', borderWidth: 0 }]} onPress={() => handleInvoiceApprovalAction('Approve')}>
+                      <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>Approve</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c5221f', borderWidth: 0 }]} onPress={() => { setApprovalActionType('Reject'); setShowApprovalActionModal(true); }}>
+                      <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>Reject</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#b06000', borderWidth: 0 }]} onPress={() => { setApprovalActionType('Request Changes'); setShowApprovalActionModal(true); }}>
+                      <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 12 }]}>Change</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : selectedInvoiceForApproval?.status === 'Approved' || !selectedInvoiceForApproval?.status ? (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
+                  <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={async () => {
+                    try {
+                      const html = generateInvoiceHtml();
+                      const { uri } = await Print.printToFileAsync({ html });
+                      const cleanFileName = `Invoice-${invoiceCategory.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+                      const newUri = (FileSystem as any).cacheDirectory + cleanFileName;
+                      
+                      // Copy to clean filename using legacy API
+                      await (FileSystem as any).copyAsync({ from: uri, to: newUri });
+                      
+                      // Open the native share/save sheet
+                      await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf' });
+                    } catch (e: any) {
+                      Alert.alert("Download Error", e?.message || "Unknown error");
+                    }
+                  }}>
+                    <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>↓ Download</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f', borderWidth: 0 }]} onPress={async () => {
+                    try {
+                      const html = generateInvoiceHtml();
+                      await Print.printAsync({ html });
+                    } catch (e: any) {
+                      Alert.alert("Print Error", e?.message || "Unknown error");
+                    }
+                  }}>
+                    <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>Print</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={{ marginTop: 20, padding: 15, backgroundColor: '#f4f6f8', borderRadius: 8, alignItems: 'center' }}>
+                  <Text style={{ fontFamily: FONTS.sans, fontSize: 14, color: '#645d54' }}>
+                    Status: <Text style={{ fontWeight: '700', color: selectedInvoiceForApproval?.status === 'Rejected' ? '#c5221f' : '#b06000' }}>{selectedInvoiceForApproval?.status}</Text>
+                  </Text>
+                  {selectedInvoiceForApproval?.approvalComments && (
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#241f1a', marginTop: 8, textAlign: 'center' }}>"{selectedInvoiceForApproval.approvalComments}"</Text>
+                  )}
+                </View>
+              )}
 
             </ScrollView>
           </View>
@@ -1800,6 +1934,35 @@ export default function AdminFinanceDashboard() {
               onPress={() => setShowSuccessCard(false)}
             >
               <Text style={styles.catModalSaveBtnTxt}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Approval Action Modal ── */}
+      <Modal visible={showApprovalActionModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.categoryModal, { paddingBottom: 20 }]}>
+            <View style={styles.catModalHeader}>
+              <Text style={styles.catModalTitle}>{approvalActionType === 'Reject' ? 'Reject Invoice' : 'Request Changes'}</Text>
+              <TouchableOpacity style={styles.catModalClose} onPress={() => setShowApprovalActionModal(false)}>
+                <X size={18} color="#1b2a4a" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.catModalLabel}>REASON / COMMENTS</Text>
+            <TextInput
+              style={[styles.catModalInput, { height: 80, textAlignVertical: 'top' }]}
+              placeholder="Why are you rejecting or requesting changes?"
+              placeholderTextColor="#a89f92"
+              value={approvalComments}
+              onChangeText={setApprovalComments}
+              multiline
+            />
+            <TouchableOpacity 
+              style={[styles.catModalSaveBtn, { marginTop: 20, backgroundColor: approvalActionType === 'Reject' ? '#c5221f' : '#b06000' }]}
+              onPress={() => handleInvoiceApprovalAction(approvalActionType!)}
+            >
+              <Text style={styles.catModalSaveBtnTxt}>Confirm {approvalActionType}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -2103,5 +2266,67 @@ const styles = StyleSheet.create({
   invValue: { fontFamily: FONTS.mono, fontSize: 13, color: '#1b2a4a', fontWeight: '600' },
   invRowText: { fontFamily: FONTS.mono, fontSize: 13, color: '#645d54' },
   invActionBtn: { flex: 1, backgroundColor: '#e7ebf3', borderRadius: 8, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
-  invActionBtnTxt: { fontFamily: FONTS.sans, fontSize: 13, fontWeight: '600', color: '#1b2a4a' }
+  invActionBtnTxt: { fontFamily: FONTS.sans, fontSize: 13, fontWeight: '600', color: '#1b2a4a' },
+
+  // Add Donation Styles
+  addBtn: {
+    backgroundColor: '#1b2a4a',
+    borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12,
+    flexDirection: 'row', alignItems: 'center', gap: 6
+  },
+  addBtnTxt: {
+    fontFamily: FONTS.sans, fontSize: 13, fontWeight: '600', color: '#ffffff'
+  },
+  addExpHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 22, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#e5ddd0'
+  },
+  addExpTitle: {
+    fontFamily: FONTS.serif, fontSize: 20, fontWeight: '700', color: '#1b2a4a'
+  },
+  addExpClose: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: '#e7ebf3',
+    alignItems: 'center', justifyContent: 'center'
+  },
+  addExpBody: {
+    paddingHorizontal: 22, paddingTop: 15
+  },
+  inputGroup: {
+    marginBottom: 20
+  },
+  label: {
+    fontFamily: FONTS.sans, fontSize: 12, fontWeight: '700', color: '#645d54', marginBottom: 8,
+    textTransform: 'uppercase', letterSpacing: 0.5
+  },
+  input: {
+    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0',
+    borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14,
+    fontSize: 14, fontFamily: FONTS.sans, color: '#241f1a'
+  },
+  row: {
+    flexDirection: 'row', gap: 15
+  },
+  pmBtn: {
+    backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0',
+    borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14
+  },
+  pmBtnActive: {
+    backgroundColor: '#1b2a4a', borderColor: '#1b2a4a'
+  },
+  pmBtnTxt: {
+    fontFamily: FONTS.sans, fontSize: 13, fontWeight: '600', color: '#645d54'
+  },
+  pmBtnTxtActive: {
+    color: '#ffffff'
+  },
+  addExpFooter: {
+    padding: 22, backgroundColor: '#ffffff', borderTopWidth: 1, borderTopColor: '#e5ddd0'
+  },
+  saveBtn: {
+    backgroundColor: '#c9973f', borderRadius: 12, paddingVertical: 15,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center'
+  },
+  saveBtnTxt: {
+    fontFamily: FONTS.sans, fontSize: 15, fontWeight: '700', color: '#ffffff'
+  }
 });

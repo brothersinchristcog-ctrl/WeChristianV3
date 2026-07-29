@@ -31,7 +31,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "versionCode": 3,
+      "versionCode": 4,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyAa7M7Xr7W_hNOpy3BeSHMBD6oEYjD78HA"
@@ -50,6 +50,12 @@
         "expo-av",
         {
           "microphonePermission": "Allow We Christian to access your microphone to create events via voice."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "saveOnly": true
         }
       ],
       "expo-web-browser"

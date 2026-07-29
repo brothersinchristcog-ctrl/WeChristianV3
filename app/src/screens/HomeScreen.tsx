@@ -596,7 +596,18 @@ export default function HomeScreen() {
             <GridItem isDark={isDark} icon={<Mic size={26} color="#fff" />} label="Sermons" color="#1a2d5a" onPress={() => navigation.navigate('Sermons')} />
             <GridItem isDark={isDark} icon={<Heart size={26} color="#fff" />} label="Prayer Wall" color="#c0392b" onPress={() => handleGuestProtectedNavigation('Prayer')} />
             <GridItem isDark={isDark} icon={<Calendar size={26} color="#fff" />} label="Events" color="#0F766E" onPress={() => navigation.navigate('Events')} />
-            <GridItem isDark={isDark} icon={<DollarSign size={26} color="#fff" />} label="Give / Tithe" color="#f0a500" onPress={() => handleGuestProtectedNavigation('Give')} />
+            <GridItem 
+              isDark={isDark} 
+              icon={<DollarSign size={26} color="#fff" />} 
+              label="Give / Tithe" 
+              color="#f0a500" 
+              onPress={() => setAlertConfig({
+                visible: true,
+                title: 'Coming Soon',
+                message: 'Online donations via the app are coming soon. Please contact the church administration for offline donation options.',
+                type: 'info'
+              })} 
+            />
             
             <GridItem isDark={isDark} icon={<BookOpen size={26} color="#fff" />} label="Bible" color="#7C3AED" onPress={() => handleGuestProtectedNavigation('Bible')} />
             <GridItem isDark={isDark} icon={<Music size={26} color="#fff" />} label="Songs" color="#0369a1" onPress={() => handleGuestProtectedNavigation('Songs')} />

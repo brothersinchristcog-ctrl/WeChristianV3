@@ -77,6 +77,8 @@ export default function ProfileScreen({ navigation }: any) {
   // Custom Alert Modals
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
+  const [infoMessage, setInfoMessage] = useState('');
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState<{title: string, message: string, onConfirm: () => Promise<void>, isDestructive?: boolean}>({ title: '', message: '', onConfirm: async () => {}, isDestructive: false });
 
@@ -376,7 +378,10 @@ export default function ProfileScreen({ navigation }: any) {
             iconBg="#f1f5f9"
             title="Giving history" 
             sub="Available Soon" 
-            onPress={() => navigation.navigate('Give')}
+            onPress={() => {
+              setInfoMessage('Online donations via the app are coming soon. Please contact the church administration for offline donation options.');
+              setInfoModalVisible(true);
+            }}
           />
           <MenuItem 
             icon={<Heart size={20} color="#7c3aed" />} 
@@ -718,6 +723,27 @@ export default function ProfileScreen({ navigation }: any) {
               onPress={() => setSuccessModalVisible(false)}
             >
               <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Awesome</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Info / Coming Soon Modal */}
+      <Modal visible={infoModalVisible} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '100%', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#e0f2fe', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <HelpCircle size={32} color="#0284c7" />
+            </View>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1e293b', marginBottom: 8 }}>Coming Soon!</Text>
+            <Text style={{ fontSize: 15, color: '#64748b', textAlign: 'center', marginBottom: 24, lineHeight: 22 }}>
+              {infoMessage}
+            </Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: '#0284c7', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 24, width: '100%', alignItems: 'center' }}
+              onPress={() => setInfoModalVisible(false)}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Got it</Text>
             </TouchableOpacity>
           </View>
         </View>

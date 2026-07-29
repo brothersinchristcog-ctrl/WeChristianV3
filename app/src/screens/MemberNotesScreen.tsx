@@ -13,7 +13,7 @@ import {
   Dimensions,
   Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   ChevronLeft, 
@@ -44,6 +44,7 @@ interface SermonNote {
 
 export default function MemberNotesScreen({ navigation, route }: any) {
   const { isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const { prefillTitle, prefillContent } = route?.params || {};
   const [notes, setNotes] = useState<SermonNote[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -291,8 +292,8 @@ export default function MemberNotesScreen({ navigation, route }: any) {
         {!isSelectionMode && (
           <View style={styles.cardActionsRow}>
             <TouchableOpacity style={styles.actionBtn} onPress={() => openViewMode(item)}>
-              <Edit3 size={15} color="#1a2d5a" />
-              <Text style={[styles.actionBtnTxt, { color: '#1a2d5a' }]}>View</Text>
+              <Edit3 size={15} color={isDark ? '#60a5fa' : '#1a2d5a'} />
+              <Text style={[styles.actionBtnTxt, { color: isDark ? '#60a5fa' : '#1a2d5a' }]}>View</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={() => handleDeleteNote(item.id)}>
               <Trash2 size={15} color="#ef4444" />
@@ -305,7 +306,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]} edges={['top']}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
 
       <CustomAlert 
@@ -317,7 +318,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
       />
 
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, 15) }]}>
         <View style={styles.headerLeft}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <ChevronLeft color="#fff" size={28} />
@@ -557,7 +558,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
