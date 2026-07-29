@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useContext } from 'react';
+const fs = require('fs');
+const path = require('path');
+
+const targetPath = "c:\\Users\\yraje\\WeChristian2\\app\\src\\screens\\admin\\AdminDonationDashboard.tsx";
+
+const code = `import React, { useState, useEffect, useContext } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -10,8 +15,7 @@ import {
   Dimensions,
   TextInput,
   Modal,
-  Alert,
-  Platform
+  Alert
 } from 'react-native';
 import { 
   Plus, 
@@ -23,8 +27,7 @@ import {
   X,
   Pencil,
   Trash2,
-  Gift,
-  CheckCircle2
+  Gift
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import FirestoreService, { ChurchDonation } from '../../services/FirestoreService';
@@ -489,7 +492,7 @@ export default function AdminDonationDashboard() {
                         <View style={{ flexDirection: 'row', flex: 1, paddingRight: 10 }}>
                           <View style={{ flex: 1 }}>
                             <Text style={{ fontFamily: FONTS.sans, fontSize: 16, fontWeight: '700', color: '#1b2a4a', marginBottom: 4 }} numberOfLines={1}>
-                              {don.donorName || `${don.category} Donation`}
+                              {don.donorName || \`\${don.category} Donation\`}
                             </Text>
                             <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginBottom: 8 }}>
                               {don.date} • {don.paymentMethod || 'Cash'}
@@ -846,17 +849,7 @@ const styles = StyleSheet.create({
   loadingContainer: { flex: 1, backgroundColor: '#f4efe6', justifyContent: 'center', alignItems: 'center' },
   
   // Hero Section
-  hero: { 
-    backgroundColor: '#1a2d5a', 
-    paddingTop: 10, 
-    paddingHorizontal: 22, 
-    paddingBottom: 24, 
-    borderBottomLeftRadius: 26, 
-    borderBottomRightRadius: 26,
-    overflow: 'visible',
-    position: 'relative',
-    marginBottom: 6,
-  },
+  hero: { backgroundColor: '#141d33', paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingHorizontal: 20, paddingBottom: 35, borderBottomLeftRadius: 32, borderBottomRightRadius: 32 },
   heroTitle: { fontFamily: FONTS.serif, fontSize: 26, color: '#ffffff', fontWeight: '700', letterSpacing: 0.5 },
   heroSub: { fontFamily: FONTS.sans, fontSize: 12, color: '#a89f92', fontWeight: '500', letterSpacing: 0.5 },
   
@@ -952,3 +945,7 @@ const styles = StyleSheet.create({
   dropdownItemTxt: { fontFamily: FONTS.sans, fontSize: 14, color: '#241f1a' },
   dropdownItemTxtActive: { color: '#ffffff', fontWeight: '500' }
 });
+`;
+
+fs.writeFileSync(targetPath, code);
+console.log("Wrote fully updated AdminDonationDashboard.tsx");

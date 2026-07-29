@@ -21,7 +21,9 @@ import {
   CreditCard,
   MessageCircle,
   ClipboardCheck,
-  DollarSign
+  DollarSign,
+  Home,
+  MoreHorizontal
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -52,7 +54,9 @@ import AdminSubscriptionScreen from '../screens/admin/AdminSubscriptionScreen';
 import AdminWeCelebrations from '../screens/admin/AdminWeCelebrations';
 import AdminWhatsAppInbox from '../screens/admin/AdminWhatsAppInbox';
 import AdminFinanceDashboard from '../screens/admin/AdminFinanceDashboard';
-import AdminDonationDashboard from '../screens/admin/AdminDonationDashboard';
+// Force TS cache refresh
+import DonationsDashboard from '../screens/admin/DonationsDashboard';
+import AdminDashboard from '../screens/admin/AdminDashboard';
 import { Shield } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -110,6 +114,7 @@ export default function AdminNavigator({ navigation }: any) {
   };
 
   const tabs = [
+    { name: 'Dashboard', icon: Grid, component: AdminDashboard },
     { name: 'Promises', icon: BookOpen, component: AdminPromiseList },
     { name: 'New Promise', icon: Edit3, component: AdminPromiseEditor },
     { name: 'Schedule', icon: Calendar, component: AdminPromiseCalendar },
@@ -130,31 +135,158 @@ export default function AdminNavigator({ navigation }: any) {
     { name: 'Contact Us', icon: Phone, component: AdminContactUsEditor },
     { name: 'Church Settings', icon: Settings, component: AdminChurchSettings },
     { name: 'Expense', icon: DollarSign, component: AdminFinanceDashboard },
-    { name: 'Donations', icon: Gift, component: AdminDonationDashboard },
+    { name: 'Donations', icon: Gift, component: DonationsDashboard },
     { name: 'Subscription', icon: CreditCard, component: AdminSubscriptionScreen },
     ...(member?.userType === 'super_admin' ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];
 
   const ActiveComponent = tabs[activeTab].component;
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+  const isHomeActive = activeTab === 0;
+  const isPromisesActive = tabs.findIndex(t => t.name === 'Promises') === activeTab;
+  const isSermonsActive = tabs.findIndex(t => t.name === 'Sermons') === activeTab;
+  const isPrayersActive = tabs.findIndex(t => t.name === 'Prayers') === activeTab;
+  const isEventsActive = tabs.findIndex(t => t.name === 'Events') === activeTab;
+  const isCelebrationsActive = tabs.findIndex(t => t.name === 'Celebrations') === activeTab;
+  
+  const isMainTabActive = isHomeActive || isPromisesActive || isSermonsActive || isPrayersActive || isEventsActive || isCelebrationsActive;
+
+  let barBgColor = '#1a2d5a';
+  let activeIconColor = '#1e2b4d';
+  let inactiveIconColor = '#a89f91';
+
+  if (isHomeActive) {
+    barBgColor = '#0F4C5C'; // Deep Premium Teal
+    activeIconColor = '#0F4C5C';
+    inactiveIconColor = 'rgba(255,255,255,0.7)';
+  } else if (isSermonsActive) {
+    barBgColor = '#382B5C'; // Royal Indigo
+    activeIconColor = '#382B5C';
+    inactiveIconColor = 'rgba(255,255,255,0.7)';
+  } else if (isPrayersActive) {
+    barBgColor = '#1F5F3B'; // Forest Green
+    activeIconColor = '#1F5F3B';
+    inactiveIconColor = 'rgba(255,255,255,0.7)';
+  } else if (isEventsActive) {
+    barBgColor = '#9C4325'; // Terracotta Rust
+    activeIconColor = '#9C4325';
+    inactiveIconColor = 'rgba(255,255,255,0.7)';
+  } else if (isCelebrationsActive) {
+    barBgColor = '#121212'; // Sleek Black
+    activeIconColor = '#121212';
+    inactiveIconColor = 'rgba(255,255,255,0.7)';
+  }
 
   // We provide handleSetTab via setActiveTab so child components can push to history
   return (
     <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack }}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.header}>
+      <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#1e2b4d' : '#1a2d5a' }} />
+        <View style={[styles.header, { backgroundColor: activeTab === 0 ? '#1e2b4d' : '#1a2d5a' }]}>
           <View style={styles.headerTop}>
-            <TouchableOpacity onPress={() => setMenuExpanded(true)} style={styles.hamburgerBtn}>
-              <DotGridIcon color="#fff" size={24} />
-            </TouchableOpacity>
-            <View style={styles.headerText}>
-              <Text style={styles.headerTitle}>Admin Dashboard</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity onPress={() => setMenuExpanded(true)} style={styles.hamburgerBtn}>
+                <DotGridIcon color="#fff" size={20} />
+              </TouchableOpacity>
+              {activeTab === 0 && (
+                <Text style={{ color: '#cbd5e1', fontSize: 20, marginLeft: 14, fontFamily: FONTS.serif, fontStyle: 'italic' }}>Welcome Back</Text>
+              )}
             </View>
+            
+            {activeTab === 0 ? (
+              <View style={styles.datePill}>
+                <Text style={styles.datePillTxt}>{today}</Text>
+              </View>
+            ) : (
+              <View style={styles.headerText}>
+                <Text style={styles.headerTitle}>Admin Dashboard</Text>
+              </View>
+            )}
           </View>
         </View>
 
-        <View style={styles.content}>
-          <ActiveComponent navigation={navigation} />
+        <View style={[styles.content, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
+          {activeTab === 0 ? (
+            <AdminDashboard navigation={navigation} allTabs={tabs} />
+          ) : (
+            <ActiveComponent navigation={navigation} />
+          )}
         </View>
+
+        {/* Premium Floating Bottom Tab Bar */}
+        {isMainTabActive && (
+          <View style={styles.bottomTabBarWrapper}>
+            <View style={[styles.bottomTabBar, { backgroundColor: barBgColor }]}>
+              {/* HOME */}
+              <TouchableOpacity 
+                style={styles.bottomTabItem} 
+                onPress={() => handleSetTab(0)}
+              >
+                <View style={activeTab === 0 ? styles.activeCircle : styles.inactiveCircle}>
+                  <Home size={22} color={activeTab === 0 ? activeIconColor : inactiveIconColor} strokeWidth={activeTab === 0 ? 2.5 : 2} />
+                </View>
+                {activeTab !== 0 && <Text style={[styles.bottomTabLabel, { color: inactiveIconColor }]}>Home</Text>}
+              </TouchableOpacity>
+
+              {/* SERMONS */}
+              <TouchableOpacity 
+                style={styles.bottomTabItem} 
+                onPress={() => {
+                  const idx = tabs.findIndex(t => t.name === 'Sermons');
+                  if (idx > -1) handleSetTab(idx);
+                }}
+              >
+                <View style={tabs.findIndex(t => t.name === 'Sermons') === activeTab ? styles.activeCircle : styles.inactiveCircle}>
+                  <Mic size={22} color={tabs.findIndex(t => t.name === 'Sermons') === activeTab ? activeIconColor : inactiveIconColor} strokeWidth={tabs.findIndex(t => t.name === 'Sermons') === activeTab ? 2.5 : 2} />
+                </View>
+                {tabs.findIndex(t => t.name === 'Sermons') !== activeTab && <Text style={[styles.bottomTabLabel, { color: inactiveIconColor }]}>Sermons</Text>}
+              </TouchableOpacity>
+
+              {/* PRAYERS */}
+              <TouchableOpacity 
+                style={styles.bottomTabItem} 
+                onPress={() => {
+                  const idx = tabs.findIndex(t => t.name === 'Prayers');
+                  if (idx > -1) handleSetTab(idx);
+                }}
+              >
+                <View style={tabs.findIndex(t => t.name === 'Prayers') === activeTab ? styles.activeCircle : styles.inactiveCircle}>
+                  <Heart size={22} color={tabs.findIndex(t => t.name === 'Prayers') === activeTab ? activeIconColor : inactiveIconColor} strokeWidth={tabs.findIndex(t => t.name === 'Prayers') === activeTab ? 2.5 : 2} />
+                </View>
+                {tabs.findIndex(t => t.name === 'Prayers') !== activeTab && <Text style={[styles.bottomTabLabel, { color: inactiveIconColor }]}>Prayers</Text>}
+              </TouchableOpacity>
+
+              {/* EVENTS */}
+              <TouchableOpacity 
+                style={styles.bottomTabItem} 
+                onPress={() => {
+                  const idx = tabs.findIndex(t => t.name === 'Events');
+                  if (idx > -1) handleSetTab(idx);
+                }}
+              >
+                <View style={tabs.findIndex(t => t.name === 'Events') === activeTab ? styles.activeCircle : styles.inactiveCircle}>
+                  <Calendar size={22} color={tabs.findIndex(t => t.name === 'Events') === activeTab ? activeIconColor : inactiveIconColor} strokeWidth={tabs.findIndex(t => t.name === 'Events') === activeTab ? 2.5 : 2} />
+                </View>
+                {tabs.findIndex(t => t.name === 'Events') !== activeTab && <Text style={[styles.bottomTabLabel, { color: inactiveIconColor }]}>Events</Text>}
+              </TouchableOpacity>
+
+              {/* CELEBRATIONS */}
+              <TouchableOpacity 
+                style={styles.bottomTabItem} 
+                onPress={() => {
+                  const idx = tabs.findIndex(t => t.name === 'Celebrations');
+                  if (idx > -1) handleSetTab(idx);
+                }}
+              >
+                <View style={tabs.findIndex(t => t.name === 'Celebrations') === activeTab ? styles.activeCircle : styles.inactiveCircle}>
+                  <Gift size={22} color={tabs.findIndex(t => t.name === 'Celebrations') === activeTab ? activeIconColor : inactiveIconColor} strokeWidth={tabs.findIndex(t => t.name === 'Celebrations') === activeTab ? 2.5 : 2} />
+                </View>
+                {tabs.findIndex(t => t.name === 'Celebrations') !== activeTab && <Text style={[styles.bottomTabLabel, { color: inactiveIconColor }]}>Celebrations</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
 
         {/* Full-Height Left Side Drawer Overlay */}
         {menuExpanded && (
@@ -181,6 +313,7 @@ export default function AdminNavigator({ navigation }: any) {
 
               <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
                 <View style={{ paddingVertical: 10 }}>
+                  <Text style={styles.drawerSectionTitle}>ALL MODULES</Text>
                   {tabs.map((tab, index) => {
                     const isActive = activeTab === index;
                     return (
@@ -231,22 +364,6 @@ export default function AdminNavigator({ navigation }: any) {
 
               {/* Footer Actions */}
               <View style={styles.drawerFooter}>
-                <TouchableOpacity 
-                  style={[styles.drawerSignOutBtn, { 
-                    marginBottom: 16, 
-                    backgroundColor: 'rgba(252, 211, 77, 0.15)', 
-                    borderWidth: 1, 
-                    borderColor: 'rgba(252, 211, 77, 0.5)',
-                    flexDirection: 'row',
-                    justifyContent: 'center',
-                    gap: 10
-                  }]} 
-                  onPress={() => setViewMode('member')}
-                >
-                  <Smartphone size={20} color="#FCD34D" />
-                  <Text style={[styles.drawerSignOutTxt, { color: '#FCD34D', fontWeight: '800' }]}>Member View</Text>
-                </TouchableOpacity>
-
                 <TouchableOpacity style={[styles.drawerSignOutBtn, { flexDirection: 'row', justifyContent: 'center', gap: 10 }]} onPress={signOut}>
                   <LogOut size={20} color="#fff" />
                   <Text style={styles.drawerSignOutTxt}>Sign out</Text>
@@ -257,6 +374,36 @@ export default function AdminNavigator({ navigation }: any) {
           </View>
         )}
 
+        {/* Floating Switch to Member View pill - ONLY on Dashboard */}
+        {activeTab === 0 && (
+          <TouchableOpacity
+            onPress={() => setViewMode('member')}
+            style={{
+              position: 'absolute',
+              bottom: Platform.OS === 'ios' ? 160 : 150,
+              right: 20,
+              backgroundColor: '#1a2d5a', // solid navy
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderRadius: 30,
+              borderWidth: 1,
+              borderColor: 'rgba(252, 211, 77, 0.5)', // golden border
+              gap: 8,
+              elevation: 10,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.35,
+              shadowRadius: 10,
+              zIndex: 999
+            }}
+          >
+            <Smartphone size={18} color="#FCD34D" />
+            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>Member View</Text>
+          </TouchableOpacity>
+        )}
+
         <CustomAlert
           visible={alertConfig.visible}
           title={alertConfig.title}
@@ -265,7 +412,7 @@ export default function AdminNavigator({ navigation }: any) {
           onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
         />
 
-      </SafeAreaView>
+      </View>
     </AdminTabContext.Provider>
   );
 }
@@ -276,22 +423,86 @@ const FONTS = {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#1a2d5a' },
-  container: { flex: 1, backgroundColor: '#f0f2f7' },
-  header: { backgroundColor: '#1a2d5a' },
+  safeArea: { flex: 1 },
+  container: { flex: 1 }, 
+  header: { },
+  
+  // Bottom Tab Bar
+  bottomTabBarWrapper: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 56 : 48, // Pushed up further
+    left: 16,
+    right: 16,
+    backgroundColor: 'transparent',
+  },
+  bottomTabBar: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff', // Default, gets overridden dynamically
+    borderRadius: 36, 
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bottomTabItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  activeCircle: {
+    backgroundColor: '#ffffff', // Perfect white circle for active
+    width: 50,
+    height: 50,
+    borderRadius: 25, // Half of width/height to make a perfect circle
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  inactiveCircle: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bottomTabLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 4,
+  },
+
   headerTop: { 
     flexDirection: 'row', 
+    justifyContent: 'space-between',
     alignItems: 'center', 
-    paddingHorizontal: 14, 
+    paddingHorizontal: 20, 
     paddingVertical: 12,
-    gap: 12
   },
   hamburgerBtn: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
-  logoCircle: { 
-    width: 36, 
-    height: 36, 
+  datePill: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
+  },
+  datePillTxt: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  logoCircle: {
+    width: 36,
+    height: 36,
     borderRadius: 18, 
     backgroundColor: '#fff', 
     justifyContent: 'center', 
@@ -305,7 +516,7 @@ const styles = StyleSheet.create({
     width: 26, 
     height: 26 
   },
-  headerText: { flex: 1, marginLeft: 6, marginBottom: 4 },
+  headerText: { flex: 1, marginLeft: 12, marginBottom: 4 },
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: '600', fontFamily: FONTS.serif },
   headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 1 },
   roleBadge: { 
@@ -316,7 +527,7 @@ const styles = StyleSheet.create({
   },
   roleTxt: { color: '#fff', fontSize: 10, fontWeight: '700' },
 
-  content: { flex: 1, backgroundColor: '#f0f2f7' },
+  content: { flex: 1, backgroundColor: '#EDE8DC' },
 
   // Classic Side Drawer Styles
   drawerOverlay: {
@@ -373,6 +584,15 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.1)',
     marginHorizontal: 20,
     marginBottom: 5,
+  },
+  drawerSectionTitle: {
+    color: '#9CA3AF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginLeft: 26,
+    marginBottom: 10,
+    marginTop: 10,
   },
   drawerItem: {
     flexDirection: 'row',

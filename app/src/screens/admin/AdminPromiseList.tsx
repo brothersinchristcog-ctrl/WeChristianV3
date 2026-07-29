@@ -192,7 +192,7 @@ export default function AdminPromiseList() {
           <Text style={styles.heroTitle}>Daily Promises</Text>
           
           <View style={{ flex: 1 }} />
-          <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(1); }}>
+          <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(2); }}>
             <Text style={styles.newBtnTxt}>+ New</Text>
           </TouchableOpacity>
         </View>

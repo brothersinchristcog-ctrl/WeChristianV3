@@ -32,6 +32,13 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
 
+  // Automatically trigger verification when 6 digits are detected
+  React.useEffect(() => {
+    if (code.length === 6 && !loading) {
+      handleVerify();
+    }
+  }, [code]);
+
   const handleVerify = async () => {
     if (code.length !== 6) {
       Alert.alert('Invalid Code', 'Please enter the 6-digit code sent to your phone.');
@@ -176,6 +183,8 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
                   value={code}
                   onChangeText={setCode}
                   autoFocus
+                  textContentType="oneTimeCode"
+                  autoComplete="sms-otp"
                 />
               </View>
             </View>

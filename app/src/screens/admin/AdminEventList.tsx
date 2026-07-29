@@ -106,7 +106,7 @@ export default function AdminEventList() {
 
   const handleEdit = (event: any) => {
     setEditingData(event);
-    setActiveTab(8); // Switch to Event Editor tab
+    setActiveTab(9); // Switch to Event Editor tab
   };
 
   const confirmDeleteEvent = async (deleteMode?: 'single' | 'future') => {
@@ -156,7 +156,7 @@ export default function AdminEventList() {
                 <Text style={[styles.heroSub, { marginTop: 2 }]}>{events.length} total · {upcomingCount} upcoming</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(8); }}>
+            <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(9); }}>
               <Plus size={16} color="#1a2d5a" />
               <Text style={styles.newBtnTxt}>New</Text>
             </TouchableOpacity>

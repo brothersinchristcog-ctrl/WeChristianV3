@@ -76,6 +76,13 @@ export default function CreateChurchScreen({ navigation }: Props) {
   const [confirmation, setConfirmation] = useState<any>(null);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
 
+  // Automatically trigger verification when 6 digits are detected
+  React.useEffect(() => {
+    if (otpCode.length === 6 && !verifyingOtp && otpModalVisible) {
+      verifyOtpAndCreate();
+    }
+  }, [otpCode]);
+
   // Picker State
   const [pickerVisible, setPickerVisible] = useState(false);
   const [pickerType, setPickerType] = useState<'state' | 'city'>('state');
@@ -564,6 +571,8 @@ export default function CreateChurchScreen({ navigation }: Props) {
                 value={otpCode}
                 onChangeText={setOtpCode}
                 autoFocus={true}
+                textContentType="oneTimeCode"
+                autoComplete="sms-otp"
               />
               <TouchableOpacity
                 style={[styles.primaryBtn, { backgroundColor: '#D9A05B', marginTop: 28 }]}

@@ -430,7 +430,7 @@ export default function AdminEventEditor() {
     setVenueEn(''); setVenueTe(''); setAddress('');
     setBannerUrl('');
     setDate(new Date().toLocaleDateString('en-GB').replace(/\//g, '-')); 
-    setStartTime('09:00 AM'); setEndTime('12:00 PM');
+    setStartTime('09:00 AM'); setEndTime('12:00 PM');
     setNotifyOnPublish(true); setReminder1Day(true); setReminder1Hour(false);
     setEditingData(null);
   };
@@ -449,7 +449,7 @@ export default function AdminEventEditor() {
             Your event "{titleEn}" has been successfully {publishStatus === 'Published' ? 'published to all members' : 'saved as a draft'}.
           </Text>
 
-          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(7); }}>
+          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(8); }}>
             <Text style={styles.successBtnPrimaryTxt}>View Event List</Text>
           </TouchableOpacity>
 
@@ -847,7 +847,7 @@ export default function AdminEventEditor() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.btnBack} onPress={() => { resetForm(); setActiveTab(7); }}>
+        <TouchableOpacity style={styles.btnBack} onPress={() => { resetForm(); setActiveTab(8); }}>
           <Text style={styles.btnBackTxt}>← Back to list</Text>
         </TouchableOpacity>
 

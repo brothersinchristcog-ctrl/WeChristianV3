@@ -7,210 +7,338 @@ import {
   TouchableOpacity, 
   ActivityIndicator,
   Dimensions,
-  Image,
   StatusBar,
   Platform
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Users, 
   BookOpen, 
   Calendar, 
-  Plus, 
-  TrendingUp, 
   Bell, 
-  ChevronRight,
-  ShieldCheck,
-  Video,
-  FileText,
-  Activity,
-  Heart,
   Settings,
-  DollarSign
+  DollarSign,
+  ChevronRight
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
-
-import FirestoreService from '../../services/FirestoreService';
+import { useAuth } from '../../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
-export default function AdminDashboard() {
-  const { setActiveTab, setEditingData } = useContext(AdminTabContext);
-  const [stats, setStats] = useState({
-    members: '1,240',
-    promises: '28',
-    events: '3',
-    requests: '12'
-  });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        const statData = await FirestoreService.getDashboardStats();
-        setStats({
-          members: statData.members.toString(),
-          promises: statData.promises.toString(),
-          events: '3',
-          requests: '12'
-        });
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
-  }, []);
-
-  const QUICK_ACTIONS = [
-    { id: 0, label: 'Promises', icon: <BookOpen size={20} color="#1a2d5a" />, desc: 'Update Daily Verse' },
-    { id: 7, label: 'Events', icon: <Calendar size={20} color="#c0392b" />, desc: 'Manage Calendar' },
-    { id: 3, label: 'Sermons', icon: <Video size={20} color="#15803D" />, desc: 'Post Teachings' },
-    { id: 5, label: 'New Song', icon: <Plus size={20} color="#8B5CF6" />, desc: 'Post Song Lyrics' },
-    { id: 6, label: 'Broadcast', icon: <Bell size={20} color="#EA580C" />, desc: 'Send Push Alerts' },
-    { id: 10, label: 'Prayers', icon: <Heart size={20} color="#D97706" />, desc: 'Moderation' },
-    { id: 16, label: 'Church Settings', icon: <Settings size={20} color="#1a2d5a" />, desc: 'Logo & Colors' }
-  ];
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#fbbf24" />
-      </View>
-    );
+const CATEGORIES = [
+  {
+    title: 'Content Management',
+    icon: BookOpen,
+    color: '#0F766E', // Teal
+    keywords: ['Promise', 'Sermon', 'Song']
+  },
+  {
+    title: 'Community & Members',
+    icon: Users,
+    color: '#6366F1', // Indigo for members
+    keywords: ['Member', 'Attendance', 'Prayer']
+  },
+  {
+    title: 'Events & Celebrations',
+    icon: Calendar,
+    color: '#E17055', // Warm orange/coral
+    keywords: ['Event', 'Celebration']
+  },
+  {
+    title: 'Communication',
+    icon: Bell,
+    color: '#D4A373', // Warm gold/brown
+    keywords: ['Notification', 'WhatsApp']
+  },
+  {
+    title: 'Finance & Subscriptions',
+    icon: DollarSign,
+    color: '#206A5D', // Deep green
+    keywords: ['Expense', 'Donation', 'Subscription']
+  },
+  {
+    title: 'Administration',
+    icon: Settings,
+    color: '#4B5563', // Slate
+    keywords: ['Church Setting', 'Super Admin', 'About', 'Contact', 'Schedule']
   }
+];
+
+const FULL_WIDTH_MODULES = ['New Song', 'Members', 'Subscription', 'WeCelebrate'];
+
+const FONTS = {
+  serif: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  sans: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+};
+
+export default function AdminDashboard({ navigation, allTabs = [] }: any) {
+  const { setActiveTab } = useContext(AdminTabContext);
+  const { member, user } = useAuth();
+  
+  // Extract first name for greeting if possible
+  const fullName = member?.name || user?.displayName || 'Administrator';
+  const firstName = fullName.split(' ')[0];
+
+  // Helper to figure out which category a tab belongs to
+  const getCategoryForTab = (tabName: string) => {
+    for (const category of CATEGORIES) {
+      if (category.keywords.some(kw => tabName.includes(kw))) {
+        return category;
+      }
+    }
+    return CATEGORIES[5]; // Default to Administration
+  };
+
+  const categorizedTabs: Record<string, any[]> = {};
+  CATEGORIES.forEach(cat => categorizedTabs[cat.title] = []);
+
+  allTabs.forEach((tab: any, index: number) => {
+    if (tab.name === 'Dashboard') return;
+    const category = getCategoryForTab(tab.name);
+    categorizedTabs[category.title].push({ ...tab, index });
+  });
+
+  // Dynamic time-based greeting
+  const hour = new Date().getHours();
+  let timeGreeting = 'Good evening,';
+  if (hour < 12) timeGreeting = 'Good morning,';
+  else if (hour < 18) timeGreeting = 'Good afternoon,';
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+      <StatusBar barStyle="light-content" backgroundColor="#1e2b4d" />
       
-      {/* ── Admin Header ── */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        
-        {/* ── Dashboard Stats ── */}
-        <View style={styles.statsStripContainer}>
-          <View style={styles.statsStrip}>
-            <StatBox label="MEMBERS" val={stats.members} icon={<Users size={12} color="#1a2d5a" />} light />
-            <View style={styles.sep} />
-            <StatBox label="PROMISES" val={stats.promises} icon={<BookOpen size={12} color="#1a2d5a" />} light />
-            <View style={styles.sep} />
-            <StatBox label="REQUESTS" val={stats.requests} icon={<Bell size={12} color="#1a2d5a" />} light />
+      {/* Warm Premium Hero Section with Dramatic Curve */}
+      <View style={{ zIndex: 10, backgroundColor: '#F4F0EA' }}>
+        <View
+          style={[styles.heroSection, { backgroundColor: '#1e2b4d' }]}
+        >
+          <View style={styles.heroContent}>
+            <Text style={styles.greetingText}>{timeGreeting}</Text>
+            <Text 
+              style={styles.nameText}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
+              {fullName}
+            </Text>
           </View>
         </View>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         
-        {/* ── Status Banner ── */}
-        <View style={styles.statusBanner}>
-          <View style={styles.liveDot} />
-          <Text style={styles.statusTxt}>System Live: Daily Promise is synced for all members.</Text>
+        <View style={styles.content}>
+          {CATEGORIES.map((category, catIdx) => {
+            const tabsInCategory = categorizedTabs[category.title];
+            if (!tabsInCategory || tabsInCategory.length === 0) return null;
+
+            return (
+              <View key={catIdx} style={styles.categoryBlock}>
+                
+                {/* Elegant Category Header */}
+                <View style={styles.categoryHeader}>
+                  <View style={[styles.categoryIconBg, { backgroundColor: `${category.color}20` }]}>
+                    <category.icon size={16} color={category.color} strokeWidth={2} />
+                  </View>
+                  <Text style={styles.categoryTitle}>{category.title}</Text>
+                  <View style={styles.categoryLine} />
+                </View>
+
+                {/* Hybrid Grid of Modules */}
+                <View style={styles.grid}>
+                  {tabsInCategory.map((tab) => {
+                    const isFullWidth = FULL_WIDTH_MODULES.includes(tab.name);
+                    
+                    return (
+                      <TouchableOpacity 
+                        key={tab.index} 
+                        style={[
+                          styles.moduleCard, 
+                          isFullWidth && styles.moduleCardFull,
+                          {
+                            shadowColor: category.color,
+                            borderColor: `${category.color}25`,
+                          }
+                        ]}
+                        onPress={() => setActiveTab(tab.index)}
+                        activeOpacity={0.7}
+                      >
+                        {isFullWidth ? (
+                          <>
+                            <View style={styles.moduleLeftRow}>
+                              <View style={[styles.moduleIconWrapperFull, { backgroundColor: `${category.color}15` }]}>
+                                <tab.icon size={22} color={category.color} strokeWidth={2.5} />
+                              </View>
+                              <Text style={styles.moduleTitleFull}>{tab.name}</Text>
+                            </View>
+                            <View style={[styles.chevronWrapper, { backgroundColor: `${category.color}10` }]}>
+                              <ChevronRight size={18} color={category.color} />
+                            </View>
+                          </>
+                        ) : (
+                          <View style={styles.moduleColumn}>
+                            <View style={[styles.moduleIconWrapper, { backgroundColor: `${category.color}15` }]}>
+                              <tab.icon size={22} color={category.color} strokeWidth={2.5} />
+                            </View>
+                            <Text style={styles.moduleTitle} numberOfLines={2}>{tab.name}</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+                
+              </View>
+            );
+          })}
         </View>
-
-        {/* ── Management Grid ── */}
-        <Text style={styles.secLbl}>QUICK MANAGEMENT</Text>
-        <View style={styles.actionGrid}>
-          {QUICK_ACTIONS.map(action => (
-            <TouchableOpacity 
-              key={action.id} 
-              style={styles.actionCard}
-              onPress={() => setActiveTab(action.id)}
-            >
-              <View style={styles.actionIcon}>{action.icon}</View>
-              <Text style={styles.actionLabel}>{action.label}</Text>
-              <Text style={styles.actionDesc}>{action.desc}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* ── Recent Activity ── */}
-        <Text style={styles.secLbl}>SYSTEM SNAPSHOT</Text>
-        <View style={styles.activityBox}>
-          <ActivityRow icon={<Activity size={16} color="#1a2d5a" />} label="Database Health" val="Excellent" />
-          <ActivityRow icon={<ShieldCheck size={16} color="#15803D" />} label="Salesforce Sync" val="Active" />
-          <ActivityRow icon={<TrendingUp size={16} color="#D97706" />} label="Member Growth" val="+12% this week" isLast />
-        </View>
-
-        <TouchableOpacity style={styles.logoutBtn} onPress={() => {/* Handle Logout */}}>
-          <Text style={styles.logoutTxt}>Sign Out of Admin Console</Text>
-        </TouchableOpacity>
-
       </ScrollView>
     </View>
   );
 }
 
-function StatBox({ label, val, icon, light }: any) {
-  return (
-    <View style={styles.statBox}>
-      <View style={styles.statIconRow}>
-        {icon}
-        <Text style={[styles.statBoxLbl, light && { color: '#6B7280' }]}>{label}</Text>
-      </View>
-      <Text style={[styles.statBoxVal, light && { color: '#1a2d5a' }]}>{val}</Text>
-    </View>
-  );
-}
-
-function ActivityRow({ icon, label, val, isLast }: any) {
-  return (
-    <View style={[styles.activityRow, isLast && { borderBottomWidth: 0 }]}>
-      <View style={styles.rowIcon}>{icon}</View>
-      <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={styles.rowVal}>{val}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f7' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, backgroundColor: '#F4F0EA' }, // Warm beige backdrop
   
-  adminHeader: { backgroundColor: '#1a2d5a', paddingTop: Platform.OS === 'ios' ? 60 : 30, paddingHorizontal: 20, paddingBottom: 30, borderBottomLeftRadius: 30, borderBottomRightRadius: 30 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },
-  adminTitle: { color: '#fff', fontSize: 22, fontWeight: '800' },
-  adminSub: { color: '#aac4e8', fontSize: 11, fontWeight: '500' },
-  adminBadge: { backgroundColor: '#c0392b', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  adminBadgeTxt: { color: '#fff', fontSize: 10, fontWeight: '800' },
-
-  statsStripContainer: { padding: 12 },
-  statsStrip: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between', 
-    backgroundColor: '#fff', 
-    borderRadius: 20, 
-    padding: 15,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10
+  // HERO SECTION
+  heroSection: {
+    paddingHorizontal: 28,
+    paddingTop: 15,
+    paddingBottom: 60, 
+    borderBottomLeftRadius: 60,
+    borderBottomRightRadius: 60,
   },
-  statBox: { flex: 1, alignItems: 'center' },
-  statIconRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 5 },
-  statBoxLbl: { color: '#aac4e8', fontSize: 9, fontWeight: '700' },
-  statBoxVal: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  sep: { width: 1, height: 20, backgroundColor: '#e5e7eb' },
+  heroContent: {
+    paddingTop: Platform.OS === 'android' ? 10 : 0,
+  },
+  greetingText: {
+    color: '#cbd5e1',
+    fontSize: 20,
+    fontFamily: FONTS.serif,
+    fontStyle: 'italic',
+    marginBottom: 4,
+  },
+  nameText: {
+    color: '#ffffff',
+    fontSize: 34,
+    fontWeight: '800',
+    fontFamily: FONTS.serif,
+  },
 
-  scroll: { paddingBottom: 40 },
-
-  statusBanner: { backgroundColor: '#fff', margin: 12, borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: '#e5e7eb' },
-  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#15803D' },
-  statusTxt: { fontSize: 11, color: '#1a2d5a', fontWeight: '600' },
-
-  secLbl: { fontSize: 10, fontWeight: '800', color: '#9CA3AF', letterSpacing: 1, marginHorizontal: 16, marginBottom: 12, marginTop: 10 },
+  scroll: { 
+    paddingBottom: 140, // Space for the bottom tab bar
+  },
   
-  actionGrid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 12, gap: 10 },
-  actionCard: { width: (width - 34) / 2, backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 0.5, borderColor: '#e5e7eb', elevation: 2 },
-  actionIcon: { width: 40, height: 40, borderRadius: 12, backgroundColor: '#f3f4f6', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  actionLabel: { fontSize: 14, fontWeight: '700', color: '#111827', marginBottom: 4 },
-  actionDesc: { fontSize: 10, color: '#6B7280', fontWeight: '500' },
+  content: {
+    paddingHorizontal: 24,
+    paddingTop: 30,
+  },
 
-  activityBox: { backgroundColor: '#fff', marginHorizontal: 12, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: '#e5e7eb' },
-  activityRow: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 0.5, borderBottomColor: '#f3f4f6' },
-  rowIcon: { width: 32, height: 32, borderRadius: 8, backgroundColor: '#f9fafb', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  rowLabel: { flex: 1, fontSize: 12, color: '#111827', fontWeight: '600' },
-  rowVal: { fontSize: 12, color: '#1a2d5a', fontWeight: '700' },
+  // CATEGORIES
+  categoryBlock: {
+    marginBottom: 36,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  categoryIconBg: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1e293b',
+    fontFamily: FONTS.serif,
+    letterSpacing: 0.5,
+  },
+  categoryLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e2e8f0',
+    marginLeft: 16,
+  },
 
-  logoutBtn: { marginTop: 40, alignItems: 'center' },
-  logoutTxt: { fontSize: 13, color: '#c0392b', fontWeight: '700', textDecorationLine: 'underline' }
+  // HYBRID MODULE GRID
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 14, 
+  },
+  moduleCard: {
+    width: (width - 62) / 2, 
+    backgroundColor: '#ffffff',
+    borderRadius: 22, 
+    padding: 18,
+    elevation: 6,
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    borderWidth: 1,
+    minHeight: 115,
+  },
+  moduleCardFull: {
+    width: '100%', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    justifyContent: 'space-between',
+    minHeight: 80,
+  },
+  moduleColumn: {
+    flex: 1,
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+  },
+  moduleLeftRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  moduleIconWrapper: {
+    width: 46,
+    height: 46,
+    borderRadius: 23, // Perfect circle
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14, 
+  },
+  moduleIconWrapperFull: {
+    width: 48,
+    height: 48,
+    borderRadius: 24, // Perfect circle
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  chevronWrapper: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moduleTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1e293b',
+    fontFamily: FONTS.sans,
+    lineHeight: 20,
+  },
+  moduleTitleFull: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1e293b',
+    fontFamily: FONTS.sans,
+  }
 });

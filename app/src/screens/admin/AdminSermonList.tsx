@@ -57,7 +57,7 @@ export default function AdminSermonList() {
 
   const handleEdit = (sermon: Sermon) => {
     setEditingData(sermon);
-    setActiveTab(4); // Switch to New Sermon editor tab
+    setActiveTab(5); // Switch to New Sermon editor tab (index 5)
   };
 
   const handlePlay = (sermon: Sermon) => {
@@ -125,7 +125,7 @@ export default function AdminSermonList() {
               <Text style={[styles.heroSub, { marginTop: 2 }]}>{sermons.length} total · {stats.series} series</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(4); }}>
+          <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(5); }}>
             <Plus size={16} color="#1a2d5a" />
             <Text style={styles.newBtnTxt}>New</Text>
           </TouchableOpacity>
