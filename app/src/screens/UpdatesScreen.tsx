@@ -118,7 +118,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
-  const { user, member } = useAuth();
+  const { user, member, showAdminView } = useAuth();
   const { activeChurch } = useChurch();
 
   useEffect(() => {
@@ -403,7 +403,12 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   if (update.type === 'song') {
                     navigation.navigate('Songs');
                   } else if (update.type === 'promise') {
-                    navigation.navigate('Tabs', { screen: 'Promise' });
+                    if (showAdminView) {
+                      if (navigation.canGoBack()) navigation.goBack();
+                      else navigation.navigate('AdminRoot');
+                    } else {
+                      navigation.navigate('Tabs', { screen: 'Promise' });
+                    }
                   } else if (update.type === 'sermon') {
                     navigation.navigate('Sermons');
                   } else if (update.type === 'event') {

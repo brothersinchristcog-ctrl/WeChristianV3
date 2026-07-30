@@ -222,8 +222,8 @@ export default function AdminNavigator({ navigation }: any) {
   return (
     <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack }}>
       <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
-        <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#1e2b4d' : '#1a2d5a' }} />
-        <View style={[styles.header, { backgroundColor: activeTab === 0 ? '#1e2b4d' : '#1a2d5a' }]}>
+        <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#081d4a' : '#1a2d5a' }} />
+        <View style={[styles.header, { backgroundColor: activeTab === 0 ? '#081d4a' : '#1a2d5a' }]}>
           <View style={styles.headerTop}>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <TouchableOpacity onPress={() => setMenuExpanded(true)} style={styles.hamburgerBtn}>
@@ -234,11 +234,7 @@ export default function AdminNavigator({ navigation }: any) {
               )}
             </View>
             
-            {activeTab === 0 ? (
-              <View style={styles.datePill}>
-                <Text style={styles.datePillTxt}>{today}</Text>
-              </View>
-            ) : (
+            {activeTab === 0 ? null : (
               <View style={styles.headerText}>
                 <Text style={styles.headerTitle}>Admin Dashboard</Text>
               </View>
@@ -254,79 +250,7 @@ export default function AdminNavigator({ navigation }: any) {
           )}
         </View>
 
-        {/* Premium Floating Bottom Tab Bar */}
-        {isMainTabActive && (
-          <View style={styles.bottomTabBarWrapper}>
-            <View style={[styles.bottomTabBar, { backgroundColor: barBgColor }]}>
-              {/* HOME */}
-              <TouchableOpacity 
-                style={styles.bottomTabItem} 
-                onPress={() => handleSetTab(0)}
-              >
-                <View style={activeTab === 0 ? styles.activeCircle : styles.inactiveCircle}>
-                  <Home size={22} color={activeTab === 0 ? activeIconColor : inactiveIconColor} strokeWidth={activeTab === 0 ? 2.5 : 2} />
-                </View>
-                {activeTab !== 0 && <Text style={[styles.bottomTabLabel, { color: inactiveIconColor }]}>Home</Text>}
-              </TouchableOpacity>
-
-              {/* SERMONS */}
-              <TouchableOpacity 
-                style={styles.bottomTabItem} 
-                onPress={() => {
-                  const idx = tabs.findIndex(t => t.name === 'Sermons');
-                  if (idx > -1) handleSetTab(idx);
-                }}
-              >
-                <View style={tabs.findIndex(t => t.name === 'Sermons') === activeTab ? styles.activeCircle : styles.inactiveCircle}>
-                  <Mic size={22} color={tabs.findIndex(t => t.name === 'Sermons') === activeTab ? activeIconColor : inactiveIconColor} strokeWidth={tabs.findIndex(t => t.name === 'Sermons') === activeTab ? 2.5 : 2} />
-                </View>
-                {tabs.findIndex(t => t.name === 'Sermons') !== activeTab && <Text style={[styles.bottomTabLabel, { color: inactiveIconColor }]}>Sermons</Text>}
-              </TouchableOpacity>
-
-              {/* PRAYERS */}
-              <TouchableOpacity 
-                style={styles.bottomTabItem} 
-                onPress={() => {
-                  const idx = tabs.findIndex(t => t.name === 'Prayers');
-                  if (idx > -1) handleSetTab(idx);
-                }}
-              >
-                <View style={tabs.findIndex(t => t.name === 'Prayers') === activeTab ? styles.activeCircle : styles.inactiveCircle}>
-                  <Heart size={22} color={tabs.findIndex(t => t.name === 'Prayers') === activeTab ? activeIconColor : inactiveIconColor} strokeWidth={tabs.findIndex(t => t.name === 'Prayers') === activeTab ? 2.5 : 2} />
-                </View>
-                {tabs.findIndex(t => t.name === 'Prayers') !== activeTab && <Text style={[styles.bottomTabLabel, { color: inactiveIconColor }]}>Prayers</Text>}
-              </TouchableOpacity>
-
-              {/* EVENTS */}
-              <TouchableOpacity 
-                style={styles.bottomTabItem} 
-                onPress={() => {
-                  const idx = tabs.findIndex(t => t.name === 'Events');
-                  if (idx > -1) handleSetTab(idx);
-                }}
-              >
-                <View style={tabs.findIndex(t => t.name === 'Events') === activeTab ? styles.activeCircle : styles.inactiveCircle}>
-                  <Calendar size={22} color={tabs.findIndex(t => t.name === 'Events') === activeTab ? activeIconColor : inactiveIconColor} strokeWidth={tabs.findIndex(t => t.name === 'Events') === activeTab ? 2.5 : 2} />
-                </View>
-                {tabs.findIndex(t => t.name === 'Events') !== activeTab && <Text style={[styles.bottomTabLabel, { color: inactiveIconColor }]}>Events</Text>}
-              </TouchableOpacity>
-
-              {/* CELEBRATIONS */}
-              <TouchableOpacity 
-                style={styles.bottomTabItem} 
-                onPress={() => {
-                  const idx = tabs.findIndex(t => t.name === 'Celebrations');
-                  if (idx > -1) handleSetTab(idx);
-                }}
-              >
-                <View style={tabs.findIndex(t => t.name === 'Celebrations') === activeTab ? styles.activeCircle : styles.inactiveCircle}>
-                  <Gift size={22} color={tabs.findIndex(t => t.name === 'Celebrations') === activeTab ? activeIconColor : inactiveIconColor} strokeWidth={tabs.findIndex(t => t.name === 'Celebrations') === activeTab ? 2.5 : 2} />
-                </View>
-                {tabs.findIndex(t => t.name === 'Celebrations') !== activeTab && <Text style={[styles.bottomTabLabel, { color: inactiveIconColor }]}>Celebrations</Text>}
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+        {/* Premium Floating Bottom Tab Bar Removed */}
 
         {/* Full-Height Left Side Drawer Overlay */}
         {menuExpanded && (
@@ -420,7 +344,6 @@ export default function AdminNavigator({ navigation }: any) {
             <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>Member View</Text>
           </TouchableOpacity>
         )}
-
         <CustomAlert
           visible={alertConfig.visible}
           title={alertConfig.title}

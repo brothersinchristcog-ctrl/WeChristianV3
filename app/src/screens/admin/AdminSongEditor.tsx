@@ -265,7 +265,7 @@ export default function AdminSongEditor() {
           <Music size={16} color="#1a2d5a" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.songItemTitle} numberOfLines={1}>{index + 1}. {item.title}</Text>
+          <Text style={styles.songItemTitle} numberOfLines={1}>{postedSongs.findIndex(s => s.id === item.id) + 1}. {item.title}</Text>
           <Text style={styles.songItemSub} numberOfLines={1}>
             {item.category || 'Other'}
           </Text>
@@ -301,13 +301,17 @@ export default function AdminSongEditor() {
       const cats = (s.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
       if (cats.length === 1 && cats[0] === 'Theme Songs') return false;
       const q = memberSearch.toLowerCase().trim();
-      return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q));
+      const absoluteIndex = memberSongs.findIndex(ms => ms.id === s.id);
+      const numberMatch = (absoluteIndex + 1).toString().includes(q);
+      return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q)) || numberMatch;
     });
     const themeSongs = memberSongs.filter(s => {
       const cats = (s.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
       if (!cats.includes('Theme Songs')) return false;
       const q = memberSearch.toLowerCase().trim();
-      return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q));
+      const absoluteIndex = memberSongs.findIndex(ms => ms.id === s.id);
+      const numberMatch = (absoluteIndex + 1).toString().includes(q);
+      return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q)) || numberMatch;
     });
     const displaySongs = memberTab === 'browse' ? browseSongs : themeSongs;
 
@@ -374,7 +378,7 @@ export default function AdminSongEditor() {
               onPress={() => setAdminSelectedSong(item)}>
               <View style={{ width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
                 marginRight: 12, backgroundColor: '#F8FAFC' }}>
-                <Text style={{ fontSize: 13, fontWeight: '800', color: '#1a2d5a' }}>{index + 1}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: '#1a2d5a' }}>{memberSongs.findIndex(s => s.id === item.id) + 1}</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 13, fontWeight: '800', color: '#1a2d5a' }} numberOfLines={1}>{item.title}</Text>
@@ -554,47 +558,53 @@ export default function AdminSongEditor() {
           <ActivityIndicator size="large" color="#c0392b" />
         </View>
       ) : (
-        <FlatList
-          data={postedSongs.filter(s => {
-            // Text Search filter
-            const q = listSearchQuery.toLowerCase();
-            const matchesSearch = !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q));
-            if (!matchesSearch) return false;
-
-            const cats = (s.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
-            
-            // Theme Songs Tab filter
-            if (screenTab === 'theme' && !cats.includes('Theme Songs')) return false;
-
-            // Category Ribbon filter
-            if (selectedCategory !== 'All' && !cats.includes(selectedCategory)) return false;
-
-            return true;
-          })}
-          keyExtractor={(item) => item.id}
-          renderItem={renderSongItem}
-          contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={() => (
-            <>
-              <View style={styles.listHeaderRow}>
-                <Text style={styles.listHeaderTitle}>{screenTab === 'theme' ? 'Theme Songs' : 'All Worship Songs'}</Text>
-                <View style={styles.countBadge}>
-                  <Text style={styles.countTxt}>{postedSongs.filter(s => screenTab !== 'theme' || (s.category || '').includes('Theme Songs')).length} Total</Text>
-                </View>
+        <>
+          <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
+            <View style={styles.listHeaderRow}>
+              <Text style={styles.listHeaderTitle}>{screenTab === 'theme' ? 'Theme Songs' : 'All Worship Songs'}</Text>
+              <View style={styles.countBadge}>
+                <Text style={styles.countTxt}>{postedSongs.filter(s => screenTab !== 'theme' || (s.category || '').includes('Theme Songs')).length} Total</Text>
               </View>
-              <View style={{ marginBottom: 16 }}>
-                <TextInput
-                  style={styles.textInput}
-                  placeholder="Search songs by title..."
-                  placeholderTextColor="#94a3b8"
-                  value={listSearchQuery}
-                  onChangeText={setListSearchQuery}
-                />
-              </View>
-            </>
-          )}
-          ListEmptyComponent={() => (
+            </View>
+            <View style={{ marginBottom: 16 }}>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Search songs by title or artist..."
+                placeholderTextColor="#94a3b8"
+                value={listSearchQuery}
+                onChangeText={setListSearchQuery}
+              />
+            </View>
+          </View>
+          <FlatList
+            data={postedSongs.filter(s => {
+              // Text Search filter
+              const q = listSearchQuery.trim().toLowerCase();
+              const titleEnMatch = s.title ? s.title.toLowerCase().includes(q) : false;
+              const titleTeMatch = s.titleTe ? s.titleTe.toLowerCase().includes(q) : false;
+              const artistMatch = s.artist ? s.artist.toLowerCase().includes(q) : false;
+              
+              const absoluteIndex = postedSongs.findIndex(ps => ps.id === s.id);
+              const numberMatch = (absoluteIndex + 1).toString().includes(q);
+              
+              const matchesSearch = !q || titleEnMatch || titleTeMatch || artistMatch || numberMatch;
+              if (!matchesSearch) return false;
+
+              const cats = (s.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
+              
+              // Theme Songs Tab filter
+              if (screenTab === 'theme' && !cats.includes('Theme Songs')) return false;
+
+              // Category Ribbon filter
+              if (selectedCategory !== 'All' && !cats.includes(selectedCategory)) return false;
+
+              return true;
+            })}
+            keyExtractor={(item) => item.id}
+            renderItem={renderSongItem}
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 60 }}
+            showsVerticalScrollIndicator={false}
+            ListEmptyComponent={() => (
             <View style={{ padding: 40, alignItems: 'center' }}>
               <Music size={44} color="#cbd5e1" />
               <Text style={{ fontSize: 15, fontWeight: '800', color: '#1a2d5a', marginTop: 12 }}>No songs yet</Text>
@@ -604,6 +614,7 @@ export default function AdminSongEditor() {
           refreshing={loadingList}
           onRefresh={fetchPostedSongs}
         />
+        </>
       )}
     </View>
   );

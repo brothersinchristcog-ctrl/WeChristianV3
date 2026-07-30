@@ -8,9 +8,12 @@ import {
   ActivityIndicator,
   Dimensions,
   StatusBar,
-  Platform
+  Platform,
+  Animated,
+  Easing
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 import { 
   Users, 
   BookOpen, 
@@ -20,6 +23,7 @@ import {
   DollarSign,
   ChevronRight
 } from 'lucide-react-native';
+import HexagonDate from '../../components/HexagonDate';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { useAuth } from '../../context/AuthContext';
 
@@ -71,6 +75,52 @@ const FONTS = {
   sans: Platform.OS === 'ios' ? 'System' : 'sans-serif',
 };
 
+const AnimatedParticle = ({ left, size, duration, delay, color, opacity }: any) => {
+  const translateY = React.useRef(new Animated.Value(0)).current;
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(translateY, { toValue: 20, duration: 0, useNativeDriver: true }),
+          Animated.timing(fadeAnim, { toValue: 0, duration: 0, useNativeDriver: true })
+        ]),
+        Animated.parallel([
+          Animated.timing(translateY, { toValue: -150, duration: duration, easing: Easing.linear, useNativeDriver: true }),
+          Animated.sequence([
+            Animated.timing(fadeAnim, { toValue: opacity, duration: duration * 0.3, useNativeDriver: true }),
+            Animated.timing(fadeAnim, { toValue: opacity, duration: duration * 0.4, useNativeDriver: true }),
+            Animated.timing(fadeAnim, { toValue: 0, duration: duration * 0.3, useNativeDriver: true })
+          ])
+        ])
+      ])
+    );
+    const timeout = setTimeout(() => {
+      anim.start();
+    }, delay || 0);
+    return () => { clearTimeout(timeout); anim.stop(); };
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: 'absolute',
+          borderRadius: size / 2,
+          left: left,
+          width: size,
+          height: size,
+          backgroundColor: color || '#FCD34D',
+          opacity: fadeAnim,
+          transform: [{ translateY }],
+          bottom: '0%'
+        }
+      ]}
+    />
+  );
+};
+
 export default function AdminDashboard({ navigation, allTabs = [] }: any) {
   const { setActiveTab } = useContext(AdminTabContext);
   const { member, user } = useAuth();
@@ -102,7 +152,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
   const hour = new Date().getHours();
   let timeGreeting = 'Good evening,';
   if (hour < 12) timeGreeting = 'Good morning,';
-  else if (hour < 18) timeGreeting = 'Good afternoon,';
+  else if (hour < 17) timeGreeting = 'Good afternoon,';
 
   return (
     <View style={styles.container}>
@@ -110,19 +160,51 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
       
       {/* Warm Premium Hero Section with Dramatic Curve */}
       <View style={{ zIndex: 10, backgroundColor: '#F4F0EA' }}>
-        <View
-          style={[styles.heroSection, { backgroundColor: '#1e2b4d' }]}
-        >
+        <View style={[styles.heroSection, { backgroundColor: '#081d4a' }]}>
+          {/* Decorative Particles */}
+          <View style={[StyleSheet.absoluteFill, { overflow: 'hidden', borderBottomRightRadius: 40 }]}>
+            <AnimatedParticle left="10%" size={4} duration={4000} delay={0} opacity={0.7} />
+            <AnimatedParticle left="25%" size={5} duration={6000} delay={2000} opacity={0.5} />
+            <AnimatedParticle left="55%" size={7} duration={7500} delay={1000} opacity={0.4} />
+            <AnimatedParticle left="80%" size={5} duration={5000} delay={3000} opacity={0.8} />
+            <AnimatedParticle left="40%" size={6} duration={5500} delay={4000} opacity={0.6} />
+            <AnimatedParticle left="90%" size={8} duration={7000} delay={500} opacity={0.5} />
+            <AnimatedParticle left="70%" size={4} duration={4500} delay={2500} opacity={0.9} />
+            <AnimatedParticle left="15%" size={6} duration={6500} delay={1500} opacity={0.5} />
+          </View>
+
           <View style={styles.heroContent}>
-            <Text style={[styles.greetingText, { color: '#FDE047' }]}>{timeGreeting}</Text>
+            <Svg height="50" width="100%" style={{ marginBottom: 2 }}>
+              <Defs>
+                <SvgLinearGradient id="greetingGrad" x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset="0" stopColor="#FCD34D" stopOpacity="1" />
+                  <Stop offset="1" stopColor="#f97316" stopOpacity="1" />
+                </SvgLinearGradient>
+              </Defs>
+              <SvgText
+                fill="url(#greetingGrad)"
+                fontSize="32"
+                fontWeight="400"
+                fontFamily={Platform.OS === 'ios' ? 'Georgia' : 'serif'}
+                fontStyle="italic"
+                x="0"
+                y="36"
+              >
+                {timeGreeting}
+              </SvgText>
+            </Svg>
             <Text 
-              style={styles.nameText}
+              style={[styles.nameText, { color: '#F3EAD9', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '900', letterSpacing: 0.5, fontSize: 22 }]}
               numberOfLines={1}
               adjustsFontSizeToFit
               minimumFontScale={0.6}
             >
               {fullName}
             </Text>
+          </View>
+
+          <View style={{ position: 'absolute', top: 30, right: 20 }}>
+            <HexagonDate />
           </View>
         </View>
       </View>

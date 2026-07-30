@@ -18,8 +18,11 @@ import {
   Animated,
   Easing
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   Bell, 
+  Hexagon,
   Book, 
   Play, 
   ChevronRight, 
@@ -47,13 +50,14 @@ import {
 
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation } from '@react-navigation/native';
+import HexagonDate from '../components/HexagonDate';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
 import { useTheme } from '../context/ThemeContext';
 import Theme from '../theme/Theme';
 import FirestoreService, { DailyPromise, ScheduleEvent, AppMember, Sermon } from '../services/FirestoreService';
 import { CustomAlert } from '../components/CustomAlert';
-import Svg, { Path, Circle, Rect, Polygon } from 'react-native-svg';
+import Svg, { Path, Circle, Rect, Polygon, Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText } from 'react-native-svg';
 
 const YoutubeIcon = ({ size = 26, color = '#fff' }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
@@ -216,6 +220,54 @@ let cachedLatestSermon: Sermon | null = null;
 let cachedLatestPrayer: any | null = null;
 let cachedPrayerCount: number = 0;
 
+const AnimatedParticle = ({ left, size, duration, delay, color, opacity }: any) => {
+  const translateY = React.useRef(new Animated.Value(0)).current;
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.parallel([
+          Animated.timing(translateY, { toValue: 20, duration: 0, useNativeDriver: true }),
+          Animated.timing(fadeAnim, { toValue: 0, duration: 0, useNativeDriver: true })
+        ]),
+        Animated.parallel([
+          Animated.timing(translateY, { toValue: -150, duration: duration, easing: Easing.linear, useNativeDriver: true }),
+          Animated.sequence([
+            Animated.timing(fadeAnim, { toValue: opacity, duration: duration * 0.3, useNativeDriver: true }),
+            Animated.timing(fadeAnim, { toValue: opacity, duration: duration * 0.4, useNativeDriver: true }),
+            Animated.timing(fadeAnim, { toValue: 0, duration: duration * 0.3, useNativeDriver: true })
+          ])
+        ])
+      ])
+    );
+    const timeout = setTimeout(() => {
+      anim.start();
+    }, delay || 0);
+    return () => { clearTimeout(timeout); anim.stop(); };
+  }, []);
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: 'absolute',
+          borderRadius: size / 2,
+          left: left,
+          width: size,
+          height: size,
+          backgroundColor: color || '#FCD34D',
+          opacity: fadeAnim,
+          transform: [{ translateY }],
+          bottom: '0%'
+        }
+      ]}
+    />
+  );
+};
+
+let hasShownCelebrationThisSession = false;
+
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { user, signOut, member: authMember } = useAuth();
@@ -229,7 +281,9 @@ export default function HomeScreen() {
   const [latestPrayer, setLatestPrayer] = useState<any | null>(cachedLatestPrayer);
   const [prayerCount, setPrayerCount] = useState(cachedPrayerCount);
   const [loading, setLoading] = useState(false);
+  const [initialFetchDone, setInitialFetchDone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const isGuest = user?.isAnonymous;
 
   const [promiseThumbnail, setPromiseThumbnail] = useState<string | null>(cachedPromiseThumbnail);
   const [carouselSlide, setCarouselSlide] = useState(0); // 0 = text, 1 = image
@@ -312,6 +366,7 @@ export default function HomeScreen() {
       console.error('Error fetching home data:', error);
     } finally {
       setLoading(false);
+      setInitialFetchDone(true);
       setRefreshing(false);
     }
   };
@@ -319,6 +374,49 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchData();
   }, [user]);
+
+  // Check for Celebrations
+  useEffect(() => {
+    if (!member) return;
+
+    const checkCelebrations = async () => {
+      try {
+        const today = new Date();
+        const todayMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        
+        // Helper to check if a date string (YYYY-MM-DD) matches today's month and day
+        const isToday = (dateString?: string) => {
+          if (!dateString) return false;
+          const parts = dateString.split('T')[0].split('-');
+          if (parts.length >= 3) {
+            return `${parts[1]}-${parts[2]}` === todayMonthDay;
+          }
+          return false;
+        };
+
+        let celebrationType = null;
+        if (isToday((member as any).dob)) celebrationType = 'birthday';
+        else if (isToday((member as any).anniversaryDate)) celebrationType = 'wedding';
+        else if (isToday((member as any).baptismDate)) celebrationType = 'baptism';
+
+        if (celebrationType) {
+          if (!hasShownCelebrationThisSession) {
+            hasShownCelebrationThisSession = true;
+            setTimeout(() => {
+              navigation.navigate('Celebration', { type: celebrationType, name: (member as any).name || (member as any).firstName || 'Member' });
+            }, 2000);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking celebrations:', error);
+      }
+    };
+
+    // Only run if not guest
+    if (!isGuest) {
+      checkCelebrations();
+    }
+  }, [member, isGuest]);
 
   // Carousel auto-slide logic
   useEffect(() => {
@@ -361,11 +459,10 @@ export default function HomeScreen() {
   };
 
   const onRefresh = () => {
+    hasShownCelebrationThisSession = false;
     setRefreshing(true);
     fetchData();
   };
-
-  const isGuest = user?.isAnonymous;
 
   const handleGuestProtectedNavigation = (screenName: string, params?: any) => {
     if (isGuest) {
@@ -439,7 +536,24 @@ export default function HomeScreen() {
         onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
       />
       
-      <View style={styles.appHeader}>
+      <LinearGradient 
+        colors={['#020b22', '#081d4a']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.appHeader}
+      >
+        {/* Decorative Particles */}
+        <View style={styles.particleLayer}>
+          <AnimatedParticle left="10%" size={4} duration={4000} delay={0} opacity={0.7} />
+          <AnimatedParticle left="25%" size={5} duration={6000} delay={2000} opacity={0.5} />
+          <AnimatedParticle left="55%" size={7} duration={7500} delay={1000} opacity={0.4} />
+          <AnimatedParticle left="80%" size={5} duration={5000} delay={3000} opacity={0.8} />
+          <AnimatedParticle left="40%" size={6} duration={5500} delay={4000} opacity={0.6} />
+          <AnimatedParticle left="90%" size={8} duration={7000} delay={500} opacity={0.5} />
+          <AnimatedParticle left="70%" size={4} duration={4500} delay={2500} opacity={0.9} />
+          <AnimatedParticle left="15%" size={6} duration={6500} delay={1500} opacity={0.5} />
+        </View>
+
         <View style={styles.headerTopRow}>
           <View style={styles.headerLeft}>
             <View style={styles.logoCircle}>
@@ -494,20 +608,49 @@ export default function HomeScreen() {
                   </View>
                 );
               })()}
-              <View style={styles.onlineBadge} />
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* --- Gold Divider --- */}
+        <LinearGradient 
+          colors={['transparent', 'rgba(252, 211, 77, 0.4)', 'transparent']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+          style={styles.goldDivider}
+        />
+
+        {/* --- Greeting Row --- */}
         <View style={styles.greetingSection}>
-          <Text style={styles.greetingText}>
-            {getGreeting()}, <Text style={styles.userNameGold}>{member?.name || (`${member?.firstName || ''} ${member?.lastName || ''}`.trim()) || user?.displayName || 'Guest'}</Text> 🙏
-          </Text>
-          <Text style={styles.dateText}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · {getTeluguDay()}
-          </Text>
+          <View style={styles.greetingLeft}>
+            <Svg height="50" width="100%" style={{ marginBottom: 2 }}>
+              <Defs>
+                <SvgLinearGradient id="greetingGrad" x1="0" y1="0" x2="1" y2="0">
+                  <Stop offset="0" stopColor="#FCD34D" stopOpacity="1" />
+                  <Stop offset="1" stopColor="#f97316" stopOpacity="1" />
+                </SvgLinearGradient>
+              </Defs>
+              <SvgText
+                fill="url(#greetingGrad)"
+                fontSize="32"
+                fontWeight="400"
+                fontFamily={Platform.OS === 'ios' ? 'Georgia' : 'serif'}
+                fontStyle="italic"
+                x="0"
+                y="36"
+              >
+                {getGreeting()},
+              </SvgText>
+            </Svg>
+            <Text style={styles.userNameCream} numberOfLines={1}>
+              {member?.name || (`${member?.firstName || ''} ${member?.lastName || ''}`.trim()) || user?.displayName || 'Guest'}
+            </Text>
+          </View>
+          
+          <View style={{ position: 'absolute', right: 20, top: 5 }}>
+            <HexagonDate />
+          </View>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView 
         style={styles.scroll} 
@@ -536,45 +679,59 @@ export default function HomeScreen() {
               {/* Slide 1 — Promise Text */}
               <TouchableOpacity 
                 activeOpacity={0.8}
-                style={[styles.phSlide, styles.phInner]} 
+                style={styles.phSlide} 
                 onPress={() => handleGuestProtectedNavigation('Promise')}
               >
-                <Text style={styles.phLabel}>TODAY'S PROMISE · ఈ రోజు వాగ్దానం</Text>
-                <Text style={styles.phEn}>{promise ? `"${stripHtml(promise.verse)}"` : ''}</Text>
-                <Text style={styles.phRefEn}>{promise ? `— ${promise.verseReferenceEn || promise.verseReference}` : ''}</Text>
-                <View style={styles.phDivider} />
-                <Text style={styles.phTe}>{promise?.verseTelugu ? `"${stripHtml(promise.verseTelugu)}"` : ''}</Text>
-                <Text style={styles.phRefTe}>{promise?.verseReferenceTe ? `— ${promise.verseReferenceTe}` : ''}</Text>
-                <View style={styles.phActions}>
-                  <TouchableOpacity style={styles.phShareBtn} onPress={handleSharePromise}>
-                    <Share2 size={18} color="#fff" />
-                    <Text style={styles.phBtnTxt}>Share</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.phWatchBtn} 
-                    onPress={() => {
-                      handleGuestProtectedNavigation('DailyVideo', { 
-                        youtubeId: promise?.youtubeId,
-                        videoTitle: promise?.videoTitle,
-                        pastor: promise?.pastor
-                      });
-                    }}
-                  >
-                    <Play size={18} color="#fff" fill="#fff" />
-                    <Text style={styles.phBtnTxt}>Watch video</Text>
-                  </TouchableOpacity>
-                </View>
+                <LinearGradient
+                  colors={['#020b22', '#081d4a']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.phInner}
+                >
+                  <Text style={styles.phLabel}>TODAY'S PROMISE · ఈ రోజు వాగ్దానం</Text>
+                  <Text style={styles.phEn}>{promise ? `"${stripHtml(promise.verse)}"` : ''}</Text>
+                  <Text style={styles.phRefEn}>{promise ? `— ${promise.verseReferenceEn || promise.verseReference}` : ''}</Text>
+                  <View style={styles.phDivider} />
+                  <Text style={styles.phTe}>{promise?.verseTelugu ? `"${stripHtml(promise.verseTelugu)}"` : ''}</Text>
+                  <Text style={styles.phRefTe}>{promise?.verseReferenceTe ? `— ${promise.verseReferenceTe}` : ''}</Text>
+                  <View style={styles.phActions}>
+                    <TouchableOpacity style={styles.phShareBtn} onPress={handleSharePromise}>
+                      <Share2 size={18} color="#fff" />
+                      <Text style={styles.phBtnTxt}>Share</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={styles.phWatchBtn} 
+                      onPress={() => {
+                        handleGuestProtectedNavigation('DailyVideo', { 
+                          youtubeId: promise?.youtubeId,
+                          videoTitle: promise?.videoTitle,
+                          pastor: promise?.pastor
+                        });
+                      }}
+                    >
+                      <Play size={18} color="#fff" fill="#fff" />
+                      <Text style={styles.phBtnTxt}>Watch video</Text>
+                    </TouchableOpacity>
+                  </View>
+                </LinearGradient>
               </TouchableOpacity>
 
               {/* Slide 2 — Thumbnail (only if image exists) */}
               {promiseThumbnail && (
-                <View style={[styles.phSlide, styles.phThumbnailSlide, { backgroundColor: isDark ? 'transparent' : '#1a2d5a', paddingTop: 16, elevation: isDark ? 0 : 8 }]}>
-                  <Text style={styles.phLabel}>TODAY'S PROMISE · ఈ రోజు వాగ్దానం</Text>
-                  <Image
-                    source={{ uri: promiseThumbnail }}
-                    style={[styles.phThumbnailImg, { flex: 1 }]}
-                    resizeMode="contain"
-                  />
+                <View style={[styles.phSlide, styles.phThumbnailSlide, { elevation: isDark ? 0 : 8 }]}>
+                  <LinearGradient
+                    colors={['#020b22', '#081d4a']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={{ flex: 1, paddingTop: 16, borderRadius: 20 }}
+                  >
+                    <Text style={styles.phLabel}>TODAY'S PROMISE · ఈ రోజు వాగ్దానం</Text>
+                    <Image
+                      source={{ uri: promiseThumbnail }}
+                      style={[styles.phThumbnailImg, { flex: 1 }]}
+                      resizeMode="contain"
+                    />
+                  </LinearGradient>
                 </View>
               )}
             </ScrollView>
@@ -786,35 +943,50 @@ const styles = StyleSheet.create({
   contentPad: { paddingBottom: 140 },
   
   appHeader: {
-    backgroundColor: '#1a2d5a',
     paddingTop: Platform.OS === 'ios' ? 60 : 45,
     paddingHorizontal: 20,
     paddingBottom: 30,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    overflow: 'hidden',
   },
-  headerTopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, justifyContent: 'space-between' },
+  particleLayer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  particle: {
+    position: 'absolute',
+    backgroundColor: '#FCD34D',
+    borderRadius: 5,
+  },
+  headerTopRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5, justifyContent: 'space-between', zIndex: 2 },
   headerLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 10 },
-  logoCircle: { width: 46, height: 46, backgroundColor: '#fff', borderRadius: 23, justifyContent: 'center', alignItems: 'center', elevation: 4, overflow: 'hidden' },
-  logoImg: { width: 46, height: 46, borderRadius: 23 },
+  logoCircle: { width: 44, height: 44, backgroundColor: 'transparent', borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
+  logoImg: { width: 44, height: 44, borderRadius: 22 },
   titleCol: { marginLeft: 10, flex: 1 },
-  hdTitle: { color: '#FCD34D', fontSize: 16, fontWeight: '800', letterSpacing: 0.2 },
-  hdSub: { color: '#aac4e8', fontSize: 8.5, marginTop: 1, fontWeight: '500' },
+  hdTitle: { color: '#F3EAD9', fontSize: 18, fontWeight: '800', letterSpacing: 0.2 },
+  hdSub: { color: '#aac4e8', fontSize: 10, marginTop: 1, fontWeight: '500' },
   
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  actionIconButton: { padding: 4, position: 'relative' },
-  themeIconWrap: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
-  notifBadge: { position: 'absolute', top: 4, right: 4, width: 8, height: 8, backgroundColor: '#ef4444', borderRadius: 4, borderWidth: 1.5, borderColor: '#1a2d5a' },
-  avatarWrapper: { width: 38, height: 38, position: 'relative' },
-  avatarImg: { width: 38, height: 38, borderRadius: 19, borderWidth: 1.5, borderColor: '#FCD34D' },
-  avatarPlaceholder: { width: 38, height: 38, borderRadius: 19, backgroundColor: '#1e293b', justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: '#FCD34D' },
-  avatarLetter: { color: '#FCD34D', fontWeight: '800', fontSize: 14 },
-  onlineBadge: { position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: 5, backgroundColor: '#22c55e', borderWidth: 1.5, borderColor: '#1a2d5a' },
+  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 2 },
+  actionIconButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  notifBadge: { position: 'absolute', top: 8, right: 10, width: 6, height: 6, backgroundColor: '#ef4444', borderRadius: 3 },
+  avatarWrapper: { width: 40, height: 40, borderRadius: 20, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 },
+  avatarImg: { width: 40, height: 40, borderRadius: 20 },
+  avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#b48a36', justifyContent: 'center', alignItems: 'center' },
+  avatarLetter: { color: '#fff', fontWeight: '800', fontSize: 18 },
   
-  greetingSection: { marginTop: 10 },
-  greetingText: { color: '#fff', fontSize: 17, fontWeight: '600', marginBottom: 2 },
-  userNameGold: { color: '#FCD34D', fontWeight: '800' },
-  dateText: { color: '#aac4e8', fontSize: 12, fontWeight: '500' },
+  goldDivider: { height: 1, marginVertical: 18, width: '100%', opacity: 0.7, zIndex: 2 },
+  
+  greetingSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 2 },
+  greetingLeft: { flex: 1 },
+  greetingText: { color: '#FCD34D', fontSize: 32, fontWeight: '400', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontStyle: 'italic', marginBottom: 2, letterSpacing: 0.5, textShadowColor: 'rgba(252, 211, 77, 0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6 },
+  userNameCream: { color: '#F3EAD9', fontSize: 22, fontWeight: '900', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', letterSpacing: 0.5 },
+  
+  greetingRight: { alignItems: 'center', justifyContent: 'center', marginLeft: 15 },
+  calendarBadgeWrap: { width: 66, height: 66, justifyContent: 'center', alignItems: 'center' },
+  calendarTextOverlay: { position: 'absolute', alignItems: 'center', justifyContent: 'center', paddingTop: 2 },
+  calMonth: { color: '#F3EAD9', fontSize: 13, fontWeight: '800', letterSpacing: 1 },
+  calDay: { color: '#fff', fontSize: 26, fontWeight: '900', marginTop: -4 },
+  calWeekday: { color: '#aac4e8', fontSize: 13, fontWeight: '600', marginTop: 8 },
 
   promiseHero: {
     marginHorizontal: 16,
@@ -827,7 +999,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   phInner: {
-    backgroundColor: '#1a2d5a',
     borderRadius: 20,
     padding: 24,
     elevation: 8,

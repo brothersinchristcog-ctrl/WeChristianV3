@@ -23,6 +23,7 @@ import SplashScreen from '../screens/auth/SplashScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 
 // Member Screens
+import CelebrationScreen from '../screens/CelebrationScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import PromiseArchiveScreen from '../screens/PromiseArchiveScreen';
@@ -377,7 +378,7 @@ function Navigation() {
 
   // Existing auth effect
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 4000);
+    const timer = setTimeout(() => setShowSplash(false), 7500);
     
     let unsub: any;
 
@@ -456,10 +457,16 @@ function Navigation() {
             <Stack.Screen name="RoutePlanner" component={PastorEventRoutePlanner} />
             <Stack.Screen name="EventMap" component={PastorEventMap} />
             <Stack.Screen name="Updates" component={UpdatesScreen} />
+            <Stack.Screen name="Celebration" component={CelebrationScreen} />
+            {/* Added for Push Notification Support in Admin View */}
+            <Stack.Screen name="Sermons" component={SermonsScreen} />
+            <Stack.Screen name="Events" component={EventsScreen} />
+            <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
           </>
         ) : onboardingComplete ? (
           <>
             <Stack.Screen name="Tabs" component={TabNavigator} />
+            <Stack.Screen name="Celebration" component={CelebrationScreen} />
             <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
             <Stack.Screen name="DailyVideo" component={DailyVideoScreen} />
             <Stack.Screen name="SermonVideo" component={SermonVideoScreen} />

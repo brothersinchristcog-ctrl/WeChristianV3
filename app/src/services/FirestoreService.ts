@@ -425,6 +425,7 @@ class FirestoreService {
           for (const snap of results) {
             if (!snap.empty) {
               const doc = snap.docs[0];
+              console.log("Found member in collectionGroup. From cache?", doc.metadata?.fromCache);
               return { exists: true, member: { id: doc.id, ...doc.data() } };
             }
           }
@@ -439,7 +440,7 @@ class FirestoreService {
       try {
         console.log(`Checking specific church: ${churchId}`);
         const queries = possibleFormats.map(format => 
-          firestore().collection('churches').doc(churchId).collection('members').where('phone', '==', format).limit(1).get()
+          firestore().collection('churches').doc(churchId).collection('members').where('phone', '==', format).limit(1).get({ source: 'server' })
         );
         const results = await Promise.all(queries);
         for (const snap of results) {
@@ -456,7 +457,7 @@ class FirestoreService {
       try {
         console.log("Not found in specific church. Trying global collectionGroup search...");
         const globalQueries = possibleFormats.map(format => 
-          firestore().collectionGroup('members').where('phone', '==', format).limit(1).get()
+          firestore().collectionGroup('members').where('phone', '==', format).limit(1).get({ source: 'server' })
         );
         const globalResults = await Promise.all(globalQueries);
         for (const snap of globalResults) {

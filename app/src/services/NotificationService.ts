@@ -110,7 +110,7 @@ class NotificationService {
           nav.navigate('Events');
           break;
         case 'promise':
-          nav.navigate('Tabs', { screen: 'Home' });
+          nav.navigate('Updates');
           break;
         case 'attendance':
           nav.navigate('AttendanceScreen');
