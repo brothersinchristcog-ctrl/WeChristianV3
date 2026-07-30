@@ -109,8 +109,35 @@ export default function AdminNavigator({ navigation }: any) {
 
   const handleSetTab = (index: number) => {
     if (index !== activeTab) {
-      setTabHistory(prev => [...prev, activeTab]);
-      setActiveTab(index);
+      const tabName = tabs[index]?.name;
+      
+      if ((tabName === 'WhatsApp' || tabName === 'WeCelebrations') && !activeChurch?.whatsappIntegrationEnabled) {
+        setAlertConfig({
+          visible: true,
+          title: 'WhatsApp Integration Not Enabled',
+          message: 'WhatsApp Integration is not enabled for your church. Please contact the We Christian team to activate this feature. Once enabled, you will be able to use WhatsApp Integration from the We Celebration module and Church Settings.',
+          type: 'info'
+        });
+        return;
+      }
+      
+      if (tabName === 'Donations') {
+        setAlertConfig({
+          visible: true,
+          title: 'Donations Module Coming Soon',
+          message: 'The donations module is currently under active development. This feature will be available in the next major update!',
+          type: 'info'
+        });
+        return;
+      }
+
+      // Defer the heavy component unmount/mount to the next tick. 
+      // This allows the tap animation to finish instantly, making the UI feel highly responsive.
+      setTimeout(() => {
+        setTabHistory(prev => [...prev, activeTab]);
+        if ([1, 4, 5, 8].indexOf(index) === -1) setEditingData(null);
+        setActiveTab(index);
+      }, 0);
     }
   };
 
@@ -132,7 +159,7 @@ export default function AdminNavigator({ navigation }: any) {
     { name: 'Schedule', icon: CalendarClock, component: AdminPromiseCalendar },
     { name: 'Sermons', icon: Mic, component: AdminSermonList },
     { name: 'New Sermon', icon: Video, component: AdminSermonEditor },
-    { name: 'New Song', icon: Music, component: AdminSongEditor },
+    { name: 'Songs', icon: Music, component: AdminSongEditor },
     { name: 'Notifications', icon: Bell, component: AdminNotificationBroadcast },
     { name: 'Events', icon: CalendarDays, component: AdminEventList },
     { name: 'New Event', icon: CalendarPlus, component: AdminEventEditor },
@@ -162,7 +189,8 @@ export default function AdminNavigator({ navigation }: any) {
   const isEventsActive = tabs.findIndex(t => t.name === 'Events') === activeTab;
   const isCelebrationsActive = tabs.findIndex(t => t.name === 'Celebrations') === activeTab;
   
-  const isMainTabActive = isHomeActive || isPromisesActive || isSermonsActive || isPrayersActive || isEventsActive || isCelebrationsActive;
+  // Removed isPromisesActive from the list below per user request to hide the bottom tab bar on Promises
+  const isMainTabActive = isHomeActive || isSermonsActive || isPrayersActive || isEventsActive || isCelebrationsActive;
 
   let barBgColor = '#1a2d5a';
   let activeIconColor = '#1e2b4d';
@@ -333,31 +361,8 @@ export default function AdminNavigator({ navigation }: any) {
                         key={index} 
                         style={[styles.drawerItem, isActive && styles.drawerItemActive]}
                         onPress={() => {
-                          if ((tab.name === 'WhatsApp' || tab.name === 'WeCelebrations') && !activeChurch?.whatsappIntegrationEnabled) {
-                            setMenuExpanded(false);
-                            setAlertConfig({
-                              visible: true,
-                              title: 'WhatsApp Integration Not Enabled',
-                              message: 'WhatsApp Integration is not enabled for your church. Please contact the We Christian team to activate this feature. Once enabled, you will be able to use WhatsApp Integration from the We Celebration module and Church Settings.',
-                              type: 'info'
-                            });
-                            return;
-                          }
-                          
-                          if (tab.name === 'Donations') {
-                            setMenuExpanded(false);
-                            setAlertConfig({
-                              visible: true,
-                              title: 'Coming Soon',
-                              message: 'The new Donations module is currently under construction and will be available soon!',
-                              type: 'info'
-                            });
-                            return;
-                          }
-                          
                           handleSetTab(index);
-                          setMenuExpanded(false); // Hide remaining tabs
-                          if ([1, 4, 5, 8].indexOf(index) === -1) setEditingData(null);
+                          setMenuExpanded(false);
                         }}
                       >
                         <tab.icon 

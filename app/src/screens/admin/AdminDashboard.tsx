@@ -64,7 +64,7 @@ const CATEGORIES = [
   }
 ];
 
-const FULL_WIDTH_MODULES = ['New Song', 'Members', 'Subscription', 'WeCelebrate'];
+const FULL_WIDTH_MODULES = ['Songs', 'Members', 'Subscription', 'WeCelebrations'];
 
 const FONTS = {
   serif: Platform.OS === 'ios' ? 'Georgia' : 'serif',
@@ -182,7 +182,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                             <View style={[styles.moduleIconWrapper, { backgroundColor: `${category.color}15` }]}>
                               <tab.icon size={22} color={category.color} strokeWidth={2.5} />
                             </View>
-                            <Text style={styles.moduleTitle} numberOfLines={2}>{tab.name}</Text>
+                            <Text style={styles.moduleTitle} numberOfLines={2}>{tab.name === 'About Us' ? 'About\u00A0Us' : tab.name}</Text>
                           </View>
                         )}
                       </TouchableOpacity>
@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
   },
 
   scroll: { 
-    paddingBottom: 140, // Space for the bottom tab bar
+    paddingBottom: 200, // Space for the bottom tab bar and floating Member View button
   },
   
   content: {

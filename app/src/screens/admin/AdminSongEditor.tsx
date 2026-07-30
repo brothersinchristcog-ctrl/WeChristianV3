@@ -15,7 +15,7 @@ import {
   Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Music, Save, ChevronDown, CheckCircle, Pencil, X, List, Eye, Square, Trash2, Star, ChevronLeft } from 'lucide-react-native';
+import { Music, Save, ChevronDown, CheckCircle, Pencil, X, List, Eye, Square, Trash2, Star, ChevronLeft, Plus } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import FirestoreService, { WorshipSong } from '../../services/FirestoreService';
@@ -54,7 +54,9 @@ export default function AdminSongEditor() {
   const { setActiveTab } = useContext(AdminTabContext);
 
   // Screen-level tab
-  const [screenTab, setScreenTab] = useState<'post' | 'list' | 'member'>('post');
+  const [screenTab, setScreenTab] = useState<'list' | 'theme'>('list');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [showPostModal, setShowPostModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // ── POST SONG FORM ──────────────────────────────
@@ -110,8 +112,9 @@ export default function AdminSongEditor() {
   };
 
   useEffect(() => {
-    if (screenTab === 'list') fetchPostedSongs();
-    if (screenTab === 'member') fetchMemberSongs();
+    if (screenTab === 'list' || screenTab === 'theme') {
+      fetchPostedSongs();
+    }
   }, [screenTab]);
 
   const fetchMemberSongs = async () => {
@@ -161,6 +164,7 @@ export default function AdminSongEditor() {
       } catch { /* rules may block — OK */ }
 
       setShowSuccess(true);
+      setShowPostModal(false); // Close modal on success
     } catch (error: any) {
       Alert.alert('Salesforce Sync Error', error.message || 'Failed to sync with Salesforce.');
     } finally {
@@ -526,6 +530,22 @@ export default function AdminSongEditor() {
     </ScrollView>
   );
 
+  const renderPostModal = () => (
+    <Modal transparent animationType="slide" visible={showPostModal} onRequestClose={() => setShowPostModal(false)}>
+      <View style={styles.editModalBg}>
+        <View style={styles.editModalCard}>
+          <View style={styles.editModalHeader}>
+            <Text style={styles.editModalTitle}>Publish New Song</Text>
+            <TouchableOpacity style={styles.editCloseBtn} onPress={() => setShowPostModal(false)}>
+              <X size={20} color="#64748B" />
+            </TouchableOpacity>
+          </View>
+          {renderPostForm()}
+        </View>
+      </View>
+    </Modal>
+  );
+
   // ── POSTED SONGS LIST UI ─────────────────────────
   const renderPostedList = () => (
     <View style={{ flex: 1 }}>
@@ -535,7 +555,22 @@ export default function AdminSongEditor() {
         </View>
       ) : (
         <FlatList
-          data={postedSongs.filter(s => s.title.toLowerCase().includes(listSearchQuery.toLowerCase()) || (s.titleTe && s.titleTe.toLowerCase().includes(listSearchQuery.toLowerCase())))}
+          data={postedSongs.filter(s => {
+            // Text Search filter
+            const q = listSearchQuery.toLowerCase();
+            const matchesSearch = !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q));
+            if (!matchesSearch) return false;
+
+            const cats = (s.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
+            
+            // Theme Songs Tab filter
+            if (screenTab === 'theme' && !cats.includes('Theme Songs')) return false;
+
+            // Category Ribbon filter
+            if (selectedCategory !== 'All' && !cats.includes(selectedCategory)) return false;
+
+            return true;
+          })}
           keyExtractor={(item) => item.id}
           renderItem={renderSongItem}
           contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
@@ -543,9 +578,9 @@ export default function AdminSongEditor() {
           ListHeaderComponent={() => (
             <>
               <View style={styles.listHeaderRow}>
-                <Text style={styles.listHeaderTitle}>All Worship Songs</Text>
+                <Text style={styles.listHeaderTitle}>{screenTab === 'theme' ? 'Theme Songs' : 'All Worship Songs'}</Text>
                 <View style={styles.countBadge}>
-                  <Text style={styles.countTxt}>{postedSongs.length} Total</Text>
+                  <Text style={styles.countTxt}>{postedSongs.filter(s => screenTab !== 'theme' || (s.category || '').includes('Theme Songs')).length} Total</Text>
                 </View>
               </View>
               <View style={{ marginBottom: 16 }}>
@@ -579,37 +614,66 @@ export default function AdminSongEditor() {
 
       {/* ── Hero Section ── */}
       <View style={styles.hero}>
-        <View style={styles.heroTitleRow}>
-          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+        <View style={[styles.heroTitleRow, { alignItems: 'center', width: '100%', gap: 16 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
+            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <Text style={[styles.heroTitle, { flexShrink: 1 }]} numberOfLines={1}>Song Manager</Text>
+          </View>
+          <TouchableOpacity 
+            style={styles.newBtn}
+            onPress={() => setShowPostModal(true)}
+          >
+            <Plus size={16} color="#1a2d5a" />
+            <Text style={styles.newBtnTxt}>New</Text>
           </TouchableOpacity>
-          <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-          <Text style={styles.heroTitle}>Song Manager</Text>
         </View>
       </View>
 
       {/* Screen Tabs */}
       <View style={styles.screenTabBar}>
         <TouchableOpacity
-          style={[styles.screenTab, screenTab === 'post' && styles.screenTabActive]}
-          onPress={() => setScreenTab('post')}>
-          <Text style={[styles.screenTabTxt, screenTab === 'post' && styles.screenTabTxtActive]}>New Song</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
           style={[styles.screenTab, screenTab === 'list' && styles.screenTabActive]}
-          onPress={() => setScreenTab('list')}>
+          onPress={() => { setScreenTab('list'); setSelectedCategory('All'); }}>
           <Text style={[styles.screenTabTxt, screenTab === 'list' && styles.screenTabTxtActive]}>All Songs</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.screenTab, screenTab === 'member' && styles.screenTabActive]}
-          onPress={() => setScreenTab('member')}>
-          <Text style={[styles.screenTabTxt, screenTab === 'member' && styles.screenTabTxtActive]}>Member View</Text>
+          style={[styles.screenTab, screenTab === 'theme' && styles.screenTabActive]}
+          onPress={() => { setScreenTab('theme'); setSelectedCategory('All'); }}>
+          <Text style={[styles.screenTabTxt, screenTab === 'theme' && styles.screenTabTxtActive]}>Theme Songs</Text>
         </TouchableOpacity>
       </View>
 
+      {/* Category Filter Ribbon */}
+      <View style={{ marginBottom: 12 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
+            {['All', ...CATEGORIES.filter(c => c !== 'Theme Songs')].map((cat) => (
+              <TouchableOpacity
+                key={cat}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  backgroundColor: selectedCategory === cat ? '#1a2d5a' : '#fff',
+                  borderWidth: 1,
+                  borderColor: selectedCategory === cat ? '#1a2d5a' : '#cbd5e1',
+                }}
+                onPress={() => setSelectedCategory(cat)}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '700', color: selectedCategory === cat ? '#fff' : '#64748b' }}>
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
       {/* Content */}
-      {screenTab === 'post' ? renderPostForm() : screenTab === 'list' ? renderPostedList() : renderMemberView()}
+      {renderPostedList()}
+      {renderPostModal()}
 
       {/* ── Category Picker Modal (kept but unused now – categories use inline chips) ── */}
 
@@ -802,7 +866,23 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   heroTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  heroTitle: { color: '#fff', fontSize: 22, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  
+  newBtn: { 
+    backgroundColor: '#C9A84C', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 12,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4
+  },
+  newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
   // Screen Tab Bar
   screenTabBar: {

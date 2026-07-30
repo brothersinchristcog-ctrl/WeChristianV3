@@ -189,7 +189,16 @@ export default function AdminPromiseList() {
 
       <View style={styles.hero}>
         <View style={styles.heroTitleRow}>
-          <Text style={styles.heroTitle}>Daily Promises</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View>
+              <Text style={styles.heroTitle}>Daily Promises</Text>
+            </View>
+          </View>
           
           <View style={{ flex: 1 }} />
           <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(2); }}>
