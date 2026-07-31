@@ -10,7 +10,8 @@ import {
   StatusBar,
   Platform,
   Animated,
-  Easing
+  Easing,
+  Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText } from 'react-native-svg';
@@ -28,6 +29,31 @@ import { AdminTabContext } from '../../context/AdminTabContext';
 import { useAuth } from '../../context/AuthContext';
 
 const { width } = Dimensions.get('window');
+
+const CARD_BACKGROUNDS: Record<string, any> = {
+  'Promises': require('../../../assets/admin_cards/promise.png'),
+  'New Promise': require('../../../assets/admin_cards/new_promise.jpg'),
+  'Sermons': require('../../../assets/admin_cards/sermons.png'),
+  'New Sermon': require('../../../assets/admin_cards/new_sermon.png'),
+  'Songs': require('../../../assets/admin_cards/songs.png'),
+  'Prayers': require('../../../assets/admin_cards/prayer.png'),
+  'Members': require('../../../assets/admin_cards/members.png'),
+  'Events': require('../../../assets/admin_cards/events.png'),
+  'New Event': require('../../../assets/admin_cards/new_event.png'),
+  'Pastor Event': require('../../../assets/admin_cards/pastor_event.png'),
+  'Celebrations': require('../../../assets/admin_cards/celebrations.png'),
+  'WeCelebrations': require('../../../assets/admin_cards/wecelebrations.png'),
+  'Notifications': require('../../../assets/admin_cards/notification.png'),
+  'WhatsApp': require('../../../assets/admin_cards/whatsapp.png'),
+  'Expense': require('../../../assets/admin_cards/expense.png'),
+  'Donations': require('../../../assets/admin_cards/donations.png'),
+  'Subscription': require('../../../assets/admin_cards/subscription.png'),
+  'Schedule': require('../../../assets/admin_cards/schedule.png'),
+  'About Us': require('../../../assets/admin_cards/about_us.png'),
+  'Contact Us': require('../../../assets/admin_cards/contact_us.png'),
+  'Church Settings': require('../../../assets/admin_cards/church_settings.png'),
+  'Attendance': require('../../../assets/admin_cards/attendance.png'),
+};
 
 const CATEGORIES = [
   {
@@ -234,40 +260,107 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                     const isFullWidth = FULL_WIDTH_MODULES.includes(tab.name);
                     
                     return (
-                      <TouchableOpacity 
-                        key={tab.index} 
-                        style={[
-                          styles.moduleCard, 
-                          isFullWidth && styles.moduleCardFull,
-                          {
-                            shadowColor: category.color,
-                            borderColor: `${category.color}25`,
-                          }
-                        ]}
-                        onPress={() => setActiveTab(tab.index)}
-                        activeOpacity={0.7}
-                      >
-                        {isFullWidth ? (
-                          <>
-                            <View style={styles.moduleLeftRow}>
-                              <View style={[styles.moduleIconWrapperFull, { backgroundColor: `${category.color}15` }]}>
-                                <tab.icon size={22} color={category.color} strokeWidth={2.5} />
+                        <TouchableOpacity 
+                          key={tab.index} 
+                          style={[
+                            styles.moduleCard, 
+                            isFullWidth && styles.moduleCardFull,
+                            {
+                              shadowColor: category.color,
+                              borderColor: `${category.color}25`,
+                              overflow: CARD_BACKGROUNDS[tab.name] ? 'hidden' : 'visible',
+                              padding: CARD_BACKGROUNDS[tab.name] ? 0 : 14,
+                              backgroundColor: tab.name === 'Subscription' ? '#F2EAE0' : (tab.name === 'Church Settings' ? 'rgb(202, 221, 236)' : (tab.name === 'Members' ? 'rgb(244, 224, 217)' : (tab.name === 'Promises' ? '#000000' : '#ffffff'))),
+                              minHeight: isFullWidth ? 160 : 100,
+                            }
+                          ]}
+                          onPress={() => setActiveTab(tab.index)}
+                          activeOpacity={0.7}
+                        >
+                          {CARD_BACKGROUNDS[tab.name] && (
+                            <>
+                              <Image 
+                                source={CARD_BACKGROUNDS[tab.name]} 
+                                style={[
+                                  StyleSheet.absoluteFillObject, 
+                                  { width: '100%', height: '100%' },
+                                  tab.name === 'Promises' && { transform: [{ translateY: -15 }] },
+                                  tab.name === 'Members' && { transform: [{ scale: 1.35 }, { translateY: 15 }] }
+                                ]} 
+                                resizeMode={(tab.name === 'Prayers' || tab.name === 'Members' || tab.name === 'Subscription' || tab.name === 'Church Settings') ? "contain" : "cover"}
+                              />
+                              <LinearGradient
+                                colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.7)']}
+                                style={StyleSheet.absoluteFillObject}
+                              />
+                            </>
+                          )}
+                          {isFullWidth ? (
+                            CARD_BACKGROUNDS[tab.name] ? (
+                              <Text style={{
+                                position: 'absolute',
+                                bottom: 16,
+                                left: 16,
+                                color: '#ffffff',
+                                fontSize: 24,
+                                fontWeight: '800',
+                                fontFamily: FONTS.sans,
+                                textShadowColor: 'rgba(0,0,0,0.8)',
+                                textShadowOffset: { width: 0, height: 1 },
+                                textShadowRadius: 4,
+                              }}>{tab.name}</Text>
+                            ) : (
+                            <View style={[
+                              { flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between' },
+                              CARD_BACKGROUNDS[tab.name] ? { 
+                                padding: tab.name === 'Members' ? 0 : 16, 
+                                paddingLeft: tab.name === 'Members' ? 12 : 16,
+                                paddingBottom: tab.name === 'Members' ? 8 : 16,
+                                height: '100%', 
+                                alignItems: 'flex-end',
+                                justifyContent: 'space-between'
+                              } : { paddingVertical: 14, paddingHorizontal: 16 }
+                            ]}>
+                              <View style={[styles.moduleLeftRow, CARD_BACKGROUNDS[tab.name] && { alignItems: 'flex-end' }]}>
+                                {!CARD_BACKGROUNDS[tab.name] && (
+                                  <View style={[styles.moduleIconWrapperFull, { backgroundColor: `${category.color}15` }]}>
+                                    <tab.icon size={22} color={category.color} strokeWidth={2.5} />
+                                  </View>
+                                )}
+                                <Text style={[
+                                  styles.moduleTitleFull,
+                                  CARD_BACKGROUNDS[tab.name] && { color: '#ffffff', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, fontSize: 24, marginLeft: CARD_BACKGROUNDS[tab.name] ? 0 : undefined }
+                                ]}>{tab.name}</Text>
                               </View>
-                              <Text style={styles.moduleTitleFull}>{tab.name}</Text>
+                              {!CARD_BACKGROUNDS[tab.name] && (
+                                <View style={[styles.chevronWrapper, { backgroundColor: `${category.color}10` }]}>
+                                  <ChevronRight size={18} color={category.color} />
+                                </View>
+                              )}
                             </View>
-                            <View style={[styles.chevronWrapper, { backgroundColor: `${category.color}10` }]}>
-                              <ChevronRight size={18} color={category.color} />
+                            )
+                          ) : (
+                            <View style={[
+                              styles.moduleColumn, 
+                              CARD_BACKGROUNDS[tab.name] && { padding: 14, justifyContent: 'flex-end' }
+                            ]}>
+                              {!CARD_BACKGROUNDS[tab.name] && (
+                                <View style={[styles.moduleIconWrapper, { backgroundColor: `${category.color}15` }]}>
+                                  <tab.icon size={22} color={category.color} strokeWidth={2.5} />
+                                </View>
+                              )}
+                              <Text 
+                                style={[
+                                  styles.moduleTitle,
+                                  CARD_BACKGROUNDS[tab.name] && { color: '#ffffff', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }
+                                ]} 
+                                numberOfLines={2}
+                              >
+                                {tab.name === 'About Us' ? 'About\u00A0Us' : tab.name}
+                              </Text>
                             </View>
-                          </>
-                        ) : (
-                          <View style={styles.moduleColumn}>
-                            <View style={[styles.moduleIconWrapper, { backgroundColor: `${category.color}15` }]}>
-                              <tab.icon size={22} color={category.color} strokeWidth={2.5} />
-                            </View>
-                            <Text style={styles.moduleTitle} numberOfLines={2}>{tab.name === 'About Us' ? 'About\u00A0Us' : tab.name}</Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
+                          )}
+                        </TouchableOpacity>
                     );
                   })}
                 </View>
@@ -370,12 +463,10 @@ const styles = StyleSheet.create({
   },
   moduleCardFull: {
     width: '100%', 
+    minHeight: 160,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
     justifyContent: 'space-between',
-    minHeight: 70,
   },
   moduleColumn: {
     flex: 1,

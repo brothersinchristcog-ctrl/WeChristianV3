@@ -189,7 +189,7 @@ const CelebrationScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { activeChurch } = useChurch();
-  const { user, member } = useAuth();
+  const { user, member, viewMode } = useAuth();
   
   const params = route.params || {};
   // Force evaluation, log what we get
@@ -229,7 +229,11 @@ const CelebrationScreen = () => {
       navigation.goBack();
     } else {
       // Fallback in case there is no history
-      navigation.navigate('AdminRoot');
+      if (viewMode === 'admin') {
+        navigation.navigate('AdminRoot');
+      } else {
+        navigation.navigate('Tabs');
+      }
     }
   };
 
