@@ -608,10 +608,10 @@ class FirestoreService {
       const col = await this.getCollection('members');
       const snapshot = await col.get();
       return snapshot.docs.map((doc: any) => ({ 
-        id: doc.id, 
         name: doc.data().name || doc.data().firstName || 'Unknown',
         email: doc.data().email || '',
-        ...doc.data() 
+        ...doc.data(),
+        id: doc.id
       }));
     } catch (error) {
       console.error('Error fetching all members:', error);

@@ -22,8 +22,12 @@ import {
   Bell, 
   Settings,
   DollarSign,
-  ChevronRight
+  ChevronRight,
+  LogOut,
+  Smartphone,
+  Moon
 } from 'lucide-react-native';
+import { useChurch } from '../../context/ChurchContext';
 import HexagonDate from '../../components/HexagonDate';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { useAuth } from '../../context/AuthContext';
@@ -149,7 +153,8 @@ const AnimatedParticle = ({ left, size, duration, delay, color, opacity }: any) 
 
 export default function AdminDashboard({ navigation, allTabs = [] }: any) {
   const { setActiveTab } = useContext(AdminTabContext);
-  const { member, user } = useAuth();
+  const { member, user, signOut, setViewMode } = useAuth();
+  const { activeChurch } = useChurch();
   
   // Extract first name for greeting if possible
   const fullName = member?.name || user?.displayName || 'Administrator';
@@ -183,59 +188,42 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1e2b4d" />
-      
-      {/* Warm Premium Hero Section with Dramatic Curve */}
-      <View style={{ zIndex: 10, backgroundColor: '#F4F0EA' }}>
-        <View style={[styles.heroSection, { backgroundColor: '#081d4a' }]}>
-          {/* Decorative Particles */}
-          <View style={[StyleSheet.absoluteFill, { overflow: 'hidden', borderBottomRightRadius: 40 }]}>
-            <AnimatedParticle left="10%" size={4} duration={4000} delay={0} opacity={0.7} />
-            <AnimatedParticle left="25%" size={5} duration={6000} delay={2000} opacity={0.5} />
-            <AnimatedParticle left="55%" size={7} duration={7500} delay={1000} opacity={0.4} />
-            <AnimatedParticle left="80%" size={5} duration={5000} delay={3000} opacity={0.8} />
-            <AnimatedParticle left="40%" size={6} duration={5500} delay={4000} opacity={0.6} />
-            <AnimatedParticle left="90%" size={8} duration={7000} delay={500} opacity={0.5} />
-            <AnimatedParticle left="70%" size={4} duration={4500} delay={2500} opacity={0.9} />
-            <AnimatedParticle left="15%" size={6} duration={6500} delay={1500} opacity={0.5} />
-          </View>
-
-          <View style={styles.heroContent}>
-            <Svg height="50" width="100%" style={{ marginBottom: 2 }}>
-              <Defs>
-                <SvgLinearGradient id="greetingGrad" x1="0" y1="0" x2="1" y2="0">
-                  <Stop offset="0" stopColor="#FCD34D" stopOpacity="1" />
-                  <Stop offset="1" stopColor="#f97316" stopOpacity="1" />
-                </SvgLinearGradient>
-              </Defs>
-              <SvgText
-                fill="url(#greetingGrad)"
-                fontSize="32"
-                fontWeight="400"
-                fontFamily={Platform.OS === 'ios' ? 'Georgia' : 'serif'}
-                fontStyle="italic"
-                x="0"
-                y="36"
-              >
-                {timeGreeting}
-              </SvgText>
-            </Svg>
-            <Text 
-              style={[styles.nameText, { color: '#F3EAD9', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '900', letterSpacing: 0.5, fontSize: 22 }]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.6}
-            >
-              {fullName}
-            </Text>
-          </View>
-
-          <View style={{ position: 'absolute', top: 30, right: 20 }}>
-            <HexagonDate />
-          </View>
-        </View>
-      </View>
-
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        {/* New Admin Dashboard Top Card */}
+        <View style={{ zIndex: 10, backgroundColor: '#F4F0EA', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10 }}>
+          <LinearGradient colors={['#020b22', '#081d4a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroSection}>
+            {/* Top row: Logo, Info, Moon */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+                  <Image 
+                    source={activeChurch?.theme?.logoUrl ? { uri: activeChurch.theme.logoUrl } : require('../../../assets/icon.png')} 
+                    style={{ width: '100%', height: '100%' }} 
+                    resizeMode="cover" 
+                  />
+                </View>
+                <View style={{ marginLeft: 16, flex: 1 }}>
+                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold' }}>
+                    {activeChurch?.name || 'Your Church'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Separator */}
+            <View style={{ height: 1.5, backgroundColor: 'rgba(252, 211, 77, 0.5)', marginVertical: 20 }} />
+
+            {/* Bottom row: Dashboard Menu Text */}
+            <View>
+              <Text style={{ color: '#FCD34D', fontSize: 32, fontWeight: '400', marginBottom: 8, fontFamily: FONTS.serif, fontStyle: 'italic' }}>
+                Admin Dashboard
+              </Text>
+              <Text style={{ color: '#94a3b8', fontSize: 14, lineHeight: 22 }}>
+                Quick access to promises, worship, events, members and the life of the church.
+              </Text>
+            </View>
+          </LinearGradient>
+        </View>
         
         <View style={styles.content}>
           {CATEGORIES.map((category, catIdx) => {
@@ -369,6 +357,60 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
             );
           })}
         </View>
+        
+        {/* Actions Container at the bottom of the ScrollView so it doesn't float over cards */}
+        <View style={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          paddingHorizontal: 24,
+          paddingTop: 10,
+          paddingBottom: 40,
+        }}>
+          <TouchableOpacity
+            onPress={signOut}
+            style={{
+              backgroundColor: '#9C4325', // Terracotta Rust
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderRadius: 30,
+              elevation: 10,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.35,
+              shadowRadius: 10,
+              gap: 8,
+            }}
+          >
+            <LogOut size={18} color="#fff" />
+            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>Sign Out</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setViewMode('member')}
+            style={{
+              backgroundColor: '#1a2d5a', // solid navy
+              flexDirection: 'row',
+              alignItems: 'center',
+              paddingHorizontal: 16,
+              paddingVertical: 12,
+              borderRadius: 30,
+              borderWidth: 1,
+              borderColor: 'rgba(252, 211, 77, 0.5)', // golden border
+              elevation: 10,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.35,
+              shadowRadius: 10,
+              gap: 8,
+            }}
+          >
+            <Smartphone size={18} color="#FCD34D" />
+            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>Member View</Text>
+          </TouchableOpacity>
+        </View>
+
       </ScrollView>
     </View>
   );
@@ -379,11 +421,14 @@ const styles = StyleSheet.create({
   
   // HERO SECTION
   heroSection: {
-    paddingHorizontal: 28,
-    paddingTop: 15,
-    paddingBottom: 30, 
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    borderRadius: 24,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
   },
   heroContent: {
     paddingTop: Platform.OS === 'android' ? 10 : 0,

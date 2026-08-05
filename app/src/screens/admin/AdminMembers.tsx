@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -33,6 +33,8 @@ export default function AdminMembers() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Inactive'>('All');
+  const [villageFilter, setVillageFilter] = useState<string>('All');
+  const [villageDropdownVisible, setVillageDropdownVisible] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Add/Edit Member State
@@ -43,7 +45,8 @@ export default function AdminMembers() {
     name: '',
     phone: '',
     userType: 'member',
-    dob: ''
+    dob: '',
+    city: ''
   });
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
@@ -195,9 +198,21 @@ export default function AdminMembers() {
     });
   };
 
+  // Compute unique villages for dropdown
+  const uniqueVillages = useMemo(() => {
+    const villages = members.map(m => (m.city || m.village || '').trim()).filter(Boolean);
+    const unique = Array.from(new Set(villages)).sort();
+    return ['All', ...unique];
+  }, [members]);
+
+  // Village Filtered Members (used for stats based on the selected village)
+  const villageFilteredMembers = useMemo(() => {
+    return members.filter(m => villageFilter === 'All' || (m.city || m.village || '').trim() === villageFilter);
+  }, [members, villageFilter]);
+
   // Stats calculation
-  const totalMembers = members.length;
-  const activeMembers = members.length; // Assuming all firebase members are active for now
+  const totalMembers = villageFilteredMembers.length;
+  const activeMembers = villageFilteredMembers.length; // Assuming all firebase members are active for now
   const inactiveMembers = 0;
 
   const handleAddMember = async () => {
@@ -227,6 +242,7 @@ export default function AdminMembers() {
           phone: formattedPhone,
           userType: newMemberForm.userType,
           dob: newMemberForm.dob,
+          city: newMemberForm.city,
         });
       } else {
         res = await FirestoreService.adminAddMember(activeChurch?.id || '', {
@@ -235,13 +251,14 @@ export default function AdminMembers() {
           userType: newMemberForm.userType,
           dob: newMemberForm.dob,
           churchId: activeChurch?.id,
+          city: newMemberForm.city,
         });
       }
 
       if (res.success) {
         setAddModalVisible(false);
         setEditMemberId(null);
-        setNewMemberForm({ name: '', phone: '', userType: 'member', dob: '' });
+        setNewMemberForm({ name: '', phone: '', userType: 'member', dob: '', city: '' });
         fetchMembers();
 
         setTimeout(() => {
@@ -339,15 +356,17 @@ export default function AdminMembers() {
     }
   };
 
-  const filteredMembers = members.filter(m => {
+  const filteredMembers = villageFilteredMembers.filter(m => {
     // Map Firebase schema fields
     const nameStr = (m.name || m.firstName || '').toLowerCase();
     const emailStr = (m.email || '').toLowerCase();
     const phoneStr = m.phone || '';
+    const villageStr = (m.city || m.village || '').toLowerCase();
     
     const matchesSearch = 
       nameStr.includes(searchQuery.toLowerCase()) ||
       emailStr.includes(searchQuery.toLowerCase()) ||
+      villageStr.includes(searchQuery.toLowerCase()) ||
       phoneStr.includes(searchQuery);
 
     const isActive = true; // Assuming active by default in Firebase
@@ -401,7 +420,7 @@ export default function AdminMembers() {
             <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
             <View>
               <Text style={styles.heroTitle}>Members</Text>
-              <Text style={[styles.heroSub, { marginTop: 2 }]}>{members.length} total · {members.filter(m => m.status !== 'Inactive').length} active</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]}>{totalMembers} total · {activeMembers} active</Text>
             </View>
           </View>
           <TouchableOpacity style={styles.newBtn} onPress={() => setAddModalVisible(true)}>
@@ -444,7 +463,7 @@ export default function AdminMembers() {
         {/* Search Bar */}
         <View style={styles.searchBarContainer}>
           <TextInput
-            placeholder="Search by name, email, or phone..."
+            placeholder="Search by name, email, phone, or village..."
             placeholderTextColor="#9CA3AF"
             style={styles.searchInput}
             value={searchQuery}
@@ -452,24 +471,35 @@ export default function AdminMembers() {
           />
         </View>
 
-        {/* Filter Chips */}
-        <View style={styles.filterRow}>
-          {(['All', 'Active', 'Inactive'] as const).map(filter => (
-            <TouchableOpacity 
-              key={filter} 
-              style={[styles.filterChip, statusFilter === filter && styles.filterChipActive]}
-              onPress={() => setStatusFilter(filter)}
-            >
-              <Text style={[styles.filterChipTxt, statusFilter === filter && styles.filterChipTxtActive]}>
-                {filter}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        {/* Filter Chips & Village Dropdown */}
+        <View style={[styles.filterRow, { justifyContent: 'space-between', alignItems: 'center' }]}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center' }} style={{ flex: 1 }}>
+            {(['All', 'Active', 'Inactive'] as const).map(filter => (
+              <TouchableOpacity 
+                key={filter} 
+                style={[styles.filterChip, statusFilter === filter && styles.filterChipActive]}
+                onPress={() => setStatusFilter(filter)}
+              >
+                <Text style={[styles.filterChipTxt, statusFilter === filter && styles.filterChipTxtActive]}>
+                  {filter}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          <TouchableOpacity 
+            style={[styles.filterChip, { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e2e8f0', marginLeft: 8, paddingHorizontal: 12 }]}
+            onPress={() => setVillageDropdownVisible(true)}
+          >
+            <Text style={[styles.filterChipTxt, { marginRight: 4, maxWidth: 100 }]} numberOfLines={1}>
+              {villageFilter === 'All' ? 'Village/City' : villageFilter}
+            </Text>
+            <ChevronDown size={14} color="#1a2d5a" />
+          </TouchableOpacity>
         </View>
 
         {/* Member Cards List */}
         <View style={styles.membersList}>
-          {filteredMembers.map((member) => {
+          {filteredMembers.map((member, index) => {
             const isExpanded = expandedId === member.id;
             const associated = member.accountId
               ? members.filter(m => m.accountId === member.accountId && m.id !== member.id)
@@ -480,7 +510,7 @@ export default function AdminMembers() {
 
             return (
               <View 
-                key={member.id} 
+                key={`${member.id || 'admin-member'}-${index}`} 
                 style={[styles.memberCard, isExpanded && styles.memberCardExpanded]}
               >
                 <TouchableOpacity 
@@ -501,6 +531,11 @@ export default function AdminMembers() {
                     )}
                     <View style={styles.nameSection}>
                       <Text style={styles.name}>{displayName}</Text>
+                      {(member.city || member.village) && (
+                        <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2, marginBottom: 4 }}>
+                          📍 {(member.city || member.village).trim()}
+                        </Text>
+                      )}
                       <View style={badgeRowStyles(isActive).badgeRow}>
                         <View style={styles.roleBadge}>
                           <Text style={styles.roleTxt}>{displayRole.toUpperCase()}</Text>
@@ -581,7 +616,7 @@ export default function AdminMembers() {
                     {/* Admin Actions */}
                     <View style={{ flexDirection: 'row', gap: 8 }}>
                       <View style={{ flex: 1 }}>
-                        {member.userType?.toLowerCase() === 'super_admin' || member.userType?.toLowerCase() === 'super admin' ? (
+                        {member.userType?.trim().toLowerCase() === 'super_admin' || member.userType?.trim().toLowerCase() === 'super admin' ? (
                           <View style={[styles.promoteBtn, { backgroundColor: '#7c3aed', opacity: 0.8 }]}>
                             <Shield size={14} color="#fff" />
                             <Text style={styles.promoteBtnTxt}>Super Admin</Text>
@@ -605,7 +640,7 @@ export default function AdminMembers() {
                         )}
                       </View>
 
-                      {member.userType?.toLowerCase() !== 'super_admin' && member.userType?.toLowerCase() !== 'super admin' && (
+                      {member.userType?.trim().toLowerCase() !== 'super_admin' && member.userType?.trim().toLowerCase() !== 'super admin' && (
                         <View style={{ flex: 1 }}>
                           <TouchableOpacity 
                             style={[styles.promoteBtn, { backgroundColor: '#4b5563' }]}
@@ -625,10 +660,15 @@ export default function AdminMembers() {
 
                     <View style={styles.householdList}>
                       {associated.length > 0 ? (
-                        associated.map((assoc) => (
-                          <View key={assoc.id} style={styles.householdItem}>
+                        associated.map((assoc, idx) => (
+                          <View key={`${assoc.id || 'assoc'}-${idx}`} style={styles.householdItem}>
                             <View style={styles.hiLeft}>
                               <Text style={styles.hiName}>{(`${assoc.firstName || ''} ${assoc.lastName || ''}`.trim()) || assoc.name}</Text>
+                              {(assoc.city || assoc.village) && (
+                                <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 1, marginBottom: 1 }}>
+                                  📍 {(assoc.city || assoc.village).trim()}
+                                </Text>
+                              )}
                               <Text style={styles.hiEmail}>{assoc.email || assoc.phone || 'No contact details'}</Text>
                             </View>
                             <View style={styles.hiRight}>
@@ -694,6 +734,17 @@ export default function AdminMembers() {
             </View>
 
             <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>City / Village</Text>
+              <TextInput
+                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
+                placeholder="Enter city or village"
+                placeholderTextColor="#9CA3AF"
+                value={newMemberForm.city}
+                onChangeText={(t) => setNewMemberForm({...newMemberForm, city: t})}
+              />
+            </View>
+
+            <View style={{ marginBottom: 16 }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Date of Birth (DOB)</Text>
               <TouchableOpacity
                 style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
@@ -709,16 +760,16 @@ export default function AdminMembers() {
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Role</Text>
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity 
-                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.toLowerCase() === 'member' ? '#1a2d5a' : '#FFFFFF' }}
+                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : '#FFFFFF' }}
                   onPress={() => setNewMemberForm({...newMemberForm, userType: 'member'})}
                 >
-                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.toLowerCase() === 'member' ? '#FFFFFF' : '#6B7280' }}>Member</Text>
+                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#FFFFFF' : '#6B7280' }}>Member</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
-                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.toLowerCase() === 'admin' ? '#1a2d5a' : '#FFFFFF' }}
+                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#1a2d5a' : '#FFFFFF' }}
                   onPress={() => setNewMemberForm({...newMemberForm, userType: 'admin'})}
                 >
-                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.toLowerCase() === 'admin' ? '#FFFFFF' : '#6B7280' }}>Admin</Text>
+                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#FFFFFF' : '#6B7280' }}>Admin</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -744,6 +795,32 @@ export default function AdminMembers() {
         onCancel={() => setDatePickerVisibility(false)}
         maximumDate={new Date()}
       />
+
+      {/* Village Dropdown Modal */}
+      <Modal visible={villageDropdownVisible} transparent animationType="fade" onRequestClose={() => setVillageDropdownVisible(false)}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={() => setVillageDropdownVisible(false)}>
+          <View style={{ width: '80%', maxHeight: '60%', backgroundColor: '#fff', borderRadius: 12, padding: 16, elevation: 5 }}>
+            <Text style={{ fontSize: 16, fontWeight: '700', color: '#1a2d5a', marginBottom: 12 }}>Select Village/City</Text>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {uniqueVillages.map((v) => (
+                <TouchableOpacity 
+                  key={v} 
+                  style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between' }}
+                  onPress={() => {
+                    setVillageFilter(v);
+                    setVillageDropdownVisible(false);
+                  }}
+                >
+                  <Text style={{ fontSize: 15, color: villageFilter === v ? '#1a2d5a' : '#4b5563', fontWeight: villageFilter === v ? '600' : '400' }}>
+                    {v}
+                  </Text>
+                  {villageFilter === v && <Plus size={16} color="#1a2d5a" style={{ transform: [{ rotate: '45deg' }] }} />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
     </View>
   );

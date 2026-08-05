@@ -130,7 +130,29 @@ export default function CreateChurchScreen({ navigation }: Props) {
     }
   };
 
+    const hasProcessedRef = React.useRef(false);
+
+  React.useEffect(() => {
+    let subscriber: any;
+    if (otpModalVisible) {
+      subscriber = auth().onAuthStateChanged(user => {
+        if (user && !hasProcessedRef.current) {
+          console.log('🤖 Auto-verified via Firebase SMS intercept in CreateChurch!');
+          hasProcessedRef.current = true;
+          setOtpModalVisible(false);
+          performCreateChurch();
+        }
+      });
+    } else {
+      hasProcessedRef.current = false;
+    }
+    return () => {
+      if (subscriber) subscriber();
+    };
+  }, [otpModalVisible]);
+
   const verifyOtpAndCreate = async () => {
+    if (hasProcessedRef.current) return;
     if (!otpCode || otpCode.length < 6) {
       Alert.alert('Invalid Code', 'Please enter the 6-digit OTP.');
       return;
@@ -140,6 +162,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
       const credential = auth.PhoneAuthProvider.credential(confirmation.verificationId, otpCode);
       await auth().signInWithCredential(credential);
       
+      hasProcessedRef.current = true;
       setOtpModalVisible(false);
       await performCreateChurch();
     } catch (e: any) {

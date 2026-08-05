@@ -100,7 +100,7 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       });
     } catch (error: any) {
       console.error(error);
-      Alert.alert('Error', 'Unable to send SMS. Please check your connection.');
+      Alert.alert('Authentication Error', error.message || 'Unable to send SMS. Please check your connection.');
     } finally {
       setLoading(false);
       setVerifyingStatus('');

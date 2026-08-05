@@ -170,7 +170,7 @@ const EventMarquee = ({ events, onEventPress }: { events: any[], onEventPress: (
               const isLive = status === 'live';
               return (
               <TouchableOpacity
-                key={ev.id || index}
+                key={`${ev.id || 'event'}-${index}`}
                 style={styles.marqueeItem}
                 onPress={() => {
                   if (isLive && ev.liveUrl) {
@@ -394,16 +394,19 @@ export default function HomeScreen() {
           return false;
         };
 
-        let celebrationType = null;
-        if (isToday((member as any).dob)) celebrationType = 'birthday';
-        else if (isToday((member as any).anniversaryDate)) celebrationType = 'wedding';
-        else if (isToday((member as any).baptismDate)) celebrationType = 'baptism';
+        const activeCelebrations: string[] = [];
+        if (isToday((member as any).dob)) activeCelebrations.push('birthday');
+        if (isToday((member as any).anniversaryDate)) activeCelebrations.push('wedding');
+        if (isToday((member as any).baptismDate)) activeCelebrations.push('baptism');
 
-        if (celebrationType) {
+        if (activeCelebrations.length > 0) {
           if (!hasShownCelebrationThisSession) {
             hasShownCelebrationThisSession = true;
             setTimeout(() => {
-              navigation.navigate('Celebration', { type: celebrationType, name: (member as any).name || (member as any).firstName || 'Member' });
+              navigation.navigate('Celebration', { 
+                celebrations: activeCelebrations, 
+                name: (member as any).name || (member as any).firstName || 'Member' 
+              });
             }, 2000);
           }
         }
@@ -812,7 +815,7 @@ export default function HomeScreen() {
             <View style={styles.ebList}>
               {events.length > 0 ? (
                 events.map((item: any, index: number) => (
-                  <View key={item.id}>
+                  <View key={`${item.id || 'evt'}-${index}`}>
                     <TouchableOpacity 
                       style={styles.ebItem} 
                       onPress={() => navigation.navigate('EventDetails', { event: item })}

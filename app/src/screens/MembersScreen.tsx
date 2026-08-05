@@ -235,7 +235,7 @@ export default function MembersScreen({ navigation }: any) {
               const contactName = (`${c.FirstName || c.firstName || ''} ${c.LastName || c.lastName || ''}`.trim()) || c.Name || c.name || 'Unknown';
               return (
                 <View 
-                  key={contactId || index.toString()} 
+                  key={`${contactId || 'member'}-${index}`} 
                   style={[
                     styles.memberCard, 
                     { 

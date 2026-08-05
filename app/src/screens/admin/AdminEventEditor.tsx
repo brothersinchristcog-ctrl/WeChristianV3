@@ -88,7 +88,8 @@ export default function AdminEventEditor() {
   const [descEn, setDescEn] = useState('');
   const [descTe, setDescTe] = useState('');
 
-  const todayStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '-'); // DD-MM-YYYY
+  const today = new Date();
+  const todayStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
   const [date, setDate] = useState(todayStr);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -123,7 +124,11 @@ export default function AdminEventEditor() {
   const [isEndTimeVisible, setEndTimeVisibility] = useState(false);
 
   // JS Picker Temp State
-  const [tempDate, setTempDate] = useState({ d: '20', m: '04', y: '2026' });
+  const [tempDate, setTempDate] = useState({ 
+    d: String(new Date().getDate()).padStart(2, '0'), 
+    m: String(new Date().getMonth() + 1).padStart(2, '0'), 
+    y: String(new Date().getFullYear()) 
+  });
   const [tempTime, setTempTime] = useState({ h: '09', m: '00', p: 'AM' });
 
   const [metadata, setMetadata] = useState<any>(null);
@@ -429,7 +434,8 @@ export default function AdminEventEditor() {
     setTitleEn(''); setTitleTe(''); setDescEn(''); setDescTe('');
     setVenueEn(''); setVenueTe(''); setAddress('');
     setBannerUrl('');
-    setDate(new Date().toLocaleDateString('en-GB').replace(/\//g, '-')); 
+    const d = new Date();
+    setDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`); 
     setStartTime('09:00 AM'); setEndTime('12:00 PM');
     setNotifyOnPublish(true); setReminder1Day(true); setReminder1Hour(false);
     setEditingData(null);

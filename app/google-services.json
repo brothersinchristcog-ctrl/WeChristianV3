@@ -12,7 +12,16 @@
           "package_name": "com.wechristian.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "962252889183-5jj3agmio6447l0lkepjrb6kvuvrs1t0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wechristian.app",
+            "certificate_hash": "36d716feb0ee3ee00422f32d2f2e4aa19a5bf36b"
+          }
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDXP8v94YOvitLaixotzmOvRJsaoFuGf20"

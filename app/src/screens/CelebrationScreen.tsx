@@ -192,9 +192,15 @@ const CelebrationScreen = () => {
   const { user, member, viewMode } = useAuth();
   
   const params = route.params || {};
-  // Force evaluation, log what we get
-  const type: CelebrationType = (params.type === 'wedding' || params.type === 'baptism' || params.type === 'birthday') ? params.type : 'birthday';
-  console.log("CelebrationScreen loaded with params:", params);
+  let celebrations: CelebrationType[] = [];
+  if (params.celebrations && Array.isArray(params.celebrations)) {
+    celebrations = params.celebrations;
+  } else if (params.type) {
+    celebrations = [params.type as CelebrationType];
+  } else {
+    celebrations = ['birthday'];
+  }
+  console.log("CelebrationScreen loaded with celebrations:", celebrations);
   
   // Dynamically resolve name to prevent race conditions during boot
   const resolveName = () => {
@@ -258,7 +264,7 @@ const CelebrationScreen = () => {
     id: i, duration: 6000 + Math.random() * 4000, delay: Math.random() * 5000, left: `${Math.random() * 90}%`
   })), []);
 
-  const renderBackground = () => {
+  const renderBackground = (type: CelebrationType) => {
     if (type === 'birthday') {
       return (
         <LinearGradient colors={['#2B1A38', '#401F3E', '#2B1A38']} style={StyleSheet.absoluteFill}>
@@ -288,7 +294,7 @@ const CelebrationScreen = () => {
     );
   };
 
-  const getStyles = () => {
+  const getStyles = (type: CelebrationType) => {
     const isBirthday = type === 'birthday';
     const isAnniv = type === 'wedding';
     const isBaptism = type === 'baptism';
@@ -365,8 +371,6 @@ const CelebrationScreen = () => {
     };
   };
 
-  const s = getStyles();
-
   const content = {
     birthday: {
       eyebrow: 'A Special Day',
@@ -400,10 +404,8 @@ const CelebrationScreen = () => {
     }
   };
 
-  const c = content[type];
-
   // Render gradients for buttons based on type
-  const renderContinueButton = () => {
+  const renderContinueButton = (type: CelebrationType, s: any) => {
     if (type === 'birthday') {
       return (
         <TouchableOpacity onPress={handleContinue} style={{ shadowColor: '#D9A441', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.6, shadowRadius: 24, elevation: 8 }}>
@@ -434,36 +436,58 @@ const CelebrationScreen = () => {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
-      {renderBackground()}
-      
       <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
         <ScrollView 
-          contentContainerStyle={{ 
-            flexGrow: 1, 
-            justifyContent: 'center', 
-            paddingHorizontal: 26, 
-            paddingTop: insets.top + 40, 
-            paddingBottom: insets.bottom + 40 
-          }}
-          showsVerticalScrollIndicator={false}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          style={{ flex: 1 }}
         >
-          <Text style={s.eyebrow}>{c.eyebrow}</Text>
-          <Text style={s.title}>{c.title}</Text>
+          {celebrations.map((celebType, index) => {
+            const s = getStyles(celebType);
+            const c = content[celebType];
+            
+            return (
+              <View key={index} style={{ width, height, position: 'relative' }}>
+                {renderBackground(celebType)}
+                
+                <ScrollView 
+                  contentContainerStyle={{ 
+                    flexGrow: 1, 
+                    justifyContent: 'center', 
+                    paddingHorizontal: 26, 
+                    paddingTop: insets.top + 40, 
+                    paddingBottom: insets.bottom + 40 
+                  }}
+                  showsVerticalScrollIndicator={false}
+                >
+                  <Text style={s.eyebrow}>{c.eyebrow}</Text>
+                  <Text style={s.title}>{c.title}</Text>
 
-          <View style={s.verseCard}>
-            <Text style={s.verse}>{c.verse}</Text>
-            {c.verseTe ? <Text style={s.verseTe}>{c.verseTe}</Text> : null}
-            <Text style={s.verseRef}>{c.ref}</Text>
-          </View>
+                  <View style={s.verseCard}>
+                    <Text style={s.verse}>{c.verse}</Text>
+                    {c.verseTe ? <Text style={s.verseTe}>{c.verseTe}</Text> : null}
+                    <Text style={s.verseRef}>{c.ref}</Text>
+                  </View>
 
-          <Text style={s.blessing}>{c.blessing}</Text>
+                  <Text style={s.blessing}>{c.blessing}</Text>
 
-          <View style={{ marginTop: 20 }}>
-            {renderContinueButton()}
-          </View>
+                  <View style={{ marginTop: 20 }}>
+                    {renderContinueButton(celebType, s)}
+                  </View>
 
-          <Text style={s.footer}>{activeChurch?.name || 'Grace Fellowship Church'}</Text>
+                  <Text style={s.footer}>{activeChurch?.name || 'Grace Fellowship Church'}</Text>
 
+                  {/* Swipe Indicator for Carousel */}
+                  {celebrations.length > 1 && (
+                    <Text style={{ textAlign: 'center', color: 'rgba(255,255,255,0.4)', marginTop: 26, fontSize: 13, letterSpacing: 1 }}>
+                      {index < celebrations.length - 1 ? 'SWIPE FOR MORE ➔' : '❮ SWIPE BACK'}
+                    </Text>
+                  )}
+                </ScrollView>
+              </View>
+            );
+          })}
         </ScrollView>
       </Animated.View>
     </View>

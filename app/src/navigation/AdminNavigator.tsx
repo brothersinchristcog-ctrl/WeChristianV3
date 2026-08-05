@@ -35,7 +35,8 @@ import {
   CalendarClock,
   Building2,
   PhoneCall,
-  Sliders
+  Sliders,
+  ChevronLeft
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -99,7 +100,6 @@ export default function AdminNavigator({ navigation }: any) {
   const [activeTab, setActiveTab] = useState(0);
   const [tabHistory, setTabHistory] = useState<number[]>([]);
   const [editingData, setEditingData] = useState(null);
-  const [menuExpanded, setMenuExpanded] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -135,7 +135,7 @@ export default function AdminNavigator({ navigation }: any) {
       // This allows the tap animation to finish instantly, making the UI feel highly responsive.
       setTimeout(() => {
         setTabHistory(prev => [...prev, activeTab]);
-        if ([1, 4, 5, 8].indexOf(index) === -1) setEditingData(null);
+        if ([1, 2, 4, 5, 8, 9].indexOf(index) === -1) setEditingData(null);
         setActiveTab(index);
       }, 0);
     }
@@ -168,8 +168,8 @@ export default function AdminNavigator({ navigation }: any) {
     { name: 'Attendance', icon: ClipboardCheck, component: AdminAttendance },
     { name: 'Members', icon: Users, component: AdminMembers },
     { name: 'Celebrations', icon: Gift, component: AdminCelebrations },
-    ...((member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin') ? [{ name: 'WeCelebrations', icon: Sparkles, component: AdminWeCelebrations }] : []),
-    ...((member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin') ? [{ name: 'WhatsApp', icon: MessageCircle, component: AdminWhatsAppInbox }] : []),
+    ...((member?.userType?.trim().toLowerCase() === 'admin' || member?.userType?.trim().toLowerCase() === 'super_admin') ? [{ name: 'WeCelebrations', icon: Sparkles, component: AdminWeCelebrations }] : []),
+    ...((member?.userType?.trim().toLowerCase() === 'admin' || member?.userType?.trim().toLowerCase() === 'super_admin') ? [{ name: 'WhatsApp', icon: MessageCircle, component: AdminWhatsAppInbox }] : []),
     { name: 'About Us', icon: Building2, component: AdminAboutUsEditor },
     { name: 'Contact Us', icon: PhoneCall, component: AdminContactUsEditor },
     { name: 'Church Settings', icon: Sliders, component: AdminChurchSettings },
@@ -222,25 +222,16 @@ export default function AdminNavigator({ navigation }: any) {
   return (
     <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack }}>
       <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
-        <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#081d4a' : '#1a2d5a' }} />
-        <View style={[styles.header, { backgroundColor: activeTab === 0 ? '#081d4a' : '#1a2d5a' }]}>
-          <View style={styles.headerTop}>
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <TouchableOpacity onPress={() => setMenuExpanded(true)} style={styles.hamburgerBtn}>
-                <DotGridIcon color="#fff" size={20} />
-              </TouchableOpacity>
-              {activeTab === 0 && (
-                <Text style={{ color: '#cbd5e1', fontSize: 20, marginLeft: 14, fontFamily: FONTS.serif, fontStyle: 'italic' }}>Welcome Back</Text>
-              )}
-            </View>
-            
-            {activeTab === 0 ? null : (
+        <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : '#1a2d5a' }} />
+        {activeTab !== 0 && (
+          <View style={[styles.header, { backgroundColor: '#1a2d5a' }]}>
+            <View style={styles.headerTop}>
               <View style={styles.headerText}>
                 <Text style={styles.headerTitle}>Admin Dashboard</Text>
               </View>
-            )}
+            </View>
           </View>
-        </View>
+        )}
 
         <View style={[styles.content, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
           {activeTab === 0 ? (
@@ -252,98 +243,7 @@ export default function AdminNavigator({ navigation }: any) {
 
         {/* Premium Floating Bottom Tab Bar Removed */}
 
-        {/* Full-Height Left Side Drawer Overlay */}
-        {menuExpanded && (
-          <View style={styles.drawerOverlay}>
-            <TouchableOpacity 
-              style={styles.drawerBackdrop} 
-              activeOpacity={1} 
-              onPress={() => setMenuExpanded(false)} 
-            />
-            <View style={styles.drawerContent}>
-              
-              {/* Profile Section */}
-              <View style={styles.drawerProfileSection}>
-                <View style={styles.drawerAvatar}>
-                  <Image source={activeChurch?.theme?.logoUrl ? { uri: activeChurch.theme.logoUrl } : require('../../assets/logo.png')} style={{ width: 56, height: 56 }} resizeMode="cover" />
-                </View>
-                <View>
-                  <Text style={styles.drawerName}>{activeChurch?.name || 'Your Church'}</Text>
-                  <Text style={styles.drawerEmail}>{member?.name || user?.displayName || 'Admin Member'}</Text>
-                </View>
-              </View>
-
-              <View style={styles.drawerDivider} />
-
-              <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-                <View style={{ paddingVertical: 10 }}>
-                  <Text style={styles.drawerSectionTitle}>ALL MODULES</Text>
-                  {tabs.map((tab, index) => {
-                    const isActive = activeTab === index;
-                    return (
-                      <TouchableOpacity 
-                        key={index} 
-                        style={[styles.drawerItem, isActive && styles.drawerItemActive]}
-                        onPress={() => {
-                          handleSetTab(index);
-                          setMenuExpanded(false);
-                        }}
-                      >
-                        <tab.icon 
-                          size={20} 
-                          color={isActive ? "#FCD34D" : "#fff"} 
-                          strokeWidth={isActive ? 2.5 : 1.5}
-                        />
-                        <Text style={[styles.drawerItemText, isActive && styles.drawerItemTextActive]}>
-                          {tab.name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </ScrollView>
-
-              {/* Footer Actions */}
-              <View style={styles.drawerFooter}>
-                <TouchableOpacity style={[styles.drawerSignOutBtn, { flexDirection: 'row', justifyContent: 'center', gap: 10 }]} onPress={signOut}>
-                  <LogOut size={20} color="#fff" />
-                  <Text style={styles.drawerSignOutTxt}>Sign out</Text>
-                </TouchableOpacity>
-              </View>
-
-            </View>
-          </View>
-        )}
-
-        {/* Floating Switch to Member View pill - ONLY on Dashboard */}
-        {activeTab === 0 && (
-          <TouchableOpacity
-            onPress={() => setViewMode('member')}
-            style={{
-              position: 'absolute',
-              bottom: Platform.OS === 'ios' ? 160 : 150,
-              right: 20,
-              backgroundColor: '#1a2d5a', // solid navy
-              flexDirection: 'row',
-              alignItems: 'center',
-              paddingHorizontal: 16,
-              paddingVertical: 12,
-              borderRadius: 30,
-              borderWidth: 1,
-              borderColor: 'rgba(252, 211, 77, 0.5)', // golden border
-              gap: 8,
-              elevation: 10,
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.35,
-              shadowRadius: 10,
-              zIndex: 999
-            }}
-          >
-            <Smartphone size={18} color="#FCD34D" />
-            <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>Member View</Text>
-          </TouchableOpacity>
-        )}
+        {/* Full-Height Left Side Drawer Overlay Removed */}
         <CustomAlert
           visible={alertConfig.visible}
           title={alertConfig.title}
