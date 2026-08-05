@@ -274,7 +274,7 @@ export default function AdminMembers() {
                 if (!editMemberId) {
                   // Share functionality after OK for new members
                   const churchName = activeChurch?.name || 'WeChristian Church';
-                  const churchCode = (activeChurch as any)?.churchCode || '';
+                  const churchCode = activeChurch?.subdomain?.toUpperCase() || (activeChurch as any)?.churchCode || '';
                   Share.share({
                     message: `Hello ${newMemberForm.name},\n\nYou have been added to "${churchName}" on WeChristian!\n\nPlease download the app here: https://play.google.com/store/apps/details?id=com.wechristian.app\n\nOnce downloaded, sign in with your phone number. If asked, use Church Code: ${churchCode}`,
                     title: `Join ${churchName}`,

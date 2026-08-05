@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, Dimensions, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, Dimensions, Alert, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
   BookOpen, 
@@ -151,6 +151,23 @@ export default function AdminNavigator({ navigation }: any) {
       // setViewMode('member');
     }
   };
+
+  useEffect(() => {
+    const backAction = () => {
+      if (tabHistory.length > 0) {
+        handleBack();
+        return true; // Prevent default behavior
+      }
+      return false; // Let default behavior happen (e.g., exit app)
+    };
+
+    const backHandler = BackHandler.addEventListener(
+      'hardwareBackPress',
+      backAction
+    );
+
+    return () => backHandler.remove();
+  }, [tabHistory]);
 
   const tabs = [
     { name: 'Dashboard', icon: DotGridIcon, component: AdminDashboard },

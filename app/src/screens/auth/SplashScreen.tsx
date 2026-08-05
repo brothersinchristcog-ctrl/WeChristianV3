@@ -74,17 +74,11 @@ const Particles = () => {
 
 export default function SplashScreen() {
   const { activeChurch } = useChurch();
-  const [showChurch, setShowChurch] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const logoPulse = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // Force the We Christian splash screen to display for 3.5 seconds
-    const timer = setTimeout(() => {
-      setShowChurch(true);
-    }, 3500);
-
     // Initial entrance animation
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -107,11 +101,9 @@ export default function SplashScreen() {
         Animated.timing(logoPulse, { toValue: 1, duration: 2500, useNativeDriver: true })
       ])
     ).start();
-
-    return () => clearTimeout(timer);
   }, []);
 
-  const displayChurch = showChurch ? activeChurch : null;
+  const displayChurch = activeChurch ? activeChurch : null;
 
   return (
     <LinearGradient

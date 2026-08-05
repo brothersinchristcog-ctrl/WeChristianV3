@@ -1,22 +1,59 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { Animated, View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
+import { Animated, View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform, Modal, Linking } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import { Bell } from 'lucide-react-native';
 import RootNavigator from './src/navigation/RootNavigator';
 
+import SpInAppUpdates, {
+  IAUUpdateKind,
+} from 'sp-react-native-in-app-updates/lib/commonjs/index';
+
 // Import Firebase config to initialize it on app start
 import './src/services/firebaseConfig';
+
+const inAppUpdates = new SpInAppUpdates(false);
 
 export const navigationRef = createNavigationContainerRef();
 const { width } = Dimensions.get('window');
 
 export default function App() {
   const [notification, setNotification] = useState(null);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const slideAnim = useRef(new Animated.Value(-150)).current;
 
   useEffect(() => {
+    const checkUpdates = async () => {
+      try {
+        const firestore = require('@react-native-firebase/firestore').default;
+        const configDoc = await firestore().collection('public_settings').doc('app_config').get();
+        const forceUpdate = configDoc.exists && configDoc.data()?.forceUpdate === true;
+        
+        const result = await inAppUpdates.checkNeedsUpdate();
+        if (result.shouldUpdate) {
+          if (Platform.OS === 'android') {
+            const updateOptions = {
+              updateType: forceUpdate ? IAUUpdateKind.IMMEDIATE : IAUUpdateKind.FLEXIBLE,
+            };
+            inAppUpdates.startUpdate(updateOptions).catch(err => {
+              console.log('Native update failed, showing fallback:', err);
+              setUpdateAvailable(true);
+            });
+          } else {
+            // iOS or other platforms fallback
+            setUpdateAvailable(true);
+          }
+        }
+      } catch (err) {
+        console.log('In-app update check failed:', err);
+        // On total failure, we can also show the fallback if we know an update exists, 
+        // but it's safer to only show it when shouldUpdate is definitively true.
+      }
+    };
+    
+    checkUpdates();
+
     const unsubscribe = messaging().onMessage(async remoteMessage => {
       const title = remoteMessage.notification?.title || 'New Notification';
       const body = remoteMessage.notification?.body || 'You have a new message.';
@@ -60,6 +97,41 @@ export default function App() {
           </TouchableOpacity>
         </Animated.View>
       )}
+
+      {/* Fallback Update Modal */}
+      <Modal visible={updateAvailable} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.updateCard}>
+            <View style={styles.updateIconContainer}>
+              <Bell size={32} color="#fff" />
+            </View>
+            <Text style={styles.updateTitle}>Update Available!</Text>
+            <Text style={styles.updateText}>
+              A new version of We Christian is available. Please update to get the latest features and improvements.
+            </Text>
+            <TouchableOpacity 
+              style={styles.updateButton} 
+              onPress={() => {
+                // Link to Play Store / App Store
+                const link = Platform.OS === 'ios' 
+                  ? 'itms-apps://itunes.apple.com/app/idYOUR_APP_ID' 
+                  : 'market://details?id=com.wechristian.app';
+                Linking.openURL(link).catch(() => {
+                  alert('Please open your app store to update.');
+                });
+              }}
+            >
+              <Text style={styles.updateButtonText}>Update Now</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.updateCancelButton} 
+              onPress={() => setUpdateAvailable(false)}
+            >
+              <Text style={styles.updateCancelText}>Later</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </NavigationContainer>
   );
 }
@@ -115,5 +187,71 @@ const styles = StyleSheet.create({
     color: '#64748B',
     lineHeight: 18,
     fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  updateCard: {
+    backgroundColor: '#fff',
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  updateIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#1a2d5a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  updateTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    marginBottom: 8,
+  },
+  updateText: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  updateButton: {
+    backgroundColor: '#1a2d5a',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  updateButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  updateCancelButton: {
+    paddingVertical: 10,
+    width: '100%',
+    alignItems: 'center',
+  },
+  updateCancelText: {
+    color: '#94a3b8',
+    fontSize: 15,
+    fontWeight: '600',
   }
 });

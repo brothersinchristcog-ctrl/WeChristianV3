@@ -67,6 +67,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userState && !userState.isAnonymous) {
         try {
           console.log('🔐 [Auth] User Logged In:', userState.uid);
+          
+          // CRITICAL FIX: Force token refresh immediately after login
+          // This ensures the native Firestore SDK receives the Auth token properly
+          // which prevents [firestore/permission-denied] errors.
+          await userState.getIdToken(true);
+
           // Fetch GLOBAL profile from Firestore
           const globalUser = await FirestoreService.getGlobalUser(userState.uid);
           
