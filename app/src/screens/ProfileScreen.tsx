@@ -40,6 +40,7 @@ import FirestoreService, { AppMember } from '../services/FirestoreService';
 import { useChurch } from '../context/ChurchContext';
 import SecurityService from '../services/SecurityService';
 import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 import { Lock } from 'lucide-react-native';
 import storage from '@react-native-firebase/storage';
 
@@ -493,7 +494,7 @@ export default function ProfileScreen({ navigation }: any) {
           />
         </View>
 
-        <Text style={styles.versionTxt}>Version 1.2.5 A</Text>
+        <Text style={styles.versionTxt}>Version {Constants.expoConfig?.version || '1.0.0'}</Text>
       </ScrollView>
 
       {/* ── Edit Profile Modal (Using View for better reliability) ── */}
