@@ -31,11 +31,13 @@ export default function AdminCelebrationsMemberDetails({ member, category, onBac
         <View style={styles.profileSection}>
           <View style={[styles.avatarOuter, { borderColor: '#FFFFFF' }]}>
             <View style={[styles.avatarInner, { backgroundColor: getAvatarColor(member.name) }]}>
-              {member.photoUrl ? (
-                <Image source={{ uri: member.photoUrl }} style={styles.avatarImage} />
-              ) : (
-                <Text style={styles.avatarTxt}>{member.initials}</Text>
-              )}
+              {(() => {
+                const displayPhoto = member.photoUrl || member.profilePhoto || member.photoURL || member.PhotoUrl || member.Photo || member.ProfilePhoto;
+                if (displayPhoto && typeof displayPhoto === 'string' && displayPhoto.startsWith('http')) {
+                  return <Image source={{ uri: displayPhoto }} style={styles.avatarImage} />;
+                }
+                return <Text style={styles.avatarTxt}>{member.initials || (member.name ? member.name.substring(0, 2).toUpperCase() : 'U')}</Text>;
+              })()}
             </View>
           </View>
           

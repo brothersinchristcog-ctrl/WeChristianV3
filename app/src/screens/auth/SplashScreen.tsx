@@ -1,9 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
   Animated,
-  Dimensions,
   Image,
   Text,
   StatusBar
@@ -11,187 +10,187 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useChurch } from '../../context/ChurchContext';
 
-const { width, height } = Dimensions.get('window');
-
-// ── PARTICLE COMPONENT ──
-const Particle = ({ delay, startX, size, duration }: any) => {
-  const translateY = useRef(new Animated.Value(height)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    setTimeout(() => {
-      Animated.loop(
-        Animated.parallel([
-          Animated.timing(translateY, {
-            toValue: -100,
-            duration: duration,
-            useNativeDriver: true,
-          }),
-          Animated.sequence([
-            Animated.timing(opacity, { toValue: Math.random() * 0.4 + 0.1, duration: duration * 0.3, useNativeDriver: true }),
-            Animated.timing(opacity, { toValue: Math.random() * 0.6 + 0.2, duration: duration * 0.4, useNativeDriver: true }),
-            Animated.timing(opacity, { toValue: 0, duration: duration * 0.3, useNativeDriver: true })
-          ])
-        ])
-      ).start();
-    }, delay);
-  }, []);
-
-  return (
-    <Animated.View
-      style={{
-        position: 'absolute',
-        width: size,
-        height: size,
-        borderRadius: size / 2,
-        backgroundColor: 'rgba(255, 255, 255, 0.4)',
-        left: startX,
-        bottom: -50,
-        opacity,
-        transform: [{ translateY }]
-      }}
-    />
-  );
-};
-
-const Particles = () => {
-  const particles = Array.from({ length: 20 }).map((_, i) => ({
-    id: i,
-    size: Math.random() * 6 + 2,
-    startX: Math.random() * width,
-    delay: Math.random() * 3000,
-    duration: Math.random() * 6000 + 5000
-  }));
-
-  return (
-    <View style={StyleSheet.absoluteFill}>
-      {particles.map(p => (
-        <Particle key={p.id} {...p} />
-      ))}
-    </View>
-  );
-};
-
 export default function SplashScreen() {
-  const { activeChurch } = useChurch();
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const scaleAnim = useRef(new Animated.Value(0.95)).current;
-  const logoPulse = useRef(new Animated.Value(1)).current;
+  const { activeChurch, loading } = useChurch();
+  
+  const logoDrop = useRef(new Animated.Value(-300)).current;
+  const logoScale = useRef(new Animated.Value(0.75)).current;
+  
+  const textDrop = useRef(new Animated.Value(-40)).current;
+  const textOpacity = useRef(new Animated.Value(0)).current;
+  
+  const lineScale = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Initial entrance animation
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1200,
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 5,
-        tension: 40,
-        useNativeDriver: true,
-      }),
+    // 1. Logo Drop-in
+    Animated.sequence([
+      Animated.delay(150),
+      Animated.parallel([
+        Animated.spring(logoDrop, { toValue: 0, friction: 6, tension: 40, useNativeDriver: true }),
+        Animated.spring(logoScale, { toValue: 1, friction: 6, tension: 40, useNativeDriver: true })
+      ])
     ]).start();
 
-    // Gentle continuous logo pulse
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(logoPulse, { toValue: 1.05, duration: 2500, useNativeDriver: true }),
-        Animated.timing(logoPulse, { toValue: 1, duration: 2500, useNativeDriver: true })
+    // 2. Texts Drop-in
+    Animated.sequence([
+      Animated.delay(950),
+      Animated.parallel([
+        Animated.timing(textDrop, { toValue: 0, duration: 700, useNativeDriver: true }),
+        Animated.timing(textOpacity, { toValue: 1, duration: 700, useNativeDriver: true })
       ])
-    ).start();
+    ]).start();
+
+    // 3. Line grow
+    Animated.sequence([
+      Animated.delay(1700),
+      Animated.timing(lineScale, { toValue: 1, duration: 800, useNativeDriver: true })
+    ]).start();
+
   }, []);
 
   const displayChurch = activeChurch ? activeChurch : null;
 
   return (
-    <LinearGradient
-      colors={['#020b22', '#081d4a']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <View style={styles.stage}>
       <StatusBar barStyle="light-content" backgroundColor="#020b22" />
-      <Particles />
+      
+      {/* Background */}
+      <LinearGradient
+        colors={['#020b22', '#081d4a']}
+        style={StyleSheet.absoluteFill}
+      />
 
-      <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [{ scale: scaleAnim }]
-          }
-        ]}
-      >
-        <Animated.View style={[styles.logoRing, { transform: [{ scale: logoPulse }] }]}>
-          <Image
-            source={displayChurch?.theme?.logoUrl ? { uri: displayChurch.theme.logoUrl } : require('../../../assets/logo.png')}
-            style={styles.logo}
-            resizeMode="cover"
-          />
-        </Animated.View>
+      <View style={styles.entrance}>
+        
+        {(!activeChurch && loading) ? (
+          <View style={{ height: 210, justifyContent: 'center' }} />
+        ) : (
+          <>
+            {/* Emblem Wrap */}
+            <Animated.View style={[
+              styles.emblemWrap, 
+              { 
+                transform: [{ translateY: logoDrop }, { scale: logoScale }] 
+              }
+            ]}>
+              {/* Logo / Emblem */}
+              <View style={styles.emblem}>
+                <Image
+                  source={displayChurch?.theme?.logoUrl ? { uri: displayChurch.theme.logoUrl } : require('../../../assets/logo.png')}
+                  style={styles.logoImage}
+                  resizeMode="cover"
+                />
+              </View>
+            </Animated.View>
 
-        <Text 
-          style={styles.titleMain}
-          numberOfLines={2}
-          adjustsFontSizeToFit
-          minimumFontScale={0.5}
-        >
-          {displayChurch?.name || 'We Christian'}
-        </Text>
-        <Text style={styles.titleSub}>{displayChurch?.tagline || 'Together in Christ'}</Text>
-      </Animated.View>
-    </LinearGradient>
+            {/* Texts */}
+            <View style={styles.titles}>
+              <Animated.Text 
+                style={[
+                  styles.titleLine, 
+                  { 
+                    opacity: textOpacity,
+                    transform: [{ translateY: textDrop }]
+                  }
+                ]}
+                numberOfLines={2}
+                adjustsFontSizeToFit
+                minimumFontScale={0.5}
+              >
+                {displayChurch?.name || 'We Christian'}
+              </Animated.Text>
+
+              <Animated.View style={{ 
+                opacity: textOpacity, 
+                transform: [{ translateY: textDrop }],
+                alignItems: 'center',
+                width: '100%'
+              }}>
+                <Text style={styles.tagline}>
+                  {displayChurch?.tagline || 'Together in Christ'}
+                </Text>
+                {/* Growing Line */}
+                <Animated.View style={[
+                  styles.taglineLine, 
+                  { transform: [{ scaleX: lineScale }] }
+                ]} />
+              </Animated.View>
+              
+            </View>
+          </>
+        )}
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  stage: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  content: {
+  entrance: {
+    zIndex: 2,
     alignItems: 'center',
-    paddingHorizontal: 30,
-    zIndex: 10,
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  emblemWrap: {
+    width: 150,
+    height: 150,
+    marginBottom: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emblem: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: 'rgba(246,244,236,0.9)',
+    backgroundColor: '#060505',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 15,
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  titles: {
+    alignItems: 'center',
     width: '100%',
   },
-  logoRing: {
-    width: 140, height: 140, borderRadius: 70, 
-    backgroundColor: '#ffffff',
-    justifyContent: 'center', alignItems: 'center', 
-    marginBottom: 30,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)'
-  },
-  logo: {
-    width: 140,
-    height: 140,
-  },
-  titleMain: {
-    fontSize: 34,
-    fontWeight: '900',
-    color: '#ffffff',
-    letterSpacing: -0.5,
+  titleLine: {
+    fontSize: 40,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+    color: '#f6f4ec',
     textAlign: 'center',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    marginBottom: 14,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
   },
-  titleSub: {
+  tagline: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#fbbf24', // Golden tagline
-    letterSpacing: 0.5,
+    letterSpacing: 3,
+    textTransform: 'uppercase',
+    color: '#d4af37',
     textAlign: 'center',
-    marginTop: 8,
-    opacity: 0.9,
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+    paddingBottom: 8,
+  },
+  taglineLine: {
+    height: 1,
+    width: '100%',
+    maxWidth: 300,
+    backgroundColor: '#f0c14b',
+    position: 'absolute',
+    bottom: 0,
   }
 });
-

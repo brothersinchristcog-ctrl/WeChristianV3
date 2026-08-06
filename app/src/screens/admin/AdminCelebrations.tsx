@@ -29,7 +29,8 @@ export default function AdminCelebrations({ navigation }: any) {
   const { setActiveTab } = React.useContext(AdminTabContext);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('Birthday');
+  const [activeDateFilter, setActiveDateFilter] = useState('Today');
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
   // Hoisted state for personalization flow
@@ -161,16 +162,9 @@ export default function AdminCelebrations({ navigation }: any) {
   }
 
   if (viewMode === 'list') {
-    return (
-      <AdminCelebrationsList 
-        category={selectedCategory} 
-        onBack={() => setViewMode('dashboard')} 
-        onSelectMember={(member) => {
-          setSelectedMember(member);
-          setViewMode('details');
-        }}
-      />
-    );
+    // viewMode list is obsolete as it's merged with dashboard
+    setViewMode('dashboard');
+    return null;
   }
 
   const handleSendWhatsApp = async (localImageUri?: string) => {
@@ -487,36 +481,46 @@ export default function AdminCelebrations({ navigation }: any) {
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>CELEBRATION CATEGORIES</Text>
+      {/* Category Buttons */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10, marginBottom: 16 }}>
+        {['Birthday', 'Wedding Anniversary', 'Baptism Anniversary'].map(cat => {
+          let bgColor = cat === 'Birthday' ? '#F3E4B6' : cat === 'Wedding Anniversary' ? '#E2E5F2' : '#DDF1E7';
+          let textColor = cat === 'Birthday' ? '#B88A2E' : cat === 'Wedding Anniversary' ? '#455490' : '#358B6D';
+          return (
+            <TouchableOpacity 
+              key={cat}
+              style={[styles.chipBtn, { backgroundColor: bgColor }, selectedCategory === cat && { borderWidth: 2, borderColor: textColor }]}
+              onPress={() => setSelectedCategory(cat)}
+            >
+              <Text style={[styles.chipBtnTxt, { color: textColor }, selectedCategory === cat && { fontWeight: '800' }]}>{cat}</Text>
+            </TouchableOpacity>
+          )
+        })}
+      </ScrollView>
 
-      {/* Categories */}
-      <TouchableOpacity style={[styles.categoryCard, { backgroundColor: '#F3E4B6' }]} onPress={() => handleCategoryPress('Birthday')}>
-        <Gift size={24} color="#B88A2E" style={styles.catIcon} />
-        <Text style={styles.catTitle}>Birthday</Text>
-        <Text style={styles.catDesc}>
-          <Text style={{color: '#6B5720', fontWeight: '500'}}>{stats.birthdays.total} members</Text>
-          {stats.birthdays.thisWeek > 0 && (
-            <Text style={{color: '#B88A2E'}}>{' \u00B7 '}{stats.birthdays.thisWeek} this week</Text>
-          )}
-        </Text>
-      </TouchableOpacity>
+      {/* Date Filters */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, marginBottom: 20 }}>
+        {['Today', 'Upcoming', 'Week', 'Month', 'Past', 'All'].map(filter => (
+          <TouchableOpacity 
+            key={filter}
+            style={[styles.filterBtn, activeDateFilter === filter && styles.filterBtnActive]}
+            onPress={() => setActiveDateFilter(filter)}
+          >
+            <Text style={[styles.filterBtnTxt, activeDateFilter === filter && styles.filterBtnTxtActive]}>{filter}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-      <View style={styles.row}>
-        <TouchableOpacity style={[styles.categoryCard, styles.halfCard, { backgroundColor: '#E2E5F2' }]} onPress={() => handleCategoryPress('Wedding Anniversary')}>
-          <Heart size={24} color="#455490" style={styles.catIcon} />
-          <Text style={styles.catTitle}>Wedding{'\n'}Anniversary</Text>
-          <Text style={styles.catDesc}>
-            <Text style={{color: '#525B7E', fontWeight: '500'}}>{stats.anniversaries.total} members</Text>
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.categoryCard, styles.halfCard, { backgroundColor: '#DDF1E7' }]} onPress={() => handleCategoryPress('Baptism Anniversary')}>
-          <PlusCircle size={24} color="#358B6D" style={styles.catIcon} />
-          <Text style={styles.catTitle}>Baptism{'\n'}Anniversary</Text>
-          <Text style={styles.catDesc}>
-            <Text style={{color: '#4B6B5E', fontWeight: '500'}}>{stats.baptisms.total} members</Text>
-          </Text>
-        </TouchableOpacity>
+      {/* Embedded List */}
+      <View style={{ flex: 1, minHeight: 400 }}>
+        <AdminCelebrationsList 
+          category={selectedCategory} 
+          activeTab={activeDateFilter}
+          onSelectMember={(member) => {
+            setSelectedMember(member);
+            setViewMode('details');
+          }}
+        />
       </View>
 
       <Text style={styles.footerText}>
@@ -658,6 +662,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#9CA3AF',
     fontSize: 11,
-    marginTop: 40,
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  chipBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'transparent'
+  },
+  chipBtnTxt: {
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  filterBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#E5E7EB',
+  },
+  filterBtnActive: {
+    backgroundColor: '#1a2d5a',
+  },
+  filterBtnTxt: {
+    color: '#4B5563',
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  filterBtnTxtActive: {
+    color: '#FFFFFF'
   }
 });

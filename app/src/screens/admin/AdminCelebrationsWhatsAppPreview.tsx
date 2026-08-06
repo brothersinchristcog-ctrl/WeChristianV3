@@ -89,9 +89,9 @@ export default function AdminCelebrationsWhatsAppPreview({
           <ChevronLeft size={22} color="#fff" />
           <Text style={styles.topBarBackText}>Back</Text>
         </TouchableOpacity>
-        <View style={styles.topBarTitleContainer}>
-          <Text style={styles.topBarSub}>{categoryLabel}</Text>
-          <Text style={styles.topBarTitle}>PREVIEW GREETING</Text>
+        <Text style={{ color: '#fff', fontSize: 18, marginHorizontal: 8, opacity: 0.4 }}>|</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.topBarTitle} numberOfLines={1} ellipsizeMode="tail">{categoryLabel} Preview Greeting</Text>
         </View>
       </View>
 
@@ -99,8 +99,14 @@ export default function AdminCelebrationsWhatsAppPreview({
 
 
         <View style={styles.waHeader}>
-          <View style={[styles.avatar, { backgroundColor: colors[1] }]}>
-            <Text style={styles.avatarText}>{initials}</Text>
+          <View style={[styles.avatar, { backgroundColor: colors[1], overflow: 'hidden' }]}>
+            {(() => {
+              const displayPhoto = member.profilePhoto || member.photoUrl || member.photoURL || member.PhotoUrl || member.Photo || member.ProfilePhoto;
+              if (displayPhoto && typeof displayPhoto === 'string' && displayPhoto.startsWith('http')) {
+                return <Image source={{ uri: displayPhoto }} style={{ width: '100%', height: '100%' }} />;
+              }
+              return <Text style={styles.avatarText}>{initials}</Text>;
+            })()}
           </View>
           <View>
             <Text style={styles.waName}>{member.name}</Text>
@@ -169,10 +175,6 @@ export default function AdminCelebrationsWhatsAppPreview({
         </View>
 
         <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.btnOutline} onPress={onEdit} disabled={isSendingWhatsApp || isSendingPush}>
-            <Edit2 stroke="#475569" width={16} height={16} />
-            <Text style={styles.btnOutlineText}>Edit</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#37469B' }]} onPress={() => handleCaptureAndSend('push')} disabled={isSendingWhatsApp || isSendingPush}>
             {isSendingPush ? (
               <ActivityIndicator color="#fff" size="small" />
@@ -221,7 +223,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1a2d5a',
     paddingHorizontal: 20,
     paddingBottom: 20,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingTop: 16,
     borderBottomLeftRadius: 28,
     borderBottomRightRadius: 28,
   },
@@ -249,8 +251,7 @@ const styles = StyleSheet.create({
   topBarTitle: {
     color: '#fff',
     fontFamily: 'Inter-Bold',
-    fontSize: 14,
-    textTransform: 'uppercase',
+    fontSize: 16,
   },
   waHeader: {
     flexDirection: 'row',

@@ -444,9 +444,9 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
       <StatusBar barStyle="light-content" />
       
       {/* ── Hero Section ── */}
-      <View style={[styles.hero, { paddingTop: insets.top + 16 }]}>
+      <View style={[styles.hero, { paddingTop: insets.top }]}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1, marginRight: 10 }}>
             <TouchableOpacity onPress={() => {
               if (navigation.canGoBack()) {
                 navigation.goBack();
@@ -458,24 +458,12 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>
             <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-            <View>
-              <Text style={styles.heroTitle}>Pastor Events</Text>
-              <Text style={[styles.heroSub, { marginTop: 2 }]}>Manage schedule & travel</Text>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={styles.heroTitle} numberOfLines={1} ellipsizeMode="tail">Pastor Events</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]} numberOfLines={1} ellipsizeMode="tail">Manage schedule & travel</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', gap: 10 }}>
-            <TouchableOpacity 
-              style={styles.heroIconBtn} 
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Ionicons name="calendar-outline" size={18} color="#1a2d5a" />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.heroIconBtn} 
-              onPress={() => navigation.navigate('AIAssistant')}
-            >
-              <MaterialCommunityIcons name="robot-outline" size={18} color="#1a2d5a" />
-            </TouchableOpacity>
             <TouchableOpacity 
               style={styles.newBtn} 
               onPress={() => navigation.navigate('CreateEvent')}
@@ -510,27 +498,43 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
         />
       )}
 
-      {/* Tabs */}
-      <View style={styles.tabsContainer}>
-        {(['today', 'upcoming', 'past'] as const).map(tab => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tab, 
-              activeTab === tab && !selectedDateFilter && styles.activeTab,
-              selectedDateFilter && styles.disabledTab
-            ]}
-            onPress={() => {
-              setSelectedDateFilter(null);
-              setActiveTab(tab);
-            }}
-            disabled={loading}
+      {/* Tabs and Icons */}
+      <View style={[styles.tabsContainer, { justifyContent: 'space-between', alignItems: 'center' }]}>
+        <View style={{ flexDirection: 'row', flex: 1 }}>
+          {(['today', 'upcoming', 'past'] as const).map(tab => (
+            <TouchableOpacity
+              key={tab}
+              style={[
+                styles.tab, 
+                activeTab === tab && !selectedDateFilter && styles.activeTab,
+                selectedDateFilter && styles.disabledTab
+              ]}
+              onPress={() => {
+                setSelectedDateFilter(null);
+                setActiveTab(tab);
+              }}
+              disabled={loading}
+            >
+              <Text style={[styles.tabText, activeTab === tab && !selectedDateFilter && styles.activeTabText]}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10, marginRight: 20 }}>
+          <TouchableOpacity 
+            style={[styles.heroIconBtn, { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 }]} 
+            onPress={() => setShowDatePicker(true)}
           >
-            <Text style={[styles.tabText, activeTab === tab && !selectedDateFilter && styles.activeTabText]}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
+            <Ionicons name="calendar-outline" size={18} color="#1a2d5a" />
           </TouchableOpacity>
-        ))}
+          <TouchableOpacity 
+            style={[styles.heroIconBtn, { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 }]} 
+            onPress={() => navigation.navigate('AIAssistant')}
+          >
+            <MaterialCommunityIcons name="robot-outline" size={18} color="#1a2d5a" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Date Filter Indicator Banner */}
@@ -584,21 +588,20 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
       </View>
 
       {/* ── Stats Dashboard ── */}
-      <View style={styles.statsGrid}>
-        <View style={styles.statCardFull}>
-          <Text style={styles.statLblFull}>Total Events</Text>
-          <Text style={styles.statNumFull}>{totalEvents}</Text>
+      <View style={[styles.statsGrid, { backgroundColor: '#1a2d5a', borderRadius: 16, padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 4, shadowColor: '#1a2d5a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 }]}>
+        <View style={{ alignItems: 'center', flex: 1 }}>
+          <Text style={{ color: '#aac4e8', fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' }}>Total Events</Text>
+          <Text style={{ fontSize: 24, fontWeight: '800', color: '#fff' }}>{totalEvents}</Text>
         </View>
-        
-        <View style={styles.statsRow}>
-          <View style={styles.statCardHalf}>
-            <Text style={styles.statLbl}>Travel Dist</Text>
-            <Text style={styles.statNum}>{Math.round(totalDistance)} km</Text>
-          </View>
-          <View style={styles.statCardHalf}>
-            <Text style={styles.statLbl}>Travel Time</Text>
-            <Text style={styles.statNum}>{formatDuration(totalTravelTimeCar)}</Text>
-          </View>
+        <View style={{ width: 1, height: '80%', backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        <View style={{ alignItems: 'center', flex: 1 }}>
+          <Text style={{ color: '#aac4e8', fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' }}>Travel Dist</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>{Math.round(totalDistance)} km</Text>
+        </View>
+        <View style={{ width: 1, height: '80%', backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        <View style={{ alignItems: 'center', flex: 1 }}>
+          <Text style={{ color: '#aac4e8', fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' }}>Travel Time</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>{formatDuration(totalTravelTimeCar)}</Text>
         </View>
       </View>
 

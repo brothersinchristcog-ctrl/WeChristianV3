@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, FlatList, Dimensions, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, FlatList, Dimensions, Platform, Image } from 'react-native';
 import { ChevronLeft, Search, CheckCircle2, SlidersHorizontal, Gift } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
 
 const { width } = Dimensions.get('window');
 
-import { Image } from 'react-native';
 
-const FILTER_TABS = ['Today', 'Upcoming', 'Week', 'Month', 'Past', 'All'];
 
-export default function AdminWeCelebrationsList({ category, onBack, onSelectMember }: { category: string, onBack: () => void, onSelectMember: (member: any) => void }) {
+export default function AdminWeCelebrationsList({ category, activeTab, onSelectMember }: { category: string, activeTab: string, onSelectMember: (member: any) => void }) {
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('Upcoming');
   const [searchQuery, setSearchQuery] = useState('');
   const [members, setMembers] = useState<any[]>([]);
 
@@ -21,6 +18,14 @@ export default function AdminWeCelebrationsList({ category, onBack, onSelectMemb
       try {
         const data = await FirestoreService.getAllCelebrations();
         
+        const getValidPhotoUrl = (obj: any) => {
+          const fields = ['ProfilePhoto', 'profilePhoto', 'Photo', 'photoUrl', 'photoURL', 'PhotoUrl', 'photo', 'profileImageUrl'];
+          for (const f of fields) {
+            if (obj[f] && typeof obj[f] === 'string' && obj[f].trim().startsWith('http')) return obj[f].trim();
+          }
+          return null;
+        };
+
         let processed: any[] = [];
         let dateField = '';
         if (category === 'Birthday') dateField = 'Birthdate';
@@ -52,7 +57,7 @@ export default function AdminWeCelebrationsList({ category, onBack, onSelectMemb
               id: d.Id || d.id,
               name: d.Name || 'Unknown',
               initials: initials.toUpperCase(),
-              photoUrl: d.ProfilePhoto || d.profilePhoto || d.Photo || d.photoUrl || d.PhotoUrl || d.photo || null,
+              photoUrl: getValidPhotoUrl(d),
               dateStr,
               age,
               phone: d.MobilePhone || d.Phone || '',
@@ -124,37 +129,7 @@ export default function AdminWeCelebrationsList({ category, onBack, onSelectMemb
 
   return (
     <View style={styles.container}>
-            {/* ── Fixed Header ── */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={onBack}>
-          <ChevronLeft size={22} color="#fff" />
-          <Text style={styles.backBtnTxt}>Back</Text>
-        </TouchableOpacity>
-        <View style={styles.heroTitles}>
-          <Text style={styles.headerTitle}>{category}</Text>
-          <Text style={styles.headerSub}>CELEBRATIONS</Text>
-        </View>
-      </View>
-
       <ScrollView contentContainerStyle={styles.content}>
-        
-        <Text style={styles.sectionTitle}>{category.toUpperCase()}</Text>
-
-        {/* Filter Tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={{ paddingRight: 20 }}>
-          {FILTER_TABS.map(tab => {
-            const isActive = tab === activeTab;
-            return (
-              <TouchableOpacity 
-                key={tab} 
-                style={[styles.tabBtn, isActive && styles.tabBtnActive]}
-                onPress={() => setActiveTab(tab)}
-              >
-                <Text style={[styles.tabTxt, isActive && styles.tabTxtActive]}>{tab}</Text>
-              </TouchableOpacity>
-            )
-          })}
-        </ScrollView>
 
         <View style={[styles.searchRow, { marginRight: 0 }]}>
           <View style={[styles.searchBox, { marginRight: 0 }]}>
@@ -177,10 +152,10 @@ export default function AdminWeCelebrationsList({ category, onBack, onSelectMemb
             
             {/* Avatar */}
             <View style={[styles.avatar, { backgroundColor: getAvatarColor(member.name) }]}>
-              {member.photoUrl ? (
+              {member.photoUrl && typeof member.photoUrl === 'string' && member.photoUrl.startsWith('http') ? (
                 <Image source={{ uri: member.photoUrl }} style={{ width: 56, height: 56, borderRadius: 28 }} />
               ) : (
-                <Text style={styles.avatarTxt}>{member.initials}</Text>
+                <Text style={styles.avatarTxt}>{member.initials || (member.name ? member.name.substring(0, 2).toUpperCase() : 'U')}</Text>
               )}
             </View>
             
@@ -193,16 +168,6 @@ export default function AdminWeCelebrationsList({ category, onBack, onSelectMemb
                 </View>
                 <Text style={styles.metaTxt}> · {member.dateStr} · {member.age} yrs</Text>
               </View>
-            </View>
-            
-            {/* Actions */}
-            <View style={styles.actionCol}>
-              <TouchableOpacity style={styles.actionBtn}>
-                <CheckCircle2 size={20} color="#10B981" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn}>
-                <Gift size={20} color="#D4AF37" />
-              </TouchableOpacity>
             </View>
           </TouchableOpacity>
         ))}
