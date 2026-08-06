@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { Home, Heart, BookOpen, HandCoins, User, ShieldCheck, Users as UsersSwitch } from 'lucide-react-native';
-import { ActivityIndicator, View, Text, StyleSheet, Alert, Platform, TouchableOpacity, AppState, Image } from 'react-native';
+import { ActivityIndicator, View, Text, StyleSheet, Alert, Platform, TouchableOpacity, AppState, Image, Animated, PanResponder, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -153,7 +153,7 @@ function TabNavigator() {
   const { user, signOut, member, viewMode, setViewMode } = useAuth();
   const insets = useSafeAreaInsets();
   const isGuest = user?.isAnonymous;
-  const isActualAdmin = member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin';
+  const isActualAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER');
 
   const handleGuestInteraction = (e: any) => {
     if (isGuest) {
@@ -199,34 +199,8 @@ function TabNavigator() {
       />
     </Tab.Navigator>
 
-    {/* Floating Switch to Admin pill — only visible to real admins in member view */}
     {isActualAdmin && viewMode === 'member' && (
-      <TouchableOpacity
-        onPress={() => setViewMode('admin')}
-        style={{
-          position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 140 : 130,
-          right: 20,
-          backgroundColor: '#1a2d5a', // solid navy
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          borderRadius: 30,
-          borderWidth: 1,
-          borderColor: 'rgba(252, 211, 77, 0.5)', // golden border
-          gap: 8,
-          elevation: 10,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.35,
-          shadowRadius: 10,
-          zIndex: 999
-        }}
-      >
-        <ShieldCheck size={18} color="#FCD34D" />
-        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>Admin View</Text>
-      </TouchableOpacity>
+      <DraggableAdminPill onPress={() => setViewMode('admin')} />
     )}
     </>
   );
@@ -240,7 +214,7 @@ function Navigation() {
   const [isLocked, setIsLocked] = useState(false);
   const appState = React.useRef(AppState.currentState);
 
-  const isAdmin = member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin';
+  const isAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER');
   // Show admin UI only when userType is admin AND viewMode is admin
   const showAdminView = isAdmin && viewMode === 'admin';
   const navigationKey = showAdminView ? 'admin-root' : 'member-root';
@@ -615,3 +589,67 @@ const lockStyles = StyleSheet.create({
     fontWeight: '700'
   }
 });
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+function DraggableAdminPill({ onPress }: { onPress: () => void }) {
+  const pan = React.useRef(new Animated.ValueXY({ 
+    x: SCREEN_WIDTH - 150, 
+    y: SCREEN_HEIGHT - (Platform.OS === 'ios' ? 240 : 230) 
+  })).current;
+
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        pan.extractOffset();
+      },
+      onPanResponderMove: Animated.event(
+        [null, { dx: pan.x, dy: pan.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: () => {
+        pan.flattenOffset();
+      }
+    })
+  ).current;
+
+  return (
+    <Animated.View
+      {...panResponder.panHandlers}
+      style={[
+        pan.getLayout(),
+        {
+          position: 'absolute',
+          zIndex: 999,
+        }
+      ]}
+    >
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.8}
+        style={{
+          backgroundColor: '#1a2d5a', 
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderRadius: 30,
+          borderWidth: 1,
+          borderColor: 'rgba(252, 211, 77, 0.5)',
+          gap: 8,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.35,
+          shadowRadius: 10,
+        }}
+      >
+        <ShieldCheck size={18} color="#FCD34D" />
+        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>Admin View</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}

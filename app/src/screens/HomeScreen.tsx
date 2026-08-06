@@ -560,16 +560,20 @@ export default function HomeScreen() {
         <View style={styles.headerTopRow}>
           <View style={styles.headerLeft}>
             <View style={styles.logoCircle}>
-              <Image 
-                source={activeChurch?.theme?.logoUrl ? { uri: activeChurch.theme.logoUrl } : require('../../assets/logo.png')} 
-                style={styles.logoImg}
-                resizeMode="cover"
-              />
+              {activeChurch?.theme?.logoUrl ? (
+                <Image 
+                  source={{ uri: activeChurch.theme.logoUrl }} 
+                  style={styles.logoImg}
+                  resizeMode="cover"
+                />
+              ) : null}
             </View>
-            <View style={styles.titleCol}>
-              <Text style={styles.hdTitle}>{activeChurch?.name || 'Welcome'}</Text>
-              <Text style={styles.hdSub}>{activeChurch?.tagline || 'kristhunandu sahodarulu sahavasmu'}</Text>
-            </View>
+              <View style={styles.titleCol}>
+                <Text style={styles.hdTitle}>{activeChurch?.name || ''}</Text>
+                {!!activeChurch?.tagline && (
+                  <Text style={styles.hdSub}>{activeChurch.tagline}</Text>
+                )}
+              </View>
           </View>
 
           <View style={styles.headerRight}>

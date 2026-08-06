@@ -2,6 +2,35 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image } from 'react-native';
 import { ChevronLeft, Gift } from 'lucide-react-native';
 
+const MemberAvatar = ({ member, initials, styles, bgColor }: any) => {
+  const [imgError, setImgError] = React.useState(false);
+  const possibleUrls = [
+    member.profilePhoto, member.photoURL, member.photoUrl, 
+    member.ProfilePhoto, member.profileImage, member.Photo, 
+    member.PhotoUrl, member.photo
+  ];
+  const validUrl = possibleUrls.find((url: any) => typeof url === 'string' && url.trim() !== '' && url !== 'null' && url !== 'undefined');
+
+  if (validUrl && !imgError) {
+    return (
+      <View style={styles.avatarInner}>
+        <Image 
+          source={{ uri: validUrl.trim() }} 
+          style={styles.avatarImage} 
+          resizeMode="cover"
+          onError={() => setImgError(true)}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.avatarInner, { backgroundColor: bgColor }]}>
+      <Text style={styles.avatarTxt}>{initials}</Text>
+    </View>
+  );
+};
+
 export default function AdminCelebrationsMemberDetails({ member, category, onBack, onPrepareWish }: { member: any, category: string, onBack: () => void, onPrepareWish: () => void }) {
   
   const getAvatarColor = (name: string) => {
@@ -30,15 +59,12 @@ export default function AdminCelebrationsMemberDetails({ member, category, onBac
         {/* Profile Section */}
         <View style={styles.profileSection}>
           <View style={[styles.avatarOuter, { borderColor: '#FFFFFF' }]}>
-            <View style={[styles.avatarInner, { backgroundColor: getAvatarColor(member.name) }]}>
-              {(() => {
-                const displayPhoto = member.photoUrl || member.profilePhoto || member.photoURL || member.PhotoUrl || member.Photo || member.ProfilePhoto;
-                if (displayPhoto && typeof displayPhoto === 'string' && displayPhoto.startsWith('http')) {
-                  return <Image source={{ uri: displayPhoto }} style={styles.avatarImage} />;
-                }
-                return <Text style={styles.avatarTxt}>{member.initials || (member.name ? member.name.substring(0, 2).toUpperCase() : 'U')}</Text>;
-              })()}
-            </View>
+            <MemberAvatar 
+              member={member} 
+              initials={member.initials || (member.name ? member.name.substring(0, 2).toUpperCase() : 'U')} 
+              styles={styles} 
+              bgColor={getAvatarColor(member.name)} 
+            />
           </View>
           
           <View style={styles.tag}>

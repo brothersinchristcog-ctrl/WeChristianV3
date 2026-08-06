@@ -6,7 +6,32 @@ import Theme from '../../theme/Theme';
 
 const { width } = Dimensions.get('window');
 
+const MemberAvatar = ({ member, initials, styles, bgColor }: any) => {
+  const [imgError, setImgError] = React.useState(false);
+  const possibleUrls = [
+    member.profilePhoto, member.photoURL, member.photoUrl, 
+    member.ProfilePhoto, member.profileImage, member.Photo, 
+    member.PhotoUrl, member.photo
+  ];
+  const validUrl = possibleUrls.find((url: any) => typeof url === 'string' && url.trim() !== '' && url !== 'null' && url !== 'undefined');
 
+  if (validUrl && !imgError) {
+    return (
+      <Image 
+        source={{ uri: validUrl.trim() }} 
+        style={styles.avatar} 
+        resizeMode="cover"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  return (
+    <View style={[styles.avatar, { backgroundColor: bgColor }]}>
+      <Text style={styles.avatarTxt}>{initials}</Text>
+    </View>
+  );
+};
 
 export default function AdminWeCelebrationsList({ category, activeTab, onSelectMember }: { category: string, activeTab: string, onSelectMember: (member: any) => void }) {
   const [loading, setLoading] = useState(true);
@@ -21,7 +46,7 @@ export default function AdminWeCelebrationsList({ category, activeTab, onSelectM
         const getValidPhotoUrl = (obj: any) => {
           const fields = ['ProfilePhoto', 'profilePhoto', 'Photo', 'photoUrl', 'photoURL', 'PhotoUrl', 'photo', 'profileImageUrl'];
           for (const f of fields) {
-            if (obj[f] && typeof obj[f] === 'string' && obj[f].trim().startsWith('http')) return obj[f].trim();
+            if (obj[f] && typeof obj[f] === 'string' && obj[f].trim() !== '' && obj[f] !== 'null' && obj[f] !== 'undefined') return obj[f].trim();
           }
           return null;
         };
@@ -151,13 +176,12 @@ export default function AdminWeCelebrationsList({ category, activeTab, onSelectM
           <TouchableOpacity key={member.id || idx} style={styles.memberCard} onPress={() => onSelectMember(member)}>
             
             {/* Avatar */}
-            <View style={[styles.avatar, { backgroundColor: getAvatarColor(member.name) }]}>
-              {member.photoUrl && typeof member.photoUrl === 'string' && member.photoUrl.startsWith('http') ? (
-                <Image source={{ uri: member.photoUrl }} style={{ width: 56, height: 56, borderRadius: 28 }} />
-              ) : (
-                <Text style={styles.avatarTxt}>{member.initials || (member.name ? member.name.substring(0, 2).toUpperCase() : 'U')}</Text>
-              )}
-            </View>
+            <MemberAvatar 
+              member={member} 
+              initials={member.initials || (member.name ? member.name.substring(0, 2).toUpperCase() : 'U')} 
+              styles={styles} 
+              bgColor={getAvatarColor(member.name)} 
+            />
             
             {/* Info */}
             <View style={styles.memberInfo}>

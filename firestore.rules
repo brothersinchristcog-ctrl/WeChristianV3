@@ -126,12 +126,15 @@ service cloud.firestore {
     // --- CHURCH-SCOPED COLLECTIONS (all data lives here) ---
     match /churches/{churchId} {
       // Helper: Is this user an admin for this specific church?
-      function isChurchAdmin() {
-        return isAuthenticated() && (
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'] ||
-          get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin']
-        );
-      }
+        function isChurchAdmin() {
+          let hasGlobalUser = exists(/databases/$(database)/documents/users/$(request.auth.uid));
+          let isGlobalAdmin = hasGlobalUser && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
+          
+          let hasMemberDoc = exists(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
+          let isMemberAdmin = hasMemberDoc && get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
+          
+          return isAuthenticated() && (isGlobalAdmin || isMemberAdmin);
+        }
 
       // Church info is public — allow lookup by code even before login (needed during signup).
       allow read: if true;

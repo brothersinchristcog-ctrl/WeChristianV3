@@ -40,8 +40,11 @@ import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystemLegacy from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import firestore from '@react-native-firebase/firestore';
+import ViewShot from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
 
 const { width } = Dimensions.get('window');
 
@@ -55,6 +58,7 @@ export default function AdminFinanceDashboard() {
   const [invoices, setInvoices] = useState<ChurchInvoice[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const invoiceRef = React.useRef<any>(null);
   
   // Local UI State
   const [currentSubTab, setCurrentSubTab] = useState<SubTab>('dashboard');
@@ -223,12 +227,32 @@ export default function AdminFinanceDashboard() {
     setShowAddExpenseModal(true);
   };
 
+  const handleDownloadImage = async () => {
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Please grant permission to save photos to your gallery.');
+        return;
+      }
+
+      if (invoiceRef.current) {
+        const uri = await invoiceRef.current.capture();
+        await MediaLibrary.saveToLibraryAsync(uri);
+        Alert.alert('Success', 'Invoice saved to your gallery!');
+      } else {
+        Alert.alert('Error', 'Could not capture invoice.');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to save image.');
+    }
+  };
+
   const generateInvoiceHtml = () => {
     const invDate = new Date().toISOString().split('T')[0];
     const cName = churchProfile?.name || member?.churchId || "We Christian Finance";
     const userName = member?.name || (member?.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : 'Admin');
-    const cAddress = churchProfile?.address || churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "12 Mission Road, Kurnool, Andhra Pradesh";
-    const cPhone = churchProfile?.phone || "+91 90000 00000";
+    const cAddress = churchProfile?.address || churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "";
+    const cPhone = churchProfile?.phone || "";
     const logoUrl = churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto || null;
     
     const filteredExp = expenses.filter(e => selectedInvoiceExpenses.includes(e.id || ''));
@@ -307,10 +331,12 @@ export default function AdminFinanceDashboard() {
         <body>
           <div class="invoice-container">
             <div class="header">
-              ${logoHtml}
-              <h2 style="margin:0; margin-top:10px; margin-bottom:5px;">${cName}</h2>
-              <div style="font-size: 13px; color: #645d54; margin-bottom:3px;">${cAddress}</div>
-              <div style="font-size: 13px; color: #645d54;">Phone: ${cPhone}</div>
+              <div class="church-info">
+                ${logoHtml}
+                <h2 style="margin:0; margin-top:10px; margin-bottom:5px;">${cName}</h2>
+                ${cAddress ? `<div style="font-size: 13px; color: #645d54; margin-bottom:3px;">${cAddress}</div>` : ''}
+                ${cPhone ? `<div style="font-size: 13px; color: #645d54;">Phone: ${cPhone}</div>` : ''}
+              </div>
             </div>
             <div class="meta">
               <div class="meta-box"><div class="label">INVOICE NO</div><div class="value">EXP-${new Date().getFullYear()}-00024</div></div>
@@ -759,7 +785,7 @@ export default function AdminFinanceDashboard() {
 
         {/* ================= EXPENSES LIST ================= */}
         {currentSubTab === 'expenses' && (
-          <View>
+          <View style={{ borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 16, padding: 16, backgroundColor: '#ffffff', shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 10, elevation: 1 }}>
             {selectedCategoryView ? (
               <View style={{ paddingTop: 10 }}>
                 <TouchableOpacity 
@@ -1733,8 +1759,9 @@ export default function AdminFinanceDashboard() {
                 </TouchableOpacity>
               </View>
 
-              <View style={styles.invoiceCard}>
-                {/* Header */}
+              <ViewShot ref={invoiceRef} options={{ format: 'png', quality: 1 }}>
+                <View style={styles.invoiceCard}>
+                  {/* Header */}
                 <View style={{ alignItems: 'center', marginBottom: 20 }}>
                   {churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto ? (
                     <Image source={{ uri: churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12 }} />
@@ -1748,12 +1775,16 @@ export default function AdminFinanceDashboard() {
                   <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#1b2a4a', fontWeight: '700', textAlign: 'center', paddingHorizontal: 20 }}>
                     {churchProfile?.name || member?.churchId || "We Christian Finance"}
                   </Text>
-                  <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 4, textAlign: 'center', paddingHorizontal: 20 }}>
-                    {churchProfile?.address || (churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "12 Mission Road, Kurnool, Andhra Pradesh")}
-                  </Text>
-                  <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 2, textAlign: 'center' }}>
-                    Phone: {churchProfile?.phone || "+91 90000 00000"}
-                  </Text>
+                  {churchProfile?.address || churchProfile?.mailingCity ? (
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 4, textAlign: 'center', paddingHorizontal: 20 }}>
+                      {churchProfile?.address || `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}`}
+                    </Text>
+                  ) : null}
+                  {churchProfile?.phone ? (
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 2, textAlign: 'center' }}>
+                      Phone: {churchProfile.phone}
+                    </Text>
+                  ) : null}
                   <View style={{ height: 1, backgroundColor: '#c9973f', width: '100%', marginTop: 15 }} />
                 </View>
 
@@ -1857,58 +1888,78 @@ export default function AdminFinanceDashboard() {
                   </View>
                 </View>
               </View>
+            </ViewShot>
 
-              {/* Action Buttons & Approval Flow */}
-              {selectedInvoiceForApproval?.status === 'Pending Approval' && selectedInvoiceForApproval?.reportedByUserId === member?.id ? (
-                <View style={{ marginTop: 20 }}>
-                  <Text style={{ fontFamily: FONTS.serif, fontSize: 16, color: '#1b2a4a', marginBottom: 10, textAlign: 'center' }}>Approval Required</Text>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
-                    <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#137333', borderWidth: 0 }]} onPress={() => handleInvoiceApprovalAction('Approve')}>
-                      <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>Approve</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c5221f', borderWidth: 0 }]} onPress={() => { setApprovalActionType('Reject'); setShowApprovalActionModal(true); }}>
-                      <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>Reject</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#b06000', borderWidth: 0 }]} onPress={() => { setApprovalActionType('Request Changes'); setShowApprovalActionModal(true); }}>
-                      <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 12 }]}>Change</Text>
-                    </TouchableOpacity>
-                  </View>
+            {/* Action Buttons & Approval Flow */}
+            {selectedInvoiceForApproval?.status === 'Pending Approval' && selectedInvoiceForApproval?.reportedByUserId === member?.id ? (
+              <View style={{ marginTop: 20 }}>
+                <Text style={{ fontFamily: FONTS.serif, fontSize: 16, color: '#1b2a4a', marginBottom: 10, textAlign: 'center' }}>Approval Required</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+                  <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#137333', borderWidth: 0 }]} onPress={() => handleInvoiceApprovalAction('Approve')}>
+                    <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>Approve</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c5221f', borderWidth: 0 }]} onPress={() => { setApprovalActionType('Reject'); setShowApprovalActionModal(true); }}>
+                    <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>Reject</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#b06000', borderWidth: 0 }]} onPress={() => { setApprovalActionType('Request Changes'); setShowApprovalActionModal(true); }}>
+                    <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 12 }]}>Change</Text>
+                  </TouchableOpacity>
                 </View>
-              ) : selectedInvoiceForApproval?.status === 'Approved' || !selectedInvoiceForApproval?.status ? (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
-                  <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={async () => {
-                    try {
-                      const html = generateInvoiceHtml();
-                      const { uri } = await Print.printToFileAsync({ html });
-                      const cleanFileName = `Invoice-${invoiceCategory.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
-                      const newUri = (FileSystem as any).cacheDirectory + cleanFileName;
+              </View>
+            ) : selectedInvoiceForApproval?.status === 'Approved' || !selectedInvoiceForApproval?.status ? (
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f' }]} onPress={handleDownloadImage}>
+                  <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save Image</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={async () => {
+                  try {
+                    const html = generateInvoiceHtml();
+                    const { uri } = await Print.printToFileAsync({ html });
+                    const cleanFileName = `Invoice-${invoiceCategory.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+                    const newUri = FileSystemLegacy.cacheDirectory + cleanFileName;
                       
-                      // Copy to clean filename using legacy API
-                      await (FileSystem as any).copyAsync({ from: uri, to: newUri });
+                    // Copy to clean filename using legacy API
+                    await FileSystemLegacy.copyAsync({ from: uri, to: newUri });
                       
-                      // Open the native share/save sheet
+                    if (Platform.OS === 'android') {
+                      try {
+                        const permissions = await FileSystemLegacy.StorageAccessFramework.requestDirectoryPermissionsAsync();
+                        if (permissions.granted) {
+                          const base64Data = await FileSystemLegacy.readAsStringAsync(newUri, { encoding: FileSystemLegacy.EncodingType.Base64 });
+                          const savedUri = await FileSystemLegacy.StorageAccessFramework.createFileAsync(permissions.directoryUri, cleanFileName, 'application/pdf');
+                          await FileSystemLegacy.writeAsStringAsync(savedUri, base64Data, { encoding: FileSystemLegacy.EncodingType.Base64 });
+                          Alert.alert('Success', 'Invoice downloaded successfully.');
+                        } else {
+                          await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf' });
+                        }
+                      } catch (err) {
+                        await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf' });
+                      }
+                    } else {
+                      // Open the native share/save sheet for iOS
                       await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf' });
-                    } catch (e: any) {
-                      Alert.alert("Download Error", e?.message || "Unknown error");
                     }
-                  }}>
-                    <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>↓ Download</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f', borderWidth: 0 }]} onPress={async () => {
-                    try {
-                      const html = generateInvoiceHtml();
-                      await Print.printAsync({ html });
-                    } catch (e: any) {
-                      Alert.alert("Print Error", e?.message || "Unknown error");
-                    }
-                  }}>
-                    <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>Print</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={{ marginTop: 20, padding: 15, backgroundColor: '#f4f6f8', borderRadius: 8, alignItems: 'center' }}>
-                  <Text style={{ fontFamily: FONTS.sans, fontSize: 14, color: '#645d54' }}>
-                    Status: <Text style={{ fontWeight: '700', color: selectedInvoiceForApproval?.status === 'Rejected' ? '#c5221f' : '#b06000' }}>{selectedInvoiceForApproval?.status}</Text>
+                  } catch (e: any) {
+                    Alert.alert("Download Error", e?.message || "Unknown error");
+                  }
+                }}>
+                  <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save PDF</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#e7ebf3', borderWidth: 0 }]} onPress={async () => {
+                  try {
+                    const html = generateInvoiceHtml();
+                    await Print.printAsync({ html });
+                  } catch (e: any) {
+                    Alert.alert("Print Error", e?.message || "Unknown error");
+                  }
+                }}>
+                  <Text style={[styles.invActionBtnTxt, { color: '#1b2a4a', fontSize: 11 }]}>Print</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={{ marginTop: 20, padding: 15, backgroundColor: '#f4f6f8', borderRadius: 8, alignItems: 'center' }}>
+                <Text style={{ fontFamily: FONTS.sans, fontSize: 14, color: '#645d54' }}>
+                  Status: <Text style={{ fontWeight: '700', color: selectedInvoiceForApproval?.status === 'Rejected' ? '#c5221f' : '#b06000' }}>{selectedInvoiceForApproval?.status}</Text>
                   </Text>
                   {selectedInvoiceForApproval?.approvalComments && (
                     <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#241f1a', marginTop: 8, textAlign: 'center' }}>"{selectedInvoiceForApproval.approvalComments}"</Text>
@@ -1997,7 +2048,7 @@ const styles = StyleSheet.create({
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
   heroSub: { color: '#AEB8D4', fontSize: 13 },
   
-  mainScroll: { padding: 18, minHeight: 520 },
+  mainScroll: { padding: 18, paddingBottom: 120, minHeight: 520 },
   
   // Dashboard
   summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 2, justifyContent: 'space-between' },
@@ -2161,10 +2212,10 @@ const styles = StyleSheet.create({
   primaryActionBtnTxt: { fontFamily: FONTS.sans, fontSize: 15, fontWeight: '700', color: '#141d33' },
 
   tabbar: {
-    position: 'absolute', left: 20, right: 20, bottom: Platform.OS === 'ios' ? 24 : 16,
+    position: 'absolute', left: 20, right: 20, bottom: Platform.OS === 'ios' ? 40 : 32,
     backgroundColor: '#ffffff',
     borderRadius: 32,
-    borderWidth: 1, borderColor: '#e5ddd0',
+    borderWidth: 1.5, borderColor: '#c9973f',
     flexDirection: 'row',
     paddingVertical: 10, paddingHorizontal: 12,
     zIndex: 10,

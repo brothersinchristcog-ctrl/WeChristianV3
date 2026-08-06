@@ -28,6 +28,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const updateMember = (newMember: AppMember | null) => {
     setMember(newMember);
+    if (newMember) {
+      AsyncStorage.setItem('@cached_member', JSON.stringify(newMember));
+    } else {
+      AsyncStorage.removeItem('@cached_member');
+    }
   };
 
   useEffect(() => {
@@ -110,33 +115,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // We do not need to delete from a root users collection anymore.
                 setMember(null);
               } else {
-                // Fetch NESTED member profile
-                const memberProfile = await FirestoreService.getMemberProfile(globalUser.primaryChurchId, userState.uid);
+                // Fetch NESTED member profile using the actual document ID
+                const memberProfile = await FirestoreService.getMemberProfile(globalUser.primaryChurchId, globalUser.uid);
                 
                 if (memberProfile) {
-                  console.log('👤 [Auth] Nested Member Profile Loaded:', memberProfile.name);
+                  console.log('✅  [Auth] Nested Member Profile Loaded:', memberProfile.name);
                   // Merge them into the active member state
-                  const combinedMember: AppMember = { ...globalUser, ...memberProfile, id: userState.uid, churchId: globalUser.primaryChurchId };
+                  const combinedMember: AppMember = { ...globalUser, ...memberProfile, id: globalUser.uid, churchId: globalUser.primaryChurchId };
                   setMember(combinedMember);
                   AsyncStorage.setItem('@cached_member', JSON.stringify(combinedMember));
 
-                  // ── Real-time listener on this member's church profile ──
+                  // 📡 Real-time listener on this member's church profile 📡
                   // Cancels any previous listener first.
                   if (memberListenerRef.current) memberListenerRef.current();
                   memberListenerRef.current = firestore()
                     .collection('churches')
                     .doc(globalUser.primaryChurchId)
                     .collection('members')
-                    .doc(userState.uid)
+                    .doc(globalUser.uid)
                     .onSnapshot(async snap => {
                       if (snap.exists() && snap.data()) {
                         const updated = snap.data() as AppMember;
                         setMember(prev => {
-                          const next = { ...prev, ...updated, id: userState.uid, churchId: globalUser.primaryChurchId } as AppMember;
+                          const next = { ...prev, ...updated, id: globalUser.uid, churchId: globalUser.primaryChurchId } as AppMember;
                           AsyncStorage.setItem('@cached_member', JSON.stringify(next));
                           return next;
                         });
-                        console.log('🔄 [Auth] Member profile updated in real-time:', updated.userType);
+                        console.log('✅ [Auth] Member profile updated in real-time:', updated.userType);
                       } else {
                         console.warn('⚠️ [Auth] Member was deleted by admin. Logging out.');
                         // Root users collection is no longer used.

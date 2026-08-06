@@ -13,7 +13,8 @@ import {
   Alert,
   Modal,
   Share,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  Image
 } from 'react-native';
 import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2, ChevronLeft } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
@@ -23,6 +24,39 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { AdminTabContext } from '../../context/AdminTabContext';
 
 const { width } = Dimensions.get('window');
+
+const MemberAvatar = ({ member, initials, styles }: any) => {
+  const [imgError, setImgError] = React.useState(false);
+  
+  const possibleUrls = [
+    member.profilePhoto,
+    member.photoURL,
+    member.photoUrl,
+    member.profileImageUrl,
+    member.PhotoUrl
+  ];
+  
+  const validUrl = possibleUrls.find(
+    (url: any) => typeof url === 'string' && url.trim() !== '' && url !== 'null' && url !== 'undefined'
+  );
+
+  if (validUrl && !imgError) {
+    return (
+      <Image 
+        source={{ uri: validUrl }} 
+        style={styles.avatar} 
+        resizeMode="cover"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  return (
+    <View style={styles.avatar}>
+      <Text style={styles.avatarTxt}>{initials}</Text>
+    </View>
+  );
+};
 
 export default function AdminMembers() {
   const { activeChurch } = useChurch();
@@ -519,16 +553,7 @@ export default function AdminMembers() {
                   onPress={() => handleToggleExpand(member.id)}
                 >
                   <View style={styles.profileSection}>
-                    {member.profilePhoto ? (
-                      <View style={styles.avatar}>
-                        <Text style={styles.avatarTxt}>{getInitials(displayName)}</Text>
-                        {/* Placeholder for actual image if needed */}
-                      </View>
-                    ) : (
-                      <View style={styles.avatar}>
-                        <Text style={styles.avatarTxt}>{getInitials(displayName)}</Text>
-                      </View>
-                    )}
+                    <MemberAvatar member={member} initials={getInitials(displayName)} styles={styles} />
                     <View style={styles.nameSection}>
                       <Text style={styles.name}>{displayName}</Text>
                       {(member.city || member.village) && (
@@ -559,7 +584,8 @@ export default function AdminMembers() {
                             name: member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim(),
                             phone: member.phone || '',
                             userType: member.userType || 'member',
-                            dob: member.dob || ''
+                            dob: member.dob || '',
+                            city: member.city || member.village || ''
                           });
                           setAddModalVisible(true);
                         }}

@@ -561,7 +561,7 @@ export default function AdminEventEditor() {
       {/* ── Page Header ── */}
       <View style={styles.hero}>
         <View style={styles.heroTitleRow}>
-          <TouchableOpacity onPress={() => setActiveTab(7)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
             <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
             <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>

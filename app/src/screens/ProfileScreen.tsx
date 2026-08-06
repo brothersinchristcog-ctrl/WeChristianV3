@@ -31,7 +31,8 @@ import {
   HelpCircle,
   MapPin,
   Crown,
-  Award
+  Award,
+  Shield
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -40,11 +41,12 @@ import { useChurch } from '../context/ChurchContext';
 import SecurityService from '../services/SecurityService';
 import * as ImagePicker from 'expo-image-picker';
 import { Lock } from 'lucide-react-native';
+import storage from '@react-native-firebase/storage';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation }: any) {
-  const { user, signOut, member: authMember } = useAuth();
+  const { user, signOut, member: authMember, setViewMode, setMember: setGlobalMember } = useAuth();
   const { activeChurch } = useChurch();
   const { isDark, toggleTheme, colors } = useTheme();
   
@@ -88,6 +90,9 @@ export default function ProfileScreen({ navigation }: any) {
         const contactCheck = await FirestoreService.checkContactExists(user.phoneNumber);
         if (contactCheck?.exists && contactCheck.member) {
           setMember(contactCheck.member);
+          if (setGlobalMember) {
+            setGlobalMember(contactCheck.member);
+          }
           setEditForm({
             firstName: contactCheck.member.firstName || '',
             lastName: contactCheck.member.lastName || '',
@@ -147,16 +152,22 @@ export default function ProfileScreen({ navigation }: any) {
         onConfirm: async () => {
           try {
             setUpdating(true);
-            setLocalPhotoUrl(selectedUri);
             if (user) {
+              // Upload to Firebase Storage
+              const reference = storage().ref(`profile_photos/${user.uid}/profile_${Date.now()}.jpg`);
+              await reference.putFile(selectedUri);
+              const downloadUrl = await reference.getDownloadURL();
+
+              setLocalPhotoUrl(downloadUrl);
+              
               await user.updateProfile({
-                photoURL: selectedUri
+                photoURL: downloadUrl
               });
               
               // Sync the photo URL to the Firestore member document so admins can see it
               if (member && (member.churchId || activeChurch?.id)) {
                 await FirestoreService.updateMemberProfile(member.churchId || activeChurch?.id || '', member.id, {
-                  profilePhoto: selectedUri,
+                  profilePhoto: downloadUrl,
                   photoRemoved: false
                 });
               }
@@ -366,6 +377,15 @@ export default function ProfileScreen({ navigation }: any) {
         {/* ── Account Section ── */}
         <Text style={styles.sectionLabel}>ACCOUNT</Text>
         <View style={styles.menuGroup}>
+          {(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER')) && (
+            <MenuItem 
+              icon={<Shield size={20} color="#1a2d5a" />} 
+              iconBg="#e6f0fa"
+              title="Admin Dashboard" 
+              sub="Access church management tools" 
+              onPress={() => setViewMode('admin')}
+            />
+          )}
           <MenuItem 
             icon={<User size={20} color="#1a2d5a" />} 
             iconBg="#eff6ff"
