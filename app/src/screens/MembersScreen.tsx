@@ -24,7 +24,8 @@ import {
   UserCheck,
   Plus,
   X,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Edit3
 } from 'lucide-react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useAuth } from '../context/AuthContext';
@@ -64,6 +65,7 @@ export default function MembersScreen({ navigation }: any) {
   const [showSuccess, setShowSuccess] = useState(false);
   const [showRelationPicker, setShowRelationPicker] = useState(false);
   const [datePickerType, setDatePickerType] = useState<'birthdate' | 'anniversary' | null>(null);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
 
   const fetchFamily = async () => {
     if (!member) {
@@ -128,9 +130,14 @@ export default function MembersScreen({ navigation }: any) {
         member!.accountId = targetAccountId; // Update local state tentatively
       }
       
-      await FirestoreService.addFamilyMember(churchId!, targetAccountId, newMember);
+      if (editingMemberId) {
+        await FirestoreService.updateMemberProfile(churchId!, editingMemberId, newMember);
+      } else {
+        await FirestoreService.addFamilyMember(churchId!, targetAccountId, newMember);
+      }
       setShowSuccess(true);
       setShowAddModal(false);
+      setEditingMemberId(null);
       setNewMember({
         firstName: '', lastName: '', relation: 'Husband', gender: 'Male', birthdate: '', anniversaryDate: '', email: '', phone: ''
       });
@@ -266,6 +273,26 @@ export default function MembersScreen({ navigation }: any) {
                         <Text style={styles.roleBadgeTxt}>{(c.userType || c.User_Type__c || 'Member').toString().charAt(0).toUpperCase() + (c.userType || c.User_Type__c || 'Member').toString().slice(1).toLowerCase()}</Text>
                       </View>
                     </View>
+
+                    <TouchableOpacity 
+                      style={{ padding: 8 }}
+                      onPress={() => {
+                        setEditingMemberId(contactId);
+                        setNewMember({
+                          firstName: c.FirstName || c.firstName || c.name?.split(' ')[0] || '',
+                          lastName: c.LastName || c.lastName || c.name?.split(' ').slice(1).join(' ') || '',
+                          email: contactEmail || '',
+                          phone: contactPhone || '',
+                          relation: c.relation || c.Relation || 'Child',
+                          gender: c.gender || c.Gender || 'Male',
+                          birthdate: c.birthdate || c.Birthdate || '',
+                          anniversaryDate: c.anniversaryDate || c.AnniversaryDate || ''
+                        });
+                        setShowAddModal(true);
+                      }}
+                    >
+                      <Edit3 size={20} color={isDark ? '#cbd5e1' : '#64748b'} />
+                    </TouchableOpacity>
                   </View>
 
                   <View style={[styles.cardDivider, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]} />
@@ -333,7 +360,11 @@ export default function MembersScreen({ navigation }: any) {
       {member && !loading && (
         <TouchableOpacity 
           style={styles.addBtnFloating} 
-          onPress={() => setShowAddModal(true)}
+          onPress={() => {
+            setEditingMemberId(null);
+            setNewMember({ firstName: '', lastName: '', relation: 'Husband', gender: 'Male', birthdate: '', anniversaryDate: '', email: '', phone: '' });
+            setShowAddModal(true);
+          }}
         >
           <Plus size={28} color="#1a2d5a" />
         </TouchableOpacity>
@@ -363,9 +394,9 @@ export default function MembersScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>Add Family Member</Text>
+              <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>{editingMemberId ? 'Edit Member' : 'Add New Member'}</Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
-                <X size={24} color={isDark ? '#cbd5e1' : '#64748b'} />
+                <X size={24} color="#94a3b8" />
               </TouchableOpacity>
             </View>
             
@@ -481,7 +512,7 @@ export default function MembersScreen({ navigation }: any) {
                 {submitting ? (
                   <ActivityIndicator color="#1a2d5a" />
                 ) : (
-                  <Text style={styles.submitBtnTxt}>Add Member</Text>
+                  <Text style={styles.submitBtnTxt}>{editingMemberId ? 'Save Changes' : 'Add Member'}</Text>
                 )}
               </TouchableOpacity>
             </ScrollView>
