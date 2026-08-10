@@ -11,7 +11,8 @@ import {
   TextInput,
   Modal,
   Alert,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { 
   Plus, 
@@ -24,8 +25,17 @@ import {
   Pencil,
   Trash2,
   Gift,
-  CheckCircle2
+  CheckCircle2,
+  FileText,
+  Printer,
+  FolderHeart
 } from 'lucide-react-native';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import ViewShot from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
+import * as FileSystemLegacy from 'expo-file-system/legacy';
+import * as FileSystem from 'expo-file-system';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import FirestoreService, { ChurchDonation } from '../../services/FirestoreService';
 import { useAuth } from '../../context/AuthContext';
@@ -66,6 +76,11 @@ export default function AdminDonationDashboard() {
   // Category Modal State
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [showInvoicePreviewModal, setShowInvoicePreviewModal] = useState(false);
+  const [showCategoryInvoiceModal, setShowCategoryInvoiceModal] = useState(false);
+  const [selectedDonationForInvoice, setSelectedDonationForInvoice] = useState<ChurchDonation | null>(null);
+  const invoiceRef = React.useRef<any>(null);
+  const categoryInvoiceRef = React.useRef<any>(null);
 
   // Add Donation Modal State
   const [showAddDonationModal, setShowAddDonationModal] = useState(false);
@@ -197,6 +212,314 @@ export default function AdminDonationDashboard() {
         }
       }}
     ]);
+  };
+
+  const getSequentialDonationNumber = (donId?: string) => {
+    if (!donId) return String(donations.length + 1).padStart(7, '0');
+    const index = donations.findIndex(d => d.id === donId);
+    const stableNum = index !== -1 ? (donations.length - index) : (donations.length + 1);
+    return String(stableNum).padStart(7, '0');
+  };
+
+  const generateInvoiceHtml = (don: ChurchDonation) => {
+      const cName = churchProfile?.name || "We Christian Church";
+      const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
+      const receiptNo = `${churchCode}-DON-${getSequentialDonationNumber(don.id)}`;
+      const cAddress = churchProfile?.address || churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "";
+      const cPhone = churchProfile?.phone || "";
+      const logoUrl = churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto || null;
+      
+      const logoHtml = logoUrl 
+         ? `<img src="${logoUrl}" style="width: 80px; height: 80px; border-radius: 40px; object-fit: cover; margin-bottom: 15px; border: 3px solid #c9973f; padding: 2px;" />` 
+         : `<div style="width: 80px; height: 80px; border-radius: 40px; background-color: #c9973f; color: #141d33; font-size: 36px; font-weight: bold; line-height: 80px; text-align: center; margin: 0 auto 15px auto;">${cName.charAt(0).toUpperCase()}</div>`;
+
+      return `
+        <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+            <style>
+              body { font-family: 'Helvetica Neue', 'Helvetica', Arial, sans-serif; padding: 30px; background-color: #f4f6f8; color: #1b2a4a; }
+              .invoice-container { background: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); border-top: 8px solid #c9973f; max-width: 800px; margin: 0 auto; }
+              .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #f4efe6; padding-bottom: 30px; }
+              .header h1, .header h2 { margin: 0; color: #1b2a4a; font-weight: 800; letter-spacing: 0.5px; }
+              .meta { display: flex; justify-content: space-between; margin-bottom: 35px; flex-wrap: wrap; background: #faf3e3; padding: 25px; border-radius: 10px; border: 1px solid rgba(201, 151, 63, 0.3); }
+              .meta-box { width: 45%; margin-bottom: 15px; }
+              .label { font-size: 10px; font-weight: 800; color: #c9973f; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1.2px; }
+              .value { font-size: 15px; font-weight: 700; color: #1b2a4a; }
+              table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 35px; border-radius: 8px; overflow: hidden; border: 1px solid #e1e5eb; }
+              th { text-align: left; background-color: #1b2a4a; color: #ffffff; padding: 15px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+              td { padding: 15px 12px; border-bottom: 1px solid #e1e5eb; font-size: 14px; font-weight: 500; color: #3a4b6c; }
+              tr:last-child td { border-bottom: none; }
+              tr:nth-child(even) { background-color: #f8fafc; }
+              .total-box { background: #1b2a4a; padding: 25px; text-align: right; border-radius: 10px; margin-bottom: 50px; box-shadow: 0 10px 20px rgba(27, 42, 74, 0.15); }
+              .total-label { font-size: 12px; font-weight: 800; color: #c9973f; text-transform: uppercase; letter-spacing: 1.5px; }
+              .total-value { font-size: 32px; font-weight: 800; color: #ffffff; margin-top: 8px; }
+              .footer { display: flex; justify-content: space-between; margin-top: 60px; padding: 0 20px; }
+              .sign-box { width: 35%; border-top: 2px dashed #a89f92; text-align: center; padding-top: 15px; font-size: 11px; color: #645d54; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+            </style>
+          </head>
+          <body>
+            <div class="invoice-container">
+              <div class="header">
+                <div class="church-info">
+                  ${logoHtml}
+                  <h2 style="margin:0; margin-top:10px; margin-bottom:5px;">${cName}</h2>
+                  ${cAddress ? `<div style="font-size: 13px; color: #645d54; margin-bottom:3px;">${cAddress}</div>` : ''}
+                  ${cPhone ? `<div style="font-size: 13px; color: #645d54;">Phone: ${cPhone}</div>` : ''}
+                </div>
+              </div>
+              <div class="meta">
+                <div class="meta-box"><div class="label">RECEIPT NO</div><div class="value">${receiptNo}</div></div>
+                <div class="meta-box"><div class="label">DONATION DATE</div><div class="value">${don.date}</div></div>
+                <div class="meta-box"><div class="label">RECEIVED FROM</div><div class="value">${don.donorName}</div></div>
+                <div class="meta-box"><div class="label">DONOR PHONE</div><div class="value">${don.donorPhone || 'N/A'}</div></div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>DONATION CATEGORY</th>
+                    <th style="text-align:center;">PAYMENT METHOD</th>
+                    <th style="text-align:right;">AMOUNT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding-left: 20px; font-weight: 700;">${don.category}</td>
+                    <td style="text-align:center;">${don.paymentMethod || 'Cash'}</td>
+                    <td style="text-align:right;">₹${don.amount.toLocaleString('en-IN')}</td>
+                  </tr>
+                  ${don.notes ? `
+                  <tr>
+                    <td colspan="3" style="padding-left: 20px; font-size: 12px; color: #645d54;"><strong>Notes:</strong> ${don.notes}</td>
+                  </tr>` : ''}
+                </tbody>
+              </table>
+              <div class="total-box">
+                <div class="total-label">GRAND TOTAL</div>
+                <div class="total-value">₹${don.amount.toLocaleString('en-IN')}</div>
+              </div>
+              <div style="text-align: center; margin-bottom: 20px; font-size: 14px; color: #645d54; font-style: italic;">
+                Thank you for your generous donation. May God bless you abundantly.
+              </div>
+              <div class="footer">
+                <div class="sign-box">Church Seal</div>
+                <div class="sign-box">Authorized Signature</div>
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+  };
+
+  const handleGenerateInvoice = async (don: ChurchDonation) => {
+    try {
+      const html = generateInvoiceHtml(don);
+      const { uri } = await Print.printToFileAsync({ html });
+      
+      const receiptNo = don.id ? don.id.substring(0, 6).toUpperCase() : Date.now().toString().slice(-6);
+      const cleanFileName = `Donation-Receipt-${receiptNo}-${new Date().toISOString().split('T')[0]}.pdf`;
+      const newUri = FileSystemLegacy.cacheDirectory + cleanFileName;
+      await FileSystemLegacy.copyAsync({ from: uri, to: newUri });
+      
+      if (Platform.OS === 'android') {
+        try {
+          const permissions = await FileSystemLegacy.StorageAccessFramework.requestDirectoryPermissionsAsync();
+          if (permissions.granted) {
+            const base64Data = await FileSystemLegacy.readAsStringAsync(newUri, { encoding: FileSystemLegacy.EncodingType.Base64 });
+            const savedUri = await FileSystemLegacy.StorageAccessFramework.createFileAsync(permissions.directoryUri, cleanFileName, 'application/pdf');
+            await FileSystemLegacy.writeAsStringAsync(savedUri, base64Data, { encoding: FileSystemLegacy.EncodingType.Base64 });
+            Alert.alert('Success', 'Receipt downloaded successfully.');
+          } else {
+            await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Share Donation Receipt' });
+          }
+        } catch (err) {
+          await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Share Donation Receipt' });
+        }
+      } else {
+        await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Share Donation Receipt' });
+      }
+    } catch (e: any) {
+      if (e?.message?.includes('Another share request')) {
+        return;
+      }
+      Alert.alert('Error', e?.message || 'Failed to generate invoice');
+    }
+  };
+
+  const handlePrint = async (don: ChurchDonation) => {
+    try {
+      const html = generateInvoiceHtml(don);
+      await Print.printAsync({ html });
+    } catch (e: any) {
+      Alert.alert('Print Error', e?.message || 'Unknown error');
+    }
+  };
+
+  const handleDownloadImage = async () => {
+    try {
+      if (invoiceRef.current) {
+        const uri = await invoiceRef.current.capture();
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status === 'granted') {
+          await MediaLibrary.saveToLibraryAsync(uri);
+          Alert.alert('Success', 'Receipt saved to photos');
+        } else {
+          Alert.alert('Permission Denied', 'Please grant permission to save images.');
+        }
+      }
+    } catch (error) {
+      console.log(error);
+      Alert.alert('Error', 'Failed to save image.');
+    }
+  };
+
+  const generateCategoryInvoiceHtml = (category: string, dons: ChurchDonation[]) => {
+      const cName = churchProfile?.name || "We Christian Church";
+      const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
+      const reportNo = `${churchCode}-REP-${Date.now().toString().slice(-6)}`;
+      const cAddress = churchProfile?.address || churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "";
+      const cPhone = churchProfile?.phone || "";
+      const logoUrl = churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto || null;
+      
+      const logoHtml = logoUrl 
+         ? `<img src="${logoUrl}" style="width: 80px; height: 80px; border-radius: 40px; object-fit: cover; margin-bottom: 15px; border: 3px solid #c9973f; padding: 2px;" />` 
+         : `<div style="width: 80px; height: 80px; border-radius: 40px; background-color: #c9973f; color: #141d33; font-size: 36px; font-weight: bold; line-height: 80px; text-align: center; margin: 0 auto 15px auto;">${cName.charAt(0).toUpperCase()}</div>`;
+
+      const grandTotal = dons.reduce((sum, d) => sum + d.amount, 0);
+
+      const tableRows = dons.map(don => `
+        <tr>
+          <td style="padding-left: 20px; font-weight: 700;">${don.donorName || 'Unknown'}</td>
+          <td style="text-align:center;">${don.paymentMethod || 'Cash'}</td>
+          <td style="text-align:right;">₹${don.amount.toLocaleString('en-IN')}</td>
+        </tr>
+      `).join('');
+
+      return `
+        <html>
+          <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+            <style>
+              body { font-family: 'Helvetica Neue', 'Helvetica', Arial, sans-serif; padding: 30px; background-color: #f4f6f8; color: #1b2a4a; }
+              .invoice-container { background: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); border-top: 8px solid #c9973f; max-width: 800px; margin: 0 auto; }
+              .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #f4efe6; padding-bottom: 30px; }
+              .header h1, .header h2 { margin: 0; color: #1b2a4a; font-weight: 800; letter-spacing: 0.5px; }
+              .meta { display: flex; justify-content: space-between; margin-bottom: 35px; flex-wrap: wrap; background: #faf3e3; padding: 25px; border-radius: 10px; border: 1px solid rgba(201, 151, 63, 0.3); }
+              .meta-box { width: 45%; margin-bottom: 15px; }
+              .label { font-size: 10px; font-weight: 800; color: #c9973f; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1.2px; }
+              .value { font-size: 15px; font-weight: 700; color: #1b2a4a; }
+              table { width: 100%; border-collapse: separate; border-spacing: 0; margin-bottom: 35px; border-radius: 8px; overflow: hidden; border: 1px solid #e1e5eb; }
+              th { text-align: left; background-color: #1b2a4a; color: #ffffff; padding: 15px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+              td { padding: 15px 12px; border-bottom: 1px solid #e1e5eb; font-size: 14px; font-weight: 500; color: #3a4b6c; }
+              tr:last-child td { border-bottom: none; }
+              tr:nth-child(even) { background-color: #f8fafc; }
+              .total-box { background: #1b2a4a; padding: 25px; text-align: right; border-radius: 10px; margin-bottom: 50px; box-shadow: 0 10px 20px rgba(27, 42, 74, 0.15); }
+              .total-label { font-size: 12px; font-weight: 800; color: #c9973f; text-transform: uppercase; letter-spacing: 1.5px; }
+              .total-value { font-size: 32px; font-weight: 800; color: #ffffff; margin-top: 8px; }
+              .footer { display: flex; justify-content: space-between; margin-top: 60px; padding: 0 20px; }
+              .sign-box { width: 35%; border-top: 2px dashed #a89f92; text-align: center; padding-top: 15px; font-size: 11px; color: #645d54; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
+            </style>
+          </head>
+          <body>
+            <div class="invoice-container">
+              <div class="header">
+                <div class="church-info">
+                  ${logoHtml}
+                  <h2 style="margin:0; margin-top:10px; margin-bottom:5px;">${cName}</h2>
+                  ${cAddress ? `<div style="font-size: 13px; color: #645d54; margin-bottom:3px;">${cAddress}</div>` : ''}
+                  ${cPhone ? `<div style="font-size: 13px; color: #645d54;">Phone: ${cPhone}</div>` : ''}
+                </div>
+              </div>
+              <div class="meta">
+                <div class="meta-box"><div class="label">REPORT NO</div><div class="value">${reportNo}</div></div>
+                <div class="meta-box"><div class="label">GENERATION DATE</div><div class="value">${new Date().toISOString().split('T')[0]}</div></div>
+                <div class="meta-box"><div class="label">CATEGORY</div><div class="value">${category}</div></div>
+                <div class="meta-box"><div class="label">TOTAL ITEMS</div><div class="value">${dons.length} donations</div></div>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>DONOR NAME</th>
+                    <th style="text-align:center;">METHOD</th>
+                    <th style="text-align:right;">AMOUNT</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tableRows}
+                </tbody>
+              </table>
+              <div class="total-box">
+                <div class="total-label">GRAND TOTAL</div>
+                <div class="total-value">₹${grandTotal.toLocaleString('en-IN')}</div>
+              </div>
+              <div class="footer">
+                <div class="sign-box">Church Seal</div>
+                <div class="sign-box">Authorized Signature</div>
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+  };
+
+  const handleGenerateCategoryInvoice = async (category: string, dons: ChurchDonation[]) => {
+    try {
+      const html = generateCategoryInvoiceHtml(category, dons);
+      const { uri } = await Print.printToFileAsync({ html });
+      
+      const cleanFileName = `Category-Report-${category.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+      const newUri = FileSystemLegacy.cacheDirectory + cleanFileName;
+      await FileSystemLegacy.copyAsync({ from: uri, to: newUri });
+      
+      if (Platform.OS === 'android') {
+        try {
+          const permissions = await FileSystemLegacy.StorageAccessFramework.requestDirectoryPermissionsAsync();
+          if (permissions.granted) {
+            const base64Data = await FileSystemLegacy.readAsStringAsync(newUri, { encoding: FileSystemLegacy.EncodingType.Base64 });
+            const savedUri = await FileSystemLegacy.StorageAccessFramework.createFileAsync(permissions.directoryUri, cleanFileName, 'application/pdf');
+            await FileSystemLegacy.writeAsStringAsync(savedUri, base64Data, { encoding: FileSystemLegacy.EncodingType.Base64 });
+            Alert.alert('Success', 'Report downloaded successfully.');
+          } else {
+            await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Share Category Report' });
+          }
+        } catch (err) {
+          await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Share Category Report' });
+        }
+      } else {
+        await Sharing.shareAsync(newUri, { UTI: '.pdf', mimeType: 'application/pdf', dialogTitle: 'Share Category Report' });
+      }
+    } catch (e: any) {
+      if (e?.message?.includes('Another share request')) {
+        return;
+      }
+      Alert.alert('Error', e?.message || 'Failed to generate report');
+    }
+  };
+
+  const handlePrintCategory = async (category: string, dons: ChurchDonation[]) => {
+    try {
+      const html = generateCategoryInvoiceHtml(category, dons);
+      await Print.printAsync({ html });
+    } catch (error) {
+      console.log('Print failed', error);
+    }
+  };
+
+  const handleDownloadCategoryImage = async () => {
+    try {
+      if (categoryInvoiceRef.current) {
+        const uri = await categoryInvoiceRef.current.capture();
+        const { status } = await MediaLibrary.requestPermissionsAsync();
+        if (status === 'granted') {
+          await MediaLibrary.saveToLibraryAsync(uri);
+          Alert.alert('Success', 'Report saved to photos');
+        } else {
+          Alert.alert('Permission Denied', 'Needs storage permission');
+        }
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to save image');
+    }
   };
 
   const handleCreateCategory = async () => {
@@ -484,7 +807,11 @@ export default function AdminDonationDashboard() {
                           shadowRadius: 8,
                           elevation: 2
                         }}
-                        activeOpacity={1}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          setSelectedDonationForInvoice(don);
+                          setShowInvoicePreviewModal(true);
+                        }}
                       >
                         <View style={{ flexDirection: 'row', flex: 1, paddingRight: 10 }}>
                           <View style={{ flex: 1 }}>
@@ -502,6 +829,15 @@ export default function AdminDonationDashboard() {
                             ₹{don.amount?.toLocaleString('en-IN') || 0}
                           </Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <TouchableOpacity 
+                              onPress={() => {
+                                setSelectedDonationForInvoice(don);
+                                setShowInvoicePreviewModal(true);
+                              }}
+                              style={{ padding: 8, backgroundColor: '#eff6ff', borderRadius: 8, marginRight: 8 }}
+                            >
+                              <FileText size={14} color="#3b82f6" />
+                            </TouchableOpacity>
                             <TouchableOpacity 
                               onPress={() => openEditDonation(don)}
                               style={{ padding: 8, backgroundColor: '#f4efe6', borderRadius: 8, marginRight: 8 }}
@@ -527,11 +863,20 @@ export default function AdminDonationDashboard() {
                 )}
                 
                 {donations.filter(e => e.category === selectedCategoryView).length > 0 && (
-                  <View style={{ backgroundColor: '#f4efe6', borderRadius: 16, padding: 16, marginTop: 6, marginBottom: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#c9973f' }}>
-                    <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#141d33', fontWeight: '700' }}>Category Total</Text>
-                    <Text style={{ fontFamily: FONTS.mono, fontSize: 22, color: '#141d33', fontWeight: '700' }}>
-                      ₹{donations.filter(e => e.category === selectedCategoryView).reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-IN')}
-                    </Text>
+                  <View style={{ marginBottom: 40 }}>
+                    <View style={{ backgroundColor: '#f4efe6', borderRadius: 16, padding: 16, marginTop: 6, marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderColor: '#c9973f' }}>
+                      <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#141d33', fontWeight: '700' }}>Category Total</Text>
+                      <Text style={{ fontFamily: FONTS.mono, fontSize: 22, color: '#141d33', fontWeight: '700' }}>
+                        ₹{donations.filter(e => e.category === selectedCategoryView).reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-IN')}
+                      </Text>
+                    </View>
+                    <TouchableOpacity 
+                      style={{ backgroundColor: '#1b2a4a', borderRadius: 14, paddingVertical: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}
+                      onPress={() => setShowCategoryInvoiceModal(true)}
+                    >
+                      <Printer size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 15, fontWeight: '700', color: '#ffffff' }}>Generate Category Report</Text>
+                    </TouchableOpacity>
                   </View>
                 )}
 
@@ -609,12 +954,6 @@ export default function AdminDonationDashboard() {
 
                 <View style={styles.sectionHeading}>
                   <Text style={styles.sectionHeadingTxt}>Donation categories</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <TouchableOpacity style={styles.chipMini} onPress={openAddDonation}>
-                      <Plus size={12} color="#1a2d5a" />
-                      <Text style={styles.chipMiniTxt}>New</Text>
-                    </TouchableOpacity>
-                  </View>
                 </View>
 
                 <View style={styles.catList}>
@@ -628,7 +967,9 @@ export default function AdminDonationDashboard() {
                         onPress={() => setSelectedCategoryView(cat)}
                       >
                         <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                          <LinearGradient colors={['#141d33', '#c9973f']} start={{x: 0, y: 0}} end={{x: 1, y: 0}} style={styles.catArch} />
+                          <View style={styles.catIconContainer}>
+                            <FolderHeart size={20} color="#c9973f" />
+                          </View>
                           <View style={[styles.catBody, { flex: 1 }]}>
                             <View style={{ flex: 1, paddingRight: 10 }}>
                               <Text style={styles.catName} numberOfLines={1}>{cat}</Text>
@@ -785,6 +1126,223 @@ export default function AdminDonationDashboard() {
         </View>
       </Modal>
 
+      {/* ── Invoice Preview Modal ── */}
+      <Modal visible={showInvoicePreviewModal} transparent animationType="slide">
+        <View style={styles.modalOverlayFull}>
+          <View style={styles.addExpModal}>
+            <View style={styles.addExpHeader}>
+              <Text style={styles.addExpTitle}>Receipt Preview</Text>
+              <TouchableOpacity style={styles.addExpClose} onPress={() => setShowInvoicePreviewModal(false)}>
+                <X size={20} color="#645d54" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 22, paddingBottom: 100 }}>
+              <ViewShot ref={invoiceRef} options={{ format: "png", quality: 1.0 }} style={{ backgroundColor: '#f4f6f8', padding: 15, paddingBottom: 30, paddingTop: 30, borderRadius: 12 }}>
+                <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, borderTopWidth: 6, borderTopColor: '#c9973f' }}>
+                  
+                  <View style={{ alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f4efe6', paddingBottom: 20 }}>
+                    {churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto ? (
+                      <Image source={{ uri: churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12, borderWidth: 2, borderColor: '#c9973f' }} />
+                    ) : (
+                      <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#c9973f', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                        <Text style={{ fontFamily: FONTS.serif, fontSize: 22, color: '#141d33', fontWeight: '700' }}>
+                          {(churchProfile?.name || member?.churchId || 'W').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#1b2a4a', fontWeight: '700', textAlign: 'center' }}>
+                      {churchProfile?.name || member?.churchId || "We Christian Church"}
+                    </Text>
+                    {churchProfile?.address || churchProfile?.mailingCity ? (
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 4, textAlign: 'center' }}>
+                        {churchProfile?.address || `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}`}
+                      </Text>
+                    ) : null}
+                    {churchProfile?.phone ? (
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 2, textAlign: 'center' }}>
+                        Phone: {churchProfile.phone}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  {selectedDonationForInvoice && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 }}>
+                      <View style={{ width: '45%' }}>
+                        <Text style={styles.invLabel}>RECEIPT NO</Text>
+                        <Text style={styles.invValue}>{(churchProfile?.name || 'WEC').substring(0, 3).toUpperCase()}-DON-{getSequentialDonationNumber(selectedDonationForInvoice.id)}</Text>
+                      </View>
+                      <View style={{ width: '45%' }}>
+                        <Text style={styles.invLabel}>DATE</Text>
+                        <Text style={styles.invValue}>{selectedDonationForInvoice.date}</Text>
+                      </View>
+                      <View style={{ width: '45%' }}>
+                        <Text style={styles.invLabel}>RECEIVED FROM</Text>
+                        <Text style={styles.invValue}>{selectedDonationForInvoice.donorName}</Text>
+                      </View>
+                      <View style={{ width: '45%' }}>
+                        <Text style={styles.invLabel}>PHONE</Text>
+                        <Text style={styles.invValue}>{selectedDonationForInvoice.donorPhone || 'N/A'}</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1b2a4a', paddingBottom: 8, marginBottom: 8 }}>
+                    <Text style={[styles.invLabel, { flex: 2, color: '#1b2a4a' }]}>CATEGORY</Text>
+                    <Text style={[styles.invLabel, { flex: 1, color: '#1b2a4a', textAlign: 'center' }]}>METHOD</Text>
+                    <Text style={[styles.invLabel, { flex: 1.2, color: '#1b2a4a', textAlign: 'right' }]}>AMOUNT</Text>
+                  </View>
+
+                  {selectedDonationForInvoice && (
+                    <View style={{ flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f4efe6' }}>
+                      <Text style={[styles.invRowText, { flex: 2, fontWeight: '600' }]}>{selectedDonationForInvoice.category}</Text>
+                      <Text style={[styles.invRowText, { flex: 1, textAlign: 'center' }]}>{selectedDonationForInvoice.paymentMethod || 'Cash'}</Text>
+                      <Text style={[styles.invRowText, { flex: 1.2, textAlign: 'right' }]}>₹{selectedDonationForInvoice.amount.toLocaleString('en-IN')}</Text>
+                    </View>
+                  )}
+
+                  {selectedDonationForInvoice?.notes ? (
+                    <View style={{ paddingVertical: 8 }}>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54' }}><Text style={{ fontWeight: '700' }}>Notes:</Text> {selectedDonationForInvoice.notes}</Text>
+                    </View>
+                  ) : null}
+
+                  <View style={styles.grandTotalBlock}>
+                    <Text style={styles.grandTotalLabel}>GRAND TOTAL</Text>
+                    <Text style={styles.grandTotalAmt}>
+                      ₹{selectedDonationForInvoice?.amount.toLocaleString('en-IN') || 0}
+                    </Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 30 }}>
+                    <View style={{ width: '40%', borderTopWidth: 1, borderTopColor: '#241f1a', paddingTop: 8, alignItems: 'center' }}>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 10, color: '#645d54' }}>Church Seal</Text>
+                    </View>
+                    <View style={{ width: '45%', borderTopWidth: 1, borderTopColor: '#241f1a', paddingTop: 8, alignItems: 'center' }}>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 10, color: '#645d54' }}>Authorized Signature</Text>
+                    </View>
+                  </View>
+                </View>
+              </ViewShot>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f' }]} onPress={handleDownloadImage}>
+                  <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save Image</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={() => selectedDonationForInvoice && handleGenerateInvoice(selectedDonationForInvoice)}>
+                  <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save PDF</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#e7ebf3', borderWidth: 0 }]} onPress={() => selectedDonationForInvoice && handlePrint(selectedDonationForInvoice)}>
+                  <Text style={[styles.invActionBtnTxt, { color: '#1b2a4a', fontSize: 11 }]}>Print</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Category Report Preview Modal ── */}
+      <Modal visible={showCategoryInvoiceModal} transparent animationType="slide">
+        <View style={styles.modalOverlayFull}>
+          <View style={styles.addExpModal}>
+            <View style={styles.addExpHeader}>
+              <Text style={styles.addExpTitle}>Report Preview</Text>
+              <TouchableOpacity style={styles.addExpClose} onPress={() => setShowCategoryInvoiceModal(false)}>
+                <X size={20} color="#645d54" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 22, paddingBottom: 100 }}>
+              <ViewShot ref={categoryInvoiceRef} options={{ format: "png", quality: 1.0 }} style={{ backgroundColor: '#f4f6f8', padding: 15, paddingBottom: 30, paddingTop: 30, borderRadius: 12 }}>
+                <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, borderTopWidth: 6, borderTopColor: '#c9973f' }}>
+                  
+                  <View style={{ alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f4efe6', paddingBottom: 20 }}>
+                    {churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto ? (
+                      <Image source={{ uri: churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12, borderWidth: 2, borderColor: '#c9973f' }} />
+                    ) : (
+                      <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#c9973f', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
+                        <Text style={{ fontFamily: FONTS.serif, fontSize: 22, color: '#141d33', fontWeight: '700' }}>
+                          {(churchProfile?.name || member?.churchId || 'W').charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
+                    <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#1b2a4a', fontWeight: '700', textAlign: 'center' }}>
+                      {churchProfile?.name || member?.churchId || "We Christian Church"}
+                    </Text>
+                    {churchProfile?.address || churchProfile?.mailingCity ? (
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 4, textAlign: 'center' }}>
+                        {churchProfile?.address || `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}`}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  {selectedCategoryView && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 }}>
+                      <View style={{ width: '45%' }}>
+                        <Text style={styles.invLabel}>REPORT NO</Text>
+                        <Text style={styles.invValue}>{(churchProfile?.name || 'WEC').substring(0, 3).toUpperCase()}-REP-{Date.now().toString().slice(-6)}</Text>
+                      </View>
+                      <View style={{ width: '45%' }}>
+                        <Text style={styles.invLabel}>DATE</Text>
+                        <Text style={styles.invValue}>{new Date().toISOString().split('T')[0]}</Text>
+                      </View>
+                      <View style={{ width: '45%' }}>
+                        <Text style={styles.invLabel}>CATEGORY</Text>
+                        <Text style={styles.invValue}>{selectedCategoryView}</Text>
+                      </View>
+                      <View style={{ width: '45%' }}>
+                        <Text style={styles.invLabel}>TOTAL ITEMS</Text>
+                        <Text style={styles.invValue}>{donations.filter(e => e.category === selectedCategoryView).length} donations</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1b2a4a', paddingBottom: 8, marginBottom: 8 }}>
+                    <Text style={[styles.invLabel, { flex: 2, color: '#1b2a4a' }]}>DONOR NAME</Text>
+                    <Text style={[styles.invLabel, { flex: 1, color: '#1b2a4a', textAlign: 'center' }]}>METHOD</Text>
+                    <Text style={[styles.invLabel, { flex: 1.2, color: '#1b2a4a', textAlign: 'right' }]}>AMOUNT</Text>
+                  </View>
+
+                  {donations.filter(e => e.category === selectedCategoryView).map((don, idx) => (
+                    <View key={idx} style={{ flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f4efe6' }}>
+                      <Text style={[styles.invRowText, { flex: 2, fontWeight: '600' }]} numberOfLines={1}>{don.donorName || 'Unknown'}</Text>
+                      <Text style={[styles.invRowText, { flex: 1, textAlign: 'center' }]}>{don.paymentMethod || 'Cash'}</Text>
+                      <Text style={[styles.invRowText, { flex: 1.2, textAlign: 'right' }]}>₹{don.amount.toLocaleString('en-IN')}</Text>
+                    </View>
+                  ))}
+
+                  <View style={styles.grandTotalBlock}>
+                    <Text style={styles.grandTotalLabel}>GRAND TOTAL</Text>
+                    <Text style={styles.grandTotalAmt}>
+                      ₹{donations.filter(e => e.category === selectedCategoryView).reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-IN')}
+                    </Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 30 }}>
+                    <View style={{ width: '40%', borderTopWidth: 1, borderTopColor: '#241f1a', paddingTop: 8, alignItems: 'center' }}>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 10, color: '#645d54' }}>Church Seal</Text>
+                    </View>
+                    <View style={{ width: '45%', borderTopWidth: 1, borderTopColor: '#241f1a', paddingTop: 8, alignItems: 'center' }}>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 10, color: '#645d54' }}>Authorized Signature</Text>
+                    </View>
+                  </View>
+                </View>
+              </ViewShot>
+
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f' }]} onPress={handleDownloadCategoryImage}>
+                  <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save Image</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={() => selectedCategoryView && handleGenerateCategoryInvoice(selectedCategoryView, donations.filter(e => e.category === selectedCategoryView))}>
+                  <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save PDF</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#e7ebf3', borderWidth: 0 }]} onPress={() => selectedCategoryView && handlePrintCategory(selectedCategoryView, donations.filter(e => e.category === selectedCategoryView))}>
+                  <Text style={[styles.invActionBtnTxt, { color: '#1b2a4a', fontSize: 11 }]}>Print</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* ── Create Category Modal ── */}
       <Modal visible={showCategoryModal} animationType="fade" transparent>
         <View style={styles.modalOverlay}>
@@ -873,10 +1431,21 @@ const styles = StyleSheet.create({
   sectionHeadingTxt: { fontFamily: FONTS.serif, fontSize: 18, color: '#1b2a4a', fontWeight: '700' },
   
   // Quick Actions
-  quickActions: { flexDirection: 'row', gap: 12, marginBottom: 35 },
-  qaBtn: { flex: 1, backgroundColor: '#ffffff', borderRadius: 16, paddingVertical: 18, paddingHorizontal: 12, alignItems: 'center', borderWidth: 1, borderColor: '#e5ddd0', shadowColor: '#1b2a4a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 },
-  qaIcon: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fcfaf6', alignItems: 'center', justifyContent: 'center', marginBottom: 12, borderWidth: 1, borderColor: '#f4efe6' },
-  qaBtnTxt: { fontFamily: FONTS.sans, fontSize: 13, fontWeight: '700', color: '#1b2a4a', textAlign: 'center' },
+  quickActions: { flexDirection: 'column', gap: 10, marginBottom: 35 },
+  qaBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: '#ffffff',
+    borderWidth: 1, borderColor: '#e5ddd0',
+    borderRadius: 14,
+    paddingVertical: 13, paddingHorizontal: 14,
+    shadowColor: '#1b2a4a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1
+  },
+  qaIcon: {
+    width: 34, height: 34, borderRadius: 17,
+    backgroundColor: '#faf3e3',
+    alignItems: 'center', justifyContent: 'center'
+  },
+  qaBtnTxt: { fontFamily: FONTS.sans, fontSize: 14, fontWeight: '600', color: '#1b2a4a' },
   
   // Buttons & Chips
   btnSecondary: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#c9973f', borderRadius: 14, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 20, shadowColor: '#c9973f', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 2 },
@@ -907,7 +1476,7 @@ const styles = StyleSheet.create({
   catList: { gap: 14 },
   catCard: { backgroundColor: '#ffffff', borderRadius: 20, padding: 14, borderWidth: 1, borderColor: '#e5ddd0', shadowColor: '#1b2a4a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.04, shadowRadius: 12, elevation: 2 },
   recentCatCard: { backgroundColor: '#ffffff', borderRadius: 16, padding: 18, marginBottom: 14, borderWidth: 1, borderColor: '#e5ddd0', shadowColor: '#1b2a4a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 8, elevation: 1 },
-  catArch: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 16, shadowColor: '#c9973f', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 3 },
+  catIconContainer: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#faf3e3', alignItems: 'center', justifyContent: 'center', marginRight: 14 },
   catBody: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   catName: { fontFamily: FONTS.sans, fontSize: 16, color: '#1b2a4a', fontWeight: '700', marginBottom: 4 },
   catMeta: { fontFamily: FONTS.sans, fontSize: 12, color: '#a89f92', fontWeight: '500' },
@@ -950,5 +1519,15 @@ const styles = StyleSheet.create({
   dropdownItem: { paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: '#f4efe6' },
   dropdownItemActive: { backgroundColor: '#1967d2' },
   dropdownItemTxt: { fontFamily: FONTS.sans, fontSize: 14, color: '#241f1a' },
-  dropdownItemTxtActive: { color: '#ffffff', fontWeight: '500' }
+  dropdownItemTxtActive: { color: '#ffffff', fontWeight: '500' },
+
+  // Invoice Preview
+  invLabel: { fontFamily: FONTS.sans, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', color: '#a89f92', letterSpacing: 0.5, marginBottom: 4 },
+  invValue: { fontFamily: FONTS.mono, fontSize: 13, color: '#1b2a4a', fontWeight: '600' },
+  invRowText: { fontFamily: FONTS.mono, fontSize: 13, color: '#645d54' },
+  invActionBtn: { flex: 1, backgroundColor: '#e7ebf3', borderRadius: 8, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
+  invActionBtnTxt: { fontFamily: FONTS.sans, fontSize: 13, fontWeight: '600', color: '#1b2a4a' },
+  grandTotalBlock: { backgroundColor: '#1b2a4a', borderRadius: 12, paddingVertical: 16, paddingHorizontal: 18, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginVertical: 20 },
+  grandTotalLabel: { fontFamily: FONTS.sans, fontSize: 12, fontWeight: '700', color: '#e7ebf3', letterSpacing: 0.5 },
+  grandTotalAmt: { fontFamily: FONTS.mono, fontSize: 18, fontWeight: '700', color: '#e6c079' }
 });

@@ -191,38 +191,41 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* New Admin Dashboard Top Card */}
         <View style={{ zIndex: 10, backgroundColor: '#F4F0EA', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10 }}>
-          <LinearGradient colors={['#020b22', '#081d4a']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.heroSection}>
-            {/* Top row: Logo, Info, Moon */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+          <View style={[styles.heroSection, { borderColor: '#000000', borderWidth: 1, paddingHorizontal: 0, paddingVertical: 0, overflow: 'hidden', backgroundColor: '#FDFBF7' }]}>
+            <Image 
+              source={require('../../../assets/admin_hero_church_2.png')} 
+              style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]} 
+              resizeMode="cover" 
+            />
+            
+            <View style={{ paddingHorizontal: 24, paddingVertical: 40, width: '65%', minHeight: 180, justifyContent: 'center' }}>
+              {/* Top row: Logo, Info */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 1, borderColor: '#e2e8f0', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 }}>
                   <Image 
                     source={activeChurch?.theme?.logoUrl ? { uri: activeChurch.theme.logoUrl } : require('../../../assets/icon.png')} 
                     style={{ width: '100%', height: '100%' }} 
                     resizeMode="cover" 
                   />
                 </View>
-                <View style={{ marginLeft: 16, flex: 1 }}>
-                  <Text style={{ color: '#fff', fontSize: 20, fontWeight: 'bold' }}>
+                <View style={{ marginLeft: 12, flex: 1 }}>
+                  <Text style={{ color: '#1a2d5a', fontSize: 18, fontWeight: '800' }}>
                     {activeChurch?.name || 'Your Church'}
                   </Text>
                 </View>
               </View>
-            </View>
 
-            {/* Separator */}
-            <View style={{ height: 1.5, backgroundColor: 'rgba(252, 211, 77, 0.5)', marginVertical: 20 }} />
-
-            {/* Bottom row: Dashboard Menu Text */}
-            <View>
-              <Text style={{ color: '#FCD34D', fontSize: 32, fontWeight: '400', marginBottom: 8, fontFamily: FONTS.serif, fontStyle: 'italic' }}>
+              {/* Title */}
+              <Text style={{ color: '#b45309', fontSize: 26, fontWeight: '600', marginBottom: 8, fontFamily: FONTS.serif, fontStyle: 'italic' }}>
                 Admin Dashboard
               </Text>
-              <Text style={{ color: '#94a3b8', fontSize: 14, lineHeight: 22 }}>
-                Quick access to promises, worship, events, members and the life of the church.
-              </Text>
+              
+              {/* Short Separator */}
+              <View style={{ height: 2, width: 45, backgroundColor: '#b45309', marginBottom: 12 }} />
+
+
             </View>
-          </LinearGradient>
+          </View>
         </View>
         
         <View style={styles.content}>

@@ -207,7 +207,7 @@ function TabNavigator() {
 }
 
 function Navigation() {
-  const { user, member, loading, viewMode } = useAuth();
+  const { user, member, loading, viewMode, setViewMode } = useAuth();
   const navigation = useNavigation();
   const [onboardingComplete, setOnboardingComplete] = React.useState<boolean | null>(null);
   const [showSplash, setShowSplash] = useState(true);
@@ -295,6 +295,14 @@ function Navigation() {
       const tryNavigate = () => {
         const { navigationRef } = require('../../App');
         if (navigationRef && navigationRef.isReady()) {
+          const type = pendingNotification?.data?.type;
+          
+          if (type === 'invoice' && isAdmin && viewMode !== 'admin') {
+            console.log('Switching to admin view to handle invoice notification');
+            setViewMode('admin');
+            return; // Exit early, the re-render will trigger this effect again
+          }
+
           NotificationService.handleNotificationNavigation(pendingNotification, navigationRef);
           setPendingNotification(null);
         } else if (retryCount < 20) {
@@ -308,7 +316,7 @@ function Navigation() {
       
       tryNavigate();
     }
-  }, [user, loading, pendingNotification]);
+  }, [user, loading, pendingNotification, viewMode]);
 
   useEffect(() => {
     if (user && !loading) {

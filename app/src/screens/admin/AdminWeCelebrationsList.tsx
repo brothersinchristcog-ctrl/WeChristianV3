@@ -52,14 +52,12 @@ export default function AdminWeCelebrationsList({ category, activeTab, onSelectM
         };
 
         let processed: any[] = [];
-        let dateField = '';
-        if (category === 'Birthday') dateField = 'Birthdate';
-        else if (category === 'Wedding Anniversary') dateField = 'Anniversary_Date__c';
-        else if (category === 'Baptism Anniversary') dateField = 'Baptism_Date__c';
         
-        if (dateField) {
-          processed = data.filter(d => !!d[dateField]).map(d => {
+        const processEvent = (d: any, dateField: string, type: string) => {
+            if (!d[dateField]) return null;
             const parts = d[dateField].split('-');
+            if (parts.length < 3) return null;
+            
             const year = parseInt(parts[0], 10);
             const month = parseInt(parts[1], 10);
             const day = parseInt(parts[2], 10);
@@ -79,7 +77,8 @@ export default function AdminWeCelebrationsList({ category, activeTab, onSelectM
 
             return {
               ...d,
-              id: d.Id || d.id,
+              id: (d.Id || d.id) + '_' + type, // Make ID unique per event type
+              originalId: d.Id || d.id,
               name: d.Name || 'Unknown',
               initials: initials.toUpperCase(),
               photoUrl: getValidPhotoUrl(d),
@@ -87,10 +86,51 @@ export default function AdminWeCelebrationsList({ category, activeTab, onSelectM
               age,
               phone: d.MobilePhone || d.Phone || '',
               rawMonth: month,
-              rawDay: day
+              rawDay: day,
+              celebrationType: type
             };
-          });
+        };
+
+        if (category === 'All') {
+            data.forEach((d: any) => {
+                const bday = processEvent(d, 'Birthdate', 'Birthday');
+                const wedding = processEvent(d, 'Anniversary_Date__c', 'Wedding Anniversary');
+                const baptism = processEvent(d, 'Baptism_Date__c', 'Baptism Anniversary');
+                
+                if (bday) processed.push(bday);
+                if (wedding) processed.push(wedding);
+                if (baptism) processed.push(baptism);
+            });
+        } else {
+            let dateField = '';
+            if (category === 'Birthday') dateField = 'Birthdate';
+            else if (category === 'Wedding Anniversary') dateField = 'Anniversary_Date__c';
+            else if (category === 'Baptism Anniversary') dateField = 'Baptism_Date__c';
+            
+            if (dateField) {
+                processed = data.filter((d: any) => !!d[dateField]).map((d: any) => processEvent(d, dateField, category)).filter(Boolean);
+            }
         }
+        
+        // Sort processed list by closest date to today (upcoming)
+        processed.sort((a, b) => {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            const currentDay = now.getDate();
+            const todayTime = new Date(currentYear, currentMonth - 1, currentDay).getTime();
+            
+            const aDate = new Date(currentYear, a.rawMonth - 1, a.rawDay).getTime();
+            const bDate = new Date(currentYear, b.rawMonth - 1, b.rawDay).getTime();
+            
+            let aDiff = aDate - todayTime;
+            let bDiff = bDate - todayTime;
+            
+            if (aDiff < 0) aDiff += 31536000000;
+            if (bDiff < 0) bDiff += 31536000000;
+            
+            return aDiff - bDiff;
+        });
         
         setMembers(processed);
       } catch (err) {
@@ -188,7 +228,7 @@ export default function AdminWeCelebrationsList({ category, activeTab, onSelectM
               <Text style={styles.memberName} numberOfLines={1}>{member.name}</Text>
               <View style={styles.memberMetaRow}>
                 <View style={styles.tag}>
-                  <Text style={styles.tagTxt}>{category.toUpperCase()}</Text>
+                  <Text style={styles.tagTxt}>{member.celebrationType ? member.celebrationType.toUpperCase() : category.toUpperCase()}</Text>
                 </View>
                 <Text style={styles.metaTxt}> · {member.dateStr} · {member.age} yrs</Text>
               </View>

@@ -94,7 +94,7 @@ const DotGridIcon = ({ color, size }: { color: string; size: number }) => {
   );
 };
 
-export default function AdminNavigator({ navigation }: any) {
+export default function AdminNavigator({ navigation, route }: any) {
   const { signOut, user, member, setViewMode } = useAuth();
   const { activeChurch } = useChurch();
   const [activeTab, setActiveTab] = useState(0);
@@ -106,6 +106,18 @@ export default function AdminNavigator({ navigation }: any) {
     message: string;
     type: 'success' | 'info' | 'error' | 'warning';
   }>({ visible: false, title: '', message: '', type: 'info' });
+
+  useEffect(() => {
+    if (route?.params?.targetTab) {
+      const idx = tabs.findIndex(t => t.name === route.params.targetTab);
+      if (idx !== -1 && idx !== activeTab) {
+        setTimeout(() => {
+          setTabHistory(prev => [...prev, activeTab]);
+          setActiveTab(idx);
+        }, 0);
+      }
+    }
+  }, [route?.params?.targetTab]);
 
   const handleSetTab = (index: number) => {
     if (index !== activeTab) {
@@ -121,15 +133,6 @@ export default function AdminNavigator({ navigation }: any) {
         return;
       }
       
-      if (tabName === 'Donations') {
-        setAlertConfig({
-          visible: true,
-          title: 'Donations Module Coming Soon',
-          message: 'The donations module is currently under active development. This feature will be available in the next major update!',
-          type: 'info'
-        });
-        return;
-      }
 
       // Defer the heavy component unmount/mount to the next tick. 
       // This allows the tap animation to finish instantly, making the UI feel highly responsive.
@@ -254,7 +257,7 @@ export default function AdminNavigator({ navigation }: any) {
           {activeTab === 0 ? (
             <AdminDashboard navigation={navigation} allTabs={tabs} />
           ) : (
-            <ActiveComponent navigation={navigation} />
+            <ActiveComponent navigation={navigation} routeParams={route?.params} />
           )}
         </View>
 

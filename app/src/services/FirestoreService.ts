@@ -179,9 +179,12 @@ export interface ChurchInvoice {
   paymentMethod?: string;
   vendorName?: string;
   status?: 'Pending Approval' | 'Approved' | 'Rejected' | 'Changes Requested';
-  reportedByUserId?: string;
-  reportedByName?: string;
+  reportedByUserId?: string; // Legacy
+  reportedByName?: string; // Legacy
+  reportedByUserIds?: string[]; // Multiple approvers
+  reportedByNames?: string[]; // Multiple approvers
   approvalComments?: string;
+  submitterPhone?: string;
   createdAt?: any;
 }
 

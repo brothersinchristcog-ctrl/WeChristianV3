@@ -28,7 +28,6 @@ export default function AdminWeCelebrations({ navigation }: any) {
   const { activeChurch, setActiveChurch } = useChurch();
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
-  const [selectedCategory, setSelectedCategory] = useState('Birthday');
   const [activeDateFilter, setActiveDateFilter] = useState('Today');
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
@@ -327,14 +326,14 @@ export default function AdminWeCelebrations({ navigation }: any) {
       return (
         <AdminWeCelebrationsMemberDetails 
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           onBack={() => setViewMode('list')}
           onPrepareWish={() => {
             // Reset personalization state when starting a new wish
             setSelectedThemeId(null);
             setSelectedVerse(null);
             setGreetingMessage('');
-            setTitleOverlay(selectedCategory);
+            setTitleOverlay((selectedMember?.celebrationType || 'Birthday'));
             setNameOverlay(selectedMember?.name || '');
             setViewMode('personalize');
           }}
@@ -345,7 +344,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
         <View style={{flex: 1}}>
           <AdminWeCelebrationsPersonalize 
             member={selectedMember}
-            category={selectedCategory}
+            category={(selectedMember?.celebrationType || 'Birthday')}
             layout={layout}
             onLayoutChange={setLayout}
             photoUri={photoUri}
@@ -407,7 +406,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
     case 'versePicker':
       return (
         <AdminWeCelebrationsVersePicker
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           selectedVerseRef={selectedVerse?.ref}
           onBack={() => setViewMode('personalize')}
           onSelectVerse={(verse) => {
@@ -442,7 +441,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
       return (
         <AdminWeCelebrationsPreview
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           theme={themeObj}
           layout={layout}
           photoUri={photoUri}
@@ -471,7 +470,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
         <View style={{ flex: 1 }}>
           <AdminWeCelebrationsWhatsAppPreview
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           theme={themeObj}
           layout={layout}
           photoUri={photoUri}
@@ -498,7 +497,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
       return (
         <AdminWeCelebrationsConfirm
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           onDone={() => setViewMode('dashboard')}
         />
       );
@@ -510,10 +509,6 @@ export default function AdminWeCelebrations({ navigation }: any) {
       );
   }
 
-  const handleCategoryPress = (category: string) => {
-    setSelectedCategory(category);
-    setViewMode('list');
-  };
 
   const toggleAutomation = async () => {
     if (!activeChurch) return;
@@ -596,10 +591,10 @@ export default function AdminWeCelebrations({ navigation }: any) {
           return (
             <TouchableOpacity 
               key={cat}
-              style={[styles.chipBtn, { backgroundColor: bgColor }, selectedCategory === cat && { borderWidth: 2, borderColor: textColor }]}
+              style={[styles.chipBtn, { backgroundColor: bgColor }, (selectedMember?.celebrationType || 'Birthday') === cat && { borderWidth: 2, borderColor: textColor }]}
               onPress={() => setSelectedCategory(cat)}
             >
-              <Text style={[styles.chipBtnTxt, { color: textColor }, selectedCategory === cat && { fontWeight: '800' }]}>{cat}</Text>
+              <Text style={[styles.chipBtnTxt, { color: textColor }, (selectedMember?.celebrationType || 'Birthday') === cat && { fontWeight: '800' }]}>{cat}</Text>
             </TouchableOpacity>
           )
         })}
@@ -621,7 +616,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
       {/* Embedded List */}
       <View style={{ flex: 1, minHeight: 400, marginHorizontal: -20, paddingHorizontal: 20, backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingTop: 20 }}>
         <AdminWeCelebrationsList 
-          category={selectedCategory} 
+          category="All" 
           activeTab={activeDateFilter}
           onSelectMember={(member) => {
             setSelectedMember(member);

@@ -51,7 +51,7 @@ const { width } = Dimensions.get('window');
 type FilterPeriod = 'Today' | 'Week' | 'Month' | 'Year' | 'Custom Range';
 type SubTab = 'dashboard' | 'expenses' | 'invoices' | 'editor';
 
-export default function AdminFinanceDashboard() {
+export default function AdminFinanceDashboard({ navigation, routeParams }: any) {
   const { setActiveTab } = useContext(AdminTabContext);
   const { member } = useAuth();
   const [expenses, setExpenses] = useState<ChurchExpense[]>([]);
@@ -128,8 +128,8 @@ export default function AdminFinanceDashboard() {
   
   // Approval State
   const [admins, setAdmins] = useState<any[]>([]);
-  const [selectedApproverId, setSelectedApproverId] = useState<string | null>(null);
-  const [selectedApproverName, setSelectedApproverName] = useState<string | null>(null);
+  const [selectedApproverIds, setSelectedApproverIds] = useState<string[]>([]);
+  const [selectedApproverNames, setSelectedApproverNames] = useState<string[]>([]);
   const [showApproverDropdown, setShowApproverDropdown] = useState(false);
   const [showApprovalActionModal, setShowApprovalActionModal] = useState(false);
   const [approvalActionType, setApprovalActionType] = useState<'Approve' | 'Reject' | 'Request Changes' | null>(null);
@@ -183,7 +183,45 @@ export default function AdminFinanceDashboard() {
     fetchData();
   }, []);
 
-  const openAddExpense = () => {
+  
+  useEffect(() => {
+    const handleHighlight = async () => {
+      if (routeParams?.highlightInvoiceId) {
+        const targetId = String(routeParams.highlightInvoiceId).trim();
+        let inv = invoices.find(i => i.id === targetId);
+        
+        if (!inv) {
+          try {
+            const invoicesRef = await FirestoreService.getCollection('invoices');
+            const doc = await invoicesRef.doc(targetId).get();
+            if (doc.data()) {
+              inv = { id: doc.id, ...doc.data() } as ChurchInvoice;
+            }
+          } catch (err) {
+            console.error('Error fetching specific invoice:', err);
+          }
+        }
+
+        if (inv) {
+          setInvoiceCategory(inv.category || 'General');
+          setSelectedInvoiceExpenses(inv.expenseIds || []);
+          setSelectedInvoiceForApproval(inv);
+          setShowInvoicePreviewModal(true);
+          setCurrentSubTab('invoices');
+        } else {
+          Alert.alert("Invoice Not Found", `Could not locate invoice ${targetId}.`);
+        }
+        
+        // Always clear parameter so it doesn't pop up or alert again on re-renders
+        if (navigation && navigation.setParams) {
+          navigation.setParams({ highlightInvoiceId: undefined });
+        }
+      }
+    };
+
+    handleHighlight();
+  }, [routeParams?.highlightInvoiceId]);
+const openAddExpense = () => {
     // Reset form
     setEditExpenseId(null);
     setAddExpCategory(categories.length > 0 ? categories[0] : 'Sunday Service');
@@ -339,11 +377,11 @@ export default function AdminFinanceDashboard() {
               </div>
             </div>
             <div class="meta">
-              <div class="meta-box"><div class="label">INVOICE NO</div><div class="value">EXP-${new Date().getFullYear()}-00024</div></div>
+              <div class="meta-box"><div class="label">INVOICE NO</div><div class="value">${selectedInvoiceForApproval?.id || ('INV-' + (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase() + '-' + String(invoices.length + 1).padStart(7, '0'))}</div></div>
               <div class="meta-box"><div class="label">INVOICE DATE</div><div class="value">${invDate}</div></div>
               <div class="meta-box"><div class="label">CATEGORY</div><div class="value">${invoiceCategory}</div></div>
-              <div class="meta-box"><div class="label">PREPARED BY</div><div class="value">${userName}</div></div>
-              <div class="meta-box"><div class="label">REPORTED BY</div><div class="value">${userName}</div></div>
+              <div class="meta-box"><div class="label">PREPARED BY</div><div class="value">${selectedInvoiceForApproval?.preparedBy || userName}</div></div>
+              <div class="meta-box"><div class="label">REPORTED BY</div><div class="value">${(selectedInvoiceForApproval?.reportedByNames && selectedInvoiceForApproval.reportedByNames.length > 0) ? selectedInvoiceForApproval.reportedByNames.join(', ') : (selectedInvoiceForApproval?.reportedByName || userName)}</div></div>
             </div>
             <table>
               <thead>
@@ -404,12 +442,14 @@ export default function AdminFinanceDashboard() {
       displayToast("Please select at least one expense record");
       return;
     }
-    if (!selectedApproverId) {
-      displayToast("Please select an approver");
+    if (selectedApproverIds.length === 0) {
+      displayToast("Please select at least one approver");
       return;
     }
     const totalAmt = expenses.filter(e => selectedInvoiceExpenses.includes(e.id!)).reduce((sum, e) => sum + e.amount, 0);
-    const newInvId = 'EXP-' + new Date().getFullYear() + '-' + Math.floor(10000 + Math.random() * 90000);
+    const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
+    const uniqueId = String(invoices.length + 1).padStart(7, '0');
+    const newInvId = `INV-${churchCode}-${uniqueId}`;
     const invData: Partial<ChurchInvoice> = {
       id: newInvId,
       category: invoiceCategory || '',
@@ -418,12 +458,34 @@ export default function AdminFinanceDashboard() {
       preparedBy: member?.name || 'Pastor',
       expenseIds: selectedInvoiceExpenses,
       status: 'Pending Approval',
-      reportedByUserId: selectedApproverId,
-      reportedByName: selectedApproverName || '',
+      reportedByUserIds: selectedApproverIds,
+      reportedByNames: selectedApproverNames,
+      submitterPhone: member?.phone,
     };
     try {
       await FirestoreService.saveInvoice(invData);
+      setSelectedInvoiceForApproval(invData as ChurchInvoice);
       fetchData();
+
+      // Send Push Notifications to Approvers
+      const approvers = admins.filter(a => selectedApproverIds.includes(a.id));
+      for (const approver of approvers) {
+        if (approver.phone) {
+          try {
+            await FirestoreService.createNotificationBroadcast({
+              title: 'New Expense Invoice Approval',
+              content: `${member?.name || 'A user'} has submitted a new expense invoice (${newInvId}) for your approval.`,
+              type: 'invoice',
+              id: newInvId,
+              targetChurchId: churchProfile?.id || '',
+              targetPhone: approver.phone,
+              date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+            });
+          } catch(e) {
+            console.error('Failed to notify approver', e);
+          }
+        }
+      }
       setShowInvoiceModal(false);
       setShowInvoicePreviewModal(true);
     } catch (e) {
@@ -437,10 +499,27 @@ export default function AdminFinanceDashboard() {
     try {
       const updateData: Partial<ChurchInvoice> = {
         status: actionType === 'Approve' ? 'Approved' : (actionType === 'Reject' ? 'Rejected' : 'Changes Requested'),
-        approvalComments: approvalComments || undefined
+        approvalComments: approvalComments || ''
       };
       
       await FirestoreService.updateInvoice(selectedInvoiceForApproval.id, updateData);
+
+      // Send Push Notification back to Submitter
+      if (selectedInvoiceForApproval.submitterPhone) {
+        try {
+          await FirestoreService.createNotificationBroadcast({
+            title: 'Expense Invoice Update',
+            content: `Your expense invoice (${selectedInvoiceForApproval.id}) was ${actionType === 'Approve' ? 'Approved' : (actionType === 'Reject' ? 'Rejected' : 'marked for Changes Requested')} by ${member?.name || 'an Admin'}.`,
+            type: 'invoice',
+            id: selectedInvoiceForApproval.id,
+            targetChurchId: churchProfile?.id || '',
+            targetPhone: selectedInvoiceForApproval.submitterPhone,
+            date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
+          });
+        } catch (e) {
+          console.error('Failed to notify submitter', e);
+        }
+      }
       
       displayToast(`Invoice ${actionType === 'Approve' ? 'Approved' : (actionType === 'Reject' ? 'Rejected' : 'Changes Requested')}`);
       setShowApprovalActionModal(false);
@@ -735,6 +814,8 @@ export default function AdminFinanceDashboard() {
                 onPress={() => {
                   setInvoiceCategory(categories.length > 0 ? categories[0] : 'Sunday Service');
                   setSelectedInvoiceExpenses([]);
+                  setSelectedApproverIds([]);
+                  setSelectedApproverNames([]);
                   setShowInvoiceModal(true);
                 }}
               >
@@ -950,23 +1031,9 @@ export default function AdminFinanceDashboard() {
                       }
                       setSelectedInvoiceExpenses(expIds);
 
-                      const totalAmt = expenses.filter(e => expIds.includes(e.id!)).reduce((sum, e) => sum + e.amount, 0);
-                      const newInvId = 'EXP-' + new Date().getFullYear() + '-' + Math.floor(10000 + Math.random() * 90000);
-                      const invData: Partial<ChurchInvoice> = {
-                        id: newInvId,
-                        category: categoryName,
-                        date: new Date().toISOString().split('T')[0],
-                        amount: totalAmt,
-                        preparedBy: member?.name || 'Pastor',
-                        expenseIds: expIds,
-                      };
-                      try {
-                        await FirestoreService.saveInvoice(invData);
-                        fetchData();
-                        setShowInvoicePreviewModal(true);
-                      } catch (e) {
-                        displayToast("Failed to save invoice");
-                      }
+                      setSelectedApproverIds([]);
+                      setSelectedApproverNames([]);
+                      setShowInvoiceModal(true);
                     }}
                   >
                     <Text style={[styles.btnSecondaryTxt, { color: '#ffffff' }]}>
@@ -999,8 +1066,8 @@ export default function AdminFinanceDashboard() {
                       style={styles.customRangeInput}
                       onPress={() => setShowCustomStartPicker(true)}
                     >
-                      <Text style={[styles.customRangeInputTxt, !customStartDate && { color: '#a89f92' }]}>
-                        {customStartDate ? customStartDate.toLocaleDateString('en-GB').replace(/\//g, '-') : 'DD-MM-YYYY'}
+                      <Text style={[styles.customRangeInputTxt, !customStartDate && { color: '#a89f92' }]} numberOfLines={1} adjustsFontSizeToFit>
+                        {customStartDate ? customStartDate.toLocaleDateString('en-GB').replace(/\//g, '-') : 'Select'}
                       </Text>
                       <Calendar size={14} color="#1b2a4a" />
                     </TouchableOpacity>
@@ -1011,8 +1078,8 @@ export default function AdminFinanceDashboard() {
                       style={styles.customRangeInput}
                       onPress={() => setShowCustomEndPicker(true)}
                     >
-                      <Text style={[styles.customRangeInputTxt, !customEndDate && { color: '#a89f92' }]}>
-                        {customEndDate ? customEndDate.toLocaleDateString('en-GB').replace(/\//g, '-') : 'DD-MM-YYYY'}
+                      <Text style={[styles.customRangeInputTxt, !customEndDate && { color: '#a89f92' }]} numberOfLines={1} adjustsFontSizeToFit>
+                        {customEndDate ? customEndDate.toLocaleDateString('en-GB').replace(/\//g, '-') : 'Select'}
                       </Text>
                       <Calendar size={14} color="#1b2a4a" />
                     </TouchableOpacity>
@@ -1056,10 +1123,10 @@ export default function AdminFinanceDashboard() {
             </View>
 
             <View style={styles.sectionHeading}>
-              <Text style={styles.sectionHeadingTxt}>Expense categories</Text>
+              <Text style={[styles.sectionHeadingTxt, { flex: 1, marginRight: 8 }]} numberOfLines={1} adjustsFontSizeToFit>Expense categories</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <TouchableOpacity 
-                  style={{ marginRight: 12, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: isMultiCatSelecting ? '#141d33' : '#ffffff', borderWidth: 1, borderColor: '#e5ddd0' }} 
+                  style={{ marginRight: 8, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, backgroundColor: isMultiCatSelecting ? '#141d33' : '#ffffff', borderWidth: 1, borderColor: '#e5ddd0' }} 
                   onPress={() => {
                     if (isMultiCatSelecting) {
                       setIsMultiCatSelecting(false);
@@ -1153,22 +1220,9 @@ export default function AdminFinanceDashboard() {
                     setInvoiceCategory("Multiple Categories");
                     setSelectedInvoiceExpenses(expIds);
 
-                    const newInvId = 'EXP-' + new Date().getFullYear() + '-' + Math.floor(10000 + Math.random() * 90000);
-                    const invData: Partial<ChurchInvoice> = {
-                      id: newInvId,
-                      category: "Multiple Categories",
-                      date: new Date().toISOString().split('T')[0],
-                      amount: totalAmt,
-                      preparedBy: member?.name || 'Pastor',
-                      expenseIds: expIds,
-                    };
-                    try {
-                      await FirestoreService.saveInvoice(invData);
-                      fetchData();
-                      setShowInvoicePreviewModal(true);
-                    } catch (e) {
-                      displayToast("Failed to save master invoice");
-                    }
+                      setSelectedApproverIds([]);
+                      setSelectedApproverNames([]);
+                      setShowInvoiceModal(true);
                   }}
                 >
                   <Text style={[styles.btnSecondaryTxt, { color: '#ffffff' }]}>
@@ -1653,8 +1707,8 @@ export default function AdminFinanceDashboard() {
                 onPress={() => setShowApproverDropdown(!showApproverDropdown)}
                 activeOpacity={0.8}
               >
-                <Text style={{ fontSize: 15, fontFamily: FONTS.sans, color: selectedApproverName ? '#241f1a' : '#a89f92' }}>
-                  {selectedApproverName || 'Select an Approver'}
+                <Text style={{ fontSize: 15, fontFamily: FONTS.sans, color: selectedApproverNames.length > 0 ? '#241f1a' : '#a89f92' }}>
+                  {selectedApproverNames.length > 0 ? selectedApproverNames.join(', ') : 'Select Approvers'}
                 </Text>
                 <ChevronRight size={18} color="#241f1a" style={{ transform: [{ rotate: showApproverDropdown ? '-90deg' : '90deg' }] }} />
               </TouchableOpacity>
@@ -1668,14 +1722,19 @@ export default function AdminFinanceDashboard() {
                         return (
                           <TouchableOpacity 
                             key={admin.id || idx} 
-                            style={[styles.dropdownItem, selectedApproverId === admin.id && styles.dropdownItemActive]}
+                            style={[styles.dropdownItem, selectedApproverIds.includes(admin.id) && styles.dropdownItemActive]}
+                            activeOpacity={0.7}
                             onPress={() => {
-                              setSelectedApproverId(admin.id);
-                              setSelectedApproverName(adminName);
-                              setShowApproverDropdown(false);
+                              if (selectedApproverIds.includes(admin.id)) {
+                                setSelectedApproverIds(prev => prev.filter(id => id !== admin.id));
+                                setSelectedApproverNames(prev => prev.filter(name => name !== adminName));
+                              } else {
+                                setSelectedApproverIds(prev => [...prev, admin.id]);
+                                setSelectedApproverNames(prev => [...prev, adminName]);
+                              }
                             }}
                           >
-                            <Text style={[styles.dropdownItemTxt, selectedApproverId === admin.id && styles.dropdownItemTxtActive]}>{adminName}</Text>
+                            <Text style={[styles.dropdownItemTxt, selectedApproverIds.includes(admin.id) && styles.dropdownItemTxtActive]}>{adminName}</Text>
                           </TouchableOpacity>
                         );
                       })}
@@ -1792,7 +1851,7 @@ export default function AdminFinanceDashboard() {
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 }}>
                   <View style={{ width: '45%' }}>
                     <Text style={styles.invLabel}>INVOICE NO</Text>
-                    <Text style={styles.invValue}>EXP-2026-00024</Text>
+                    <Text style={styles.invValue}>{selectedInvoiceForApproval?.id || ('INV-' + (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase() + '-' + String(invoices.length + 1).padStart(7, '0'))}</Text>
                   </View>
                   <View style={{ width: '45%' }}>
                     <Text style={styles.invLabel}>INVOICE DATE</Text>
@@ -1808,7 +1867,7 @@ export default function AdminFinanceDashboard() {
                   </View>
                   <View style={{ width: '45%' }}>
                     <Text style={styles.invLabel}>REPORTED BY</Text>
-                    <Text style={styles.invValue}>{selectedInvoiceForApproval?.reportedByName || selectedApproverName || member?.name || 'Admin'}</Text>
+                    <Text style={styles.invValue}>{(selectedInvoiceForApproval?.reportedByNames && selectedInvoiceForApproval.reportedByNames.length > 0) ? selectedInvoiceForApproval.reportedByNames.join(', ') : (selectedInvoiceForApproval?.reportedByName || selectedApproverNames.join(', ') || member?.name || 'Admin')}</Text>
                   </View>
                 </View>
 
@@ -1891,7 +1950,7 @@ export default function AdminFinanceDashboard() {
             </ViewShot>
 
             {/* Action Buttons & Approval Flow */}
-            {selectedInvoiceForApproval?.status === 'Pending Approval' && selectedInvoiceForApproval?.reportedByUserId === member?.id ? (
+            {selectedInvoiceForApproval?.status === 'Pending Approval' && (selectedInvoiceForApproval?.reportedByUserId === member?.id || selectedInvoiceForApproval?.reportedByUserIds?.includes(member?.id || '')) ? (
               <View style={{ marginTop: 20 }}>
                 <Text style={{ fontFamily: FONTS.serif, fontSize: 16, color: '#1b2a4a', marginBottom: 10, textAlign: 'center' }}>Approval Required</Text>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
@@ -2149,7 +2208,7 @@ const styles = StyleSheet.create({
   customRangeInput: {
     backgroundColor: '#ffffff',
     borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8,
-    paddingVertical: 10, paddingHorizontal: 10,
+    paddingVertical: 10, paddingHorizontal: 8,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'
   },
   customRangeInputTxt: { fontFamily: FONTS.mono, fontSize: 13, color: '#1b2a4a', fontWeight: '600' },

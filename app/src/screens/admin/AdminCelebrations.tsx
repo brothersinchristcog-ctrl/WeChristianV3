@@ -29,7 +29,6 @@ export default function AdminCelebrations({ navigation }: any) {
   const { setActiveTab } = React.useContext(AdminTabContext);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
-  const [selectedCategory, setSelectedCategory] = useState('Birthday');
   const [activeDateFilter, setActiveDateFilter] = useState('Today');
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
@@ -244,7 +243,7 @@ export default function AdminCelebrations({ navigation }: any) {
       }
 
       await FirestoreService.createNotificationBroadcast({
-         title: `${selectedCategory === 'Birthday' ? '🎂 Happy Birthday' : selectedCategory === 'Anniversary' ? '💒 Happy Anniversary' : '🎉 Happy Baptism Anniversary'}, ${selectedMember.name}!`,
+         title: `${(selectedMember?.celebrationType || 'Birthday') === 'Birthday' ? '🎂 Happy Birthday' : (selectedMember?.celebrationType || 'Birthday') === 'Anniversary' ? '💒 Happy Anniversary' : '🎉 Happy Baptism Anniversary'}, ${selectedMember.name}!`,
          content: text,
          date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
          type: 'celebration',
@@ -269,14 +268,14 @@ export default function AdminCelebrations({ navigation }: any) {
       return (
         <AdminCelebrationsMemberDetails 
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           onBack={() => setViewMode('list')}
           onPrepareWish={() => {
             // Reset personalization state when starting a new wish
             setSelectedThemeId(null);
             setSelectedVerse(null);
             setGreetingMessage('');
-            setTitleOverlay(selectedCategory);
+            setTitleOverlay((selectedMember?.celebrationType || 'Birthday'));
             setNameOverlay(selectedMember?.name || '');
             setViewMode('personalize');
           }}
@@ -287,7 +286,7 @@ export default function AdminCelebrations({ navigation }: any) {
         <View style={{flex: 1}}>
           <AdminCelebrationsPersonalize 
             member={selectedMember}
-            category={selectedCategory}
+            category={(selectedMember?.celebrationType || 'Birthday')}
             layout={layout}
             onLayoutChange={setLayout}
             photoUri={photoUri}
@@ -349,7 +348,7 @@ export default function AdminCelebrations({ navigation }: any) {
     case 'versePicker':
       return (
         <AdminCelebrationsVersePicker
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           selectedVerseRef={selectedVerse?.ref}
           onBack={() => setViewMode('personalize')}
           onSelectVerse={(verse) => {
@@ -384,7 +383,7 @@ export default function AdminCelebrations({ navigation }: any) {
       return (
         <AdminCelebrationsPreview
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           theme={themeObj}
           layout={layout}
           photoUri={photoUri}
@@ -412,7 +411,7 @@ export default function AdminCelebrations({ navigation }: any) {
       return (
         <AdminCelebrationsWhatsAppPreview
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           theme={themeObj}
           layout={layout}
           photoUri={photoUri}
@@ -431,16 +430,12 @@ export default function AdminCelebrations({ navigation }: any) {
       return (
         <AdminCelebrationsConfirm
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           onDone={() => setViewMode('dashboard')}
         />
       );
   }
 
-  const handleCategoryPress = (category: string) => {
-    setSelectedCategory(category);
-    setViewMode('list');
-  };
 
   return (
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -481,22 +476,7 @@ export default function AdminCelebrations({ navigation }: any) {
         </View>
       </View>
 
-      {/* Category Buttons */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10, marginBottom: 16 }}>
-        {['Birthday', 'Wedding Anniversary', 'Baptism Anniversary'].map(cat => {
-          let bgColor = cat === 'Birthday' ? '#F3E4B6' : cat === 'Wedding Anniversary' ? '#E2E5F2' : '#DDF1E7';
-          let textColor = cat === 'Birthday' ? '#B88A2E' : cat === 'Wedding Anniversary' ? '#455490' : '#358B6D';
-          return (
-            <TouchableOpacity 
-              key={cat}
-              style={[styles.chipBtn, { backgroundColor: bgColor }, selectedCategory === cat && { borderWidth: 2, borderColor: textColor }]}
-              onPress={() => setSelectedCategory(cat)}
-            >
-              <Text style={[styles.chipBtnTxt, { color: textColor }, selectedCategory === cat && { fontWeight: '800' }]}>{cat}</Text>
-            </TouchableOpacity>
-          )
-        })}
-      </ScrollView>
+
 
       {/* Date Filters */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, marginBottom: 20 }}>
@@ -514,7 +494,7 @@ export default function AdminCelebrations({ navigation }: any) {
       {/* Embedded List */}
       <View style={{ flex: 1, minHeight: 400 }}>
         <AdminCelebrationsList 
-          category={selectedCategory} 
+          category="All" 
           activeTab={activeDateFilter}
           onSelectMember={(member) => {
             setSelectedMember(member);

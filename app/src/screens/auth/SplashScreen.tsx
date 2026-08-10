@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useChurch } from '../../context/ChurchContext';
+import { Heart } from 'lucide-react-native';
 
 export default function SplashScreen() {
   const { activeChurch, loading } = useChurch();
@@ -120,6 +121,19 @@ export default function SplashScreen() {
           </>
         )}
       </View>
+
+      {/* Footer Text */}
+      <View style={styles.footerContainer}>
+        <Text style={styles.poweredText}>Powered by</Text>
+        <Text style={styles.companyText}>Covenant Synergy Pvt Ltd</Text>
+        <View style={styles.footerLineContainer}>
+          <View style={styles.footerLine} />
+          <View style={styles.footerDot} />
+          <Heart size={16} color="rgba(255, 255, 255, 0.7)" strokeWidth={2} style={styles.footerHeart} />
+          <View style={styles.footerDot} />
+          <View style={styles.footerLine} />
+        </View>
+      </View>
     </View>
   );
 }
@@ -192,5 +206,44 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0c14b',
     position: 'absolute',
     bottom: 0,
+  },
+  footerContainer: {
+    position: 'absolute',
+    bottom: 50,
+    alignItems: 'center',
+    width: '100%',
+  },
+  poweredText: {
+    fontSize: 12,
+    color: 'rgba(246, 244, 236, 0.7)',
+    marginBottom: 4,
+  },
+  companyText: {
+    fontSize: 14,
+    color: 'rgba(246, 244, 236, 0.7)',
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
+  footerLineContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '50%',
+    justifyContent: 'center',
+    marginTop: 8,
+  },
+  footerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  footerDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    marginHorizontal: 4,
+  },
+  footerHeart: {
+    marginHorizontal: 6,
   }
 });

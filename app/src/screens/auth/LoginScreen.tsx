@@ -88,6 +88,18 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
       return;
     }
 
+    // 🔥 SECRET DEV BYPASS 🔥
+    if (formattedNumber === '+919999999999') {
+      Alert.alert('Dev Bypass', 'Logging you in automatically for testing!');
+      setLoading(true);
+      try {
+        await require('@react-native-async-storage/async-storage').default.setItem('@guest_intent', 'true');
+        await auth().signInAnonymously();
+      } catch(e) {}
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       setVerifyingStatus('Sending OTP...');

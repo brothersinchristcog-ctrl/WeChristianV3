@@ -18,7 +18,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import {
   Calendar,
   Clock,
@@ -123,14 +123,6 @@ export default function AdminEventEditor() {
   const [isStartTimeVisible, setStartTimeVisibility] = useState(false);
   const [isEndTimeVisible, setEndTimeVisibility] = useState(false);
 
-  // JS Picker Temp State
-  const [tempDate, setTempDate] = useState({ 
-    d: String(new Date().getDate()).padStart(2, '0'), 
-    m: String(new Date().getMonth() + 1).padStart(2, '0'), 
-    y: String(new Date().getFullYear()) 
-  });
-  const [tempTime, setTempTime] = useState({ h: '09', m: '00', p: 'AM' });
-
   const [metadata, setMetadata] = useState<any>(null);
 
   useEffect(() => {
@@ -213,11 +205,6 @@ export default function AdminEventEditor() {
     }
   }, [editingData]);
 
-  const confirmJSDate = () => {
-    setDate(`${tempDate.d}-${tempDate.m}-${tempDate.y}`);
-    setDatePickerVisibility(false);
-  };
-
   const uploadImageToCloud = async (localUri: string): Promise<string> => {
     try {
       const storage = require('@react-native-firebase/storage').default;
@@ -234,13 +221,6 @@ export default function AdminEventEditor() {
     }
   };
 
-  const confirmJSTime = (target: 'start' | 'end') => {
-    const formatted = `${tempTime.h}:${tempTime.m} ${tempTime.p}`;
-    if (target === 'start') setStartTime(formatted);
-    else setEndTime(formatted);
-    setStartTimeVisibility(false);
-    setEndTimeVisibility(false);
-  };
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -479,79 +459,6 @@ export default function AdminEventEditor() {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  const JSPickerModal = ({ visible, onClose, onConfirm, type }: any) => (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>{type === 'date' ? 'Select Event Date' : 'Select Time'}</Text>
-
-          <View style={styles.pickerRow}>
-            {type === 'date' ? (
-              <>
-                <ScrollView style={styles.pickerCol} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0')).map(d => (
-                    <TouchableOpacity key={d} onPress={() => setTempDate({ ...tempDate, d })}>
-                      <Text style={[styles.pickerItem, tempDate.d === d && styles.pickerItemActive]}>{d}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <ScrollView style={styles.pickerCol} showsVerticalScrollIndicator={false}>
-                  {MONTH_NAMES.map((m, idx) => {
-                    const mVal = (idx + 1).toString().padStart(2, '0');
-                    return (
-                      <TouchableOpacity key={m} onPress={() => setTempDate({ ...tempDate, m: mVal })}>
-                        <Text style={[styles.pickerItem, tempDate.m === mVal && styles.pickerItemActive]}>{m}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-                <ScrollView style={styles.pickerCol} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 11 }, (_, i) => (2025 + i).toString()).map(y => (
-                    <TouchableOpacity key={y} onPress={() => setTempDate({ ...tempDate, y })}>
-                      <Text style={[styles.pickerItem, tempDate.y === y && styles.pickerItemActive]}>{y}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </>
-            ) : (
-              <>
-                <ScrollView style={styles.pickerCol} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).map(h => (
-                    <TouchableOpacity key={h} onPress={() => setTempTime({ ...tempTime, h })}>
-                      <Text style={[styles.pickerItem, tempTime.h === h && styles.pickerItemActive]}>{h}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <ScrollView style={styles.pickerCol} showsVerticalScrollIndicator={false}>
-                  {['00', '15', '30', '45'].map(m => (
-                    <TouchableOpacity key={m} onPress={() => setTempTime({ ...tempTime, m })}>
-                      <Text style={[styles.pickerItem, tempTime.m === m && styles.pickerItemActive]}>{m}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <View style={styles.pickerCol}>
-                  {['AM', 'PM'].map(p => (
-                    <TouchableOpacity key={p} onPress={() => setTempTime({ ...tempTime, p })}>
-                      <Text style={[styles.pickerItem, tempTime.p === p && styles.pickerItemActive]}>{p}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
-          </View>
-
-          <View style={styles.modalFooter}>
-            <TouchableOpacity onPress={onClose} style={styles.modalCancel}>
-              <Text style={styles.modalCancelTxt}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onConfirm} style={styles.modalConfirm}>
-              <Text style={styles.modalConfirmTxt}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
 
   return (
     <View style={styles.container}>
@@ -860,9 +767,33 @@ export default function AdminEventEditor() {
         <View style={{ height: 100 }} />
       </ScrollView>
       
-      {isDatePickerVisible && <JSPickerModal type="date" visible={isDatePickerVisible} onClose={() => setDatePickerVisibility(false)} onConfirm={() => { setDate(`${tempDate.d}-${tempDate.m}-${tempDate.y}`); setDatePickerVisibility(false); }} />}
-      {isStartTimeVisible && <JSPickerModal type="time" visible={isStartTimeVisible} onClose={() => setStartTimeVisibility(false)} onConfirm={() => { setStartTime(`${tempTime.h}:${tempTime.m} ${tempTime.p}`); setStartTimeVisibility(false); }} />}
-      {isEndTimeVisible && <JSPickerModal type="time" visible={isEndTimeVisible} onClose={() => setEndTimeVisibility(false)} onConfirm={() => { setEndTime(`${tempTime.h}:${tempTime.m} ${tempTime.p}`); setEndTimeVisibility(false); }} />}
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={(d) => {
+          setDate(d.toLocaleDateString('en-GB').replace(/\//g, '-'));
+          setDatePickerVisibility(false);
+        }}
+        onCancel={() => setDatePickerVisibility(false)}
+      />
+      <DateTimePickerModal
+        isVisible={isStartTimeVisible}
+        mode="time"
+        onConfirm={(t) => {
+          setStartTime(t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+          setStartTimeVisibility(false);
+        }}
+        onCancel={() => setStartTimeVisibility(false)}
+      />
+      <DateTimePickerModal
+        isVisible={isEndTimeVisible}
+        mode="time"
+        onConfirm={(t) => {
+          setEndTime(t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+          setEndTimeVisibility(false);
+        }}
+        onCancel={() => setEndTimeVisibility(false)}
+      />
 
     </View>
   );
