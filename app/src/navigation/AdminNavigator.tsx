@@ -199,7 +199,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     ...(member?.userType === 'super_admin' ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];
 
-  const ActiveComponent = tabs[activeTab].component;
+  const ActiveComponent = tabs[activeTab].component as any;
   const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   const isHomeActive = activeTab === 0;

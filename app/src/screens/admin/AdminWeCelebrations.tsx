@@ -29,6 +29,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [activeDateFilter, setActiveDateFilter] = useState('Today');
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState('All');
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
   // Hoisted state for personalization flow
@@ -591,10 +592,10 @@ export default function AdminWeCelebrations({ navigation }: any) {
           return (
             <TouchableOpacity 
               key={cat}
-              style={[styles.chipBtn, { backgroundColor: bgColor }, (selectedMember?.celebrationType || 'Birthday') === cat && { borderWidth: 2, borderColor: textColor }]}
-              onPress={() => setSelectedCategory(cat)}
+              style={[styles.chipBtn, { backgroundColor: bgColor }, activeCategoryFilter === cat && { borderWidth: 2, borderColor: textColor }]}
+              onPress={() => setActiveCategoryFilter(activeCategoryFilter === cat ? 'All' : cat)}
             >
-              <Text style={[styles.chipBtnTxt, { color: textColor }, (selectedMember?.celebrationType || 'Birthday') === cat && { fontWeight: '800' }]}>{cat}</Text>
+              <Text style={[styles.chipBtnTxt, { color: textColor }, activeCategoryFilter === cat && { fontWeight: '800' }]}>{cat}</Text>
             </TouchableOpacity>
           )
         })}
@@ -616,7 +617,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
       {/* Embedded List */}
       <View style={{ flex: 1, minHeight: 400, marginHorizontal: -20, paddingHorizontal: 20, backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingTop: 20 }}>
         <AdminWeCelebrationsList 
-          category="All" 
+          category={activeCategoryFilter} 
           activeTab={activeDateFilter}
           onSelectMember={(member) => {
             setSelectedMember(member);
