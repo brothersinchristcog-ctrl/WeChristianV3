@@ -37,7 +37,7 @@ export default function AdminSermonsPage() {
         setChurchId(cid);
 
         const sermonsSnap = await getDocs(collection(db, 'churches', cid, 'sermons'));
-        const sermonsData = sermonsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const sermonsData = sermonsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
         
         // Sort by date descending
         sermonsData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
