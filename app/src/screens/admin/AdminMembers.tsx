@@ -71,6 +71,7 @@ export default function AdminMembers() {
   const [villageFilter, setVillageFilter] = useState<string>('All');
   const [villageDropdownVisible, setVillageDropdownVisible] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedHouseholdIds, setExpandedHouseholdIds] = useState<Record<string, boolean>>({});
 
   // Add/Edit Member State
   const [addModalVisible, setAddModalVisible] = useState(false);
@@ -691,19 +692,59 @@ export default function AdminMembers() {
                     <View style={styles.householdList}>
                       {associated.length > 0 ? (
                         associated.map((assoc, idx) => (
-                          <View key={`${assoc.id || 'assoc'}-${idx}`} style={styles.householdItem}>
-                            <View style={styles.hiLeft}>
-                              <Text style={styles.hiName}>{(`${assoc.firstName || ''} ${assoc.lastName || ''}`.trim()) || assoc.name}</Text>
-                              {(assoc.city || assoc.village) && (
-                                <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 1, marginBottom: 1 }}>
-                                  📍 {(assoc.city || assoc.village).trim()}
-                                </Text>
-                              )}
-                              <Text style={styles.hiEmail}>{assoc.email || assoc.phone || 'No contact details'}</Text>
-                            </View>
-                            <View style={styles.hiRight}>
-                              <Text style={styles.hiRelation}>{assoc.userType || 'Member'}</Text>
-                            </View>
+                          <View key={`${assoc.id || 'assoc'}-${idx}`}>
+                            <TouchableOpacity 
+                              style={styles.householdItem}
+                              onPress={() => {
+                                const key = assoc.id || String(idx);
+                                setExpandedHouseholdIds(prev => ({ ...prev, [key]: !prev[key] }));
+                              }}
+                            >
+                              <View style={styles.hiLeft}>
+                                <Text style={styles.hiName}>{(`${assoc.firstName || ''} ${assoc.lastName || ''}`.trim()) || assoc.name}</Text>
+                                {(assoc.city || assoc.village) && (
+                                  <Text style={{ fontSize: 11, color: '#6B7280', marginTop: 1, marginBottom: 1 }}>
+                                    📍 {(assoc.city || assoc.village).trim()}
+                                  </Text>
+                                )}
+                                <Text style={styles.hiEmail}>{assoc.email || assoc.phone || 'No contact details'}</Text>
+                              </View>
+                              <View style={styles.hiRight}>
+                                <Text style={styles.hiRelation}>{assoc.userType || 'Member'}</Text>
+                                {expandedHouseholdIds[assoc.id || String(idx)] ? <ChevronUp size={16} color="#6B7280" style={{marginTop: 4}}/> : <ChevronDown size={16} color="#6B7280" style={{marginTop: 4}}/>}
+                              </View>
+                            </TouchableOpacity>
+                            {expandedHouseholdIds[assoc.id || String(idx)] && (() => {
+                              const details = assoc.id ? (members.find(m => m.id === assoc.id) || assoc) : assoc;
+                              return (
+                                <View style={{ padding: 12, backgroundColor: '#F9FAFB', borderBottomLeftRadius: 12, borderBottomRightRadius: 12, marginBottom: 8, marginTop: -8, marginHorizontal: 2 }}>
+                                  {details.phone ? (
+                                    <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }} onPress={() => Linking.openURL(`tel:${details.phone.replace(/[^0-9+]/g, '')}`)}>
+                                      <Phone size={14} color="#6B7280" style={{ marginRight: 8 }} />
+                                      <Text style={{ color: '#007AFF', fontSize: 13, textDecorationLine: 'underline' }}>{details.phone}</Text>
+                                    </TouchableOpacity>
+                                  ) : null}
+                                  {details.email ? (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                      <Mail size={14} color="#6B7280" style={{ marginRight: 8 }} />
+                                      <Text style={{ color: '#4B5563', fontSize: 13 }}>{details.email}</Text>
+                                    </View>
+                                  ) : null}
+                                  {details.dob ? (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                                      <Text style={{ fontSize: 14, marginRight: 8 }}>🎂</Text>
+                                      <Text style={{ color: '#4B5563', fontSize: 13 }}>DOB: {details.dob}</Text>
+                                    </View>
+                                  ) : null}
+                                  {details.gender ? (
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                      <Text style={{ fontSize: 14, marginRight: 8 }}>👤</Text>
+                                      <Text style={{ color: '#4B5563', fontSize: 13 }}>Gender: {details.gender}</Text>
+                                    </View>
+                                  ) : null}
+                                </View>
+                              );
+                            })()}
                           </View>
                         ))
                       ) : (
