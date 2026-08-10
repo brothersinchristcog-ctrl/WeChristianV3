@@ -14,7 +14,8 @@ import {
   Modal,
   Share,
   KeyboardAvoidingView,
-  Image
+  Image,
+  Linking
 } from 'react-native';
 import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2, ChevronLeft } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
@@ -605,10 +606,13 @@ export default function AdminMembers() {
                 </TouchableOpacity>
 
                 <View style={styles.contactDetails}>
-                  <View style={styles.contactRow}>
+                  <TouchableOpacity 
+                    style={styles.contactRow}
+                    onPress={() => member.phone && Linking.openURL(`tel:${member.phone.replace(/[^0-9+]/g, '')}`)}
+                  >
                     <Phone size={12} color="#6B7280" />
-                    <Text style={styles.contactTxt}>{member.phone || 'No Phone'}</Text>
-                  </View>
+                    <Text style={[styles.contactTxt, member.phone && { color: '#007AFF', textDecorationLine: 'underline' }]}>{member.phone || 'No Phone'}</Text>
+                  </TouchableOpacity>
                   <View style={styles.contactRow}>
                     <Mail size={12} color="#6B7280" />
                     <Text style={styles.contactTxt}>{member.email || 'No Email'}</Text>
@@ -687,7 +691,29 @@ export default function AdminMembers() {
                     <View style={styles.householdList}>
                       {associated.length > 0 ? (
                         associated.map((assoc, idx) => (
-                          <View key={`${assoc.id || 'assoc'}-${idx}`} style={styles.householdItem}>
+                          <TouchableOpacity 
+                            key={`${assoc.id || 'assoc'}-${idx}`} 
+                            style={styles.householdItem}
+                            onPress={() => {
+                              // If it's a real member, we can show their details by selecting them
+                              if (assoc.id) {
+                                // Find the full member object
+                                const fullMember = members.find(m => m.id === assoc.id);
+                                if (fullMember) {
+                                  // Open this member
+                                  if (expandedId === fullMember.id) {
+                                    setExpandedId(null);
+                                  } else {
+                                    setExpandedId(fullMember.id);
+                                  }
+                                } else {
+                                  Alert.alert('Details', `${assoc.firstName || assoc.name}\n${assoc.phone || ''}`);
+                                }
+                              } else {
+                                Alert.alert('Household Member', `${assoc.firstName || assoc.name}\n${assoc.phone || 'No phone'}`);
+                              }
+                            }}
+                          >
                             <View style={styles.hiLeft}>
                               <Text style={styles.hiName}>{(`${assoc.firstName || ''} ${assoc.lastName || ''}`.trim()) || assoc.name}</Text>
                               {(assoc.city || assoc.village) && (
@@ -700,7 +726,7 @@ export default function AdminMembers() {
                             <View style={styles.hiRight}>
                               <Text style={styles.hiRelation}>{assoc.userType || 'Member'}</Text>
                             </View>
-                          </View>
+                          </TouchableOpacity>
                         ))
                       ) : (
                         <Text style={styles.emptyHouseholdTxt}>
