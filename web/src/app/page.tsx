@@ -14,16 +14,15 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Setup reCAPTCHA when component mounts
   useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': () => {
-          // reCAPTCHA solved
-        }
-      });
-    }
+    // We don't initialize on mount to avoid Strict Mode stale DOM node issues.
+    // We will initialize it right before sending the code instead.
+    return () => {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
+      }
+    };
   }, []);
 
   const handleSendCode = async (e: React.FormEvent) => {
@@ -37,9 +36,14 @@ export default function Home() {
         formattedPhone = `+91${formattedPhone.replace(/^0+/, '')}`;
       }
 
-      const appVerifier = window.recaptchaVerifier;
-      if (!appVerifier) throw new Error("reCAPTCHA not initialized");
+      // Initialize reCAPTCHA right before we need it to ensure DOM node is fresh
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          'size': 'invisible',
+        });
+      }
 
+      const appVerifier = window.recaptchaVerifier;
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       setConfirmationResult(confirmation);
       setIsCodeSent(true);

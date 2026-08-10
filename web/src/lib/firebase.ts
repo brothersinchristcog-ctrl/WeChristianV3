@@ -6,7 +6,7 @@ import { getFirestore } from 'firebase/firestore';
 // For full Web support, you should register a Web App in Firebase Console
 // and replace this with the exact config object they provide (including appId).
 const firebaseConfig = {
-  apiKey: "AIzaSyDXP8v94YOvitLaixotzmOvRJsaoFuGf20",
+  apiKey: "AIzaSyBEZ-FrpqgECCx6qk7-do15rtLssHjtWMY",
   authDomain: "wechristian-67f07.firebaseapp.com",
   projectId: "wechristian-67f07",
   storageBucket: "wechristian-67f07.firebasestorage.app",
