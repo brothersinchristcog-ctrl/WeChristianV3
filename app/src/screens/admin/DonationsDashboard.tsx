@@ -1281,6 +1281,153 @@ export default function AdminDonationDashboard() {
         </View>
       </Modal>
 
+      {/* ── Report Configuration Modal ── */}
+      <Modal visible={showReportConfigModal} transparent animationType="slide">
+        <View style={styles.modalOverlayFull}>
+          <View style={[styles.addExpModal, { height: '85%', paddingHorizontal: 22, width: '92%', maxWidth: 450 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 }}>
+              <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#141d33', fontWeight: '700' }}>Configure Report</Text>
+              <TouchableOpacity onPress={() => setShowReportConfigModal(false)}>
+                <X size={20} color="#645d54" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#887d6d', marginBottom: 8 }}>DATE RANGE</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 15 }}>
+              {(['All Time', 'Today', 'Week', 'Month', 'Year', 'Custom Range'] as FilterPeriod[]).map(fp => (
+                <TouchableOpacity 
+                  key={fp}
+                  style={[styles.filterChip, reportDateFilter === fp && styles.filterChipActive]}
+                  onPress={() => {
+                    setReportDateFilter(fp);
+                    if (fp !== 'Custom Range') {
+                      setTimeout(() => {
+                        const catDons = donations.filter(e => e.category === selectedCategoryView);
+                        let filtered = catDons;
+                        const now = new Date();
+                        if (fp === 'Today') {
+                          const todayStr = now.toISOString().split('T')[0];
+                          filtered = catDons.filter(e => e.date === todayStr);
+                        } else if (fp === 'Week') {
+                          const startOfWeek = new Date(now);
+                          startOfWeek.setDate(now.getDate() - now.getDay());
+                          startOfWeek.setHours(0,0,0,0);
+                          filtered = catDons.filter(e => new Date(e.date) >= startOfWeek);
+                        } else if (fp === 'Month') {
+                          filtered = catDons.filter(e => {
+                            const d = new Date(e.date);
+                            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                          });
+                        } else if (fp === 'Year') {
+                          filtered = catDons.filter(e => new Date(e.date).getFullYear() === now.getFullYear());
+                        }
+                        setSelectedDonationIds(filtered.map(d => d.id || ''));
+                      }, 0);
+                    }
+                  }}
+                >
+                  <Text style={[styles.filterChipTxt, reportDateFilter === fp && styles.filterChipTxtActive]}>{fp}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {reportDateFilter === 'Custom Range' && (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 15 }}>
+                <TouchableOpacity style={{ flex: 1, padding: 10, borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8 }} onPress={() => setShowReportStartPicker(true)}>
+                  <Text style={{ fontSize: 12, color: '#645d54' }}>From: {reportCustomStartDate ? reportCustomStartDate.toISOString().split('T')[0] : 'Select'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ flex: 1, padding: 10, borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8 }} onPress={() => setShowReportEndPicker(true)}>
+                  <Text style={{ fontSize: 12, color: '#645d54' }}>To: {reportCustomEndDate ? reportCustomEndDate.toISOString().split('T')[0] : 'Select'}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={{ padding: 10, backgroundColor: '#1b2a4a', borderRadius: 8, justifyContent: 'center' }} onPress={() => {
+                    const catDons = donations.filter(e => e.category === selectedCategoryView);
+                    const filtered = catDons.filter(e => {
+                      const d = new Date(e.date);
+                      return d >= (reportCustomStartDate || new Date(0)) && d <= (reportCustomEndDate || new Date());
+                    });
+                    setSelectedDonationIds(filtered.map(d => d.id || ''));
+                }}>
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Apply</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            
+            {showReportStartPicker && (
+              <DateTimePickerModal 
+                isVisible={showReportStartPicker}
+                date={reportCustomStartDate || new Date()} 
+                mode="date" 
+                display="default" 
+                onConfirm={(date) => { setShowReportStartPicker(false); setReportCustomStartDate(date); }} 
+                onCancel={() => setShowReportStartPicker(false)}
+              />
+            )}
+            {showReportEndPicker && (
+              <DateTimePickerModal 
+                isVisible={showReportEndPicker}
+                date={reportCustomEndDate || new Date()} 
+                mode="date" 
+                display="default" 
+                onConfirm={(date) => { setShowReportEndPicker(false); setReportCustomEndDate(date); }} 
+                onCancel={() => setShowReportEndPicker(false)}
+              />
+            )}
+
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, marginTop: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#887d6d' }}>SELECT RECORDS TO INCLUDE</Text>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#1b2a4a' }}>{selectedDonationIds.length} Selected</Text>
+            </View>
+
+            <ScrollView style={{ flex: 1, borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 12, backgroundColor: '#f9f6f0' }} nestedScrollEnabled>
+              {donations.filter(e => e.category === selectedCategoryView).map((don, idx) => {
+                const isSelected = selectedDonationIds.includes(don.id || '');
+                return (
+                  <TouchableOpacity 
+                    key={don.id || String(idx)} 
+                    style={{ flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 1, borderBottomColor: '#e5ddd0' }}
+                    onPress={() => {
+                      const id = don.id || '';
+                      if (isSelected) {
+                        setSelectedDonationIds(selectedDonationIds.filter(i => i !== id));
+                      } else {
+                        setSelectedDonationIds([...selectedDonationIds, id]);
+                      }
+                    }}
+                  >
+                    <View style={{ width: 20, height: 20, borderRadius: 4, borderWidth: 1, borderColor: isSelected ? '#1b2a4a' : '#a89f92', backgroundColor: isSelected ? '#1b2a4a' : 'transparent', alignItems: 'center', justifyContent: 'center', marginRight: 15 }}>
+                      {isSelected && <CheckCircle2 size={14} color="#ffffff" />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 14, fontWeight: '700', color: '#1b2a4a' }}>{don.donorName}</Text>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54', marginTop: 2 }}>{don.date} • {don.paymentMethod || 'N/A'}</Text>
+                    </View>
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 14, fontWeight: '700', color: '#1b2a4a' }}>₹{don.amount.toLocaleString('en-IN')}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              {donations.filter(e => e.category === selectedCategoryView).length === 0 && (
+                 <Text style={{ padding: 20, textAlign: 'center', color: '#645d54' }}>No donations found.</Text>
+              )}
+            </ScrollView>
+
+            <View style={{ paddingTop: 15 }}>
+              <TouchableOpacity 
+                style={[{ backgroundColor: '#e6c079', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, borderRadius: 14 }, { opacity: selectedDonationIds.length === 0 ? 0.5 : 1 }]} 
+                disabled={selectedDonationIds.length === 0}
+                onPress={() => {
+                  setShowReportConfigModal(false);
+                  setTimeout(() => {
+                    setShowCategoryInvoiceModal(true);
+                  }, 300);
+                }}
+              >
+                <Text style={{ fontFamily: FONTS.sans, fontSize: 15, fontWeight: '800', color: '#141d33', letterSpacing: 0.5 }}>Preview Report</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* ── Category Report Preview Modal ── */}
       <Modal visible={showCategoryInvoiceModal} transparent animationType="slide">
         <View style={styles.modalOverlayFull}>
