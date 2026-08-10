@@ -35,8 +35,8 @@ function LoginForm() {
     if (typeof window === 'undefined') return;
 
     if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'normal',
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'submit-button', {
+        'size': 'invisible',
       });
     }
 
@@ -195,6 +195,7 @@ function LoginForm() {
             </div>
 
             <button 
+              id="submit-button"
               type="submit"
               disabled={loading || phoneNumber.length < 10}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 flex justify-center items-center gap-2"
@@ -206,7 +207,6 @@ function LoginForm() {
                 </svg>
               )}
             </button>
-            <div id="recaptcha-container" className="flex justify-center mt-4"></div>
           </form>
         ) : (
           <form onSubmit={handleVerifyCode} className="space-y-6 animate-fade-in">
