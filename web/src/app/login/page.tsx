@@ -32,11 +32,21 @@ function LoginForm() {
   }, [churchId, router]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !window.recaptchaVerifier) {
+    if (typeof window === 'undefined') return;
+
+    if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
       });
     }
+
+    // Cleanup for React 18 Strict Mode
+    return () => {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
+      }
+    };
   }, []);
 
   const handleSendCode = async (e: React.FormEvent) => {
