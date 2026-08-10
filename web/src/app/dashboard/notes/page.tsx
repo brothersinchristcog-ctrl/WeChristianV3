@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDocs, setDoc, deleteDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { auth } from '@/lib/firebase';
 
 export default function MemberNotesPage() {
   const [notes, setNotes] = useState<any[]>([]);
@@ -10,22 +9,21 @@ export default function MemberNotesPage() {
   
   const [view, setView] = useState<'list' | 'editor'>('list');
   const [currentNote, setCurrentNote] = useState({ id: '', title: '', content: '' });
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     fetchNotes();
   }, []);
 
-  const fetchNotes = async () => {
+  const fetchNotes = () => {
     setLoading(true);
-    const currentUser = auth.currentUser;
-    if (!currentUser) return;
     try {
-      const notesRef = collection(db, 'users', currentUser.uid, 'notes');
-      const q = query(notesRef, orderBy('updatedAt', 'desc'));
-      const snap = await getDocs(q);
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setNotes(data);
+      const stored = localStorage.getItem('@SermonPersonalNotes');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setNotes(parsed);
+      } else {
+        setNotes([]);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -33,42 +31,55 @@ export default function MemberNotesPage() {
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    const currentUser = auth.currentUser;
-    if (!currentUser || !currentNote.content) return;
-    setSaving(true);
+    if (!currentNote.content) return;
+    
     try {
-      const notesRef = collection(db, 'users', currentUser.uid, 'notes');
-      const docRef = currentNote.id ? doc(notesRef, currentNote.id) : doc(notesRef);
+      const stored = localStorage.getItem('@SermonPersonalNotes');
+      let currentNotes = stored ? JSON.parse(stored) : [];
       
-      await setDoc(docRef, {
-        id: docRef.id,
-        title: currentNote.title || 'Untitled Note',
-        content: currentNote.content,
-        updatedAt: serverTimestamp(),
-        createdAt: currentNote.id ? undefined : serverTimestamp()
-      }, { merge: true });
+      const now = new Date().toISOString();
+      if (currentNote.id) {
+        const index = currentNotes.findIndex((n: any) => n.id === currentNote.id);
+        if (index > -1) {
+          currentNotes[index] = {
+            ...currentNotes[index],
+            title: currentNote.title || 'Untitled Note',
+            content: currentNote.content,
+            timestamp: now
+          };
+        }
+      } else {
+        currentNotes.unshift({
+          id: Date.now().toString(),
+          title: currentNote.title || 'Untitled Note',
+          content: currentNote.content,
+          timestamp: now
+        });
+      }
       
+      localStorage.setItem('@SermonPersonalNotes', JSON.stringify(currentNotes));
       setMessage('Note saved successfully.');
       setView('list');
       fetchNotes();
     } catch (error) {
       console.error(error);
       setMessage('Failed to save note.');
-    } finally {
-      setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) return;
+  const handleDelete = (id: string) => {
     if (!window.confirm("Are you sure you want to delete this note?")) return;
     try {
-      await deleteDoc(doc(db, 'users', currentUser.uid, 'notes', id));
-      setMessage('Note deleted.');
-      fetchNotes();
+      const stored = localStorage.getItem('@SermonPersonalNotes');
+      if (stored) {
+        const currentNotes = JSON.parse(stored);
+        const newNotes = currentNotes.filter((n: any) => n.id !== id);
+        localStorage.setItem('@SermonPersonalNotes', JSON.stringify(newNotes));
+        setMessage('Note deleted.');
+        fetchNotes();
+      }
     } catch (e) {
       console.error(e);
       setMessage('Failed to delete note.');
@@ -116,7 +127,7 @@ export default function MemberNotesPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {notes.map(note => {
-              const dateStr = note.updatedAt?.toDate ? new Date(note.updatedAt.toDate()).toLocaleDateString() : 'Just now';
+              const dateStr = new Date(note.timestamp).toLocaleDateString();
               return (
                 <div key={note.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col group hover:shadow-md transition-shadow cursor-pointer" onClick={() => openEditor(note)}>
                   <div className="flex justify-between items-start mb-2">
@@ -146,8 +157,8 @@ export default function MemberNotesPage() {
               <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path></svg>
               Back
             </button>
-            <button disabled={saving} type="submit" className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg font-bold transition-colors disabled:opacity-50">
-              {saving ? 'Saving...' : 'Save Note'}
+            <button type="submit" className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-2 rounded-lg font-bold transition-colors">
+              Save Note
             </button>
           </div>
           
@@ -157,14 +168,14 @@ export default function MemberNotesPage() {
               value={currentNote.title}
               onChange={e => setCurrentNote({...currentNote, title: e.target.value})}
               placeholder="Note Title"
-              className="text-2xl font-bold font-serif text-gray-900 border-none focus:ring-0 placeholder-gray-300 w-full p-0 bg-transparent"
+              className="text-2xl font-bold font-serif text-gray-900 border-none focus:ring-0 placeholder-gray-300 w-full p-0 bg-transparent outline-none"
             />
             <hr className="border-gray-100" />
             <textarea
               value={currentNote.content}
               onChange={e => setCurrentNote({...currentNote, content: e.target.value})}
               placeholder="Start typing your notes here..."
-              className="flex-1 resize-none border-none focus:ring-0 text-gray-700 leading-relaxed text-lg w-full p-0 bg-transparent"
+              className="flex-1 resize-none border-none focus:ring-0 text-gray-700 leading-relaxed text-lg w-full p-0 bg-transparent outline-none"
               autoFocus
             ></textarea>
           </div>
