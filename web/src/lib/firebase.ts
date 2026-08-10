@@ -6,13 +6,13 @@ import { getFirestore } from 'firebase/firestore';
 // For full Web support, you should register a Web App in Firebase Console
 // and replace this with the exact config object they provide (including appId).
 const firebaseConfig = {
-  apiKey: "AIzaSyBEZ-FrpqgECCx6qk7-do1SrtLssHjtWMY",
+  apiKey: "AIzaSyBEZ-FrpqgECCx6qk7-do15rtLssHjtWMY",
   authDomain: "wechristian-67f07.firebaseapp.com",
   projectId: "wechristian-67f07",
   storageBucket: "wechristian-67f07.firebasestorage.app",
   messagingSenderId: "962252889183",
-  appId: "1:962252889183:web:e9bf7181f5b26dd20f8fea",
-  measurementId: "G-SYMMXDDKJ1"
+  appId: "1:962252889183:web:f76dd0d76af372900f8fea",
+  measurementId: "G-0VKHN9VSWH"
 };
 
 // Initialize Firebase only once
