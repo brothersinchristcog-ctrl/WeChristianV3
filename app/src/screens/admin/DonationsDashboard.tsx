@@ -77,7 +77,14 @@ export default function AdminDonationDashboard() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [showInvoicePreviewModal, setShowInvoicePreviewModal] = useState(false);
-  const [showCategoryInvoiceModal, setShowCategoryInvoiceModal] = useState(false);
+    const [showCategoryInvoiceModal, setShowCategoryInvoiceModal] = useState(false);
+  const [showReportConfigModal, setShowReportConfigModal] = useState(false);
+  const [reportDateFilter, setReportDateFilter] = useState<FilterPeriod>('Month');
+  const [selectedDonationIds, setSelectedDonationIds] = useState<string[]>([]);
+  const [reportCustomStartDate, setReportCustomStartDate] = useState<Date | null>(null);
+  const [reportCustomEndDate, setReportCustomEndDate] = useState<Date | null>(null);
+  const [showReportStartPicker, setShowReportStartPicker] = useState(false);
+  const [showReportEndPicker, setShowReportEndPicker] = useState(false);
   const [selectedDonationForInvoice, setSelectedDonationForInvoice] = useState<ChurchDonation | null>(null);
   const invoiceRef = React.useRef<any>(null);
   const categoryInvoiceRef = React.useRef<any>(null);
@@ -872,7 +879,13 @@ export default function AdminDonationDashboard() {
                     </View>
                     <TouchableOpacity 
                       style={{ backgroundColor: '#1b2a4a', borderRadius: 14, paddingVertical: 16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}
-                      onPress={() => setShowCategoryInvoiceModal(true)}
+                      onPress={() => {
+                      setReportDateFilter(filterPeriod);
+                      const catDons = donations.filter(e => e.category === selectedCategoryView);
+                      const initialFiltered = getReportFilteredDonations(catDons);
+                      setSelectedDonationIds(initialFiltered.map(d => d.id || ''));
+                      setShowReportConfigModal(true);
+                    }}
                     >
                       <Printer size={18} color="#ffffff" style={{ marginRight: 8 }} />
                       <Text style={{ fontFamily: FONTS.sans, fontSize: 15, fontWeight: '700', color: '#ffffff' }}>Generate Category Report</Text>
@@ -1281,8 +1294,8 @@ export default function AdminDonationDashboard() {
                         <Text style={styles.invValue}>{(churchProfile?.name || 'WEC').substring(0, 3).toUpperCase()}-REP-{Date.now().toString().slice(-6)}</Text>
                       </View>
                       <View style={{ width: '45%' }}>
-                        <Text style={styles.invLabel}>DATE</Text>
-                        <Text style={styles.invValue}>{new Date().toISOString().split('T')[0]}</Text>
+                        <Text style={styles.invLabel}>DATE RANGE</Text>
+                        <Text style={styles.invValue}>{reportDateFilter === 'Custom Range' && reportCustomStartDate && reportCustomEndDate ? `${reportCustomStartDate.toISOString().split('T')[0]} to ${reportCustomEndDate.toISOString().split('T')[0]}` : reportDateFilter === 'All Time' ? 'All Time' : reportDateFilter}</Text>
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>CATEGORY</Text>
@@ -1290,7 +1303,7 @@ export default function AdminDonationDashboard() {
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>TOTAL ITEMS</Text>
-                        <Text style={styles.invValue}>{donations.filter(e => e.category === selectedCategoryView).length} donations</Text>
+                        <Text style={styles.invValue}>{donations.filter(e => selectedDonationIds.includes(e.id || '')).length} donations</Text>
                       </View>
                     </View>
                   )}
@@ -1301,7 +1314,7 @@ export default function AdminDonationDashboard() {
                     <Text style={[styles.invLabel, { flex: 1.2, color: '#1b2a4a', textAlign: 'right' }]}>AMOUNT</Text>
                   </View>
 
-                  {donations.filter(e => e.category === selectedCategoryView).map((don, idx) => (
+                  {donations.filter(e => selectedDonationIds.includes(e.id || '')).map((don, idx) => (
                     <View key={idx} style={{ flexDirection: 'row', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#f4efe6' }}>
                       <Text style={[styles.invRowText, { flex: 2, fontWeight: '600' }]} numberOfLines={1}>{don.donorName || 'Unknown'}</Text>
                       <Text style={[styles.invRowText, { flex: 1, textAlign: 'center' }]}>{don.paymentMethod || 'Cash'}</Text>
@@ -1312,7 +1325,7 @@ export default function AdminDonationDashboard() {
                   <View style={styles.grandTotalBlock}>
                     <Text style={styles.grandTotalLabel}>GRAND TOTAL</Text>
                     <Text style={styles.grandTotalAmt}>
-                      ₹{donations.filter(e => e.category === selectedCategoryView).reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-IN')}
+                      ₹{donations.filter(e => selectedDonationIds.includes(e.id || '')).reduce((sum, e) => sum + e.amount, 0).toLocaleString('en-IN')}
                     </Text>
                   </View>
 
@@ -1331,7 +1344,7 @@ export default function AdminDonationDashboard() {
                 <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f' }]} onPress={handleDownloadCategoryImage}>
                   <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save Image</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={() => selectedCategoryView && handleGenerateCategoryInvoice(selectedCategoryView, donations.filter(e => e.category === selectedCategoryView))}>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={() => selectedCategoryView && handleGenerateCategoryInvoice(selectedCategoryView, donations.filter(e => selectedDonationIds.includes(e.id || '')))}>
                   <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save PDF</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#e7ebf3', borderWidth: 0 }]} onPress={() => selectedCategoryView && handlePrintCategory(selectedCategoryView, donations.filter(e => e.category === selectedCategoryView))}>
