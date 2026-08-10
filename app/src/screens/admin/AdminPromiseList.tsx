@@ -189,19 +189,19 @@ export default function AdminPromiseList() {
 
       <View style={styles.hero}>
         <View style={styles.heroTitleRow}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 1 }}>
+            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, flexShrink: 0 }}>
               <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>
-            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-            <View>
-              <Text style={styles.heroTitle}>Daily Promises</Text>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4, flexShrink: 0 }]}>|</Text>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={[styles.heroTitle, { flexShrink: 1 }]} numberOfLines={1}>Daily Promises</Text>
             </View>
           </View>
           
-          <View style={{ flex: 1 }} />
-          <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(2); }}>
+          <View style={{ width: 10 }} />
+          <TouchableOpacity style={[styles.newBtn, { flexShrink: 0 }]} onPress={() => { setEditingData(null); setActiveTab(2); }}>
             <Text style={styles.newBtnTxt}>+ New</Text>
           </TouchableOpacity>
         </View>
@@ -330,9 +330,9 @@ const styles = StyleSheet.create({
     overflow: 'visible',
     position: 'relative'
   },
-  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 6 },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5, marginBottom: 0 },
-  newBtn: { marginLeft: 24, minWidth: 90, alignItems: 'center', backgroundColor: colors.goldBright, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 100, elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: {width: 0, height: 2} },
+  newBtn: { backgroundColor: '#FCD34D', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3 },
   newBtnTxt: { color: colors.ink, fontSize: 12, fontWeight: '700' },
 
   content: { paddingHorizontal: 16 },
