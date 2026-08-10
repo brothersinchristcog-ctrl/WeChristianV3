@@ -1,9 +1,12 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
+  const router = useRouter();
   const [phoneNumber, setPhoneNumber] = useState('');
   const [verificationCode, setVerificationCode] = useState('');
   const [isCodeSent, setIsCodeSent] = useState(false);
@@ -29,10 +32,9 @@ export default function Home() {
     setError('');
 
     try {
-      // Ensure number has country code. Assuming India for now based on UI (+91)
       let formattedPhone = phoneNumber.trim();
       if (!formattedPhone.startsWith('+')) {
-        formattedPhone = `+91${formattedPhone.replace(/^0+/, '')}`; // default to +91 if none provided
+        formattedPhone = `+91${formattedPhone.replace(/^0+/, '')}`;
       }
 
       const appVerifier = window.recaptchaVerifier;
@@ -60,9 +62,30 @@ export default function Home() {
       const result = await confirmationResult.confirm(verificationCode);
       const user = result.user;
       
-      alert(`Success! Logged in as ${user.uid}`);
-      // In a real app, you would redirect to the dashboard here
-      // window.location.href = '/dashboard';
+      // Check if user exists in global_users
+      const userDocRef = doc(db, 'global_users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        if (userData.primaryChurchId) {
+          // User already has a church, go to dashboard
+          router.push('/dashboard');
+        } else {
+          // User exists but has no church
+          router.push('/join');
+        }
+      } else {
+        // New user, create empty global_users document
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          phone: user.phoneNumber,
+          createdAt: new Date(),
+          primaryChurchId: null,
+          role: 'member' // default role
+        });
+        router.push('/join');
+      }
 
     } catch (err: any) {
       console.error(err);
