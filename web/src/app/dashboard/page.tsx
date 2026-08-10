@@ -16,7 +16,7 @@ export default function DashboardPage() {
         setUser(currentUser);
         // Load church data
         try {
-          const userDoc = await getDoc(doc(db, 'global_users', currentUser.uid));
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
           if (userDoc.exists() && userDoc.data().primaryChurchId) {
             const churchId = userDoc.data().primaryChurchId;
             const churchDoc = await getDoc(doc(db, 'churches', churchId));
@@ -26,7 +26,7 @@ export default function DashboardPage() {
               setChurchName('Unknown Church');
             }
           } else {
-            router.push('/join');
+            router.push('/');
           }
         } catch (error) {
           console.error("Error fetching church data", error);
