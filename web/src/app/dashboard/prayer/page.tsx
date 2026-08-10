@@ -1,15 +1,15 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, setDoc, query, orderBy, where, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, query, orderBy, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 
 interface PrayerRequest {
   id: string;
-  requesterName: string;
-  content: string;
-  isAnonymous: boolean;
-  status: 'Approved' | 'Pending' | 'Rejected';
+  name?: string;
+  requestEn?: string;
+  text?: string;
   category: string;
+  isAnswered: boolean;
   likesCount?: number;
   prayedBy?: string[];
   createdAt?: any;
@@ -25,8 +25,7 @@ export default function PrayerWallPage() {
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
-    requesterName: '',
-    requesterPhone: '',
+    name: '',
     content: '',
     category: 'General',
     isAnonymous: false
@@ -48,20 +47,21 @@ export default function PrayerWallPage() {
         const cid = userDoc.data().primaryChurchId;
         setChurchId(cid);
 
-        // Fetch user data to pre-fill form
-        if (!form.requesterName) {
+        if (!form.name) {
           setForm(prev => ({ 
             ...prev, 
-            requesterName: userDoc.data().name || '',
-            requesterPhone: currentUser.phoneNumber || '' 
+            name: userDoc.data().name || ''
           }));
         }
 
-        const prayersRef = collection(db, 'churches', cid, 'prayers');
-        // Only show approved prayers
-        const q = query(prayersRef, where('status', '==', 'Approved'), orderBy('createdAt', 'desc'));
+        const prayersRef = collection(db, 'churches', cid, 'prayerRequests');
+        const q = query(prayersRef, orderBy('createdAt', 'desc'));
         const snap = await getDocs(q);
-        const data = snap.docs.map(d => ({ id: d.id, ...d.data() } as PrayerRequest));
+        
+        // Filter client-side to avoid needing a composite index
+        let data = snap.docs.map(d => ({ id: d.id, ...d.data() } as PrayerRequest));
+        data = data.filter(p => p.isAnswered === true); // Only show approved/answered prayers
+        
         setPrayers(data);
       }
     } catch (e) {
@@ -76,15 +76,15 @@ export default function PrayerWallPage() {
     if (!churchId || !form.content) return;
     setSubmitting(true);
     try {
-      const newRef = doc(collection(db, 'churches', churchId, 'prayers'));
+      const newRef = doc(collection(db, 'churches', churchId, 'prayerRequests'));
       await setDoc(newRef, {
         id: newRef.id,
-        requesterName: form.isAnonymous ? 'Anonymous' : form.requesterName,
-        requesterPhone: form.requesterPhone,
-        content: form.content,
+        name: form.isAnonymous ? 'Anonymous' : form.name,
+        requestEn: form.content,
+        text: form.content, // Fallback for old schema
         category: form.category,
         isAnonymous: form.isAnonymous,
-        status: 'Pending',
+        isAnswered: false, // Pending admin approval
         likesCount: 0,
         prayedBy: [],
         createdAt: serverTimestamp(),
@@ -110,7 +110,6 @@ export default function PrayerWallPage() {
     const prayer = prayers[pIndex];
     const hasPrayed = prayer.prayedBy?.includes(uid);
     
-    // Optimistic UI update
     const updatedPrayers = [...prayers];
     if (hasPrayed) {
       updatedPrayers[pIndex].prayedBy = updatedPrayers[pIndex].prayedBy?.filter(id => id !== uid) || [];
@@ -121,14 +120,14 @@ export default function PrayerWallPage() {
     setPrayers(updatedPrayers);
 
     try {
-      const docRef = doc(db, 'churches', churchId, 'prayers', prayerId);
+      const docRef = doc(db, 'churches', churchId, 'prayerRequests', prayerId);
       await updateDoc(docRef, {
         prayedBy: hasPrayed ? arrayRemove(uid) : arrayUnion(uid),
         likesCount: updatedPrayers[pIndex].prayedBy.length
       });
     } catch (e) {
       console.error(e);
-      fetchPrayers(); // Revert on error
+      fetchPrayers();
     }
   };
 
@@ -167,22 +166,22 @@ export default function PrayerWallPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {prayers.map(prayer => {
           const isPrayed = prayer.prayedBy?.includes(auth.currentUser?.uid || '');
-          const dateStr = prayer.createdAt ? new Date(prayer.createdAt.toDate()).toLocaleDateString() : 'Recent';
+          const dateStr = prayer.createdAt?.toDate ? new Date(prayer.createdAt.toDate()).toLocaleDateString() : 'Recent';
           
           return (
             <div key={prayer.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <h3 className="font-bold text-gray-900">{prayer.requesterName}</h3>
+                  <h3 className="font-bold text-gray-900">{prayer.name || 'Anonymous'}</h3>
                   <p className="text-xs text-gray-400 mt-0.5">{dateStr}</p>
                 </div>
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-gray-100 text-gray-600">
-                  {prayer.category}
+                  {prayer.category || 'General'}
                 </span>
               </div>
               
               <p className="text-gray-700 text-sm leading-relaxed mb-6 flex-1 whitespace-pre-wrap">
-                {prayer.content}
+                {prayer.requestEn || prayer.text || ''}
               </p>
               
               <div className="pt-4 border-t border-gray-100 flex justify-between items-center mt-auto">
@@ -264,8 +263,8 @@ export default function PrayerWallPage() {
                   <label className="block text-sm font-bold text-gray-700 mb-1">Name (Optional)</label>
                   <input 
                     type="text" 
-                    value={form.requesterName} 
-                    onChange={e => setForm({...form, requesterName: e.target.value})} 
+                    value={form.name} 
+                    onChange={e => setForm({...form, name: e.target.value})} 
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500" 
                     placeholder="Your Name"
                   />
