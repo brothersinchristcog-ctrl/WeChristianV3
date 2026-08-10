@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, Suspense } from 'react';
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -23,6 +23,7 @@ function LoginForm() {
   const [confirmationResult, setConfirmationResult] = useState<ConfirmationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [userName, setUserName] = useState('');
 
   useEffect(() => {
     if (!churchId) {
@@ -48,6 +49,22 @@ function LoginForm() {
       let formattedPhone = phoneNumber.trim();
       if (!formattedPhone.startsWith('+')) {
         formattedPhone = `+91${formattedPhone.replace(/^0+/, '')}`;
+      }
+
+      // Try to find the user's name
+      try {
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('phone', '==', formattedPhone));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const uData = querySnapshot.docs[0].data();
+          if (uData.name) {
+            setUserName(uData.name);
+          }
+        }
+      } catch (e) {
+        // Ignore if query fails
+        console.warn("Could not fetch user name", e);
       }
 
       if (!window.recaptchaVerifier) {
@@ -85,9 +102,11 @@ function LoginForm() {
       
       if (!churchId) throw new Error("Church ID missing.");
 
-      // Check if user exists in global_users
-      const userDocRef = doc(db, 'global_users', user.uid);
+      // Check if user exists in users collection (mobile app uses 'users')
+      const userDocRef = doc(db, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
+
+      let currentName = user.phoneNumber;
 
       if (!userDoc.exists()) {
         await setDoc(userDocRef, {
@@ -99,6 +118,9 @@ function LoginForm() {
         });
       } else {
         const userData = userDoc.data();
+        if (userData.name) {
+          currentName = userData.name;
+        }
         if (userData.primaryChurchId !== churchId) {
            await setDoc(userDocRef, {
              primaryChurchId: churchId
@@ -110,7 +132,7 @@ function LoginForm() {
       const churchMemberRef = doc(db, 'churches', churchId, 'members', user.uid);
       await setDoc(churchMemberRef, {
         id: user.uid,
-        name: user.phoneNumber, 
+        name: currentName, 
         phone: user.phoneNumber,
         role: 'member',
         status: 'active',
@@ -185,6 +207,13 @@ function LoginForm() {
         ) : (
           <form onSubmit={handleVerifyCode} className="space-y-6 animate-fade-in">
              <div className="space-y-2 text-center">
+              {userName && (
+                <div className="mb-4">
+                  <span className="inline-block bg-blue-100 text-blue-800 text-sm font-bold px-4 py-1.5 rounded-full shadow-sm">
+                    Welcome back, {userName}!
+                  </span>
+                </div>
+              )}
               <label className="block text-sm font-bold tracking-wider text-blue-900 uppercase">
                 Verification Code
               </label>
