@@ -13,6 +13,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [churchName, setChurchName] = useState<string>('Loading...');
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [loading, setLoading] = useState(true);
+  const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -22,6 +23,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
           if (userDoc.exists()) {
             const data = userDoc.data();
+            setUserData(data);
             
             // Check global admin
             if (['admin', 'super_admin', 'Admin', 'Super Admin'].includes(data.userType)) {
@@ -37,8 +39,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               
               // Check church admin
               const memberDoc = await getDoc(doc(db, 'churches', churchId, 'members', currentUser.uid));
-              if (memberDoc.exists() && ['admin', 'super_admin', 'Admin', 'Super Admin'].includes(memberDoc.data().userType)) {
-                setIsAdmin(true);
+              if (memberDoc.exists()) {
+                const mData = memberDoc.data();
+                // If the user's name isn't set globally, try member doc
+                if (!data.name && mData.name) {
+                   setUserData((prev: any) => ({ ...prev, name: mData.name }));
+                }
+                if (['admin', 'super_admin', 'Admin', 'Super Admin'].includes(mData.userType) || ['admin', 'super_admin', 'Admin', 'Super Admin'].includes(mData.role)) {
+                  setIsAdmin(true);
+                }
               }
             }
           }
@@ -132,8 +141,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         <div className="p-4 border-t border-gray-100">
-          <div className="flex items-center justify-between mb-4 px-2">
-            <div className="text-sm font-medium text-gray-900 truncate">{user?.phoneNumber}</div>
+          <div className="flex items-center mb-4 px-2">
+            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+              <span className="text-blue-700 font-bold text-sm">
+                {userData?.name ? userData.name.charAt(0).toUpperCase() : 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-bold text-gray-900 truncate">
+                {userData?.name || 'User'}
+              </div>
+              <div className="text-xs text-gray-500 truncate">
+                {user?.phoneNumber}
+              </div>
+            </div>
           </div>
           <button 
             onClick={handleLogout}
