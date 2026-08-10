@@ -36,7 +36,7 @@ function LoginForm() {
 
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
+        'size': 'normal',
       });
     }
 
@@ -206,7 +206,7 @@ function LoginForm() {
                 </svg>
               )}
             </button>
-            <div id="recaptcha-container"></div>
+            <div id="recaptcha-container" className="flex justify-center mt-4"></div>
           </form>
         ) : (
           <form onSubmit={handleVerifyCode} className="space-y-6 animate-fade-in">
