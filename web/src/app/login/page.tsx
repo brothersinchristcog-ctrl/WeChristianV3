@@ -93,8 +93,8 @@ function LoginForm() {
     }
   };
 
-  const handleVerifyCode = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerifyCode = async (e?: React.FormEvent | React.SyntheticEvent) => {
+    if (e) e.preventDefault();
     setLoading(true);
     setError('');
 
@@ -211,7 +211,7 @@ function LoginForm() {
             </button>
           </form>
         ) : (
-          <form onSubmit={handleVerifyCode} className="space-y-6 animate-fade-in">
+          <div className="space-y-6 animate-fade-in">
              <div className="space-y-2 text-center">
               {userName && (
                 <div className="mb-4">
@@ -239,7 +239,8 @@ function LoginForm() {
             </div>
 
             <button 
-              type="submit"
+              type="button"
+              onClick={handleVerifyCode}
               disabled={loading || verificationCode.length !== 6}
               className="w-full bg-green-500 hover:bg-green-600 disabled:bg-green-300 text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transition-all active:scale-95 flex justify-center items-center gap-2"
             >
@@ -258,7 +259,7 @@ function LoginForm() {
                 Change Phone Number
               </button>
             </div>
-          </form>
+          </div>
         )}
 
         <div className="mt-8 text-center text-xs text-blue-800/60">
