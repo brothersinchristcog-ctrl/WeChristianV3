@@ -380,6 +380,17 @@ export default function AdminDonationDashboard() {
     }
   };
 
+  const handleShareImage = async () => {
+    try {
+      if (invoiceRef.current) {
+        const uri = await invoiceRef.current.capture();
+        await Sharing.shareAsync(uri, { dialogTitle: 'Share Receipt' });
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to share receipt');
+    }
+  };
+
   const generateCategoryInvoiceHtml = (category: string, dons: ChurchDonation[]) => {
       const cName = churchProfile?.name || "We Christian Church";
       const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
@@ -526,6 +537,17 @@ export default function AdminDonationDashboard() {
       }
     } catch (e) {
       Alert.alert('Error', 'Failed to save image');
+    }
+  };
+
+  const handleShareCategoryImage = async () => {
+    try {
+      if (categoryInvoiceRef.current) {
+        const uri = await categoryInvoiceRef.current.capture();
+        await Sharing.shareAsync(uri, { dialogTitle: 'Share Category Report' });
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Failed to share report');
     }
   };
 
@@ -1269,8 +1291,8 @@ export default function AdminDonationDashboard() {
                 <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f' }]} onPress={handleDownloadImage}>
                   <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save Image</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={() => selectedDonationForInvoice && handleGenerateInvoice(selectedDonationForInvoice)}>
-                  <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save PDF</Text>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={handleShareImage}>
+                  <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Share</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#e7ebf3', borderWidth: 0 }]} onPress={() => selectedDonationForInvoice && handlePrint(selectedDonationForInvoice)}>
                   <Text style={[styles.invActionBtnTxt, { color: '#1b2a4a', fontSize: 11 }]}>Print</Text>
@@ -1410,7 +1432,7 @@ export default function AdminDonationDashboard() {
               )}
             </ScrollView>
 
-            <View style={{ paddingTop: 15 }}>
+            <View style={{ marginTop: 5, marginBottom: 15 }}>
               <TouchableOpacity 
                 style={[{ backgroundColor: '#e6c079', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 16, borderRadius: 14 }, { opacity: selectedDonationIds.length === 0 ? 0.5 : 1 }]} 
                 disabled={selectedDonationIds.length === 0}
@@ -1519,8 +1541,8 @@ export default function AdminDonationDashboard() {
                 <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f' }]} onPress={handleDownloadCategoryImage}>
                   <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save Image</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={() => selectedCategoryView && handleGenerateCategoryInvoice(selectedCategoryView, donations.filter(e => selectedDonationIds.includes(e.id || '')))}>
-                  <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save PDF</Text>
+                <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#1b2a4a' }]} onPress={handleShareCategoryImage}>
+                  <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Share</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#e7ebf3', borderWidth: 0 }]} onPress={() => selectedCategoryView && handlePrintCategory(selectedCategoryView, donations.filter(e => e.category === selectedCategoryView))}>
                   <Text style={[styles.invActionBtnTxt, { color: '#1b2a4a', fontSize: 11 }]}>Print</Text>
