@@ -691,29 +691,7 @@ export default function AdminMembers() {
                     <View style={styles.householdList}>
                       {associated.length > 0 ? (
                         associated.map((assoc, idx) => (
-                          <TouchableOpacity 
-                            key={`${assoc.id || 'assoc'}-${idx}`} 
-                            style={styles.householdItem}
-                            onPress={() => {
-                              // If it's a real member, we can show their details by selecting them
-                              if (assoc.id) {
-                                // Find the full member object
-                                const fullMember = members.find(m => m.id === assoc.id);
-                                if (fullMember) {
-                                  // Open this member
-                                  if (expandedId === fullMember.id) {
-                                    setExpandedId(null);
-                                  } else {
-                                    setExpandedId(fullMember.id);
-                                  }
-                                } else {
-                                  Alert.alert('Details', `${assoc.firstName || assoc.name}\n${assoc.phone || ''}`);
-                                }
-                              } else {
-                                Alert.alert('Household Member', `${assoc.firstName || assoc.name}\n${assoc.phone || 'No phone'}`);
-                              }
-                            }}
-                          >
+                          <View key={`${assoc.id || 'assoc'}-${idx}`} style={styles.householdItem}>
                             <View style={styles.hiLeft}>
                               <Text style={styles.hiName}>{(`${assoc.firstName || ''} ${assoc.lastName || ''}`.trim()) || assoc.name}</Text>
                               {(assoc.city || assoc.village) && (
@@ -726,7 +704,7 @@ export default function AdminMembers() {
                             <View style={styles.hiRight}>
                               <Text style={styles.hiRelation}>{assoc.userType || 'Member'}</Text>
                             </View>
-                          </TouchableOpacity>
+                          </View>
                         ))
                       ) : (
                         <Text style={styles.emptyHouseholdTxt}>
