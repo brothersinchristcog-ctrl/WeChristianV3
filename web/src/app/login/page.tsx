@@ -32,12 +32,11 @@ function LoginForm() {
   }, [churchId, router]);
 
   useEffect(() => {
-    return () => {
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = undefined;
-      }
-    };
+    if (typeof window !== 'undefined' && !window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+      });
+    }
   }, []);
 
   const handleSendCode = async (e: React.FormEvent) => {
@@ -63,17 +62,12 @@ function LoginForm() {
           }
         }
       } catch (e) {
-        // Ignore if query fails
         console.warn("Could not fetch user name", e);
       }
 
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          'size': 'invisible',
-        });
-      }
-
       const appVerifier = window.recaptchaVerifier;
+      if (!appVerifier) throw new Error("reCAPTCHA not initialized");
+      
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       setConfirmationResult(confirmation);
       setIsCodeSent(true);
