@@ -612,7 +612,7 @@ export default function AdminMembers() {
                     onPress={() => member.phone && Linking.openURL(`tel:${member.phone.replace(/[^0-9+]/g, '')}`)}
                   >
                     <Phone size={12} color="#6B7280" />
-                    <Text style={[styles.contactTxt, member.phone && { color: '#007AFF', textDecorationLine: 'underline' }]}>{member.phone || 'No Phone'}</Text>
+                    <Text style={styles.contactTxt}>{member.phone || 'No Phone'}</Text>
                   </TouchableOpacity>
                   <View style={styles.contactRow}>
                     <Mail size={12} color="#6B7280" />
@@ -721,7 +721,7 @@ export default function AdminMembers() {
                                   {details.phone ? (
                                     <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }} onPress={() => Linking.openURL(`tel:${details.phone.replace(/[^0-9+]/g, '')}`)}>
                                       <Phone size={14} color="#6B7280" style={{ marginRight: 8 }} />
-                                      <Text style={{ color: '#007AFF', fontSize: 13, textDecorationLine: 'underline' }}>{details.phone}</Text>
+                                      <Text style={{ color: '#007AFF', fontSize: 13 }}>{details.phone}</Text>
                                     </TouchableOpacity>
                                   ) : null}
                                   {details.email ? (
