@@ -45,7 +45,7 @@ import firestore from '@react-native-firebase/firestore';
 
 const { width } = Dimensions.get('window');
 
-type FilterPeriod = 'Today' | 'Week' | 'Month' | 'Year' | 'Custom Range';
+type FilterPeriod = 'Today' | 'Week' | 'Month' | 'Year' | 'Custom Range' | 'All Time';
 type SubTab = 'dashboard' | 'donations';
 
 export default function AdminDonationDashboard() {
@@ -576,6 +576,34 @@ export default function AdminDonationDashboard() {
   const stats = getStats();
 
   // Filters for sub-tab
+  const getReportFilteredDonations = (data: ChurchDonation[]) => {
+    let filtered = data;
+    const now = new Date();
+    
+    if (reportDateFilter === 'Today') {
+      const todayStr = now.toISOString().split('T')[0];
+      filtered = data.filter(e => e.date === todayStr);
+    } else if (reportDateFilter === 'Week') {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      startOfWeek.setHours(0,0,0,0);
+      filtered = data.filter(e => new Date(e.date) >= startOfWeek);
+    } else if (reportDateFilter === 'Month') {
+      filtered = data.filter(e => {
+        const d = new Date(e.date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+    } else if (reportDateFilter === 'Year') {
+      filtered = data.filter(e => new Date(e.date).getFullYear() === now.getFullYear());
+    } else if (reportDateFilter === 'Custom Range' && reportCustomStartDate && reportCustomEndDate) {
+      filtered = data.filter(e => {
+        const d = new Date(e.date);
+        return d >= reportCustomStartDate && d <= reportCustomEndDate;
+      });
+    }
+    return filtered;
+  };
+
   const filterDonations = (data: ChurchDonation[]) => {
     let filtered = data;
     const now = new Date();
@@ -883,7 +911,7 @@ export default function AdminDonationDashboard() {
                       setReportDateFilter(filterPeriod);
                       const catDons = donations.filter(e => e.category === selectedCategoryView);
                       const initialFiltered = getReportFilteredDonations(catDons);
-                      setSelectedDonationIds(initialFiltered.map(d => d.id || ''));
+                      setSelectedDonationIds(initialFiltered.map((d: ChurchDonation) => d.id || ''));
                       setShowReportConfigModal(true);
                     }}
                     >
