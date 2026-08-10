@@ -143,10 +143,12 @@ function LoginForm() {
         createdAt: new Date()
       }, { merge: true });
 
-      router.push('/dashboard');
+      alert("Login successful! Redirecting to Dashboard...");
+      window.location.href = '/dashboard';
 
     } catch (err: any) {
       console.error(err);
+      alert("Verification Failed: " + (err.message || 'Unknown error'));
       setError(err.message || 'Invalid verification code.');
     } finally {
       setLoading(false);
