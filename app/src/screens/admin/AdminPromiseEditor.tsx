@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
   teIn: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', color: '#1a2d5a', fontSize: 14, lineHeight: 22 },
 
   // ─── Theme Chips ─────────────────────────────────────────────────────────
-  themeRow: { flexDirection: 'row', marginTop: 6, gap: 10, paddingVertical: 4 },
+  themeRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6, gap: 10, paddingVertical: 4 },
   themeChip: {
     width: 38,
     height: 38,
@@ -727,7 +727,7 @@ const styles = StyleSheet.create({
   cardVerseEn: { color: '#fff', fontSize: 13, fontStyle: 'italic', lineHeight: 22, marginBottom: 8 },
   cardVerseTe: { color: '#aac4e8', fontSize: 14, fontStyle: 'italic', lineHeight: 22, marginBottom: 12, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
   cardRef: { color: '#FCD34D', fontSize: 11, fontWeight: '700', marginBottom: 15 },
-  cardBtnRow: { flexDirection: 'row', gap: 10 },
+  cardBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   cardBtn: { flex: 1, backgroundColor: 'rgba(26,45,90,0.08)', paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(26,45,90,0.12)' },
   cardBtnRed: { backgroundColor: '#c0392b', borderColor: '#c0392b' },
   cardBtnTxt: { color: '#1a2d5a', fontSize: 11, fontWeight: '700' },
@@ -784,8 +784,8 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   btnUploadThumbTxt: { color: '#4B5563', fontSize: 14, fontWeight: '700', marginTop: 8 },
-  thumbContainer: { flexDirection: 'row', alignItems: 'center', gap: 15 },
-  thumbnailPreviewContainer: { flexDirection: 'row', alignItems: 'center', gap: 15, marginTop: 10 },
+  thumbContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 15 },
+  thumbnailPreviewContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 15, marginTop: 10 },
   thumbnailImg: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', borderWidth: 1, borderColor: '#D9D3C7' },
   btnChangeThumb: { backgroundColor: '#1a2d5a', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
   removeThumbnailBtn: { backgroundColor: '#FEE2E2', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' },

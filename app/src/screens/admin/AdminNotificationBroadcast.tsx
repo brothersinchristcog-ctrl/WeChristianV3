@@ -615,7 +615,7 @@ export default function AdminNotificationBroadcast() {
             />
           </View>
 
-          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 12, width: '100%' }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12, width: '100%' }}>
             <View style={{ flex: 1 }}>
               <Text style={styles.fLabelSmall}>Meeting Date</Text>
               <TouchableOpacity 
@@ -1013,7 +1013,7 @@ const styles = StyleSheet.create({
 
   // Success Modal
   successBg: { flex: 1, backgroundColor: 'rgba(26,45,90, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  successCard: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center', elevation: 10 },
+  successCard: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '92%', maxWidth: 400, alignItems: 'center', elevation: 10 },
   successIconOuter: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   successIconInner: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center' },
   successTitle: { fontSize: 22, fontWeight: '900', color: '#1a2d5a', marginBottom: 8, textAlign: 'center' },

@@ -270,14 +270,14 @@ export default function AdminSongEditor() {
             {item.category || 'Other'}
           </Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
           <TouchableOpacity 
             onPress={() => handleToggleTheme(item)} 
             style={{ 
               paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1, 
               borderColor: isTheme ? '#f59e0b' : '#e2e8f0', 
               backgroundColor: isTheme ? '#fef3c7' : '#f8fafc',
-              flexDirection: 'row', alignItems: 'center', gap: 4 
+              flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 
             }}>
             <Star size={12} color={isTheme ? "#d97706" : "#94a3b8"} fill={isTheme ? "#f59e0b" : "none"} />
             <Text style={{ fontSize: 10, fontWeight: '700', color: isTheme ? '#d97706' : '#64748b' }}>
@@ -325,16 +325,16 @@ export default function AdminSongEditor() {
         </View>
 
         {/* Tabs */}
-        <View style={{ flexDirection: 'row', backgroundColor: '#FFFFFF', margin: 16, borderRadius: 14, padding: 4, gap: 4, elevation: 2, shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 5, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)' }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', backgroundColor: '#FFFFFF', margin: 16, borderRadius: 14, padding: 4, gap: 4, elevation: 2, shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 5, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)' }}>
           <TouchableOpacity
-            style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
+            style={[{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
               memberTab === 'browse' && { backgroundColor: '#1a2d5a' }]}
             onPress={() => setMemberTab('browse')}>
             <Music size={13} color={memberTab === 'browse' ? '#fff' : '#64748b'} />
             <Text style={{ fontSize: 12, fontWeight: '700', color: memberTab === 'browse' ? '#fff' : '#64748b' }}>Browse Songs</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
+            style={[{ flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
               memberTab === 'theme' && { backgroundColor: '#1a2d5a' }]}
             onPress={() => setMemberTab('theme')}>
             <Music size={13} color={memberTab === 'theme' ? '#fff' : '#64748b'} />
@@ -832,7 +832,7 @@ export default function AdminSongEditor() {
               <Text style={styles.successDesc}>
                 Are you sure you want to delete "{songToDelete.title}"? This action cannot be undone.
               </Text>
-              <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, width: '100%' }}>
                 <TouchableOpacity style={[styles.successSecBtn, { flex: 1 }]} onPress={() => setSongToDelete(null)}>
                   <Text style={styles.successSecTxt}>Cancel</Text>
                 </TouchableOpacity>
@@ -906,7 +906,7 @@ const styles = StyleSheet.create({
     gap: 4,
     elevation: 2, shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 5, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)'
   },
-  screenTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
+  screenTab: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
   screenTabActive: { backgroundColor: '#1a2d5a' },
   screenTabTxt: { fontSize: 13, fontWeight: '700', color: '#64748B' },
   screenTabTxtActive: { color: '#fff' },
@@ -943,17 +943,17 @@ const styles = StyleSheet.create({
 
   statusSelectRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
   statusLabel: { fontSize: 13, color: '#1a2d5a', fontWeight: '700' },
-  statusBtnGroup: { flexDirection: 'row', gap: 8 },
+  statusBtnGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   statusBtn: { paddingVertical: 10, paddingHorizontal: 16, borderRadius: 10, backgroundColor: '#F9F6F0', borderWidth: 1, borderColor: '#E2DDD5' },
   statusBtnActive: { backgroundColor: '#2E6B4F', borderColor: '#2E6B4F' },
   statusBtnActiveDraft: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
   statusBtnTxt: { fontSize: 12, color: '#1a2d5a', fontWeight: '700' },
   statusBtnTxtActive: { color: '#fff' },
 
-  infoBox: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#F0FDF4', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#A7F3D0', marginBottom: 20 },
+  infoBox: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, backgroundColor: '#F0FDF4', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#A7F3D0', marginBottom: 20 },
   infoText: { flex: 1, fontSize: 11, color: '#065F46', lineHeight: 18, fontWeight: '600' },
 
-  saveBtn: { backgroundColor: '#2E6B4F', height: 48, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 4, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 5 },
+  saveBtn: { backgroundColor: '#2E6B4F', height: 48, borderRadius: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 4, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 5 },
   saveBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
 
   // List
@@ -969,7 +969,7 @@ const styles = StyleSheet.create({
 
   // Picker Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(26,45,90, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
-  pickerModalBox: { backgroundColor: '#fff', borderRadius: 16, width: '100%', maxWidth: 320, maxHeight: '65%', paddingVertical: 15, elevation: 10 },
+  pickerModalBox: { backgroundColor: '#fff', borderRadius: 16, width: '92%', maxWidth: 320, maxHeight: '65%', paddingVertical: 15, elevation: 10 },
   pickerModalTitle: { fontSize: 13, fontWeight: '800', color: '#1a2d5a', paddingHorizontal: 20, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', marginBottom: 5, letterSpacing: 0.5 },
   pickerModalItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: '#F8FAFC' },
   pickerModalTxt: { fontSize: 15, color: '#1a2d5a', fontWeight: '600' },
@@ -983,7 +983,7 @@ const styles = StyleSheet.create({
 
   // Success Modal
   successBg: { flex: 1, backgroundColor: 'rgba(26,45,90, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  successCard: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center', elevation: 10 },
+  successCard: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '92%', maxWidth: 400, alignItems: 'center', elevation: 10 },
   successIconOuter: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   successIconInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#2E6B4F', justifyContent: 'center', alignItems: 'center' },
   successTitle: { fontSize: 20, fontWeight: '900', color: '#1a2d5a', marginBottom: 8, textAlign: 'center' },
@@ -998,7 +998,7 @@ const styles = StyleSheet.create({
 
   // Toast
   toastOverlay: { position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center' },
-  toastCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, paddingRight: 24, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#1a2d5a', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)' },
+  toastCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, paddingRight: 24, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14, shadowColor: '#1a2d5a', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)' },
   toastIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center' },
   toastTitle: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
   toastSub: { fontSize: 11, color: '#6B7280', marginTop: 2, fontWeight: '500' }

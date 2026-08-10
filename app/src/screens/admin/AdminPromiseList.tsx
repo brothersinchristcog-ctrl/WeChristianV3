@@ -338,14 +338,14 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16 },
 
   // Stats
-  stats: { flexDirection: 'row', gap: 10, marginBottom: 16, marginTop: 16 },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16, marginTop: 16 },
   statBox: { flex: 1, backgroundColor: colors.paper, borderRadius: 10, paddingVertical: 10, alignItems: 'center', elevation: 2, shadowColor: colors.ink, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, borderWidth: 1, borderColor: 'rgba(21,28,51,0.05)', position: 'relative' },
   statNotch: { position: 'absolute', top: -1, width: 20, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3 },
   num: { fontFamily: serifFont, fontSize: 22, fontWeight: '600', marginBottom: 4 },
   statLabel: { fontSize: 9.5, textTransform: 'uppercase', letterSpacing: 1, color: colors.inkSoft, fontWeight: '600' },
 
   // Alert
-  alert: { backgroundColor: colors.clayBg, borderColor: colors.clayLine, borderWidth: 1, borderLeftWidth: 3, borderLeftColor: colors.clay, borderRadius: 12, padding: 14, flexDirection: 'row', gap: 12, marginBottom: 26, alignItems: 'flex-start' },
+  alert: { backgroundColor: colors.clayBg, borderColor: colors.clayLine, borderWidth: 1, borderLeftWidth: 3, borderLeftColor: colors.clay, borderRadius: 12, padding: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 26, alignItems: 'flex-start' },
   alertTitle: { fontFamily: serifFont, color: colors.clay, fontWeight: '600', fontSize: 14.5, marginBottom: 3 },
   alertText: { fontSize: 13, color: '#7C4028', lineHeight: 18 },
 
@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
   dropCap: { fontFamily: serifFont, fontSize: 28, fontWeight: '600', color: colors.gold },
   vcQuoteTel: { fontStyle: 'italic', fontSize: 12.5, lineHeight: 18, color: colors.inkSoft, marginBottom: 10 },
   vcBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.rule, borderStyle: 'dashed' },
-  vcFlags: { flexDirection: 'row', gap: 10 },
+  vcFlags: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   flagOn: { fontSize: 10, color: colors.moss, fontWeight: '600' },
   flagOff: { fontSize: 10, color: '#C4B896', fontWeight: '600' },
   viewLink: { fontSize: 11, fontWeight: '700', color: colors.ink },

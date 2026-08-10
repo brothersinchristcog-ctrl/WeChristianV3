@@ -361,7 +361,7 @@ export default function PrayerWallScreen({ navigation }: any) {
             </TouchableOpacity>
           )}
 
-          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, alignItems: 'center' }}>
             {isOwner && (
               <TouchableOpacity onPress={() => handleDelete(item.id)}>
                 <Trash2 size={20} color="#ef4444" />
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between'
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
   backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
   headerCenter: { alignItems: 'center' },
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800', letterSpacing: 0.5 },
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
     borderColor: '#f1f5f9'
   },
   cardAnswered: { borderColor: '#bbf7d0', borderWidth: 2 },
-  cardHeader: { flexDirection: 'row', gap: 14, marginBottom: 15 },
+  cardHeader: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginBottom: 15 },
   avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: '#fff', fontWeight: '800', fontSize: 18 },
   headerInfo: { flex: 1 },

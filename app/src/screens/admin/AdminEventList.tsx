@@ -272,7 +272,7 @@ export default function AdminEventList() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, width: '100%' }}>
                   <TouchableOpacity style={[styles.successSecBtn, { flex: 1 }]} onPress={() => setEventToDelete(null)}>
                     <Text style={styles.successSecTxt}>Cancel</Text>
                   </TouchableOpacity>
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   },
   newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
-  statsRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 20 },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 20, marginBottom: 20 },
   statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)', shadowColor: '#1a2d5a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 1 },
   activeStatCard: { borderColor: '#1a2d5a', borderWidth: 1.5, backgroundColor: '#F8FAFC' },
   statNum: { fontSize: 22, fontWeight: '800', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
@@ -348,7 +348,7 @@ const styles = StyleSheet.create({
 
   listLabel: { fontSize: 12, fontWeight: '800', color: '#1a2d5a', marginBottom: 12, marginTop: 4, paddingHorizontal: 20, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  eventItem: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginHorizontal: 20, marginBottom: 12, flexDirection: 'row', gap: 14, alignItems: 'flex-start', shadowColor: '#1a2d5a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
+  eventItem: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginHorizontal: 20, marginBottom: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 14, alignItems: 'flex-start', shadowColor: '#1a2d5a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
   featuredItem: { borderWidth: 1.5, borderColor: '#1a2d5a' },
   eiThumb: { width: 90, height: 60, backgroundColor: '#1a2d5a', borderRadius: 10, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   eiThumbImg: { width: '100%', height: '100%' },
@@ -375,20 +375,20 @@ const styles = StyleSheet.create({
   deleteAction: { paddingVertical: 10, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1, borderTopWidth: 1.5, borderTopColor: '#E2E8F0' },
   deleteActionTxt: { fontSize: 9, fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', letterSpacing: 0.5 },
   
-  eiLocRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 },
+  eiLocRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginTop: 6 },
   eiLocTxt: { fontSize: 11, color: COLORS.inkSoft, flexShrink: 1 },
   eiStatusRow: { marginTop: 7 },
 
   // Toast
   toastOverlay: { position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center', paddingHorizontal: 20 },
-  toastCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, paddingRight: 24, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#1a2d5a', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)', width: '100%' },
+  toastCard: { backgroundColor: '#FFFFFF', borderRadius: 20, padding: 16, paddingRight: 24, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 14, shadowColor: '#1a2d5a', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)', width: '100%' },
   toastIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center' },
   toastTitle: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
   toastSub: { fontSize: 11, color: '#6B7280', marginTop: 2, fontWeight: '500' },
 
   // Confirmation Modal
   successBg: { flex: 1, backgroundColor: 'rgba(15,23,42, 0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  successCard: { backgroundColor: '#fff', borderRadius: 28, padding: 30, width: '100%', maxWidth: 400, alignItems: 'center', elevation: 12, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
+  successCard: { backgroundColor: '#fff', borderRadius: 28, padding: 30, width: '92%', maxWidth: 400, alignItems: 'center', elevation: 12, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 16, shadowOffset: { width: 0, height: 8 } },
   successIconOuter: { width: 84, height: 84, borderRadius: 42, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', marginBottom: 20, shadowColor: '#DC2626', shadowOpacity: 0.1, shadowRadius: 10, shadowOffset: { width: 0, height: 4 } },
   successIconInner: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#DC2626', justifyContent: 'center', alignItems: 'center' },
   successTitle: { fontSize: 22, fontWeight: '900', color: '#1a2d5a', marginBottom: 12, textAlign: 'center', letterSpacing: -0.3 },

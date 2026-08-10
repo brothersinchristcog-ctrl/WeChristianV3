@@ -456,7 +456,7 @@ export default function AdminAttendance() {
                 </View>
               </View>
 
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 16, width: '100%' }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', gap: 10, marginTop: 16, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 16, width: '100%' }}>
                 <TouchableOpacity 
                   style={[styles.newBtnSolid, { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', elevation: 0, shadowOpacity: 0 }]} 
                   onPress={handleEditRequest}
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.paper, borderRadius: 16, padding: 20, borderWidth: 1, borderColor: COLORS.rule,
     elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
   },
-  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 10 },
+  cardHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginBottom: 20, gap: 10 },
   cardTitle: { fontSize: 17, fontWeight: '700', color: COLORS.ink, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
 
   // ── Form ──
@@ -674,11 +674,11 @@ const styles = StyleSheet.create({
   },
 
   // Time Picker
-  timeRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 8 },
+  timeRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginBottom: 20, gap: 8 },
   timeField: { flex: 1 },
   timeFieldLabel: { fontSize: 11, color: COLORS.inkSoft, fontWeight: '600', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 },
   timePicker: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8,
     backgroundColor: '#F9F5ED', borderRadius: 12, borderWidth: 1, borderColor: COLORS.rule,
     paddingHorizontal: 14, paddingVertical: 12,
   },
@@ -686,12 +686,12 @@ const styles = StyleSheet.create({
   timeSeparator: { paddingTop: 20, alignItems: 'center' },
   timeSeparatorTxt: { fontSize: 13, color: COLORS.inkSoft, fontWeight: '600' },
 
-  formActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
+  formActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
   cancelBtn: { paddingHorizontal: 16, paddingVertical: 10 },
   cancelBtnTxt: { color: COLORS.inkSoft, fontSize: 14, fontWeight: '600' },
   sendBtn: {
     backgroundColor: COLORS.green, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 20,
-    flexDirection: 'row', alignItems: 'center', gap: 8,
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8,
   },
   sendBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
@@ -708,7 +708,7 @@ const styles = StyleSheet.create({
   activeHeaderLabel: { fontSize: 10, fontWeight: '800', color: COLORS.gold, letterSpacing: 1, marginBottom: 4 },
   activeTitle: { fontSize: 20, fontWeight: '800', color: '#fff', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
   activeDate: { fontSize: 13, color: '#aac4e8', marginTop: 2 },
-  timeWindowBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  timeWindowBadge: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginTop: 4 },
   timeWindowTxt: { fontSize: 12, color: '#FCD34D', fontWeight: '600' },
   newBtnSolid: {
     backgroundColor: COLORS.gold, flexDirection: 'row', alignItems: 'center',
@@ -717,7 +717,7 @@ const styles = StyleSheet.create({
   },
   newBtnSolidTxt: { color: COLORS.ink, fontWeight: '800', fontSize: 13 },
 
-  statsRow: { marginHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20, gap: 10 },
+  statsRow: { marginHorizontal: 16, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20, gap: 10 },
   statCard: {
     flex: 1, backgroundColor: COLORS.paper, borderRadius: 14, borderWidth: 1,
     padding: 14, alignItems: 'center', elevation: 1,
@@ -746,13 +746,13 @@ const styles = StyleSheet.create({
   historyCardHeader: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 14 },
   historyTitle: { fontSize: 15, fontWeight: '700', color: COLORS.ink, marginBottom: 2, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
   historyDate: { fontSize: 12, color: COLORS.inkSoft },
-  historyTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
+  historyTimeRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginTop: 4 },
   historyTimeTxt: { fontSize: 11, color: COLORS.inkSoft, fontWeight: '600' },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, marginLeft: 8 },
   statusBadgeTxt: { fontSize: 11, fontWeight: '700' },
 
   // Stat chips in history card
-  historyStatsRow: { flexDirection: 'row', gap: 8 },
+  historyStatsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   historyStatChip: {
     flex: 1, backgroundColor: '#f8f4ec', borderRadius: 10,
     paddingVertical: 8, alignItems: 'center',

@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
   heroSub: { color: '#AEB8D4', fontSize: 13 },
 
-  alertAmber: { backgroundColor: '#FFFBEB', borderRadius: 10, padding: 12, marginBottom: 12, flexDirection: 'row', gap: 8, borderWidth: 0.5, borderColor: '#FDE68A' },
+  alertAmber: { backgroundColor: '#FFFBEB', borderRadius: 10, padding: 12, marginBottom: 12, flexDirection: 'row', flexWrap: 'wrap', gap: 8, borderWidth: 0.5, borderColor: '#FDE68A' },
   alertIcon: { fontSize: 16 },
   alertTxt: { fontSize: 11, color: '#78350F', lineHeight: 16 },
 
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(26,45,90,0.08)',
   },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendItem: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   legendBox: { width: 14, height: 14, borderRadius: 4, borderWidth: 1 },
   legendTxt: { fontSize: 11, fontWeight: '600', color: '#374151' },
 
@@ -475,7 +475,7 @@ const styles = StyleSheet.create({
   statusMsg: { backgroundColor: '#DCFCE7', padding: 14, borderRadius: 10, marginTop: 12, alignItems: 'center' },
   statusMsgTxt: { fontSize: 12, fontWeight: '700', color: '#166534' },
 
-  importTabs: { flexDirection: 'row', backgroundColor: '#f3f4f6', padding: 4, gap: 4 },
+  importTabs: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: '#f3f4f6', padding: 4, gap: 4 },
   importTab: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 6 },
   importTabActive: { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3 },
   importTabTxt: { fontSize: 11, fontWeight: '600', color: '#6B7280' },

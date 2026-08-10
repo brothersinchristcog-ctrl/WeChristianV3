@@ -293,27 +293,27 @@ const styles = StyleSheet.create({
     position: 'relative',
     zIndex: 10,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
   backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
   heroTitles: { flex: 1 },
   headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
   headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2, letterSpacing: 1.5, fontWeight: '800' },
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headerRight: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   iconBtn: { padding: 6 },
-  editToggleBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
+  editToggleBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5, backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10 },
   editToggleTxt: { color: '#BE9A3A', fontSize: 13, fontWeight: '700' },
 
   scroll: { flex: 1 },
   scrollContent: { padding: 20 },
 
   /* Mode banner */
-  modeBanner: { backgroundColor: '#E3F2FD', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  modeBanner: { backgroundColor: '#E3F2FD', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12, marginBottom: 16, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   modeBannerTxt: { fontSize: 13, fontWeight: '700', color: '#162057' },
 
   /* View cards */
   viewCard: { backgroundColor: '#fff', borderRadius: 20, marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 3, overflow: 'hidden' },
-  viewCardHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 20, paddingBottom: 6 },
-  viewCardBand: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 14 },
+  viewCardHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, padding: 20, paddingBottom: 6 },
+  viewCardBand: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, paddingHorizontal: 20, paddingVertical: 14 },
   viewCardTitle: { fontSize: 15, fontWeight: '800', color: '#162057' },
   viewCardBody: { fontSize: 14, color: '#64748B', lineHeight: 22, paddingHorizontal: 20, paddingBottom: 20 },
 
@@ -325,10 +325,10 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 90, textAlignVertical: 'top' },
 
   /* Action buttons */
-  actionRow: { flexDirection: 'row', gap: 12, marginTop: 8 },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 8 },
   cancelBtn: { flex: 1, backgroundColor: '#E2E8F0', borderRadius: 16, paddingVertical: 16, alignItems: 'center', justifyContent: 'center' },
   cancelTxt: { color: '#64748B', fontWeight: '700', fontSize: 15 },
-  saveBtn: { flex: 2, backgroundColor: '#BE9A3A', borderRadius: 16, paddingVertical: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#BE9A3A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
+  saveBtn: { flex: 2, backgroundColor: '#BE9A3A', borderRadius: 16, paddingVertical: 16, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#BE9A3A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 6 },
   btnDisabled: { opacity: 0.6 },
   saveTxt: { color: '#162057', fontWeight: '800', fontSize: 15 },
 });

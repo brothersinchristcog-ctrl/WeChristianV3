@@ -647,7 +647,7 @@ const styles = StyleSheet.create({
   titleInfo: {},
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
   headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' },
-  headerRight: { flexDirection: 'row', gap: 15 },
+  headerRight: { flexDirection: 'row', flexWrap: 'wrap', gap: 15 },
   headerIcon: { padding: 4 },
 
   scroll: { flex: 1 },

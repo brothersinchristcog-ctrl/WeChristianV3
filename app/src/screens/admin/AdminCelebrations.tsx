@@ -552,7 +552,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
     marginBottom: 20,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
   backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
   heroTitles: { flex: 1, borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.2)', paddingLeft: 12 },
   headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },

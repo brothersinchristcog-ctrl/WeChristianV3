@@ -574,7 +574,7 @@ export default function AdminMembers() {
                       </View>
                     </View>
                   </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
                     {isExpanded && (
                       <TouchableOpacity 
                         onPress={(e) => {
@@ -640,7 +640,7 @@ export default function AdminMembers() {
                     </View>
 
                     {/* Admin Actions */}
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                       <View style={{ flex: 1 }}>
                         {member.userType?.trim().toLowerCase() === 'super_admin' || member.userType?.trim().toLowerCase() === 'super admin' ? (
                           <View style={[styles.promoteBtn, { backgroundColor: '#7c3aed', opacity: 0.8 }]}>
@@ -784,7 +784,7 @@ export default function AdminMembers() {
 
             <View style={{ marginBottom: 24 }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Role</Text>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                 <TouchableOpacity 
                   style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : '#FFFFFF' }}
                   onPress={() => setNewMemberForm({...newMemberForm, userType: 'member'})}
@@ -854,7 +854,7 @@ export default function AdminMembers() {
 
 // Separate function for dynamic badge styling to keep code clean
 const badgeRowStyles = (isActive: boolean) => StyleSheet.create({
-  badgeRow: { flexDirection: 'row', gap: 6, alignItems: 'center' }
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center' }
 });
 
 const styles = StyleSheet.create({
@@ -896,7 +896,7 @@ const styles = StyleSheet.create({
   },
   newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
   statCard: { 
     flex: 1, 
     backgroundColor: '#FFFFFF',
@@ -933,7 +933,7 @@ const styles = StyleSheet.create({
   },
   searchInput: { fontSize: 14, color: '#1a2d5a', fontWeight: '500' },
 
-  filterRow: { flexDirection: 'row', marginBottom: 14 },
+  filterRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 14 },
   filterChip: { 
     paddingHorizontal: 16, 
     paddingVertical: 8, 
@@ -971,7 +971,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between', 
     alignItems: 'flex-start' 
   },
-  profileSection: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  profileSection: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 12 },
   avatar: { 
     width: 48, 
     height: 48, 
@@ -983,7 +983,7 @@ const styles = StyleSheet.create({
   avatarTxt: { color: '#fff', fontSize: 16, fontWeight: '800' },
   nameSection: { flexDirection: 'column', gap: 4, marginTop: 2 },
   name: { fontSize: 15, fontWeight: '800', color: '#1a2d5a' },
-  badgeRow: { flexDirection: 'row', gap: 6, alignItems: 'center', marginTop: 4 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginTop: 4 },
   
   roleBadge: { backgroundColor: '#F9F6F0', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1, borderColor: '#E2DDD5' },
   roleTxt: { color: '#1a2d5a', fontSize: 9, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.3 },
@@ -1002,7 +1002,7 @@ const styles = StyleSheet.create({
     marginTop: 14, 
     alignItems: 'center' 
   },
-  contactRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  contactRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   contactTxt: { fontSize: 11, color: '#6B7280', fontWeight: '600' },
 
   expandedContent: { 
@@ -1011,7 +1011,7 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(26,45,90,0.08)', 
     paddingTop: 14 
   },
-  statsSubGrid: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  statsSubGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
   subStatBox: { 
     flex: 1,
     backgroundColor: '#F9F6F0', 
@@ -1020,7 +1020,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, 
     borderColor: '#E2DDD5' 
   },
-  subStatLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 },
+  subStatLabelRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginBottom: 6 },
   subStatLabel: { fontSize: 9, textTransform: 'uppercase', color: '#6B7280', fontWeight: '800', letterSpacing: 0.5 },
   subStatValue: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
 

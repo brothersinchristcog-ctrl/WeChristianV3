@@ -543,7 +543,7 @@ export default function AdminEventEditor() {
             </TouchableOpacity>
           </View>
           
-          <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
             <View style={[styles.fGroup, { flex: 1 }]}>
               <Text style={styles.fLabel}>Start Time <Text style={{color:'#c0392b'}}>*</Text></Text>
               <TouchableOpacity style={styles.inputWrap} onPress={() => setStartTimeVisibility(true)}>
@@ -910,19 +910,19 @@ const styles = StyleSheet.create({
   dropdownItemTxt: { fontSize: 13, color: '#1e293b' },
   dropdownItemTxtActive: { color: '#fff', fontWeight: '700' },
 
-  modeRow: { flexDirection: 'row', gap: 8 },
+  modeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   modeBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0' },
   modeBtnActive: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
   modeBtnTxt: { fontSize: 12, color: '#475569', fontWeight: '600' },
   modeBtnTxtActive: { color: '#fff' },
 
-  chipRow: { flexDirection: 'row', gap: 8, paddingVertical: 4 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 4 },
   chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0', marginRight: 8 },
   chipActive: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
   chipTxt: { fontSize: 12, color: '#475569', fontWeight: '600' },
   chipTxtActive: { color: '#fff' },
 
-  themeRow: { flexDirection: 'row', marginTop: 6, gap: 10, paddingVertical: 4 },
+  themeRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6, gap: 10, paddingVertical: 4 },
   themeChip: { width: 38, height: 38, borderRadius: 19, borderWidth: 2.5, borderColor: 'transparent' },
   themeActive: { borderColor: '#C9A84C', transform: [{ scale: 1.1 }] },
 
@@ -936,12 +936,12 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   btnUploadThumbTxt: { color: '#4B5563', fontSize: 14, fontWeight: '700' },
-  thumbnailPreviewContainer: { flexDirection: 'row', alignItems: 'center', gap: 15 },
+  thumbnailPreviewContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 15 },
   thumbnailImg: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', borderWidth: 1, borderColor: '#D9D3C7' },
   removeThumbnailBtn: { backgroundColor: '#FEE2E2', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' },
   btnChangeThumbTxt: { color: '#991B1B', fontSize: 13, fontWeight: '700' },
 
-  footerBtnRow: { flexDirection: 'row', gap: 12, marginBottom: 16 },
+  footerBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
   btnSave: {
     flex: 1, backgroundColor: '#2E6B4F', borderRadius: 14, paddingVertical: 16,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -981,6 +981,6 @@ const styles = StyleSheet.create({
   successBtnPrimaryTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
   successBtnSecondary: { width: '100%', paddingVertical: 15, alignItems: 'center' },
   successBtnSecondaryTxt: { color: '#1a2d5a', fontWeight: '700', fontSize: 15 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 16 },
+  sectionHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 16 },
   sectionHeaderText: { fontFamily: 'Outfit-Bold', fontSize: 14, fontWeight: '700' }
 });

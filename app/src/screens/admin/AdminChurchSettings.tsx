@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
     shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4, zIndex: 10
   },
   tab: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8,
     paddingVertical: 16, borderBottomWidth: 3, borderBottomColor: 'transparent',
   },
   tabTxt: { fontSize: 13, color: '#64748b', fontWeight: '700' },
@@ -672,7 +672,7 @@ const styles = StyleSheet.create({
   textArea: { height: 100, textAlignVertical: 'top' },
 
   inputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10,
     backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
     borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', marginBottom: 16,
   },
@@ -747,7 +747,7 @@ const styles = StyleSheet.create({
     fontSize: 13, color: '#6B7280', textAlign: 'center', marginBottom: 20, fontWeight: '500'
   },
   churchCodeActions: {
-    flexDirection: 'row', gap: 12, width: '100%'
+    flexDirection: 'row', flexWrap: 'wrap', gap: 12, width: '100%'
   },
   churchCodeBtn: {
     borderWidth: 1.5, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, flex: 1, alignItems: 'center', backgroundColor: '#F9F6F0', borderColor: '#E2DDD5'

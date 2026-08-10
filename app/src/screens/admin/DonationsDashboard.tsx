@@ -1084,7 +1084,7 @@ export default function AdminDonationDashboard() {
                 </View>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.label}>Payment Method</Text>
-                  <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
                     <TouchableOpacity 
                       style={[styles.pmBtn, donationPaymentMethod === 'Cash' && styles.pmBtnActive]} 
                       onPress={() => setDonationPaymentMethod('Cash')}
@@ -1224,7 +1224,7 @@ export default function AdminDonationDashboard() {
                 </View>
               </ViewShot>
 
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
                 <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f' }]} onPress={handleDownloadImage}>
                   <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save Image</Text>
                 </TouchableOpacity>
@@ -1327,7 +1327,7 @@ export default function AdminDonationDashboard() {
                 </View>
               </ViewShot>
 
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
                 <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f' }]} onPress={handleDownloadCategoryImage}>
                   <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save Image</Text>
                 </TouchableOpacity>
@@ -1433,7 +1433,7 @@ const styles = StyleSheet.create({
   // Quick Actions
   quickActions: { flexDirection: 'column', gap: 10, marginBottom: 35 },
   qaBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12,
     backgroundColor: '#ffffff',
     borderWidth: 1, borderColor: '#e5ddd0',
     borderRadius: 14,
@@ -1450,7 +1450,7 @@ const styles = StyleSheet.create({
   // Buttons & Chips
   btnSecondary: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#c9973f', borderRadius: 14, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 20, shadowColor: '#c9973f', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 2 },
   btnSecondaryTxt: { fontFamily: FONTS.sans, fontSize: 14, fontWeight: '700', color: '#c9973f' },
-  chipMini: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e7ebf3', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, gap: 4 },
+  chipMini: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#e7ebf3', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, gap: 4 },
   chipMiniTxt: { fontFamily: FONTS.sans, fontSize: 11, fontWeight: '700', color: '#1a2d5a' },
   
   // Filter Row
@@ -1505,7 +1505,7 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 20 },
   label: { fontFamily: FONTS.sans, fontSize: 12, fontWeight: '700', color: '#645d54', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, fontSize: 14, fontFamily: FONTS.sans, color: '#241f1a' },
-  row: { flexDirection: 'row', gap: 15 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 15 },
   pmBtn: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14 },
   pmBtnActive: { backgroundColor: '#1b2a4a', borderColor: '#1b2a4a' },
   pmBtnTxt: { fontFamily: FONTS.sans, fontSize: 13, fontWeight: '600', color: '#645d54' },

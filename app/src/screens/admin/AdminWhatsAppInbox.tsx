@@ -404,7 +404,7 @@ const styles = StyleSheet.create({
     zIndex: 10,
     marginBottom: 0,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
   backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
   heroTitles: { flex: 1, paddingLeft: 4 },
   headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },

@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
   scroll: { padding: 12, paddingBottom: 40 },
 
   section: { marginBottom: 25 },
-  sectionHd: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 12, paddingHorizontal: 4 },
+  sectionHd: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, marginBottom: 12, paddingHorizontal: 4 },
   sectionIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', elevation: 2 },
   sectionTitle: { fontSize: 12, fontWeight: '800', color: '#1a2d5a', letterSpacing: 0.5 },
   sectionSubtitle: { fontSize: 10, color: '#9CA3AF', fontWeight: '600' },
@@ -143,6 +143,6 @@ const styles = StyleSheet.create({
   toolName: { fontSize: 15, fontWeight: '700', color: '#111827' },
   toolDesc: { fontSize: 12, color: '#6B7280', marginTop: 3 },
 
-  advancedBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 15 },
+  advancedBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 15 },
   advancedTxt: { fontSize: 12, color: '#6B7280', fontWeight: '600' }
 });

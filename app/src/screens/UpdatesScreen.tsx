@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.3,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
   backText: { color: '#fff', fontSize: 15, fontWeight: '600' },
   headerTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
   headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '500' },
@@ -678,7 +678,7 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   content: { padding: 16, gap: 16 },
   
-  loadingBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10 },
+  loadingBox: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10 },
   loadingTxt: { fontSize: 12, color: '#475569', fontWeight: '500' },
 
   updateCard: {

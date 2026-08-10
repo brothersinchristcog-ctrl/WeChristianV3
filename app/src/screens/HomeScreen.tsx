@@ -807,7 +807,7 @@ export default function HomeScreen() {
 
           <View style={styles.eventBanner}>
             <View style={styles.ebHd}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
                 <Calendar size={14} color="#FCD34D" />
                 <Text style={styles.ebHdLbl}>UPCOMING EVENTS · రాబోయే కార్యక్రమాలు</Text>
               </View>
@@ -973,7 +973,7 @@ const styles = StyleSheet.create({
   hdTitle: { color: '#F3EAD9', fontSize: 18, fontWeight: '800', letterSpacing: 0.2 },
   hdSub: { color: '#aac4e8', fontSize: 10, marginTop: 1, fontWeight: '500' },
   
-  headerRight: { flexDirection: 'row', alignItems: 'center', gap: 12, zIndex: 2 },
+  headerRight: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, zIndex: 2 },
   actionIconButton: { width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.08)', justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
   notifBadge: { position: 'absolute', top: 8, right: 10, width: 6, height: 6, backgroundColor: '#ef4444', borderRadius: 3 },
   avatarWrapper: { width: 40, height: 40, borderRadius: 20, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 },
@@ -1065,9 +1065,9 @@ const styles = StyleSheet.create({
   phDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginBottom: 15 },
   phTe: { color: '#fff', fontSize: 16, fontStyle: 'italic', lineHeight: 26, marginBottom: 4 },
   phRefTe: { color: '#FCD34D', fontSize: 13, fontWeight: '700', marginBottom: 20, textAlign: 'right' },
-  phActions: { flexDirection: 'row', gap: 12 },
-  phShareBtn: { flex: 1, backgroundColor: 'transparent', borderRadius: 25, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#cbd5e1' },
-  phWatchBtn: { flex: 1, backgroundColor: 'transparent', borderRadius: 25, paddingVertical: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#cbd5e1' },
+  phActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  phShareBtn: { flex: 1, backgroundColor: 'transparent', borderRadius: 25, paddingVertical: 12, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#cbd5e1' },
+  phWatchBtn: { flex: 1, backgroundColor: 'transparent', borderRadius: 25, paddingVertical: 12, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#cbd5e1' },
   phBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
   marqueeWrapper: {
@@ -1216,7 +1216,7 @@ const styles = StyleSheet.create({
   badgeTextMain: { fontSize: 9.5, fontWeight: '700', color: '#1a2d5a' },
   badgeTextSub: { fontSize: 9.5, color: '#475569', fontWeight: '500' },
   timeBadgeText: { fontSize: 9, fontWeight: '700', color: '#c0392b' },
-  ebMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  ebMetaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 },
   
   emptyEvents: { padding: 30, alignItems: 'center', justifyContent: 'center' },
   emptyEventsTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '700', marginTop: 12 },
@@ -1231,10 +1231,10 @@ const styles = StyleSheet.create({
   // Sermon Card
   sermonCard: { margin: 16, marginTop: 4, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, borderWidth: 1, borderColor: '#f1f5f9' },
   scHd: { backgroundColor: '#1a2d5a', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  scHdLblRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  scHdLblRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
   scHdLbl: { fontSize: 12, color: '#fff', fontWeight: '700' },
   scSee: { fontSize: 11, color: '#aac4e8', fontWeight: '600' },
-  scBody: { padding: 16, flexDirection: 'row', alignItems: 'center', gap: 15 },
+  scBody: { padding: 16, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 15 },
   scThumb: { width: 80, height: 50, backgroundColor: '#0f172a', borderRadius: 10, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
   playIconOverlay: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.2)' },
   scInfo: { flex: 1 },
@@ -1246,14 +1246,14 @@ const styles = StyleSheet.create({
   // Prayer Card
   prayerCard: { margin: 16, marginTop: 4, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, borderWidth: 1, borderColor: '#f1f5f9' },
   pcHd: { backgroundColor: '#1a2d5a', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  pcHdLblRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  pcHdLblRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
   pcHdLbl: { fontSize: 12, color: '#fff', fontWeight: '700' },
   pcCount: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
   pcBody: { padding: 16 },
   pcTextContainer: { backgroundColor: '#f8fafc', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 15 },
   pcText: { fontSize: 13, color: '#334155', lineHeight: 22, fontStyle: 'italic' },
   pcFoot: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  prayedBtn: { backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#bfdbfe' },
+  prayedBtn: { backgroundColor: '#eff6ff', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 10, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, borderWidth: 1, borderColor: '#bfdbfe' },
   prayedBtnTxt: { color: '#1a2d5a', fontSize: 12, fontWeight: '700' },
   pcSeeAll: { fontSize: 11.5, color: '#94a3b8', fontWeight: '600' },
 

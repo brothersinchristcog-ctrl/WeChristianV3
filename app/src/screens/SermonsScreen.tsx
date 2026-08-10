@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between'
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
   backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
   headerCenter: { alignItems: 'center' },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },

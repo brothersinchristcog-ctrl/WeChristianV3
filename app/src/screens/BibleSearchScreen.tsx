@@ -595,7 +595,7 @@ export default function BibleSearchScreen({ route, navigation }: any) {
               <Text style={[styles.resultsCount, { color: isDark ? '#94a3b8' : '#64748b', marginBottom: 0 }]}>
                 Found {results.length} results
               </Text>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
                 {(filterTestament !== 'All' || filterBook !== null || filterChapter !== null || filterVerse !== null) && (
                   <TouchableOpacity
                     style={{ backgroundColor: '#1a2d5a', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }}

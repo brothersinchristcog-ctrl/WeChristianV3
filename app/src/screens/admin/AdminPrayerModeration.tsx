@@ -262,7 +262,7 @@ export default function AdminPrayerModeration() {
           <Text style={styles.pAvatarTxt}>{(item.name || 'F').charAt(0)}</Text>
         </View>
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
             <Text style={styles.pUserName}>{item.name}</Text>
             {isAnswered && (
               <View style={styles.ansBadge}>
@@ -452,7 +452,7 @@ export default function AdminPrayerModeration() {
 
                 {selectedMember && (
                   <View style={styles.selectedBadge}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
                       <User size={14} color="#fff" />
                       <Text style={styles.selectedBadgeTxt}>{selectedMember.name}</Text>
                     </View>
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
   },
   newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 18 },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 18 },
   statCard: { flex: 1, backgroundColor: COLORS.paper, borderRadius: 16, paddingVertical: 18, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, borderWidth: 1, borderColor: COLORS.rule },
   statVal: { fontSize: 24, fontWeight: '900', fontFamily: FONTS.serif },
   statLbl: { fontSize: 11, color: COLORS.inkSoft, marginTop: 4, fontWeight: '600' },
@@ -655,19 +655,19 @@ const styles = StyleSheet.create({
   pUserName: { fontSize: 14, fontWeight: '800', color: COLORS.ink, fontFamily: FONTS.serif },
   pTime: { fontSize: 11, color: COLORS.inkSoft, marginTop: 2, fontWeight: '500' },
 
-  ansBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#DCFCE7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  ansBadge: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, backgroundColor: '#DCFCE7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
   ansBadgeTxt: { fontSize: 9, fontWeight: '800', color: '#15803D' },
 
   pTextContainer: { backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 12, padding: 18, marginBottom: 15, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
   pText: { fontSize: 14, color: COLORS.ink, lineHeight: 22, fontFamily: FONTS.serif },
 
   pFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  catBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  catBadge: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   catDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.goldDeep },
   catTxt: { fontSize: 11, fontWeight: '700', color: COLORS.inkSoft },
 
-  pActions: { flexDirection: 'row', gap: 8 },
-  pActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#DCFCE7', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  pActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pActionBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, backgroundColor: '#DCFCE7', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
   pActionBtnTxt: { fontSize: 11, fontWeight: '800', color: '#15803D' },
 
   pastorSection: { backgroundColor: COLORS.paper, borderRadius: 16, padding: 20, marginTop: 20, borderWidth: 1, borderColor: COLORS.rule },
@@ -686,7 +686,7 @@ const styles = StyleSheet.create({
   publishBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '800', fontFamily: FONTS.serif },
 
   // Search Styles
-  searchBox: { height: 50, backgroundColor: '#fff', borderWidth: 1, borderColor: COLORS.rule, borderRadius: 12, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, gap: 10 },
+  searchBox: { height: 50, backgroundColor: '#fff', borderWidth: 1, borderColor: COLORS.rule, borderRadius: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', paddingHorizontal: 15, gap: 10 },
   searchInput: { flex: 1, fontSize: 14, color: COLORS.ink, fontFamily: FONTS.serif },
   searchResults: { backgroundColor: '#fff', borderWidth: 1, borderColor: COLORS.rule, borderRadius: 12, marginTop: 4, maxHeight: 200, overflow: 'hidden', elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
   searchItem: { padding: 14, borderBottomWidth: 0.5, borderBottomColor: COLORS.rule, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -703,7 +703,7 @@ const styles = StyleSheet.create({
 
   // Success Modal Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(21, 28, 51, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  successCard: { backgroundColor: COLORS.paper, borderRadius: 24, padding: 32, width: '100%', maxWidth: 400, alignItems: 'center', elevation: 10, borderWidth: 1, borderColor: COLORS.rule },
+  successCard: { backgroundColor: COLORS.paper, borderRadius: 24, padding: 32, width: '92%', maxWidth: 400, alignItems: 'center', elevation: 10, borderWidth: 1, borderColor: COLORS.rule },
   successIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.mossBg, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   successIconInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.moss, justifyContent: 'center', alignItems: 'center' },
   successTitle: { fontSize: 24, fontWeight: '900', color: COLORS.ink, marginBottom: 12, textAlign: 'center', fontFamily: FONTS.serif },

@@ -424,8 +424,8 @@ const styles = StyleSheet.create({
   pageSub: { color: '#aac4e8', fontSize: 10, marginTop: 1, fontWeight: '500' },
 
   // Tabs
-  tabBar: { flexDirection: 'row', backgroundColor: '#e2e8f0', marginHorizontal: 16, marginTop: 15, marginBottom: 0, borderRadius: 25, padding: 4, gap: 4 },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 21, gap: 6 },
+  tabBar: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: '#e2e8f0', marginHorizontal: 16, marginTop: 15, marginBottom: 0, borderRadius: 25, padding: 4, gap: 4 },
+  tab: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 21, gap: 6 },
   tabActive: { backgroundColor: '#1a2d5a' },
   tabTxt: { fontSize: 12, fontWeight: '700', color: '#64748b' },
   tabTxtActive: { color: '#fff' },

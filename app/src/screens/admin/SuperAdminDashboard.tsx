@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   submitBtnTxt: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   imageUpload: {
     backgroundColor: '#f8fafc', borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', borderStyle: 'dashed',
-    height: 80, justifyContent: 'center', alignItems: 'center', marginBottom: 12, gap: 8, flexDirection: 'row'
+    height: 80, justifyContent: 'center', alignItems: 'center', marginBottom: 12, gap: 8, flexDirection: 'row', flexWrap: 'wrap'
   },
   uploadTxt: { color: '#64748b', fontSize: 14, fontWeight: '500' }
 });

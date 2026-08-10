@@ -1005,7 +1005,7 @@ const openAddExpense = () => {
                   </View>
                 )}
 
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 20, gap: 12 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 20, gap: 12 }}>
                   <TouchableOpacity 
                     style={[styles.btnSecondary, { flex: 1, backgroundColor: '#ffffff', borderColor: '#141d33', borderWidth: 1 }]}
                     onPress={() => {
@@ -1059,7 +1059,7 @@ const openAddExpense = () => {
 
             {filterPeriod === 'Custom Range' && (
               <View style={styles.customRangeBox}>
-                <View style={{ flexDirection: 'row', gap: 12, flex: 1 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, flex: 1 }}>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.customRangeLabel}>FROM</Text>
                     <TouchableOpacity 
@@ -1534,7 +1534,7 @@ const openAddExpense = () => {
                             <Text style={styles.lineItemRemove}>Remove</Text>
                           </TouchableOpacity>
                         </View>
-                        <View style={{ flexDirection: 'row', gap: 12 }}>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
                           <View style={{ flex: 1 }}>
                             <Text style={styles.catModalLabel}>QUANTITY</Text>
                             <TextInput 
@@ -1953,7 +1953,7 @@ const openAddExpense = () => {
             {selectedInvoiceForApproval?.status === 'Pending Approval' && (selectedInvoiceForApproval?.reportedByUserId === member?.id || selectedInvoiceForApproval?.reportedByUserIds?.includes(member?.id || '')) ? (
               <View style={{ marginTop: 20 }}>
                 <Text style={{ fontFamily: FONTS.serif, fontSize: 16, color: '#1b2a4a', marginBottom: 10, textAlign: 'center' }}>Approval Required</Text>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 }}>
                   <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#137333', borderWidth: 0 }]} onPress={() => handleInvoiceApprovalAction('Approve')}>
                     <Text style={[styles.invActionBtnTxt, { color: '#ffffff' }]}>Approve</Text>
                   </TouchableOpacity>
@@ -1966,7 +1966,7 @@ const openAddExpense = () => {
                 </View>
               </View>
             ) : selectedInvoiceForApproval?.status === 'Approved' || !selectedInvoiceForApproval?.status ? (
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginTop: 20 }}>
                 <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#c9973f' }]} onPress={handleDownloadImage}>
                   <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save Image</Text>
                 </TouchableOpacity>
@@ -2127,7 +2127,7 @@ const styles = StyleSheet.create({
   
   quickActions: { flexDirection: 'column', gap: 10 },
   qaBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12,
     backgroundColor: '#ffffff',
     borderWidth: 1, borderColor: '#e5ddd0',
     borderRadius: 14,
@@ -2202,7 +2202,7 @@ const styles = StyleSheet.create({
   customRangeBox: {
     borderWidth: 1, borderColor: '#d4c2a5', borderStyle: 'dashed', borderRadius: 16,
     padding: 14, marginBottom: 16,
-    flexDirection: 'row', alignItems: 'flex-end', gap: 12
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', gap: 12
   },
   customRangeLabel: { fontSize: 10, fontWeight: '700', color: '#887d6d', letterSpacing: 0.5, marginBottom: 6 },
   customRangeInput: {
@@ -2220,7 +2220,7 @@ const styles = StyleSheet.create({
   customRangeApplyTxt: { fontFamily: FONTS.sans, fontSize: 13, fontWeight: '700', color: '#ffffff' },
 
   searchBar: {
-    flexDirection: 'row', alignItems: 'center', gap: 9,
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 9,
     backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0',
     borderRadius: 13, paddingVertical: 11, paddingHorizontal: 14, marginBottom: 18,
     shadowColor: '#1b2a4a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 2
@@ -2243,7 +2243,7 @@ const styles = StyleSheet.create({
   emptyStateText: { color: '#64748b', marginTop: 12, fontSize: 14, fontWeight: '500' },
   
   // Editor Form Styles
-  backBtnInline: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16 },
+  backBtnInline: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 16 },
   backBtnInlineTxt: { fontFamily: FONTS.sans, fontSize: 13.5, color: '#1b2a4a', fontWeight: '600' },
   formCard: {
     backgroundColor: '#ffffff',
@@ -2264,7 +2264,7 @@ const styles = StyleSheet.create({
   },
   primaryActionBtn: {
     backgroundColor: '#e6c079',
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 10,
     paddingVertical: 16, borderRadius: 14,
     shadowColor: '#c9973f', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.45, shadowRadius: 18, elevation: 6,
   },
@@ -2306,7 +2306,7 @@ const styles = StyleSheet.create({
   categoryModal: {
     backgroundColor: '#faf7f1',
     borderRadius: 24, padding: 22,
-    width: '100%', maxWidth: 360,
+    width: '92%', maxWidth: 360,
     shadowColor: '#141d33', shadowOffset: { width: 0, height: 20 }, shadowOpacity: 0.2, shadowRadius: 35, elevation: 10
   },
   catModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
@@ -2382,7 +2382,7 @@ const styles = StyleSheet.create({
   addBtn: {
     backgroundColor: '#1b2a4a',
     borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12,
-    flexDirection: 'row', alignItems: 'center', gap: 6
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6
   },
   addBtnTxt: {
     fontFamily: FONTS.sans, fontSize: 13, fontWeight: '600', color: '#ffffff'
@@ -2414,7 +2414,7 @@ const styles = StyleSheet.create({
     fontSize: 14, fontFamily: FONTS.sans, color: '#241f1a'
   },
   row: {
-    flexDirection: 'row', gap: 15
+    flexDirection: 'row', flexWrap: 'wrap', gap: 15
   },
   pmBtn: {
     backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0',

@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center'
   },
-  pillContainer: { flexDirection: 'row', gap: 10 },
+  pillContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   pill: {
     paddingHorizontal: 16,
     paddingVertical: 8,

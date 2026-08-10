@@ -390,7 +390,7 @@ const styles = StyleSheet.create({
   heroBadge: {
     position: 'absolute',
     bottom: 20, left: 20,
-    flexDirection: 'row', alignItems: 'center', gap: 6,
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6,
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 20,
   },
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   titleEn: { fontSize: 24, fontWeight: '900', color: '#1a2d5a', marginBottom: 6, letterSpacing: -0.5 },
   titleTe: { fontSize: 17, color: '#64748b', fontWeight: '600' },
   
-  badgeRow: { flexDirection: 'row', gap: 12, marginBottom: 28 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
   dateBadge: { 
     flex: 1.2, flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#fffbeb', padding: 12, borderRadius: 18,
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   timeValue: { fontSize: 13, fontWeight: '800', color: '#c0392b' },
   
   section: { marginBottom: 28 },
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 15 },
+  sectionHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 15 },
   iconCircle: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#f0f9ff', justifyContent: 'center', alignItems: 'center' },
   sectionTitle: { fontSize: 11, fontWeight: '800', color: '#1a2d5a', letterSpacing: 1.5 },
   
@@ -452,14 +452,14 @@ const styles = StyleSheet.create({
   },
   lockedTitle: { fontSize: 17, fontWeight: '800', color: '#1e293b', textAlign: 'center' },
   lockedTitleTe: { fontSize: 14, color: '#64748b', fontWeight: '600', textAlign: 'center' },
-  lockedDateRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  lockedDateRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 4 },
   lockedDate: { fontSize: 13, color: '#1a2d5a', fontWeight: '700' },
   lockedSub: { fontSize: 12, color: '#94a3b8', textAlign: 'center', lineHeight: 20, marginTop: 12 },
 
   // ── LIVE ──
   liveBanner: {
     backgroundColor: '#dc2626', borderRadius: 12, padding: 14,
-    flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12,
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, marginBottom: 12,
   },
   liveBannerText: { color: '#fff', fontWeight: '800', fontSize: 14 },
   liveBtn: {

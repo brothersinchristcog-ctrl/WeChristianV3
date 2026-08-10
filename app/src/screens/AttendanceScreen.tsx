@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
 
   form: {},
   formLabel: { fontSize: 17, fontWeight: '700', color: COLORS.ink, marginBottom: 16, textAlign: 'center' },
-  radioGroup: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  radioGroup: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20 },
   radioBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     paddingVertical: 16, borderRadius: 14, borderWidth: 2, borderColor: COLORS.rule,
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
   emptySub: { fontSize: 14, color: COLORS.inkSoft, textAlign: 'center', lineHeight: 22 },
 
   // Time window
-  timeWindowRow: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 6 },
+  timeWindowRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5, marginTop: 6 },
   timeWindowTxt: { fontSize: 12, fontWeight: '600' },
 
   // Closed state

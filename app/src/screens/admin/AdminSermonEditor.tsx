@@ -521,7 +521,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 2,
   },
-  modHd: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(26,45,90,0.08)', paddingBottom: 10 },
+  modHd: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 16, borderBottomWidth: 1, borderBottomColor: 'rgba(26,45,90,0.08)', paddingBottom: 10 },
   hdBlue: { },
   hdYellow: { },
   modHdTxt: { fontSize: 12, fontWeight: '800', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
   fGroup: { marginBottom: 16 },
   fLabel: { fontSize: 12, fontWeight: '700', color: '#1a2d5a', marginBottom: 6 },
   fHint: { fontSize: 9, color: '#9CA3AF', fontWeight: '500', marginTop: 4 },
-  row: { flexDirection: 'row', gap: 10 },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
 
   input: { backgroundColor: '#FDFDFD', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, padding: 12, fontSize: 13, color: '#1a2d5a' },
   inputWithIcon: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FDFDFD', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, paddingHorizontal: 12, height: 45 },
@@ -540,7 +540,7 @@ const styles = StyleSheet.create({
   selectBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: '#E5E7EB', borderRadius: 10, padding: 12 },
   selectTxt: { fontSize: 13, color: '#1a2d5a', fontWeight: '600' },
 
-  mediaBanner: { backgroundColor: '#F9F6F0', borderRadius: 8, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 15, marginTop: 5 },
+  mediaBanner: { backgroundColor: '#F9F6F0', borderRadius: 8, padding: 10, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 15, marginTop: 5 },
   mediaBannerTxt: { color: '#1a2d5a', fontSize: 11, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   dashBox: { borderStyle: 'dashed', borderWidth: 1.5, borderColor: '#D1D5DB', borderRadius: 12, padding: 25, alignItems: 'center', backgroundColor: '#FAFAFA' },
@@ -556,16 +556,16 @@ const styles = StyleSheet.create({
   switchDotOn: { alignSelf: 'flex-end' },
 
   notifPreview: { backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, marginTop: 10, borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 5 },
-  notifHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  notifHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginBottom: 4 },
   notifLogo: { width: 14, height: 14, backgroundColor: '#1a2d5a', borderRadius: 4, justifyContent: 'center', alignItems: 'center' },
   notifHeaderTxt: { fontSize: 9, color: '#64748B', fontWeight: '600' },
   notifTitle: { fontSize: 11, fontWeight: '800', color: '#1E293B' },
   notifBody: { fontSize: 10, color: '#64748B', fontWeight: '500' },
 
-  actionRow: { flexDirection: 'row', gap: 10, marginTop: 10, marginBottom: 40 },
-  btnDraft: { flex: 1, backgroundColor: '#F5F0E8', borderRadius: 12, paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: '#E2DDD5' },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10, marginBottom: 40 },
+  btnDraft: { flex: 1, backgroundColor: '#F5F0E8', borderRadius: 12, paddingVertical: 14, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 6, borderWidth: 1, borderColor: '#E2DDD5' },
   btnDraftTxt: { color: '#1a2d5a', fontSize: 14, fontWeight: '800' },
-  btnPublish: { flex: 1, backgroundColor: '#2E6B4F', borderRadius: 12, paddingVertical: 14, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 },
+  btnPublish: { flex: 1, backgroundColor: '#2E6B4F', borderRadius: 12, paddingVertical: 14, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 6 },
   btnPublishTxt: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
   pickerCard: { backgroundColor: '#fff', width: '90%', borderRadius: 12, padding: 8, elevation: 20, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 15 },
@@ -591,7 +591,7 @@ const styles = StyleSheet.create({
 
   pickerCardJS: { backgroundColor: '#fff', width: '90%', borderRadius: 16, padding: 20, elevation: 20, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 15 },
   pickerHd: { fontSize: 16, fontWeight: '800', color: '#1a2d5a', marginBottom: 20, textAlign: 'center' },
-  pickerGrid: { flexDirection: 'row', gap: 10, height: 200 },
+  pickerGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, height: 200 },
   pickerCol: { flex: 1 },
   pickerColHd: { fontSize: 10, fontWeight: '700', color: '#9CA3AF', textTransform: 'uppercase', marginBottom: 10, textAlign: 'center' },
   pickerItemJS: { paddingVertical: 10, alignItems: 'center', borderRadius: 8, marginBottom: 4 },

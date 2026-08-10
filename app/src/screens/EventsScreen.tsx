@@ -115,7 +115,7 @@ export default function EventsScreen({ navigation }: any) {
         onPress={() => navigation.navigate('EventDetails', { event: item })}
       >
         <View style={[styles.ebHd, isPast && { backgroundColor: '#475569' }]}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
             <Calendar size={14} color="#FCD34D" />
             <Text style={styles.ebHdLbl}>{isPast ? 'PAST EVENT · ముగిసినవి' : 'EVENT DETAILS · వివరాలు'}</Text>
           </View>
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 25,
     borderBottomRightRadius: 25,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, minWidth: 60 },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5, minWidth: 60 },
   backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
   headerCenter: { alignItems: 'center' },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   },
   badgeTextMain: { fontSize: 9.5, fontWeight: '700', color: '#1a2d5a' },
   timeBadgeText: { fontSize: 9, fontWeight: '700', color: '#c0392b' },
-  ebMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  ebMetaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 },
   ebMetaText: { fontSize: 10, color: '#64748b', fontWeight: '500', lineHeight: 14 },
 
   emptyState: { padding: 60, alignItems: 'center', marginTop: 60 },

@@ -517,7 +517,7 @@ export default function ProfileScreen({ navigation }: any) {
                      <User size={40} color="#fff" strokeWidth={1.5} />
                    )}
                 </View>
-                <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 }}>
                   <TouchableOpacity style={styles.changePhotoBtn} onPress={pickImage}>
                     <Text style={styles.changePhotoText}>Change Photo</Text>
                   </TouchableOpacity>
@@ -781,7 +781,7 @@ export default function ProfileScreen({ navigation }: any) {
             <Text style={{ fontSize: 15, color: '#64748b', textAlign: 'center', marginBottom: 28, lineHeight: 22 }}>
               {confirmConfig.message}
             </Text>
-            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, width: '100%' }}>
               <TouchableOpacity 
                 style={{ flex: 1, backgroundColor: '#f1f5f9', paddingVertical: 14, borderRadius: 24, alignItems: 'center' }}
                 onPress={() => setConfirmModalVisible(false)}
@@ -873,7 +873,7 @@ const styles = StyleSheet.create({
   userName: { fontSize: 22, fontWeight: '800', color: '#fff' },
   userSub: { fontSize: 12, color: '#aac4e8', marginTop: 4 },
   
-  badgeRow: { flexDirection: 'row', gap: 8, marginTop: 15 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 15 },
   badge: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   badgeActive: { backgroundColor: 'rgba(252,211,77,0.2)' },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },

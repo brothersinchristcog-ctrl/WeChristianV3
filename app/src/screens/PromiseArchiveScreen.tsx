@@ -202,13 +202,13 @@ export default function PromiseArchiveScreen({ navigation }: { navigation: any }
               <View style={styles.heroActionsContainer}>
                 <View style={styles.heroActions}>
                   <TouchableOpacity style={styles.actionBtn} onPress={handleSaveCard}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
                       <Calendar size={18} color="#fff" />
                       <Text style={styles.actionBtnTxt}>Save card</Text>
                     </View>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.actionBtn} onPress={() => handleShare(selectedPromise)}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
                       <Share2 size={18} color="#fff" />
                       <Text style={styles.actionBtnTxt}>Share</Text>
                     </View>
@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minWidth: 60 },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, minWidth: 60 },
   backBtnTxt: { color: '#aac4e8', fontSize: 13, fontWeight: '500' },
   titleCol: { flex: 1, alignItems: 'center' },
   pageTitle: { color: '#fff', fontSize: 14, fontWeight: '600' },
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   verseEn: { fontSize: 19, fontWeight: '700', fontStyle: 'italic', color: '#fff', textAlign: 'center', lineHeight: 28, marginBottom: 15 },
   verseTe: { fontSize: 16, fontStyle: 'italic', color: '#aac4e8', textAlign: 'center', lineHeight: 26, marginBottom: 25 },
 
-  heroActions: { flexDirection: 'row', gap: 12, marginTop: 10, justifyContent: 'center' },
+  heroActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 10, justifyContent: 'center' },
   actionBtn: { flex: 1, backgroundColor: 'transparent', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 25, paddingVertical: 12, alignItems: 'center', justifyContent: 'center' },
   actionBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
@@ -340,7 +340,7 @@ const styles = StyleSheet.create({
   reflectionText: { fontSize: 14, color: '#475569', lineHeight: 24, marginBottom: 15 },
   reflectionAuthor: { fontSize: 12, color: '#94a3b8', fontWeight: '600' },
 
-  devotionalBar: { backgroundColor: '#111827', borderRadius: 20, padding: 16, marginTop: 15, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#cbd5e1' },
+  devotionalBar: { backgroundColor: '#111827', borderRadius: 20, padding: 16, marginTop: 15, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: '#cbd5e1' },
   playCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(255,255,255,0.1)', justifyContent: 'center', alignItems: 'center' },
   devotionalInfo: { flex: 1 },
   devotionalTitle: { fontSize: 14, fontWeight: '700', color: '#fff', marginBottom: 2 },
