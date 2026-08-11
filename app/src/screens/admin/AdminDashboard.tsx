@@ -94,7 +94,7 @@ const CATEGORIES = [
     title: 'Administration',
     icon: Settings,
     color: '#1E3A8A', // Deep Navy for maximum contrast
-    keywords: ['Church Setting', 'Super Admin', 'About', 'Contact', 'Schedule']
+    keywords: ['Church Setting', 'Super Admin', 'About', 'Contact', 'Schedule', 'Online Meeting']
   }
 ];
 
@@ -175,6 +175,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
 
   allTabs.forEach((tab: any, index: number) => {
     if (tab.name === 'Dashboard') return;
+    if (tab.name.startsWith('New ')) return; // Hide direct forms from the dashboard
     const category = getCategoryForTab(tab.name);
     categorizedTabs[category.title].push({ ...tab, index });
   });

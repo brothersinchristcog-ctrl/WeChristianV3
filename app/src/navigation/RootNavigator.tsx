@@ -51,6 +51,7 @@ import PastorEventDetail from '../screens/admin/pastor_events/PastorEventDetail'
 import CreatePastorEvent from '../screens/admin/pastor_events/CreatePastorEvent';
 import PastorEventRoutePlanner from '../screens/admin/pastor_events/PastorEventRoutePlanner';
 import PastorEventMap from '../screens/admin/pastor_events/PastorEventMap';
+import OnlineMeetingsScreen from '../screens/OnlineMeetingsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -469,6 +470,7 @@ function Navigation() {
             <Stack.Screen name="AboutUs" component={AboutUsScreen} />
             <Stack.Screen name="ContactUs" component={ContactUsScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+            <Stack.Screen name="OnlineMeetings" component={OnlineMeetingsScreen} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />

@@ -45,6 +45,7 @@ export default function AdminTools() {
       subtitle: 'వ్యవస్థ సెట్టింగులు',
       icon: <ShieldCheck size={18} color="#15803D" />,
       items: [
+        { name: 'Online Meetings', desc: 'Schedule Zoom/Meet live sessions', target: 'Online Meetings' },
         { name: 'Force Metadata Sync', desc: 'Sync latest data from Salesforce', target: 'Dashboard' },
         { name: 'Access Audit Logs', desc: 'View recent administrative activity', target: 'Dashboard' }
       ]

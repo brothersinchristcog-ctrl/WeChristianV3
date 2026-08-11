@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, setDoc, query, orderBy, serverTimestamp, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, setDoc, query, orderBy, serverTimestamp, updateDoc, arrayUnion, arrayRemove, where } from 'firebase/firestore';
 
 interface PrayerRequest {
   id: string;
@@ -10,28 +10,33 @@ interface PrayerRequest {
   text?: string;
   category: string;
   isAnswered: boolean;
+  status?: string;
   likesCount?: number;
   prayedBy?: string[];
   createdAt?: any;
+  date?: string;
+  userId?: string;
 }
+
+const CATEGORIES = [
+  { label: 'Pray for me', icon: '👤' },
+  { label: 'Pray for my family', icon: '🏠' },
+  { label: 'Pray for healing', icon: '🏥' },
+  { label: 'Pray for peace and strength', icon: '🕊️' },
+  { label: 'Other (if necessary)', icon: '✨' }
+];
 
 export default function PrayerWallPage() {
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [churchId, setChurchId] = useState<string>('');
-  const [message, setMessage] = useState('');
+  const [userData, setUserData] = useState<any>(null);
   
   // Submit Form
-  const [showSubmitModal, setShowSubmitModal] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [form, setForm] = useState({
-    name: '',
-    content: '',
-    category: 'General',
-    isAnonymous: false
-  });
-
-  const categories = ['General', 'Healing', 'Family', 'Financial', 'Guidance', 'Thanksgiving'];
+  const [prayerInput, setPrayerInput] = useState('');
+  const [category, setCategory] = useState('Pray for me');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [alertMsg, setAlertMsg] = useState('');
 
   useEffect(() => {
     fetchPrayers();
@@ -46,21 +51,16 @@ export default function PrayerWallPage() {
       if (userDoc.exists() && userDoc.data().primaryChurchId) {
         const cid = userDoc.data().primaryChurchId;
         setChurchId(cid);
-
-        if (!form.name) {
-          setForm(prev => ({ 
-            ...prev, 
-            name: userDoc.data().name || ''
-          }));
-        }
+        setUserData(userDoc.data());
 
         const prayersRef = collection(db, 'churches', cid, 'prayerRequests');
         const q = query(prayersRef, orderBy('createdAt', 'desc'));
         const snap = await getDocs(q);
         
-        // Filter client-side to avoid needing a composite index
         let data = snap.docs.map(d => ({ id: d.id, ...d.data() } as PrayerRequest));
-        data = data.filter(p => p.isAnswered === true); // Only show approved/answered prayers
+        // Filter out drafts/rejected if status field exists, else fallback to isAnswered or show all depending on what mobile did. 
+        // Mobile just fetches all for the wall, assuming we only fetch published ones.
+        data = data.filter(p => p.status !== 'Rejected');
         
         setPrayers(data);
       }
@@ -73,31 +73,38 @@ export default function PrayerWallPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!churchId || !form.content) return;
-    setSubmitting(true);
+    if (!churchId || !prayerInput.trim() || !userData) return;
+    setIsSubmitting(true);
     try {
+      const today = new Date();
+      const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
       const newRef = doc(collection(db, 'churches', churchId, 'prayerRequests'));
       await setDoc(newRef, {
         id: newRef.id,
-        name: form.isAnonymous ? 'Anonymous' : form.name,
-        requestEn: form.content,
-        text: form.content, // Fallback for old schema
-        category: form.category,
-        isAnonymous: form.isAnonymous,
-        isAnswered: false, // Pending admin approval
+        name: userData.name || 'Anonymous',
+        requestEn: prayerInput,
+        text: prayerInput,
+        category: category,
+        status: 'Published',
+        isAnswered: false,
         likesCount: 0,
         prayedBy: [],
         createdAt: serverTimestamp(),
+        date: dateStr,
         userId: auth.currentUser?.uid
       });
-      setMessage('Your prayer request has been submitted and is pending review.');
-      setShowSubmitModal(false);
-      setForm({ ...form, content: '', isAnonymous: false, category: 'General' });
+      setAlertMsg('Your prayer request has been submitted to the community.');
+      setPrayerInput('');
+      setCategory('Pray for me');
+      await fetchPrayers();
+      setTimeout(() => setAlertMsg(''), 4000);
     } catch (error) {
       console.error(error);
-      setMessage('Failed to submit prayer request.');
+      setAlertMsg('Failed to submit prayer request.');
+      setTimeout(() => setAlertMsg(''), 4000);
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -110,6 +117,7 @@ export default function PrayerWallPage() {
     const prayer = prayers[pIndex];
     const hasPrayed = prayer.prayedBy?.includes(uid);
     
+    // Optimistic update
     const updatedPrayers = [...prayers];
     if (hasPrayed) {
       updatedPrayers[pIndex].prayedBy = updatedPrayers[pIndex].prayedBy?.filter(id => id !== uid) || [];
@@ -127,163 +135,178 @@ export default function PrayerWallPage() {
       });
     } catch (e) {
       console.error(e);
-      fetchPrayers();
+      fetchPrayers(); // Revert on failure
     }
   };
 
+  const currentUserId = auth.currentUser?.uid;
+
   if (loading) {
-    return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div></div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ink"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 animate-fade-in pb-12">
-      
-      {message && (
-        <div className="p-4 rounded-xl text-sm font-medium bg-purple-50 text-purple-700 border border-purple-200 flex justify-between items-center">
-          {message}
-          <button onClick={() => setMessage('')} className="text-purple-500 hover:text-purple-700">&times;</button>
-        </div>
-      )}
-
+    <div className="max-w-7xl mx-auto w-full bg-gray-50 min-h-screen pb-12 shadow-2xl relative flex flex-col">
       {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-32 h-32 bg-purple-50 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold text-gray-900 font-serif">Prayer Wall</h1>
-          <p className="text-gray-500 mt-2 text-sm max-w-lg leading-relaxed">
-            "For where two or three gather in my name, there am I with them." - Matthew 18:20
-          </p>
-        </div>
-        <button 
-          onClick={() => setShowSubmitModal(true)}
-          className="relative z-10 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-xl font-bold shadow-sm transition-colors"
-        >
-          Share Request
-        </button>
+      <div className="bg-ink p-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+        <h2 className="text-white font-bold text-lg">Prayer Wall</h2>
       </div>
 
-      {/* Grid of Prayers */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {prayers.map(prayer => {
-          const isPrayed = prayer.prayedBy?.includes(auth.currentUser?.uid || '');
-          const dateStr = prayer.createdAt?.toDate ? new Date(prayer.createdAt.toDate()).toLocaleDateString() : 'Recent';
-          
-          return (
-            <div key={prayer.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-bold text-gray-900">{prayer.name || 'Anonymous'}</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">{dateStr}</p>
-                </div>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-gray-100 text-gray-600">
-                  {prayer.category || 'General'}
-                </span>
-              </div>
-              
-              <p className="text-gray-700 text-sm leading-relaxed mb-6 flex-1 whitespace-pre-wrap">
-                {prayer.requestEn || prayer.text || ''}
-              </p>
-              
-              <div className="pt-4 border-t border-gray-100 flex justify-between items-center mt-auto">
-                <span className="text-xs font-semibold text-gray-500">
-                  {prayer.likesCount || 0} {(prayer.likesCount || 0) === 1 ? 'person is' : 'people are'} praying
-                </span>
-                <button 
-                  onClick={() => handlePray(prayer.id)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-colors ${
-                    isPrayed 
-                      ? 'bg-purple-100 text-purple-700' 
-                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  <svg className={`w-4 h-4 ${isPrayed ? 'fill-current' : 'fill-none'}`} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                  {isPrayed ? 'Praying' : 'Pray'}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-        {prayers.length === 0 && (
-          <div className="md:col-span-2 text-center py-12 text-gray-500">
-            No prayer requests right now. Be the first to share one!
+      <div className="p-4 space-y-6">
+        
+        {alertMsg && (
+          <div className="bg-[#15803d]/10 border border-[#15803d]/30 text-[#15803d] p-3 rounded-lg text-sm font-bold flex items-center">
+            <svg className="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            {alertMsg}
           </div>
         )}
-      </div>
 
-      {/* Submit Modal */}
-      {showSubmitModal && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden animate-scale-in">
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-              <h2 className="text-xl font-bold text-gray-900">Share Prayer Request</h2>
-              <button onClick={() => setShowSubmitModal(false)} className="text-gray-400 hover:text-gray-600">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        {/* Compose Card */}
+        <div className="bg-white rounded-2xl shadow-sm border border-rule overflow-hidden">
+          <div className="bg-ink px-4 py-3 flex items-center gap-2 border-b border-rule/20">
+            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+            <span className="text-white text-xs font-bold tracking-widest uppercase">SUBMIT PRAYER REQUEST</span>
+          </div>
+          
+          <form onSubmit={handleSubmit} className="p-4">
+            <label className="block text-xs font-bold text-ink-soft mb-2 uppercase">Select Category</label>
+            <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide mb-4">
+              {CATEGORIES.map(cat => (
+                <button
+                  key={cat.label}
+                  type="button"
+                  onClick={() => setCategory(cat.label)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-colors border ${
+                    category === cat.label 
+                      ? 'bg-parchment border-gold-bright text-ink' 
+                      : 'bg-white border-rule text-ink-soft'
+                  }`}
+                >
+                  <span>{cat.icon}</span>
+                  <span className="text-xs font-bold">{cat.label}</span>
+                </button>
+              ))}
+            </div>
+
+            <label className="block text-xs font-bold text-ink-soft mb-2 uppercase">Detailed Prayer Request</label>
+            <textarea
+              className="w-full bg-gray-50 border border-rule rounded-xl p-3 text-sm text-ink placeholder-gray-400 focus:border-ink outline-none resize-none"
+              rows={4}
+              placeholder="Share your prayer request... తెలుగులో కూడా రాయవచ్చు…"
+              value={prayerInput}
+              onChange={(e) => setPrayerInput(e.target.value)}
+              required
+            ></textarea>
+            
+            <div className="flex justify-end mt-4">
+              <button
+                type="submit"
+                disabled={isSubmitting || !prayerInput.trim()}
+                className={`bg-ink text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md flex items-center ${isSubmitting || !prayerInput.trim() ? 'opacity-70' : 'hover:bg-ink-light'}`}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Request 🙏'}
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-5">
-              
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Your Request</label>
-                <textarea 
-                  required 
-                  rows={4}
-                  value={form.content} 
-                  onChange={e => setForm({...form, content: e.target.value})} 
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-900" 
-                  placeholder="How can we pray for you?"
-                ></textarea>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Category</label>
-                  <select 
-                    value={form.category} 
-                    onChange={e => setForm({...form, category: e.target.value})} 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="flex items-center pt-6">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={form.isAnonymous} 
-                      onChange={e => setForm({...form, isAnonymous: e.target.checked})}
-                      className="w-5 h-5 text-purple-600 rounded border-gray-300 focus:ring-purple-500"
-                    />
-                    <span className="text-sm font-bold text-gray-700">Post Anonymously</span>
-                  </label>
-                </div>
-              </div>
-
-              {!form.isAnonymous && (
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Name (Optional)</label>
-                  <input 
-                    type="text" 
-                    value={form.name} 
-                    onChange={e => setForm({...form, name: e.target.value})} 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500" 
-                    placeholder="Your Name"
-                  />
-                </div>
-              )}
-
-              <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowSubmitModal(false)} className="px-5 py-2.5 font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-colors">
-                  Cancel
-                </button>
-                <button disabled={submitting} type="submit" className="px-5 py-2.5 font-bold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-colors disabled:opacity-50">
-                  {submitting ? 'Submitting...' : 'Submit Request'}
-                </button>
-              </div>
-            </form>
-          </div>
+          </form>
         </div>
-      )}
 
+        {/* Section Header */}
+        <div className="flex items-center py-2">
+          <div className="flex-1 h-px bg-rule"></div>
+          <span className="px-4 text-[10px] font-bold text-ink-soft tracking-widest uppercase">COMMUNITY PRAYERS</span>
+          <div className="flex-1 h-px bg-rule"></div>
+        </div>
+
+        {/* Prayer List */}
+        <div className="space-y-4">
+          {prayers.map(prayer => {
+            const isMine = prayer.userId === currentUserId;
+            const hasPrayed = currentUserId && prayer.prayedBy?.includes(currentUserId);
+            const prayedCount = prayer.prayedBy?.length || 0;
+
+            const catConfig = CATEGORIES.find(c => c.label === prayer.category) || CATEGORIES[4];
+
+            return (
+              <div key={prayer.id} className="bg-white rounded-2xl p-4 shadow-sm border border-rule/50">
+                {/* Header */}
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-parchment flex items-center justify-center border border-rule text-ink font-bold text-lg font-serif">
+                      {prayer.name ? prayer.name.charAt(0).toUpperCase() : 'U'}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-ink text-sm flex items-center gap-2">
+                        {prayer.name || 'Anonymous'}
+                        {isMine && <span className="bg-gold-light text-gold-deep text-[10px] px-1.5 py-0.5 rounded font-bold">You</span>}
+                      </h3>
+                      <span className="text-xs text-ink-soft font-medium">{prayer.date || 'Recent'}</span>
+                    </div>
+                  </div>
+                  {prayer.isAnswered && (
+                    <div className="bg-[#15803d]/10 px-2 py-1 rounded flex items-center gap-1">
+                      <svg className="w-3 h-3 text-[#15803d]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" /></svg>
+                      <span className="text-[#15803d] text-[10px] font-bold uppercase tracking-wider">Answered</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tag */}
+                <div className="mb-3 flex">
+                  <div className="bg-gray-100 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-rule/30">
+                    <span className="text-xs">{catConfig.icon}</span>
+                    <span className="text-gray-600 text-[10px] font-bold tracking-wide uppercase">{catConfig.label}</span>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <p className="text-ink text-sm leading-relaxed mb-4 whitespace-pre-wrap">
+                  {prayer.requestEn || prayer.text}
+                </p>
+
+                {/* Footer Stats & Actions */}
+                <div className="border-t border-rule pt-3">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-xs text-ink-soft font-medium flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                      {prayedCount} {prayedCount === 1 ? 'member is' : 'members are'} praying
+                    </span>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => handlePray(prayer.id)}
+                      className={`flex-1 py-2.5 rounded-xl border flex justify-center items-center gap-2 transition-colors ${
+                        hasPrayed 
+                          ? 'bg-parchment border-gold-bright text-ink' 
+                          : 'bg-white border-rule text-ink-soft hover:bg-gray-50'
+                      }`}
+                    >
+                      <svg className={`w-5 h-5 ${hasPrayed ? 'text-gold-deep' : 'text-gray-400'}`} fill={hasPrayed ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                      <span className="font-bold text-xs tracking-wider">{hasPrayed ? 'PRAYED' : 'PRAY'}</span>
+                    </button>
+                    
+                    <button className="flex-1 py-2.5 rounded-xl border border-rule bg-white text-ink-soft hover:bg-gray-50 flex justify-center items-center gap-2">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+                      <span className="font-bold text-xs tracking-wider">REPLY</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          
+          {prayers.length === 0 && (
+            <div className="text-center py-12">
+              <span className="text-4xl block mb-2">🙏</span>
+              <p className="text-gray-500 font-medium">Be the first to share a prayer request.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

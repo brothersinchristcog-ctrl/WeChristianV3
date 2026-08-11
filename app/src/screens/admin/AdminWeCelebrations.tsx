@@ -584,6 +584,19 @@ export default function AdminWeCelebrations({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
+      {/* Date Filters */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
+        {['Today', 'Upcoming', 'Week', 'Month', 'Past', 'All'].map(filter => (
+          <TouchableOpacity 
+            key={filter}
+            style={[styles.filterBtn, activeDateFilter === filter && styles.filterBtnActive]}
+            onPress={() => setActiveDateFilter(filter)}
+          >
+            <Text style={[styles.filterBtnTxt, activeDateFilter === filter && styles.filterBtnTxtActive]}>{filter}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       {/* Category Buttons */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, marginBottom: 16 }}>
         {['Birthday', 'Wedding Anniversary', 'Baptism Anniversary'].map(cat => {
@@ -599,19 +612,6 @@ export default function AdminWeCelebrations({ navigation }: any) {
             </TouchableOpacity>
           )
         })}
-      </ScrollView>
-
-      {/* Date Filters */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
-        {['Today', 'Upcoming', 'Week', 'Month', 'Past', 'All'].map(filter => (
-          <TouchableOpacity 
-            key={filter}
-            style={[styles.filterBtn, activeDateFilter === filter && styles.filterBtnActive]}
-            onPress={() => setActiveDateFilter(filter)}
-          >
-            <Text style={[styles.filterBtnTxt, activeDateFilter === filter && styles.filterBtnTxtActive]}>{filter}</Text>
-          </TouchableOpacity>
-        ))}
       </ScrollView>
 
       {/* Embedded List */}

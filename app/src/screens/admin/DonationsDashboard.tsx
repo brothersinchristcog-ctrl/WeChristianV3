@@ -101,6 +101,7 @@ export default function AdminDonationDashboard() {
   const [donationPaymentMethod, setDonationPaymentMethod] = useState('Cash');
   const [donationNotes, setDonationNotes] = useState('');
   const [editDonationId, setEditDonationId] = useState<string | null>(null);
+  const [showAddDonationDatePicker, setShowAddDonationDatePicker] = useState(false);
   
   // Success Card State
   const [showSuccessCard, setShowSuccessCard] = useState(false);
@@ -195,11 +196,19 @@ export default function AdminDonationDashboard() {
         data.id = editDonationId;
       }
       
-      await FirestoreService.saveDonation(data);
+      const newId = await FirestoreService.saveDonation(data);
+      if (newId && typeof newId === 'string' && !data.id) {
+        data.id = newId;
+      }
+
       setShowAddDonationModal(false);
       setShowSuccessCard(true);
       setTimeout(() => setShowSuccessCard(false), 2000);
       fetchData();
+      
+      // Instantly show the invoice
+      setSelectedDonationForInvoice(data as ChurchDonation);
+      setShowInvoicePreviewModal(true);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Failed to save donation.');
@@ -1141,7 +1150,7 @@ export default function AdminDonationDashboard() {
               <View style={styles.row}>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.label}>Date</Text>
-                  <TouchableOpacity style={styles.input} onPress={() => {}}>
+                  <TouchableOpacity style={styles.input} onPress={() => setShowAddDonationDatePicker(true)}>
                     <Text style={{ fontFamily: FONTS.sans, fontSize: 14, color: '#241f1a' }}>{donationDate}</Text>
                   </TouchableOpacity>
                 </View>
@@ -1186,6 +1195,14 @@ export default function AdminDonationDashboard() {
               </TouchableOpacity>
             </View>
           </View>
+          
+          <DateTimePickerModal
+            isVisible={showAddDonationDatePicker}
+            mode="date"
+            date={new Date(donationDate)}
+            onConfirm={(d) => { setDonationDate(d.toISOString().split('T')[0]); setShowAddDonationDatePicker(false); }}
+            onCancel={() => setShowAddDonationDatePicker(false)}
+          />
         </View>
       </Modal>
 

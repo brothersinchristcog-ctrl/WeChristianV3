@@ -1,49 +1,63 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #1e3a8a;
-  --color-secondary: #0f172a;
-  --color-accent: #f59e0b;
+  /* Exact React Native Theme Colors */
+  --color-ink: #1a2d5a;
+  --color-ink-2: #22304F;
+  --color-ink-soft: #6B7593;
+  
+  --color-parchment: #F3EAD9;
+  --color-paper: #FFFCF5;
+  
+  --color-gold: #A67C3D;
+  --color-gold-deep: #8C6428;
+  --color-gold-bright: #D8B369;
+  
+  --color-clay: #A24B34;
+  --color-clay-bg: #F3E1D6;
+  --color-clay-line: #E3C3B2;
+  
+  --color-moss: #3E6B52;
+  --color-moss-bg: #E6EFE7;
+  
+  --color-rule: #DED0AC;
+
+  /* Modern Font Family */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Georgia, serif;
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-*/
 @layer base {
   *,
   ::after,
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+    border-color: var(--color-rule, currentColor);
   }
 }
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #f0f2f7;
+  --foreground: #111827;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Glassmorphism Utility */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+/* React Native Soft Shadow Replica */
+.rn-shadow {
+  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.gradient-bg {
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+.rn-shadow-premium {
+  box-shadow: 0px 8px 20px rgba(26, 45, 90, 0.15);
 }

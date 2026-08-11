@@ -1372,4 +1372,86 @@ export const testBaptismsV1 = functionsCompat.https.onRequest(async (req, res) =
 });
 export * from './payments.js';
 export * from './checkPaymentStatus.js';
+/**
+ * 🎥 CREATE GOOGLE MEET (REST API)
+ * Creates an "OPEN" Google Meet link using a Service Account
+ */
+export const createGoogleMeet = onCall({ invoker: 'public' }, async (request) => {
+    try {
+        const { churchId, topic, bibleBook, teacher, startTime, endTime, description } = request.data;
+        if (!churchId)
+            throw new HttpsError('invalid-argument', 'churchId is required');
+        // 1. Authenticate with Google API using Service Account
+        // NOTE: This assumes you have placed your Google Service Account key at:
+        // functions/src/config/google-credentials.json 
+        // AND that the service account is configured in Google Workspace to allow OPEN spaces.
+        const { GoogleAuth } = await import('google-auth-library');
+        // We catch initialization errors in case the user hasn't set up the JSON file yet.
+        let auth;
+        try {
+            auth = new GoogleAuth({
+                keyFilename: './src/config/google-credentials.json',
+                scopes: ['https://www.googleapis.com/auth/meetings.space.created'],
+            });
+        }
+        catch (e) {
+            throw new Error('Google credentials not found on backend. Please configure google-credentials.json in functions/src/config/');
+        }
+        const client = await auth.getClient();
+        // 2. Call the Google Meet REST API to create an OPEN space
+        const meetResponse = await client.request({
+            url: 'https://meet.googleapis.com/v2/spaces',
+            method: 'POST',
+            data: {
+                config: {
+                    accessType: 'OPEN', // Allows anyone to join without knocking
+                }
+            }
+        });
+        const meetingUri = meetResponse.data.meetingUri;
+        if (!meetingUri)
+            throw new Error('Failed to generate Google Meet link');
+        // 3. Save to Firestore
+        const db = getDb();
+        const payload = {
+            title: topic || 'Online Meeting',
+            bibleBook: bibleBook || '',
+            teacher: teacher || '',
+            description: description || '',
+            provider: 'google_meet',
+            meetingLink: meetingUri,
+            startTime: startTime ? new Date(startTime) : new Date(),
+            endTime: endTime ? new Date(endTime) : new Date(new Date().getTime() + 60 * 60 * 1000),
+            status: 'upcoming',
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+        const docRef = await db.collection('churches').doc(churchId).collection('online_meetings').add(payload);
+        // 4. Send Push Notification to Church Members
+        const titleText = `Live Meeting Scheduled: ${payload.title}`;
+        const bodyText = `${teacher ? teacher + ' will be teaching' : 'Join us'} on ${payload.startTime.toLocaleDateString()}. Tap to view details.`;
+        const usersSnap = await db.collection('users').get();
+        const tokens = new Set();
+        usersSnap.forEach((doc) => {
+            const data = doc.data();
+            if (data.fcmToken)
+                tokens.add(data.fcmToken);
+        });
+        if (tokens.size > 0) {
+            const message = {
+                notification: { title: titleText, body: bodyText },
+                data: { type: 'meeting', meetingId: docRef.id, link: meetingUri },
+                tokens: Array.from(tokens),
+                android: { priority: 'high' },
+            };
+            await getMsg().sendEachForMulticast(message);
+        }
+        return { success: true, meetingUri, meetingId: docRef.id };
+    }
+    catch (error) {
+        console.error('createGoogleMeet Error:', error);
+        throw new HttpsError('internal', error.message || 'Unknown error creating Google Meet');
+    }
+});
+export * from './notifications.js';
 //# sourceMappingURL=index.js.map

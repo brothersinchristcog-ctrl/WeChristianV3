@@ -97,4 +97,14 @@ export declare const testAnnivsV1: functionsCompat.HttpsFunction;
 export declare const testBaptismsV1: functionsCompat.HttpsFunction;
 export * from './payments.js';
 export * from './checkPaymentStatus.js';
+/**
+ * 🎥 CREATE GOOGLE MEET (REST API)
+ * Creates an "OPEN" Google Meet link using a Service Account
+ */
+export declare const createGoogleMeet: import("firebase-functions/v2/https").CallableFunction<any, Promise<{
+    success: boolean;
+    meetingUri: any;
+    meetingId: any;
+}>, unknown>;
+export * from './notifications.js';
 //# sourceMappingURL=index.d.ts.map

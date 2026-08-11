@@ -236,6 +236,17 @@ service cloud.firestore {
         allow read, write: if isChurchAdmin();
       }
 
+      // Integrations subcollection (OAuth tokens): strictly blocked from client access
+      match /integrations/{document=**} {
+        allow read, write: if false; // Only Cloud Functions can access this
+      }
+
+      // Online Meetings
+      match /onlineMeetings/{meetingId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
       // Attendance Requests & Responses
       match /attendanceRequests/{requestId} {
         allow read: if isAuthenticated();

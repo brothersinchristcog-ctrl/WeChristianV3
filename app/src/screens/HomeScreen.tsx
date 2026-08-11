@@ -45,7 +45,8 @@ import {
   X,
   Phone,
   Mail,
-  Info
+  Info,
+  Video
 } from 'lucide-react-native';
 
 import firestore from '@react-native-firebase/firestore';
@@ -283,6 +284,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [initialFetchDone, setInitialFetchDone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [activeMeeting, setActiveMeeting] = useState<any | null>(null);
   const isGuest = user?.isAnonymous;
 
   const [promiseThumbnail, setPromiseThumbnail] = useState<string | null>(cachedPromiseThumbnail);
@@ -374,6 +376,26 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchData();
   }, [user]);
+
+  // Listen for Live/Upcoming Google Meets
+  useEffect(() => {
+    if (!activeChurch?.id) return;
+    const unsubscribe = firestore()
+      .collection('churches')
+      .doc(activeChurch.id)
+      .collection('online_meetings')
+      .where('status', 'in', ['upcoming', 'live'])
+      .onSnapshot((snapshot) => {
+        if (!snapshot.empty) {
+          const meetings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          // Assuming the first returned is the active one, or sort by startTime
+          setActiveMeeting(meetings[0]);
+        } else {
+          setActiveMeeting(null);
+        }
+      });
+    return () => unsubscribe();
+  }, [activeChurch?.id]);
 
   // Check for Celebrations
   useEffect(() => {
@@ -778,6 +800,7 @@ export default function HomeScreen() {
             <GridItem isDark={isDark} icon={<FileText size={26} color="#fff" />} label="Sermon Notes" color="#BE185D" onPress={() => handleGuestProtectedNavigation('MemberNotes')} />
             <GridItem isDark={isDark} icon={<Award size={26} color="#fff" />} label="Bible Plans" color="#374151" onPress={() => handleGuestProtectedNavigation('BiblePlans')} />
 
+
             <GridItem isDark={isDark} icon={<Bell size={26} color="#fff" />} label="Updates" color="#0284c7" onPress={() => navigation.navigate('Updates')} />
             <GridItem 
               isDark={isDark}
@@ -799,7 +822,7 @@ export default function HomeScreen() {
               }} 
             />
             <GridItem isDark={isDark} icon={<Users size={26} color="#fff" />} label="Members" color="#db2777" onPress={handleOpenMembers} />
-            <GridItem isDark={isDark} icon={<Sun size={26} color="#fff" />} label="Devotion" color="#b45309" onPress={() => setAlertConfig({ visible: true, title: 'Daily Devotion', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })} />
+            <GridItem isDark={isDark} icon={<Video size={26} color="#fff" />} label="Online Meetings" color="#3B82F6" onPress={() => navigation.navigate('OnlineMeetings')} />
             <GridItem isDark={isDark} icon={<Info size={26} color="#fff" />} label="About Us" color="#1a2d5a" onPress={() => navigation.navigate('AboutUs')} />
             <GridItem isDark={isDark} icon={<Phone size={26} color="#fff" />} label="Contact Us" color="#0F766E" onPress={() => navigation.navigate('ContactUs')} />
             <GridItem isDark={isDark} icon={<MoreHorizontal size={26} color="#fff" />} label="More" color="#64748b" onPress={() => setAlertConfig({ visible: true, title: 'More Features', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })} />
@@ -1379,5 +1402,22 @@ const styles = StyleSheet.create({
   detailText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  cardDark: {
+    backgroundColor: '#1F2937',
+  },
+  eventTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#111827',
   },
 });

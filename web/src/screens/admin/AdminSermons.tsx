@@ -3,6 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { collection, doc, getDoc, getDocs, deleteDoc, setDoc } from 'firebase/firestore';
 
+const SERMON_CATEGORIES = [
+  'Bible Study', "Women's Fasting Prayer", 'Second Saturday Prayer', 
+  'Sunday Service', 'All-Night Prayer', 'Youth Meeting', 
+  'Revival Meeting', 'Special Messages', 'Shorts', 'Testimonies',
+];
+
 export default function AdminSermonsPage() {
   const [sermons, setSermons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -10,17 +16,19 @@ export default function AdminSermonsPage() {
   
   const [view, setView] = useState<'list' | 'edit'>('list');
   const [editingSermon, setEditingSermon] = useState<any>(null);
+  const [filter, setFilter] = useState('All');
   
   const [message, setMessage] = useState('');
+  const [saving, setSaving] = useState(false);
 
   // Form State
-  const [title, setTitle] = useState('');
-  const [pastor, setPastor] = useState('');
-  const [date, setDate] = useState('');
-  const [youtubeId, setYoutubeId] = useState('');
-  const [series, setSeries] = useState('');
-  const [status, setStatus] = useState('Published');
-  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    titleEn: '', titleTe: '', pastor: '',
+    date: new Date().toISOString().split('T')[0],
+    ref: '', duration: '45 mins', youtubeId: '', description: '',
+    status: 'Published'
+  });
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   useEffect(() => {
     fetchSermons();
@@ -36,12 +44,9 @@ export default function AdminSermonsPage() {
         const cid = userDoc.data().primaryChurchId;
         setChurchId(cid);
 
-        const sermonsSnap = await getDocs(collection(db, 'churches', cid, 'sermons'));
-        const sermonsData = sermonsSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
-        
-        // Sort by date descending
-        sermonsData.sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
-        setSermons(sermonsData);
+        const snap = await getDocs(collection(db, 'churches', cid, 'sermons'));
+        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setSermons(data.sort((a: any, b: any) => (b.date || '').localeCompare(a.date || '')));
       }
     } catch (e) {
       console.error(e);
@@ -50,25 +55,41 @@ export default function AdminSermonsPage() {
     }
   };
 
-  const handleEdit = (sermon: any) => {
-    setEditingSermon(sermon);
-    if (sermon) {
-      setTitle(sermon.title || '');
-      setPastor(sermon.pastor || '');
-      setDate(sermon.date || '');
-      setYoutubeId(sermon.youtubeId || '');
-      setSeries(sermon.series || '');
-      setStatus(sermon.status || 'Published');
+  const handleEdit = (ev: any) => {
+    setEditingSermon(ev);
+    if (ev) {
+      setForm({
+        titleEn: ev.titleEn || ev.title || '',
+        titleTe: ev.titleTe || ev.titleTelugu || '',
+        pastor: ev.pastor || '',
+        date: ev.date || new Date().toISOString().split('T')[0],
+        ref: ev.scripture || ev.ref || '',
+        duration: ev.duration || '45 mins',
+        youtubeId: ev.youtubeId || '',
+        description: ev.description || '',
+        status: ev.status || 'Published'
+      });
+      setSelectedCategories(
+        typeof ev.categories === 'string'
+          ? ev.categories.split(';').filter(Boolean)
+          : (ev.categories || [])
+      );
     } else {
-      setTitle('');
-      setPastor('');
-      const today = new Date().toISOString().split('T')[0];
-      setDate(today);
-      setYoutubeId('');
-      setSeries('');
-      setStatus('Published');
+      setForm({
+        titleEn: '', titleTe: '', pastor: '',
+        date: new Date().toISOString().split('T')[0],
+        ref: '', duration: '45 mins', youtubeId: '', description: '',
+        status: 'Published'
+      });
+      setSelectedCategories([]);
     }
     setView('edit');
+  };
+
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories(prev =>
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
   };
 
   const handleDelete = async (id: string) => {
@@ -76,7 +97,7 @@ export default function AdminSermonsPage() {
     if (!window.confirm("Are you sure you want to delete this sermon?")) return;
     try {
       await deleteDoc(doc(db, 'churches', churchId, 'sermons', id));
-      setSermons(prev => prev.filter(s => s.id !== id));
+      setSermons(prev => prev.filter(e => e.id !== id));
       setMessage('Sermon deleted successfully.');
     } catch (e) {
       console.error(e);
@@ -91,12 +112,17 @@ export default function AdminSermonsPage() {
     setMessage('');
     try {
       const payload = {
-        title,
-        pastor,
-        date,
-        youtubeId,
-        series,
-        status,
+        title: form.titleEn,
+        titleTelugu: form.titleTe,
+        pastor: form.pastor,
+        date: form.date,
+        scripture: form.ref,
+        duration: form.duration,
+        youtubeId: form.youtubeId,
+        description: form.description,
+        status: form.status,
+        categories: selectedCategories,
+        series: selectedCategories[0] || '', // Using first category as series for simple parity
         updatedAt: new Date().toISOString()
       };
 
@@ -118,117 +144,195 @@ export default function AdminSermonsPage() {
     }
   };
 
+  const stats = {
+    published: sermons.filter(s => s.status === 'Published').length,
+    drafts: sermons.filter(s => s.status === 'Draft').length,
+    series: [...new Set(sermons.map(s => s.series).filter(Boolean))].length
+  };
+
+  const seriesList = ['All', ...Array.from(new Set(sermons.map(s => s.series).filter(Boolean)))];
+  const filteredSermons = filter === 'All' ? sermons : sermons.filter(s => s.series === filter);
+
   if (loading && view === 'list') {
-    return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>;
+    return <div className="flex justify-center items-center min-h-screen bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ink"></div></div>;
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-fade-in pb-12">
-      {message && (
-        <div className="p-4 rounded-xl text-sm font-medium bg-blue-50 text-blue-700 border border-blue-200 flex justify-between items-center">
-          {message}
-          <button onClick={() => setMessage('')} className="text-blue-500 hover:text-blue-700">&times;</button>
-        </div>
-      )}
-
+    <div className="bg-gray-50 min-h-screen">
       {view === 'list' ? (
         <>
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Sermons Management</h1>
-              <p className="text-gray-500 text-sm mt-1">{sermons.length} total sermons</p>
+          {/* Hero Section */}
+          <div className="bg-ink px-6 py-10 pb-8">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="flex items-center text-white/50 mb-2">
+                  <span className="text-sm font-bold">Sermons</span>
+                </div>
+                <h1 className="text-3xl font-extrabold text-white tracking-tight">Sermons</h1>
+                <p className="text-ink-soft text-base mt-2">{sermons.length} total • {stats.series} series</p>
+              </div>
+              <button onClick={() => handleEdit(null)} className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg">
+                <span className="text-ink font-bold">+ New</span>
+              </button>
             </div>
-            <button onClick={() => handleEdit(null)} className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold shadow-sm transition-colors flex items-center gap-2">
-              <span>+</span> New Sermon
-            </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            {sermons.map(sermon => (
-              <div key={sermon.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col md:flex-row gap-4 items-center transition-all hover:shadow-md">
-                <div className="w-full md:w-48 h-32 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0 relative">
-                  {sermon.youtubeId ? (
-                    <img src={`https://img.youtube.com/vi/${sermon.youtubeId}/hqdefault.jpg`} alt="thumbnail" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-500 font-bold">NO VIDEO</div>
-                  )}
-                  {sermon.status === 'Draft' && (
-                    <div className="absolute top-2 right-2 bg-yellow-100 text-yellow-800 text-xs font-bold px-2 py-1 rounded">DRAFT</div>
-                  )}
-                </div>
-                
-                <div className="flex-1 w-full text-left">
-                  <h3 className="text-lg font-bold text-gray-900 line-clamp-2">{sermon.title || 'Untitled Sermon'}</h3>
-                  <div className="mt-2 space-y-1 text-sm font-medium text-gray-600">
-                    <p>👤 {sermon.pastor || 'No Pastor'}</p>
-                    <p>📅 {sermon.date || 'No Date'}</p>
-                    {sermon.series && <p>📚 Series: <span className="font-bold text-gray-900">{sermon.series}</span></p>}
+          <div className="p-4 space-y-6">
+            {/* Stats Row */}
+            <div className="flex gap-4">
+              <div className="flex-1 bg-white p-4 rounded-2xl shadow-sm border border-rule/30">
+                <div className="text-2xl font-bold text-[#2E6B4F]">{stats.published}</div>
+                <div className="text-xs font-bold text-gray-500 mt-1 uppercase">Published</div>
+              </div>
+              <div className="flex-1 bg-white p-4 rounded-2xl shadow-sm border border-rule/30">
+                <div className="text-2xl font-bold text-[#C9A84C]">{stats.drafts}</div>
+                <div className="text-xs font-bold text-gray-500 mt-1 uppercase">Drafts</div>
+              </div>
+              <div className="flex-1 bg-white p-4 rounded-2xl shadow-sm border border-rule/30">
+                <div className="text-2xl font-bold text-ink">{stats.series}</div>
+                <div className="text-xs font-bold text-gray-500 mt-1 uppercase">Series</div>
+              </div>
+            </div>
+
+            {/* Filter */}
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {seriesList.map((s: any) => (
+                <button
+                  key={s}
+                  onClick={() => setFilter(s)}
+                  className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-bold transition-colors ${filter === s ? 'bg-ink text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            {/* Sermon List */}
+            <div className="space-y-4">
+              {filteredSermons.map(ev => (
+                <div key={ev.id} className="bg-white rounded-2xl shadow-sm border border-rule/50 flex flex-col sm:flex-row overflow-hidden">
+                  <div className="w-full sm:w-48 h-32 bg-gray-200 relative shrink-0">
+                    {ev.youtubeId ? (
+                      <img src={`https://img.youtube.com/vi/${ev.youtubeId}/hqdefault.jpg`} alt="Thumbnail" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">No Video</div>
+                    )}
+                    <div className="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-[10px] text-white font-bold">
+                      {ev.duration || '45 mins'}
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 flex-1 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs font-bold text-gold-deep uppercase">{ev.date}</span>
+                        <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase ${ev.status === 'Published' ? 'bg-[#15803d]/10 text-[#15803d]' : 'bg-gray-100 text-gray-500'}`}>
+                          {ev.status || 'Draft'}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-bold text-ink leading-tight mb-1">{ev.title || 'Untitled'}</h3>
+                      <p className="text-sm text-gray-500 font-medium">By {ev.pastor || 'Pastor'} • {ev.scripture}</p>
+                    </div>
+
+                    <div className="flex gap-2 pt-4 mt-2 border-t border-gray-100 justify-end">
+                      <button onClick={() => handleEdit(ev)} className="px-4 py-1.5 bg-parchment hover:bg-gold-light text-ink rounded-lg font-bold text-sm transition-colors">Edit</button>
+                      <button onClick={() => handleDelete(ev.id)} className="px-4 py-1.5 bg-red-50 hover:bg-red-100 text-clay rounded-lg font-bold text-sm transition-colors">Delete</button>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex w-full md:w-auto md:flex-col gap-2 shrink-0">
-                  <button onClick={() => handleEdit(sermon)} className="flex-1 md:flex-none px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg font-bold text-sm transition-colors">Edit</button>
-                  <button onClick={() => handleDelete(sermon.id)} className="flex-1 md:flex-none px-6 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-bold text-sm transition-colors">Delete</button>
-                </div>
-              </div>
-            ))}
-            {sermons.length === 0 && (
-              <div className="py-12 text-center bg-white rounded-2xl border border-gray-100 text-gray-500 font-medium">
-                No sermons found.
-              </div>
-            )}
+              ))}
+              {filteredSermons.length === 0 && (
+                <div className="text-center py-12 text-gray-500 font-medium">No sermons found.</div>
+              )}
+            </div>
           </div>
         </>
       ) : (
-        <form onSubmit={handleSave} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 lg:p-8">
-          <div className="flex items-center justify-between mb-8 pb-4 border-b">
-            <h2 className="text-2xl font-bold text-gray-900">{editingSermon ? 'Edit Sermon' : 'Add New Sermon'}</h2>
-            <button type="button" onClick={() => setView('list')} className="text-gray-500 hover:text-gray-800 font-medium px-4 py-2 bg-gray-100 rounded-lg">Cancel</button>
+        <form onSubmit={handleSave} className="flex flex-col min-h-screen bg-white">
+          <div className="bg-ink p-4 flex justify-between items-center sticky top-0 z-10">
+            <button type="button" onClick={() => setView('list')} className="text-white flex items-center">
+              <span className="text-2xl mr-2">←</span> Back
+            </button>
+            <h2 className="text-lg font-bold text-white">{editingSermon?.id ? 'Edit Sermon' : 'New Sermon'}</h2>
+            <div className="w-16"></div>
           </div>
 
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Sermon Title *</label>
-              <input required type="text" value={title} onChange={e => setTitle(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. The Power of Faith" />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Pastor / Speaker *</label>
-                <input required type="text" value={pastor} onChange={e => setPastor(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. Pastor John Doe" />
+          <div className="p-4 space-y-6 flex-1 bg-gray-50">
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <h3 className="text-sm font-bold text-ink mb-4 border-b border-gray-100 pb-2">Basic Info</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Title (English)</label>
+                  <input type="text" required value={form.titleEn} onChange={e => setForm({...form, titleEn: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Title (Telugu)</label>
+                  <input type="text" value={form.titleTe} onChange={e => setForm({...form, titleTe: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Speaker / Pastor</label>
+                  <input type="text" value={form.pastor} onChange={e => setForm({...form, pastor: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Description</label>
+                  <textarea rows={3} value={form.description} onChange={e => setForm({...form, description: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none resize-none"></textarea>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Date * (YYYY-MM-DD)</label>
-                <input required type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <h3 className="text-sm font-bold text-ink mb-4 border-b border-gray-100 pb-2">Media & Date</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">YouTube Video ID</label>
+                  <input type="text" placeholder="e.g. dQw4w9WgXcQ" value={form.youtubeId} onChange={e => setForm({...form, youtubeId: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Date</label>
+                  <input type="date" required value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Scripture Reference</label>
+                  <input type="text" value={form.ref} onChange={e => setForm({...form, ref: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Sermon Series (Optional)</label>
-              <input type="text" value={series} onChange={e => setSeries(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. Book of Romans" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">YouTube Video ID (Optional)</label>
-              <div className="flex gap-2">
-                <input type="text" value={youtubeId} onChange={e => setYoutubeId(e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. dQw4w9WgXcQ" />
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <h3 className="text-sm font-bold text-ink mb-4 border-b border-gray-100 pb-2">Categories</h3>
+              <div className="flex flex-wrap gap-2">
+                {SERMON_CATEGORIES.map(cat => (
+                  <button
+                    type="button"
+                    key={cat}
+                    onClick={() => toggleCategory(cat)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${selectedCategories.includes(cat) ? 'bg-ink text-white border-ink' : 'bg-white text-gray-600 border-gray-300'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
-              <p className="text-xs text-gray-500 mt-2">Enter the 11-character video ID from the YouTube URL (e.g. for https://youtube.com/watch?v=dQw4w9WgXcQ, the ID is dQw4w9WgXcQ).</p>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Status</label>
-              <select value={status} onChange={e => setStatus(e.target.value)} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="Published">Published (Visible to everyone)</option>
-                <option value="Draft">Draft (Hidden)</option>
-              </select>
+            <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+              <h3 className="text-sm font-bold text-ink mb-4 border-b border-gray-100 pb-2">Publishing</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Status</label>
+                  <select value={form.status} onChange={e => setForm({...form, status: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none bg-white">
+                    <option value="Draft">Draft</option>
+                    <option value="Scheduled">Scheduled</option>
+                    <option value="Published">Published</option>
+                  </select>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div className="pt-6 border-t mt-8 flex justify-end">
-              <button disabled={saving} type="submit" className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-8 py-3 rounded-xl font-bold text-lg shadow-sm transition-colors">
-                {saving ? 'Saving...' : (editingSermon ? 'Save Changes' : 'Publish Sermon')}
-              </button>
-            </div>
+          <div className="p-4 bg-white border-t border-gray-200">
+            <button type="submit" disabled={saving} className="w-full bg-ink text-white font-bold py-4 rounded-xl">
+              {saving ? 'Saving...' : 'Save Sermon'}
+            </button>
           </div>
         </form>
       )}

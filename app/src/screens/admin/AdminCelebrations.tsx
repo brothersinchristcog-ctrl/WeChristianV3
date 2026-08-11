@@ -30,6 +30,7 @@ export default function AdminCelebrations({ navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [activeDateFilter, setActiveDateFilter] = useState('Today');
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState('All');
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
   // Hoisted state for personalization flow
@@ -491,10 +492,27 @@ export default function AdminCelebrations({ navigation }: any) {
         ))}
       </ScrollView>
 
+      {/* Category Buttons */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10, marginBottom: 16 }}>
+        {['Birthday', 'Wedding Anniversary', 'Baptism Anniversary'].map(cat => {
+          let bgColor = cat === 'Birthday' ? '#F3E4B6' : cat === 'Wedding Anniversary' ? '#E2E5F2' : '#DDF1E7';
+          let textColor = cat === 'Birthday' ? '#B88A2E' : cat === 'Wedding Anniversary' ? '#455490' : '#358B6D';
+          return (
+            <TouchableOpacity 
+              key={cat}
+              style={[{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: bgColor }, activeCategoryFilter === cat && { borderWidth: 2, borderColor: textColor }]}
+              onPress={() => setActiveCategoryFilter(activeCategoryFilter === cat ? 'All' : cat)}
+            >
+              <Text style={[{ fontSize: 13, color: textColor }, activeCategoryFilter === cat && { fontWeight: '800' }]}>{cat}</Text>
+            </TouchableOpacity>
+          )
+        })}
+      </ScrollView>
+
       {/* Embedded List */}
       <View style={{ flex: 1, minHeight: 400 }}>
         <AdminCelebrationsList 
-          category="All" 
+          category={activeCategoryFilter} 
           activeTab={activeDateFilter}
           onSelectMember={(member) => {
             setSelectedMember(member);

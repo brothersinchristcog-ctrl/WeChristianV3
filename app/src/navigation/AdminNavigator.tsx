@@ -70,7 +70,9 @@ import AdminFinanceDashboard from '../screens/admin/AdminFinanceDashboard';
 // Force TS cache refresh
 import DonationsDashboard from '../screens/admin/DonationsDashboard';
 import AdminDashboard from '../screens/admin/AdminDashboard';
-import { Shield } from 'lucide-react-native';
+import AdminOnlineMeetings from '../screens/admin/AdminOnlineMeetings';
+import AdminOnlineMeetingEditor from '../screens/admin/AdminOnlineMeetingEditor';
+import { Shield, Video as VideoIcon } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -144,6 +146,11 @@ export default function AdminNavigator({ navigation, route }: any) {
     }
   };
 
+  const setTabByName = (name: string) => {
+    const idx = tabs.findIndex(t => t.name === name);
+    if (idx !== -1) handleSetTab(idx);
+  };
+
   const handleBack = () => {
     if (tabHistory.length > 0) {
       const prevTab = tabHistory[tabHistory.length - 1];
@@ -196,6 +203,8 @@ export default function AdminNavigator({ navigation, route }: any) {
     { name: 'Expense', icon: Wallet, component: AdminFinanceDashboard },
     { name: 'Donations', icon: HeartHandshake, component: DonationsDashboard },
     { name: 'Subscription', icon: Crown, component: AdminSubscriptionScreen },
+    { name: 'Online Meetings', icon: VideoIcon, component: AdminOnlineMeetings },
+    { name: 'New Online Meeting', icon: VideoIcon, component: AdminOnlineMeetingEditor },
     ...(member?.userType === 'super_admin' ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];
 
@@ -240,7 +249,7 @@ export default function AdminNavigator({ navigation, route }: any) {
 
   // We provide handleSetTab via setActiveTab so child components can push to history
   return (
-    <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack }}>
+    <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack, setTabByName }}>
       <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
         <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : '#1a2d5a' }} />
         {activeTab !== 0 && (

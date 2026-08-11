@@ -3,6 +3,17 @@ import React, { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
+const CATEGORIES = [
+  { id: 'Tithe', label: 'Tithe', labelTe: 'దశమభాగం', icon: '🙏' },
+  { id: 'Offering', label: 'Offering', labelTe: 'కానుక', icon: '🎁' },
+  { id: 'Missions', label: 'Missions', labelTe: 'సేవా నిధి', icon: '🌍' },
+  { id: 'Building', label: 'Building', labelTe: 'నిర్మాణ నిధి', icon: '🏛️' },
+  { id: 'Special', label: 'Special', labelTe: 'ప్రత్యేక కానుక', icon: '✨' },
+  { id: 'Sunday School', label: 'Sunday School', labelTe: 'ఆదివారం పాఠశాల', icon: '📖' }
+];
+
+const PRESETS = [100, 500, 1000, 5000];
+
 interface ChurchProfile {
   name: string;
   bankDetails?: {
@@ -12,15 +23,17 @@ interface ChurchProfile {
     bankName: string;
     branch?: string;
   };
-  upiDetails?: {
+  givingDetails?: {
     upiId: string;
-    merchantName?: string;
+    phonepeNumber: string;
   };
 }
 
 export default function GivingPage() {
   const [church, setChurch] = useState<ChurchProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeCat, setActiveCat] = useState('Tithe');
+  const [amount, setAmount] = useState('500');
   const [copiedText, setCopiedText] = useState('');
 
   useEffect(() => {
@@ -54,123 +67,173 @@ export default function GivingPage() {
     setTimeout(() => setCopiedText(''), 2000);
   };
 
+  const handlePayment = () => {
+    const numAmt = parseFloat(amount);
+    if (isNaN(numAmt) || numAmt <= 0) {
+      alert('Please enter a valid amount.');
+      return;
+    }
+    // Mobile handles PhonePe intent here. For Web, we can show an alert or a UPI QR code modal.
+    alert('Payment integration is handled via the mobile app. Please use the bank transfer details below for web donations.');
+  };
+
   if (loading) {
-    return <div className="flex justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div></div>;
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-ink"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12">
+    <div className="max-w-7xl mx-auto w-full bg-gray-50 min-h-screen shadow-2xl relative flex flex-col pb-12">
       
-      {/* Header */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 relative overflow-hidden">
-        <div className="absolute right-0 top-0 w-32 h-32 bg-green-50 rounded-full -mr-16 -mt-16 blur-2xl"></div>
-        <div className="relative z-10">
-          <h1 className="text-3xl font-bold text-gray-900 font-serif">Giving</h1>
-          <p className="text-gray-500 mt-2 text-sm max-w-lg leading-relaxed">
-            "Each of you should give what you have decided in your heart to give, not reluctantly or under compulsion, for God loves a cheerful giver." - 2 Corinthians 9:7
-          </p>
+      {/* Header (Navy) */}
+      <div className="bg-ink rounded-b-[40px] px-6 pt-8 pb-10 shadow-lg relative overflow-hidden">
+        <div className="absolute -right-8 -top-8 w-32 h-32 bg-white/5 rounded-full blur-xl"></div>
+        <div className="absolute -left-12 top-12 w-40 h-40 bg-gold-deep/10 rounded-full blur-2xl"></div>
+        
+        <div className="flex justify-between items-center mb-6 relative z-10">
+          <button className="text-white font-bold text-sm">‹ Back</button>
+        </div>
+        
+        <div className="flex flex-col items-center justify-center relative z-10 text-center">
+          <div className="w-16 h-16 bg-gold-deep/20 rounded-full flex items-center justify-center mb-3 border border-gold-bright/30">
+            <svg className="w-8 h-8 text-gold-bright" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </div>
+          <h1 className="text-white text-3xl font-extrabold font-serif mb-1 tracking-tight">Give with Joy</h1>
+          <h2 className="text-gold-bright text-lg font-bold font-serif mb-3">ఆనందంగా ఇవ్వండి</h2>
+          <p className="text-white/80 italic text-sm font-serif">“God loves a cheerful giver” — 2 Cor 9:7</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="px-4 -mt-4 relative z-20 space-y-5">
         
-        {/* Bank Details */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-gray-50 border-b border-gray-100 p-6 flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-100 text-blue-700 rounded-full flex items-center justify-center">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"></path></svg>
+        {/* Categories Box */}
+        <div className="bg-white rounded-2xl shadow-sm border border-rule p-4">
+          <p className="text-[10px] font-bold text-ink-soft uppercase tracking-wider mb-3">Select Giving Type</p>
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map(cat => {
+              const isActive = activeCat === cat.id;
+              return (
+                <button 
+                  key={cat.id} 
+                  onClick={() => setActiveCat(cat.id)}
+                  className={`flex flex-col items-center justify-center py-2 px-3 rounded-xl border flex-1 min-w-[30%] transition-colors ${
+                    isActive ? 'bg-parchment border-gold-bright' : 'bg-gray-50 border-rule'
+                  }`}
+                >
+                  <span className="text-xl mb-1">{cat.icon}</span>
+                  <span className={`text-[10px] font-bold ${isActive ? 'text-ink' : 'text-gray-600'}`}>{cat.label}</span>
+                  <span className={`text-[9px] ${isActive ? 'text-ink-soft' : 'text-gray-400'}`}>{cat.labelTe}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Amount Box */}
+        <div className="bg-white rounded-2xl shadow-sm border border-rule p-5 text-center">
+          <p className="text-[10px] font-bold text-ink-soft uppercase tracking-wider mb-4">Enter Amount (₹)</p>
+          
+          <div className="flex justify-center items-center mb-6">
+            <span className="text-3xl font-bold text-gray-400 mr-2">₹</span>
+            <input 
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="text-5xl font-extrabold text-ink w-40 text-center outline-none bg-transparent"
+              placeholder="0"
+            />
+          </div>
+
+          <div className="flex justify-center gap-3 mb-6">
+            {PRESETS.map(preset => (
+              <button 
+                key={preset}
+                onClick={() => setAmount(preset.toString())}
+                className="bg-gray-50 border border-rule px-4 py-2 rounded-full text-sm font-bold text-gray-700 active:bg-gray-100 transition-colors"
+              >
+                ₹{preset}
+              </button>
+            ))}
+          </div>
+
+          <button 
+            onClick={handlePayment}
+            className="w-full bg-ink text-white font-bold py-4 rounded-xl shadow-md text-lg active:bg-ink-light flex items-center justify-center gap-2"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            Proceed to Give
+          </button>
+          
+          <div className="flex items-center justify-center mt-4 text-xs font-bold text-gray-400 gap-1 uppercase">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+            100% Secure & Encrypted
+          </div>
+        </div>
+
+        {/* Bank Transfer Details */}
+        <div className="bg-white rounded-2xl shadow-sm border border-rule overflow-hidden">
+          <div className="bg-gray-50 p-4 border-b border-rule flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-white border border-rule flex items-center justify-center text-ink shadow-sm">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z" /></svg>
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Bank Transfer</h2>
+            <span className="font-bold text-ink">Bank Transfer Details</span>
           </div>
           
-          <div className="p-6 space-y-4">
+          <div className="p-4 space-y-4">
             {church?.bankDetails ? (
               <>
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Account Name</p>
-                  <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <span className="font-bold text-gray-900">{church.bankDetails.accountName}</span>
-                    <button onClick={() => handleCopy(church.bankDetails!.accountName, 'Name')} className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
-                      {copiedText === 'Name' ? 'Copied!' : 'Copy'}
-                    </button>
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Account Name</p>
+                    <p className="font-bold text-ink text-sm">{church.bankDetails.accountName}</p>
                   </div>
+                  <button onClick={() => handleCopy(church.bankDetails!.accountName, 'Name')} className="text-gold-deep text-xs font-bold bg-gold-light px-3 py-1.5 rounded-lg">
+                    {copiedText === 'Name' ? 'COPIED' : 'COPY'}
+                  </button>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Account Number</p>
-                  <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <span className="font-bold text-gray-900 font-mono text-lg">{church.bankDetails.accountNumber}</span>
-                    <button onClick={() => handleCopy(church.bankDetails!.accountNumber, 'Account')} className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
-                      {copiedText === 'Account' ? 'Copied!' : 'Copy'}
-                    </button>
+                
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Account Number</p>
+                    <p className="font-mono font-bold text-ink text-sm">{church.bankDetails.accountNumber}</p>
                   </div>
+                  <button onClick={() => handleCopy(church.bankDetails!.accountNumber, 'Account')} className="text-gold-deep text-xs font-bold bg-gold-light px-3 py-1.5 rounded-lg">
+                    {copiedText === 'Account' ? 'COPIED' : 'COPY'}
+                  </button>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">IFSC Code</p>
-                  <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <span className="font-bold text-gray-900 font-mono text-lg">{church.bankDetails.ifscCode}</span>
-                    <button onClick={() => handleCopy(church.bankDetails!.ifscCode, 'IFSC')} className="text-blue-600 hover:text-blue-800 text-sm font-semibold">
-                      {copiedText === 'IFSC' ? 'Copied!' : 'Copy'}
-                    </button>
+                
+                <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                  <div>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">IFSC Code</p>
+                    <p className="font-mono font-bold text-ink text-sm">{church.bankDetails.ifscCode}</p>
                   </div>
+                  <button onClick={() => handleCopy(church.bankDetails!.ifscCode, 'IFSC')} className="text-gold-deep text-xs font-bold bg-gold-light px-3 py-1.5 rounded-lg">
+                    {copiedText === 'IFSC' ? 'COPIED' : 'COPY'}
+                  </button>
                 </div>
-                <div className="pt-2">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Bank Name</p>
-                  <p className="font-medium text-gray-800">{church.bankDetails.bankName} {church.bankDetails.branch ? `- ${church.bankDetails.branch}` : ''}</p>
+                
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase">Bank Name & Branch</p>
+                  <p className="font-bold text-ink text-sm">{church.bankDetails.bankName} {church.bankDetails.branch ? `- ${church.bankDetails.branch}` : ''}</p>
                 </div>
               </>
             ) : (
-              <p className="text-gray-500 text-center py-6">Bank details are not currently available.</p>
+              <p className="text-gray-500 text-sm text-center py-4 font-medium">Bank details are not currently available.</p>
             )}
           </div>
         </div>
 
-        {/* UPI Details */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-gray-50 border-b border-gray-100 p-6 flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 text-green-700 rounded-full flex items-center justify-center">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-            </div>
-            <h2 className="text-xl font-bold text-gray-900">UPI Transfer</h2>
-          </div>
-          
-          <div className="p-6">
-            {church?.upiDetails ? (
-              <div className="flex flex-col items-center justify-center text-center space-y-6">
-                
-                {/* Simulated QR Code Box */}
-                <div className="w-48 h-48 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                    <svg className="w-32 h-32 text-gray-900" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"></path></svg>
-                  </div>
-                  <p className="text-gray-400 font-medium text-sm">Scan with any<br/>UPI App</p>
-                </div>
-                
-                <div className="w-full">
-                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">UPI ID</p>
-                  <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <span className="font-bold text-gray-900 text-lg">{church.upiDetails.upiId}</span>
-                    <button onClick={() => handleCopy(church.upiDetails!.upiId, 'UPI')} className="text-green-600 hover:text-green-800 text-sm font-semibold">
-                      {copiedText === 'UPI' ? 'Copied!' : 'Copy'}
-                    </button>
-                  </div>
-                  {church.upiDetails.merchantName && (
-                    <p className="text-sm font-medium text-gray-600 mt-2">
-                      Name: {church.upiDetails.merchantName}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex gap-4 pt-4 w-full justify-center opacity-60">
-                   <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" className="h-6" />
-                </div>
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-6">UPI details are not currently available.</p>
-            )}
-          </div>
+        {/* Support Need */}
+        <div className="flex items-center justify-center gap-2 pb-6">
+          <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <span className="text-xs text-gray-500 font-medium">Need help with giving?</span>
+          <button className="text-gold-deep text-xs font-bold hover:underline">Contact Support</button>
         </div>
+
       </div>
-
     </div>
   );
 }

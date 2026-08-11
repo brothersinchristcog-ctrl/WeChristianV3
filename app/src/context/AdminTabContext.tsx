@@ -6,6 +6,7 @@ export interface AdminTabContextType {
   editingData: any;
   setEditingData: (data: any) => void;
   goBack: () => void;
+  setTabByName?: (name: string) => void;
 }
 
 export const AdminTabContext = createContext<AdminTabContextType>({
