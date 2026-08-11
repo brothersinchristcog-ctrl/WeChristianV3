@@ -671,7 +671,7 @@ export default function HomeScreen() {
               </SvgText>
             </Svg>
             <Text style={styles.userNameCream} numberOfLines={1}>
-              {member?.name || (`${member?.firstName || ''} ${member?.lastName || ''}`.trim()) || user?.displayName || 'Guest'}
+              {(`${member?.firstName || ''} ${member?.lastName || ''}`.trim()) || member?.name || user?.displayName || 'Guest'}
             </Text>
           </View>
           

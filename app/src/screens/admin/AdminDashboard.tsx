@@ -25,7 +25,8 @@ import {
   ChevronRight,
   LogOut,
   Smartphone,
-  Moon
+  Moon,
+  Video
 } from 'lucide-react-native';
 import { useChurch } from '../../context/ChurchContext';
 import HexagonDate from '../../components/HexagonDate';
@@ -91,10 +92,16 @@ const CATEGORIES = [
     keywords: ['Expense', 'Donation', 'Subscription']
   },
   {
+    title: 'Online Meeting Management',
+    icon: Video,
+    color: '#4F46E5', // Indigo for a professional look
+    keywords: ['Online Meeting']
+  },
+  {
     title: 'Administration',
     icon: Settings,
     color: '#1E3A8A', // Deep Navy for maximum contrast
-    keywords: ['Church Setting', 'Super Admin', 'About', 'Contact', 'Schedule', 'Online Meeting']
+    keywords: ['Church Setting', 'Super Admin', 'About', 'Contact', 'Schedule']
   }
 ];
 
@@ -167,7 +174,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
         return category;
       }
     }
-    return CATEGORIES[5]; // Default to Administration
+    return CATEGORIES.find(c => c.title === 'Administration') || CATEGORIES[CATEGORIES.length - 1]; // Default to Administration
   };
 
   const categorizedTabs: Record<string, any[]> = {};
@@ -175,7 +182,6 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
 
   allTabs.forEach((tab: any, index: number) => {
     if (tab.name === 'Dashboard') return;
-    if (tab.name.startsWith('New ')) return; // Hide direct forms from the dashboard
     const category = getCategoryForTab(tab.name);
     categorizedTabs[category.title].push({ ...tab, index });
   });
