@@ -21,19 +21,21 @@ import {
   BookOpen
 } from 'lucide-react-native';
 import firestore from '@react-native-firebase/firestore';
-import { useChurch } from '../context/ChurchContext';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import { useChurch } from '../context/ChurchContext';
 
 const { width } = Dimensions.get('window');
 
 export default function OnlineMeetingsScreen({ navigation }: any) {
   const { activeChurch } = useChurch();
-  const { isDark } = useTheme();
+  const { user, member } = useAuth();
+  const { isDark, toggleTheme } = useTheme();
   
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+  const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'completed'>('upcoming');
 
   const fetchMeetings = async () => {
     if (!activeChurch?.id) return;
@@ -66,124 +68,175 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
 
   const now = new Date();
   
-  const upcomingMeetings = meetings.filter(m => {
-    if (m.status === 'upcoming' || m.status === 'live') return true;
-    if (m.startTime && m.startTime.seconds) {
-      return new Date(m.startTime.seconds * 1000) >= now;
-    }
-    return false;
-  }).reverse(); 
+  const liveMeetings: any[] = [];
+  const upcomingMeetings: any[] = [];
+  const pastMeetings: any[] = [];
 
-  const pastMeetings = meetings.filter(m => {
-    if (m.status === 'past') return true;
-    if (m.status === 'upcoming' || m.status === 'live') return false;
-    if (m.startTime && m.startTime.seconds) {
-      return new Date(m.startTime.seconds * 1000) < now;
+  meetings.forEach(m => {
+    if (m.status === 'cancelled') return;
+
+    if (m.startTime && m.endTime && m.startTime.seconds && m.endTime.seconds) {
+      const start = new Date(m.startTime.seconds * 1000);
+      const end = new Date(m.endTime.seconds * 1000);
+      
+      if (end < now) {
+        pastMeetings.push(m);
+      } else if (start <= now && end >= now) {
+        liveMeetings.push(m);
+      } else {
+        upcomingMeetings.push(m);
+      }
+    } else {
+      if (m.status === 'live') liveMeetings.push(m);
+      else if (m.status === 'past') pastMeetings.push(m);
+      else upcomingMeetings.push(m);
     }
-    return true;
   });
 
-  const displayList = activeTab === 'upcoming' ? upcomingMeetings : pastMeetings;
+  let displayList = upcomingMeetings;
+  if (activeTab === 'live') displayList = liveMeetings;
+  if (activeTab === 'completed') displayList = pastMeetings;
 
   const renderMeeting = ({ item }: { item: any }) => {
-    const isLive = item.status === 'live' || (activeTab === 'upcoming' && item.startTime && new Date(item.startTime.seconds * 1000) <= new Date(new Date().getTime() + 15 * 60 * 1000));
-    
+    const isLive = activeTab === 'live' || item.status === 'live' || (
+      item.startTime && item.endTime && 
+      new Date(item.startTime.seconds * 1000) <= now && 
+      new Date(item.endTime.seconds * 1000) >= now
+    );
+
     return (
-      <View style={[styles.card, isDark && styles.cardDark]}>
+      <View style={[styles.card, { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#e5e7eb' }]}>
+        
+        {/* Card Header */}
         <View style={styles.cardHeader}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 }}>
             <View style={[styles.iconBox, isLive && { backgroundColor: '#ef4444' }]}>
-              <Video size={22} color="#fff" />
+              <Video size={20} color="#fff" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.title, isDark && { color: '#fff' }]} numberOfLines={2}>
+              <Text style={[styles.cardTitle, { color: isDark ? '#fff' : '#1e293b' }]} numberOfLines={2}>
                 {item.title || 'Online Meeting'}
               </Text>
-              {isLive && activeTab === 'upcoming' && (
+              {isLive && (
                 <Text style={styles.liveBadge}>LIVE NOW</Text>
               )}
             </View>
           </View>
         </View>
 
+        <View style={[styles.separator, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]} />
+
+        {/* Date & Time Row */}
         <View style={styles.detailsRow}>
           <View style={styles.detailItem}>
-            <Calendar size={14} color="#6B7280" />
-            <Text style={styles.detailText}>
-              {item.startTime ? new Date(item.startTime.seconds * 1000).toLocaleDateString() : 'TBA'}
+            <Calendar size={14} color="#64748b" />
+            <Text style={[styles.detailText, { color: isDark ? '#cbd5e1' : '#475569' }]}>
+              {item.startTime ? new Date(item.startTime.seconds * 1000).toLocaleDateString('en-GB').replace(/\//g, '-') : 'TBA'}
             </Text>
           </View>
           <View style={styles.detailItem}>
-            <Clock size={14} color="#6B7280" />
-            <Text style={styles.detailText}>
+            <Clock size={14} color="#64748b" />
+            <Text style={[styles.detailText, { color: isDark ? '#cbd5e1' : '#475569' }]}>
               {item.startTime ? new Date(item.startTime.seconds * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'TBA'}
             </Text>
           </View>
         </View>
 
-        {(item.teacher || item.bibleBook) && (
-          <View style={styles.metaBox}>
-            {item.teacher ? (
+        {/* Highlights / Meta Box */}
+        {(item.subtitle || item.topic || item.bibleBook || item.teacher) && (
+          <View style={[styles.metaBox, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
+            {(item.subtitle || item.topic || item.bibleBook) ? (
               <View style={styles.metaItem}>
-                <User size={14} color="#4F46E5" />
-                <Text style={styles.metaText}>{item.teacher}</Text>
+                <BookOpen size={14} color="#1a2d5a" />
+                <Text style={[styles.metaText, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>
+                  {item.subtitle || item.topic || item.bibleBook}
+                </Text>
               </View>
             ) : null}
-            {item.bibleBook ? (
+            {item.teacher ? (
               <View style={styles.metaItem}>
-                <BookOpen size={14} color="#4F46E5" />
-                <Text style={styles.metaText}>{item.bibleBook}</Text>
+                <User size={14} color="#1a2d5a" />
+                <Text style={[styles.metaText, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>
+                  {item.teacher}
+                </Text>
               </View>
             ) : null}
           </View>
         )}
 
-        {activeTab === 'upcoming' && item.meetingLink && (
+        {/* Join Button */}
+        {item.meetingLink && (
           <TouchableOpacity 
             style={[styles.joinBtn, isLive && styles.joinBtnLive]}
-            onPress={() => Linking.openURL(item.meetingLink)}
+            onPress={async () => {
+              if (activeChurch?.id && member) {
+                try {
+                  await firestore().collection('churches').doc(activeChurch.id).collection('online_meetings').doc(item.id).collection('attendees').doc(member.id).set({
+                    name: member.name || user?.displayName || 'Unknown Member',
+                    profilePhoto: (member as any).profilePhoto || (member as any).photoURL || user?.photoURL || null,
+                    joinedAt: firestore.FieldValue.serverTimestamp()
+                  }, { merge: true });
+                } catch (e) {
+                  console.log('Attendance log error:', e);
+                }
+              }
+              Linking.openURL(item.meetingLink);
+            }}
           >
-            <Text style={styles.joinBtnText}>Join Meeting</Text>
+            <Video size={18} color="#fff" />
+            <Text style={styles.joinBtnText}>{isLive ? 'Join Live Stream' : 'Join Meeting Room'}</Text>
           </TouchableOpacity>
         )}
+
       </View>
     );
   };
 
   return (
-    <View style={[styles.container, isDark && styles.containerDark]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={28} color="#fff" />
+          <ChevronLeft size={24} color="#fff" />
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Online Meetings</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Online Bible Classes</Text>
+        </View>
+        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
+          <Text style={styles.themeToggleText}>{isDark ? '🌙' : '☀️'}</Text>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.tabContainer}>
+      <View style={[styles.tabContainer, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
+        <TouchableOpacity 
+          style={[styles.tab, activeTab === 'live' && styles.activeTab]} 
+          onPress={() => setActiveTab('live')}
+        >
+          <Text style={[styles.tabText, activeTab === 'live' && styles.activeTabText]}>Live</Text>
+        </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'upcoming' && styles.activeTab]} 
           onPress={() => setActiveTab('upcoming')}
         >
-          <Text style={[styles.tabText, activeTab === 'upcoming' && styles.activeTabText]}>Live & Upcoming</Text>
+          <Text style={[styles.tabText, activeTab === 'upcoming' && styles.activeTabText]}>Upcoming</Text>
         </TouchableOpacity>
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'past' && styles.activeTab]} 
-          onPress={() => setActiveTab('past')}
+          style={[styles.tab, activeTab === 'completed' && styles.activeTab]} 
+          onPress={() => setActiveTab('completed')}
         >
-          <Text style={[styles.tabText, activeTab === 'past' && styles.activeTabText]}>Past Meetings</Text>
+          <Text style={[styles.tabText, activeTab === 'completed' && styles.activeTabText]}>Completed</Text>
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#1a2d5a" />
+          <ActivityIndicator size="large" color="#3B82F6" />
         </View>
       ) : displayList.length === 0 ? (
         <View style={styles.center}>
-          <Video size={48} color="#9CA3AF" style={{ marginBottom: 16, opacity: 0.5 }} />
-          <Text style={[styles.emptyText, isDark && { color: '#9CA3AF' }]}>
+          <Video size={48} color="#4B5563" style={{ marginBottom: 16, opacity: 0.5 }} />
+          <Text style={styles.emptyText}>
             No {activeTab} meetings found
           </Text>
         </View>
@@ -193,7 +246,7 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
           keyExtractor={item => item.id}
           renderItem={renderMeeting}
           contentContainerStyle={styles.listContent}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#fff" />}
         />
       )}
     </View>
@@ -201,52 +254,65 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f3f4f6' },
-  containerDark: { backgroundColor: '#111827' },
+  container: { flex: 1 },
   
-  header: { 
-    backgroundColor: '#1a2d5a', 
-    paddingTop: Platform.OS === 'ios' ? 60 : 20, 
-    paddingBottom: 20, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    justifyContent: 'space-between',
-    paddingHorizontal: 16
+  header: {
+    backgroundColor: '#1a2d5a',
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
-  backBtn: { width: 40, height: 40, justifyContent: 'center' },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
+  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  headerCenter: { alignItems: 'center' },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  themeToggle: {
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  themeToggleText: { color: '#fff', fontSize: 16 },
 
   tabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    marginHorizontal: 16,
+    marginTop: 15,
+    marginBottom: 5,
+    borderRadius: 25,
+    padding: 4,
+    gap: 4,
   },
   tab: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 10,
     alignItems: 'center',
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
+    borderRadius: 21,
   },
   activeTab: {
-    borderBottomColor: '#1a2d5a',
+    backgroundColor: '#1a2d5a',
   },
   tabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#64748b',
   },
   activeTabText: {
-    color: '#1a2d5a',
-    fontWeight: '800',
+    color: '#fff',
   },
 
   listContent: { padding: 16, paddingBottom: 100 },
   
   card: {
-    backgroundColor: '#fff',
     borderRadius: 16,
+    borderWidth: 1,
     padding: 16,
     marginBottom: 16,
     elevation: 2,
@@ -254,29 +320,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
   },
-  cardDark: { backgroundColor: '#1F2937' },
-  
-  cardHeader: { marginBottom: 16 },
+  cardHeader: { marginBottom: 12 },
   iconBox: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#1a2d5a',
     justifyContent: 'center',
     alignItems: 'center'
   },
-  title: {
+  cardTitle: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#111827',
+    fontWeight: '800',
+    lineHeight: 22,
   },
   liveBadge: {
     color: '#ef4444',
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     marginTop: 4,
   },
-
+  separator: {
+    height: 1,
+    marginBottom: 12,
+  },
+  
   detailsRow: {
     flexDirection: 'row',
     gap: 16,
@@ -289,18 +357,18 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: '#6B7280',
     fontWeight: '500',
   },
 
   metaBox: {
-    backgroundColor: '#EEF2FF',
     borderRadius: 12,
     padding: 12,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)'
   },
   metaItem: {
     flexDirection: 'row',
@@ -308,19 +376,22 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   metaText: {
-    color: '#4F46E5',
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 
   joinBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
     backgroundColor: '#1a2d5a',
     paddingVertical: 14,
     borderRadius: 12,
-    alignItems: 'center',
+    width: '100%'
   },
   joinBtnLive: {
-    backgroundColor: '#2563EB',
+    backgroundColor: '#ef4444',
   },
   joinBtnText: {
     color: '#fff',

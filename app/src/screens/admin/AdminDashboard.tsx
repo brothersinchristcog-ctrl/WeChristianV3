@@ -58,6 +58,8 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'Contact Us': require('../../../assets/admin_cards/contact_us.png'),
   'Church Settings': require('../../../assets/admin_cards/church_settings.png'),
   'Attendance': require('../../../assets/admin_cards/attendance.png'),
+  'Online Meetings': require('../../../assets/admin_cards/online_meetings.jpg'),
+  'New Online Meeting': require('../../../assets/admin_cards/new_online_meeting.png'),
 };
 
 const CATEGORIES = [
@@ -181,7 +183,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
   CATEGORIES.forEach(cat => categorizedTabs[cat.title] = []);
 
   allTabs.forEach((tab: any, index: number) => {
-    if (tab.name === 'Dashboard') return;
+    if (tab.name === 'Dashboard' || tab.name === 'New Online Meeting') return;
     const category = getCategoryForTab(tab.name);
     categorizedTabs[category.title].push({ ...tab, index });
   });

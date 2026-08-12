@@ -140,7 +140,16 @@ export default function AdminNavigator({ navigation, route }: any) {
       // This allows the tap animation to finish instantly, making the UI feel highly responsive.
       setTimeout(() => {
         setTabHistory(prev => [...prev, activeTab]);
-        if ([1, 2, 4, 5, 8, 9].indexOf(index) === -1) setEditingData(null);
+        const targetTabName = tabs[index]?.name || '';
+        const safeTabNames = [
+          'Promises', 'New Promise', 'Schedule', 'Promise Calendar', 'Add Promise',
+          'Sermons', 'New Sermon', 
+          'Events', 'New Event',
+          'Online Meetings', 'New Online Meeting'
+        ];
+        if (!safeTabNames.includes(targetTabName)) {
+          setEditingData(null);
+        }
         setActiveTab(index);
       }, 0);
     }

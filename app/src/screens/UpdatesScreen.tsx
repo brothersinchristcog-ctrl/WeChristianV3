@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking, Alert, Image } from 'react-native';
-import { ChevronLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic } from 'lucide-react-native';
+import { ChevronLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic , Video } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   getFirestore, 
@@ -113,7 +113,14 @@ function stripHtml(html: string): string {
 
 export default function UpdatesScreen({ navigation, route }: any) {
   const { highlightId, highlightType } = route?.params || {};
-  const [dynamicUpdates, setDynamicUpdates] = useState<any[]>([]);
+    const [dynamicUpdates, setDynamicUpdates] = useState<any[]>([]);
+  const [broadcastsList, setBroadcastsList] = useState<any[]>([]);
+  const [meetingsList, setMeetingsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    const combined = [...broadcastsList, ...meetingsList].sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
+    setDynamicUpdates(combined);
+  }, [broadcastsList, meetingsList]);
   const [selectedUpdate, setSelectedUpdate] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
@@ -253,10 +260,11 @@ export default function UpdatesScreen({ navigation, route }: any) {
               icon: icon,
               color: color,
               url: data.url || '',
-              imageUrl: data.imageUrl || null
+              imageUrl: data.imageUrl || null,
+              rawDate: data.createdAt?.toMillis?.() || (typeof data.createdAt === 'number' ? data.createdAt : 0)
             };
           }).filter(item => item !== null);
-          setDynamicUpdates(list);
+          setBroadcastsList(list);
         }
         setLoading(false);
       },
@@ -266,7 +274,45 @@ export default function UpdatesScreen({ navigation, route }: any) {
       }
     );
 
-    return () => unsubscribe();
+        const qMeetings = query(
+      collection(db, 'churches', member.churchId, 'online_meetings'),
+      orderBy('createdAt', 'desc'),
+      limit(10)
+    );
+
+    const unsubscribeMeetings = onSnapshot(
+      qMeetings,
+      (snapshot) => {
+        if (snapshot) {
+          const list = snapshot.docs.map(doc => {
+            const data = doc.data();
+            let dateStr = new Date().toISOString().split('T')[0];
+            if (data.startTime && typeof data.startTime.toDate === 'function') {
+              const dt = data.startTime.toDate();
+              dateStr = dt.toLocaleDateString() + ' • ' + dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            }
+            
+            return {
+              id: doc.id,
+              title: 'New Online Meeting',
+              content: data.title + ' has been scheduled.',
+              date: dateStr,
+              type: 'online_meeting',
+              icon: Video,
+              color: '#3B82F6',
+              url: data.meetingLink || '',
+              rawDate: data.createdAt?.toMillis?.() || 0
+            };
+          });
+          setMeetingsList(list);
+        }
+      },
+      (error) => {
+        console.error('Error fetching meetings:', error);
+      }
+    );
+
+    return () => { unsubscribe(); unsubscribeMeetings(); };
   }, [member?.churchId, user?.phoneNumber, member?.phone]);
 
   const staticUpdates = [

@@ -57,7 +57,7 @@ export default function MembersScreen({ navigation }: any) {
     lastName: '',
     relation: 'Husband', // picklist
     gender: 'Male',
-    birthdate: '',
+    dob: '',
     anniversaryDate: '',
     email: '',
     phone: ''
@@ -139,7 +139,7 @@ export default function MembersScreen({ navigation }: any) {
       setShowAddModal(false);
       setEditingMemberId(null);
       setNewMember({
-        firstName: '', lastName: '', relation: 'Husband', gender: 'Male', birthdate: '', anniversaryDate: '', email: '', phone: ''
+        firstName: '', lastName: '', relation: 'Husband', gender: 'Male', dob: '', anniversaryDate: '', email: '', phone: ''
       });
       fetchFamily();
     } catch (err: any) {
@@ -285,7 +285,7 @@ export default function MembersScreen({ navigation }: any) {
                           phone: contactPhone || '',
                           relation: c.relation || c.Relation || 'Child',
                           gender: c.gender || c.Gender || 'Male',
-                          birthdate: c.birthdate || c.Birthdate || '',
+                          dob: c.dob || c.birthdate || c.dateOfBirth || c.birthday || c.Birthdate || '',
                           anniversaryDate: c.anniversaryDate || c.AnniversaryDate || ''
                         });
                         setShowAddModal(true);
@@ -362,7 +362,7 @@ export default function MembersScreen({ navigation }: any) {
           style={styles.addBtnFloating} 
           onPress={() => {
             setEditingMemberId(null);
-            setNewMember({ firstName: '', lastName: '', relation: 'Husband', gender: 'Male', birthdate: '', anniversaryDate: '', email: '', phone: '' });
+            setNewMember({ firstName: '', lastName: '', relation: 'Husband', gender: 'Male', dob: '', anniversaryDate: '', email: '', phone: '' });
             setShowAddModal(true);
           }}
         >
@@ -482,8 +482,8 @@ export default function MembersScreen({ navigation }: any) {
                   style={[styles.input, styles.dateInput, { borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
                   onPress={() => setDatePickerType('birthdate')}
                 >
-                  <Text style={{ color: newMember.birthdate ? (isDark ? '#fff' : '#000') : '#94a3b8' }}>
-                    {newMember.birthdate || 'Select Birthdate'}
+                  <Text style={{ color: newMember.dob ? (isDark ? '#fff' : '#000') : '#94a3b8' }}>
+                    {newMember.dob || 'Select Birthdate'}
                   </Text>
                   <CalendarIcon size={18} color="#94a3b8" />
                 </TouchableOpacity>
@@ -581,7 +581,7 @@ export default function MembersScreen({ navigation }: any) {
           const day = String(date.getDate()).padStart(2, '0');
           const formatted = `${year}-${month}-${day}`;
           if (datePickerType === 'birthdate') {
-            setNewMember({ ...newMember, birthdate: formatted });
+            setNewMember({ ...newMember, dob: formatted });
           } else {
             setNewMember({ ...newMember, anniversaryDate: formatted });
           }

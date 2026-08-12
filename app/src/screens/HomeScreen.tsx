@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  Text, 
+import {
+  StyleSheet,
+  View,
+  Text,
+  PanResponder, 
   ScrollView, 
   TouchableOpacity, 
   Dimensions,
@@ -267,7 +268,7 @@ const AnimatedParticle = ({ left, size, duration, delay, color, opacity }: any) 
   );
 };
 
-let hasShownCelebrationThisSession = false;
+let hasShownCelebrationThisSession = false; /* forced refresh */ // Reset by script
 
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
@@ -284,6 +285,146 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [initialFetchDone, setInitialFetchDone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  // Floating Live Celebrations State
+  const [liveCelebrations, setLiveCelebrations] = useState<any[]>([]);
+  const pan = useRef(new Animated.ValueXY()).current;
+  const emojiAnim = useRef(new Animated.Value(0)).current;
+  const [currentEmojiIdx, setCurrentEmojiIdx] = useState(0);
+
+  const fetchLiveCelebrations = async () => {
+    if (!activeChurch?.id) return;
+    try {
+      // For simplicity in MVP, check recent celebrations or use a direct query
+      // To save reads on Home Screen, we can check if there's a live_celebrations doc for today
+      const todayStr = new Date().toISOString().split('T')[0];
+      const docSnap = await firestore()
+        .collection('churches')
+        .doc(activeChurch.id)
+        .collection('live_celebrations')
+        .doc(todayStr)
+        .get();
+      
+      // If doc doesn't exist, maybe it hasn't been created, but wait we need to know who is celebrating.
+      // Alternatively, we use FirestoreService to get today's birthdays etc.
+      const FirestoreService = require('../services/FirestoreService').default;
+      const allCelebs = await FirestoreService.getAllCelebrations(activeChurch.id);
+      
+      const today = new Date();
+      const m = today.getMonth() + 1;
+      const d = today.getDate();
+      
+      const todays = allCelebs.filter((c: any) => {
+        let isCeleb = false;
+        ['Birthdate', 'Anniversary_Date__c', 'Baptism_Date__c'].forEach(field => {
+          // Also check allBirthdates if it exists
+          if (field === 'Birthdate' && c.allBirthdates && c.allBirthdates.length > 0) {
+            c.allBirthdates.forEach((bDate: string) => {
+              const parts = bDate.split('-');
+              let mm, dd;
+              if (parts[0].length === 4) { mm = parseInt(parts[1], 10); dd = parseInt(parts[2], 10); }
+              else { dd = parseInt(parts[0], 10); mm = parseInt(parts[1], 10); }
+              if (mm === m && dd === d) isCeleb = true;
+            });
+          }
+          if (c[field]) {
+            const parts = c[field].split('-');
+            let mm, dd;
+            if (parts[0].length === 4) { mm = parseInt(parts[1], 10); dd = parseInt(parts[2], 10); } 
+            else { dd = parseInt(parts[0], 10); mm = parseInt(parts[1], 10); }
+            if (mm === m && dd === d) isCeleb = true;
+          }
+        });
+        return isCeleb;
+      });
+      
+      
+      // Bulletproof check for the current user's own birthday
+      const todayMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const isToday = (dateString?: string) => {
+        if (!dateString) return false;
+        const parts = dateString.split('T')[0].split('-');
+        if (parts.length >= 3) {
+          return `${parts[1]}-${parts[2]}` === todayMonthDay;
+        }
+        return false;
+      };
+
+      if (member) {
+        const isSelfBirthday = isToday((member as any).dob) || isToday((member as any).birthdate) || isToday((member as any).dateOfBirth) || isToday((member as any).birthday);
+        if (isSelfBirthday) {
+          const alreadyInTodays = todays.some((t: any) => t.Id === (member as any).id || t.Phone === (member as any).phone);
+          if (!alreadyInTodays) {
+            todays.push({
+              ...member,
+              Id: (member as any).id || 'self',
+              Name: (member as any).name || (member as any).firstName || 'Member',
+              Birthdate: (member as any).dob || (member as any).birthdate || (member as any).dateOfBirth || (member as any).birthday,
+              isSelf: true
+            });
+          }
+        }
+      }
+
+      setLiveCelebrations(todays);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveCelebrations();
+    
+    // Load saved position
+    AsyncStorage.getItem('@live_celebrations_pos').then(val => {
+      if (val) {
+        try {
+          const { x, y } = JSON.parse(val);
+          if (typeof x === 'number' && typeof y === 'number' && !isNaN(x) && !isNaN(y) && Math.abs(x) < 2000 && Math.abs(y) < 2000) {
+            pan.setValue({ x, y });
+          } else {
+             AsyncStorage.removeItem('@live_celebrations_pos');
+          }
+        } catch (e) {}
+      }
+    });
+  }, [activeChurch?.id]);
+
+  useEffect(() => {
+    if (liveCelebrations.length === 0) return;
+    const interval = setInterval(() => {
+      Animated.sequence([
+        Animated.timing(emojiAnim, { toValue: 1, duration: 250, useNativeDriver: true }),
+        Animated.timing(emojiAnim, { toValue: 0, duration: 250, useNativeDriver: true })
+      ]).start(() => {
+        setCurrentEmojiIdx(prev => (prev + 1) % 4);
+      });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [liveCelebrations.length]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        pan.setOffset({
+          x: (pan.x as any)._value,
+          y: (pan.y as any)._value
+        });
+        pan.setValue({ x: 0, y: 0 });
+      },
+      onPanResponderMove: Animated.event([null, { dx: pan.x, dy: pan.y }], { useNativeDriver: false }),
+      onPanResponderRelease: (e, gesture) => {
+        pan.flattenOffset();
+        AsyncStorage.setItem('@live_celebrations_pos', JSON.stringify({ x: (pan.x as any)._value, y: (pan.y as any)._value }));
+      }
+    })
+  ).current;
+
+  const getEmoji = () => {
+    const emojis = ['🎂', '💍', '💧', '🎉'];
+    return emojis[currentEmojiIdx];
+  };
+
   const [activeMeeting, setActiveMeeting] = useState<any | null>(null);
   const isGuest = user?.isAnonymous;
 
@@ -417,7 +558,7 @@ export default function HomeScreen() {
         };
 
         const activeCelebrations: string[] = [];
-        if (isToday((member as any).dob)) activeCelebrations.push('birthday');
+        if (isToday((member as any).dob) || isToday((member as any).birthdate) || isToday((member as any).dateOfBirth) || isToday((member as any).birthday)) activeCelebrations.push('birthday');
         if (isToday((member as any).anniversaryDate)) activeCelebrations.push('wedding');
         if (isToday((member as any).baptismDate)) activeCelebrations.push('baptism');
 
@@ -949,6 +1090,29 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {liveCelebrations.length > 0 && (
+        <Animated.View
+          
+          style={[
+            styles.floatingBtnContainer,
+            {}
+          ]}
+        >
+          <TouchableOpacity 
+            activeOpacity={0.9} 
+            onPress={() => navigation.navigate('LiveCelebrationsChat', { celebrations: liveCelebrations })}
+            style={styles.floatingBtn}
+          >
+            <Animated.Text style={[styles.floatingEmoji, { opacity: emojiAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
+              {getEmoji()}
+            </Animated.Text>
+            <View style={styles.floatingIndicator} />
+          </TouchableOpacity>
+          <Text style={styles.floatingLabel}>Live Celebrations</Text>
+        </Animated.View>
+      )}
+
     </View>
   );
 }
@@ -965,6 +1129,57 @@ function GridItem({ icon, label, color, onPress, isDark }: { icon: any; label: s
 }
 
 const styles = StyleSheet.create({
+
+  floatingBtnContainer: {
+    position: 'absolute',
+    bottom: 120,
+    right: 20,
+    alignItems: 'center',
+    zIndex: 999,
+    elevation: 1000,
+  },
+  floatingBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#0f172a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(251, 191, 36, 0.5)', // Gold border
+    shadowColor: '#fbbf24',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  floatingEmoji: {
+    fontSize: 28,
+  },
+  floatingIndicator: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    backgroundColor: '#ef4444',
+    borderWidth: 2,
+    borderColor: '#0f172a',
+  },
+  floatingLabel: {
+    color: '#1a2d5a',
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 4,
+    textShadowColor: '#fff',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    paddingHorizontal: 4,
+    borderRadius: 4,
+    overflow: 'hidden'
+  },
   mainContainer: { flex: 1, backgroundColor: '#f8fafc' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a2d5a' },
   screenLoadingText: { color: '#FCD34D', marginTop: 15, fontSize: 14, fontWeight: '700' },

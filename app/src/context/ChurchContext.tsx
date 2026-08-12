@@ -52,13 +52,20 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     try {
       const details = await ChurchService.getChurchDetails(id);
       if (details) {
+        if (churchId && churchId !== id) {
+          await require('../services/NotificationService').default.unsubscribeFromChurchTopic(churchId);
+        }
         setActiveChurch(details);
         setChurchIdState(id);
         await AsyncStorage.setItem('@cached_church_id', id);
         // Sync with FirestoreService singleton
         await require('../services/FirestoreService').default.setChurchId(id);
+        await require('../services/NotificationService').default.subscribeToChurchTopic(id);
       } else {
         console.warn('Church not found for id:', id);
+        if (churchId) {
+          await require('../services/NotificationService').default.unsubscribeFromChurchTopic(churchId);
+        }
         setActiveChurch(null);
         setChurchIdState(null);
         await AsyncStorage.removeItem('@cached_church_id');

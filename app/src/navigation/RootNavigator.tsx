@@ -24,6 +24,7 @@ import OnboardingScreen from '../screens/auth/OnboardingScreen';
 
 // Member Screens
 import CelebrationScreen from '../screens/CelebrationScreen';
+import LiveCelebrationsChat from '../screens/LiveCelebrationsChat';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import PromiseArchiveScreen from '../screens/PromiseArchiveScreen';
@@ -445,6 +446,7 @@ function Navigation() {
             <Stack.Screen name="Sermons" component={SermonsScreen} />
             <Stack.Screen name="Events" component={EventsScreen} />
             <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
+            <Stack.Screen name="LiveCelebrationsChat" component={LiveCelebrationsChat} />
           </>
         ) : onboardingComplete ? (
           <>
@@ -471,6 +473,7 @@ function Navigation() {
             <Stack.Screen name="ContactUs" component={ContactUsScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
             <Stack.Screen name="OnlineMeetings" component={OnlineMeetingsScreen} />
+            <Stack.Screen name="LiveCelebrationsChat" component={LiveCelebrationsChat} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />

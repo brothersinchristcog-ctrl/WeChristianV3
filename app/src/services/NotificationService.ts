@@ -109,6 +109,9 @@ class NotificationService {
         case 'event':
           nav.navigate('Events');
           break;
+        case 'online_meeting':
+          nav.navigate('OnlineMeetings');
+          break;
         case 'invoice':
           nav.navigate('AdminRoot', { targetTab: 'Expense', highlightInvoiceId: id });
           break;

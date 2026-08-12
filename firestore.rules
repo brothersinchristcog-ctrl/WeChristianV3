@@ -242,9 +242,24 @@ service cloud.firestore {
       }
 
       // Online Meetings
-      match /onlineMeetings/{meetingId} {
+      match /online_meetings/{meetingId} {
         allow read: if isAuthenticated();
         allow write: if isChurchAdmin();
+
+        match /attendees/{attendeeId} {
+          allow read: if isAuthenticated();
+          allow write: if isAuthenticated() && request.auth.uid == attendeeId;
+        }
+      }
+
+      // Live Celebrations (Chat)
+      match /live_celebrations/{dateId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated(); // Allow everyone to create the initial document if missing
+
+        match /messages/{msgId} {
+          allow read, write: if isAuthenticated();
+        }
       }
 
       // Attendance Requests & Responses

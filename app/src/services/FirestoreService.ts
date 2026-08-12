@@ -1263,7 +1263,8 @@ class FirestoreService {
           Id: doc.id,
           Name: data.name || (data.firstName ? data.firstName + ' ' + (data.lastName || '') : 'Unknown'),
           Phone: data.phone || data.mobile,
-          Birthdate: normalizeDate(data.dateOfBirth || data.dob || data.birthday), // always YYYY-MM-DD
+          Birthdate: normalizeDate(data.dob || data.birthdate || data.dateOfBirth || data.birthday), // always YYYY-MM-DD
+          allBirthdates: [normalizeDate(data.dob), normalizeDate(data.birthdate), normalizeDate(data.dateOfBirth), normalizeDate(data.birthday)].filter(Boolean),
           Anniversary_Date__c: normalizeDate(data.marriageDate || data.anniversaryDate || data.anniversary), // always YYYY-MM-DD
           Baptism_Date__c: normalizeDate(data.baptismDate || data.baptism), // always YYYY-MM-DD
           Gender__c: data.gender || data.Gender__c,

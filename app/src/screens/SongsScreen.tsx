@@ -16,7 +16,7 @@ import {
   Modal,
   ScrollView
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// Removed SafeAreaView as padding is handled by the header
 import {
   ChevronLeft,
   Search,
@@ -52,7 +52,7 @@ const CATEGORIES = [
 ];
 
 export default function SongsScreen({ navigation }: any) {
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
 
   // ── Tabs ──────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'browse' | 'songbook' | 'theme'>('browse');
@@ -198,7 +198,7 @@ export default function SongsScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       <CustomAlert 
@@ -213,12 +213,15 @@ export default function SongsScreen({ navigation }: any) {
       <View style={styles.pageHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft size={24} color="#fff" />
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-        <View style={styles.titleCol}>
+        <View style={styles.headerCenter}>
           <Text style={styles.pageTitle}>Worship & Praise</Text>
           <Text style={styles.pageSub}>స్తుతి మరియు ఆరాధన</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
+          <Text style={styles.themeToggleText}>{isDark ? '🌙' : '☀️'}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* ── Main Tabs ── */}
@@ -406,7 +409,7 @@ export default function SongsScreen({ navigation }: any) {
           </View>
         </Modal>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -415,13 +418,30 @@ const styles = StyleSheet.create({
   loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   pageHeader: {
-    backgroundColor: '#1a2d5a', paddingHorizontal: 16, paddingVertical: 15,
-    flexDirection: 'row', alignItems: 'center', borderBottomLeftRadius: 15, borderBottomRightRadius: 15
+    backgroundColor: '#1a2d5a',
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
-  backBtn: { padding: 4 },
-  titleCol: { flex: 1, alignItems: 'center' },
-  pageTitle: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  pageSub: { color: '#aac4e8', fontSize: 10, marginTop: 1, fontWeight: '500' },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
+  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  headerCenter: { alignItems: 'center' },
+  pageTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  pageSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
+  themeToggle: {
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  themeToggleText: { color: '#fff', fontSize: 16 },
 
   // Tabs
   tabBar: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: '#e2e8f0', marginHorizontal: 16, marginTop: 15, marginBottom: 0, borderRadius: 25, padding: 4, gap: 4 },

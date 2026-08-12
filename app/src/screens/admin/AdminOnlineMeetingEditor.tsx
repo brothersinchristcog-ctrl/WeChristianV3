@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
   Platform,
   Dimensions,
-  StatusBar
+  StatusBar,
+  Animated
 } from 'react-native';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { 
@@ -46,10 +47,29 @@ export default function AdminOnlineMeetingEditor() {
   const { activeChurch } = useChurch();
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [successMsg, setSuccessMsg] = useState({ title: '', sub: '' });
   const [showError, setShowError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
   const [generatingMeet, setGeneratingMeet] = useState(false);
+  const toastAnim = useState(new Animated.Value(0))[0];
+
+  useEffect(() => {
+    if (showSuccess) {
+      Animated.spring(toastAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 6,
+        tension: 40
+      }).start();
+    } else {
+      Animated.timing(toastAnim, {
+        toValue: 0,
+        duration: 200,
+        useNativeDriver: true
+      }).start();
+    }
+  }, [showSuccess]);
 
   useEffect(() => {
     GoogleSignin.configure({
@@ -96,7 +116,9 @@ export default function AdminOnlineMeetingEditor() {
       
       if (meetLink) {
         setForm(prev => ({ ...prev, meetingLink: meetLink }));
-        Alert.alert("Success", "Google Meet link generated via Calendar!");
+        setSuccessMsg({ title: 'Link Generated!', sub: 'Google Meet link successfully created.' });
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2500);
       } else {
         throw new Error("No meeting URI returned from Calendar.");
       }
@@ -235,9 +257,25 @@ export default function AdminOnlineMeetingEditor() {
       if (editingData?.id) {
         await firestore().collection('churches').doc(activeChurch.id).collection('online_meetings').doc(editingData.id).update(payload);
       } else {
-        await firestore().collection('churches').doc(activeChurch.id).collection('online_meetings').add(payload);
+        const meetingRef = await firestore().collection('churches').doc(activeChurch.id).collection('online_meetings').add(payload);
+        
+        try {
+          const timeStr = form.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          await firestore().collection('churches').doc(activeChurch.id).collection('broadcasts').add({
+            title: `🎥 New Online Meeting`,
+            content: `${form.title} has been scheduled for today at ${timeStr}.`,
+            type: 'online_meeting',
+            targetChurchId: activeChurch.id,
+            createdAt: firestore.FieldValue.serverTimestamp(),
+            meetingId: meetingRef.id,
+            url: form.meetingLink || ''
+          });
+        } catch (bErr) {
+          console.warn('Could not create broadcast for meeting:', bErr);
+        }
       }
       
+      setSuccessMsg({ title: 'Meeting Scheduled!', sub: 'The meeting details have been saved.' });
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
@@ -260,7 +298,7 @@ export default function AdminOnlineMeetingEditor() {
         <View style={styles.heroTopRow}>
           <TouchableOpacity onPress={() => { if (setTabByName) setTabByName('Online Meetings'); }} style={styles.backBtn}>
             <ChevronLeft size={20} color="#fff" style={{ marginLeft: -4, marginRight: 2 }} />
-            <Text style={styles.backBtnTxt}>Cancel</Text>
+            <Text style={styles.backBtnTxt}>Back</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.saveBtn, loading && { opacity: 0.7 }]} 
@@ -414,16 +452,29 @@ export default function AdminOnlineMeetingEditor() {
 
       {/* Success Modal */}
       {showSuccess && (
-        <View style={styles.toastOverlay}>
-          <View style={styles.toastCard}>
-            <View style={styles.toastIconBox}>
-              <CheckCircle2 size={24} color="#10B981" />
+        <View style={styles.toastOverlay} pointerEvents="none">
+          <Animated.View style={[styles.premiumToastCard, {
+            opacity: toastAnim,
+            transform: [{
+              translateY: toastAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [50, 0]
+              })
+            }, {
+              scale: toastAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0.9, 1]
+              })
+            }]
+          }]}>
+            <View style={styles.premiumToastIconBox}>
+              <CheckCircle2 size={28} color="#FFFFFF" />
             </View>
-            <View>
-              <Text style={styles.toastTitle}>Meeting Scheduled!</Text>
-              <Text style={styles.toastSub}>The meeting details have been saved.</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.premiumToastTitle}>{successMsg.title}</Text>
+              <Text style={styles.premiumToastSub}>{successMsg.sub}</Text>
             </View>
-          </View>
+          </Animated.View>
         </View>
       )}
 
@@ -481,6 +532,13 @@ const styles = StyleSheet.create({
   modalOptionTxt: { fontSize: 16, color: '#4B5563' },
 
   toastOverlay: { position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center', zIndex: 999 },
+  
+  // Premium Success Toast
+  premiumToastCard: { backgroundColor: '#10B981', borderRadius: 20, padding: 20, paddingRight: 24, flexDirection: 'row', alignItems: 'center', gap: 16, shadowColor: '#10B981', shadowOpacity: 0.4, shadowRadius: 15, shadowOffset: { width: 0, height: 8 }, elevation: 8, maxWidth: '90%', minWidth: '85%' },
+  premiumToastIconBox: { width: 48, height: 48, borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center' },
+  premiumToastTitle: { fontSize: 16, fontWeight: '800', color: '#FFFFFF', letterSpacing: 0.5 },
+  premiumToastSub: { fontSize: 14, color: 'rgba(255,255,255,0.9)', marginTop: 4, fontWeight: '500' },
+
   toastCard: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, paddingRight: 20, flexDirection: 'row', alignItems: 'center', gap: 14, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6, maxWidth: '90%' },
   toastIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center' },
   toastTitle: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
