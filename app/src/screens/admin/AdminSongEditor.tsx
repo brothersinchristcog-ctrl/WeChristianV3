@@ -70,6 +70,7 @@ export default function AdminSongEditor() {
 
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showUpdateSuccess, setShowUpdateSuccess] = useState(false);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const [songToDelete, setSongToDelete] = useState<{ id: string, title: string } | null>(null);
   const [syncReceipt, setSyncReceipt] = useState({ savedTo: '', id: '' });
@@ -207,7 +208,7 @@ export default function AdminSongEditor() {
         status: editStatus,
         youtubeId: editYoutubeId.trim()
       });
-      Alert.alert('✅ Updated', 'Song updated successfully in Salesforce!');
+      setShowUpdateSuccess(true);
       setEditingSong(null);
       fetchPostedSongs();
     } catch (err: any) {
@@ -260,7 +261,7 @@ export default function AdminSongEditor() {
   const renderSongItem = ({ item, index }: { item: WorshipSong; index: number }) => {
     const isTheme = (item.category || '').split(';').map(c => c.trim()).includes('Theme Songs');
     return (
-      <View style={styles.songItem}>
+      <TouchableOpacity style={styles.songItem} onPress={() => setAdminSelectedSong(item)}>
         <View style={styles.songIconBox}>
           <Music size={16} color="#1a2d5a" />
         </View>
@@ -291,7 +292,41 @@ export default function AdminSongEditor() {
             <Trash2 size={16} color="#ef4444" />
           </TouchableOpacity>
         </View>
-      </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const renderSongPreviewModal = () => {
+    if (!adminSelectedSong) return null;
+    return (
+      <Modal visible animationType="slide" transparent onRequestClose={() => setAdminSelectedSong(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 25, borderTopRightRadius: 25, height: '85%', padding: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
+              borderBottomWidth: 0.5, borderColor: '#cbd5e1', paddingBottom: 14, marginBottom: 14 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 17, fontWeight: '900', color: '#0f172a' }} numberOfLines={2}>{adminSelectedSong.title}</Text>
+                <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 3, fontWeight: '700' }}>{adminSelectedSong.titleTe || ''}</Text>
+                <Text style={{ fontSize: 10, color: '#c0392b', fontWeight: '800', marginTop: 4 }}>{adminSelectedSong.category || 'Other'}</Text>
+              </View>
+              <TouchableOpacity
+                style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}
+                onPress={() => setAdminSelectedSong(null)}>
+                <X size={20} color="#475569" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={{ fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, color: '#1a2d5a' }}>LYRICS & SCRIPTS · సాహిత్యం</Text>
+              <View style={{ borderRadius: 14, padding: 16, borderWidth: 0.5, borderColor: '#e2e8f0', backgroundColor: '#f8fafc' }}>
+                <Text style={{ fontSize: 13, lineHeight: 23, fontWeight: '500', fontStyle: 'italic', color: '#334155' }}>
+                  {adminSelectedSong.lyrics || 'Lyrics are being updated by the administrator.'}
+                </Text>
+              </View>
+              <View style={{ height: 60 }} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     );
   };
 
@@ -399,38 +434,6 @@ export default function AdminSongEditor() {
             </View>
           )}
         />
-
-        {/* Song Lyrics Preview Modal */}
-        {adminSelectedSong && (
-          <Modal visible animationType="slide" transparent onRequestClose={() => setAdminSelectedSong(null)}>
-            <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-              <View style={{ backgroundColor: '#fff', borderTopLeftRadius: 25, borderTopRightRadius: 25, height: '85%', padding: 20 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start',
-                  borderBottomWidth: 0.5, borderColor: '#cbd5e1', paddingBottom: 14, marginBottom: 14 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 17, fontWeight: '900', color: '#0f172a' }} numberOfLines={2}>{adminSelectedSong.title}</Text>
-                    <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 3, fontWeight: '700' }}>{adminSelectedSong.titleTe || ''}</Text>
-                    <Text style={{ fontSize: 10, color: '#c0392b', fontWeight: '800', marginTop: 4 }}>{adminSelectedSong.category || 'Other'}</Text>
-                  </View>
-                  <TouchableOpacity
-                    style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}
-                    onPress={() => setAdminSelectedSong(null)}>
-                    <X size={20} color="#475569" />
-                  </TouchableOpacity>
-                </View>
-                <ScrollView showsVerticalScrollIndicator={false}>
-                  <Text style={{ fontSize: 10, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10, color: '#1a2d5a' }}>LYRICS & SCRIPTS · సాహిత్యం</Text>
-                  <View style={{ borderRadius: 14, padding: 16, borderWidth: 0.5, borderColor: '#e2e8f0', backgroundColor: '#f8fafc' }}>
-                    <Text style={{ fontSize: 13, lineHeight: 23, fontWeight: '500', fontStyle: 'italic', color: '#334155' }}>
-                      {adminSelectedSong.lyrics || 'Lyrics are being updated by the administrator.'}
-                    </Text>
-                  </View>
-                  <View style={{ height: 60 }} />
-                </ScrollView>
-              </View>
-            </View>
-          </Modal>
-        )}
       </View>
     );
   };
@@ -685,6 +688,7 @@ export default function AdminSongEditor() {
       {/* Content */}
       {renderPostedList()}
       {renderPostModal()}
+      {renderSongPreviewModal()}
 
       {/* ── Category Picker Modal (kept but unused now – categories use inline chips) ── */}
 
@@ -812,6 +816,28 @@ export default function AdminSongEditor() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.successSecBtn} onPress={() => { setShowSuccess(false); resetForm(); }}>
                 <Text style={styles.successSecTxt}>Post Another Song</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* ── Update Success Modal ── */}
+      {showUpdateSuccess && (
+        <Modal transparent visible animationType="fade">
+          <View style={styles.successBg}>
+            <View style={styles.successCard}>
+              <View style={styles.successIconOuter}>
+                <View style={styles.successIconInner}>
+                  <CheckCircle size={36} color="#fff" />
+                </View>
+              </View>
+              <Text style={styles.successTitle}>Update Successful!</Text>
+              <Text style={styles.successDesc}>
+                The song details have been successfully updated in the database.
+              </Text>
+              <TouchableOpacity style={styles.successActionBtn} onPress={() => setShowUpdateSuccess(false)}>
+                <Text style={styles.successActionTxt}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -953,7 +979,7 @@ const styles = StyleSheet.create({
   infoBox: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10, backgroundColor: '#F0FDF4', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#A7F3D0', marginBottom: 20 },
   infoText: { flex: 1, fontSize: 11, color: '#065F46', lineHeight: 18, fontWeight: '600' },
 
-  saveBtn: { backgroundColor: '#2E6B4F', height: 48, borderRadius: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 4, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 5 },
+  saveBtn: { backgroundColor: '#2E6B4F', height: 48, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, elevation: 4, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 5 },
   saveBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.5 },
 
   // List

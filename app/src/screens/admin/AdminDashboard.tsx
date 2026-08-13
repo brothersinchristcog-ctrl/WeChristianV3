@@ -161,10 +161,25 @@ const AnimatedParticle = ({ left, size, duration, delay, color, opacity }: any) 
 };
 
 export default function AdminDashboard({ navigation, allTabs = [] }: any) {
-  const { setActiveTab } = useContext(AdminTabContext);
+  const { setActiveTab, dashboardScrollY, setDashboardScrollY } = useContext(AdminTabContext);
   const { member, user, signOut, setViewMode } = useAuth();
   const { activeChurch } = useChurch();
   
+  const scrollRef = React.useRef<ScrollView>(null);
+
+  React.useLayoutEffect(() => {
+    if (dashboardScrollY && scrollRef.current) {
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ y: dashboardScrollY, animated: false });
+      }, 0);
+    }
+  }, []);
+
+  const handleScroll = (event: any) => {
+    const y = event.nativeEvent.contentOffset.y;
+    if (setDashboardScrollY) setDashboardScrollY(y);
+  };
+
   // Extract first name for greeting if possible
   const fullName = member?.name || user?.displayName || 'Administrator';
   const firstName = fullName.split(' ')[0];
@@ -197,7 +212,13 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1e2b4d" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+      <ScrollView 
+        ref={scrollRef}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scroll}
+      >
         {/* New Admin Dashboard Top Card */}
         <View style={{ zIndex: 10, backgroundColor: '#F4F0EA', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 10 }}>
           <View style={[styles.heroSection, { borderColor: '#000000', borderWidth: 1, paddingHorizontal: 0, paddingVertical: 0, overflow: 'hidden', backgroundColor: '#FDFBF7' }]}>

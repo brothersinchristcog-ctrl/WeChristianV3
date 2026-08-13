@@ -119,6 +119,10 @@ export default function AdminFinanceDashboard({ navigation, routeParams }: any) 
   // Success Card State
   const [showSuccessCard, setShowSuccessCard] = useState(false);
 
+  // Expense View Modal State
+  const [showExpenseViewModal, setShowExpenseViewModal] = useState(false);
+  const [selectedExpenseForView, setSelectedExpenseForView] = useState<ChurchExpense | null>(null);
+
   // Generate Invoice Modal State
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [invoiceCategory, setInvoiceCategory] = useState('Sunday Service');
@@ -568,7 +572,15 @@ const openAddExpense = () => {
         total: (parseFloat(lineItems[t]?.qty) || 1) * (parseFloat(lineItems[t]?.price) || 0)
       }));
 
+      let newExpId = editExpenseId;
+      if (!editExpenseId) {
+        const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
+        const uniqueId = String(expenses.length + 1).padStart(6, '0');
+        newExpId = `Exp-${churchCode}-${uniqueId}`;
+      }
+
       const expenseData: Partial<ChurchExpense> = {
+        id: newExpId || undefined,
         category: addExpCategory,
         amount: grandTotal,
         date: expenseDate,
@@ -931,6 +943,9 @@ const openAddExpense = () => {
                             } else {
                               setSelectedCategoryExpenses(prev => [...prev, exp.id!]);
                             }
+                          } else {
+                            setSelectedExpenseForView(exp);
+                            setShowExpenseViewModal(true);
                           }
                         }}
                         onLongPress={() => {
@@ -2078,6 +2093,78 @@ const openAddExpense = () => {
         </View>
       </Modal>
 
+      {/* ── Expense Details View Modal ── */}
+      <Modal visible={showExpenseViewModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.categoryModal}>
+            <View style={styles.catModalHeader}>
+              <Text style={styles.catModalTitle}>Expense Details</Text>
+              <TouchableOpacity style={styles.catModalClose} onPress={() => setShowExpenseViewModal(false)}>
+                <X size={18} color="#1b2a4a" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={{ padding: 20 }}>
+              {selectedExpenseForView && (
+                <View style={{ backgroundColor: '#ffffff', borderRadius: 16, padding: 20, borderWidth: 1, borderColor: '#e5ddd0' }}>
+                  <Text style={{ fontFamily: FONTS.serif, fontSize: 20, color: '#1b2a4a', fontWeight: '700', marginBottom: 6 }}>
+                    {selectedExpenseForView.id || 'N/A'}
+                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#e5ddd0', paddingBottom: 16, marginBottom: 16 }}>
+                    <View>
+                      <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 4 }}>Date</Text>
+                      <Text style={{ fontFamily: FONTS.mono, fontSize: 14, color: '#241f1a' }}>{selectedExpenseForView.date}</Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 4 }}>Amount</Text>
+                      <Text style={{ fontFamily: FONTS.mono, fontSize: 18, color: '#1b2a4a', fontWeight: '700' }}>₹{selectedExpenseForView.amount.toLocaleString('en-IN')}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 4 }}>Category</Text>
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 15, color: '#241f1a' }}>{selectedExpenseForView.category}</Text>
+                  </View>
+
+                  <View style={{ marginBottom: 16 }}>
+                    <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 4 }}>Vendor / Title</Text>
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 15, color: '#241f1a' }}>{selectedExpenseForView.vendorName || selectedExpenseForView.title || 'N/A'}</Text>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 }}>
+                    <View>
+                      <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 4 }}>Status</Text>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 14, color: selectedExpenseForView.status === 'Pending' ? '#b45309' : '#15803d', fontWeight: '700' }}>{selectedExpenseForView.status || 'Paid'}</Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 4 }}>Payment Method</Text>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 14, color: '#241f1a' }}>{selectedExpenseForView.paymentMethod || 'Cash'}</Text>
+                    </View>
+                  </View>
+
+                  {selectedExpenseForView.lineItems && selectedExpenseForView.lineItems.length > 0 && (
+                    <View style={{ marginBottom: 20 }}>
+                      <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 8 }}>Line Items</Text>
+                      {selectedExpenseForView.lineItems.map((item, idx) => (
+                        <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#241f1a', flex: 1 }}>{item.type} x{item.quantity}</Text>
+                          <Text style={{ fontFamily: FONTS.mono, fontSize: 13, color: '#241f1a' }}>₹{item.total.toLocaleString('en-IN')}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {selectedExpenseForView.notes ? (
+                    <View style={{ padding: 12, backgroundColor: '#f4efe6', borderRadius: 8 }}>
+                      <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 4 }}>Notes</Text>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#241f1a' }}>{selectedExpenseForView.notes}</Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }

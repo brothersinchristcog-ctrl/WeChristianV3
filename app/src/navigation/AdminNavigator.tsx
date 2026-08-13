@@ -102,6 +102,7 @@ export default function AdminNavigator({ navigation, route }: any) {
   const [activeTab, setActiveTab] = useState(0);
   const [tabHistory, setTabHistory] = useState<number[]>([]);
   const [editingData, setEditingData] = useState(null);
+  const [dashboardScrollY, setDashboardScrollY] = useState(0);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -258,7 +259,7 @@ export default function AdminNavigator({ navigation, route }: any) {
 
   // We provide handleSetTab via setActiveTab so child components can push to history
   return (
-    <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack, setTabByName }}>
+    <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack, setTabByName, dashboardScrollY, setDashboardScrollY }}>
       <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
         <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : '#1a2d5a' }} />
         {activeTab !== 0 && (

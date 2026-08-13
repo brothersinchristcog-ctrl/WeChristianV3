@@ -122,6 +122,17 @@ class NotificationService {
           nav.navigate('AttendanceScreen');
           break;
         case 'birthday':
+          break;
+        case 'invoice':
+          nav.navigate('AdminRoot', { targetTab: 'Expense', highlightInvoiceId: id });
+          break;
+        case 'promise':
+          nav.navigate('Updates');
+          break;
+        case 'attendance':
+          nav.navigate('AttendanceScreen');
+          break;
+        case 'birthday':
         case 'anniversary':
         case 'baptism':
         case 'celebration':
@@ -131,10 +142,13 @@ class NotificationService {
         case 'youtube_live':
           {
             const liveUrl = remoteMessage.data?.url || 'https://www.youtube.com/@Brothersinchristfellowship/live';
-            Linking.openURL(liveUrl).catch(err => {
+            Linking.openURL(liveUrl).catch((err: any) => {
               console.error("Couldn't open live stream URL", err);
             });
           }
+          break;
+        case 'LIVE_CELEBRATION':
+          nav.navigate('LiveCelebrationsChat', {});
           break;
         default:
           // Fallback: navigate to Updates if it has a broadcast ID

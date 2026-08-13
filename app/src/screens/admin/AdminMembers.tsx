@@ -82,9 +82,12 @@ export default function AdminMembers() {
     phone: '',
     userType: 'member',
     dob: '',
-    city: ''
+    city: '',
+    baptismDate: '',
+    anniversaryDate: ''
   });
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [activeDateField, setActiveDateField] = useState<'dob' | 'baptismDate' | 'anniversaryDate'>('dob');
 
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
@@ -279,6 +282,8 @@ export default function AdminMembers() {
           userType: newMemberForm.userType,
           dob: newMemberForm.dob,
           city: newMemberForm.city,
+          baptismDate: newMemberForm.baptismDate,
+          anniversaryDate: newMemberForm.anniversaryDate,
         });
       } else {
         res = await FirestoreService.adminAddMember(activeChurch?.id || '', {
@@ -288,13 +293,15 @@ export default function AdminMembers() {
           dob: newMemberForm.dob,
           churchId: activeChurch?.id,
           city: newMemberForm.city,
+          baptismDate: newMemberForm.baptismDate,
+          anniversaryDate: newMemberForm.anniversaryDate,
         });
       }
 
       if (res.success) {
         setAddModalVisible(false);
         setEditMemberId(null);
-        setNewMemberForm({ name: '', phone: '', userType: 'member', dob: '', city: '' });
+        setNewMemberForm({ name: '', phone: '', userType: 'member', dob: '', city: '', baptismDate: '', anniversaryDate: '' });
         fetchMembers();
 
         setTimeout(() => {
@@ -587,7 +594,9 @@ export default function AdminMembers() {
                             phone: member.phone || '',
                             userType: member.userType || 'member',
                             dob: member.dob || '',
-                            city: member.city || member.village || ''
+                            city: member.city || member.village || '',
+                            baptismDate: member.baptismDate || member.Baptism_Date__c || '',
+                            anniversaryDate: member.anniversaryDate || member.Anniversary_Date__c || ''
                           });
                           setAddModalVisible(true);
                         }}
@@ -827,6 +836,32 @@ export default function AdminMembers() {
               </TouchableOpacity>
             </View>
 
+            {/* Baptism Date */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Baptism Date</Text>
+              <TouchableOpacity
+                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
+                onPress={() => { setActiveDateField('baptismDate'); setDatePickerVisibility(true); }}
+              >
+                <Text style={{ color: newMemberForm.baptismDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
+                  {newMemberForm.baptismDate || 'Select Date'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Anniversary Date */}
+            <View style={{ marginBottom: 16 }}>
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Wedding Anniversary Date</Text>
+              <TouchableOpacity
+                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
+                onPress={() => { setActiveDateField('anniversaryDate'); setDatePickerVisibility(true); }}
+              >
+                <Text style={{ color: newMemberForm.anniversaryDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
+                  {newMemberForm.anniversaryDate || 'Select Date'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <View style={{ marginBottom: 24 }}>
               <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Role</Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
@@ -861,7 +896,8 @@ export default function AdminMembers() {
         mode="date"
         onConfirm={(date) => {
           setDatePickerVisibility(false);
-          setNewMemberForm({...newMemberForm, dob: date.toISOString().split('T')[0]});
+          const formatted = date.toISOString().split('T')[0];
+          setNewMemberForm(prev => ({ ...prev, [activeDateField]: formatted }));
         }}
         onCancel={() => setDatePickerVisibility(false)}
         maximumDate={new Date()}

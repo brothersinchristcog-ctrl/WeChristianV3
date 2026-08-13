@@ -9,9 +9,9 @@ import {
   ActivityIndicator,
   TextInput,
   Modal,
-  FlatList
+  FlatList,
+  Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Search, BookOpen, CheckSquare, Square, BookMarked, Filter, ChevronDown, X } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -453,8 +453,8 @@ export default function BibleSearchScreen({ route, navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
-      <StatusBar barStyle="light-content" />
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Header */}
       <View style={styles.header}>
@@ -707,7 +707,7 @@ export default function BibleSearchScreen({ route, navigation }: any) {
           </View>
         </TouchableOpacity>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -717,11 +717,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingBottom: 20,
     backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },

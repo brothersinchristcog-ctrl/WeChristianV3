@@ -289,23 +289,12 @@ export default function HomeScreen() {
   const [liveCelebrations, setLiveCelebrations] = useState<any[]>([]);
   const pan = useRef(new Animated.ValueXY()).current;
   const emojiAnim = useRef(new Animated.Value(0)).current;
+  const waveAnim = useRef(new Animated.Value(0)).current;
   const [currentEmojiIdx, setCurrentEmojiIdx] = useState(0);
 
   const fetchLiveCelebrations = async () => {
     if (!activeChurch?.id) return;
     try {
-      // For simplicity in MVP, check recent celebrations or use a direct query
-      // To save reads on Home Screen, we can check if there's a live_celebrations doc for today
-      const todayStr = new Date().toISOString().split('T')[0];
-      const docSnap = await firestore()
-        .collection('churches')
-        .doc(activeChurch.id)
-        .collection('live_celebrations')
-        .doc(todayStr)
-        .get();
-      
-      // If doc doesn't exist, maybe it hasn't been created, but wait we need to know who is celebrating.
-      // Alternatively, we use FirestoreService to get today's birthdays etc.
       const FirestoreService = require('../services/FirestoreService').default;
       const allCelebs = await FirestoreService.getAllCelebrations(activeChurch.id);
       
@@ -342,9 +331,18 @@ export default function HomeScreen() {
       const todayMonthDay = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const isToday = (dateString?: string) => {
         if (!dateString) return false;
-        const parts = dateString.split('T')[0].split('-');
+        const datePart = dateString.split('T')[0];
+        const parts = datePart.split(/[-/]/);
         if (parts.length >= 3) {
-          return `${parts[1]}-${parts[2]}` === todayMonthDay;
+          let mm, dd;
+          if (parts[0].length === 4) {
+            mm = parts[1].padStart(2, '0');
+            dd = parts[2].padStart(2, '0');
+          } else {
+            dd = parts[0].padStart(2, '0');
+            mm = parts[1].padStart(2, '0');
+          }
+          return `${mm}-${dd}` === todayMonthDay;
         }
         return false;
       };
@@ -374,7 +372,8 @@ export default function HomeScreen() {
   useEffect(() => {
     fetchLiveCelebrations();
     
-    // Load saved position
+    // Load saved position (Commented out to reset position)
+    /*
     AsyncStorage.getItem('@live_celebrations_pos').then(val => {
       if (val) {
         try {
@@ -387,7 +386,8 @@ export default function HomeScreen() {
         } catch (e) {}
       }
     });
-  }, [activeChurch?.id]);
+    */
+  }, [activeChurch?.id, member]);
 
   useEffect(() => {
     if (liveCelebrations.length === 0) return;
@@ -400,6 +400,19 @@ export default function HomeScreen() {
       });
     }, 5000);
     return () => clearInterval(interval);
+  }, [liveCelebrations.length]);
+
+  useEffect(() => {
+    if (liveCelebrations.length === 0) return;
+    const wave = Animated.loop(
+      Animated.sequence([
+        Animated.timing(waveAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(waveAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
+        Animated.delay(1500)
+      ])
+    );
+    wave.start();
+    return () => wave.stop();
   }, [liveCelebrations.length]);
 
   const panResponder = useRef(
@@ -1093,22 +1106,24 @@ export default function HomeScreen() {
 
       {liveCelebrations.length > 0 && (
         <Animated.View
-          
+          {...panResponder.panHandlers}
           style={[
             styles.floatingBtnContainer,
-            {}
+            { transform: [{ translateX: pan.x }, { translateY: pan.y }] }
           ]}
         >
-          <TouchableOpacity 
-            activeOpacity={0.9} 
-            onPress={() => navigation.navigate('LiveCelebrationsChat', { celebrations: liveCelebrations })}
-            style={styles.floatingBtn}
-          >
-            <Animated.Text style={[styles.floatingEmoji, { opacity: emojiAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
-              {getEmoji()}
-            </Animated.Text>
-            <View style={styles.floatingIndicator} />
-          </TouchableOpacity>
+          <Animated.View style={{ transform: [{ scale: waveAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] }) }] }}>
+            <TouchableOpacity 
+              activeOpacity={0.9} 
+              onPress={() => navigation.navigate('LiveCelebrationsChat', { celebrations: liveCelebrations })}
+              style={styles.floatingBtn}
+            >
+              <Animated.Text style={[styles.floatingEmoji, { opacity: emojiAnim.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
+                {getEmoji()}
+              </Animated.Text>
+              <View style={styles.floatingIndicator} />
+            </TouchableOpacity>
+          </Animated.View>
           <Text style={styles.floatingLabel}>Live Celebrations</Text>
         </Animated.View>
       )}
@@ -1132,16 +1147,16 @@ const styles = StyleSheet.create({
 
   floatingBtnContainer: {
     position: 'absolute',
-    bottom: 120,
+    top: '45%', // middle of the right side
     right: 20,
     alignItems: 'center',
     zIndex: 999,
     elevation: 1000,
   },
   floatingBtn: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     backgroundColor: '#0f172a',
     justifyContent: 'center',
     alignItems: 'center',
@@ -1154,28 +1169,28 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   floatingEmoji: {
-    fontSize: 28,
+    fontSize: 32,
   },
   floatingIndicator: {
     position: 'absolute',
-    top: -2,
-    right: -2,
+    top: 6,
+    right: 6,
     width: 14,
     height: 14,
     borderRadius: 7,
-    backgroundColor: '#ef4444',
+    backgroundColor: '#22c55e',
     borderWidth: 2,
     borderColor: '#0f172a',
   },
   floatingLabel: {
-    color: '#1a2d5a',
+    color: '#d4af37',
     fontSize: 10,
     fontWeight: '700',
     marginTop: 4,
-    textShadowColor: '#fff',
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.7)',
+    backgroundColor: '#1a2d5a',
     paddingHorizontal: 4,
     borderRadius: 4,
     overflow: 'hidden'

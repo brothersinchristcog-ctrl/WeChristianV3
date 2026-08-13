@@ -338,11 +338,11 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16 },
 
   // Stats
-  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16, marginTop: 16 },
-  statBox: { flex: 1, backgroundColor: colors.paper, borderRadius: 10, paddingVertical: 10, alignItems: 'center', elevation: 2, shadowColor: colors.ink, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, borderWidth: 1, borderColor: 'rgba(21,28,51,0.05)', position: 'relative' },
-  statNotch: { position: 'absolute', top: -1, width: 20, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3 },
-  num: { fontFamily: serifFont, fontSize: 22, fontWeight: '600', marginBottom: 4 },
-  statLabel: { fontSize: 9.5, textTransform: 'uppercase', letterSpacing: 1, color: colors.inkSoft, fontWeight: '600' },
+  stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20, marginTop: 16 },
+  statBox: { flex: 1, backgroundColor: colors.paper, borderRadius: 16, paddingVertical: 22, alignItems: 'center', elevation: 4, shadowColor: colors.ink, shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, borderWidth: 1, borderColor: 'rgba(21,28,51,0.06)', position: 'relative' },
+  statNotch: { position: 'absolute', top: -1, width: 32, height: 4, borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
+  num: { fontFamily: serifFont, fontSize: 32, fontWeight: '700', marginBottom: 6 },
+  statLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, color: colors.inkSoft, fontWeight: '700' },
 
   // Alert
   alert: { backgroundColor: colors.clayBg, borderColor: colors.clayLine, borderWidth: 1, borderLeftWidth: 3, borderLeftColor: colors.clay, borderRadius: 12, padding: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 26, alignItems: 'flex-start' },

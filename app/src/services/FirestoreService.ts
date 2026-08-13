@@ -239,11 +239,19 @@ class FirestoreService {
   async createExpense(data: Partial<ChurchExpense>): Promise<string> {
     try {
       const expensesRef = await this.getCollection('expenses');
-      const docRef = await expensesRef.add({
-        ...data,
-        createdAt: firestore.FieldValue.serverTimestamp()
-      });
-      return docRef.id;
+      if (data.id) {
+        await expensesRef.doc(data.id).set({
+          ...data,
+          createdAt: firestore.FieldValue.serverTimestamp()
+        });
+        return data.id;
+      } else {
+        const docRef = await expensesRef.add({
+          ...data,
+          createdAt: firestore.FieldValue.serverTimestamp()
+        });
+        return docRef.id;
+      }
     } catch (error) {
       console.error('Error creating expense:', error);
       throw error;

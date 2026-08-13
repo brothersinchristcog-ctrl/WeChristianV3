@@ -261,7 +261,7 @@ export default function ProfileScreen({ navigation }: any) {
 
   const toggleBiometrics = async (val: boolean) => {
     if (val) {
-      const success = await SecurityService.authenticate();
+      const success = await SecurityService.authenticate(activeChurch?.name);
       if (success) {
         await SecurityService.setBiometricPreference(true);
         setBiometricEnabled(true);

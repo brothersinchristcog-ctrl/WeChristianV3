@@ -201,16 +201,18 @@ export default function AdminSermonEditor() {
 
   const closeSuccess = () => {
     setShowSuccess(false);
-    setActiveTab(3);
+    setActiveTab(0);
   };
 
   return (
     <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         {/* ── Hero Section ── */}
         <View style={styles.hero}>
           <View style={styles.heroTitleRow}>
-            <TouchableOpacity onPress={() => setActiveTab(3)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
               <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>

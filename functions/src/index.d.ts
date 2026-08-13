@@ -1,4 +1,5 @@
 import * as functionsCompat from 'firebase-functions/v1';
+export { weCelebrationDailySweep, weCelebrationWishCreatedTrigger, weCelebrationBatchedWishes, executeBatchedWishes, triggerMorningCelebrations } from './celebrations.js';
 /**
  * 📖 GET DAILY PROMISE
  */

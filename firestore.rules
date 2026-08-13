@@ -260,6 +260,14 @@ service cloud.firestore {
         match /messages/{msgId} {
           allow read, write: if isAuthenticated();
         }
+
+        match /presence/{docId} {
+          allow read, write: if isAuthenticated();
+        }
+
+        match /celebrants/{celebId} {
+          allow read, write: if isAuthenticated();
+        }
       }
 
       // Attendance Requests & Responses

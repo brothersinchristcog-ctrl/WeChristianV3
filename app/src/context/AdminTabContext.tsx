@@ -7,6 +7,8 @@ export interface AdminTabContextType {
   setEditingData: (data: any) => void;
   goBack: () => void;
   setTabByName?: (name: string) => void;
+  dashboardScrollY?: number;
+  setDashboardScrollY?: (y: number) => void;
 }
 
 export const AdminTabContext = createContext<AdminTabContextType>({
@@ -15,4 +17,6 @@ export const AdminTabContext = createContext<AdminTabContextType>({
   editingData: null,
   setEditingData: () => {},
   goBack: () => {},
+  dashboardScrollY: 0,
+  setDashboardScrollY: () => {},
 });

@@ -10,7 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Lock } from 'lucide-react-native';
 
 import { AuthProvider, useAuth } from '../context/AuthContext';
-import { ChurchProvider } from '../context/ChurchContext';
+import { ChurchProvider, useChurch } from '../context/ChurchContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import Theme from '../theme/Theme';
 import AdminNavigator from './AdminNavigator'; 
@@ -53,6 +53,7 @@ import CreatePastorEvent from '../screens/admin/pastor_events/CreatePastorEvent'
 import PastorEventRoutePlanner from '../screens/admin/pastor_events/PastorEventRoutePlanner';
 import PastorEventMap from '../screens/admin/pastor_events/PastorEventMap';
 import OnlineMeetingsScreen from '../screens/OnlineMeetingsScreen';
+import OnlineMeetingDetailScreen from '../screens/OnlineMeetingDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -210,6 +211,7 @@ function TabNavigator() {
 
 function Navigation() {
   const { user, member, loading, viewMode, setViewMode } = useAuth();
+  const { activeChurch } = useChurch();
   const navigation = useNavigation();
   const [onboardingComplete, setOnboardingComplete] = React.useState<boolean | null>(null);
   const [showSplash, setShowSplash] = useState(true);
@@ -233,7 +235,7 @@ function Navigation() {
         
         if (isEnabled && isAvailable) {
           setIsLocked(true);
-          const success = await SecurityService.authenticate();
+          const success = await SecurityService.authenticate(activeChurch?.name);
           if (success) setIsLocked(false);
         } else {
           setIsLocked(false);
@@ -256,7 +258,7 @@ function Navigation() {
           
           if (isEnabled && isAvailable) {
             setIsLocked(true);
-            const success = await SecurityService.authenticate();
+            const success = await SecurityService.authenticate(activeChurch?.name);
             if (success) setIsLocked(false);
           }
         };
@@ -419,7 +421,7 @@ function Navigation() {
           <TouchableOpacity 
             style={lockStyles.button}
             onPress={async () => {
-              const success = await SecurityService.performSecurityCheck();
+              const success = await SecurityService.performSecurityCheck(activeChurch?.name);
               if (success) setIsLocked(false);
             }}
           >
@@ -473,6 +475,7 @@ function Navigation() {
             <Stack.Screen name="ContactUs" component={ContactUsScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
             <Stack.Screen name="OnlineMeetings" component={OnlineMeetingsScreen} />
+            <Stack.Screen name="OnlineMeetingDetail" component={OnlineMeetingDetailScreen} />
             <Stack.Screen name="LiveCelebrationsChat" component={LiveCelebrationsChat} />
           </>
         ) : (
