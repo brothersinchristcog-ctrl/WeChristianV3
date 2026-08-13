@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Dimensions, Platform, Image } from 'react-native';
-import { ChevronLeft, Search, CheckCircle2, SlidersHorizontal, Gift, Send } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, Dimensions, Platform, Image, Modal } from 'react-native';
+import { ChevronLeft, Search, CheckCircle2, SlidersHorizontal, Gift, Send, Info, CheckCircle, X } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
 import Theme from '../../theme/Theme';
@@ -40,6 +40,9 @@ export default function AdminCelebrationsList({ category, activeTab, onSelectMem
   const [isSendingAll, setIsSendingAll] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [members, setMembers] = useState<any[]>([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -190,43 +193,35 @@ export default function AdminCelebrationsList({ category, activeTab, onSelectMem
 
   const handleAutoSendAll = async () => {
     if (filteredMembers.length === 0) return;
-    
-    Alert.alert(
-      'Confirm Auto-Send',
-      `Are you sure you want to automatically send push notifications to all ${filteredMembers.length} members celebrating today?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send to All',
-          style: 'default',
-          onPress: async () => {
-            setIsSendingAll(true);
-            try {
-              for (const member of filteredMembers) {
-                const title = `${category === 'Birthday' ? '🎂 Happy Birthday' : category === 'Wedding Anniversary' ? '💒 Happy Anniversary' : '🎉 Happy Baptism Anniversary'}, ${member.name}!`;
-                let content = `Praise the Lord!\n\nDear ${member.name}, wishing you a very Happy ${category}! May God bless you abundantly.\n\nWith Love ❤️\n${activeChurch?.name || 'Your Church'}`;
-                
-                await FirestoreService.createNotificationBroadcast({
-                  title,
-                  content,
-                  date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
-                  type: 'celebration',
-                  targetChurchId: activeChurch?.id || 'KhmBeNWxlrxwS1hGhuw',
-                  targetPhone: member.phone,
-                  silent: false,
-                });
-              }
-              Alert.alert('Success', `Automated wishes sent to ${filteredMembers.length} members!`);
-            } catch (err) {
-              console.error('Error auto sending:', err);
-              Alert.alert('Error', 'An error occurred while sending automated wishes.');
-            } finally {
-              setIsSendingAll(false);
-            }
-          }
-        }
-      ]
-    );
+    setShowConfirmModal(true);
+  };
+
+  const executeAutoSendAll = async () => {
+    setShowConfirmModal(false);
+    setIsSendingAll(true);
+    try {
+      for (const member of filteredMembers) {
+        const title = `${category === 'Birthday' ? '🎂 Happy Birthday' : category === 'Wedding Anniversary' ? '💒 Happy Anniversary' : '🎉 Happy Baptism Anniversary'}, ${member.name}!`;
+        let content = `Praise the Lord!\n\nDear ${member.name}, wishing you a very Happy ${category}! May God bless you abundantly.\n\nWith Love ❤️\n${activeChurch?.name || 'Your Church'}`;
+        
+        await FirestoreService.createNotificationBroadcast({
+          title,
+          content,
+          date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
+          type: 'celebration',
+          targetChurchId: activeChurch?.id || 'KhmBeNWxlrxwS1hGhuw',
+          targetPhone: member.phone,
+          silent: false,
+        });
+      }
+      setSuccessMessage(`Automated wishes sent to ${filteredMembers.length} members!`);
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error('Error auto sending:', err);
+      Alert.alert('Error', 'An error occurred while sending automated wishes.');
+    } finally {
+      setIsSendingAll(false);
+    }
   };
 
   if (loading) {
@@ -296,6 +291,48 @@ export default function AdminCelebrationsList({ category, activeTab, onSelectMem
         ))}
 
       </ScrollView>
+
+      {/* Confirm Auto-Send Modal */}
+      <Modal visible={showConfirmModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={[styles.modalIconBox, { backgroundColor: '#E0E7FF' }]}>
+              <Info size={32} color="#4338CA" />
+            </View>
+            <Text style={styles.modalTitle}>Confirm Auto-Send</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to automatically send push notifications to all {filteredMembers.length} members celebrating today?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity style={styles.modalCancelBtn} onPress={() => setShowConfirmModal(false)}>
+                <Text style={styles.modalCancelTxt}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalConfirmBtn} onPress={executeAutoSendAll}>
+                <Text style={styles.modalConfirmTxt}>Send to All</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Success Modal */}
+      <Modal visible={showSuccessModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShowSuccessModal(false)}>
+              <X size={20} color="#6B7280" />
+            </TouchableOpacity>
+            <View style={[styles.modalIconBox, { backgroundColor: '#D1FAE5' }]}>
+              <CheckCircle size={32} color="#10B981" />
+            </View>
+            <Text style={styles.modalTitle}>Success!</Text>
+            <Text style={styles.modalMessage}>{successMessage}</Text>
+            <TouchableOpacity style={styles.modalDoneBtn} onPress={() => setShowSuccessModal(false)}>
+              <Text style={styles.modalDoneTxt}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -497,5 +534,92 @@ const styles = StyleSheet.create({
     borderColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  modalIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  modalMessage: {
+    fontSize: 15,
+    color: '#6B7280',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  modalCancelTxt: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  modalConfirmBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#37469B',
+    alignItems: 'center',
+  },
+  modalConfirmTxt: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  modalDoneBtn: {
+    width: '100%',
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+  },
+  modalDoneTxt: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  modalCloseBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    padding: 8,
   }
 });
