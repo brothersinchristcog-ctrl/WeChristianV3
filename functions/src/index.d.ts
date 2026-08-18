@@ -1,4 +1,5 @@
 import * as functionsCompat from 'firebase-functions/v1';
+export { weCelebrationDailySweepV3, weCelebrationWishCreatedTrigger, weCelebrationBatchedWishes, executeBatchedWishes, triggerMorningCelebrations } from './celebrations.js';
 /**
  * 📖 GET DAILY PROMISE
  */
@@ -48,20 +49,17 @@ export declare const notifyMembersV2: import("firebase-functions/v2/https").Http
  */
 export declare const automatedDailyPromise: import("firebase-functions/v2/scheduler").ScheduleFunction;
 /**
- * ⏰ AUTOMATED DAILY BIRTHDAYS SCHEDULER
- * Scheduled to run every day at 08:00 AM IST (02:30 AM UTC)
+ * ⏰ AUTOMATED DAILY BIRTHDAYS TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export declare const triggerDailyBirthdays: import("firebase-functions/v2/scheduler").ScheduleFunction;
+export declare const triggerAutomatedBirthdays: import("firebase-functions/v2/https").HttpsFunction;
 /**
- * ⏰ AUTOMATED DAILY ANNIVERSARIES SCHEDULER
- * Scheduled to run every day at 08:30 AM IST (03:00 AM UTC)
+ * ⏰ AUTOMATED DAILY ANNIVERSARIES TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export declare const triggerDailyAnnivs: import("firebase-functions/v2/scheduler").ScheduleFunction;
+export declare const triggerAutomatedAnniversaries: import("firebase-functions/v2/https").HttpsFunction;
 /**
- * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES SCHEDULER
- * Scheduled to run every day at 07:00 AM IST
+ * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export declare const triggerDailyBaptisms: import("firebase-functions/v2/scheduler").ScheduleFunction;
+export declare const triggerAutomatedBaptisms: import("firebase-functions/v2/https").HttpsFunction;
 /**
  * 📣 ON BROADCAST CREATED TRIGGER (Gen 2)
  * Automatically sends push notifications when a new broadcast is added to Firestore (e.g. Emergency Meeting or custom admin updates)
@@ -95,6 +93,19 @@ export declare const triggerTestYouTubeLive: import("firebase-functions/v2/https
     broadcastId: any;
     message?: never;
 }>, unknown>;
+export declare const testBdaysV10: functionsCompat.HttpsFunction;
+export declare const testAnnivsV1: functionsCompat.HttpsFunction;
+export declare const testBaptismsV1: functionsCompat.HttpsFunction;
 export * from './payments.js';
 export * from './checkPaymentStatus.js';
+/**
+ * 🎥 CREATE GOOGLE MEET (REST API)
+ * Creates an "OPEN" Google Meet link using a Service Account
+ */
+export declare const createGoogleMeet: import("firebase-functions/v2/https").CallableFunction<any, Promise<{
+    success: boolean;
+    meetingUri: any;
+    meetingId: any;
+}>, unknown>;
+export * from './notifications.js';
 //# sourceMappingURL=index.d.ts.map

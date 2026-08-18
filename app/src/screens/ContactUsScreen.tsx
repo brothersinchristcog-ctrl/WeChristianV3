@@ -142,13 +142,21 @@ export default function ContactUsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Header */}
+      {/* Hero Header Card */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={22} color="#7c0c14" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Contact Us</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <ChevronLeft size={22} color="#fff" />
+            <Text style={styles.backBtnTxt}>Back</Text>
+          </TouchableOpacity>
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeTxt}>⛪ Church</Text>
+          </View>
+        </View>
+        <View style={styles.headerBottom}>
+          <Text style={styles.headerTitle}>Contact Us</Text>
+          <Text style={styles.headerSub}>Reach out, we'd love to hear from you</Text>
+        </View>
       </View>
 
       {loading ? (
@@ -278,32 +286,68 @@ export default function ContactUsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f5f0f0' },
+  safe: { flex: 1, backgroundColor: '#1a2d5a' },
 
   header: {
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: '#f5f0f0',
+    marginBottom: 20,
+    paddingTop: 12,
+  },
+  headerBottom: {
+    paddingLeft: 4,
+  },
+  headerBadge: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  headerBadgeTxt: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   backBtn: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 4,
+  },
+  backBtnTxt: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
-    color: '#1a0a0b',
-    letterSpacing: 0.3,
+    color: '#fff',
+    marginBottom: 4,
+  },
+  headerSub: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.65)',
+    fontWeight: '500',
   },
 
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f0f0' },
 
-  scroll: { flex: 1 },
+  scroll: { flex: 1, backgroundColor: '#f5f0f0' },
   scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 40 },
 
   /* Details Card */

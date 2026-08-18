@@ -10,4 +10,13 @@ config.resolver.blockList = [
   /.*\/build\/kotlin\/compileKotlin\/.*/
 ];
 
+const path = require('path');
+const workspaceRoot = path.resolve(__dirname, '../');
+
+config.watchFolders = [...(config.watchFolders || []), workspaceRoot];
+config.resolver.nodeModulesPaths = [
+  path.resolve(__dirname, 'node_modules'),
+  path.resolve(workspaceRoot, 'node_modules'),
+];
+
 module.exports = config;

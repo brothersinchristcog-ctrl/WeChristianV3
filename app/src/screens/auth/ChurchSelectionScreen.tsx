@@ -14,22 +14,35 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useChurch } from '../../context/ChurchContext';
 import { Church, Search, ArrowRight, Plus } from 'lucide-react-native';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import { SubscriptionGuard } from '../../services/SubscriptionGuard';
+import * as Application from 'expo-application';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'ChurchSelection'>;
+  route: RouteProp<AuthStackParamList, 'ChurchSelection'>;
 };
 
-export default function ChurchSelectionScreen({ navigation }: Props) {
+export default function ChurchSelectionScreen({ navigation, route }: Props) {
   const { setChurchId } = useChurch();
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(route.params?.code || '');
   const [loading, setLoading] = useState(false);
-  const handleJoinByCode = async () => {
-    const trimmed = code.trim().toUpperCase();
+  const initialized = React.useRef(false);
+
+  React.useEffect(() => {
+    if (route.params?.code && !initialized.current) {
+      initialized.current = true;
+      handleJoinByCode(route.params.code);
+    }
+  }, [route.params?.code]);
+
+  const handleJoinByCode = async (overrideCode?: string) => {
+    const codeToUse = (typeof overrideCode === 'string' ? overrideCode : code);
+    const trimmed = codeToUse.trim().toUpperCase();
     if (trimmed.length < 4) {
       Alert.alert('Invalid Code', 'Please enter a valid Church Code.');
       return;
@@ -70,7 +83,7 @@ export default function ChurchSelectionScreen({ navigation }: Props) {
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.iconCircle}>
-                <Church size={40} color="#fff" />
+                <Church size={40} color="#D9A05B" />
               </View>
               <Text style={styles.title}>Join Your Church</Text>
               <Text style={styles.subtitle}>
@@ -80,7 +93,7 @@ export default function ChurchSelectionScreen({ navigation }: Props) {
 
             {/* Code Section */}
             <View style={styles.section}>
-                <Text style={styles.label}>ENTER CHURCH CODE</Text>
+                <Text style={[styles.label, { color: '#D9A05B' }]}>ENTER CHURCH CODE</Text>
                 <Text style={styles.hint}>
                   Your church admin will provide you with a unique code (e.g. COGBLR)
                 </Text>
@@ -95,15 +108,15 @@ export default function ChurchSelectionScreen({ navigation }: Props) {
                 />
                 <TouchableOpacity
                   style={[styles.primaryBtn, (!code.trim() || loading) && styles.btnDisabled]}
-                  onPress={handleJoinByCode}
+                  onPress={() => handleJoinByCode()}
                   disabled={!code.trim() || loading}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#fff" />
+                    <ActivityIndicator color="#0f172a" />
                   ) : (
                     <>
                       <Text style={styles.primaryBtnTxt}>Join Church</Text>
-                      <ArrowRight size={20} color="#fff" />
+                      <ArrowRight size={20} color="#0f172a" />
                     </>
                   )}
                 </TouchableOpacity>
@@ -111,12 +124,17 @@ export default function ChurchSelectionScreen({ navigation }: Props) {
 
             {/* Create Church */}
             <View style={styles.createSection}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', marginVertical: 24 }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: '#1e293b' }} />
+                <Text style={{ color: '#64748b', marginHorizontal: 16, fontSize: 13 }}>or</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: '#1e293b' }} />
+              </View>
               <Text style={styles.createTitle}>Are you a Church Admin?</Text>
               <TouchableOpacity
                 style={styles.createBtn}
                 onPress={() => navigation.navigate('CreateChurch')}
               >
-                <Plus size={18} color="#1a2d5a" />
+                <Plus size={18} color="#D9A05B" />
                 <Text style={styles.createBtnTxt}>Register Your Church</Text>
               </TouchableOpacity>
             </View>
@@ -135,10 +153,10 @@ const styles = StyleSheet.create({
   iconCircle: {
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: '#1a2d5a', justifyContent: 'center', alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#1a2d5a', shadowOpacity: 0.6, shadowRadius: 20, elevation: 10,
+    marginBottom: 16, borderWidth: 1, borderColor: '#D9A05B',
+    shadowColor: '#D9A05B', shadowOpacity: 0.3, shadowRadius: 20, elevation: 10,
   },
-  title: { color: '#f8fafc', fontSize: 26, fontWeight: '800', marginBottom: 8 },
+  title: { color: '#f8fafc', fontSize: 26, fontWeight: '800', marginBottom: 8, fontFamily: 'serif' },
   subtitle: { color: '#94a3b8', fontSize: 14, textAlign: 'center', lineHeight: 20 },
 
   tabs: {
@@ -162,12 +180,12 @@ const styles = StyleSheet.create({
   },
 
   primaryBtn: {
-    backgroundColor: '#1a2d5a', borderRadius: 14, paddingVertical: 16,
+    backgroundColor: '#D9A05B', borderRadius: 14, paddingVertical: 16,
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10,
-    elevation: 4, shadowColor: '#1a2d5a', shadowOpacity: 0.5, shadowRadius: 10,
+    elevation: 4, shadowColor: '#D9A05B', shadowOpacity: 0.3, shadowRadius: 10,
   },
   btnDisabled: { opacity: 0.5 },
-  primaryBtnTxt: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  primaryBtnTxt: { color: '#0f172a', fontSize: 16, fontWeight: '800' },
 
   searchRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   searchInput: {
@@ -191,13 +209,13 @@ const styles = StyleSheet.create({
   noResults: { color: '#64748b', textAlign: 'center', marginTop: 16, fontSize: 13 },
 
   createSection: {
-    borderTopWidth: 1, borderTopColor: '#1e293b',
-    paddingTop: 28, alignItems: 'center', gap: 12,
+    alignItems: 'center', gap: 12,
   },
   createTitle: { color: '#64748b', fontSize: 13 },
   createBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#f1f5f9', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20,
+    backgroundColor: 'transparent', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20,
+    borderWidth: 1, borderColor: '#D9A05B',
   },
-  createBtnTxt: { color: '#1a2d5a', fontSize: 14, fontWeight: '700' },
+  createBtnTxt: { color: '#D9A05B', fontSize: 14, fontWeight: '700' },
 });

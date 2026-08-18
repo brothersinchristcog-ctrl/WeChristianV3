@@ -3,14 +3,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { Home, Heart, BookOpen, HandCoins, User, ShieldCheck, Users as UsersSwitch } from 'lucide-react-native';
-import { ActivityIndicator, View, Text, StyleSheet, Alert, Platform, TouchableOpacity, AppState, Image } from 'react-native';
+import { ActivityIndicator, View, Text, StyleSheet, Alert, Platform, TouchableOpacity, AppState, Image, Animated, PanResponder, Dimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Lock } from 'lucide-react-native';
 
 import { AuthProvider, useAuth } from '../context/AuthContext';
-import { ChurchProvider } from '../context/ChurchContext';
+import { ChurchProvider, useChurch } from '../context/ChurchContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import Theme from '../theme/Theme';
 import AdminNavigator from './AdminNavigator'; 
@@ -23,6 +23,8 @@ import SplashScreen from '../screens/auth/SplashScreen';
 import OnboardingScreen from '../screens/auth/OnboardingScreen';
 
 // Member Screens
+import CelebrationScreen from '../screens/CelebrationScreen';
+import LiveCelebrationsChat from '../screens/LiveCelebrationsChat';
 import HomeScreen from '../screens/HomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import PromiseArchiveScreen from '../screens/PromiseArchiveScreen';
@@ -45,10 +47,13 @@ import SubscriptionScreen from '../screens/SubscriptionScreen';
 import BibleSearchScreen from '../screens/BibleSearchScreen';
 import AboutUsScreen from '../screens/AboutUsScreen';
 import ContactUsScreen from '../screens/ContactUsScreen';
+import AttendanceScreen from '../screens/AttendanceScreen';
 import PastorEventDetail from '../screens/admin/pastor_events/PastorEventDetail';
 import CreatePastorEvent from '../screens/admin/pastor_events/CreatePastorEvent';
 import PastorEventRoutePlanner from '../screens/admin/pastor_events/PastorEventRoutePlanner';
 import PastorEventMap from '../screens/admin/pastor_events/PastorEventMap';
+import OnlineMeetingsScreen from '../screens/OnlineMeetingsScreen';
+import OnlineMeetingDetailScreen from '../screens/OnlineMeetingDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -151,7 +156,7 @@ function TabNavigator() {
   const { user, signOut, member, viewMode, setViewMode } = useAuth();
   const insets = useSafeAreaInsets();
   const isGuest = user?.isAnonymous;
-  const isActualAdmin = member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin';
+  const isActualAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER');
 
   const handleGuestInteraction = (e: any) => {
     if (isGuest) {
@@ -197,51 +202,29 @@ function TabNavigator() {
       />
     </Tab.Navigator>
 
-    {/* Floating Switch to Admin pill — only visible to real admins in member view */}
     {isActualAdmin && viewMode === 'member' && (
-      <TouchableOpacity
-        onPress={() => setViewMode('admin')}
-        style={{
-          position: 'absolute',
-          bottom: Platform.OS === 'ios' ? 140 : 130,
-          right: 20,
-          backgroundColor: '#1a2d5a', // solid navy
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingHorizontal: 16,
-          paddingVertical: 12,
-          borderRadius: 30,
-          borderWidth: 1,
-          borderColor: 'rgba(252, 211, 77, 0.5)', // golden border
-          gap: 8,
-          elevation: 10,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.35,
-          shadowRadius: 10,
-          zIndex: 999
-        }}
-      >
-        <ShieldCheck size={18} color="#FCD34D" />
-        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>Admin View</Text>
-      </TouchableOpacity>
+      <DraggableAdminPill onPress={() => setViewMode('admin')} />
     )}
     </>
   );
 }
 
 function Navigation() {
-  const { user, member, loading, viewMode } = useAuth();
+  const { user, member, loading, viewMode, setViewMode } = useAuth();
+  const { activeChurch } = useChurch();
   const navigation = useNavigation();
   const [onboardingComplete, setOnboardingComplete] = React.useState<boolean | null>(null);
   const [showSplash, setShowSplash] = useState(true);
   const [isLocked, setIsLocked] = useState(false);
   const appState = React.useRef(AppState.currentState);
 
-  const isAdmin = member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin';
+  const isAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER');
   // Show admin UI only when userType is admin AND viewMode is admin
   const showAdminView = isAdmin && viewMode === 'admin';
   const navigationKey = showAdminView ? 'admin-root' : 'member-root';
+  
+  const [pendingNotification, setPendingNotification] = useState<any>(null);
+
   // 1. Initial Security Check & App State Listener
   useEffect(() => {
     const handleSecurity = async () => {
@@ -252,7 +235,7 @@ function Navigation() {
         
         if (isEnabled && isAvailable) {
           setIsLocked(true);
-          const success = await SecurityService.authenticate();
+          const success = await SecurityService.authenticate(activeChurch?.name);
           if (success) setIsLocked(false);
         } else {
           setIsLocked(false);
@@ -275,7 +258,7 @@ function Navigation() {
           
           if (isEnabled && isAvailable) {
             setIsLocked(true);
-            const success = await SecurityService.authenticate();
+            const success = await SecurityService.authenticate(activeChurch?.name);
             if (success) setIsLocked(false);
           }
         };
@@ -291,13 +274,13 @@ function Navigation() {
   useEffect(() => {
     // 1. When app is in background and user clicks notification
     const unsubscribeOnOpen = NotificationService.messaging().onNotificationOpenedApp(remoteMessage => {
-      NotificationService.handleNotificationNavigation(remoteMessage, navigation);
+      setPendingNotification(remoteMessage);
     });
 
     // 2. When app is closed and user clicks notification
     NotificationService.messaging().getInitialNotification().then(remoteMessage => {
       if (remoteMessage) {
-        NotificationService.handleNotificationNavigation(remoteMessage, navigation);
+        setPendingNotification(remoteMessage);
       }
     });
 
@@ -309,6 +292,35 @@ function Navigation() {
       unsubscribeForeground();
     };
   }, [navigation]);
+
+  useEffect(() => {
+    if (user && !loading && pendingNotification) {
+      let retryCount = 0;
+      const tryNavigate = () => {
+        const { navigationRef } = require('../../App');
+        if (navigationRef && navigationRef.isReady()) {
+          const type = pendingNotification?.data?.type;
+          
+          if (type === 'invoice' && isAdmin && viewMode !== 'admin') {
+            console.log('Switching to admin view to handle invoice notification');
+            setViewMode('admin');
+            return; // Exit early, the re-render will trigger this effect again
+          }
+
+          NotificationService.handleNotificationNavigation(pendingNotification, navigationRef);
+          setPendingNotification(null);
+        } else if (retryCount < 20) {
+          retryCount++;
+          setTimeout(tryNavigate, 200); // Retry every 200ms up to 20 times (4 seconds total)
+        } else {
+          console.warn('⚠️ Navigation took too long to become ready, dropping pending notification.');
+          setPendingNotification(null);
+        }
+      };
+      
+      tryNavigate();
+    }
+  }, [user, loading, pendingNotification, viewMode]);
 
   useEffect(() => {
     if (user && !loading) {
@@ -352,7 +364,7 @@ function Navigation() {
 
   // Existing auth effect
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 4000);
+    const timer = setTimeout(() => setShowSplash(false), 7500);
     
     let unsub: any;
 
@@ -409,7 +421,7 @@ function Navigation() {
           <TouchableOpacity 
             style={lockStyles.button}
             onPress={async () => {
-              const success = await SecurityService.performSecurityCheck();
+              const success = await SecurityService.performSecurityCheck(activeChurch?.name);
               if (success) setIsLocked(false);
             }}
           >
@@ -421,7 +433,7 @@ function Navigation() {
   }
 
   return (
-    <Stack.Navigator key={navigationKey} screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'none' }}>
       {user ? (
         showAdminView ? (
           <>
@@ -430,10 +442,19 @@ function Navigation() {
             <Stack.Screen name="CreateEvent" component={CreatePastorEvent} />
             <Stack.Screen name="RoutePlanner" component={PastorEventRoutePlanner} />
             <Stack.Screen name="EventMap" component={PastorEventMap} />
+            <Stack.Screen name="Updates" component={UpdatesScreen} />
+            <Stack.Screen name="Celebration" component={CelebrationScreen} />
+            {/* Added for Push Notification Support in Admin View */}
+            <Stack.Screen name="Sermons" component={SermonsScreen} />
+            <Stack.Screen name="Events" component={EventsScreen} />
+            <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
+            <Stack.Screen name="LiveCelebrationsChat" component={LiveCelebrationsChat} />
           </>
         ) : onboardingComplete ? (
           <>
             <Stack.Screen name="Tabs" component={TabNavigator} />
+            <Stack.Screen name="Celebration" component={CelebrationScreen} />
+            <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
             <Stack.Screen name="DailyVideo" component={DailyVideoScreen} />
             <Stack.Screen name="SermonVideo" component={SermonVideoScreen} />
             <Stack.Screen name="Events" component={EventsScreen} />
@@ -453,6 +474,9 @@ function Navigation() {
             <Stack.Screen name="AboutUs" component={AboutUsScreen} />
             <Stack.Screen name="ContactUs" component={ContactUsScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+            <Stack.Screen name="OnlineMeetings" component={OnlineMeetingsScreen} />
+            <Stack.Screen name="OnlineMeetingDetail" component={OnlineMeetingDetailScreen} />
+            <Stack.Screen name="LiveCelebrationsChat" component={LiveCelebrationsChat} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
@@ -581,3 +605,67 @@ const lockStyles = StyleSheet.create({
     fontWeight: '700'
   }
 });
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+function DraggableAdminPill({ onPress }: { onPress: () => void }) {
+  const pan = React.useRef(new Animated.ValueXY({ 
+    x: SCREEN_WIDTH - 150, 
+    y: SCREEN_HEIGHT - (Platform.OS === 'ios' ? 240 : 230) 
+  })).current;
+
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5;
+      },
+      onPanResponderGrant: () => {
+        pan.extractOffset();
+      },
+      onPanResponderMove: Animated.event(
+        [null, { dx: pan.x, dy: pan.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: () => {
+        pan.flattenOffset();
+      }
+    })
+  ).current;
+
+  return (
+    <Animated.View
+      {...panResponder.panHandlers}
+      style={[
+        pan.getLayout(),
+        {
+          position: 'absolute',
+          zIndex: 999,
+        }
+      ]}
+    >
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.8}
+        style={{
+          backgroundColor: '#1a2d5a', 
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 12,
+          borderRadius: 30,
+          borderWidth: 1,
+          borderColor: 'rgba(252, 211, 77, 0.5)',
+          gap: 8,
+          elevation: 10,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.35,
+          shadowRadius: 10,
+        }}
+      >
+        <ShieldCheck size={18} color="#FCD34D" />
+        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>Admin View</Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+}

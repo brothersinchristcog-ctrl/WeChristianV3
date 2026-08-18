@@ -1,6 +1,35 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image } from 'react-native';
-import { ArrowLeft, Gift } from 'lucide-react-native';
+import { ChevronLeft, Gift } from 'lucide-react-native';
+
+const MemberAvatar = ({ member, initials, styles, bgColor }: any) => {
+  const [imgError, setImgError] = React.useState(false);
+  const possibleUrls = [
+    member.profilePhoto, member.photoURL, member.photoUrl, 
+    member.ProfilePhoto, member.profileImage, member.Photo, 
+    member.PhotoUrl, member.photo
+  ];
+  const validUrl = possibleUrls.find((url: any) => typeof url === 'string' && url.trim() !== '' && url !== 'null' && url !== 'undefined');
+
+  if (validUrl && !imgError) {
+    return (
+      <View style={styles.avatarInner}>
+        <Image 
+          source={{ uri: validUrl.trim() }} 
+          style={styles.avatarImage} 
+          resizeMode="cover"
+          onError={() => setImgError(true)}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.avatarInner, { backgroundColor: bgColor }]}>
+      <Text style={styles.avatarTxt}>{initials}</Text>
+    </View>
+  );
+};
 
 export default function AdminCelebrationsMemberDetails({ member, category, onBack, onPrepareWish }: { member: any, category: string, onBack: () => void, onPrepareWish: () => void }) {
   
@@ -13,14 +42,15 @@ export default function AdminCelebrationsMemberDetails({ member, category, onBac
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+            {/* ── Fixed Header ── */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <ArrowLeft size={20} color="#162057" />
+        <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+          <ChevronLeft size={22} color="#fff" />
+          <Text style={styles.backBtnTxt}>Back</Text>
         </TouchableOpacity>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.eyebrow}>CELEBRATION</Text>
-          <Text style={styles.title}>Member Details</Text>
+        <View style={styles.heroTitles}>
+          <Text style={styles.headerTitle}>Member Details</Text>
+          <Text style={styles.headerSub}>CELEBRATION</Text>
         </View>
       </View>
 
@@ -29,13 +59,12 @@ export default function AdminCelebrationsMemberDetails({ member, category, onBac
         {/* Profile Section */}
         <View style={styles.profileSection}>
           <View style={[styles.avatarOuter, { borderColor: '#FFFFFF' }]}>
-            <View style={[styles.avatarInner, { backgroundColor: getAvatarColor(member.name) }]}>
-              {member.photoUrl ? (
-                <Image source={{ uri: member.photoUrl }} style={styles.avatarImage} />
-              ) : (
-                <Text style={styles.avatarTxt}>{member.initials}</Text>
-              )}
-            </View>
+            <MemberAvatar 
+              member={member} 
+              initials={member.initials || (member.name ? member.name.substring(0, 2).toUpperCase() : 'U')} 
+              styles={styles} 
+              bgColor={getAvatarColor(member.name)} 
+            />
           </View>
           
           <View style={styles.tag}>
@@ -90,43 +119,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#FAF8F0',
   },
-  header: {
+    header: { 
+    backgroundColor: '#1a2d5a', 
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    backgroundColor: '#FAF8F0',
+    gap: 12,
+    position: 'relative',
     zIndex: 10,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    marginRight: 16,
-  },
-  headerTextContainer: {
-    justifyContent: 'center',
-  },
-  eyebrow: {
-    color: '#B88A2E',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 2,
-  },
-  title: {
-    color: '#162057',
-    fontSize: 22,
-    fontWeight: '800',
-  },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  heroTitles: { flex: 1, borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.2)', paddingLeft: 12 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2 },
+  
   content: {
     padding: 20,
     paddingTop: 10,

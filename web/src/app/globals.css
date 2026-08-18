@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  /* Exact React Native Theme Colors */
+  --color-ink: #1a2d5a;
+  --color-ink-2: #22304F;
+  --color-ink-soft: #6B7593;
+  
+  --color-parchment: #F3EAD9;
+  --color-paper: #FFFCF5;
+  
+  --color-gold: #A67C3D;
+  --color-gold-deep: #8C6428;
+  --color-gold-bright: #D8B369;
+  
+  --color-clay: #A24B34;
+  --color-clay-bg: #F3E1D6;
+  --color-clay-line: #E3C3B2;
+  
+  --color-moss: #3E6B52;
+  --color-moss-bg: #E6EFE7;
+  
+  --color-rule: #DED0AC;
+
+  /* Modern Font Family */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: Georgia, serif;
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-rule, currentColor);
+  }
+}
+
+:root {
+  --background: #f0f2f7;
+  --foreground: #111827;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* React Native Soft Shadow Replica */
+.rn-shadow {
+  box-shadow: 0px 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.rn-shadow-premium {
+  box-shadow: 0px 8px 20px rgba(26, 45, 90, 0.15);
+}

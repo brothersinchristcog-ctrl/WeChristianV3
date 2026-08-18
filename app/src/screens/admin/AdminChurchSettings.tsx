@@ -17,7 +17,7 @@ import {
   Switch
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Save, Palette, Image as ImageIcon, Link, DollarSign, Building2, Plus, Trash2, Plug, Info } from 'lucide-react-native';
+import { ChevronLeft, Save, Palette, Image as ImageIcon, Link, DollarSign, Building2, Plus, Trash2, Plug, Info, Edit2 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import { useChurch } from '../../context/ChurchContext';
@@ -182,7 +182,7 @@ export default function AdminChurchSettings({ navigation }: any) {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
-      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+      <SafeAreaView style={{ flex: 1 }} edges={['bottom']}>
         <CustomAlert 
           visible={alertConfig.visible}
           title={alertConfig.title}
@@ -190,21 +190,38 @@ export default function AdminChurchSettings({ navigation }: any) {
           type={alertConfig.type}
           onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
         />
-        {/* Header */}
-        <View style={[styles.header, { backgroundColor: primaryColor }]}>
-          <TouchableOpacity onPress={goBack} style={styles.headerBtn}>
-            <ChevronLeft size={24} color="#fff" />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Church Settings</Text>
-          {isEditing ? (
-            <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.saveBtn}>
-              {saving ? <ActivityIndicator color={primaryColor} size="small" /> : <Text style={[styles.saveBtnTxt, { color: primaryColor }]}>Save</Text>}
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={() => setIsEditing(true)} style={styles.editBtn}>
-              <Text style={styles.editBtnTxt}>Edit</Text>
-            </TouchableOpacity>
-          )}
+        {/* ── Hero Section ── */}
+        <View style={styles.hero}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <TouchableOpacity onPress={goBack} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+              </TouchableOpacity>
+              <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+              <View>
+                <Text style={styles.heroTitle}>Settings</Text>
+                <Text style={[styles.heroSub, { marginTop: 2 }]}>Church info, branding & APIs</Text>
+              </View>
+            </View>
+            {isEditing ? (
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave} disabled={saving}>
+                {saving ? (
+                  <ActivityIndicator color="#1a2d5a" size="small" />
+                ) : (
+                  <>
+                    <Save size={16} color="#1a2d5a" />
+                    <Text style={styles.saveBtnTxt}>Save</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={styles.editBtn} onPress={() => setIsEditing(true)}>
+                <Edit2 size={16} color="#1a2d5a" />
+                <Text style={styles.editBtnTxt}>Edit</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Tabs */}
@@ -530,10 +547,10 @@ export default function AdminChurchSettings({ navigation }: any) {
                 Configure how this church sends automated WhatsApp messages (e.g. Birthdays, Events).
               </Text>
 
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, backgroundColor: '#f8fafc', padding: 12, borderRadius: 8 }}>
+              <View style={styles.switchRow}>
                 <View style={{ flex: 1, paddingRight: 12 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1e293b', marginBottom: 4 }}>Use We Christian WhatsApp Account</Text>
-                  <Text style={{ fontSize: 12, color: '#64748b' }}>If enabled, messages will be sent from the official platform number. If disabled, you must provide your own Meta credentials below.</Text>
+                  <Text style={styles.switchLabel}>Use We Christian WhatsApp Account</Text>
+                  <Text style={styles.switchHint}>If enabled, messages will be sent from the official platform number. If disabled, you must provide your own Meta credentials below.</Text>
                 </View>
                 <Switch
                   value={secrets.useWeChristianWhatsApp ?? false}
@@ -553,9 +570,10 @@ export default function AdminChurchSettings({ navigation }: any) {
                     </View>
                   </View>
                   
-                  <View style={{ backgroundColor: '#ffffff', padding: 16, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1e293b', marginBottom: 16 }}>Custom API Credentials</Text>
+                  <View style={styles.cardItem}>
+                    <Text style={styles.cardTitle}>Custom API Credentials</Text>
                     
+                    <View style={{ height: 16 }} />
                     <Text style={styles.label}>Access Token (Permanent)</Text>
                     <TextInput style={[styles.input, !isEditing && styles.inputDisabled, { marginBottom: 16 }]} value={secrets.whatsappAccessToken} onChangeText={v => updateSecret('whatsappAccessToken', v)} placeholder="e.g. EAAH..." placeholderTextColor="#94a3b8" secureTextEntry={!isEditing} editable={isEditing} />
       
@@ -584,115 +602,157 @@ export default function AdminChurchSettings({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 16, paddingVertical: 12,
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6,
   },
-  headerBtn: { padding: 8 },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroSub: { color: '#AEB8D4', fontSize: 13 },
 
-  saveBtn: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
-  saveBtnTxt: { fontSize: 13, fontWeight: '700' },
-  editBtn: { backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 16, paddingVertical: 6, borderRadius: 20 },
-  editBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  saveBtn: { 
+    backgroundColor: '#C9A84C', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 12,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4
+  },
+  saveBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  
+  editBtn: { 
+    backgroundColor: '#C9A84C', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 12,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4
+  },
+  editBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
-  viewModeHint: { backgroundColor: '#e0f2fe', color: '#0284c7', padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  viewModeHint: { backgroundColor: '#F0EBE0', color: '#1a2d5a', padding: 12, borderRadius: 12, marginBottom: 16, fontSize: 13, fontWeight: '700', textAlign: 'center', borderWidth: 1, borderColor: '#E2DDD5' },
 
   tabs: {
-    flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e2e8f0',
+    flexDirection: 'row', backgroundColor: '#fff', borderBottomWidth: 0,
+    shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4, zIndex: 10
   },
   tab: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 14, borderBottomWidth: 2, borderBottomColor: 'transparent',
+    flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 16, borderBottomWidth: 3, borderBottomColor: 'transparent',
   },
-  tabTxt: { fontSize: 13, color: '#64748b', fontWeight: '600' },
+  tabTxt: { fontSize: 13, color: '#64748b', fontWeight: '700' },
 
   content: { padding: 20, paddingBottom: 60 },
-  sectionLabel: { fontSize: 16, fontWeight: '700', color: '#0f172a', marginBottom: 16 },
+  sectionLabel: { fontSize: 14, fontWeight: '800', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 16, marginTop: 8, paddingLeft: 4 },
 
-  label: { fontSize: 12, fontWeight: '600', color: '#475569', marginBottom: 6 },
+  label: { fontSize: 11, fontWeight: '800', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
   input: {
-    backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 12,
-    fontSize: 15, color: '#0f172a', borderWidth: 1, borderColor: '#cbd5e1', marginBottom: 16,
+    backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
+    fontSize: 15, color: '#1a2d5a', fontWeight: '600', borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', marginBottom: 16,
   },
-  textArea: { height: 80, textAlignVertical: 'top' },
+  textArea: { height: 100, textAlignVertical: 'top' },
 
   inputRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    backgroundColor: '#fff', borderRadius: 8, paddingHorizontal: 14, paddingVertical: 12,
-    borderWidth: 1, borderColor: '#cbd5e1', marginBottom: 12,
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10,
+    backgroundColor: '#FFFFFF', borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
+    borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', marginBottom: 16,
   },
-  socialPrefix: { fontSize: 13, color: '#64748b', fontWeight: '600', width: 70 },
-  inputFlex: { flex: 1, fontSize: 15, color: '#0f172a' },
+  socialPrefix: { fontSize: 13, color: '#6B7280', fontWeight: '700', width: 70 },
+  inputFlex: { flex: 1, fontSize: 15, color: '#1a2d5a', fontWeight: '600' },
 
-  inputDisabled: { backgroundColor: '#f8fafc', borderColor: '#e2e8f0', color: '#475569', opacity: 0.8 },
+  inputDisabled: { backgroundColor: '#F9F6F0', borderColor: '#E2DDD5', color: '#6B7280', opacity: 0.9 },
 
   imageUpload: {
-    backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#cbd5e1', borderStyle: 'dashed',
+    backgroundColor: '#F9F6F0', borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.2)', borderStyle: 'dashed',
     height: 120, justifyContent: 'center', alignItems: 'center', marginBottom: 24, gap: 10,
     overflow: 'hidden',
   },
-  bannerUpload: { height: 160 },
-  logoPreview: { width: 100, height: 100, borderRadius: 50 },
+  bannerUpload: { height: 180 },
+  logoPreview: { width: 100, height: 100, borderRadius: 50, borderWidth: 2, borderColor: '#fff' },
   bannerPreview: { width: '100%', height: '100%' },
-  uploadTxt: { color: '#64748b', fontSize: 13, fontWeight: '500' },
+  uploadTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '700' },
 
-  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 24 },
-  colorSwatch: { width: 44, height: 44, borderRadius: 22 },
-  colorSwatchSelected: { borderWidth: 3, borderColor: '#0f172a' },
+  colorGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginBottom: 24 },
+  colorSwatch: { width: 48, height: 48, borderRadius: 24, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  colorSwatchSelected: { borderWidth: 4, borderColor: '#fff', shadowColor: '#1a2d5a', shadowOpacity: 0.3, shadowRadius: 6 },
   colorSwatchDisabled: {
-    opacity: 0.7,
+    opacity: 0.6,
   },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#fff',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 8,
-    padding: 16,
+    borderColor: 'rgba(26,45,90,0.08)',
+    borderRadius: 14,
+    padding: 18,
     marginBottom: 16,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2
   },
   switchLabel: {
     fontSize: 15,
-    fontWeight: '600',
-    color: '#1e293b',
+    fontWeight: '800',
+    color: '#1a2d5a',
     marginBottom: 4,
   },
   switchHint: {
     fontSize: 13,
-    color: '#64748b',
+    color: '#6B7280',
     lineHeight: 18,
+    fontWeight: '500'
   },
-  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  addBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e2e8f0', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 },
-  addBtnTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a', marginLeft: 4 },
-  cardItem: { backgroundColor: '#f8fafc', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 16 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  cardTitle: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, marginTop: 8 },
+  addBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#C9A84C', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12, shadowColor: '#C9A84C', shadowOpacity: 0.4, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 4 },
+  addBtnTxt: { fontSize: 12, fontWeight: '800', color: '#1a2d5a', marginLeft: 6, letterSpacing: 0.3 },
+  cardItem: { backgroundColor: '#FFFFFF', padding: 18, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(26,45,90,0.08)', marginBottom: 16, shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 3 }, elevation: 3 },
+  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  cardTitle: { fontSize: 15, fontWeight: '800', color: '#1a2d5a' },
 
   churchCodeCard: {
-    backgroundColor: '#f0f4ff', borderRadius: 16, padding: 20, marginBottom: 24,
-    alignItems: 'center', borderWidth: 1.5, borderColor: '#c7d2fe',
+    backgroundColor: '#FFFFFF', borderRadius: 20, padding: 24, marginBottom: 28,
+    alignItems: 'center', borderWidth: 1, borderColor: 'rgba(26,45,90,0.08)',
+    shadowColor: '#1a2d5a', shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 6
   },
   churchCodeLabel: {
-    fontSize: 10, fontWeight: '800', color: '#6366f1', letterSpacing: 2, marginBottom: 8,
+    fontSize: 11, fontWeight: '800', color: '#C9A84C', letterSpacing: 2, marginBottom: 10,
   },
   churchCodeValue: {
-    fontSize: 32, fontWeight: '900', letterSpacing: 6, marginBottom: 6,
+    fontSize: 36, fontWeight: '900', letterSpacing: 8, marginBottom: 8, color: '#1a2d5a'
   },
   churchCodeHint: {
-    fontSize: 12, color: '#64748b', textAlign: 'center', marginBottom: 16,
+    fontSize: 13, color: '#6B7280', textAlign: 'center', marginBottom: 20, fontWeight: '500'
   },
   churchCodeActions: {
-    flexDirection: 'row', gap: 12,
+    flexDirection: 'row', flexWrap: 'wrap', gap: 12, width: '100%'
   },
   churchCodeBtn: {
-    borderWidth: 1.5, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 16,
+    borderWidth: 1.5, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 16, flex: 1, alignItems: 'center', backgroundColor: '#F9F6F0', borderColor: '#E2DDD5'
   },
   churchCodeBtnTxt: {
-    fontSize: 13, fontWeight: '700',
+    fontSize: 13, fontWeight: '800', color: '#1a2d5a'
   },
 });

@@ -28,7 +28,11 @@ import {
   Check,
   X,
   CheckCircle2,
-  HelpCircle
+  HelpCircle,
+  MapPin,
+  Crown,
+  Award,
+  Shield
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -36,16 +40,19 @@ import FirestoreService, { AppMember } from '../services/FirestoreService';
 import { useChurch } from '../context/ChurchContext';
 import SecurityService from '../services/SecurityService';
 import * as ImagePicker from 'expo-image-picker';
+import Constants from 'expo-constants';
 import { Lock } from 'lucide-react-native';
+import storage from '@react-native-firebase/storage';
 
 const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation }: any) {
-  const { user, signOut } = useAuth();
-  const { activeChurch } = useChurch();
+  const { user, signOut, member: authMember, setViewMode, setMember: setGlobalMember } = useAuth();
+  const { activeChurch, isImpersonating, impersonatedBranchName, stopImpersonation } = useChurch();
   const { isDark, toggleTheme, colors } = useTheme();
-  const [member, setMember] = useState<AppMember | null>(null);
-  const [loading, setLoading] = useState(true);
+  
+  const [member, setMember] = useState<AppMember | null>(authMember as AppMember | null);
+  const [loading, setLoading] = useState(!authMember);
   const [refreshing, setRefreshing] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
@@ -59,12 +66,12 @@ export default function ProfileScreen({ navigation }: any) {
   const [eventReminderNotify, setEventReminderNotify] = useState(true);
   const [prayerNotify, setPrayerNotify] = useState(false);
   const [editForm, setEditForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    mailingCity: '',
-    mailingStreet: '',
-    mailingState: ''
+    firstName: authMember?.firstName || '',
+    lastName: authMember?.lastName || '',
+    email: authMember?.email || '',
+    mailingCity: authMember?.mailingCity || '',
+    mailingStreet: authMember?.mailingStreet || '',
+    mailingState: authMember?.mailingState || ''
   });
   const [updating, setUpdating] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -73,6 +80,8 @@ export default function ProfileScreen({ navigation }: any) {
   // Custom Alert Modals
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+  const [infoModalVisible, setInfoModalVisible] = useState(false);
+  const [infoMessage, setInfoMessage] = useState('');
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState<{title: string, message: string, onConfirm: () => Promise<void>, isDestructive?: boolean}>({ title: '', message: '', onConfirm: async () => {}, isDestructive: false });
 
@@ -82,6 +91,9 @@ export default function ProfileScreen({ navigation }: any) {
         const contactCheck = await FirestoreService.checkContactExists(user.phoneNumber);
         if (contactCheck?.exists && contactCheck.member) {
           setMember(contactCheck.member);
+          if (setGlobalMember) {
+            setGlobalMember(contactCheck.member);
+          }
           setEditForm({
             firstName: contactCheck.member.firstName || '',
             lastName: contactCheck.member.lastName || '',
@@ -141,16 +153,22 @@ export default function ProfileScreen({ navigation }: any) {
         onConfirm: async () => {
           try {
             setUpdating(true);
-            setLocalPhotoUrl(selectedUri);
             if (user) {
+              // Upload to Firebase Storage
+              const reference = storage().ref(`profile_photos/${user.uid}/profile_${Date.now()}.jpg`);
+              await reference.putFile(selectedUri);
+              const downloadUrl = await reference.getDownloadURL();
+
+              setLocalPhotoUrl(downloadUrl);
+              
               await user.updateProfile({
-                photoURL: selectedUri
+                photoURL: downloadUrl
               });
               
               // Sync the photo URL to the Firestore member document so admins can see it
               if (member && (member.churchId || activeChurch?.id)) {
                 await FirestoreService.updateMemberProfile(member.churchId || activeChurch?.id || '', member.id, {
-                  profilePhoto: selectedUri,
+                  profilePhoto: downloadUrl,
                   photoRemoved: false
                 });
               }
@@ -243,7 +261,7 @@ export default function ProfileScreen({ navigation }: any) {
 
   const toggleBiometrics = async (val: boolean) => {
     if (val) {
-      const success = await SecurityService.authenticate();
+      const success = await SecurityService.authenticate(activeChurch?.name);
       if (success) {
         await SecurityService.setBiometricPreference(true);
         setBiometricEnabled(true);
@@ -279,8 +297,26 @@ export default function ProfileScreen({ navigation }: any) {
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
-      
-      {/* ── Hero Section (Navy) ── */}
+
+      {isImpersonating ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Shield size={64} color="#1a2d5a" style={{ marginBottom: 20 }} />
+          <Text style={{ fontSize: 24, fontWeight: '800', color: '#1a2d5a', textAlign: 'center', marginBottom: 12 }}>
+            Admin View
+          </Text>
+          <Text style={{ fontSize: 16, color: '#64748b', textAlign: 'center', marginBottom: 30, lineHeight: 24 }}>
+            You are currently viewing {impersonatedBranchName} as an administrator. Your personal profile is not active in this view.
+          </Text>
+          <TouchableOpacity 
+            style={{ backgroundColor: '#1a2d5a', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12 }}
+            onPress={stopImpersonation}
+          >
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Return to Main Church</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          {/* ── Hero Section (Navy) ── */}
       <View style={styles.heroSection}>
         <View style={styles.headerTop}>
           <View style={{ width: 40 }} />
@@ -294,7 +330,7 @@ export default function ProfileScreen({ navigation }: any) {
             <Image source={{ uri: localPhotoUrl }} style={styles.avatarImg} />
           ) : (
             <View style={styles.avatarCircle}>
-               <Text style={styles.avatarText}>{getInitials(member?.name || user?.displayName || 'User')}</Text>
+               <User size={45} color="#fff" strokeWidth={1.5} />
             </View>
           )}
           <View style={styles.verifiedBadge}>
@@ -305,25 +341,46 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{member?.firstName ? `${member.firstName} ${member.lastName || ''}` : member?.name || user?.displayName || 'Beloved Member'}</Text>
           <Text style={styles.userSub}>
-            {activeChurch?.name || 'Church'}{member?.mailingCity ? `, ${member.mailingCity}` : ''} · 
+            {activeChurch?.name || 'Church'}{member?.mailingCity ? `, ${member.mailingCity}` : ''}
+          </Text>
+          <Text style={[styles.userSub, { marginTop: 2, marginBottom: 8 }]}>
             Member since {member?.joinDate ? new Date(member.joinDate).getFullYear() : '2026'}
           </Text>
-          
-          <View style={styles.badgeRow}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>Telugu</Text>
-            </View>
-            {member?.mailingCity && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{member.mailingCity}</Text>
+          <View style={styles.statsCard}>
+            <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#3b82f6' }]}>
+                <Award size={14} color="#fff" strokeWidth={2.5} />
               </View>
-            )}
-            <View style={[styles.badge, styles.badgeActive]}>
-              {(member?.userType?.toLowerCase() === 'admin' || member?.userType?.toLowerCase() === 'super_admin') ? (
-                <Text style={styles.badgeText}>🛡️ {member?.userType || 'Admin'}</Text>
-              ) : (
-                <Text style={styles.badgeText}>🙏 {member?.userType || 'Active member'}</Text>
-              )}
+              <View style={styles.statTextCol}>
+                <Text style={styles.statLabel}>Membership</Text>
+                <Text style={styles.statValue} numberOfLines={1}>Free Trial</Text>
+              </View>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#10b981' }]}>
+                <Globe size={14} color="#fff" strokeWidth={2.5} />
+              </View>
+              <View style={styles.statTextCol}>
+                <Text style={styles.statLabel}>Language</Text>
+                <Text style={styles.statValue} numberOfLines={1}>Telugu</Text>
+              </View>
+            </View>
+
+            <View style={styles.statDivider} />
+
+            <View style={styles.statItem}>
+              <View style={[styles.statIconContainer, { backgroundColor: '#8b5cf6' }]}>
+                <Crown size={14} color="#fff" strokeWidth={2.5} />
+              </View>
+              <View style={styles.statTextCol}>
+                <Text style={styles.statLabel}>Role</Text>
+                <Text style={styles.statValue} numberOfLines={1}>
+                  {(member?.userType || 'MEMBER').toUpperCase()}
+                </Text>
+              </View>
             </View>
           </View>
         </View>
@@ -339,6 +396,15 @@ export default function ProfileScreen({ navigation }: any) {
         {/* ── Account Section ── */}
         <Text style={styles.sectionLabel}>ACCOUNT</Text>
         <View style={styles.menuGroup}>
+          {(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER')) && (
+            <MenuItem 
+              icon={<Shield size={20} color="#1a2d5a" />} 
+              iconBg="#e6f0fa"
+              title="Admin Dashboard" 
+              sub="Access church management tools" 
+              onPress={() => setViewMode('admin')}
+            />
+          )}
           <MenuItem 
             icon={<User size={20} color="#1a2d5a" />} 
             iconBg="#eff6ff"
@@ -351,7 +417,10 @@ export default function ProfileScreen({ navigation }: any) {
             iconBg="#f1f5f9"
             title="Giving history" 
             sub="Available Soon" 
-            onPress={() => navigation.navigate('Give')}
+            onPress={() => {
+              setInfoMessage('Online donations via the app are coming soon. Please contact the church administration for offline donation options.');
+              setInfoModalVisible(true);
+            }}
           />
           <MenuItem 
             icon={<Heart size={20} color="#7c3aed" />} 
@@ -443,7 +512,7 @@ export default function ProfileScreen({ navigation }: any) {
           />
         </View>
 
-        <Text style={styles.versionTxt}>Version 1.2.5 A</Text>
+        <Text style={styles.versionTxt}>Version {Constants.expoConfig?.version || '1.0.0'}</Text>
       </ScrollView>
 
       {/* ── Edit Profile Modal (Using View for better reliability) ── */}
@@ -463,10 +532,10 @@ export default function ProfileScreen({ navigation }: any) {
                    {localPhotoUrl ? (
                      <Image source={{ uri: localPhotoUrl }} style={styles.modalAvatarImg} />
                    ) : (
-                     <Text style={styles.modalAvatarText}>{getInitials(member?.name || 'U')}</Text>
+                     <User size={40} color="#fff" strokeWidth={1.5} />
                    )}
                 </View>
-                <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 }}>
                   <TouchableOpacity style={styles.changePhotoBtn} onPress={pickImage}>
                     <Text style={styles.changePhotoText}>Change Photo</Text>
                   </TouchableOpacity>
@@ -698,6 +767,27 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
       </Modal>
 
+      {/* Info / Coming Soon Modal */}
+      <Modal visible={infoModalVisible} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 24, padding: 32, width: '100%', alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#e0f2fe', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <HelpCircle size={32} color="#0284c7" />
+            </View>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1e293b', marginBottom: 8 }}>Coming Soon!</Text>
+            <Text style={{ fontSize: 15, color: '#64748b', textAlign: 'center', marginBottom: 24, lineHeight: 22 }}>
+              {infoMessage}
+            </Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: '#0284c7', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 24, width: '100%', alignItems: 'center' }}
+              onPress={() => setInfoModalVisible(false)}
+            >
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Got it</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       {/* Confirm Modal */}
       <Modal visible={confirmModalVisible} transparent animationType="fade">
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
@@ -709,7 +799,7 @@ export default function ProfileScreen({ navigation }: any) {
             <Text style={{ fontSize: 15, color: '#64748b', textAlign: 'center', marginBottom: 28, lineHeight: 22 }}>
               {confirmConfig.message}
             </Text>
-            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, width: '100%' }}>
               <TouchableOpacity 
                 style={{ flex: 1, backgroundColor: '#f1f5f9', paddingVertical: 14, borderRadius: 24, alignItems: 'center' }}
                 onPress={() => setConfirmModalVisible(false)}
@@ -732,6 +822,8 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </View>
       </Modal>
+      </>
+      )}
     </View>
   );
 }
@@ -762,7 +854,7 @@ const styles = StyleSheet.create({
   // Hero Section
   heroSection: { 
     backgroundColor: '#1a2d5a', 
-    paddingTop: Platform.OS === 'ios' ? 60 : 20, 
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 45), 
     paddingBottom: 40,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
@@ -801,10 +893,56 @@ const styles = StyleSheet.create({
   userName: { fontSize: 22, fontWeight: '800', color: '#fff' },
   userSub: { fontSize: 12, color: '#aac4e8', marginTop: 4 },
   
-  badgeRow: { flexDirection: 'row', gap: 8, marginTop: 15 },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 15 },
   badge: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   badgeActive: { backgroundColor: 'rgba(252,211,77,0.2)' },
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  
+  statsCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 20,
+    width: '100%'
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1
+  },
+  statIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8
+  },
+  statTextCol: {
+    justifyContent: 'center',
+    flex: 1
+  },
+  statLabel: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 2
+  },
+  statValue: {
+    color: '#cbd5e1',
+    fontSize: 9,
+    fontWeight: '500'
+  },
+  statDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: 10
+  },
 
   scrollContent: { paddingBottom: 150 },
 

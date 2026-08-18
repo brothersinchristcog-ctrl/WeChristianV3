@@ -10,7 +10,7 @@ import {
   Dimensions,
   TextInput
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// Removed SafeAreaView as padding is handled by the header
 import { ChevronLeft, Search, BookOpen, Globe } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 
@@ -66,7 +66,7 @@ const ALL_BOOKS = {
 };
 
 export default function BibleScreen({ navigation }: any) {
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
   const [lang, setLang] = useState<'English' | 'Telugu'>('Telugu');
   const [testament, setTestament] = useState<'OT' | 'NT'>('NT');
   const [searchQuery, setSearchQuery] = useState('');
@@ -217,18 +217,22 @@ export default function BibleScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft color="#fff" size={28} />
+          <ChevronLeft size={24} color="#fff" />
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>
-          Holy Bible · పరిశుద్ధ గ్రంథం
-        </Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Holy Bible</Text>
+          <Text style={styles.headerSub}>పరిశుద్ధ గ్రంథం</Text>
+        </View>
+        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
+          <Text style={styles.themeToggleText}>{isDark ? '🌙' : '☀️'}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Search Input + Dropdown Suggestions Wrapper */}
@@ -439,24 +443,37 @@ export default function BibleScreen({ navigation }: any) {
         )}
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
+    backgroundColor: '#1a2d5a',
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
-    backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    justifyContent: 'space-between'
   },
-  backBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
+  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  headerCenter: { alignItems: 'center' },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
+  themeToggle: {
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  themeToggleText: { color: '#fff', fontSize: 16 },
   
   toggleContainer: {
     flexDirection: 'row',

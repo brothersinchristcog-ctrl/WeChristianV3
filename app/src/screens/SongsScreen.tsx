@@ -16,7 +16,7 @@ import {
   Modal,
   ScrollView
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// Removed SafeAreaView as padding is handled by the header
 import {
   ChevronLeft,
   Search,
@@ -52,7 +52,7 @@ const CATEGORIES = [
 ];
 
 export default function SongsScreen({ navigation }: any) {
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
 
   // ── Tabs ──────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'browse' | 'songbook' | 'theme'>('browse');
@@ -134,35 +134,47 @@ export default function SongsScreen({ navigation }: any) {
     (song.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
 
   // ── Filtered songs ────────────────────────────────
-  const filteredBrowse = songs.filter(s => {
+  const browseBaseList = songs.filter(s => {
     const cats = getSongCategories(s);
-    // Songs that are ONLY a Theme Song stay in Theme tab; others (including those that are also Theme Song) show in Browse too
+    // Songs that are ONLY a Theme Song stay in Theme tab; others show in Browse too
     if (cats.length === 1 && cats[0] === 'Theme Songs') return false;
+    return selectedCategory === 'All' || cats.includes(selectedCategory);
+  });
+
+  const filteredBrowse = browseBaseList.map((s, idx) => ({ ...s, displayNumber: idx + 1 })).filter(s => {
     const q = search.toLowerCase().trim();
-    const matchCategory = selectedCategory === 'All' || cats.includes(selectedCategory);
-    const matchSearch = !q ||
+    if (!q) return true;
+    return s.displayNumber.toString() === q ||
       s.title.toLowerCase().includes(q) ||
       (s.titleTe && s.titleTe.toLowerCase().includes(q)) ||
       (s.artist && s.artist.toLowerCase().includes(q));
-    return matchCategory && matchSearch;
   });
 
-  const savedSongs = songs.filter(s => savedIds.includes(s.id));
-  const filteredSongbook = savedSongs.filter(s => {
+  const savedSongsBase = songs.filter(s => savedIds.includes(s.id));
+  const filteredSongbook = savedSongsBase.map((s, idx) => ({ ...s, displayNumber: idx + 1 })).filter(s => {
     const q = search.toLowerCase().trim();
-    return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q));
+    if (!q) return true;
+    return s.displayNumber.toString() === q ||
+      s.title.toLowerCase().includes(q) ||
+      (s.titleTe && s.titleTe.toLowerCase().includes(q));
   });
 
-  const filteredTheme = songs.filter(s => {
+  const themeBaseList = songs.filter(s => {
     const cats = getSongCategories(s);
-    if (!cats.includes('Theme Songs')) return false;
+    return cats.includes('Theme Songs');
+  });
+  const filteredTheme = themeBaseList.map((s, idx) => ({ ...s, displayNumber: idx + 1 })).filter(s => {
     const q = search.toLowerCase().trim();
-    return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q));
+    if (!q) return true;
+    return s.displayNumber.toString() === q ||
+      s.title.toLowerCase().includes(q) ||
+      (s.titleTe && s.titleTe.toLowerCase().includes(q));
   });
 
   // ── Song Card ─────────────────────────────────────
-  const renderSongCard = ({ item, index }: { item: WorshipSong; index: number }) => {
+  const renderSongCard = ({ item, index }: { item: WorshipSong & { displayNumber?: number }; index: number }) => {
     const isSaved = savedIds.includes(item.id);
+    const displayIndex = item.displayNumber !== undefined ? item.displayNumber : index + 1;
     return (
       <TouchableOpacity
         style={[styles.songCard, { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#e5e7eb' }]}
@@ -171,7 +183,7 @@ export default function SongsScreen({ navigation }: any) {
         delayLongPress={400}
       >
         <View style={[styles.indexBox, { backgroundColor: isDark ? '#0f172a' : '#f3f4f6' }]}>
-          <Text style={[styles.indexTxt, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{index + 1}</Text>
+          <Text style={[styles.indexTxt, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{displayIndex}</Text>
         </View>
         <View style={styles.info}>
           <Text style={[styles.title, { color: isDark ? '#fff' : '#111827' }]} numberOfLines={1}>{item.title}</Text>
@@ -186,7 +198,7 @@ export default function SongsScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       <CustomAlert 
@@ -201,12 +213,15 @@ export default function SongsScreen({ navigation }: any) {
       <View style={styles.pageHeader}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft size={24} color="#fff" />
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-        <View style={styles.titleCol}>
+        <View style={styles.headerCenter}>
           <Text style={styles.pageTitle}>Worship & Praise</Text>
           <Text style={styles.pageSub}>స్తుతి మరియు ఆరాధన</Text>
         </View>
-        <View style={{ width: 40 }} />
+        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
+          <Text style={styles.themeToggleText}>{isDark ? '🌙' : '☀️'}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* ── Main Tabs ── */}
@@ -394,7 +409,7 @@ export default function SongsScreen({ navigation }: any) {
           </View>
         </Modal>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -403,17 +418,34 @@ const styles = StyleSheet.create({
   loadingBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   pageHeader: {
-    backgroundColor: '#1a2d5a', paddingHorizontal: 16, paddingVertical: 15,
-    flexDirection: 'row', alignItems: 'center', borderBottomLeftRadius: 15, borderBottomRightRadius: 15
+    backgroundColor: '#1a2d5a',
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between'
   },
-  backBtn: { padding: 4 },
-  titleCol: { flex: 1, alignItems: 'center' },
-  pageTitle: { color: '#fff', fontSize: 16, fontWeight: '800' },
-  pageSub: { color: '#aac4e8', fontSize: 10, marginTop: 1, fontWeight: '500' },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
+  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  headerCenter: { alignItems: 'center' },
+  pageTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  pageSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
+  themeToggle: {
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)'
+  },
+  themeToggleText: { color: '#fff', fontSize: 16 },
 
   // Tabs
-  tabBar: { flexDirection: 'row', backgroundColor: '#e2e8f0', marginHorizontal: 16, marginTop: 15, marginBottom: 0, borderRadius: 25, padding: 4, gap: 4 },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 21, gap: 6 },
+  tabBar: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: '#e2e8f0', marginHorizontal: 16, marginTop: 15, marginBottom: 0, borderRadius: 25, padding: 4, gap: 4 },
+  tab: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 21, gap: 6 },
   tabActive: { backgroundColor: '#1a2d5a' },
   tabTxt: { fontSize: 12, fontWeight: '700', color: '#64748b' },
   tabTxtActive: { color: '#fff' },

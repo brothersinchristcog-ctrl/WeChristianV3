@@ -14,7 +14,7 @@ export type AuthStackParamList = {
   SignUp: undefined;
   RegistrationSuccess: undefined;
   VerifyOtp: { confirmation: any; phoneNumber: string; contactId?: string; memberName?: string; formData?: any; isSignUp?: boolean };
-  ChurchSelection: undefined;
+  ChurchSelection: { code?: string } | undefined;
   CreateChurch: undefined;
   JoinSuccess: { churchName: string; isNewChurch?: boolean; churchCode?: string };
 };
@@ -53,7 +53,7 @@ export default function AuthNavigator() {
       <Stack.Screen
         name="VerifyOtp"
         component={VerifyOtpScreen}
-        options={{ title: 'Verification' }}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="ChurchSelection"

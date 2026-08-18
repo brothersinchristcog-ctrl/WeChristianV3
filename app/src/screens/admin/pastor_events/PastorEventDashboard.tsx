@@ -7,14 +7,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StyleSheet,
-  SafeAreaView,
   RefreshControl,
   StatusBar,
   TextInput,
   Alert
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { ChevronLeft, Plus } from 'lucide-react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors, spacing, radius, typography, shadow } from '../../../theme/Theme';
 import { PastorEvent } from '../../../types/event';
@@ -25,10 +26,13 @@ import { getStartingLocation, saveStartingLocation, formatDuration } from '../..
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRoute } from '@react-navigation/native';
 import { openInMaps } from '../../../utils/maps';
+import { AdminTabContext } from '../../../context/AdminTabContext';
 import LiveJourneyTracker from '../../../components/LiveJourneyTracker';
 
 export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
   const route = useRoute<any>();
+  const insets = useSafeAreaInsets();
+  const { setActiveTab: setAdminActiveTab } = React.useContext(AdminTabContext);
   const [events, setEvents] = useState<PastorEvent[]>([]);
   const [activeTab, setActiveTab] = useState<'today' | 'upcoming' | 'past'>('today');
   const [loading, setLoading] = useState(true);
@@ -364,16 +368,16 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
             <Text style={[styles.timeText, { marginLeft: 6 }]}>{formatEventDate(item.date)}</Text>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="time-outline" size={14} color={colors.primary} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+            <Ionicons name="time-outline" size={14} color="#64748b" />
             <Text style={[styles.timeText, { marginLeft: 6 }]}>
               Start: {item.startTime}{item.endTime ? ` | End: ${item.endTime}` : ''}
             </Text>
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Ionicons name="hourglass-outline" size={14} color={colors.primary} />
-            <Text style={[styles.timeText, { marginLeft: 6, color: colors.textSecondary }]}>
+            <Ionicons name="hourglass-outline" size={14} color="#64748b" />
+            <Text style={[styles.timeText, { marginLeft: 6 }]}>
               Meeting length: {item.durationMins >= 60 ? `${Math.round(item.durationMins / 60 * 10) / 10} hours` : `${item.durationMins} mins`}
             </Text>
           </View>
@@ -436,40 +440,45 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.bgSecondary} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
       
-      <ScrollView 
-        contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
-      >
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.welcomeText}>Pastor's Itinerary</Text>
-          <Text style={styles.subtitleText}>Manage schedule & travel routing</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity 
-            style={[styles.actionIconButton, { backgroundColor: '#FFF', borderWidth: 1, borderColor: colors.primary }]}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Ionicons name="calendar-outline" size={20} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionIconButton, { backgroundColor: '#FFF', borderWidth: 1, borderColor: colors.primary, marginLeft: spacing.sm }]}
-            onPress={() => navigation.navigate('AIAssistant')}
-          >
-            <MaterialCommunityIcons name="robot-outline" size={22} color={colors.primary} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.actionIconButton, { backgroundColor: '#FFF', borderWidth: 1, borderColor: colors.primary, marginLeft: spacing.sm }]}
-            onPress={() => navigation.navigate('CreateEvent')}
-          >
-            <Ionicons name="add" size={22} color={colors.primary} />
-          </TouchableOpacity>
+      {/* ── Hero Section ── */}
+      <View style={[styles.hero, { paddingTop: insets.top }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1, marginRight: 10 }}>
+            <TouchableOpacity onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                setAdminActiveTab(0);
+              }
+            }} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={styles.heroTitle} numberOfLines={1} ellipsizeMode="tail">Pastor Events</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]} numberOfLines={1} ellipsizeMode="tail">Manage schedule & travel</Text>
+            </View>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity 
+              style={styles.newBtn} 
+              onPress={() => navigation.navigate('CreateEvent')}
+            >
+              <Plus size={16} color="#1a2d5a" />
+              <Text style={styles.newBtnTxt}>New</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
+
+      <ScrollView 
+        contentContainerStyle={styles.scroll}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#1a2d5a']} />}
+      >
 
       {showDatePicker && (
         <DateTimePicker
@@ -489,27 +498,43 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
         />
       )}
 
-      {/* Tabs */}
-      <View style={styles.tabsContainer}>
-        {(['today', 'upcoming', 'past'] as const).map(tab => (
-          <TouchableOpacity
-            key={tab}
-            style={[
-              styles.tab, 
-              activeTab === tab && !selectedDateFilter && styles.activeTab,
-              selectedDateFilter && styles.disabledTab
-            ]}
-            onPress={() => {
-              setSelectedDateFilter(null);
-              setActiveTab(tab);
-            }}
-            disabled={loading}
+      {/* Tabs and Icons */}
+      <View style={[styles.tabsContainer, { justifyContent: 'space-between', alignItems: 'center' }]}>
+        <View style={{ flexDirection: 'row', flex: 1 }}>
+          {(['today', 'upcoming', 'past'] as const).map(tab => (
+            <TouchableOpacity
+              key={tab}
+              style={[
+                styles.tab, 
+                activeTab === tab && !selectedDateFilter && styles.activeTab,
+                selectedDateFilter && styles.disabledTab
+              ]}
+              onPress={() => {
+                setSelectedDateFilter(null);
+                setActiveTab(tab);
+              }}
+              disabled={loading}
+            >
+              <Text style={[styles.tabText, activeTab === tab && !selectedDateFilter && styles.activeTabText]}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10, marginRight: 20 }}>
+          <TouchableOpacity 
+            style={[styles.heroIconBtn, { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 }]} 
+            onPress={() => setShowDatePicker(true)}
           >
-            <Text style={[styles.tabText, activeTab === tab && !selectedDateFilter && styles.activeTabText]}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
+            <Ionicons name="calendar-outline" size={18} color="#1a2d5a" />
           </TouchableOpacity>
-        ))}
+          <TouchableOpacity 
+            style={[styles.heroIconBtn, { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 }]} 
+            onPress={() => navigation.navigate('AIAssistant')}
+          >
+            <MaterialCommunityIcons name="robot-outline" size={18} color="#1a2d5a" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Date Filter Indicator Banner */}
@@ -562,36 +587,37 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
         </Text>
       </View>
 
-      {/* Stats Strip */}
-      <View style={styles.statsStrip}>
-        <View style={styles.statBox}>
-          <Text style={styles.statVal}>{totalEvents}</Text>
-          <Text style={styles.statLbl}>Events</Text>
+      {/* ── Stats Dashboard ── */}
+      <View style={[styles.statsGrid, { backgroundColor: '#1a2d5a', borderRadius: 16, padding: 20, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', elevation: 4, shadowColor: '#1a2d5a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 }]}>
+        <View style={{ alignItems: 'center', flex: 1 }}>
+          <Text style={{ color: '#aac4e8', fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' }}>Total Events</Text>
+          <Text style={{ fontSize: 24, fontWeight: '800', color: '#fff' }}>{totalEvents}</Text>
         </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statBox}>
-          <Text style={styles.statVal}>{Math.round(totalDistance)} km</Text>
-          <Text style={styles.statLbl}>Travel Dist</Text>
+        <View style={{ width: 1, height: '80%', backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        <View style={{ alignItems: 'center', flex: 1 }}>
+          <Text style={{ color: '#aac4e8', fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' }}>Travel Dist</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>{Math.round(totalDistance)} km</Text>
         </View>
-        <View style={styles.statDivider} />
-        <View style={styles.statBox}>
-          <Text style={styles.statVal}>{formatDuration(totalTravelTimeCar)}</Text>
-          <Text style={styles.statLbl}>Travel Time</Text>
+        <View style={{ width: 1, height: '80%', backgroundColor: 'rgba(255,255,255,0.2)' }} />
+        <View style={{ alignItems: 'center', flex: 1 }}>
+          <Text style={{ color: '#aac4e8', fontSize: 11, fontWeight: '600', marginBottom: 4, textTransform: 'uppercase' }}>Travel Time</Text>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>{formatDuration(totalTravelTimeCar)}</Text>
         </View>
       </View>
 
       {/* List */}
+      <Text style={styles.listLabel}>Schedule</Text>
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color="#1a2d5a" />
         </View>
       ) : enrichedEvents.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <Ionicons name="calendar-outline" size={64} color={colors.textTertiary} />
-          <Text style={styles.emptyText}>No events found for {activeTab}</Text>
+        <View style={styles.emptyState}>
+          <Ionicons name="calendar-outline" size={48} color="#94a3b8" />
+          <Text style={styles.emptyStateText}>No events found for {activeTab}</Text>
         </View>
       ) : (
-        <View style={{ padding: spacing.lg, paddingBottom: 40 }}>
+        <View style={{ paddingBottom: 120 }}>
           {enrichedEvents.map((item, index) => renderEventCard({ item, index }))}
         </View>
       )}
@@ -617,15 +643,33 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
           <Text style={styles.floatingButtonText}>Map View</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bgSecondary
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
+  hero: {
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
+  heroTitle: { color: '#fff', fontSize: 24, fontWeight: '700' },
+  heroSub: { color: '#aac4e8', fontSize: 13, fontWeight: '500' },
+  heroIconBtn: { padding: 6, backgroundColor: '#fff', borderRadius: 20 },
+  newBtn: {
+    backgroundColor: '#FCD34D',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 4
+  },
+  newBtnTxt: { color: '#1a2d5a', fontWeight: '700', fontSize: 13 },
+  scroll: { padding: 20, paddingTop: 10 },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -647,78 +691,59 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     borderRadius: radius.full
   },
-  tabsContainer: {
-    flexDirection: 'row',
-    marginHorizontal: spacing.lg,
-    backgroundColor: colors.bgTertiary,
-    borderRadius: radius.md,
-    padding: 2,
-    marginVertical: spacing.sm
-  },
+  tabsContainer: { flexDirection: 'row', marginBottom: 24, marginHorizontal: -20, paddingHorizontal: 20 },
   tab: {
-    flex: 1,
+    backgroundColor: '#e2e8f0',
+    paddingHorizontal: 16,
     paddingVertical: 8,
-    alignItems: 'center',
-    borderRadius: radius.sm
+    borderRadius: 20,
+    marginRight: 10,
+    alignSelf: 'flex-start'
   },
-  activeTab: {
-    backgroundColor: colors.bgPrimary,
-    ...shadow.card
+  activeTab: { backgroundColor: '#1a2d5a' },
+  tabText: { color: '#475569', fontSize: 13, fontWeight: '600' },
+  activeTabText: { color: '#fff' },
+  statsGrid: { marginBottom: 20, marginTop: 10 },
+  statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
+  statCardFull: {
+    backgroundColor: '#1a2d5a',
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 15,
+    elevation: 8,
   },
-  tabText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500'
+  statCardHalf: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    width: '48%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
-  activeTabText: {
-    color: colors.primary,
-    fontWeight: '600'
-  },
-  statsStrip: {
-    flexDirection: 'row',
-    backgroundColor: colors.bgPrimary,
-    marginHorizontal: spacing.lg,
-    marginVertical: spacing.xs,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    ...shadow.card
-  },
-  statBox: {
-    alignItems: 'center',
-    flex: 1
-  },
-  statVal: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.textPrimary
-  },
-  statLbl: {
-    fontSize: 10,
-    color: colors.textTertiary,
-    textTransform: 'uppercase',
-    marginTop: 2
-  },
-  statDivider: {
-    width: 1,
-    height: 24,
-    backgroundColor: colors.border
-  },
-  listContent: {
-    padding: spacing.lg,
-    paddingBottom: 100
-  },
+  statLblFull: { color: '#aac4e8', fontSize: 13, fontWeight: '600', marginBottom: 4 },
+  statNumFull: { fontSize: 32, fontWeight: '800', color: '#fff' },
+  statLbl: { color: '#64748b', fontSize: 12, fontWeight: '600', marginBottom: 4 },
+  statNum: { fontSize: 20, fontWeight: '800' },
+  
+  listLabel: { color: '#1e293b', fontSize: 18, fontWeight: '700', marginBottom: 16 },
   card: {
-    backgroundColor: colors.bgPrimary,
-    borderRadius: radius.md,
-    padding: spacing.md,
-    marginBottom: spacing.md,
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: colors.border,
-    ...shadow.card
+    borderColor: '#f1f5f9'
   },
   cardHeader: {
     flexDirection: 'row',
@@ -779,23 +804,8 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontSize: 14
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.xl
-  },
-  emptyText: {
-    ...typography.h3,
-    color: colors.textSecondary,
-    marginTop: spacing.md
-  },
-  emptySubtext: {
-    ...typography.caption,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.lg
-  },
+  emptyState: { alignItems: 'center', paddingVertical: 40 },
+  emptyStateText: { color: '#64748b', marginTop: 12, fontSize: 14, fontWeight: '500' },
   floatingButtonsContainer: {
     position: 'absolute',
     bottom: spacing.lg,

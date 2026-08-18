@@ -3,9 +3,11 @@ import {
   View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator, ImageBackground, Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MessageSquare, ArrowLeft, Send, CheckCheck, MoreVertical, Phone as PhoneIcon, Video } from 'lucide-react-native';
+import { MessageSquare, ArrowLeft, Send, CheckCheck, MoreVertical, Phone as PhoneIcon, Video, ChevronLeft, Search } from 'lucide-react-native';
 import { firestore, functions } from '../../services/firebaseConfig';
 import { useChurch } from '../../context/ChurchContext';
+import { AdminTabContext } from '../../context/AdminTabContext';
+import { useContext } from 'react';
 
 interface WhatsAppMessage {
   id: string;
@@ -32,6 +34,7 @@ interface Conversation {
 }
 
 export default function AdminWhatsAppInbox() {
+  const { goBack } = useContext(AdminTabContext) as any;
   const { activeChurch } = useChurch();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -208,21 +211,26 @@ export default function AdminWhatsAppInbox() {
     return name.includes(query) || phone.includes(query);
   });
 
-  const renderInbox = () => (
+    const renderInbox = () => (
     <View style={styles.container}>
-      <View style={styles.inboxHeader}>
-        <Text style={styles.inboxHeaderTitle}>WhatsApp</Text>
-        <View style={styles.inboxHeaderIcons}>
-          <TouchableOpacity><MoreVertical size={22} color="#8696A0" /></TouchableOpacity>
+      {/* ── Fixed Header ── */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => { if(goBack) { goBack(); } }}>
+          <ChevronLeft size={22} color="#fff" />
+          <Text style={styles.backBtnTxt}>Back</Text>
+        </TouchableOpacity>
+        <View style={[styles.heroTitles, { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.2)', paddingLeft: 12 }]}>
+          <Text style={styles.headerTitle}>WhatsApp</Text>
+          <Text style={styles.headerSub}>INBOX</Text>
         </View>
       </View>
       
       <View style={styles.searchContainer}>
         <View style={styles.searchBar}>
-          <Text style={{color: '#8696A0', marginRight: 8}}>🔍</Text>
+          <Search size={18} color="#8696A0" style={{marginRight: 8}} />
           <TextInput 
             style={styles.searchInput}
-            placeholder="Search..."
+            placeholder="Search conversations..."
             placeholderTextColor="#8696A0"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -243,6 +251,7 @@ export default function AdminWhatsAppInbox() {
         <FlatList
           data={filteredConversations}
           keyExtractor={item => item.phone}
+                    contentContainerStyle={{ paddingBottom: 40, paddingTop: 10 }}
           renderItem={({ item }) => {
             const isOutbound = item.lastMessage.direction === 'outbound';
             return (
@@ -268,7 +277,7 @@ export default function AdminWhatsAppInbox() {
                   </View>
                   <View style={styles.previewRow}>
                     {isOutbound && (
-                      <CheckCheck size={16} color={item.lastMessage.status === 'read' ? "#53bdeb" : "#8696A0"} style={styles.previewCheck} />
+                      <CheckCheck size={16} color={item.lastMessage.status === 'read' ? "#37469B" : "#8696A0"} style={styles.previewCheck} />
                     )}
                     <Text style={styles.convoPreview} numberOfLines={1}>
                       {item.lastMessage.text}
@@ -285,33 +294,26 @@ export default function AdminWhatsAppInbox() {
 
   const renderChat = () => {
     if (!selectedConversation) return null;
-    return (
+        return (
       <View style={styles.container}>
-        <View style={styles.chatHeader}>
-          <TouchableOpacity onPress={() => setSelectedConversation(null)} style={styles.backButton}>
-            <ArrowLeft size={24} color="#E9EDEF" />
-            <View style={[styles.avatar, styles.smallAvatar]}>
-              {selectedConversation.member?.avatarUrl ? (
-                <Image source={{ uri: selectedConversation.member.avatarUrl }} style={styles.avatarImage} />
-              ) : (
-                <Text style={styles.avatarTextSmall}>
-                  {selectedConversation.member ? selectedConversation.member.name.charAt(0).toUpperCase() : '#'}
-                </Text>
-              )}
-            </View>
+        <View style={[styles.header, { paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 16 }]}>
+          <TouchableOpacity onPress={() => setSelectedConversation(null)} style={styles.backBtn}>
+            <ChevronLeft size={22} color="#fff" />
+            <Text style={styles.backBtnTxt}>Back</Text>
           </TouchableOpacity>
-          <View style={styles.chatHeaderInfo}>
-            <Text style={styles.chatHeaderTitle} numberOfLines={1}>
+          <View style={[styles.heroTitles, { borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.2)', paddingLeft: 12 }]}>
+            <Text style={[styles.headerTitle, { fontSize: 20 }]} numberOfLines={1}>
               {selectedConversation.member ? selectedConversation.member.name : selectedConversation.phone}
             </Text>
+            <Text style={styles.headerSub}>CHAT</Text>
           </View>
           <View style={styles.chatHeaderIcons}>
-            <TouchableOpacity><PhoneIcon size={20} color="#E9EDEF" style={styles.iconSpaced} /></TouchableOpacity>
-            <TouchableOpacity><MoreVertical size={20} color="#E9EDEF" /></TouchableOpacity>
+            <TouchableOpacity><PhoneIcon size={20} color="#fff" style={styles.iconSpaced} /></TouchableOpacity>
+            <TouchableOpacity><MoreVertical size={20} color="#fff" /></TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.chatBackground}>
+                <View style={styles.chatBackground}>
           <FlatList
             ref={flatListRef}
             data={selectedConversation.messages}
@@ -326,17 +328,17 @@ export default function AdminWhatsAppInbox() {
                   styles.messageBubble, 
                   isOutbound ? styles.messageBubbleOutbound : styles.messageBubbleInbound
                 ]}>
-                  <Text style={styles.messageText}>{item.text}</Text>
+                  <Text style={[styles.messageText, isOutbound && { color: '#fff' }]}>{item.text}</Text>
                   
                   <View style={styles.messageFooter}>
                     {isOutbound && (
-                      <Text style={styles.sentByText}>Sent by Admin</Text>
+                      <Text style={[styles.sentByText, { color: 'rgba(255,255,255,0.7)' }]}>Sent by Admin</Text>
                     )}
-                    <Text style={styles.messageTime}>
+                    <Text style={[styles.messageTime, isOutbound && { color: 'rgba(255,255,255,0.7)' }]}>
                       {item.timestamp ? item.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     </Text>
                     {isOutbound && (
-                      <CheckCheck size={14} color={item.status === 'read' ? "#53bdeb" : "#8696a0"} style={styles.messageCheck} />
+                      <CheckCheck size={14} color={item.status === 'read' ? "#fff" : "rgba(255,255,255,0.7)"} style={styles.messageCheck} />
                     )}
                   </View>
                 </View>
@@ -371,38 +373,42 @@ export default function AdminWhatsAppInbox() {
     );
   };
 
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#202C33' }} edges={['top']}>
-      <View style={{ flex: 1, backgroundColor: '#111B21' }}>
-        {selectedConversation ? renderChat() : renderInbox()}
-      </View>
-    </SafeAreaView>
+    return (
+    <View style={{ flex: 1, backgroundColor: '#FAF8F0' }}>
+      {selectedConversation ? renderChat() : renderInbox()}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#111B21',
+    backgroundColor: '#FAF8F0',
   },
-  center: {
+    center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  inboxHeader: {
+  header: { 
+    backgroundColor: '#1a2d5a', 
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#202C33',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    gap: 12,
+    position: 'relative',
+    zIndex: 10,
+    marginBottom: 0,
   },
-  inboxHeaderTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#E9EDEF',
-  },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  heroTitles: { flex: 1, paddingLeft: 4 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2, letterSpacing: 1.5, fontWeight: '800' },
   inboxHeaderIcons: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -411,39 +417,54 @@ const styles = StyleSheet.create({
     marginRight: 20,
   },
   searchContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: '#111B21',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: '#FAF8F0',
   },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#202C33',
+    backgroundColor: '#FFFFFF',
     borderRadius: 24,
     paddingHorizontal: 16,
-    height: 40,
+    height: 48,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
   searchInput: {
     flex: 1,
-    color: '#E9EDEF',
+    color: '#162057',
     fontSize: 15,
   },
-  emptyText: {
+    emptyText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#8696A0',
+    color: '#64748B',
   },
   convoCard: {
     flexDirection: 'row',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    marginBottom: 12,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   avatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#6C7175',
+    backgroundColor: '#BE9A3A',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
@@ -455,28 +476,14 @@ const styles = StyleSheet.create({
   avatarText: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: '500',
-  },
-  smallAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    marginLeft: 4,
-  },
-  avatarTextSmall: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '700',
   },
   convoDetails: {
     flex: 1,
     marginLeft: 14,
     justifyContent: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#222D34',
-    paddingBottom: 12,
   },
-  convoHeader: {
+    convoHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -484,12 +491,13 @@ const styles = StyleSheet.create({
   },
   convoName: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#E9EDEF',
+    fontWeight: '700',
+    color: '#162057',
   },
   convoTime: {
     fontSize: 12,
-    color: '#8696A0',
+    color: '#848796',
+    fontWeight: '500',
   },
   previewRow: {
     flexDirection: 'row',
@@ -500,84 +508,64 @@ const styles = StyleSheet.create({
   },
   convoPreview: {
     fontSize: 14,
-    color: '#8696A0',
+    color: '#64748B',
     flex: 1,
   },
-  chatHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#202C33',
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  chatHeaderInfo: {
-    flex: 1,
-    marginLeft: 10,
-    justifyContent: 'center',
-  },
-  chatHeaderTitle: {
-    color: '#E9EDEF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  chatHeaderSubtitle: {
-    color: '#8696A0',
-    fontSize: 12,
-  },
-  chatHeaderIcons: {
+    chatHeaderIcons: {
     flexDirection: 'row',
     alignItems: 'center',
     marginLeft: 10,
   },
   chatBackground: {
     flex: 1,
-    backgroundColor: '#0B141A',
+    backgroundColor: '#FAF8F0',
   },
   chatListContent: {
-    padding: 12,
+    padding: 16,
     paddingBottom: 24,
   },
   messageBubble: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 16,
+    marginBottom: 10,
     maxWidth: '85%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   messageBubbleInbound: {
     alignSelf: 'flex-start',
-    backgroundColor: '#202C33',
-    borderTopLeftRadius: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 4,
   },
   messageBubbleOutbound: {
     alignSelf: 'flex-end',
-    backgroundColor: '#005C4B',
-    borderTopRightRadius: 0,
+    backgroundColor: '#37469B',
+    borderTopRightRadius: 4,
   },
   messageText: {
     fontSize: 15,
-    color: '#E9EDEF',
-    lineHeight: 20,
+    color: '#162057',
+    lineHeight: 22,
   },
-  messageFooter: {
+    messageFooter: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-end',
-    marginTop: 4,
+    marginTop: 6,
   },
   sentByText: {
     fontSize: 10,
-    color: '#8696A0',
+    color: '#848796',
     fontStyle: 'italic',
     marginRight: 8,
   },
   messageTime: {
     fontSize: 11,
-    color: '#8696A0',
+    color: '#848796',
     marginLeft: 4,
   },
   messageCheck: {
@@ -586,23 +574,26 @@ const styles = StyleSheet.create({
   inputArea: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    padding: 8,
-    backgroundColor: '#0B141A',
+    padding: 12,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 12,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
   },
   inputContainer: {
     flex: 1,
-    backgroundColor: '#202C33',
+    backgroundColor: '#F1F5F9',
     borderRadius: 24,
     minHeight: 48,
     justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 8,
-    marginRight: 8,
-    marginBottom: 4,
+    marginRight: 10,
+    marginBottom: 0,
   },
   input: {
     fontSize: 16,
-    color: '#E9EDEF',
+    color: '#162057',
     maxHeight: 120,
     paddingTop: 0,
     paddingBottom: 0,
@@ -611,9 +602,13 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#00A884',
+    backgroundColor: '#BE9A3A',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 4,
+    shadowColor: '#BE9A3A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
 });

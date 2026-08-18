@@ -30,16 +30,42 @@ import {
   Plus,
   Send,
   MoreVertical,
-  Megaphone
+  Megaphone,
+  ChevronLeft
 } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
 import { useAuth } from '../../context/AuthContext';
+import { AdminTabContext } from '../../context/AdminTabContext';
 
 const { width } = Dimensions.get('window');
 
+const COLORS = {
+  ink: '#151C33',
+  ink2: '#22304F',
+  inkSoft: '#6B7593',
+  parchment: '#F3EAD9',
+  paper: '#FFFCF5',
+  gold: '#A67C3D',
+  goldDeep: '#8C6428',
+  goldBright: '#D8B369',
+  clay: '#A24B34',
+  clayBg: '#F3E1D6',
+  clayLine: '#E3C3B2',
+  moss: '#3E6B52',
+  mossBg: '#E6EFE7',
+  rule: '#DED0AC',
+};
+
+const FONTS = {
+  serif: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  sans: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+};
+
+
 export default function AdminPrayerModeration() {
   const { member } = useAuth();
+  const { setActiveTab } = React.useContext(AdminTabContext);
   const adminName = member?.name || 'Administrator';
 
   const [prayers, setPrayers] = useState<any[]>([]);
@@ -236,11 +262,11 @@ export default function AdminPrayerModeration() {
           <Text style={styles.pAvatarTxt}>{(item.name || 'F').charAt(0)}</Text>
         </View>
         <View style={{ flex: 1, marginLeft: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
             <Text style={styles.pUserName}>{item.name}</Text>
             {isAnswered && (
               <View style={styles.ansBadge}>
-                <CheckCircle2 size={10} color={Theme.Colors.success} />
+                <CheckCircle2 size={10} color={COLORS.moss} />
                 <Text style={styles.ansBadgeTxt}>Processed</Text>
               </View>
             )}
@@ -305,7 +331,7 @@ export default function AdminPrayerModeration() {
   if (loading && !refreshing) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={Theme.Colors.primary} />
+        <ActivityIndicator size="large" color={COLORS.ink} />
         <Text style={{ marginTop: 12, color: '#64748b' }}>Loading Prayer Wall...</Text>
       </View>
     );
@@ -313,36 +339,44 @@ export default function AdminPrayerModeration() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
+
+      {/* ── Hero Section ── */}
+      <View style={styles.hero}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View>
+              <Text style={styles.heroTitle}>Prayers</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]}>{pendingPrayers.length} new · {answeredPrayers.length} processed</Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.newBtn} onPress={() => setShowCreateModal(true)}>
+            <Plus size={16} color="#1a2d5a" />
+            <Text style={styles.newBtnTxt}>New</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* ── Section Heading ── */}
-        <View style={[styles.secHd, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }]}>
-          <View>
-            <Text style={styles.secTitle}>🙏 Prayer Moderation</Text>
-            <Text style={styles.secSub}>Real-time requests from Salesforce</Text>
-          </View>
-          <TouchableOpacity 
-            style={styles.headerCreateBtn}
-            onPress={() => setShowCreateModal(true)}
-          >
-            <Plus size={14} color="#fff" />
-            <Text style={styles.headerCreateBtnTxt}>Create</Text>
-          </TouchableOpacity>
-        </View>
+
 
         {/* ── Stats Row ── */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <Text style={[styles.statVal, { color: Theme.Colors.error }]}>{pendingPrayers.length}</Text>
+            <Text style={[styles.statVal, { color: COLORS.clay }]}>{pendingPrayers.length}</Text>
             <Text style={styles.statLbl}>New Requests</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={[styles.statVal, { color: Theme.Colors.success }]}>{answeredPrayers.length}</Text>
+            <Text style={[styles.statVal, { color: COLORS.moss }]}>{answeredPrayers.length}</Text>
             <Text style={styles.statLbl}>Processed</Text>
           </View>
         </View>
@@ -351,7 +385,7 @@ export default function AdminPrayerModeration() {
         {pendingPrayers.length > 0 && (
           <>
             <View style={styles.listHd}>
-              <Text style={[styles.listHdTitle, { color: Theme.Colors.accent }]}>Requests for Review ({pendingPrayers.length})</Text>
+              <Text style={[styles.listHdTitle, { color: COLORS.goldDeep }]}>Requests for Review ({pendingPrayers.length})</Text>
             </View>
             {pendingPrayers.map(p => renderPrayerCard(p))}
           </>
@@ -391,7 +425,7 @@ export default function AdminPrayerModeration() {
                     value={memberSearchQuery}
                     onChangeText={handleMemberSearch}
                   />
-                  {searchingMembers && <ActivityIndicator size="small" color={Theme.Colors.primary} />}
+                  {searchingMembers && <ActivityIndicator size="small" color={COLORS.ink} />}
                 </View>
 
                 {memberSearchResults.length > 0 && !selectedMember && (
@@ -410,7 +444,7 @@ export default function AdminPrayerModeration() {
                           <Text style={styles.searchItemName}>{m.name}</Text>
                           <Text style={styles.searchItemPhone}>{m.phone || 'No Phone'}</Text>
                         </View>
-                        <Plus size={14} color={Theme.Colors.primary} />
+                        <Plus size={14} color={COLORS.ink} />
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -418,7 +452,7 @@ export default function AdminPrayerModeration() {
 
                 {selectedMember && (
                   <View style={styles.selectedBadge}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
                       <User size={14} color="#fff" />
                       <Text style={styles.selectedBadgeTxt}>{selectedMember.name}</Text>
                     </View>
@@ -572,183 +606,118 @@ export default function AdminPrayerModeration() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f7' },
-  scroll: { padding: 14 },
+  container: { flex: 1, backgroundColor: COLORS.parchment },
+  scroll: { padding: 16, paddingBottom: 100 },
 
-  secHd: { marginBottom: 0, paddingBottom: 15, borderBottomWidth: 1.5, borderBottomColor: Theme.Colors.accent },
-  secTitle: { fontSize: 18, fontWeight: '800', color: Theme.Colors.primary },
-  secSub: { fontSize: 11, color: '#6B7280', marginTop: 4 },
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6,
+  },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroSub: { color: '#AEB8D4', fontSize: 13 },
+  
+  newBtn: { 
+    backgroundColor: '#C9A84C', 
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 12,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4
+  },
+  newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
-  statsRow: { flexDirection: 'row', gap: 12, marginBottom: 18, marginTop: 15 },
-  statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, paddingVertical: 18, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, borderWidth: 0.5, borderColor: '#f1f5f9' },
-  statVal: { fontSize: 24, fontWeight: '700' },
-  statLbl: { fontSize: 10, color: '#94a3b8', marginTop: 2 },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 18 },
+  statCard: { flex: 1, backgroundColor: COLORS.paper, borderRadius: 16, paddingVertical: 18, alignItems: 'center', elevation: 3, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, borderWidth: 1, borderColor: COLORS.rule },
+  statVal: { fontSize: 24, fontWeight: '900', fontFamily: FONTS.serif },
+  statLbl: { fontSize: 11, color: COLORS.inkSoft, marginTop: 4, fontWeight: '600' },
 
   listHd: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  listHdTitle: { fontSize: 13, fontWeight: '700', color: Theme.Colors.error },
+  listHdTitle: { fontSize: 14, fontWeight: '800', color: COLORS.ink, textTransform: 'uppercase', letterSpacing: 0.5 },
 
-  pCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 12, borderWidth: 0.5, borderColor: '#e2e8f0' },
-  pCardAnswered: { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' },
+  pCard: { backgroundColor: COLORS.paper, borderRadius: 16, padding: 16, marginBottom: 12, borderWidth: 1, borderColor: COLORS.rule },
+  pCardAnswered: { backgroundColor: COLORS.mossBg, borderColor: '#C8E6C9' },
   pCardHd: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   pAvatar: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
-  pAvatarTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  pUserName: { fontSize: 13, fontWeight: '700', color: '#1e293b' },
-  pTime: { fontSize: 10, color: '#94a3b8', marginTop: 2 },
+  pAvatarTxt: { color: '#fff', fontSize: 14, fontWeight: '800', fontFamily: FONTS.serif },
+  pUserName: { fontSize: 14, fontWeight: '800', color: COLORS.ink, fontFamily: FONTS.serif },
+  pTime: { fontSize: 11, color: COLORS.inkSoft, marginTop: 2, fontWeight: '500' },
 
-  ansBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#DCFCE7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
-  ansBadgeTxt: { fontSize: 8, fontWeight: '700', color: Theme.Colors.success },
+  ansBadge: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, backgroundColor: '#DCFCE7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  ansBadgeTxt: { fontSize: 9, fontWeight: '800', color: '#15803D' },
 
-  pTextContainer: { backgroundColor: '#f9fafb', borderRadius: 12, padding: 18, marginBottom: 15, borderWidth: 0.5, borderColor: '#f1f5f9' },
-  pText: { fontSize: 13, color: '#4b5563', lineHeight: 22 },
+  pTextContainer: { backgroundColor: 'rgba(0,0,0,0.02)', borderRadius: 12, padding: 18, marginBottom: 15, borderWidth: 1, borderColor: 'rgba(0,0,0,0.05)' },
+  pText: { fontSize: 14, color: COLORS.ink, lineHeight: 22, fontFamily: FONTS.serif },
 
   pFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  catBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  catDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#6366f1' },
-  catTxt: { fontSize: 10, fontWeight: '600', color: '#64748b' },
+  catBadge: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
+  catDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.goldDeep },
+  catTxt: { fontSize: 11, fontWeight: '700', color: COLORS.inkSoft },
 
-  pActions: { flexDirection: 'row', gap: 8 },
-  pActionBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f1f5f9', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 },
-  pActionBtnTxt: { fontSize: 10, fontWeight: '700', color: Theme.Colors.primary },
+  pActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  pActionBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, backgroundColor: '#DCFCE7', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 },
+  pActionBtnTxt: { fontSize: 11, fontWeight: '800', color: '#15803D' },
 
-  pastorSection: { backgroundColor: '#fff', borderRadius: 16, padding: 20, marginTop: 20, borderWidth: 0.5, borderColor: '#e2e8f0' },
-  pastorSecTitle: { fontSize: 14, fontWeight: '700', color: Theme.Colors.primary, marginBottom: 20 },
+  pastorSection: { backgroundColor: COLORS.paper, borderRadius: 16, padding: 20, marginTop: 20, borderWidth: 1, borderColor: COLORS.rule },
+  pastorSecTitle: { fontSize: 14, fontWeight: '800', color: COLORS.ink, marginBottom: 20 },
   inputGroup: { marginBottom: 15 },
-  inputLabel: { fontSize: 11, fontWeight: '700', color: '#1e293b', marginBottom: 8 },
-  textArea: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, minHeight: 80, paddingHorizontal: 12, marginBottom: 10 },
-  textInput: { fontSize: 12, color: '#1e293b', paddingVertical: 12, textAlignVertical: 'top' },
-  pickerBtn: { height: 48, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15 },
-  pickerTxt: { fontSize: 13, color: '#1e293b', fontWeight: '500' },
-  categoryList: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, padding: 4, marginTop: 4, elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
-  catOption: { paddingVertical: 12, paddingHorizontal: 15, borderBottomWidth: 0.5, borderBottomColor: '#f1f5f9' },
-  catOptionActive: { backgroundColor: '#2563EB' },
-  catOptionTxt: { fontSize: 13, color: '#1e293b' },
-  publishBtn: { height: 56, backgroundColor: '#0f1e3a', borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginHorizontal: 14, marginTop: 10, elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
-  publishBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  inputLabel: { fontSize: 12, fontWeight: '800', color: COLORS.ink, marginBottom: 8 },
+  textArea: { backgroundColor: '#fff', borderWidth: 1, borderColor: COLORS.rule, borderRadius: 12, minHeight: 80, paddingHorizontal: 12, marginBottom: 10 },
+  textInput: { fontSize: 13, color: COLORS.ink, paddingVertical: 12, textAlignVertical: 'top', fontFamily: FONTS.serif },
+  pickerBtn: { height: 50, backgroundColor: '#fff', borderWidth: 1, borderColor: COLORS.rule, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 15 },
+  pickerTxt: { fontSize: 14, color: COLORS.ink, fontWeight: '600' },
+  categoryList: { backgroundColor: '#fff', borderWidth: 1, borderColor: COLORS.rule, borderRadius: 12, padding: 4, marginTop: 4, elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
+  catOption: { paddingVertical: 14, paddingHorizontal: 15, borderBottomWidth: 0.5, borderBottomColor: COLORS.rule },
+  catOptionActive: { backgroundColor: COLORS.goldBright },
+  catOptionTxt: { fontSize: 14, color: COLORS.ink, fontWeight: '500' },
+  publishBtn: { height: 56, backgroundColor: COLORS.ink, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 10, elevation: 4, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10 },
+  publishBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '800', fontFamily: FONTS.serif },
 
   // Search Styles
-  searchBox: {
-    height: 48,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    gap: 10
-  },
-  searchInput: { flex: 1, fontSize: 13, color: '#1e293b' },
-  searchResults: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    borderRadius: 10,
-    marginTop: 4,
-    maxHeight: 200,
-    overflow: 'hidden',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10
-  },
-  searchItem: {
-    padding: 12,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#f1f5f9',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
-  },
-  searchItemName: { fontSize: 13, fontWeight: '700', color: '#1e293b' },
-  searchItemPhone: { fontSize: 11, color: '#64748b', marginTop: 2 },
-  selectedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Theme.Colors.primary,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginTop: 8
-  },
-  selectedBadgeTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
+  searchBox: { height: 50, backgroundColor: '#fff', borderWidth: 1, borderColor: COLORS.rule, borderRadius: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', paddingHorizontal: 15, gap: 10 },
+  searchInput: { flex: 1, fontSize: 14, color: COLORS.ink, fontFamily: FONTS.serif },
+  searchResults: { backgroundColor: '#fff', borderWidth: 1, borderColor: COLORS.rule, borderRadius: 12, marginTop: 4, maxHeight: 200, overflow: 'hidden', elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
+  searchItem: { padding: 14, borderBottomWidth: 0.5, borderBottomColor: COLORS.rule, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  searchItemName: { fontSize: 14, fontWeight: '800', color: COLORS.ink, fontFamily: FONTS.serif },
+  searchItemPhone: { fontSize: 12, color: COLORS.inkSoft, marginTop: 2 },
+  selectedBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.ink, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 10, marginTop: 8 },
+  selectedBadgeTxt: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
-  headerCreateBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: Theme.Colors.primary, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, gap: 6 },
-  headerCreateBtnTxt: { color: '#fff', fontSize: 12, fontWeight: '700' },
-  createModalOverlay: { flex: 1, backgroundColor: 'rgba(15, 30, 58, 0.7)', justifyContent: 'flex-end' },
-  createModalContent: { backgroundColor: '#f0f2f7', borderTopLeftRadius: 24, borderTopRightRadius: 24, height: '85%' },
-  createModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomWidth: 1, borderBottomColor: '#e2e8f0' },
-  createModalTitle: { fontSize: 16, fontWeight: '800', color: Theme.Colors.primary },
-  closeBtn: { padding: 4 },
+  createModalOverlay: { flex: 1, backgroundColor: 'rgba(21, 28, 51, 0.75)', justifyContent: 'flex-end' },
+  createModalContent: { backgroundColor: COLORS.parchment, borderTopLeftRadius: 30, borderTopRightRadius: 30, height: '85%' },
+  createModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 24, backgroundColor: COLORS.paper, borderTopLeftRadius: 30, borderTopRightRadius: 30, borderBottomWidth: 1, borderBottomColor: COLORS.rule },
+  createModalTitle: { fontSize: 18, fontWeight: '900', color: COLORS.ink, fontFamily: FONTS.serif },
+  closeBtn: { padding: 4, backgroundColor: COLORS.clayBg, borderRadius: 20 },
 
   // Success Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(15, 30, 58, 0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20
-  },
-  successCard: {
-    backgroundColor: '#fff',
-    borderRadius: 24,
-    padding: 30,
-    width: '100%',
-    maxWidth: 340,
-    alignItems: 'center',
-    elevation: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-  },
-  successIconBox: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#10B981',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 20,
-    elevation: 10,
-    shadowColor: '#10B981',
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
-  },
-  successTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#1a2d5a',
-    marginBottom: 10,
-    textAlign: 'center'
-  },
-  successSub: {
-    fontSize: 14,
-    color: '#64748b',
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 30
-  },
-  successBtn: {
-    backgroundColor: '#1a2d5a',
-    paddingVertical: 16,
-    paddingHorizontal: 30,
-    borderRadius: 14,
-    width: '100%',
-    alignItems: 'center'
-  },
-  successBtnTxt: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700'
-  },
-  
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(21, 28, 51, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  successCard: { backgroundColor: COLORS.paper, borderRadius: 24, padding: 32, width: '92%', maxWidth: 400, alignItems: 'center', elevation: 10, borderWidth: 1, borderColor: COLORS.rule },
+  successIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.mossBg, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  successIconInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.moss, justifyContent: 'center', alignItems: 'center' },
+  successTitle: { fontSize: 24, fontWeight: '900', color: COLORS.ink, marginBottom: 12, textAlign: 'center', fontFamily: FONTS.serif },
+  successSub: { fontSize: 14, color: COLORS.inkSoft, textAlign: 'center', lineHeight: 22, marginBottom: 30, fontFamily: FONTS.serif },
+  successBtn: { backgroundColor: COLORS.goldBright, height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3 },
+  successBtnTxt: { color: COLORS.ink, fontSize: 14, fontWeight: '800', fontFamily: FONTS.serif },
+
   // Replies Styles
-  repliesContainer: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
-  repliesHeader: { fontSize: 12, fontWeight: '800', color: '#1a2d5a', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  replyCard: { backgroundColor: '#f8fafc', borderRadius: 10, padding: 12, marginBottom: 8 },
+  repliesContainer: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: COLORS.rule },
+  repliesHeader: { fontSize: 12, fontWeight: '800', color: COLORS.ink, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  replyCard: { backgroundColor: '#fff', borderRadius: 10, padding: 12, marginBottom: 8, borderWidth: 1, borderColor: COLORS.rule },
   replyHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  replyAuthor: { fontSize: 12, fontWeight: '700', color: '#1a2d5a' },
-  replyDate: { fontSize: 11, color: '#94a3b8', fontWeight: '500' },
-  replyBody: { fontSize: 13, color: '#475569', lineHeight: 20 }
+  replyAuthor: { fontSize: 12, fontWeight: '800', color: COLORS.ink, fontFamily: FONTS.serif },
+  replyDate: { fontSize: 11, color: COLORS.inkSoft, fontWeight: '600' },
+
+  replyBody: { fontSize: 14, color: COLORS.ink2, lineHeight: 22, fontFamily: FONTS.serif }
 });

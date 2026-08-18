@@ -49,14 +49,14 @@ class SecurityService {
    * Authenticate the user using biometrics (Fingerprint/FaceID) 
    * or fallback to Device Passcode/Pattern
    */
-  async authenticate() {
+  async authenticate(churchName: string = 'Church of GOD') {
     try {
       if (!LocalAuthentication.authenticateAsync) {
         return true; // Fallback if module is missing
       }
 
       const results = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Unlock Church of GOD',
+        promptMessage: `Unlock ${churchName}`,
         fallbackLabel: 'Use Passcode',
         disableDeviceFallback: false,
         cancelLabel: 'Cancel',
@@ -72,7 +72,7 @@ class SecurityService {
   /**
    * Comprehensive security check that respects user preference
    */
-  async performSecurityCheck(): Promise<boolean> {
+  async performSecurityCheck(churchName?: string): Promise<boolean> {
     const isEnabled = await this.isBiometricEnabled();
     const isAvailable = await this.isBiometricAvailable();
     
@@ -80,7 +80,7 @@ class SecurityService {
       return true; // Skip if disabled or not available
     }
 
-    return await this.authenticate();
+    return await this.authenticate(churchName);
   }
 }
 

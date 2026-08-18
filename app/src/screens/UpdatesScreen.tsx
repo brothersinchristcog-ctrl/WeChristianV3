@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking, Alert, Image } from 'react-native';
-import { ChevronLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic } from 'lucide-react-native';
+import { ChevronLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic , Video } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   getFirestore, 
@@ -113,12 +113,19 @@ function stripHtml(html: string): string {
 
 export default function UpdatesScreen({ navigation, route }: any) {
   const { highlightId, highlightType } = route?.params || {};
-  const [dynamicUpdates, setDynamicUpdates] = useState<any[]>([]);
+    const [dynamicUpdates, setDynamicUpdates] = useState<any[]>([]);
+  const [broadcastsList, setBroadcastsList] = useState<any[]>([]);
+  const [meetingsList, setMeetingsList] = useState<any[]>([]);
+
+  useEffect(() => {
+    const combined = [...broadcastsList, ...meetingsList].sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
+    setDynamicUpdates(combined);
+  }, [broadcastsList, meetingsList]);
   const [selectedUpdate, setSelectedUpdate] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
-  const { user, member } = useAuth();
+  const { user, member, viewMode } = useAuth();
   const { activeChurch } = useChurch();
 
   useEffect(() => {
@@ -208,14 +215,14 @@ export default function UpdatesScreen({ navigation, route }: any) {
               icon = Gift;
               color = '#d97706';
               resolvedType = 'birthday';
-            } else if (data.title?.includes('💐') || data.content?.includes('Anniversary') || data.type === 'anniversary') {
-              icon = Heart;
-              color = '#be185d';
-              resolvedType = 'anniversary';
-            } else if (data.title?.includes('🎉') || data.title?.includes('🕊️') || data.content?.includes('Baptism') || data.type === 'baptism' || data.type === 'celebration') {
+            } else if (data.title?.includes('🎉') || data.title?.includes('🕊️') || data.content?.includes('Baptism') || data.title?.includes('Baptism') || data.type === 'baptism' || data.type === 'celebration') {
               icon = Sparkles;
               color = '#3b82f6';
               resolvedType = 'celebration';
+            } else if (data.title?.includes('💐') || data.content?.includes('Anniversary') || data.title?.includes('Anniversary') || data.type === 'anniversary') {
+              icon = Heart;
+              color = '#be185d';
+              resolvedType = 'anniversary';
             } else if (data.type === 'promise' || data.title?.includes('Promise') || data.title?.includes('వాగ్దానం')) {
               icon = BookOpen;
               color = '#8b5cf6';
@@ -229,19 +236,35 @@ export default function UpdatesScreen({ navigation, route }: any) {
               color = '#6366f1';
               resolvedType = 'sermon';
             }
+            let dateStr = data.date || new Date().toISOString().split('T')[0];
+            
+            // Try to extract exact time if available
+            if (data.createdAt && typeof data.createdAt.toDate === 'function') {
+              const dt = data.createdAt.toDate();
+              const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+              dateStr = `${dateStr} • ${timeStr}`;
+            } else if (typeof data.createdAt === 'number' || typeof data.createdAt === 'string') {
+              const dt = new Date(data.createdAt);
+              if (!isNaN(dt.getTime())) {
+                const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                dateStr = `${dateStr} • ${timeStr}`;
+              }
+            }
+
             return {
               id: doc.id,
               title: data.title || 'Announcement',
               content: stripHtml(data.content || ''),
-              date: data.date || new Date().toISOString().split('T')[0],
+              date: dateStr,
               type: resolvedType,
               icon: icon,
               color: color,
               url: data.url || '',
-              imageUrl: data.imageUrl || null
+              imageUrl: data.imageUrl || null,
+              rawDate: data.createdAt?.toMillis?.() || (typeof data.createdAt === 'number' ? data.createdAt : 0)
             };
           }).filter(item => item !== null);
-          setDynamicUpdates(list);
+          setBroadcastsList(list);
         }
         setLoading(false);
       },
@@ -251,7 +274,45 @@ export default function UpdatesScreen({ navigation, route }: any) {
       }
     );
 
-    return () => unsubscribe();
+        const qMeetings = query(
+      collection(db, 'churches', member.churchId, 'online_meetings'),
+      orderBy('createdAt', 'desc'),
+      limit(10)
+    );
+
+    const unsubscribeMeetings = onSnapshot(
+      qMeetings,
+      (snapshot) => {
+        if (snapshot) {
+          const list = snapshot.docs.map(doc => {
+            const data = doc.data();
+            let dateStr = new Date().toISOString().split('T')[0];
+            if (data.startTime && typeof data.startTime.toDate === 'function') {
+              const dt = data.startTime.toDate();
+              dateStr = dt.toLocaleDateString() + ' • ' + dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+            }
+            
+            return {
+              id: doc.id,
+              title: 'New Online Meeting',
+              content: data.title + ' has been scheduled.',
+              date: dateStr,
+              type: 'online_meeting',
+              icon: Video,
+              color: '#3B82F6',
+              url: data.meetingLink || '',
+              rawDate: data.createdAt?.toMillis?.() || 0
+            };
+          });
+          setMeetingsList(list);
+        }
+      },
+      (error) => {
+        console.error('Error fetching meetings:', error);
+      }
+    );
+
+    return () => { unsubscribe(); unsubscribeMeetings(); };
   }, [member?.churchId, user?.phoneNumber, member?.phone]);
 
   const staticUpdates = [
@@ -295,13 +356,22 @@ export default function UpdatesScreen({ navigation, route }: any) {
   // Route-triggered Auto Popup Highlights
   useEffect(() => {
     if (hasAutoOpened) return;
+    if (!highlightType) return; // nothing to do
 
+    // If we have a specific broadcast ID, try to find it in the loaded updates
     if (highlightId && allUpdates.length > 0) {
       const match = allUpdates.find(u => u.id === highlightId);
       if (match) {
         setSelectedUpdate(match);
         setHasAutoOpened(true);
-      } else if (highlightType === 'birthday') {
+        return;
+      }
+    }
+
+    // Fallback: show a temp card based on type (handles the case where allUpdates not loaded yet,
+    // or the broadcast was targeted to another user so it won't appear in list)
+    if (!loading) {
+      if (highlightType === 'birthday') {
         setSelectedUpdate({
           id: 'temp-bd',
           title: '🎂 Happy Birthday!',
@@ -321,46 +391,44 @@ export default function UpdatesScreen({ navigation, route }: any) {
           color: '#be185d'
         });
         setHasAutoOpened(true);
+      } else if (highlightType === 'baptism' || highlightType === 'celebration') {
+        setSelectedUpdate({
+          id: 'temp-cel',
+          title: '🕊️ Happy Baptism Anniversary!',
+          content: 'Happy Baptism Anniversary! May you continue to grow in faith and walk in His light. 🙏🕊️',
+          date: 'Today',
+          type: 'celebration',
+          color: '#3b82f6'
+        });
+        setHasAutoOpened(true);
       }
-    } else if (highlightType === 'birthday' && !selectedUpdate) {
-      setSelectedUpdate({
-        id: 'temp-bd',
-        title: '🎂 Happy Birthday!',
-        content: 'Wishing you a very Happy Birthday! May God bless you abundantly and fulfill all your prayers today. 🙏🎈',
-        date: 'Today',
-        type: 'birthday',
-        color: '#d97706'
-      });
-      setHasAutoOpened(true);
-    } else if (highlightType === 'anniversary' && !selectedUpdate) {
-      setSelectedUpdate({
-        id: 'temp-ann',
-        title: '💐 Happy Wedding Anniversary!',
-        content: 'Wishing you a wonderful wedding anniversary! May God bless your home with love, joy, and peace. 💒💖',
-        date: 'Today',
-        type: 'anniversary',
-        color: '#be185d'
-      });
-      setHasAutoOpened(true);
     }
-  }, [highlightId, highlightType, allUpdates, hasAutoOpened, selectedUpdate]);
+  }, [highlightId, highlightType, allUpdates, hasAutoOpened, loading]);
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
-      {/* ── Page Header ── */}
+      {/* ── Page Header Hero Card ── */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
-        </TouchableOpacity>
-        
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Church Updates</Text>
-          <Text style={styles.headerSub}>Latest announcements & news</Text>
+        <View style={styles.headerTopRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <ChevronLeft size={22} color="#fff" />
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
+
+          {visibleUpdates.length > 0 && (
+            <View style={styles.headerBadge}>
+              <Bell size={12} color="#D4AF37" />
+              <Text style={styles.headerBadgeTxt}>{visibleUpdates.length} updates</Text>
+            </View>
+          )}
         </View>
-        <View style={{ width: 60 }} />
+
+        <View style={styles.headerBottom}>
+          <Text style={styles.headerTitle}>Church Updates</Text>
+          <Text style={styles.headerSub}>Latest announcements & news from your church</Text>
+        </View>
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -381,11 +449,18 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   if (update.type === 'song') {
                     navigation.navigate('Songs');
                   } else if (update.type === 'promise') {
-                    navigation.navigate('Tabs', { screen: 'Promise' });
+                    if (viewMode === 'admin') {
+                      if (navigation.canGoBack()) navigation.goBack();
+                      else navigation.navigate('AdminRoot');
+                    } else {
+                      navigation.navigate('Tabs', { screen: 'Promise' });
+                    }
                   } else if (update.type === 'sermon') {
                     navigation.navigate('Sermons');
                   } else if (update.type === 'event') {
                     navigation.navigate('Events');
+                  } else if (update.type === 'attendance') {
+                    navigation.navigate('AttendanceScreen');
                   } else {
                     setSelectedUpdate(update);
                   }
@@ -603,23 +678,53 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   header: {
     backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 40),
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    // subtle shadow below the card
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 20,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, width: 60 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 17, fontWeight: '700' },
-  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 11, marginTop: 2 },
+  headerBottom: {
+    paddingLeft: 4,
+  },
+  headerBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(212,175,55,0.4)',
+  },
+  headerBadgeTxt: {
+    color: '#D4AF37',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
+  backText: { color: '#fff', fontSize: 15, fontWeight: '600' },
+  headerTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
+  headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '500' },
   
   scroll: { flex: 1 },
   content: { padding: 16, gap: 16 },
   
-  loadingBox: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10 },
+  loadingBox: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 10 },
   loadingTxt: { fontSize: 12, color: '#475569', fontWeight: '500' },
 
   updateCard: {

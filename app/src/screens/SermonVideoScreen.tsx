@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minWidth: 60 },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, minWidth: 60 },
   backBtnTxt: { color: '#aac4e8', fontSize: 13, fontWeight: '500' },
   titleCol: { flex: 1, alignItems: 'center' },
   pageTitle: { color: '#fff', fontSize: 14, fontWeight: '600' },
@@ -241,12 +241,12 @@ const styles = StyleSheet.create({
 
   videoDetails: { padding: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
   videoTitle: { fontSize: 18, fontWeight: '800', color: '#111827', marginBottom: 8 },
-  metaRow: { flexDirection: 'row', gap: 15, marginBottom: 20 },
-  metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 },
+  metaItem: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 },
   metaTxt: { fontSize: 11, color: '#6B7280', fontWeight: '500' },
 
   pastorCard: { 
-    flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, 
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12, padding: 12, 
     backgroundColor: '#f9fafb', borderRadius: 14, marginBottom: 15,
     borderWidth: 0.5, borderColor: '#e5e7eb'
   },
@@ -257,13 +257,13 @@ const styles = StyleSheet.create({
   subBtn: { backgroundColor: '#1a2d5a', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 8 },
   subBtnTxt: { color: '#fff', fontSize: 10, fontWeight: '700' },
 
-  shareBtn: { backgroundColor: '#c0392b', paddingVertical: 14, borderRadius: 12, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 },
+  shareBtn: { backgroundColor: '#c0392b', paddingVertical: 14, borderRadius: 12, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: 8 },
   shareBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
   secLbl: { fontSize: 10, fontWeight: '700', color: '#9CA3AF', letterSpacing: 0.6, marginHorizontal: 16, marginBottom: 12, marginTop: 20 },
   
   archiveList: { backgroundColor: '#fff', marginHorizontal: 12, borderRadius: 16, overflow: 'hidden', borderWidth: 0.5, borderColor: '#e5e7eb' },
-  archiveItem: { flexDirection: 'row', alignItems: 'center', padding: 12, borderBottomWidth: 0.5, borderBottomColor: '#f3f4f6', gap: 12 },
+  archiveItem: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', padding: 12, borderBottomWidth: 0.5, borderBottomColor: '#f3f4f6', gap: 12 },
   thumbBox: { width: 80, height: 60, borderRadius: 8, overflow: 'hidden', position: 'relative' },
   thumb: { width: '100%', height: '100%' },
   playIcon: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)', justifyContent: 'center', alignItems: 'center' },

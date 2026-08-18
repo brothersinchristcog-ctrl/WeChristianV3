@@ -285,10 +285,10 @@ const styles = StyleSheet.create({
   verseTe: { fontSize: 14, fontWeight: '500', color: '#aac4e8', lineHeight: 24, fontStyle: 'italic', marginBottom: 15 },
   refBottom: { fontSize: 11, color: '#FCD34D', fontWeight: '600', marginBottom: 20 },
   
-  pActionRow: { flexDirection: 'row', gap: 10 },
-  pBtnNavy: { flex: 1, height: 40, backgroundColor: '#253b70', borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  pActionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  pBtnNavy: { flex: 1, height: 40, backgroundColor: '#253b70', borderRadius: 8, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8 },
   pBtnNavyTxt: { color: '#fff', fontSize: 12, fontWeight: '600' },
-  pBtnRed: { flex: 1, height: 40, backgroundColor: '#c0392b', borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  pBtnRed: { flex: 1, height: 40, backgroundColor: '#c0392b', borderRadius: 8, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8 },
   pBtnRedTxt: { color: '#fff', fontSize: 12, fontWeight: '600' },
 
   reflectionBox: { marginTop: 20, paddingHorizontal: 5 },
@@ -308,10 +308,10 @@ const styles = StyleSheet.create({
   latestTitleTe: { fontSize: 16, fontWeight: '600', color: '#aac4e8', fontStyle: 'italic', marginBottom: 12 },
   latestMeta: { fontSize: 11, color: '#94a3b8', marginBottom: 20 },
 
-  sermonActionRow: { flexDirection: 'row', gap: 10 },
-  sBtnRed: { flex: 1, height: 44, backgroundColor: '#c0392b', borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  sermonActionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  sBtnRed: { flex: 1, height: 44, backgroundColor: '#c0392b', borderRadius: 8, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8 },
   sBtnRedTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  sBtnNavy: { flex: 1, height: 44, backgroundColor: '#253b70', borderRadius: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  sBtnNavy: { flex: 1, height: 44, backgroundColor: '#253b70', borderRadius: 8, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8 },
   sBtnNavyTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
 
   sermonFeed: { gap: 15 },
@@ -321,7 +321,7 @@ const styles = StyleSheet.create({
   itemTitleTe: { fontSize: 13, fontWeight: '500', color: '#475569', marginTop: 2 },
   itemMeta: { fontSize: 10, color: '#94a3b8', marginTop: 5 },
   
-  tagRow: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 10 },
   tag: { backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4 },
   tagTxt: { fontSize: 9, fontWeight: '700', color: '#1a2d5a' },
 
@@ -331,6 +331,6 @@ const styles = StyleSheet.create({
   fab: { position: 'absolute', right: 20, bottom: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#c0392b', justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10 },
 
   navSection: { paddingHorizontal: 20, marginTop: 20, gap: 12 },
-  navBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#1a2d5a', borderRadius: 12, paddingVertical: 14, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 },
+  navBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: '#1a2d5a', borderRadius: 12, paddingVertical: 14, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 },
   navBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '700' }
 });

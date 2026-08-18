@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { Gift, Heart, PlusCircle } from 'lucide-react-native';
+import { Platform, View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { Gift, Heart, PlusCircle, ChevronLeft } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
 import ChurchService from '../../services/ChurchService';
@@ -28,7 +28,8 @@ export default function AdminWeCelebrations({ navigation }: any) {
   const { activeChurch, setActiveChurch } = useChurch();
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [activeDateFilter, setActiveDateFilter] = useState('Today');
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState('All');
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
   // Hoisted state for personalization flow
@@ -166,16 +167,9 @@ export default function AdminWeCelebrations({ navigation }: any) {
   }
 
   if (viewMode === 'list') {
-    return (
-      <AdminWeCelebrationsList 
-        category={selectedCategory} 
-        onBack={() => setViewMode('dashboard')} 
-        onSelectMember={(member) => {
-          setSelectedMember(member);
-          setViewMode('details');
-        }}
-      />
-    );
+    // viewMode list is obsolete as it's merged with dashboard
+    setViewMode('dashboard');
+    return null;
   }
 
   const handleSendWhatsApp = async (localImageUri?: string) => {
@@ -333,14 +327,14 @@ export default function AdminWeCelebrations({ navigation }: any) {
       return (
         <AdminWeCelebrationsMemberDetails 
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           onBack={() => setViewMode('list')}
           onPrepareWish={() => {
             // Reset personalization state when starting a new wish
             setSelectedThemeId(null);
             setSelectedVerse(null);
             setGreetingMessage('');
-            setTitleOverlay(selectedCategory);
+            setTitleOverlay((selectedMember?.celebrationType || 'Birthday'));
             setNameOverlay(selectedMember?.name || '');
             setViewMode('personalize');
           }}
@@ -351,7 +345,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
         <View style={{flex: 1}}>
           <AdminWeCelebrationsPersonalize 
             member={selectedMember}
-            category={selectedCategory}
+            category={(selectedMember?.celebrationType || 'Birthday')}
             layout={layout}
             onLayoutChange={setLayout}
             photoUri={photoUri}
@@ -413,7 +407,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
     case 'versePicker':
       return (
         <AdminWeCelebrationsVersePicker
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           selectedVerseRef={selectedVerse?.ref}
           onBack={() => setViewMode('personalize')}
           onSelectVerse={(verse) => {
@@ -448,7 +442,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
       return (
         <AdminWeCelebrationsPreview
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           theme={themeObj}
           layout={layout}
           photoUri={photoUri}
@@ -477,7 +471,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
         <View style={{ flex: 1 }}>
           <AdminWeCelebrationsWhatsAppPreview
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           theme={themeObj}
           layout={layout}
           photoUri={photoUri}
@@ -504,7 +498,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
       return (
         <AdminWeCelebrationsConfirm
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           onDone={() => setViewMode('dashboard')}
         />
       );
@@ -516,10 +510,6 @@ export default function AdminWeCelebrations({ navigation }: any) {
       );
   }
 
-  const handleCategoryPress = (category: string) => {
-    setSelectedCategory(category);
-    setViewMode('list');
-  };
 
   const toggleAutomation = async () => {
     if (!activeChurch) return;
@@ -534,14 +524,17 @@ export default function AdminWeCelebrations({ navigation }: any) {
     }
   };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      
-      {/* Header */}
+    return (
+    <View style={styles.container}>
+      {/* ── Fixed Header ── */}
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>CHURCH COMPANION</Text>
-        <Text style={styles.title}>WeCelebration</Text>
+        <View style={styles.heroTitles}>
+          <Text style={styles.headerTitle}>WeCelebration</Text>
+          <Text style={styles.headerSub}>CHURCH COMPANION</Text>
+        </View>
       </View>
+
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
       {/* Hero Card */}
       <View style={styles.heroCard}>
@@ -573,7 +566,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
           <View style={{ flex: 1, paddingRight: 16 }}>
             <Text style={styles.automationTitle}>Automated WhatsApp Wishes</Text>
             <Text style={styles.automationDesc}>
-              Automatically send WhatsApp wishes to members on their special day at 8:00 AM.
+              Sends Birthday wishes at 6:00 AM · Baptism wishes at 6:30 AM · Wedding Anniversary wishes at 7:00 AM (IST) — every day, automatically.
             </Text>
           </View>
           <TouchableOpacity 
@@ -591,42 +584,53 @@ export default function AdminWeCelebrations({ navigation }: any) {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>CELEBRATION CATEGORIES</Text>
+      {/* Date Filters */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, marginBottom: 20 }}>
+        {['Today', 'Upcoming', 'Week', 'Month', 'Past', 'All'].map(filter => (
+          <TouchableOpacity 
+            key={filter}
+            style={[styles.filterBtn, activeDateFilter === filter && styles.filterBtnActive]}
+            onPress={() => setActiveDateFilter(filter)}
+          >
+            <Text style={[styles.filterBtnTxt, activeDateFilter === filter && styles.filterBtnTxtActive]}>{filter}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-      {/* Categories */}
-      <TouchableOpacity style={[styles.categoryCard, { backgroundColor: '#F3E4B6' }]} onPress={() => handleCategoryPress('Birthday')}>
-        <Gift size={24} color="#B88A2E" style={styles.catIcon} />
-        <Text style={styles.catTitle}>Birthday</Text>
-        <Text style={styles.catDesc}>
-          <Text style={{color: '#6B5720', fontWeight: '500'}}>{stats.birthdays.total} members</Text>
-          {stats.birthdays.thisWeek > 0 && (
-            <Text style={{color: '#B88A2E'}}>{' \u00B7 '}{stats.birthdays.thisWeek} this week</Text>
-          )}
-        </Text>
-      </TouchableOpacity>
+      {/* Category Buttons */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, marginBottom: 16 }}>
+        {['Birthday', 'Wedding Anniversary', 'Baptism Anniversary'].map(cat => {
+          let bgColor = cat === 'Birthday' ? '#F3E4B6' : cat === 'Wedding Anniversary' ? '#E2E5F2' : '#DDF1E7';
+          let textColor = cat === 'Birthday' ? '#B88A2E' : cat === 'Wedding Anniversary' ? '#455490' : '#358B6D';
+          return (
+            <TouchableOpacity 
+              key={cat}
+              style={[styles.chipBtn, { backgroundColor: bgColor }, activeCategoryFilter === cat && { borderWidth: 2, borderColor: textColor }]}
+              onPress={() => setActiveCategoryFilter(activeCategoryFilter === cat ? 'All' : cat)}
+            >
+              <Text style={[styles.chipBtnTxt, { color: textColor }, activeCategoryFilter === cat && { fontWeight: '800' }]}>{cat}</Text>
+            </TouchableOpacity>
+          )
+        })}
+      </ScrollView>
 
-      <View style={styles.row}>
-        <TouchableOpacity style={[styles.categoryCard, styles.halfCard, { backgroundColor: '#E2E5F2' }]} onPress={() => handleCategoryPress('Wedding Anniversary')}>
-          <Heart size={24} color="#455490" style={styles.catIcon} />
-          <Text style={styles.catTitle}>Wedding{'\n'}Anniversary</Text>
-          <Text style={styles.catDesc}>
-            <Text style={{color: '#525B7E', fontWeight: '500'}}>{stats.anniversaries.total} members</Text>
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={[styles.categoryCard, styles.halfCard, { backgroundColor: '#DDF1E7' }]} onPress={() => handleCategoryPress('Baptism Anniversary')}>
-          <PlusCircle size={24} color="#358B6D" style={styles.catIcon} />
-          <Text style={styles.catTitle}>Baptism{'\n'}Anniversary</Text>
-          <Text style={styles.catDesc}>
-            <Text style={{color: '#4B6B5E', fontWeight: '500'}}>{stats.baptisms.total} members</Text>
-          </Text>
-        </TouchableOpacity>
+      {/* Embedded List */}
+      <View style={{ flex: 1, minHeight: 400, marginHorizontal: -20, paddingHorizontal: 20, backgroundColor: '#fff', borderTopLeftRadius: 30, borderTopRightRadius: 30, paddingTop: 20 }}>
+        <AdminWeCelebrationsList 
+          category={activeCategoryFilter} 
+          activeTab={activeDateFilter}
+          onSelectMember={(member) => {
+            setSelectedMember(member);
+            setViewMode('details');
+          }}
+        />
       </View>
 
-      <Text style={styles.footerText}>
+            <Text style={styles.footerText}>
         <Text style={{color: '#1D4ED8', fontWeight: 'bold'}}>WeChristian</Text> - {activeChurch?.name?.toUpperCase() || ''}
       </Text>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -658,21 +662,23 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 40,
   },
-  header: {
-    marginBottom: 20,
+  header: { 
+    backgroundColor: '#1a2d5a', 
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    position: 'relative',
+    zIndex: 10,
+    marginBottom: 0,
   },
-  eyebrow: {
-    color: '#B88A2E', // Gold
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 4,
-  },
-  title: {
-    color: '#162057', // Deep navy
-    fontSize: 24,
-    fontWeight: '800',
-  },
+  heroTitles: { flex: 1, paddingLeft: 4 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2, letterSpacing: 1.5, fontWeight: '800' },
   heroCard: {
     backgroundColor: '#162057', // Deep navy
     borderRadius: 24,
@@ -718,19 +724,19 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 1,
   },
-  sectionTitle: {
+    sectionTitle: {
     color: '#848796',
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.5,
-    marginBottom: 16,
+        marginBottom: 16,
   },
   categoryCard: {
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
   },
-  row: {
+    row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
@@ -753,7 +759,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#9CA3AF',
     fontSize: 11,
-    marginTop: 40,
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  chipBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'transparent'
+  },
+  chipBtnTxt: {
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  filterBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#E5E7EB',
+  },
+  filterBtnActive: {
+    backgroundColor: '#1a2d5a',
+  },
+  filterBtnTxt: {
+    color: '#4B5563',
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  filterBtnTxtActive: {
+    color: '#FFFFFF'
   },
   automationCard: {
     backgroundColor: '#FFFFFF',

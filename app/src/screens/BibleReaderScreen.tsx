@@ -8,9 +8,9 @@ import {
   StatusBar,
   Dimensions,
   Alert,
-  Modal
+  Modal,
+  Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Share2, BookMarked, Settings, Search, CheckCircle2 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
@@ -304,8 +304,8 @@ export default function BibleReaderScreen({ route, navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#fff' }]}>
-      <StatusBar barStyle="light-content" />
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#fff' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Navy Blue Header */}
       <View style={styles.header}>
@@ -319,14 +319,6 @@ export default function BibleReaderScreen({ route, navigation }: any) {
             </Text>
             <Text style={styles.headerSub}>Chapter {chapter} · అధ్యాయం {chapter}</Text>
           </View>
-        </View>
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Search color="#fff" size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.headerIcon}>
-            <Settings color="#fff" size={20} />
-          </TouchableOpacity>
         </View>
       </View>
 
@@ -626,7 +618,7 @@ export default function BibleReaderScreen({ route, navigation }: any) {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -634,20 +626,21 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     backgroundColor: '#1a2d5a',
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
   backBtn: { marginRight: 12 },
   titleInfo: {},
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
   headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' },
-  headerRight: { flexDirection: 'row', gap: 15 },
+  headerRight: { flexDirection: 'row', flexWrap: 'wrap', gap: 15 },
   headerIcon: { padding: 4 },
 
   scroll: { flex: 1 },

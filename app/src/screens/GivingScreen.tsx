@@ -422,10 +422,10 @@ const styles = StyleSheet.create({
   amountInput: { fontSize: 18, fontWeight: '800', color: '#1e293b', textAlign: 'center' },
 
   payBtn: { backgroundColor: '#c0392b', borderRadius: 15, paddingVertical: 16, elevation: 4 },
-  payBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
+  payBtnInner: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 10 },
   payBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
 
-  securityFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 15 },
+  securityFooter: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 15 },
   securityText: { fontSize: 10, color: '#94a3b8', fontWeight: '500' },
   
   // UPI Card styles

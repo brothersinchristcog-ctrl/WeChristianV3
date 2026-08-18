@@ -67,6 +67,8 @@ export default function SuperAdminDashboard({ navigation }: any) {
       // 1. Create church document first
       const churchId = await ChurchService.createChurch({
         name: formData.name,
+        churchCode: formData.subdomain.toUpperCase().substring(0, 6) + Math.floor(100 + Math.random() * 900),
+        isParentOrganization: true,
         tagline: formData.tagline,
         subdomain: formData.subdomain.toLowerCase(),
         contactEmail: 'admin@' + formData.subdomain.toLowerCase() + '.com',
@@ -84,7 +86,8 @@ export default function SuperAdminDashboard({ navigation }: any) {
           hasGiving: true,
         },
         subscriptionTier: 'premium',
-        memberCount: 0
+        memberCount: 0,
+        whatsappIntegrationEnabled: false
       });
 
       // 2. Upload image if selected
@@ -282,7 +285,7 @@ const styles = StyleSheet.create({
   submitBtnTxt: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   imageUpload: {
     backgroundColor: '#f8fafc', borderRadius: 8, borderWidth: 1, borderColor: '#cbd5e1', borderStyle: 'dashed',
-    height: 80, justifyContent: 'center', alignItems: 'center', marginBottom: 12, gap: 8, flexDirection: 'row'
+    height: 80, justifyContent: 'center', alignItems: 'center', marginBottom: 12, gap: 8, flexDirection: 'row', flexWrap: 'wrap'
   },
   uploadTxt: { color: '#64748b', fontSize: 14, fontWeight: '500' }
 });

@@ -54,12 +54,22 @@ class NotificationService {
       const globalUser = await FirestoreService.getGlobalUser(user.uid);
 
       if (globalUser?.primaryChurchId) {
+        // Save to church members subcollection
         await firestore().collection('churches').doc(globalUser.primaryChurchId).collection('members').doc(user.uid).set({
           fcmToken: token,
           lastTokenUpdate: firestore.FieldValue.serverTimestamp(),
           platform: Platform.OS,
         }, { merge: true });
-        console.log('✨ Token saved successfully to member profile!');
+
+        // ALSO save to global users collection — Cloud Functions read tokens from here
+        await firestore().collection('users').doc(user.uid).set({
+          fcmToken: token,
+          lastTokenUpdate: firestore.FieldValue.serverTimestamp(),
+          primaryChurchId: globalUser.primaryChurchId,
+          platform: Platform.OS,
+        }, { merge: true });
+
+        console.log('✨ Token saved successfully to member profile AND global users!');
       } else {
         console.log('⚠️ Token not saved: User does not belong to a church yet.');
       }
@@ -70,41 +80,86 @@ class NotificationService {
 
   // Handle navigation when a notification is clicked
   handleNotificationNavigation(remoteMessage: any, navigation: any) {
-    if (!remoteMessage || !navigation) return;
+    if (!remoteMessage) return;
+
+    // We can import the global ref to check if the navigator is fully ready
+    const { navigationRef } = require('../../App');
+    
+    // Determine which navigation object to use
+    let nav = null;
+    if (navigationRef.isReady()) {
+      nav = navigationRef;
+    } else if (navigation && typeof navigation.navigate === 'function') {
+      nav = navigation;
+    }
+
+    if (!nav) {
+      console.log('⚠️ Navigation not fully ready yet, skipping notification navigation.');
+      return;
+    }
 
     const { type, id } = remoteMessage.data || {};
     console.log('🚀 Navigating for notification type:', type);
 
-    switch (type) {
-      case 'sermon':
-        navigation.navigate('Sermons');
-        break;
-      case 'event':
-        navigation.navigate('Events');
-        break;
-      case 'promise':
-        navigation.navigate('Tabs', { screen: 'Home' });
-        break;
-      case 'birthday':
-      case 'anniversary':
-      case 'emergency':
-        navigation.navigate('Updates', { highlightId: id, highlightType: type });
-        break;
-      case 'youtube_live':
-        {
-          const liveUrl = remoteMessage.data?.url || 'https://www.youtube.com/@Brothersinchristfellowship/live';
-          Linking.openURL(liveUrl).catch(err => {
-            console.error("Couldn't open live stream URL", err);
-          });
-        }
-        break;
-      default:
-        // Fallback: navigate to Updates if it has a broadcast ID
-        if (id) {
-          navigation.navigate('Updates', { highlightId: id, highlightType: type });
-        } else {
-          console.log('❓ Unknown notification type, staying on current screen');
-        }
+    try {
+      switch (type) {
+        case 'sermon':
+          nav.navigate('Sermons');
+          break;
+        case 'event':
+          nav.navigate('Events');
+          break;
+        case 'online_meeting':
+          nav.navigate('OnlineMeetings');
+          break;
+        case 'invoice':
+          nav.navigate('AdminRoot', { targetTab: 'Expense', highlightInvoiceId: id });
+          break;
+        case 'promise':
+          nav.navigate('Updates');
+          break;
+        case 'attendance':
+          nav.navigate('AttendanceScreen');
+          break;
+        case 'birthday':
+          break;
+        case 'invoice':
+          nav.navigate('AdminRoot', { targetTab: 'Expense', highlightInvoiceId: id });
+          break;
+        case 'promise':
+          nav.navigate('Updates');
+          break;
+        case 'attendance':
+          nav.navigate('AttendanceScreen');
+          break;
+        case 'birthday':
+        case 'anniversary':
+        case 'baptism':
+        case 'celebration':
+        case 'emergency':
+          nav.navigate('Updates', { highlightId: id, highlightType: type });
+          break;
+        case 'youtube_live':
+          {
+            const liveUrl = remoteMessage.data?.url || 'https://www.youtube.com/@Brothersinchristfellowship/live';
+            Linking.openURL(liveUrl).catch((err: any) => {
+              console.error("Couldn't open live stream URL", err);
+            });
+          }
+          break;
+        case 'LIVE_CELEBRATION':
+          nav.navigate('LiveCelebrationsChat', {});
+          break;
+        default:
+          // Fallback: navigate to Updates if it has a broadcast ID
+          if (id) {
+            nav.navigate('Updates', { highlightId: id, highlightType: type });
+          } else {
+            console.log('❓ Unknown notification type, staying on current screen');
+          }
+      }
+    } catch (e) {
+      console.error('❌ Notification navigation failed:', e);
     }
   }
 

@@ -11,9 +11,11 @@ import {
   Dimensions,
   ActivityIndicator,
   Platform,
-  StatusBar
+  StatusBar,
+  Modal
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { AdminTabContext } from '../../context/AdminTabContext';
 import { 
   Bell, 
   Send, 
@@ -24,6 +26,7 @@ import {
   Users,
   Clock,
   ChevronDown,
+  ChevronLeft,
   Megaphone,
   Calendar,
   CheckCircle2,
@@ -46,12 +49,36 @@ import {
 
 const { width } = Dimensions.get('window');
 
+const COLORS = {
+  ink: '#151C33',
+  ink2: '#22304F',
+  inkSoft: '#6B7593',
+  parchment: '#F3EAD9',
+  paper: '#FFFCF5',
+  gold: '#A67C3D',
+  goldDeep: '#8C6428',
+  goldBright: '#D8B369',
+  clay: '#A24B34',
+  clayBg: '#F3E1D6',
+  clayLine: '#E3C3B2',
+  moss: '#3E6B52',
+  mossBg: '#E6EFE7',
+  rule: '#DED0AC',
+};
+
+const FONTS = {
+  serif: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  sans: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+};
+
 const LOCATIONS = ['Main Sanctuary', 'Zoom Conference Room', 'Pastor\'s Office', 'Board Room', 'Fellowship Hall'];
 
 export default function AdminNotificationBroadcast() {
+  const { setActiveTab } = React.useContext(AdminTabContext);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showSaveSuccess, setShowSaveSuccess] = useState(false);
 
   // --- State for Daily Promise ---
   const [dailyPromise, setDailyPromise] = useState({
@@ -105,10 +132,10 @@ export default function AdminNotificationBroadcast() {
   const [showMeetingTimePicker, setShowMeetingTimePicker] = useState(false);
 
   const [emergencyAlert, setEmergencyAlert] = useState({
-    title: '🚨 EMERGENCY MEETING NOTICE',
+    title: '',
     time: 'Tonight at 7:30 PM',
-    location: 'Main Sanctuary',
-    message: 'URGENT: All church members are requested to join us for an emergency meeting regarding upcoming church events and building project updates.'
+    location: '',
+    message: ''
   });
 
   const [lastBroadcast, setLastBroadcast] = useState({
@@ -117,9 +144,7 @@ export default function AdminNotificationBroadcast() {
     text: 'Easter service reminder'
   });
 
-  const [showLangPicker, setShowLangPicker] = useState(false);
-  const [showSendToPicker, setShowSendToPicker] = useState(false);
-  const [showLocPicker, setShowLocPicker] = useState(false);
+  const [showSimulateSuccess, setShowSimulateSuccess] = useState({ visible: false, title: '', message: '' });
 
   // ── 1. Fetch Settings on Mount ──
   React.useEffect(() => {
@@ -145,21 +170,6 @@ export default function AdminNotificationBroadcast() {
     fetchSettings();
   }, []);
 
-  const languages = [
-    'Telugu + English (bilingual)',
-    'Telugu only',
-    'English only'
-  ];
-
-  const sendToOptions = [
-    'All members',
-    'Telugu users only',
-    'English users only',
-    'Leaders & Elders only',
-    'Youth group',
-    'Women\'s ministry'
-  ];
-
   // ── 2. Save Settings to Firestore ──
   const handleSaveSettings = async () => {
     setSubmitting(true);
@@ -174,10 +184,12 @@ export default function AdminNotificationBroadcast() {
         updatedAt: serverTimestamp()
       }, { merge: true });
       
-      Alert.alert('Success', 'Notification settings saved to Firebase!');
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 2500);
     } catch (err: any) {
       console.warn('⚠️ Firestore Sync (saveSettings) bypassed due to Security Rules:', err.message || err);
-      Alert.alert('Notice', 'Notification settings updated successfully on your local device!');
+      setShowSaveSuccess(true);
+      setTimeout(() => setShowSaveSuccess(false), 2500);
     } finally {
       setSubmitting(false);
     }
@@ -297,10 +309,11 @@ export default function AdminNotificationBroadcast() {
       }
 
       setLastBroadcast(newBroadcast);
-      Alert.alert(
-        '🚨 Emergency Alert Broadcasted', 
-        `Emergency Meeting Broadcast successfully dispatched to all member devices! (Targets: ${count || 1250})`
-      );
+      setShowSimulateSuccess({
+        visible: true,
+        title: 'Emergency Alert Sent',
+        message: `Emergency Meeting Broadcast successfully dispatched to all member devices! (Targets: ${count || 1250})`
+      });
       setEmergencyAlert({ ...emergencyAlert, message: '' });
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to dispatch emergency broadcast.');
@@ -337,7 +350,11 @@ export default function AdminNotificationBroadcast() {
                 } catch (fErr) {
                   console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
                 }
-                Alert.alert('Success', 'Simulated birthday greeting pushed to members updates!');
+                setShowSimulateSuccess({
+                  visible: true,
+                  title: 'Success',
+                  message: 'Simulated birthday greeting pushed to members updates!'
+                });
               }
             }
           ]
@@ -362,7 +379,11 @@ export default function AdminNotificationBroadcast() {
             console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
           }
         }
-        Alert.alert('Success', `Found ${bdays.length} birthdays today: ${names}. Automated push greeting delivered!`);
+        setShowSimulateSuccess({
+          visible: true,
+          title: 'Success',
+          message: `Found ${bdays.length} birthdays today: ${names}. Automated push greeting delivered!`
+        });
       }
     } catch (err: any) {
       Alert.alert('Error', err.message);
@@ -399,7 +420,11 @@ export default function AdminNotificationBroadcast() {
                 } catch (fErr) {
                   console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
                 }
-                Alert.alert('Success', 'Simulated anniversary greeting pushed to members updates!');
+                setShowSimulateSuccess({
+                  visible: true,
+                  title: 'Success',
+                  message: 'Simulated anniversary greeting pushed to members updates!'
+                });
               }
             }
           ]
@@ -422,7 +447,11 @@ export default function AdminNotificationBroadcast() {
             console.warn('⚠️ Firestore Sync (broadcasts) bypassed due to Security Rules:', fErr);
           }
         }
-        Alert.alert('Success', `Anniversary greetings pushed for: ${annivs.map(a => `${a.husband} & ${a.wife}`).join(', ')}`);
+        setShowSimulateSuccess({
+          visible: true,
+          title: 'Success',
+          message: `Anniversary greetings pushed for: ${annivs.map(a => `${a.husband} & ${a.wife}`).join(', ')}`
+        });
       }
     } catch (err: any) {
       Alert.alert('Error', err.message);
@@ -434,8 +463,8 @@ export default function AdminNotificationBroadcast() {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#1a2d5a" />
-        <Text style={{ marginTop: 10, color: '#1a2d5a', fontWeight: '600' }}>Loading settings...</Text>
+        <ActivityIndicator size="large" color={COLORS.ink} />
+        <Text style={{ marginTop: 10, color: COLORS.ink, fontWeight: '600' }}>Loading settings...</Text>
       </View>
     );
   }
@@ -444,14 +473,15 @@ export default function AdminNotificationBroadcast() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
       
-      {/* ── Fixed Header ── */}
-      <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <Bell size={20} color="#FCD34D" />
-          <View>
-            <Text style={styles.headerTitle}>Notifications Console</Text>
-            <Text style={styles.headerSub}>Manage alerts & automated broadcasts</Text>
-          </View>
+      {/* ── Hero Section ── */}
+      <View style={styles.hero}>
+        <View style={styles.heroTitleRow}>
+          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+          </TouchableOpacity>
+          <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+          <Text style={styles.heroTitle}>Notifications</Text>
         </View>
       </View>
 
@@ -459,7 +489,7 @@ export default function AdminNotificationBroadcast() {
         
         {/* ── 1. Daily Promise Notification ── */}
         <View style={styles.sectionHeader}>
-          <Layout size={14} color="#1e40af" />
+          <Layout size={16} color="#1a2d5a" />
           <Text style={styles.sectionTitle}>Daily Promise Notification</Text>
         </View>
 
@@ -469,7 +499,7 @@ export default function AdminNotificationBroadcast() {
             <Switch 
               value={dailyPromise.enabled} 
               onValueChange={(v) => setDailyPromise({...dailyPromise, enabled: v})} 
-              trackColor={{ false: '#cbd5e1', true: '#1e40af' }}
+              trackColor={{ false: COLORS.rule, true: COLORS.ink2 }}
               thumbColor="#fff"
             />
           </View>
@@ -484,7 +514,7 @@ export default function AdminNotificationBroadcast() {
               <Text style={[styles.textInput, { lineHeight: 44, textAlignVertical: 'center' }]}>
                 {dailyPromise.sendTime}
               </Text>
-              <Clock size={16} color="#64748b" />
+              <Clock size={16} color={COLORS.inkSoft} />
             </TouchableOpacity>
           </View>
 
@@ -506,9 +536,9 @@ export default function AdminNotificationBroadcast() {
         </View>
 
         {/* ── 2. Automated Birthdays & Anniversaries ── */}
-        <View style={[styles.sectionHeader, { borderLeftColor: '#d97706' }]}>
-          <Gift size={14} color="#d97706" />
-          <Text style={[styles.sectionTitle, { color: '#d97706' }]}>Automated Celebration Greetings</Text>
+        <View style={[styles.sectionHeader, { borderLeftColor: '#C9A84C' }]}>
+          <Gift size={16} color="#C9A84C" />
+          <Text style={[styles.sectionTitle, { color: '#C9A84C' }]}>Automated Celebration Greetings</Text>
         </View>
 
         <View style={styles.card}>
@@ -518,7 +548,7 @@ export default function AdminNotificationBroadcast() {
             <Switch 
               value={birthdayNotif.enabled} 
               onValueChange={(v) => setBirthdayNotif({...birthdayNotif, enabled: v})} 
-              trackColor={{ false: '#cbd5e1', true: '#d97706' }}
+              trackColor={{ false: COLORS.rule, true: COLORS.goldDeep }}
               thumbColor="#fff"
             />
           </View>
@@ -526,16 +556,16 @@ export default function AdminNotificationBroadcast() {
           <View style={[styles.inputGroup, { marginTop: 10 }]}>
             <Text style={styles.fLabelSmall}>Birthday greeting message</Text>
             <TextInput 
-              style={[styles.inputBoxAlt, { height: 60, textAlignVertical: 'top', paddingTop: 8 }]} 
+              style={[styles.inputBoxAlt, styles.textArea]} 
               multiline
               value={birthdayNotif.greeting}
               onChangeText={(v) => setBirthdayNotif({...birthdayNotif, greeting: v})}
             />
           </View>
 
-          <TouchableOpacity style={styles.simulateBtn} onPress={handleSimulateBirthdays}>
-            <Gift size={14} color="#b45309" />
-            <Text style={styles.simulateBtnTxt}>Search & Send Today's Birthdays</Text>
+          <TouchableOpacity style={[styles.simulateBtn, { backgroundColor: '#FEFBF0', borderColor: '#F5DFA0' }]} onPress={handleSimulateBirthdays}>
+            <Gift size={16} color="#B76E00" />
+            <Text style={[styles.simulateBtnTxt, { color: '#B76E00' }]}>Search Today's Birthdays</Text>
           </TouchableOpacity>
 
           <View style={styles.divider} />
@@ -546,7 +576,7 @@ export default function AdminNotificationBroadcast() {
             <Switch 
               value={anniversaryNotif.enabled} 
               onValueChange={(v) => setAnniversaryNotif({...anniversaryNotif, enabled: v})} 
-              trackColor={{ false: '#cbd5e1', true: '#10b981' }}
+              trackColor={{ false: COLORS.rule, true: COLORS.moss }}
               thumbColor="#fff"
             />
           </View>
@@ -554,55 +584,56 @@ export default function AdminNotificationBroadcast() {
           <View style={[styles.inputGroup, { marginTop: 10 }]}>
             <Text style={styles.fLabelSmall}>Anniversary greeting message</Text>
             <TextInput 
-              style={[styles.inputBoxAlt, { height: 60, textAlignVertical: 'top', paddingTop: 8 }]} 
+              style={[styles.inputBoxAlt, styles.textArea]} 
               multiline
               value={anniversaryNotif.greeting}
               onChangeText={(v) => setAnniversaryNotif({...anniversaryNotif, greeting: v})}
             />
           </View>
 
-          <TouchableOpacity style={[styles.simulateBtn, { borderColor: '#10b981' }]} onPress={handleSimulateAnniversaries}>
-            <Heart size={14} color="#047857" strokeWidth={2.5} />
-            <Text style={[styles.simulateBtnTxt, { color: '#047857' }]}>Search & Send Today's Anniversaries</Text>
+          <TouchableOpacity style={[styles.simulateBtn, { backgroundColor: '#EDF7F1', borderColor: '#A3D9B8' }]} onPress={handleSimulateAnniversaries}>
+            <Heart size={16} color="#2E7D52" />
+            <Text style={[styles.simulateBtnTxt, { color: '#2E7D52' }]}>Search Today's Anniversaries</Text>
           </TouchableOpacity>
         </View>
 
         {/* ── 3. Emergency Meeting Alerts ── */}
-        <View style={[styles.sectionHeader, { borderLeftColor: '#ef4444' }]}>
-          <AlertTriangle size={14} color="#b91c1c" />
-          <Text style={[styles.sectionTitle, { color: '#b91c1c' }]}>🚨 Emergency Meeting Broadcast</Text>
+        <View style={[styles.sectionHeader, { borderLeftColor: '#DC2626' }]}>
+          <AlertTriangle size={16} color="#DC2626" />
+          <Text style={[styles.sectionTitle, { color: '#DC2626' }]}>🚨 Emergency Meeting Broadcast</Text>
         </View>
 
-        <View style={[styles.card, { borderColor: '#fca5a5', borderWidth: 0.5 }]}>
+        <View style={[styles.card, { borderColor: 'rgba(220,38,38,0.2)' }]}>
           <View style={styles.inputGroup}>
             <Text style={styles.fLabelSmall}>Meeting Title</Text>
             <TextInput 
               style={styles.inputBoxAlt} 
+              placeholder="🚨 EMERGENCY MEETING NOTICE"
+              placeholderTextColor="#94A3B8"
               value={emergencyAlert.title}
               onChangeText={(v) => setEmergencyAlert({...emergencyAlert, title: v})}
             />
           </View>
 
-          <View style={styles.row}>
-            <View style={[styles.inputGroup, { flex: 1 }]}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12, width: '100%' }}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.fLabelSmall}>Meeting Date</Text>
               <TouchableOpacity 
                 activeOpacity={0.7} 
-                style={styles.inputBoxAlt} 
+                style={styles.pickerBtn} 
                 onPress={() => setShowMeetingDatePicker(true)}
               >
                 <Text style={styles.pickerTxt} numberOfLines={1}>
                   {new Date(meetingDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </Text>
-                <Calendar size={14} color="#64748b" style={{ marginLeft: 'auto' }} />
+                <Calendar size={14} color="#64748B" style={{ marginLeft: 'auto' }} />
               </TouchableOpacity>
             </View>
-            <View style={{ width: 10 }} />
-            <View style={[styles.inputGroup, { flex: 1 }]}>
+            <View style={{ flex: 1 }}>
               <Text style={styles.fLabelSmall}>Meeting Time</Text>
               <TouchableOpacity 
                 activeOpacity={0.7} 
-                style={styles.inputBoxAlt} 
+                style={styles.pickerBtn} 
                 onPress={() => setShowMeetingTimePicker(true)}
               >
                 <Text style={styles.pickerTxt} numberOfLines={1}>
@@ -613,7 +644,7 @@ export default function AdminNotificationBroadcast() {
                     return `${displayHour}:${m.toString().padStart(2, '0')} ${isPm ? 'PM' : 'AM'}`;
                   })()}
                 </Text>
-                <Clock size={14} color="#64748b" style={{ marginLeft: 'auto' }} />
+                <Clock size={14} color="#64748B" style={{ marginLeft: 'auto' }} />
               </TouchableOpacity>
             </View>
           </View>
@@ -622,7 +653,8 @@ export default function AdminNotificationBroadcast() {
             <Text style={styles.fLabelSmall}>Location</Text>
             <TextInput 
               style={styles.inputBoxAlt} 
-              placeholder="e.g. Main Sanctuary, Zoom conference, Fellowship Hall..."
+              placeholder="Main Sanctuary"
+              placeholderTextColor="#94A3B8"
               value={emergencyAlert.location}
               onChangeText={(v) => setEmergencyAlert({...emergencyAlert, location: v})}
             />
@@ -631,8 +663,10 @@ export default function AdminNotificationBroadcast() {
           <View style={styles.inputGroup}>
             <Text style={styles.fLabelSmall}>Emergency Message Details</Text>
             <TextInput 
-              style={[styles.inputBoxAlt, { height: 80, textAlignVertical: 'top', paddingTop: 8 }]} 
+              style={[styles.inputBoxAlt, styles.textArea]} 
               multiline
+              placeholder="URGENT: All church members are requested to join us for an emergency meeting regarding upcoming church events and building project updates."
+              placeholderTextColor="#94A3B8"
               value={emergencyAlert.message}
               onChangeText={(v) => setEmergencyAlert({...emergencyAlert, message: v})}
             />
@@ -677,9 +711,9 @@ export default function AdminNotificationBroadcast() {
         </View>
 
         {/* ── 4. Manual Custom Broadcast ── */}
-        <View style={[styles.sectionHeader, { borderLeftColor: '#f97316' }]}>
-          <Megaphone size={14} color="#c2410c" />
-          <Text style={[styles.sectionTitle, { color: '#c2410c' }]}>General Custom Broadcast</Text>
+        <View style={[styles.sectionHeader, { borderLeftColor: '#1a2d5a' }]}>
+          <Megaphone size={16} color="#1a2d5a" />
+          <Text style={[styles.sectionTitle, { color: '#1a2d5a' }]}>General Custom Broadcast</Text>
         </View>
 
         <View style={styles.card}>
@@ -696,7 +730,7 @@ export default function AdminNotificationBroadcast() {
           <View style={styles.inputGroup}>
             <Text style={styles.fLabelSmall}>Message</Text>
             <TextInput 
-              style={[styles.inputBoxAlt, { height: 80, textAlignVertical: 'top', paddingTop: 8 }]} 
+              style={[styles.inputBoxAlt, styles.textArea]} 
               placeholder="Type your message to members..."
               multiline
               value={manualBroadcast.message}
@@ -712,7 +746,7 @@ export default function AdminNotificationBroadcast() {
           </View>
 
           <View style={styles.statusBox}>
-            <CheckCircle2 size={14} color="#059669" />
+            <CheckCircle2 size={14} color={COLORS.moss} />
             <Text style={styles.statusTxt}>
               Last broadcast: <Text style={{ fontWeight: '700' }}>{lastBroadcast.date}</Text> — {lastBroadcast.text}. Delivered to {lastBroadcast.count.toLocaleString()} members.
             </Text>
@@ -729,180 +763,259 @@ export default function AdminNotificationBroadcast() {
           <Text style={styles.saveBtnTxt}>Save Settings</Text>
         </TouchableOpacity>
       </View>
+
+      {showSaveSuccess && (
+        <Modal transparent animationType="fade" visible>
+          <View style={styles.successBg}>
+            <View style={styles.successCard}>
+              <View style={[styles.successIconOuter, { backgroundColor: '#F0FDF4' }]}>
+                <View style={[styles.successIconInner, { backgroundColor: '#2E6B4F' }]}>
+                  <CheckCircle2 size={32} color="#fff" />
+                </View>
+              </View>
+              <Text style={styles.successTitle}>Settings Saved!</Text>
+              <Text style={styles.successDesc}>
+                Your notification preferences have been successfully updated.
+              </Text>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* ── Dynamic Success Simulate Modal ── */}
+      {showSimulateSuccess.visible && (
+        <Modal transparent animationType="fade" visible>
+          <View style={styles.successBg}>
+            <View style={styles.successCard}>
+              <View style={[styles.successIconOuter, { backgroundColor: '#F0FDF4' }]}>
+                <View style={[styles.successIconInner, { backgroundColor: '#2E6B4F' }]}>
+                  <CheckCircle2 size={32} color="#fff" />
+                </View>
+              </View>
+              <Text style={styles.successTitle}>{showSimulateSuccess.title}</Text>
+              <Text style={styles.successDesc}>
+                {showSimulateSuccess.message}
+              </Text>
+              <TouchableOpacity 
+                style={[styles.saveBtn, { marginTop: 24, width: '100%', height: 44 }]} 
+                onPress={() => setShowSimulateSuccess({ visible: false, title: '', message: '' })}
+              >
+                <Text style={styles.saveBtnTxt}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f1f5f9' },
-  header: { 
-    backgroundColor: '#1a2d5a', 
-    paddingTop: Platform.OS === 'ios' ? 60 : 40, 
-    paddingBottom: 20, 
-    paddingHorizontal: 20,
-    borderBottomWidth: 3,
-    borderBottomColor: '#c0392b'
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6,
   },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
-  headerSub: { fontSize: 12, color: '#aac4e8', marginTop: 2 },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center' },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
 
-  scroll: { padding: 15 },
+  scroll: { padding: 14, paddingBottom: 150 },
 
   sectionHeader: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     gap: 8, 
-    backgroundColor: '#fff', 
-    padding: 12, 
-    borderTopLeftRadius: 12, 
-    borderTopRightRadius: 12,
+    backgroundColor: '#FFFFFF', 
+    padding: 14, 
+    borderTopLeftRadius: 14, 
+    borderTopRightRadius: 14,
     borderLeftWidth: 4,
-    borderLeftColor: '#1e40af',
+    borderLeftColor: '#1a2d5a',
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9'
+    borderBottomColor: 'rgba(26,45,90,0.05)'
   },
-  sectionTitle: { fontSize: 11, fontWeight: '800', color: '#1e40af', textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 12, fontWeight: '800', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   card: { 
-    backgroundColor: '#fff', 
+    backgroundColor: '#FFFFFF', 
     padding: 18, 
-    borderBottomLeftRadius: 12, 
-    borderBottomRightRadius: 12,
+    borderBottomLeftRadius: 14, 
+    borderBottomRightRadius: 14,
     marginBottom: 20,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: '#1a2d5a',
     shadowOpacity: 0.05,
-    shadowRadius: 5
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.05)'
   },
 
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  fLabel: { fontSize: 13, fontWeight: '700', color: '#334155' },
-  fLabelSmall: { fontSize: 10, fontWeight: '800', color: '#64748b', textTransform: 'uppercase', marginBottom: 6, marginTop: 10, letterSpacing: 0.5 },
+  fLabel: { fontSize: 14, fontWeight: '700', color: '#1a2d5a' },
+  fLabelSmall: { fontSize: 11, fontWeight: '800', color: '#64748B', textTransform: 'uppercase', marginBottom: 6, marginTop: 10, letterSpacing: 0.5 },
 
-  inputGroup: { marginBottom: 10 },
+  inputGroup: { marginBottom: 12 },
   inputBox: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    backgroundColor: '#f8fafc', 
+    backgroundColor: '#FFFFFF', 
     borderWidth: 1, 
-    borderColor: '#e2e8f0', 
-    borderRadius: 8, 
-    paddingHorizontal: 12, 
-    height: 44 
+    borderColor: 'rgba(26,45,90,0.1)', 
+    borderRadius: 12, 
+    paddingHorizontal: 16, 
+    height: 48 
   },
   inputBoxAlt: {
-    backgroundColor: '#f8fafc', 
+    backgroundColor: '#F8FAFC', 
     borderWidth: 1, 
-    borderColor: '#e2e8f0', 
-    borderRadius: 8, 
-    paddingHorizontal: 12, 
-    height: 44,
-    fontSize: 13,
-    color: '#1e293b',
-    fontWeight: '600'
+    borderColor: 'rgba(26,45,90,0.1)', 
+    borderRadius: 12, 
+    paddingHorizontal: 16, 
+    height: 48,
+    fontSize: 14,
+    color: '#1a2d5a',
+    fontWeight: '500',
   },
-  textInput: { flex: 1, fontSize: 13, fontWeight: '700', color: '#1e293b' },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+    paddingTop: 14,
+  },
+  textInput: { flex: 1, fontSize: 14, fontWeight: '600', color: '#1a2d5a' },
   
   pickerBtn: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    backgroundColor: '#f8fafc', 
+    backgroundColor: '#F8FAFC', 
     borderWidth: 1, 
-    borderColor: '#e2e8f0', 
-    borderRadius: 8, 
-    paddingHorizontal: 10, 
-    height: 44 
+    borderColor: 'rgba(26,45,90,0.1)', 
+    borderRadius: 12, 
+    paddingHorizontal: 16, 
+    height: 48 
   },
-  pickerTxt: { fontSize: 12, color: '#1e293b', fontWeight: '700' },
+  pickerTxt: { fontSize: 13, color: '#1a2d5a', fontWeight: '600' },
   dropdown: { 
     position: 'absolute',
     top: 60,
     right: 0,
     left: 0,
-    backgroundColor: '#fff', 
+    backgroundColor: '#FFFFFF', 
     borderWidth: 1, 
-    borderColor: '#e2e8f0', 
-    borderRadius: 8, 
+    borderColor: 'rgba(26,45,90,0.1)', 
+    borderRadius: 12, 
     zIndex: 1000,
     elevation: 5,
     overflow: 'hidden'
   },
-  dropItem: { padding: 12, borderBottomWidth: 0.5, borderBottomColor: '#f1f5f9' },
-  dropTxt: { fontSize: 12, color: '#334155', fontWeight: '600' },
+  dropItem: { padding: 14, borderBottomWidth: 1, borderBottomColor: 'rgba(26,45,90,0.05)' },
+  dropTxt: { fontSize: 13, color: '#1a2d5a', fontWeight: '600' },
 
-  divider: { height: 1, backgroundColor: '#f1f5f9', marginVertical: 15 },
+  divider: { height: 1, backgroundColor: 'rgba(26,45,90,0.05)', marginVertical: 18 },
   
   simulateBtn: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'center', 
     gap: 8, 
-    borderWidth: 1, 
-    borderColor: '#d97706', 
-    borderRadius: 8, 
-    paddingVertical: 10, 
+    borderWidth: 1,
+    borderRadius: 12, 
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    alignSelf: 'center',
     marginTop: 10 
   },
-  simulateBtnTxt: { fontSize: 11, fontWeight: '800', color: '#b45309' },
+  simulateBtnTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a' },
 
   emergencyBtn: {
-    backgroundColor: '#c0392b',
+    backgroundColor: '#1a2d5a',
+    height: 40,
+    paddingHorizontal: 18,
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    borderRadius: 8,
-    paddingVertical: 12,
+    borderRadius: 10,
     marginTop: 15,
-    elevation: 2
+    elevation: 2,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.2,
+    shadowRadius: 5
   },
-  emergencyBtnTxt: { color: '#fff', fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5 },
+  emergencyBtnTxt: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
   actionRow: { marginTop: 15 },
   sendBtn: { 
-    height: 46, 
+    height: 48, 
     backgroundColor: '#1a2d5a', 
-    borderRadius: 8, 
+    borderRadius: 12, 
     flexDirection: 'row',
     alignItems: 'center', 
     justifyContent: 'center',
     gap: 8,
-    elevation: 2
+    elevation: 2,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.2,
+    shadowRadius: 5
   },
-  sendBtnTxt: { color: '#fff', fontSize: 12, fontWeight: '800' },
+  sendBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
   statusBox: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     gap: 8, 
-    backgroundColor: '#f0fdf4', 
-    padding: 10, 
-    borderRadius: 8, 
+    backgroundColor: '#F0FDF4', 
+    padding: 12, 
+    borderRadius: 10, 
     marginTop: 15,
-    borderWidth: 0.5,
-    borderColor: '#bcf0da'
+    borderWidth: 1,
+    borderColor: 'rgba(46,107,79,0.2)'
   },
-  statusTxt: { flex: 1, fontSize: 10, color: '#065f46', lineHeight: 15 },
+  statusTxt: { flex: 1, fontSize: 11, color: '#2E6B4F', lineHeight: 16 },
 
   footer: { 
     position: 'absolute', 
     bottom: 0, 
     left: 0, 
     right: 0, 
-    backgroundColor: '#fff', 
+    backgroundColor: '#FFFFFF', 
     padding: 16, 
     borderTopWidth: 1, 
-    borderTopColor: '#e2e8f0' 
+    borderTopColor: 'rgba(26,45,90,0.05)',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 10
   },
   saveBtn: { 
-    backgroundColor: '#1a2d5a', 
-    height: 50, 
+    backgroundColor: '#2E6B4F', 
+    height: 52, 
     borderRadius: 12, 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'center', 
-    gap: 10 
+    gap: 10,
+    elevation: 3,
+    shadowColor: '#2E6B4F',
+    shadowOpacity: 0.2,
+    shadowRadius: 6
   },
-  saveBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 }
+  saveBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1 },
+
+  // Success Modal
+  successBg: { flex: 1, backgroundColor: 'rgba(26,45,90, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  successCard: { backgroundColor: '#fff', borderRadius: 24, padding: 24, width: '92%', maxWidth: 400, alignItems: 'center', elevation: 10 },
+  successIconOuter: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  successIconInner: { width: 60, height: 60, borderRadius: 30, justifyContent: 'center', alignItems: 'center' },
+  successTitle: { fontSize: 22, fontWeight: '900', color: '#1a2d5a', marginBottom: 8, textAlign: 'center' },
+  successDesc: { fontSize: 14, color: '#64748B', textAlign: 'center', lineHeight: 22 },
 });

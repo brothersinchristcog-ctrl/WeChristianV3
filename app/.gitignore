@@ -39,3 +39,18 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Scratch / temp scripts (root-level only)
+/restore_*.js
+/refactor_*.js
+/refactor_*.py
+/run_*.js
+/safeEventListRefactor*.js
+/fix_*.js
+/master_restore.js
+/recover_scripts.js
+/find_scratch.js
+/extract_*.js
+/chat*.json
+/*.txt
+/stitch_design.html

@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, ActivityIndicator } from 'react-native';
-import { Edit2 } from 'lucide-react-native';
+import { Edit2, ChevronLeft } from 'lucide-react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Circle, G, Path } from 'react-native-svg';
 import { captureRef } from 'react-native-view-shot';
 
@@ -72,14 +72,32 @@ export default function AdminWeCelebrationsWhatsAppPreview({
     }
   };
 
-  return (
+    return (
     <View style={styles.container}>
+      {/* ── Fixed Header ── */}
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.topBarBack} onPress={onEdit}>
+          <ChevronLeft size={22} color="#fff" />
+          <Text style={styles.topBarBackText}>Back</Text>
+        </TouchableOpacity>
+        <Text style={{ color: '#fff', fontSize: 18, marginHorizontal: 8, opacity: 0.4 }}>|</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.topBarTitle} numberOfLines={1} ellipsizeMode="tail">{categoryLabel} Preview Greeting</Text>
+        </View>
+      </View>
+
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
-        <Text style={styles.sectionTitle}>WHATSAPP PREVIEW</Text>
+
 
         <View style={styles.waHeader}>
-          <View style={[styles.avatar, { backgroundColor: colors[1] }]}>
-            <Text style={styles.avatarText}>{initials}</Text>
+          <View style={[styles.avatar, { backgroundColor: colors[1], overflow: 'hidden' }]}>
+            {(() => {
+              const displayPhoto = member.profilePhoto || member.photoUrl || member.photoURL || member.PhotoUrl || member.Photo || member.ProfilePhoto;
+              if (displayPhoto && typeof displayPhoto === 'string' && displayPhoto.startsWith('http')) {
+                return <Image source={{ uri: displayPhoto }} style={{ width: '100%', height: '100%' }} />;
+              }
+              return <Text style={styles.avatarText}>{initials}</Text>;
+            })()}
           </View>
           <View>
             <Text style={styles.waName}>{member.name}</Text>
@@ -94,7 +112,7 @@ export default function AdminWeCelebrationsWhatsAppPreview({
                 {theme?.imageUrl && (
                   <Image source={{ uri: theme.imageUrl }} style={[StyleSheet.absoluteFillObject, { resizeMode: 'cover' }]} />
                 )}
-              <Svg width="100%" height={350} viewBox="0 0 400 500">
+              <Svg width="100%" height={350} viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice">
                 <Defs>
                   <LinearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
                     <Stop offset="0%" stopColor={colors[0]} stopOpacity={theme?.imageUrl ? 0.2 : 1} />
@@ -147,10 +165,6 @@ export default function AdminWeCelebrationsWhatsAppPreview({
         </View>
 
         <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.btnOutline} onPress={onEdit} disabled={isSending}>
-            <Edit2 stroke="#37469B" width={16} height={16} />
-            <Text style={styles.btnOutlineText}>Edit Message</Text>
-          </TouchableOpacity>
           <TouchableOpacity style={styles.btnPrimary} onPress={handleCaptureAndSend} disabled={isSending}>
             {isSending ? (
               <ActivityIndicator color="#fff" size="small" />
@@ -171,7 +185,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
   },
   content: {
     flex: 1,
@@ -186,6 +199,43 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     color: '#64748B',
     marginBottom: 12,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    paddingTop: 16,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+  },
+  topBarBack: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 80,
+  },
+  topBarBackText: {
+    color: '#fff',
+    fontFamily: 'Inter-Medium',
+    fontSize: 15,
+    marginLeft: 4,
+  },
+  topBarTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    paddingRight: 80,
+  },
+  topBarSub: {
+    color: 'rgba(255,255,255,0.8)',
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+  },
+  topBarTitle: {
+    color: '#fff',
+    fontFamily: 'Inter-Bold',
+    fontSize: 14,
+    textTransform: 'uppercase',
   },
   waHeader: {
     flexDirection: 'row',
@@ -330,18 +380,19 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  buttonRow: {
+    buttonRow: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 24,
+    alignItems: 'stretch',
   },
   btnOutline: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
+    gap: 6,
+    height: 56,
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: '#37469B',
@@ -352,13 +403,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#37469B',
   },
-  btnPrimary: {
+    btnPrimary: {
     flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
+    gap: 6,
+    height: 56,
     borderRadius: 16,
     backgroundColor: '#BE9A3A',
     shadowColor: '#BE9A3A',

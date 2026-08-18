@@ -12,6 +12,8 @@ export interface ChurchTheme {
 export interface ChurchDetails {
   id: string;
   name: string;
+  churchCode: string;
+  createdBy?: string;
   tagline?: string;
   subdomain: string;
   contactEmail: string;
@@ -68,6 +70,10 @@ export interface ChurchDetails {
   };
   subscriptionTier?: 'free' | 'standard' | 'premium';
   memberCount?: number;
+  
+  // Multi-branch
+  isParentOrganization?: boolean;
+  parentChurchId?: string;
 }
 
 class ChurchService {
@@ -147,6 +153,68 @@ class ChurchService {
       return docRef.id;
     } catch (error) {
       console.error('Error creating church:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Fetch all branches for a parent organization
+   */
+  async getBranches(parentChurchId: string): Promise<ChurchDetails[]> {
+    try {
+      const snapshot = await firestore()
+        .collection('churches')
+        .where('parentChurchId', '==', parentChurchId)
+        .orderBy('name')
+        .get();
+        
+      const branches = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as ChurchDetails[];
+
+      // Fetch member count dynamically for each branch
+      const branchesWithCounts = await Promise.all(branches.map(async (branch) => {
+        try {
+          const countSnap = await firestore().collection('churches').doc(branch.id).collection('members').count().get();
+          return { ...branch, memberCount: countSnap.data().count };
+        } catch (e) {
+          console.error(`Error fetching member count for branch ${branch.id}:`, e);
+          return branch;
+        }
+      }));
+
+      return branchesWithCounts;
+    } catch (error) {
+      console.error('Error fetching branches:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Create a new branch church
+   */
+  async createBranch(parentChurchId: string, data: Omit<ChurchDetails, 'id' | 'parentChurchId'>): Promise<string> {
+    try {
+      const docRef = await firestore().collection('churches').add({
+        ...data,
+        parentChurchId
+      });
+      return docRef.id;
+    } catch (error) {
+      console.error('Error creating branch:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a branch church
+   */
+  async deleteBranch(churchId: string): Promise<void> {
+    try {
+      await firestore().collection('churches').doc(churchId).delete();
+    } catch (error) {
+      console.error('Error deleting branch:', error);
       throw error;
     }
   }

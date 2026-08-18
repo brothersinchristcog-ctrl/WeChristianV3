@@ -135,6 +135,59 @@ export interface Sermon {
   audioUrl?: string;
 }
 
+export interface ChurchExpense {
+  id?: string;
+  title?: string;
+  category: string;
+  amount: number;
+  date: string;
+  paymentMethod: string;
+  vendorName?: string;
+  notes?: string;
+  paidTo?: string;
+  description?: string;
+  status: 'Paid' | 'Pending';
+  addedBy?: string;
+  createdBy?: string;
+  relatedMeeting?: string;
+  lineItems?: Array<{ type: string; quantity: number; pricePerUnit: number; total: number }>;
+  receiptUrl?: string | null;
+  createdAt?: any;
+}
+
+export interface ChurchDonation {
+  id?: string;
+  donorName: string;
+  donorPhone?: string;
+  category: string;
+  amount: number;
+  date: string;
+  paymentMethod: string;
+  notes?: string;
+  addedBy?: string;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export interface ChurchInvoice {
+  id: string; // The generated ID like EXP-2026-00028
+  category: string;
+  date: string;
+  amount: number;
+  preparedBy: string;
+  expenseIds: string[]; // List of related expense IDs
+  paymentMethod?: string;
+  vendorName?: string;
+  status?: 'Pending Approval' | 'Approved' | 'Rejected' | 'Changes Requested';
+  reportedByUserId?: string; // Legacy
+  reportedByName?: string; // Legacy
+  reportedByUserIds?: string[]; // Multiple approvers
+  reportedByNames?: string[]; // Multiple approvers
+  approvalComments?: string;
+  submitterPhone?: string;
+  createdAt?: any;
+}
+
 // ─── Service Layer ────────────────────────────────────────────────────────────
 
 class FirestoreService {
@@ -157,6 +210,135 @@ class FirestoreService {
     if (!id) throw new Error('Church ID not set');
     return firestore().collection('churches').doc(id).collection(collectionName);
   }
+
+  // ─── Expenses ───────────────────────────────────────────────────────────────
+
+  async getExpenses(limitNum = 200): Promise<ChurchExpense[]> {
+    try {
+      const expensesRef = await this.getCollection('expenses');
+      const snapshot = await expensesRef.orderBy('date', 'desc').limit(limitNum).get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChurchExpense));
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+      return [];
+    }
+  }
+
+  async getExpense(id: string): Promise<ChurchExpense | null> {
+    try {
+      const expensesRef = await this.getCollection('expenses');
+      const doc = await expensesRef.doc(id).get();
+      if (!doc.exists) return null;
+      return { id: doc.id, ...doc.data() } as ChurchExpense;
+    } catch (error) {
+      console.error('Error fetching expense:', error);
+      return null;
+    }
+  }
+
+  async createExpense(data: Partial<ChurchExpense>): Promise<string> {
+    try {
+      const expensesRef = await this.getCollection('expenses');
+      if (data.id) {
+        await expensesRef.doc(data.id).set({
+          ...data,
+          createdAt: firestore.FieldValue.serverTimestamp()
+        });
+        return data.id;
+      } else {
+        const docRef = await expensesRef.add({
+          ...data,
+          createdAt: firestore.FieldValue.serverTimestamp()
+        });
+        return docRef.id;
+      }
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      throw error;
+    }
+  }
+
+  async updateExpense(id: string, data: Partial<ChurchExpense>): Promise<void> {
+    try {
+      const expensesRef = await this.getCollection('expenses');
+      await expensesRef.doc(id).update(data);
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      throw error;
+    }
+  }
+
+  async deleteExpense(id: string): Promise<void> {
+    try {
+      const expensesRef = await this.getCollection('expenses');
+      await expensesRef.doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      throw error;
+    }
+  }
+
+  // ─── Invoices ───────────────────────────────────────────────────────────────
+
+  async getInvoices(limitNum = 200): Promise<ChurchInvoice[]> {
+    try {
+      const invoicesRef = await this.getCollection('invoices');
+      const snapshot = await invoicesRef.orderBy('createdAt', 'desc').limit(limitNum).get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChurchInvoice));
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      return [];
+    }
+  }
+
+  async saveInvoice(data: Partial<ChurchInvoice>): Promise<string> {
+    try {
+      const invoicesRef = await this.getCollection('invoices');
+      // If the ID is explicitly provided (e.g. EXP-2026-00028), use it as the doc ID
+      if (data.id) {
+        await invoicesRef.doc(data.id).set({
+          ...data,
+          createdAt: firestore.FieldValue.serverTimestamp()
+        });
+        return data.id;
+      } else {
+        const docRef = await invoicesRef.add({
+          ...data,
+          createdAt: firestore.FieldValue.serverTimestamp()
+        });
+        return docRef.id;
+      }
+    } catch (error) {
+      console.error('Error saving invoice:', error);
+      throw error;
+    }
+  }
+
+  async updateInvoice(id: string, data: Partial<ChurchInvoice>): Promise<void> {
+    try {
+      const invoicesRef = await this.getCollection('invoices');
+      await invoicesRef.doc(id).set({
+        ...data,
+        updatedAt: firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (error) {
+      console.error('Error updating invoice:', error);
+      throw error;
+    }
+  }
+
+  async deleteInvoice(id: string): Promise<void> {
+    try {
+      const invoicesRef = await this.getCollection('invoices');
+      await invoicesRef.doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting invoice:', error);
+      throw error;
+    }
+  }
+
+  // ─── End of Invoices & Expenses ───────────────────────────────────────────────
+
 
   // ─── Subscriptions ──────────────────────────────────────────────────────────
   
@@ -254,6 +436,7 @@ class FirestoreService {
           for (const snap of results) {
             if (!snap.empty) {
               const doc = snap.docs[0];
+              console.log("Found member in collectionGroup. From cache?", doc.metadata?.fromCache);
               return { exists: true, member: { id: doc.id, ...doc.data() } };
             }
           }
@@ -268,7 +451,7 @@ class FirestoreService {
       try {
         console.log(`Checking specific church: ${churchId}`);
         const queries = possibleFormats.map(format => 
-          firestore().collection('churches').doc(churchId).collection('members').where('phone', '==', format).limit(1).get()
+          firestore().collection('churches').doc(churchId).collection('members').where('phone', '==', format).limit(1).get({ source: 'server' })
         );
         const results = await Promise.all(queries);
         for (const snap of results) {
@@ -285,7 +468,7 @@ class FirestoreService {
       try {
         console.log("Not found in specific church. Trying global collectionGroup search...");
         const globalQueries = possibleFormats.map(format => 
-          firestore().collectionGroup('members').where('phone', '==', format).limit(1).get()
+          firestore().collectionGroup('members').where('phone', '==', format).limit(1).get({ source: 'server' })
         );
         const globalResults = await Promise.all(globalQueries);
         for (const snap of globalResults) {
@@ -436,10 +619,10 @@ class FirestoreService {
       const col = await this.getCollection('members');
       const snapshot = await col.get();
       return snapshot.docs.map((doc: any) => ({ 
-        id: doc.id, 
         name: doc.data().name || doc.data().firstName || 'Unknown',
         email: doc.data().email || '',
-        ...doc.data() 
+        ...doc.data(),
+        id: doc.id
       }));
     } catch (error) {
       console.error('Error fetching all members:', error);
@@ -719,10 +902,47 @@ class FirestoreService {
 
   // --- 💸 Giving ---
 
+  async getDonations(limitNum = 200): Promise<ChurchDonation[]> {
+    try {
+      const col = await this.getCollection('donations');
+      const snapshot = await col.orderBy('createdAt', 'desc').limit(limitNum).get();
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChurchDonation));
+    } catch (error) {
+      console.error('Error fetching donations:', error);
+      return [];
+    }
+  }
+
+  async saveDonation(data: Partial<ChurchDonation>): Promise<string> {
+    try {
+      const col = await this.getCollection('donations');
+      if (data.id) {
+        await col.doc(data.id).set({ ...data, updatedAt: firestore.FieldValue.serverTimestamp() }, { merge: true });
+        return data.id;
+      } else {
+        const docRef = await col.add({ ...data, createdAt: firestore.FieldValue.serverTimestamp() });
+        return docRef.id;
+      }
+    } catch (error) {
+      console.error('Error saving donation:', error);
+      throw error;
+    }
+  }
+
+  async deleteDonation(id: string): Promise<void> {
+    try {
+      const col = await this.getCollection('donations');
+      await col.doc(id).delete();
+    } catch (error) {
+      console.error('Error deleting donation:', error);
+      throw error;
+    }
+  }
+
   async createDonation(data: any) {
     try {
       const col = await this.getCollection('donations');
-      await col.add({ ...data, createdAt: FieldValue.serverTimestamp() });
+      await col.add({ ...data, createdAt: firestore.FieldValue.serverTimestamp() });
       return true;
     } catch (e) {
       throw e;
@@ -1051,7 +1271,8 @@ class FirestoreService {
           Id: doc.id,
           Name: data.name || (data.firstName ? data.firstName + ' ' + (data.lastName || '') : 'Unknown'),
           Phone: data.phone || data.mobile,
-          Birthdate: normalizeDate(data.dateOfBirth || data.dob || data.birthday), // always YYYY-MM-DD
+          Birthdate: normalizeDate(data.dob || data.birthdate || data.dateOfBirth || data.birthday), // always YYYY-MM-DD
+          allBirthdates: [normalizeDate(data.dob), normalizeDate(data.birthdate), normalizeDate(data.dateOfBirth), normalizeDate(data.birthday)].filter(Boolean),
           Anniversary_Date__c: normalizeDate(data.marriageDate || data.anniversaryDate || data.anniversary), // always YYYY-MM-DD
           Baptism_Date__c: normalizeDate(data.baptismDate || data.baptism), // always YYYY-MM-DD
           Gender__c: data.gender || data.Gender__c,
@@ -1073,8 +1294,8 @@ class FirestoreService {
       const d = today.getDate();
       
       return all.filter(c => {
-        if (!c.Birthdate) return false;
-        const parts = c.Birthdate.split('-');
+        if (!c.dob) return false;
+        const parts = c.dob.split('-');
         if (parts.length < 3) return false;
         let month, day;
         if (parts[0].length === 4) { // YYYY-MM-DD
@@ -1099,8 +1320,8 @@ class FirestoreService {
       const d = today.getDate();
 
       return all.filter(c => {
-        if (!c.Anniversary_Date__c) return false;
-        const parts = c.Anniversary_Date__c.split('-');
+        if (!c.anniversaryDate) return false;
+        const parts = c.anniversaryDate.split('-');
         if (parts.length < 3) return false;
         let month, day;
         if (parts[0].length === 4) { // YYYY-MM-DD
@@ -1221,6 +1442,159 @@ class FirestoreService {
     } catch (error) {
       console.error('Error in searchMembers:', error);
       return [];
+    }
+  }
+
+  // --- 📝 Attendance ---
+
+  async createAttendanceRequest(data: { title: string; date: string; description?: string; startTime?: string; endTime?: string }) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      const docRef = await col.add({
+        ...data,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        status: 'Active'
+      });
+      return docRef.id;
+    } catch (e) {
+      console.error('Error creating attendance request:', e);
+      throw e;
+    }
+  }
+
+  async updateAttendanceRequest(requestId: string, data: { title: string; date: string; description?: string; startTime?: string; endTime?: string }) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      await col.doc(requestId).update(data);
+      return true;
+    } catch (e) {
+      console.error('Error updating attendance request:', e);
+      throw e;
+    }
+  }
+
+  async getAttendanceRequests() {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      const snapshot = await col.orderBy('createdAt', 'desc').get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+      console.error('Error fetching attendance requests:', e);
+      return [];
+    }
+  }
+
+  async deleteAttendanceRequest(requestId: string) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      await col.doc(requestId).delete();
+      return true;
+    } catch (e) {
+      console.error('Error deleting attendance request:', e);
+      throw e;
+    }
+  }
+
+  async submitAttendanceResponse(requestId: string, memberId: string, memberName: string, response: 'Yes' | 'No', reason?: string) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      const requestRef = col.doc(requestId);
+      const responsesCol = requestRef.collection('responses');
+      
+      // Update or set the response for this member
+      await responsesCol.doc(memberId).set({
+        memberId,
+        memberName,
+        response,
+        reason: reason || null,
+        submittedAt: firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      
+      return true;
+    } catch (e) {
+      console.error('Error submitting attendance response:', e);
+      throw e;
+    }
+  }
+
+  async getAttendanceResponses(requestId: string) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      const responsesCol = col.doc(requestId).collection('responses');
+      const snapshot = await responsesCol.get();
+      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+    } catch (e) {
+      console.error('Error fetching attendance responses:', e);
+      return [];
+    }
+  }
+
+  async getMemberAttendanceResponse(requestId: string, memberId: string) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      const responseDoc = await col.doc(requestId).collection('responses').doc(memberId).get();
+      if (responseDoc.data() !== undefined) {
+        return { id: responseDoc.id, ...responseDoc.data() };
+      }
+      return null;
+    } catch (e) {
+      console.error('Error fetching member attendance response:', e);
+      return null;
+    }
+  }
+
+  async getActiveAttendanceRequest() {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      // Get the most recent active request
+      const snapshot = await col.where('status', '==', 'active').orderBy('createdAt', 'desc').limit(1).get();
+      
+      if (snapshot.empty) return null;
+      
+      const doc = snapshot.docs[0];
+      return { id: doc.id, ...doc.data() };
+    } catch (e) {
+      console.error('Error fetching active attendance request:', e);
+      return null;
+    }
+  }
+
+  async listenActiveAttendanceRequest(callback: (request: any) => void) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      return col.where('status', '==', 'Active').orderBy('createdAt', 'desc').limit(1).onSnapshot(snapshot => {
+        if (snapshot && snapshot.docs && !snapshot.empty) {
+          callback({ id: snapshot.docs[0].id, ...snapshot.docs[0].data() });
+        } else {
+          callback(null);
+        }
+      }, (error: any) => {
+        console.error('Active request snapshot error:', error);
+        callback(null);
+      });
+    } catch (e) {
+      console.error('Error listening to active attendance request:', e);
+      return () => {};
+    }
+  }
+
+  async listenAttendanceResponses(requestId: string, callback: (responses: any[]) => void) {
+    try {
+      const col = await this.getCollection('attendanceRequests');
+      return col.doc(requestId).collection('responses').onSnapshot(snapshot => {
+        if (!snapshot || !snapshot.docs) {
+          callback([]);
+          return;
+        }
+        const data = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+        callback(data);
+      }, (error: any) => {
+        console.error('Responses snapshot error:', error);
+        callback([]);
+      });
+    } catch (e) {
+      console.error('Error listening to attendance responses:', e);
+      return () => {};
     }
   }
 }

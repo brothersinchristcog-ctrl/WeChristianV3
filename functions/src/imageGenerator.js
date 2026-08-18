@@ -8,19 +8,13 @@ const __dirname = path.dirname(__filename);
 // Load fonts
 const robotoRegular = fs.readFileSync(path.join(__dirname, 'fonts', 'Roboto-Regular.ttf'));
 const robotoBold = fs.readFileSync(path.join(__dirname, 'fonts', 'Roboto-Bold.ttf'));
-const ICONS = {
-    anniversary: '💍',
-    baptism: '✝️',
-    birthday: '🎂'
-};
 const TITLES = {
     anniversary: 'WISHING YOU A\nHAPPY ANNIVERSARY',
     baptism: 'CELEBRATING YOUR\nBAPTISM ANNIVERSARY',
     birthday: 'WISHING YOU A\nHAPPY BIRTHDAY'
 };
 export async function generateCelebrationImage(data) {
-    const { themeColor, type, name, message } = data;
-    const icon = ICONS[type] || '✨';
+    const { themeColor, type, name, message, churchName } = data;
     const titleLines = (TITLES[type] || 'CELEBRATING WITH YOU').split('\n');
     const svg = await satori({
         type: 'div',
@@ -54,13 +48,6 @@ export async function generateCelebrationImage(data) {
                             textAlign: 'center'
                         },
                         children: [
-                            {
-                                type: 'div',
-                                props: {
-                                    style: { fontSize: 60, marginBottom: 20 },
-                                    children: icon
-                                }
-                            },
                             {
                                 type: 'div',
                                 props: {
@@ -128,7 +115,7 @@ export async function generateCelebrationImage(data) {
                                         textTransform: 'uppercase',
                                         color: 'rgba(255, 255, 255, 0.8)'
                                     },
-                                    children: 'SENT WITH LOVE, CHURCH OF GOD'
+                                    children: `SENT WITH LOVE, ${(churchName || 'YOUR CHURCH').toUpperCase()}`
                                 }
                             }
                         ]

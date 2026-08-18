@@ -1,18 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, FlatList, Dimensions, Platform } from 'react-native';
-import { ArrowLeft, Search, CheckCircle2, SlidersHorizontal, Gift } from 'lucide-react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, FlatList, Dimensions, Platform, Image } from 'react-native';
+import { ChevronLeft, Search, CheckCircle2, SlidersHorizontal, Gift } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
 
 const { width } = Dimensions.get('window');
 
-import { Image } from 'react-native';
+const MemberAvatar = ({ member, initials, styles, bgColor }: any) => {
+  const [imgError, setImgError] = React.useState(false);
+  const possibleUrls = [
+    member.profilePhoto, member.photoURL, member.photoUrl, 
+    member.ProfilePhoto, member.profileImage, member.Photo, 
+    member.PhotoUrl, member.photo
+  ];
+  const validUrl = possibleUrls.find((url: any) => typeof url === 'string' && url.trim() !== '' && url !== 'null' && url !== 'undefined');
 
-const FILTER_TABS = ['Today', 'Upcoming', 'Week', 'Month', 'Past', 'All'];
+  if (validUrl && !imgError) {
+    return (
+      <Image 
+        source={{ uri: validUrl.trim() }} 
+        style={styles.avatar} 
+        resizeMode="cover"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
 
-export default function AdminWeCelebrationsList({ category, onBack, onSelectMember }: { category: string, onBack: () => void, onSelectMember: (member: any) => void }) {
+  return (
+    <View style={[styles.avatar, { backgroundColor: bgColor }]}>
+      <Text style={styles.avatarTxt}>{initials}</Text>
+    </View>
+  );
+};
+
+export default function AdminWeCelebrationsList({ category, activeTab, onSelectMember }: { category: string, activeTab: string, onSelectMember: (member: any) => void }) {
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('Upcoming');
   const [searchQuery, setSearchQuery] = useState('');
   const [members, setMembers] = useState<any[]>([]);
 
@@ -21,15 +43,21 @@ export default function AdminWeCelebrationsList({ category, onBack, onSelectMemb
       try {
         const data = await FirestoreService.getAllCelebrations();
         
+        const getValidPhotoUrl = (obj: any) => {
+          const fields = ['ProfilePhoto', 'profilePhoto', 'Photo', 'photoUrl', 'photoURL', 'PhotoUrl', 'photo', 'profileImageUrl'];
+          for (const f of fields) {
+            if (obj[f] && typeof obj[f] === 'string' && obj[f].trim() !== '' && obj[f] !== 'null' && obj[f] !== 'undefined') return obj[f].trim();
+          }
+          return null;
+        };
+
         let processed: any[] = [];
-        let dateField = '';
-        if (category === 'Birthday') dateField = 'Birthdate';
-        else if (category === 'Wedding Anniversary') dateField = 'Anniversary_Date__c';
-        else if (category === 'Baptism Anniversary') dateField = 'Baptism_Date__c';
         
-        if (dateField) {
-          processed = data.filter(d => !!d[dateField]).map(d => {
+        const processEvent = (d: any, dateField: string, type: string) => {
+            if (!d[dateField]) return null;
             const parts = d[dateField].split('-');
+            if (parts.length < 3) return null;
+            
             const year = parseInt(parts[0], 10);
             const month = parseInt(parts[1], 10);
             const day = parseInt(parts[2], 10);
@@ -49,18 +77,60 @@ export default function AdminWeCelebrationsList({ category, onBack, onSelectMemb
 
             return {
               ...d,
-              id: d.Id || d.id,
+              id: (d.Id || d.id) + '_' + type, // Make ID unique per event type
+              originalId: d.Id || d.id,
               name: d.Name || 'Unknown',
               initials: initials.toUpperCase(),
-              photoUrl: d.ProfilePhoto || d.profilePhoto || d.Photo || d.photoUrl || d.PhotoUrl || d.photo || null,
+              photoUrl: getValidPhotoUrl(d),
               dateStr,
               age,
               phone: d.MobilePhone || d.Phone || '',
               rawMonth: month,
-              rawDay: day
+              rawDay: day,
+              celebrationType: type
             };
-          });
+        };
+
+        if (category === 'All') {
+            data.forEach((d: any) => {
+                const bday = processEvent(d, 'Birthdate', 'Birthday');
+                const wedding = processEvent(d, 'Anniversary_Date__c', 'Wedding Anniversary');
+                const baptism = processEvent(d, 'Baptism_Date__c', 'Baptism Anniversary');
+                
+                if (bday) processed.push(bday);
+                if (wedding) processed.push(wedding);
+                if (baptism) processed.push(baptism);
+            });
+        } else {
+            let dateField = '';
+            if (category === 'Birthday') dateField = 'Birthdate';
+            else if (category === 'Wedding Anniversary') dateField = 'Anniversary_Date__c';
+            else if (category === 'Baptism Anniversary') dateField = 'Baptism_Date__c';
+            
+            if (dateField) {
+                processed = data.filter((d: any) => !!d[dateField]).map((d: any) => processEvent(d, dateField, category)).filter(Boolean);
+            }
         }
+        
+        // Sort processed list by closest date to today (upcoming)
+        processed.sort((a, b) => {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            const currentDay = now.getDate();
+            const todayTime = new Date(currentYear, currentMonth - 1, currentDay).getTime();
+            
+            const aDate = new Date(currentYear, a.rawMonth - 1, a.rawDay).getTime();
+            const bDate = new Date(currentYear, b.rawMonth - 1, b.rawDay).getTime();
+            
+            let aDiff = aDate - todayTime;
+            let bDiff = bDate - todayTime;
+            
+            if (aDiff < 0) aDiff += 31536000000;
+            if (bDiff < 0) bDiff += 31536000000;
+            
+            return aDiff - bDiff;
+        });
         
         setMembers(processed);
       } catch (err) {
@@ -124,36 +194,7 @@ export default function AdminWeCelebrationsList({ category, onBack, onSelectMemb
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <ArrowLeft size={20} color="#162057" />
-        </TouchableOpacity>
-        <View style={styles.headerTextContainer}>
-          <Text style={styles.eyebrow}>CELEBRATIONS</Text>
-          <Text style={styles.title}>{category}</Text>
-        </View>
-      </View>
-
       <ScrollView contentContainerStyle={styles.content}>
-        
-        <Text style={styles.sectionTitle}>{category.toUpperCase()}</Text>
-
-        {/* Filter Tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll} contentContainerStyle={{ paddingRight: 20 }}>
-          {FILTER_TABS.map(tab => {
-            const isActive = tab === activeTab;
-            return (
-              <TouchableOpacity 
-                key={tab} 
-                style={[styles.tabBtn, isActive && styles.tabBtnActive]}
-                onPress={() => setActiveTab(tab)}
-              >
-                <Text style={[styles.tabTxt, isActive && styles.tabTxtActive]}>{tab}</Text>
-              </TouchableOpacity>
-            )
-          })}
-        </ScrollView>
 
         <View style={[styles.searchRow, { marginRight: 0 }]}>
           <View style={[styles.searchBox, { marginRight: 0 }]}>
@@ -175,33 +216,22 @@ export default function AdminWeCelebrationsList({ category, onBack, onSelectMemb
           <TouchableOpacity key={member.id || idx} style={styles.memberCard} onPress={() => onSelectMember(member)}>
             
             {/* Avatar */}
-            <View style={[styles.avatar, { backgroundColor: getAvatarColor(member.name) }]}>
-              {member.photoUrl ? (
-                <Image source={{ uri: member.photoUrl }} style={{ width: 56, height: 56, borderRadius: 28 }} />
-              ) : (
-                <Text style={styles.avatarTxt}>{member.initials}</Text>
-              )}
-            </View>
+            <MemberAvatar 
+              member={member} 
+              initials={member.initials || (member.name ? member.name.substring(0, 2).toUpperCase() : 'U')} 
+              styles={styles} 
+              bgColor={getAvatarColor(member.name)} 
+            />
             
             {/* Info */}
             <View style={styles.memberInfo}>
               <Text style={styles.memberName} numberOfLines={1}>{member.name}</Text>
               <View style={styles.memberMetaRow}>
                 <View style={styles.tag}>
-                  <Text style={styles.tagTxt}>{category.toUpperCase()}</Text>
+                  <Text style={styles.tagTxt}>{member.celebrationType ? member.celebrationType.toUpperCase() : category.toUpperCase()}</Text>
                 </View>
                 <Text style={styles.metaTxt}> · {member.dateStr} · {member.age} yrs</Text>
               </View>
-            </View>
-            
-            {/* Actions */}
-            <View style={styles.actionCol}>
-              <TouchableOpacity style={styles.actionBtn}>
-                <CheckCircle2 size={20} color="#10B981" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionBtn}>
-                <Gift size={20} color="#D4AF37" />
-              </TouchableOpacity>
             </View>
           </TouchableOpacity>
         ))}
@@ -222,43 +252,25 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  header: {
+    header: { 
+    backgroundColor: '#1a2d5a', 
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    backgroundColor: '#FAF8F0',
+    gap: 12,
+    position: 'relative',
     zIndex: 10,
   },
-  backBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-    marginRight: 16,
-  },
-  headerTextContainer: {
-    justifyContent: 'center',
-  },
-  eyebrow: {
-    color: '#B88A2E',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 2,
-  },
-  title: {
-    color: '#162057',
-    fontSize: 22,
-    fontWeight: '800',
-  },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  heroTitles: { flex: 1, borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.2)', paddingLeft: 12 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2 },
+  
   content: {
     padding: 20,
     paddingTop: 10,

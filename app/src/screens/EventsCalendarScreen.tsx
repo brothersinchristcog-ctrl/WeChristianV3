@@ -324,6 +324,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16
   },
-  metaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 12 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', marginTop: 8, gap: 12 },
   metaText: { fontSize: 11, color: '#666', fontWeight: '500' },
 });

@@ -112,7 +112,7 @@ export default function PrayerWallScreen({ navigation }: any) {
   const { isDark, toggleTheme, colors } = useTheme();
   const [member, setMember] = useState<AppMember | null>(null);
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [prayedSet, setPrayedSet] = useState(new Set<string>());
   const [replyInputs, setReplyInputs] = useState<{[key: string]: string}>({});
@@ -133,7 +133,7 @@ export default function PrayerWallScreen({ navigation }: any) {
   ];
 
   const fetchPrayers = async (contactId?: string, isRefreshing = false) => {
-    if (!isRefreshing) setLoading(true);
+    // Only set loading to true if we really want a full-screen block, but we want a smooth transition so skip it here.
     try {
       const data = await FirestoreService.getPrayerRequests({ contactId });
       setPrayers(data);
@@ -361,7 +361,7 @@ export default function PrayerWallScreen({ navigation }: any) {
             </TouchableOpacity>
           )}
 
-          <View style={{ flexDirection: 'row', gap: 14, alignItems: 'center' }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, alignItems: 'center' }}>
             {isOwner && (
               <TouchableOpacity onPress={() => handleDelete(item.id)}>
                 <Trash2 size={20} color="#ef4444" />
@@ -458,14 +458,16 @@ const styles = StyleSheet.create({
   // Header
   header: {
     backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 25,
-    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingHorizontal: 16,
     paddingBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between'
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
   backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
   headerCenter: { alignItems: 'center' },
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800', letterSpacing: 0.5 },
@@ -571,7 +573,7 @@ const styles = StyleSheet.create({
     borderColor: '#f1f5f9'
   },
   cardAnswered: { borderColor: '#bbf7d0', borderWidth: 2 },
-  cardHeader: { flexDirection: 'row', gap: 14, marginBottom: 15 },
+  cardHeader: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginBottom: 15 },
   avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: '#fff', fontWeight: '800', fontSize: 18 },
   headerInfo: { flex: 1 },

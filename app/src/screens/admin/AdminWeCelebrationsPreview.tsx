@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Dimensions, Image } from 'react-native';
-import { ArrowLeft, Edit2 } from 'lucide-react-native';
+import { ChevronLeft, Edit2 } from 'lucide-react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Circle, G } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
@@ -55,14 +55,14 @@ export default function AdminWeCelebrationsPreview({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={onBack}>
-          <ArrowLeft stroke="#162057" width={20} height={20} />
+        <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+          <ChevronLeft size={22} color="#fff" />
+          <Text style={styles.backBtnTxt}>Back</Text>
         </TouchableOpacity>
         <View style={styles.headerTitles}>
-          <Text style={styles.headerSubtitle}>Prepare Wish</Text>
-          <Text style={styles.headerTitle}>Preview</Text>
+          <Text style={styles.headerTitle}>Prepare Wish</Text>
+          <Text style={styles.headerSub}>Preview</Text>
         </View>
-        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView style={styles.content} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
@@ -72,7 +72,7 @@ export default function AdminWeCelebrationsPreview({
           {theme?.imageUrl && (
             <Image source={{ uri: theme.imageUrl }} style={[StyleSheet.absoluteFillObject, { resizeMode: 'cover' }]} />
           )}
-          <Svg width="100%" height={450} viewBox="0 0 400 500">
+          <Svg width="100%" height={450} viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice">
             <Defs>
               <LinearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
                 <Stop offset="0%" stopColor={colors[0]} stopOpacity={theme?.imageUrl ? 0.2 : 1} />
@@ -107,10 +107,12 @@ export default function AdminWeCelebrationsPreview({
             <Text style={styles.gTitle}>{titleOverlay || categoryLabel}</Text>
             <Text style={styles.gName}>{nameOverlay || member.name}</Text>
             <Text style={styles.gMsg}>{message}</Text>
-            <Text style={styles.gVerse}>
-              "{verse?.text?.length > 100 ? verse.text.substring(0, 100) + '...' : (verse?.text || '')}"
-              {'\n'}— {verse?.ref || ''}
-            </Text>
+            {verse?.text ? (
+              <Text style={styles.gVerse}>
+                "{verse.text.length > 100 ? verse.text.substring(0, 100) + '...' : verse.text}"
+                {'\n'}— {verse.ref}
+              </Text>
+            ) : null}
             <Text style={styles.gSender}>Sent with love</Text>
           </View>
         </View>
@@ -138,40 +140,43 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 20,
-    backgroundColor: '#F8FAFC',
+    paddingBottom: 24,
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    gap: 12,
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
+  backBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#1E2A63',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    gap: 2,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  backBtnTxt: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
   },
   headerTitles: {
-    alignItems: 'center',
-  },
-  headerSubtitle: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 10,
-    letterSpacing: 1.5,
-    textTransform: 'uppercase',
-    color: '#BE9A3A',
-    marginBottom: 4,
+    flex: 1,
+    borderLeftWidth: 1,
+    borderLeftColor: 'rgba(255,255,255,0.2)',
+    paddingLeft: 12,
   },
   headerTitle: {
-    fontFamily: 'Fraunces-SemiBold',
-    fontSize: 20,
-    color: '#162057',
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  headerSub: {
+    fontSize: 11,
+    color: '#D4AF37',
+    marginTop: 1,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   content: {
     flex: 1,
@@ -256,18 +261,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 14,
   },
-  buttonRow: {
+    buttonRow: {
     flexDirection: 'row',
     gap: 12,
     marginTop: 24,
+    alignItems: 'stretch',
   },
   btnOutline: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
+    gap: 6,
+    height: 56,
     borderRadius: 16,
     borderWidth: 1.5,
     borderColor: '#37469B',
@@ -278,13 +284,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#37469B',
   },
-  btnPrimary: {
+    btnPrimary: {
     flex: 2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 16,
+    gap: 6,
+    height: 56,
     borderRadius: 16,
     backgroundColor: '#37469B',
     shadowColor: '#1E2A63',

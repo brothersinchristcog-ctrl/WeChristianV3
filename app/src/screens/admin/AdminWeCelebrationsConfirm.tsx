@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
-import { Check, Home } from 'lucide-react-native';
+import { Check, Home, ChevronLeft } from 'lucide-react-native';
 
 export default function AdminWeCelebrationsConfirm({ 
   member,
@@ -31,9 +31,22 @@ export default function AdminWeCelebrationsConfirm({
 
   const categoryLabel = category.charAt(0).toUpperCase() + category.slice(1);
 
-  return (
+    return (
     <View style={styles.container}>
-      <Animated.View style={[
+      {/* ── Fixed Header ── */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={onDone}>
+          <ChevronLeft size={22} color="#fff" />
+          <Text style={styles.backBtnTxt}>Back</Text>
+        </TouchableOpacity>
+        <View style={styles.heroTitles}>
+          <Text style={styles.headerTitle}>{categoryLabel}</Text>
+          <Text style={styles.headerSub}>CONFIRMATION</Text>
+        </View>
+      </View>
+
+      <View style={styles.content}>
+        <Animated.View style={[
         styles.confirmCheck, 
         { transform: [{ scale: scaleAnim }], opacity: opacityAnim }
       ]}>
@@ -46,22 +59,43 @@ export default function AdminWeCelebrationsConfirm({
         Your {categoryLabel.toLowerCase()} wish for <Text style={styles.bold}>{member?.name}</Text> has been sent via WhatsApp.
       </Text>
 
-      <TouchableOpacity style={styles.btnPrimary} onPress={onDone}>
-        <Home stroke="#FFFFFF" width={20} height={20} />
-        <Text style={styles.btnPrimaryText}>Back to Celebrations</Text>
-      </TouchableOpacity>
+              <TouchableOpacity style={styles.btnPrimary} onPress={onDone}>
+          <Home stroke="#FFFFFF" width={20} height={20} />
+          <Text style={styles.btnPrimaryText}>Back to Celebrations</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+    container: {
     flex: 1,
     backgroundColor: '#F8FAFC',
+  },
+  header: { 
+    backgroundColor: '#1a2d5a', 
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    position: 'relative',
+    zIndex: 10,
+  },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  heroTitles: { flex: 1, borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.2)', paddingLeft: 12 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2 },
+  content: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    paddingTop: 70,
   },
   confirmCheck: {
     width: 88,

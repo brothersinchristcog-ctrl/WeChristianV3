@@ -8,6 +8,8 @@ import { getStorage } from 'firebase-admin/storage';
 import { SalesforceBackend } from './services/SalesforceBackend.js';
 import { sendWhatsAppTemplateInternal } from './whatsapp.js';
 import { generateCelebrationImage } from './imageGenerator.js';
+import { randomUUID } from 'crypto';
+export { weCelebrationDailySweepV3, weCelebrationWishCreatedTrigger, weCelebrationBatchedWishes, executeBatchedWishes, triggerMorningCelebrations } from './celebrations.js';
 // Initialize Firebase Admin once at top level
 initializeApp();
 // TODO: When Salesforce integration becomes multi-tenant, remove this and loop over churches.
@@ -156,13 +158,17 @@ export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZon
             console.log('🛑 Daily Promise automation is disabled.');
             return;
         }
-        const promise = await getSf().getDailyPromise();
-        if (!promise) {
-            console.log('⚠️ No daily promise found in Salesforce.');
+        const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+        const dStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const promiseSnap = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('promises').where('date', '==', dStr).limit(1).get();
+        if (promiseSnap.empty) {
+            console.log('⚠️ No daily promise found in Firestore for today (' + dStr + ').');
             return;
         }
-        const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-        const content = promise.Promises__c || promise.Promise_text_telugu__c || 'Grace and Peace be multiplied to you today.';
+        const promise = promiseSnap.docs[0].data();
+        const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+        // Fallbacks for content based on app schema
+        const content = promise.textEn || promise.text || promise.Promises__c || promise.Promise_text_telugu__c || 'Grace and Peace be multiplied to you today.';
         // Pushed to broadcasts collection
         await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('broadcasts').add({
             title: '📖 Today\'s Promise · ఈ రోజు వాగ్దానం',
@@ -218,10 +224,9 @@ export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZon
     }
 });
 /**
- * ⏰ AUTOMATED DAILY BIRTHDAYS SCHEDULER
- * Scheduled to run every day at 08:00 AM IST (02:30 AM UTC)
+ * ⏰ AUTOMATED DAILY BIRTHDAYS TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export const triggerDailyBirthdays = onSchedule({ schedule: '0 8 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
+export const triggerAutomatedBirthdays = onRequest({ timeoutSeconds: 300, cors: true }, async (req, res) => {
     try {
         console.log('⏰ Running automatedDailyBirthdays scheduler...');
         const db = getDb();
@@ -230,6 +235,7 @@ export const triggerDailyBirthdays = onSchedule({ schedule: '0 8 * * *', timeZon
         const settings = settingsDoc.data();
         if (settings && settings.birthdayNotif && settings.birthdayNotif.enabled === false) {
             console.log('🔇 Birthday greetings automation is disabled.');
+            res.status(200).send('Birthday greetings automation is disabled.');
             return;
         }
         // Fetch birthdays from Firestore members collection instead of Salesforce
@@ -250,6 +256,8 @@ export const triggerDailyBirthdays = onSchedule({ schedule: '0 8 * * *', timeZon
             const monthly = data.monthlyCelebrationTemplates;
             const fallback = data.automatedWeCelebrationTemplate || {};
             const tpl = (monthly && monthly[currentMonthStr]) ? monthly[currentMonthStr] : fallback;
+            // Store the actual church name from the document so we can use it in the image
+            tpl.actualChurchName = data.name || data.churchName || '';
             churchTemplates.set(doc.id, tpl);
         });
         const legacyMembersSnap = await db.collection('members').get();
@@ -295,6 +303,7 @@ export const triggerDailyBirthdays = onSchedule({ schedule: '0 8 * * *', timeZon
         });
         if (bdays.length === 0) {
             console.log('📆 No birthdays celebrating today.');
+            res.status(200).send('No birthdays celebrating today.');
             return;
         }
         const greetingTemplate = settings?.birthdayNotif?.greeting || 'Wishing you a very Happy Birthday! May God bless you abundantly and fulfill all your prayers today. 🎂🙏';
@@ -313,12 +322,14 @@ export const triggerDailyBirthdays = onSchedule({ schedule: '0 8 * * *', timeZon
         });
         for (const member of bdays) {
             const personalGreeting = `Dear ${member.name}, ${greetingTemplate}`;
-            // Save to broadcasts
-            const docRef = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('broadcasts').add({
+            // Save to broadcasts (targeted to this member only)
+            const targetChurchId = member.churchId || DEFAULT_CHURCH_ID;
+            const docRef = await db.collection('churches').doc(targetChurchId).collection('broadcasts').add({
                 title: `🎂 Happy Birthday, ${member.name}!`,
                 content: personalGreeting,
                 date: dateStr,
                 type: 'birthday',
+                targetPhone: member.phone || '',
                 silent: true,
                 createdAt: FieldValue.serverTimestamp()
             });
@@ -369,17 +380,29 @@ export const triggerDailyBirthdays = onSchedule({ schedule: '0 8 * * *', timeZon
                         : `Dear ${firstWord}, ${msg}`;
                     const verseStr = tpl.verseText ? `"${tpl.verseText}" — ${tpl.verseRef}` : '';
                     let imageUrl = tpl.imageUrl;
-                    if (tpl.themeColor) {
+                    if (!imageUrl) {
+                        const color = tpl.themeColor || '#3b82f6';
                         const pngBuffer = await generateCelebrationImage({
-                            themeColor: tpl.themeColor,
+                            themeColor: color,
                             type: 'birthday',
                             name: member.name,
-                            message: formattedMsg
+                            message: formattedMsg,
+                            churchName: tpl.actualChurchName || tpl.churchName
                         });
                         const fileName = `automated_wishes/${member.churchId}/birthday_${Date.now()}.png`;
                         const file = getStorage().bucket().file(fileName);
-                        await file.save(pngBuffer, { contentType: 'image/png' });
-                        [imageUrl] = await file.getSignedUrl({ action: 'read', expires: '03-09-2491' });
+                        const downloadToken = randomUUID();
+                        try {
+                            await file.save(pngBuffer, {
+                                contentType: 'image/png',
+                                metadata: { metadata: { firebaseStorageDownloadTokens: downloadToken } }
+                            });
+                            imageUrl = `https://firebasestorage.googleapis.com/v0/b/${file.bucket.name}/o/${encodeURIComponent(file.name)}?alt=media&token=${downloadToken}`;
+                        }
+                        catch (uploadErr) {
+                            console.warn('⚠️ Local upload failed, using fallback image for WhatsApp testing');
+                            imageUrl = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80';
+                        }
                     }
                     await sendWhatsAppTemplateInternal(member.churchId, member.phone, 'birthday_card', 'en', imageUrl, 'Automated Birthday Wish', [formattedMsg, verseStr]);
                     console.log(`✅ WhatsApp Birthday message sent to ${member.name}`);
@@ -389,16 +412,17 @@ export const triggerDailyBirthdays = onSchedule({ schedule: '0 8 * * *', timeZon
                 }
             }
         }
+        res.status(200).send(`Birthday automation completed. Processed ${bdays.length} members.`);
     }
     catch (error) {
-        console.error('Error in automatedDailyBirthdays scheduler:', error);
+        console.error('Error in automatedDailyBirthdays:', error);
+        res.status(500).send('Error executing birthday automation.');
     }
 });
 /**
- * ⏰ AUTOMATED DAILY ANNIVERSARIES SCHEDULER
- * Scheduled to run every day at 08:30 AM IST (03:00 AM UTC)
+ * ⏰ AUTOMATED DAILY ANNIVERSARIES TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export const triggerDailyAnnivs = onSchedule({ schedule: '30 6 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
+export const triggerAutomatedAnniversaries = onRequest({ timeoutSeconds: 300, cors: true }, async (req, res) => {
     try {
         console.log('⏰ Running automatedDailyAnniversaries scheduler...');
         const db = getDb();
@@ -407,6 +431,7 @@ export const triggerDailyAnnivs = onSchedule({ schedule: '30 6 * * *', timeZone:
         const settings = settingsDoc.data();
         if (settings && settings.anniversaryNotif && settings.anniversaryNotif.enabled === false) {
             console.log('🔇 Anniversary greetings automation is disabled.');
+            res.status(200).send('Anniversary greetings automation is disabled.');
             return;
         }
         // Fetch anniversaries from Firestore members collection
@@ -427,6 +452,7 @@ export const triggerDailyAnnivs = onSchedule({ schedule: '30 6 * * *', timeZone:
             const monthly = data.monthlyCelebrationTemplates;
             const fallback = data.automatedWeCelebrationTemplate || {};
             const tpl = (monthly && monthly[currentMonthStr]) ? monthly[currentMonthStr] : fallback;
+            tpl.actualChurchName = data.name || data.churchName || '';
             churchTemplates.set(doc.id, tpl);
         });
         const legacyMembersSnap = await db.collection('members').get();
@@ -490,6 +516,7 @@ export const triggerDailyAnnivs = onSchedule({ schedule: '30 6 * * *', timeZone:
         });
         if (annivs.length === 0) {
             console.log('📆 No wedding anniversaries celebrating today.');
+            res.status(200).send('No wedding anniversaries celebrating today.');
             return;
         }
         const greetingTemplate = settings?.anniversaryNotif?.greeting || 'Wishing you a wonderful wedding anniversary! May God bless your home with love, joy, and peace. 💐💒';
@@ -502,24 +529,32 @@ export const triggerDailyAnnivs = onSchedule({ schedule: '30 6 * * *', timeZone:
             if (data.fcmToken) {
                 if (data.name)
                     userMap.set(data.name.toLowerCase(), data.fcmToken);
+                if (data.phone)
+                    userMap.set(data.phone.slice(-10), data.fcmToken);
             }
         });
         for (const ann of annivs) {
             const coupleNames = `${ann.husband} & ${ann.wife}`;
-            const personalGreeting = `Wishing Brother ${ann.husband} & Sister ${ann.wife} a wonderful ${ann.years}th Wedding Anniversary! ${greetingTemplate}`;
-            // Save to broadcasts
-            const docRef = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('broadcasts').add({
+            const husbandTitle = ann.husband === 'Brother' ? '' : 'Brother ';
+            const wifeTitle = ann.wife === 'Sister' ? '' : 'Sister ';
+            const yearsText = ann.years ? `${ann.years}th ` : '';
+            const personalGreeting = `Wishing ${husbandTitle}${ann.husband} & ${wifeTitle}${ann.wife} a wonderful ${yearsText}Wedding Anniversary! ${greetingTemplate}`;
+            // Save to broadcasts (targeted to this couple only)
+            const targetChurchId = ann.churchId || DEFAULT_CHURCH_ID;
+            const docRef = await db.collection('churches').doc(targetChurchId).collection('broadcasts').add({
                 title: `💐 Happy Wedding Anniversary!`,
                 content: personalGreeting,
                 date: dateStr,
                 type: 'anniversary',
+                targetPhone: ann.phone || '',
                 silent: true,
                 createdAt: FieldValue.serverTimestamp()
             });
             // Target spouses
             const husbandToken = userMap.get(ann.husband.toLowerCase());
             const wifeToken = userMap.get(ann.wife.toLowerCase());
-            const targetTokens = [husbandToken, wifeToken].filter(Boolean);
+            const phoneToken = ann.phone ? userMap.get(ann.phone.slice(-10)) : null;
+            const targetTokens = [...new Set([husbandToken, wifeToken, phoneToken].filter(Boolean))];
             if (targetTokens.length > 0) {
                 const message = {
                     notification: {
@@ -566,17 +601,29 @@ export const triggerDailyAnnivs = onSchedule({ schedule: '30 6 * * *', timeZone:
                             : `Dear ${couple}, ${msg}`;
                         const verseStr = tpl.verseText ? `"${tpl.verseText}" — ${tpl.verseRef}` : '';
                         let imageUrl = tpl.imageUrl;
-                        if (tpl.themeColor) {
+                        if (!imageUrl) {
+                            const color = tpl.themeColor || '#3b82f6';
                             const pngBuffer = await generateCelebrationImage({
-                                themeColor: tpl.themeColor,
+                                themeColor: color,
                                 type: 'anniversary',
                                 name: couple,
-                                message: formattedMsg
+                                message: formattedMsg,
+                                churchName: tpl.actualChurchName || tpl.churchName
                             });
                             const fileName = `automated_wishes/${ann.churchId}/anniversary_${Date.now()}.png`;
                             const file = getStorage().bucket().file(fileName);
-                            await file.save(pngBuffer, { contentType: 'image/png' });
-                            [imageUrl] = await file.getSignedUrl({ action: 'read', expires: '03-09-2491' });
+                            const downloadToken = randomUUID();
+                            try {
+                                await file.save(pngBuffer, {
+                                    contentType: 'image/png',
+                                    metadata: { metadata: { firebaseStorageDownloadTokens: downloadToken } }
+                                });
+                                imageUrl = `https://firebasestorage.googleapis.com/v0/b/${file.bucket.name}/o/${encodeURIComponent(file.name)}?alt=media&token=${downloadToken}`;
+                            }
+                            catch (uploadErr) {
+                                console.warn('⚠️ Local upload failed, using fallback image for WhatsApp testing');
+                                imageUrl = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80';
+                            }
                         }
                         await sendWhatsAppTemplateInternal(ann.churchId, ann.phone, 'birthday_card', 'en', imageUrl, 'Automated Anniversary Wish', [formattedMsg, verseStr]);
                         console.log(`✅ WhatsApp Anniversary message sent to ${ann.husband} & ${ann.wife}`);
@@ -587,16 +634,17 @@ export const triggerDailyAnnivs = onSchedule({ schedule: '30 6 * * *', timeZone:
                 }
             }
         }
+        res.status(200).send(`Anniversary automation completed. Processed ${annivs.length} couples.`);
     }
     catch (error) {
-        console.error('Error in automatedDailyAnniversaries scheduler:', error);
+        console.error('Error in automatedDailyAnniversaries:', error);
+        res.status(500).send('Error executing anniversary automation.');
     }
 });
 /**
- * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES SCHEDULER
- * Scheduled to run every day at 07:00 AM IST
+ * ⏰ AUTOMATED DAILY BAPTISM ANNIVERSARIES TRIGGER (Manual Cloud Scheduler Endpoint)
  */
-export const triggerDailyBaptisms = onSchedule({ schedule: '30 9 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
+export const triggerAutomatedBaptisms = onRequest({ timeoutSeconds: 300, cors: true }, async (req, res) => {
     try {
         console.log('⏰ Running automatedDailyBaptisms scheduler...');
         const db = getDb();
@@ -605,6 +653,7 @@ export const triggerDailyBaptisms = onSchedule({ schedule: '30 9 * * *', timeZon
         const settings = settingsDoc.data();
         if (settings && settings.baptismNotif && settings.baptismNotif.enabled === false) {
             console.log('🔇 Baptism greetings automation is disabled.');
+            res.status(200).send('Baptism greetings automation is disabled.');
             return;
         }
         // Fetch baptisms from Firestore members collection
@@ -625,6 +674,7 @@ export const triggerDailyBaptisms = onSchedule({ schedule: '30 9 * * *', timeZon
             const monthly = data.monthlyCelebrationTemplates;
             const fallback = data.automatedWeCelebrationTemplate || {};
             const tpl = (monthly && monthly[currentMonthStr]) ? monthly[currentMonthStr] : fallback;
+            tpl.actualChurchName = data.name || data.churchName || '';
             churchTemplates.set(doc.id, tpl);
         });
         const legacyMembersSnap = await db.collection('members').get();
@@ -675,6 +725,7 @@ export const triggerDailyBaptisms = onSchedule({ schedule: '30 9 * * *', timeZon
         });
         if (baptisms.length === 0) {
             console.log('📆 No baptism anniversaries celebrating today.');
+            console.log('No baptism anniversaries celebrating today.');
             return;
         }
         const greetingTemplate = settings?.baptismNotif?.greeting || 'Happy Baptism Anniversary! May you continue to grow in faith and walk in His light. 🙏🕊️';
@@ -693,12 +744,14 @@ export const triggerDailyBaptisms = onSchedule({ schedule: '30 9 * * *', timeZon
         });
         for (const member of baptisms) {
             const personalGreeting = `Dear ${member.name}, ${greetingTemplate}`;
-            // Save to broadcasts
-            const docRef = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('broadcasts').add({
+            // Save to broadcasts (targeted to this member only)
+            const targetChurchId = member.churchId || DEFAULT_CHURCH_ID;
+            const docRef = await db.collection('churches').doc(targetChurchId).collection('broadcasts').add({
                 title: `🕊️ Happy Baptism Anniversary, ${member.name}!`,
                 content: personalGreeting,
                 date: dateStr,
                 type: 'baptism',
+                targetPhone: member.phone || '',
                 silent: true,
                 createdAt: FieldValue.serverTimestamp()
             });
@@ -750,17 +803,29 @@ export const triggerDailyBaptisms = onSchedule({ schedule: '30 9 * * *', timeZon
                             : `Dear ${firstWord}, ${msg}`;
                         const verseStr = tpl.verseText ? `"${tpl.verseText}" — ${tpl.verseRef}` : '';
                         let imageUrl = tpl.imageUrl;
-                        if (tpl.themeColor) {
+                        if (!imageUrl) {
+                            const color = tpl.themeColor || '#3b82f6'; // Default blue
                             const pngBuffer = await generateCelebrationImage({
-                                themeColor: tpl.themeColor,
+                                themeColor: color,
                                 type: 'baptism',
                                 name: member.name,
-                                message: formattedMsg
+                                message: formattedMsg,
+                                churchName: tpl.actualChurchName || tpl.churchName
                             });
                             const fileName = `automated_wishes/${member.churchId}/baptism_${Date.now()}.png`;
                             const file = getStorage().bucket().file(fileName);
-                            await file.save(pngBuffer, { contentType: 'image/png' });
-                            [imageUrl] = await file.getSignedUrl({ action: 'read', expires: '03-09-2491' });
+                            const downloadToken = randomUUID();
+                            try {
+                                await file.save(pngBuffer, {
+                                    contentType: 'image/png',
+                                    metadata: { metadata: { firebaseStorageDownloadTokens: downloadToken } }
+                                });
+                                imageUrl = `https://firebasestorage.googleapis.com/v0/b/${file.bucket.name}/o/${encodeURIComponent(file.name)}?alt=media&token=${downloadToken}`;
+                            }
+                            catch (uploadErr) {
+                                console.warn('⚠️ Local upload failed, using fallback image for WhatsApp testing');
+                                imageUrl = 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80';
+                            }
                         }
                         await sendWhatsAppTemplateInternal(member.churchId, member.phone, 'birthday_card', 'en', imageUrl, 'Automated Baptism Wish', [formattedMsg, verseStr]);
                         console.log(`✅ WhatsApp Baptism message sent to ${member.name}`);
@@ -771,9 +836,11 @@ export const triggerDailyBaptisms = onSchedule({ schedule: '30 9 * * *', timeZon
                 }
             }
         }
+        res.status(200).send(`Baptism automation completed. Processed ${baptisms.length} members.`);
     }
     catch (error) {
-        console.error('Error in automatedDailyBaptisms scheduler:', error);
+        console.error('Error in automatedDailyBaptisms:', error);
+        res.status(500).send('Error executing baptism automation.');
     }
 });
 import { onDocumentCreated } from 'firebase-functions/v2/firestore';
@@ -1071,6 +1138,321 @@ export const triggerTestYouTubeLive = onCall({ invoker: 'public' }, async (reque
         throw new HttpsError('internal', error.message);
     }
 });
+export const testBdaysV10 = functionsCompat.https.onRequest(async (req, res) => {
+    try {
+        const db = getDb();
+        const settingsDoc = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('settings').doc('notifications').get();
+        const settings = settingsDoc.data();
+        if (settings && settings.birthdayNotif && settings.birthdayNotif.enabled === false) {
+            console.log('Birthday greetings disabled.');
+            return;
+        }
+        const today = new Date();
+        const m = today.getMonth() + 1;
+        const d = today.getDate();
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const currentMonthStr = monthNames[today.getMonth()];
+        const churchesSnap = await db.collection('churches').where('whatsappIntegrationEnabled', '==', true).where('automatedWhatsappWishesEnabled', '==', true).get();
+        const enabledChurchIds = new Set();
+        const churchTemplates = new Map();
+        churchesSnap.forEach((doc) => {
+            enabledChurchIds.add(doc.id);
+            const data = doc.data();
+            const monthly = data.monthlyCelebrationTemplates;
+            const fallback = data.automatedWeCelebrationTemplate || {};
+            const tpl = (monthly && monthly[currentMonthStr]) ? monthly[currentMonthStr] : fallback;
+            tpl.actualChurchName = data.name || data.churchName || '';
+            churchTemplates.set(doc.id, tpl);
+        });
+        const legacyMembersSnap = await db.collection('members').get();
+        const legacyMembers = [];
+        legacyMembersSnap.forEach((doc) => {
+            const data = doc.data();
+            if (data.dob && data.status === 'Active')
+                legacyMembers.push({ id: doc.id, ...data });
+        });
+        const multiTenantMembersSnap = await db.collectionGroup('members').get();
+        const multiTenantMembers = [];
+        multiTenantMembersSnap.forEach((doc) => {
+            const data = doc.data();
+            if (data.dob && data.status === 'Active')
+                multiTenantMembers.push({ id: doc.id, churchId: doc.ref.parent.parent?.id, ...data });
+        });
+        const allMembers = [...legacyMembers, ...multiTenantMembers];
+        const uniqueMembers = new Map();
+        allMembers.forEach(m => {
+            if (m.phone && !uniqueMembers.has(m.phone))
+                uniqueMembers.set(m.phone, m);
+        });
+        const dedupedMembers = Array.from(uniqueMembers.values());
+        let count = 0;
+        for (const member of dedupedMembers) {
+            if (!member.dob)
+                continue;
+            const [year, monthStr, dayStr] = member.dob.split('-');
+            if (!monthStr || !dayStr)
+                continue;
+            if (parseInt(monthStr) === m && parseInt(dayStr) === d) {
+                count++;
+                const targetChurchId = member.churchId || DEFAULT_CHURCH_ID;
+                const bdayRef = db.collection('churches').doc(targetChurchId).collection('broadcasts').doc();
+                await bdayRef.set({
+                    title: `🎂 Happy Birthday ${member.name}!`,
+                    content: `Wishing you a very Happy Birthday! May God bless you abundantly and fulfill all your prayers today. 🙏🎈`,
+                    date: today.toISOString(),
+                    type: 'birthday',
+                    category: 'Birthday',
+                    author: 'Church Admin',
+                    likes: [],
+                    comments: 0,
+                    targetPhone: member.phone
+                });
+                const tokenSnap = await db.collection('users').where('phone', '==', member.phone).get();
+                if (!tokenSnap.empty) {
+                    const userDoc = tokenSnap.docs[0];
+                    const userData = userDoc?.data();
+                    if (userData?.fcmToken) {
+                        await getMsg().send({
+                            token: userData.fcmToken,
+                            notification: { title: `🎂 Happy Birthday ${member.name}!`, body: 'May God bless you abundantly today! Tap to view.' },
+                            data: { type: 'birthday', id: bdayRef.id }
+                        });
+                    }
+                }
+            }
+        }
+        console.log(`Done bdays. Count: ${count}`);
+    }
+    catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+export const testAnnivsV1 = functionsCompat.https.onRequest(async (req, res) => {
+    try {
+        const db = getDb();
+        const settingsDoc = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('settings').doc('notifications').get();
+        const settings = settingsDoc.data();
+        if (settings && settings.anniversaryNotif && settings.anniversaryNotif.enabled === false) {
+            console.log('Annivs disabled.');
+            return;
+        }
+        const today = new Date();
+        const m = today.getMonth() + 1;
+        const d = today.getDate();
+        const legacyMembersSnap = await db.collection('members').get();
+        const legacyMembers = [];
+        legacyMembersSnap.forEach((doc) => {
+            const data = doc.data();
+            if (data.weddingAnniversary && data.status === 'Active')
+                legacyMembers.push({ id: doc.id, ...data });
+        });
+        const multiTenantMembersSnap = await db.collectionGroup('members').get();
+        const multiTenantMembers = [];
+        multiTenantMembersSnap.forEach((doc) => {
+            const data = doc.data();
+            if (data.weddingAnniversary && data.status === 'Active')
+                multiTenantMembers.push({ id: doc.id, churchId: doc.ref.parent.parent?.id, ...data });
+        });
+        const allMembers = [...legacyMembers, ...multiTenantMembers];
+        const uniqueMembers = new Map();
+        allMembers.forEach(mem => {
+            if (mem.phone && !uniqueMembers.has(mem.phone))
+                uniqueMembers.set(mem.phone, mem);
+        });
+        const dedupedMembers = Array.from(uniqueMembers.values());
+        let count = 0;
+        for (const ann of dedupedMembers) {
+            if (!ann.weddingAnniversary)
+                continue;
+            const [year, monthStr, dayStr] = ann.weddingAnniversary.split('-');
+            if (!monthStr || !dayStr)
+                continue;
+            if (parseInt(monthStr) === m && parseInt(dayStr) === d) {
+                count++;
+                const targetChurchId = ann.churchId || DEFAULT_CHURCH_ID;
+                const annRef = db.collection('churches').doc(targetChurchId).collection('broadcasts').doc();
+                await annRef.set({
+                    title: `💐 Happy Wedding Anniversary ${ann.name}!`,
+                    content: `Wishing you a wonderful wedding anniversary! May God bless your home with love, joy, and peace. 💒💖`,
+                    date: today.toISOString(),
+                    type: 'anniversary',
+                    category: 'Anniversary',
+                    author: 'Church Admin',
+                    likes: [],
+                    comments: 0,
+                    targetPhone: ann.phone
+                });
+                const tokenSnap = await db.collection('users').where('phone', '==', ann.phone).get();
+                if (!tokenSnap.empty) {
+                    const userDoc = tokenSnap.docs[0];
+                    const userData = userDoc?.data();
+                    if (userData?.fcmToken) {
+                        await getMsg().send({
+                            token: userData.fcmToken,
+                            notification: { title: `💐 Happy Anniversary ${ann.name}!`, body: 'May God bless your home with love! Tap to view.' },
+                            data: { type: 'anniversary', id: annRef.id }
+                        });
+                    }
+                }
+            }
+        }
+        console.log(`Done annivs. Count: ${count}`);
+    }
+    catch (error) {
+        res.status(500).send(error.message);
+    }
+});
+export const testBaptismsV1 = functionsCompat.https.onRequest(async (req, res) => {
+    try {
+        const db = getDb();
+        const today = new Date();
+        const m = today.getMonth() + 1;
+        const d = today.getDate();
+        const legacyMembersSnap = await db.collection('members').get();
+        const legacyMembers = [];
+        legacyMembersSnap.forEach((doc) => {
+            const data = doc.data();
+            if (data.baptismDate && data.status === 'Active')
+                legacyMembers.push({ id: doc.id, ...data });
+        });
+        const multiTenantMembersSnap = await db.collectionGroup('members').get();
+        const multiTenantMembers = [];
+        multiTenantMembersSnap.forEach((doc) => {
+            const data = doc.data();
+            if (data.baptismDate && data.status === 'Active')
+                multiTenantMembers.push({ id: doc.id, churchId: doc.ref.parent.parent?.id, ...data });
+        });
+        const allMembers = [...legacyMembers, ...multiTenantMembers];
+        const uniqueMembers = new Map();
+        allMembers.forEach(mem => {
+            if (mem.phone && !uniqueMembers.has(mem.phone))
+                uniqueMembers.set(mem.phone, mem);
+        });
+        const dedupedMembers = Array.from(uniqueMembers.values());
+        let count = 0;
+        for (const member of dedupedMembers) {
+            if (!member.baptismDate)
+                continue;
+            const [year, monthStr, dayStr] = member.baptismDate.split('-');
+            if (!monthStr || !dayStr)
+                continue;
+            if (parseInt(monthStr) === m && parseInt(dayStr) === d) {
+                count++;
+                const targetChurchId = member.churchId || DEFAULT_CHURCH_ID;
+                const bdayRef = db.collection('churches').doc(targetChurchId).collection('broadcasts').doc();
+                await bdayRef.set({
+                    title: `🕊️ Happy Baptism Anniversary ${member.name}!`,
+                    content: `Happy Baptism Anniversary! May you continue to grow in faith and walk in His light. 🙏🕊️`,
+                    date: today.toISOString(),
+                    type: 'celebration',
+                    category: 'Baptism',
+                    author: 'Church Admin',
+                    likes: [],
+                    comments: 0,
+                    targetPhone: member.phone
+                });
+                const tokenSnap = await db.collection('users').where('phone', '==', member.phone).get();
+                if (!tokenSnap.empty) {
+                    const userDoc = tokenSnap.docs[0];
+                    const userData = userDoc?.data();
+                    if (userData?.fcmToken) {
+                        await getMsg().send({
+                            token: userData.fcmToken,
+                            notification: { title: `🕊️ Happy Baptism Anniversary ${member.name}!`, body: 'May you continue to grow in faith! Tap to view.' },
+                            data: { type: 'baptism', id: bdayRef.id }
+                        });
+                    }
+                }
+            }
+        }
+        console.log(`Done baptisms. Count: ${count}`);
+    }
+    catch (error) {
+        res.status(500).send(error.message);
+    }
+});
 export * from './payments.js';
 export * from './checkPaymentStatus.js';
+/**
+ * 🎥 CREATE GOOGLE MEET (REST API)
+ * Creates an "OPEN" Google Meet link using a Service Account
+ */
+export const createGoogleMeet = onCall({ invoker: 'public' }, async (request) => {
+    try {
+        const { churchId, topic, bibleBook, teacher, startTime, endTime, description } = request.data;
+        if (!churchId)
+            throw new HttpsError('invalid-argument', 'churchId is required');
+        // 1. Authenticate with Google API using Service Account
+        // NOTE: This assumes you have placed your Google Service Account key at:
+        // functions/src/config/google-credentials.json 
+        // AND that the service account is configured in Google Workspace to allow OPEN spaces.
+        const { GoogleAuth } = await import('google-auth-library');
+        // We catch initialization errors in case the user hasn't set up the JSON file yet.
+        let auth;
+        try {
+            auth = new GoogleAuth({
+                keyFilename: './src/config/google-credentials.json',
+                scopes: ['https://www.googleapis.com/auth/meetings.space.created'],
+            });
+        }
+        catch (e) {
+            throw new Error('Google credentials not found on backend. Please configure google-credentials.json in functions/src/config/');
+        }
+        const client = await auth.getClient();
+        // 2. Call the Google Meet REST API to create an OPEN space
+        const meetResponse = await client.request({
+            url: 'https://meet.googleapis.com/v2/spaces',
+            method: 'POST',
+            data: {
+                config: {
+                    accessType: 'OPEN', // Allows anyone to join without knocking
+                }
+            }
+        });
+        const meetingUri = meetResponse.data.meetingUri;
+        if (!meetingUri)
+            throw new Error('Failed to generate Google Meet link');
+        // 3. Save to Firestore
+        const db = getDb();
+        const payload = {
+            title: topic || 'Online Meeting',
+            bibleBook: bibleBook || '',
+            teacher: teacher || '',
+            description: description || '',
+            provider: 'google_meet',
+            meetingLink: meetingUri,
+            startTime: startTime ? new Date(startTime) : new Date(),
+            endTime: endTime ? new Date(endTime) : new Date(new Date().getTime() + 60 * 60 * 1000),
+            status: 'upcoming',
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+        };
+        const docRef = await db.collection('churches').doc(churchId).collection('online_meetings').add(payload);
+        // 4. Send Push Notification to Church Members
+        const titleText = `Live Meeting Scheduled: ${payload.title}`;
+        const bodyText = `${teacher ? teacher + ' will be teaching' : 'Join us'} on ${payload.startTime.toLocaleDateString()}. Tap to view details.`;
+        const usersSnap = await db.collection('users').get();
+        const tokens = new Set();
+        usersSnap.forEach((doc) => {
+            const data = doc.data();
+            if (data.fcmToken)
+                tokens.add(data.fcmToken);
+        });
+        if (tokens.size > 0) {
+            const message = {
+                notification: { title: titleText, body: bodyText },
+                data: { type: 'meeting', meetingId: docRef.id, link: meetingUri },
+                tokens: Array.from(tokens),
+                android: { priority: 'high' },
+            };
+            await getMsg().sendEachForMulticast(message);
+        }
+        return { success: true, meetingUri, meetingId: docRef.id };
+    }
+    catch (error) {
+        console.error('createGoogleMeet Error:', error);
+        throw new HttpsError('internal', error.message || 'Unknown error creating Google Meet');
+    }
+});
+export * from './notifications.js';
 //# sourceMappingURL=index.js.map

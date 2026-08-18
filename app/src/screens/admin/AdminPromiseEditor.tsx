@@ -28,8 +28,7 @@ import {
   ChevronRight,
   CheckCircle2
 } from 'lucide-react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../context/ThemeContext';
+import { Ionicons } from '@expo/vector-icons';
 import { AppAlert } from '../../components/CustomAlert';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import * as MediaLibrary from 'expo-media-library';
@@ -312,23 +311,25 @@ export default function AdminPromiseEditor() {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => setActiveTab(0)} style={styles.backBtn}>
-            <ChevronLeft size={20} color="#1a2d5a" />
-            <Text style={styles.backBtnTxt}>Promises</Text>
+      <View style={styles.hero}>
+        <View style={styles.heroTitleRow}>
+          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>{editingData ? 'Edit Promise' : 'Create Promise'}</Text>
-            <Text style={styles.headerSub}>Bilingual · English + Telugu</Text>
-          </View>
+          <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+          <Text style={styles.heroTitle}>{editingData ? 'Edit Promise' : 'New Promise'}</Text>
         </View>
+      </View>
+
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
 
         {/* 1. Schedule */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <CalendarIcon size={14} color="#1a2d5a" />
+            <View style={styles.secHdPill}>
+              <CalendarIcon size={13} color="#fff" />
+            </View>
             <Text style={styles.secHdTXT}>Schedule</Text>
           </View>
           <View style={styles.fGroup}>
@@ -355,7 +356,9 @@ export default function AdminPromiseEditor() {
         {/* 2. English Promise */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <BookOpen size={14} color="#1a2d5a" />
+            <View style={styles.secHdPill}>
+              <BookOpen size={13} color="#fff" />
+            </View>
             <Text style={styles.secHdTXT}>English Promise</Text>
           </View>
           <View style={styles.fGroup}>
@@ -375,8 +378,10 @@ export default function AdminPromiseEditor() {
         {/* 3. Telugu Promise */}
         <View style={[styles.section, styles.secBlue]}>
           <View style={styles.secHd}>
-            <Languages size={14} color="#2563eb" />
-            <Text style={[styles.secHdTXT, {color: '#2563eb'}]}>Telugu Promise - తెలుగు వాగ్దానం</Text>
+            <View style={styles.secHdPill}>
+              <Languages size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>Telugu Promise - తెలుగు వాగ్దానం</Text>
           </View>
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Verse reference — Telugu <Text style={styles.fHint}>e.g. యోహాను 3:16</Text></Text>
@@ -393,10 +398,12 @@ export default function AdminPromiseEditor() {
         </View>
 
         {/* 3.5 Thumbnail Upload */}
-        <View style={[styles.section, { backgroundColor: '#F3F4F6', borderLeftColor: '#4B5563' }]}>
+        <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <Eye size={14} color="#4B5563" />
-            <Text style={[styles.secHdTXT, {color: '#4B5563'}]}>Daily Promise Thumbnail</Text>
+            <View style={styles.secHdPill}>
+              <Eye size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>Daily Promise Thumbnail</Text>
           </View>
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Upload Thumbnail Image <Text style={styles.fHint}>(Visible on member home screen)</Text></Text>
@@ -418,8 +425,10 @@ export default function AdminPromiseEditor() {
         {/* 4. YouTube Link */}
         <View style={[styles.section, styles.secRed]}>
           <View style={styles.secHd}>
-            <Play size={14} color="#c0392b" />
-            <Text style={[styles.secHdTXT, {color: '#c0392b'}]}>YouTube Link</Text>
+            <View style={styles.secHdPill}>
+              <Play size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>YouTube Link</Text>
           </View>
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Video Title</Text>
@@ -439,7 +448,9 @@ export default function AdminPromiseEditor() {
         {/* 5. Pastor & Status */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
-            <User size={14} color="#1a2d5a" />
+            <View style={styles.secHdPill}>
+              <User size={13} color="#fff" />
+            </View>
             <Text style={styles.secHdTXT}>Pastor & Status</Text>
           </View>
           <View style={styles.fGroup}>
@@ -450,7 +461,7 @@ export default function AdminPromiseEditor() {
             <Text style={styles.fLabel}>Publish status</Text>
             <TouchableOpacity style={styles.input} onPress={() => setShowStatusPicker(true)}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 13, color: '#111827' }}>{currentStatusLabel}</Text>
+                <Text style={styles.statusDropdownTxt}>{currentStatusLabel}</Text>
                 <ChevronDown size={14} color="#374151" />
               </View>
             </TouchableOpacity>
@@ -510,35 +521,18 @@ export default function AdminPromiseEditor() {
           </View>
         </Modal>
 
-        {/* 6. Live Preview */}
-        <View style={[styles.section, styles.secGreen]}>
-          <View style={styles.secHd}>
-            <Eye size={14} color="#15803D" />
-            <Text style={[styles.secHdTXT, {color: '#15803D'}]}>Live preview — member card</Text>
-          </View>
-          <View style={[styles.cardBtnRow, { marginTop: 15 }]}>
-            <TouchableOpacity style={styles.cardBtn} onPress={() => Alert.alert('Coming Soon', 'Save to Gallery will be active after the next app update.')}>
-              <Text style={styles.cardBtnTxt}>💾 Save to Gallery</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.cardBtn, styles.cardBtnRed]}
-              onPress={() => Alert.alert('Coming Soon', 'Share Promise will be active after the next app update.')}
-            >
-              <Text style={styles.cardBtnTxt}>↑ Share Promise</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
         {/* Footer Actions */}
-        <TouchableOpacity style={styles.btnSave} onPress={() => handleSave()}>
-          <Save size={16} color="#fff" />
-          <Text style={styles.btnSaveTxt}>Save & Publish</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.btnDraft} onPress={() => handleSave('Draft')}>
-          <Save size={16} color="#fff" />
-          <Text style={styles.btnDraftTxt}>Save as Draft</Text>
-        </TouchableOpacity>
+        {/* Side-by-side action buttons: Draft (left) | Save & Publish (right) */}
+        <View style={styles.footerBtnRow}>
+          <TouchableOpacity style={styles.btnDraft} onPress={() => handleSave('Draft')}>
+            <Save size={15} color="#1a2d5a" />
+            <Text style={styles.btnDraftTxt}>Save as Draft</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.btnSave} onPress={() => handleSave()}>
+            <Save size={15} color="#fff" />
+            <Text style={styles.btnSaveTxt}>Save & Publish</Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity style={styles.btnBack} onPress={() => setActiveTab(0)}>
           <Text style={styles.btnBackTxt}>← Back to list</Text>
@@ -556,48 +550,150 @@ export default function AdminPromiseEditor() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f7' },
+  // ─── Layout ──────────────────────────────────────────────────────────────
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
   scroll: { padding: 14, paddingBottom: 100 },
 
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 15, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#c0392b', gap: 10 },
-  headerTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerIcon: { fontSize: 18 },
-  headerTitle: { fontSize: 16, fontWeight: '700', color: '#1a2d5a' },
-  headerSub: { fontSize: 10, color: '#6B7280' },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
-  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a' },
+  // ─── Hero (DO NOT MODIFY) ─────────────────────────────────────────────────
+  hero: { 
+    backgroundColor: '#1a2d5a', 
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6
+  },
+  backBtn: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, marginLeft: -6 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff', marginLeft: 4 },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
 
-  section: { borderRadius: 12, padding: 14, marginBottom: 15, borderWidth: 0.5, borderColor: '#e5e7eb', borderLeftWidth: 4 },
-  secNavy: { backgroundColor: '#EFF6FF', borderLeftColor: '#1a2d5a' },
-  secBlue: { backgroundColor: '#F8FAFF', borderLeftColor: '#2563eb' },
-  secRed: { backgroundColor: '#fdecea', borderLeftColor: '#c0392b' },
-  secGreen: { backgroundColor: '#F0FDF4', borderLeftColor: '#15803D' },
+  // ─── Cards ───────────────────────────────────────────────────────────────
+  // Unified card style matching reference: white bg, rounded corners,
+  // dark navy top accent border, subtle shadow – no colored left borders
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+    borderTopWidth: 3,
+    borderTopColor: '#1a2d5a',
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  // Keep variant names for backward compat but all use same card style:
+  secNavy: {},
+  secBlue: {},
+  secRed: {},
+  secGreen: {},
 
-  secHd: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
-  secHdTXT: { fontSize: 11, fontWeight: '700', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
+  // ─── Section Header ───────────────────────────────────────────────────────
+  secHd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(26,45,90,0.07)',
+    paddingBottom: 10,
+  },
+  // Navy pill badge wrapping the icon
+  secHdPill: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    backgroundColor: '#1a2d5a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secHdTXT: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    textTransform: 'uppercase',
+    letterSpacing: 1.3,
+    flex: 1,
+  },
 
-  fGroup: { marginBottom: 15 },
-  fLabel: { fontSize: 11, fontWeight: '600', color: '#374151', marginBottom: 6 },
-  fHint: { fontWeight: '400', color: '#9CA3AF', fontSize: 9 },
-  fSub: { fontSize: 9, color: '#6B7280', marginTop: 4 },
+  // ─── Form Fields ──────────────────────────────────────────────────────────
+  fGroup: { marginBottom: 12 },
+  fLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#374151',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+    marginBottom: 6,
+  },
+  fHint: { fontWeight: '500', color: '#9CA3AF', fontSize: 11, textTransform: 'none', letterSpacing: 0 },
+  fSub: { fontSize: 11, color: '#6B7280', marginTop: 6, fontStyle: 'italic' },
 
-  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 0.5, borderColor: '#d1d5db', borderRadius: 8, padding: 10 },
-  inputText: { flex: 1, fontSize: 13, color: '#111827' },
-  input: { backgroundColor: '#fff', borderWidth: 0.5, borderColor: '#d1d5db', borderRadius: 8, padding: 10, fontSize: 13, color: '#111827' },
+  // Status dropdown selected value
+  statusDropdownTxt: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1a2d5a',
+    flex: 1,
+  },
+
+  // ─── Inputs ───────────────────────────────────────────────────────────────
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAFAF9',
+    borderWidth: 1,
+    borderColor: '#E2DDD5',
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+  },
+  inputText: { flex: 1, fontSize: 13, color: '#1a2d5a', fontWeight: '500' },
+  input: {
+    backgroundColor: '#FAFAF9',
+    borderWidth: 1,
+    borderColor: '#E2DDD5',
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    fontSize: 13,
+    color: '#1a2d5a',
+    fontWeight: '500',
+  },
   inputIcon: { marginLeft: 10 },
-  textarea: { minHeight: 70, textAlignVertical: 'top' },
-  teIn: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', color: '#1a2d5a', fontStyle: 'italic' },
+  textarea: { minHeight: 80, textAlignVertical: 'top', paddingTop: 11 },
+  teIn: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', color: '#1a2d5a', fontSize: 14, lineHeight: 22 },
 
-  themeRow: { flexDirection: 'row', marginTop: 8, gap: 10 },
-  themeChip: { width: 36, height: 36, borderRadius: 18, borderWidth: 3, borderColor: 'transparent' },
-  themeActive: { borderColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.4, shadowRadius: 4, elevation: 6 },
+  // ─── Theme Chips ─────────────────────────────────────────────────────────
+  themeRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6, gap: 10, paddingVertical: 4 },
+  themeChip: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 2.5,
+    borderColor: 'transparent',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  themeActive: { borderColor: '#C9A84C', transform: [{ scale: 1.1 }] },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  // ─── Modal / Pickers ─────────────────────────────────────────────────────
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
   pickerCard: { backgroundColor: '#fff', width: '85%', borderRadius: 20, padding: 20, elevation: 10 },
   pickerHd: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
   pickerTitle: { fontSize: 14, fontWeight: '700', color: '#1a2d5a' },
   calGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
-  calCell: { width: (width * 0.85 - 70) / 7, height: 35, justifyContent: 'center', alignItems: 'center', borderRadius: 8, backgroundColor: '#f9fafb' },
+  calCell: { width: (width * 0.85 - 70) / 7, height: 35, justifyContent: 'center', alignItems: 'center', borderRadius: 8, backgroundColor: '#F5F0E8' },
   calCellActive: { backgroundColor: '#1a2d5a' },
   calCellTxt: { fontSize: 11, color: '#374151', fontWeight: '600' },
   calCellTxtActive: { color: '#fff' },
@@ -606,12 +702,13 @@ const styles = StyleSheet.create({
   statusMenuHd: { padding: 20, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
   statusMenuTitle: { fontSize: 14, fontWeight: '700', color: '#1a2d5a', textAlign: 'center' },
   statusItem: { padding: 20, borderBottomWidth: 0.5, borderBottomColor: '#f3f4f6' },
-  statusItemActive: { backgroundColor: '#2563eb' },
+  statusItemActive: { backgroundColor: '#1a2d5a' },
   statusItemTxt: { fontSize: 13, color: '#374151', textAlign: 'center' },
   statusItemTxtActive: { color: '#fff', fontWeight: '700' },
   statusCancel: { padding: 15, alignItems: 'center' },
   statusCancelTxt: { color: '#c0392b', fontWeight: '700' },
 
+  // ─── Success / Error Modals ───────────────────────────────────────────────
   successCard: { backgroundColor: '#fff', width: '80%', borderRadius: 24, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 15 },
   successIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
   successTitle: { fontSize: 22, fontWeight: '800', color: '#1a2d5a', marginBottom: 10 },
@@ -624,31 +721,90 @@ const styles = StyleSheet.create({
   errorTitle: { fontSize: 20, fontWeight: '800', color: '#c0392b', marginBottom: 10 },
   errorSub: { fontSize: 13, color: '#6B7280', textAlign: 'center', lineHeight: 20, marginBottom: 25 },
 
+  // ─── Preview Card (Live Preview section) ─────────────────────────────────
   cardPreview: { borderRadius: 14, padding: 20 },
   cardLabel: { fontSize: 10, color: '#FCD34D', fontWeight: '700', marginBottom: 10, letterSpacing: 1 },
   cardVerseEn: { color: '#fff', fontSize: 13, fontStyle: 'italic', lineHeight: 22, marginBottom: 8 },
   cardVerseTe: { color: '#aac4e8', fontSize: 14, fontStyle: 'italic', lineHeight: 22, marginBottom: 12, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
   cardRef: { color: '#FCD34D', fontSize: 11, fontWeight: '700', marginBottom: 15 },
-  cardBtnRow: { flexDirection: 'row', gap: 10 },
-  cardBtn: { flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  cardBtnRed: { backgroundColor: '#c0392b' },
-  cardBtnTxt: { color: '#fff', fontSize: 10, fontWeight: '600' },
+  cardBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  cardBtn: { flex: 1, backgroundColor: 'rgba(26,45,90,0.08)', paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(26,45,90,0.12)' },
+  cardBtnRed: { backgroundColor: '#c0392b', borderColor: '#c0392b' },
+  cardBtnTxt: { color: '#1a2d5a', fontSize: 11, fontWeight: '700' },
 
-  btnSave: { backgroundColor: '#c0392b', borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 },
-  btnSaveTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  btnDraft: { backgroundColor: '#1a2d5a', borderRadius: 10, padding: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 10 },
-  btnDraftTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
-  btnBack: { alignItems: 'center' },
-  btnBackTxt: { fontSize: 12, color: '#374151', fontWeight: '600' },
+  // ─── Footer Action Buttons ────────────────────────────────────────────────
+  // Horizontal container: Draft | Save & Publish side-by-side
+  footerBtnRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  // Primary: forest green — Save & Publish
+  btnSave: {
+    flex: 1,
+    backgroundColor: '#2E6B4F',
+    borderRadius: 14,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    elevation: 6,
+    shadowColor: '#2E6B4F',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+  },
+  btnSaveTxt: { color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  // Secondary: cream with navy border — Save as Draft
+  btnDraft: {
+    flex: 1,
+    backgroundColor: '#F5F0E8',
+    borderRadius: 14,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    borderWidth: 1.5,
+    borderColor: 'rgba(26,45,90,0.30)',
+  },
+  btnDraftTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
+  btnBack: { alignItems: 'center', paddingVertical: 10 },
+  btnBackTxt: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
 
-  btnUploadThumb: { backgroundColor: '#E5E7EB', borderRadius: 8, padding: 12, alignItems: 'center', borderWidth: 1, borderColor: '#D1D5DB', borderStyle: 'dashed' },
-  btnUploadThumbTxt: { color: '#4B5563', fontSize: 13, fontWeight: '600' },
-  thumbContainer: { flexDirection: 'row', alignItems: 'center', gap: 15 },
-  thumbnailPreviewContainer: { flexDirection: 'row', alignItems: 'center', gap: 15, marginTop: 10 },
-  thumbnailImg: { width: 80, height: 80, borderRadius: 8, backgroundColor: '#d1d5db' },
-  btnChangeThumb: { backgroundColor: '#1a2d5a', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
-  removeThumbnailBtn: { backgroundColor: '#c0392b', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6 },
-  btnChangeThumbTxt: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  // ─── Thumbnail Upload ─────────────────────────────────────────────────────
+  btnUploadThumb: {
+    backgroundColor: '#FAFAF9',
+    borderRadius: 14,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#D9D3C7',
+    borderStyle: 'dashed',
+  },
+  btnUploadThumbTxt: { color: '#4B5563', fontSize: 14, fontWeight: '700', marginTop: 8 },
+  thumbContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 15 },
+  thumbnailPreviewContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 15, marginTop: 10 },
+  thumbnailImg: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', borderWidth: 1, borderColor: '#D9D3C7' },
+  btnChangeThumb: { backgroundColor: '#1a2d5a', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8 },
+  removeThumbnailBtn: { backgroundColor: '#FEE2E2', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' },
+  btnChangeThumbTxt: { color: '#991B1B', fontSize: 13, fontWeight: '700' },
 
-  fab: { position: 'absolute', right: 20, bottom: 30, width: 56, height: 56, borderRadius: 28, backgroundColor: '#c0392b', justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 8 }
+  // ─── FAB ─────────────────────────────────────────────────────────────────
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#C9A84C',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  }
 });

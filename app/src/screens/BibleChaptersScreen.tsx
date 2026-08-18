@@ -9,7 +9,6 @@ import {
   StatusBar,
   Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, Book, CheckCircle2 } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -36,7 +35,7 @@ const CHAPTER_COUNTS: any = {
   'Jude': 1, 'Revelation': 22,
   // Telugu Mapping
   'ఆదికాండము': 50, 'నిర్గమకాండము': 40, 'లేవీయకాండము': 27, 'సంఖ్యాకాండము': 36, 'ద్వితీయోపదేశకాండము': 34,
-  'యెహోషువ': 24, 'న్యాయాధిపతులు': 21, 'రూతు': 4, '1 సమూయేలు': 31, '2 సమూయేలు': 24,
+  'యెహెషువ': 24, 'న్యాయాధిపతులు': 21, 'రూతు': 4, '1 సమూయేలు': 31, '2 సమూయేలు': 24,
   '1 రాజులు': 22, '2 రాజులు': 25, '1 దినవృత్తాంతములు': 29, '2 దినవృత్తాంతములు': 36, 'ఎజ్రా': 10,
   'నెహెమ్యా': 13, 'ఎస్తేరు': 10, 'యోబు': 42, 'కీర్తనల గ్రంథము': 150, 'సామెతలు': 31,
   'ప్రసంగి': 12, 'పరమగీతము': 8, 'యెషయా': 66, 'యిర్మియా': 52, 'విలాపవాక్యములు': 5,
@@ -70,7 +69,7 @@ const BOOK_MAP: any = {
   'Jude': 65, 'Revelation': 66,
   // Telugu
   'ఆదికాండము': 1, 'నిర్గమకాండము': 2, 'లేవీయకాండము': 3, 'సంఖ్యాకాండము': 4, 'ద్వితీయోపదేశకాండము': 5,
-  'యెహోషువ': 6, 'న్యాయాధిపతులు': 7, 'రూతు': 8, '1 సమూయేలు': 9, '2 సమూయేలు': 10,
+  'యెహెషువ': 6, 'న్యాయాధిపతులు': 7, 'రూతు': 8, '1 సమూయేలు': 9, '2 సమూయేలు': 10,
   '1 రాజులు': 11, '2 రాజులు': 12, '1 దినవృత్తాంతములు': 13, '2 దినవృత్తాంతములు': 14, 'ఎజ్రా': 15,
   'నెహెమ్యా': 16, 'ఎస్తేరు': 17, 'యోబు': 18, 'కీర్తనల గ్రంథము': 19, 'సామెతలు': 20,
   'ప్రసంగి': 21, 'పరమగీతము': 22, 'యెషయా': 23, 'యిర్మియా': 24, 'విలాపవాక్యములు': 25,
@@ -119,8 +118,8 @@ export default function BibleChaptersScreen({ route, navigation }: any) {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
-      <StatusBar barStyle="light-content" />
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Header */}
       <View style={styles.header}>
@@ -169,7 +168,7 @@ export default function BibleChaptersScreen({ route, navigation }: any) {
         </View>
         <View style={{ height: 100 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -177,13 +176,14 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     backgroundColor: '#1a2d5a',
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
   },
   backBtn: { padding: 4 },
   titleInfo: { alignItems: 'center' },

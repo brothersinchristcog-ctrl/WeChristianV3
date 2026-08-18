@@ -18,7 +18,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import {
   Calendar,
   Clock,
@@ -84,15 +84,16 @@ export default function AdminEventEditor() {
   // Form State
   const [titleEn, setTitleEn] = useState('');
   const [titleTe, setTitleTe] = useState('');
-  const [eventType, setEventType] = useState('Sunday Service');
+  const [eventType, setEventType] = useState('');
   const [descEn, setDescEn] = useState('');
   const [descTe, setDescTe] = useState('');
 
-  const todayStr = new Date().toLocaleDateString('en-GB').replace(/\//g, '-'); // DD-MM-YYYY
+  const today = new Date();
+  const todayStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
   const [date, setDate] = useState(todayStr);
-  const [startTime, setStartTime] = useState('09:00 AM');
-  const [endTime, setEndTime] = useState('12:00 PM');
-  const [recurring, setRecurring] = useState('One-time event');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [recurring, setRecurring] = useState('');
   const [recurrenceDuration, setRecurrenceDuration] = useState(1);
   const [publishStatus, setPublishStatus] = useState('Published');
 
@@ -121,10 +122,6 @@ export default function AdminEventEditor() {
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [isStartTimeVisible, setStartTimeVisibility] = useState(false);
   const [isEndTimeVisible, setEndTimeVisibility] = useState(false);
-
-  // JS Picker Temp State
-  const [tempDate, setTempDate] = useState({ d: '20', m: '04', y: '2026' });
-  const [tempTime, setTempTime] = useState({ h: '09', m: '00', p: 'AM' });
 
   const [metadata, setMetadata] = useState<any>(null);
 
@@ -208,11 +205,6 @@ export default function AdminEventEditor() {
     }
   }, [editingData]);
 
-  const confirmJSDate = () => {
-    setDate(`${tempDate.d}-${tempDate.m}-${tempDate.y}`);
-    setDatePickerVisibility(false);
-  };
-
   const uploadImageToCloud = async (localUri: string): Promise<string> => {
     try {
       const storage = require('@react-native-firebase/storage').default;
@@ -229,13 +221,6 @@ export default function AdminEventEditor() {
     }
   };
 
-  const confirmJSTime = (target: 'start' | 'end') => {
-    const formatted = `${tempTime.h}:${tempTime.m} ${tempTime.p}`;
-    if (target === 'start') setStartTime(formatted);
-    else setEndTime(formatted);
-    setStartTimeVisibility(false);
-    setEndTimeVisibility(false);
-  };
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -429,8 +414,9 @@ export default function AdminEventEditor() {
     setTitleEn(''); setTitleTe(''); setDescEn(''); setDescTe('');
     setVenueEn(''); setVenueTe(''); setAddress('');
     setBannerUrl('');
-    setDate(new Date().toLocaleDateString('en-GB').replace(/\//g, '-')); 
-    setStartTime('09:00 AM'); setEndTime('12:00 PM');
+    const d = new Date();
+    setDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`); 
+    setStartTime('09:00 AM'); setEndTime('12:00 PM');
     setNotifyOnPublish(true); setReminder1Day(true); setReminder1Hour(false);
     setEditingData(null);
   };
@@ -449,7 +435,7 @@ export default function AdminEventEditor() {
             Your event "{titleEn}" has been successfully {publishStatus === 'Published' ? 'published to all members' : 'saved as a draft'}.
           </Text>
 
-          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(7); }}>
+          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(8); }}>
             <Text style={styles.successBtnPrimaryTxt}>View Event List</Text>
           </TouchableOpacity>
 
@@ -473,79 +459,6 @@ export default function AdminEventEditor() {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  const JSPickerModal = ({ visible, onClose, onConfirm, type }: any) => (
-    <Modal visible={visible} transparent animationType="fade">
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>{type === 'date' ? 'Select Event Date' : 'Select Time'}</Text>
-
-          <View style={styles.pickerRow}>
-            {type === 'date' ? (
-              <>
-                <ScrollView style={styles.pickerCol} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0')).map(d => (
-                    <TouchableOpacity key={d} onPress={() => setTempDate({ ...tempDate, d })}>
-                      <Text style={[styles.pickerItem, tempDate.d === d && styles.pickerItemActive]}>{d}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <ScrollView style={styles.pickerCol} showsVerticalScrollIndicator={false}>
-                  {MONTH_NAMES.map((m, idx) => {
-                    const mVal = (idx + 1).toString().padStart(2, '0');
-                    return (
-                      <TouchableOpacity key={m} onPress={() => setTempDate({ ...tempDate, m: mVal })}>
-                        <Text style={[styles.pickerItem, tempDate.m === mVal && styles.pickerItemActive]}>{m}</Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-                <ScrollView style={styles.pickerCol} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 11 }, (_, i) => (2025 + i).toString()).map(y => (
-                    <TouchableOpacity key={y} onPress={() => setTempDate({ ...tempDate, y })}>
-                      <Text style={[styles.pickerItem, tempDate.y === y && styles.pickerItemActive]}>{y}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </>
-            ) : (
-              <>
-                <ScrollView style={styles.pickerCol} showsVerticalScrollIndicator={false}>
-                  {Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')).map(h => (
-                    <TouchableOpacity key={h} onPress={() => setTempTime({ ...tempTime, h })}>
-                      <Text style={[styles.pickerItem, tempTime.h === h && styles.pickerItemActive]}>{h}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <ScrollView style={styles.pickerCol} showsVerticalScrollIndicator={false}>
-                  {['00', '15', '30', '45'].map(m => (
-                    <TouchableOpacity key={m} onPress={() => setTempTime({ ...tempTime, m })}>
-                      <Text style={[styles.pickerItem, tempTime.m === m && styles.pickerItemActive]}>{m}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-                <View style={styles.pickerCol}>
-                  {['AM', 'PM'].map(p => (
-                    <TouchableOpacity key={p} onPress={() => setTempTime({ ...tempTime, p })}>
-                      <Text style={[styles.pickerItem, tempTime.p === p && styles.pickerItemActive]}>{p}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </>
-            )}
-          </View>
-
-          <View style={styles.modalFooter}>
-            <TouchableOpacity onPress={onClose} style={styles.modalCancel}>
-              <Text style={styles.modalCancelTxt}>Cancel</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onConfirm} style={styles.modalConfirm}>
-              <Text style={styles.modalConfirmTxt}>Confirm</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-    </Modal>
-  );
 
   return (
     <View style={styles.container}>
@@ -553,595 +466,521 @@ export default function AdminEventEditor() {
       <SuccessModal />
 
       {/* ── Page Header ── */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => setActiveTab(7)} style={styles.backBtn}>
-          <ChevronLeft size={20} color="#1a2d5a" />
-          <Text style={styles.backBtnTxt}>Events</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{editingData ? 'Edit Event' : '+ Create Event'}</Text>
-        <Text style={styles.headerSub}>English + Telugu · RSVP enabled</Text>
+      <View style={styles.hero}>
+        <View style={styles.heroTitleRow}>
+          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+          </TouchableOpacity>
+          <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+          <Text style={styles.heroTitle}>{editingData ? 'Edit Event' : 'New Event'}</Text>
+        </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-
-        {/* ── SECTION 1: EVENT INFO ── */}
-        <SectionHeader icon={Info} title="Event Info" color="#1a2d5a" />
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Event title — English *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Easter Sunday Service 2026"
-            value={titleEn}
-            onChangeText={setTitleEn}
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Event title — Telugu</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="తెలుగులో కార్యక్రమం పేరు..."
-            value={titleTe}
-            onChangeText={setTitleTe}
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Event type</Text>
-          <TouchableOpacity style={styles.dropdown} onPress={() => setShowTypeDropdown(!showTypeDropdown)}>
-            <Text style={styles.dropdownTxt}>
-              {EVENT_TYPES.find((t: any) => t.value === eventType)?.label || eventType}
-            </Text>
-            <ChevronDown size={16} color="#64748b" />
-          </TouchableOpacity>
-          {showTypeDropdown && (
-            <View style={styles.dropdownMenu}>
-              {/* Prioritize metadata-verified types discovered from Salesforce */}
-              {(metadata?.types || EVENT_TYPES).map((t: any) => (
-                <TouchableOpacity
-                  key={`${t.value}-${t.label}`}
-                  style={[styles.dropdownItem, eventType === t.value && styles.dropdownItemActive]}
-                  onPress={() => { setEventType(t.value); setShowTypeDropdown(false); }}
-                >
-                  <Text style={[styles.dropdownItemTxt, eventType === t.value && styles.dropdownItemTxtActive]}>{t.label}</Text>
-                </TouchableOpacity>
-              ))}
+        
+        {/* 1. Event Details */}
+        <View style={[styles.section, styles.secNavy]}>
+          <View style={styles.secHd}>
+            <View style={styles.secHdPill}>
+              <Info size={13} color="#fff" />
             </View>
-          )}
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Description — English</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Tell members what this event is about..."
-            multiline
-            numberOfLines={4}
-            value={descEn}
-            onChangeText={setDescEn}
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Description — Telugu</Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="తెలుగులో వివరణ..."
-            multiline
-            numberOfLines={4}
-            value={descTe}
-            onChangeText={setDescTe}
-          />
-        </View>
-
-        {/* ── SECTION 2: DATE & TIME ── */}
-        <SectionHeader icon={Clock} title="Date & Time" color="#c0392b" />
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Event date *</Text>
-          <TouchableOpacity style={styles.dropdown} onPress={() => setShowDatePickerNative(true)}>
-            <Text style={styles.dropdownTxt}>{date}</Text>
-            <Calendar size={16} color="#64748b" />
-          </TouchableOpacity>
-          {showDatePickerNative && (
-            <DateTimePicker
-              value={new Date()}
-              mode="date"
-              display="default"
-              onChange={(event, selectedDate) => {
-                setShowDatePickerNative(false);
-                if (selectedDate) {
-                  const d = selectedDate.getDate();
-                  const m = selectedDate.getMonth() + 1;
-                  const y = selectedDate.getFullYear();
-                  setDate(`${String(d).padStart(2, '0')}-${String(m).padStart(2, '0')}-${y}`);
-                }
-              }}
-            />
-          )}
-        </View>
-
-        <View style={styles.row}>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Start time *</Text>
-            <TouchableOpacity style={styles.dropdown} onPress={() => setShowStartTimeNative(true)}>
-              <Text style={styles.dropdownTxt}>{startTime}</Text>
-              <Clock size={16} color="#64748b" />
-            </TouchableOpacity>
-            {showStartTimeNative && (
-              <DateTimePicker
-                value={new Date()}
-                mode="time"
-                is24Hour={false}
-                display="default"
-                onChange={(event, selectedTime) => {
-                  setShowStartTimeNative(false);
-                  if (selectedTime) {
-                    let h = selectedTime.getHours();
-                    const m = selectedTime.getMinutes();
-                    const ampm = h >= 12 ? 'PM' : 'AM';
-                    h = h % 12 || 12;
-                    setStartTime(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`);
-                  }
-                }}
-              />
-            )}
+            <Text style={styles.secHdTXT}>Event Details</Text>
           </View>
-          <View style={[styles.inputGroup, { flex: 1, marginLeft: 10 }]}>
-            <Text style={styles.label}>End time</Text>
-            <TouchableOpacity style={styles.dropdown} onPress={() => setShowEndTimeNative(true)}>
-              <Text style={styles.dropdownTxt}>{endTime}</Text>
-              <Clock size={16} color="#64748b" />
-            </TouchableOpacity>
-            {showEndTimeNative && (
-              <DateTimePicker
-                value={new Date()}
-                mode="time"
-                is24Hour={false}
-                display="default"
-                onChange={(event, selectedTime) => {
-                  setShowEndTimeNative(false);
-                  if (selectedTime) {
-                    let h = selectedTime.getHours();
-                    const m = selectedTime.getMinutes();
-                    const ampm = h >= 12 ? 'PM' : 'AM';
-                    h = h % 12 || 12;
-                    setEndTime(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`);
-                  }
-                }}
-              />
-            )}
+          
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Event Title — English <Text style={{color:'#c0392b'}}>*</Text></Text>
+            <TextInput style={styles.input} value={titleEn} onChangeText={setTitleEn} placeholder="e.g. Easter Sunday Service 2026" />
           </View>
-        </View>
+          
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Event Title — Telugu</Text>
+            <TextInput style={[styles.input, styles.teIn]} value={titleTe} onChangeText={setTitleTe} placeholder="తెలుగులో కార్యక్రమం పేరు..." />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Is this a recurring event?</Text>
-          <TouchableOpacity style={styles.dropdown} onPress={() => setShowRecurringDropdown(!showRecurringDropdown)}>
-            <Text style={styles.dropdownTxt}>
-              {(metadata?.recurring || RECURRING_OPTIONS).find((o: any) => o.value === recurring)?.label || recurring}
-            </Text>
-            <ChevronDown size={16} color="#64748b" />
-          </TouchableOpacity>
-          {showRecurringDropdown && (
-            <View style={styles.dropdownMenuStatic}>
-              {(metadata?.recurring || RECURRING_OPTIONS).map((o: any) => (
-                <TouchableOpacity
-                  key={o.value}
-                  style={[styles.dropdownItem, recurring === o.value && styles.dropdownItemActive]}
-                  onPress={() => { setRecurring(o.value); setShowRecurringDropdown(false); }}
-                >
-                  <Text style={[styles.dropdownItemTxt, recurring === o.value && styles.dropdownItemTxtActive]}>{o.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
-
-        {recurring !== 'One-time event' && (
-          <View style={styles.inputGroup}>
-            <Text style={styles.label}>Repeat for how long?</Text>
-            <TouchableOpacity style={styles.dropdown} onPress={() => setShowDurationDropdown(!showDurationDropdown)}>
-              <Text style={styles.dropdownTxt}>
-                {DURATION_OPTIONS.find((o: any) => o.value === recurrenceDuration)?.label || `For ${recurrenceDuration} months`}
-              </Text>
-              <ChevronDown size={16} color="#64748b" />
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Event Type</Text>
+            <TouchableOpacity style={styles.inputWrap} onPress={() => setShowTypeDropdown(!showTypeDropdown)}>
+              <Text style={styles.inputText}>{EVENT_TYPES.find((t: any) => t.value === eventType)?.label || eventType || 'Select Type'}</Text>
+              <ChevronDown size={14} color="#374151" />
             </TouchableOpacity>
-            {showDurationDropdown && (
-              <View style={styles.dropdownMenuStatic}>
-                {DURATION_OPTIONS.map((o: any) => (
-                  <TouchableOpacity
-                    key={o.value}
-                    style={[styles.dropdownItem, recurrenceDuration === o.value && styles.dropdownItemActive]}
-                    onPress={() => { setRecurrenceDuration(o.value); setShowDurationDropdown(false); }}
-                  >
-                    <Text style={[styles.dropdownItemTxt, recurrenceDuration === o.value && styles.dropdownItemTxtActive]}>{o.label}</Text>
+            {showTypeDropdown && (
+              <View style={styles.dropdownMenu}>
+                {EVENT_TYPES.map(t => (
+                  <TouchableOpacity key={t.value} style={[styles.dropdownItem, eventType === t.value && styles.dropdownItemActive]} onPress={() => { setEventType(t.value); setShowTypeDropdown(false); }}>
+                    <Text style={[styles.dropdownItemTxt, eventType === t.value && styles.dropdownItemTxtActive]}>{t.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
             )}
           </View>
-        )}
 
-        {/* ── SECTION 3: LOCATION ── */}
-        <SectionHeader icon={MapPin} title="Location" color="#15803D" />
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Description — English</Text>
+            <TextInput style={[styles.input, styles.textarea]} multiline value={descEn} onChangeText={setDescEn} placeholder="Tell your members what to expect..." />
+          </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Venue name — English *</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g. Main Auditorium"
-            value={venueEn}
-            onChangeText={setVenueEn}
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Venue name — Telugu</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="ఆవరణ పేరు తెలుగులో..."
-            value={venueTe}
-            onChangeText={setVenueTe}
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Full address <Text style={styles.labelSub}>Shown on Google Maps link</Text></Text>
-          <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="Street, area, city — shown on map in app"
-            multiline
-            numberOfLines={3}
-            value={address}
-            onChangeText={setAddress}
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Event mode</Text>
-          <View style={styles.modeRow}>
-            {(metadata?.modes?.length > 0 ? metadata.modes : [
-              { label: 'In person', value: 'In person' },
-              { label: 'Online', value: 'Online' },
-              { label: 'Hybrid', value: 'Hybrid' }
-            ]).map((m: any) => (
-              <TouchableOpacity
-                key={m.value}
-                style={[styles.modeBtn, mode === m.value && styles.modeBtnActive]}
-                onPress={() => setMode(m.value)}
-              >
-                <Text style={[styles.modeBtnTxt, mode === m.value && styles.modeBtnTxtActive]}>{m.label}</Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Description — Telugu</Text>
+            <TextInput style={[styles.input, styles.textarea, styles.teIn]} multiline value={descTe} onChangeText={setDescTe} placeholder="కార్యక్రమం గురించి వివరించండి..." />
           </View>
         </View>
 
-        {/* ── SECTION 4: RSVP & AUDIENCE ── */}
-        <SectionHeader icon={Users} title="RSVP & Audience" color="#D97706" />
+        {/* 2. Date & Schedule */}
+        <View style={[styles.section, styles.secRed]}>
+          <View style={styles.secHd}>
+            <View style={styles.secHdPill}>
+              <Calendar size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>Date & Schedule</Text>
+          </View>
 
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Enable RSVP from members</Text>
-          <Switch value={rsvpEnabled} onValueChange={setRsvpEnabled} trackColor={{ true: '#1a2d5a' }} />
-        </View>
-
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Show RSVP count publicly</Text>
-          <Switch value={rsvpPublic} onValueChange={setRsvpPublic} trackColor={{ true: '#1a2d5a' }} />
-        </View>
-
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Cap attendance (set max)</Text>
-          <Switch value={capAttendance} onValueChange={setCapAttendance} trackColor={{ true: '#1a2d5a' }} />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Audience</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-            {(metadata?.audiences?.length > 0 ? metadata.audiences : [
-              { label: 'All members', value: 'All members' },
-              { label: 'Youth', value: 'Youth' },
-              { label: 'Women', value: 'Women' },
-              { label: 'Men', value: 'Men' },
-              { label: 'Leaders', value: 'Leaders' },
-              { label: 'Children', value: 'Children' },
-              { label: 'New visitors', value: 'New visitors' }
-            ]).map((a: any) => (
-              <TouchableOpacity
-                key={a.value}
-                style={[styles.chip, audience === a.value && styles.chipActive]}
-                onPress={() => setAudience(a.value)}
-              >
-                <Text style={[styles.chipTxt, audience === a.value && styles.chipTxtActive]}>{a.label}</Text>
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Date <Text style={{color:'#c0392b'}}>*</Text></Text>
+            <TouchableOpacity style={styles.inputWrap} onPress={() => setDatePickerVisibility(true)}>
+              <Text style={styles.inputText}>{date || 'DD-MM-YYYY'}</Text>
+              <Calendar size={14} color="#374151" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
+            <View style={[styles.fGroup, { flex: 1 }]}>
+              <Text style={styles.fLabel}>Start Time <Text style={{color:'#c0392b'}}>*</Text></Text>
+              <TouchableOpacity style={styles.inputWrap} onPress={() => setStartTimeVisibility(true)}>
+                <Text style={styles.inputText}>{startTime || '09:00 AM'}</Text>
+                <Clock size={14} color="#374151" />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
+            </View>
+            <View style={[styles.fGroup, { flex: 1 }]}>
+              <Text style={styles.fLabel}>End Time</Text>
+              <TouchableOpacity style={styles.inputWrap} onPress={() => setEndTimeVisibility(true)}>
+                <Text style={styles.inputText}>{endTime || '12:00 PM'}</Text>
+                <Clock size={14} color="#374151" />
+              </TouchableOpacity>
+            </View>
+          </View>
 
-        {/* ── SECTION 5: EVENT BANNER ── */}
-        <SectionHeader icon={ImageIcon} title="Event Banner" color="#7C3AED" />
-
-        <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
-          {bannerUrl ? (
-            <Image source={{ uri: bannerUrl }} style={styles.uploadPreview} resizeMode="cover" />
-          ) : (
-            <>
-              <View style={styles.uploadIcon}>
-                <ImageIcon size={24} color="#7C3AED" />
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Recurring</Text>
+            <TouchableOpacity style={styles.inputWrap} onPress={() => setShowRecurringDropdown(!showRecurringDropdown)}>
+              <Text style={styles.inputText}>{RECURRING_OPTIONS.find((t: any) => t.value === recurring)?.label || recurring || 'One-time event'}</Text>
+              <ChevronDown size={14} color="#374151" />
+            </TouchableOpacity>
+            {showRecurringDropdown && (
+              <View style={styles.dropdownMenu}>
+                {RECURRING_OPTIONS.map(r => (
+                  <TouchableOpacity key={r.value} style={[styles.dropdownItem, recurring === r.value && styles.dropdownItemActive]} onPress={() => { setRecurring(r.value); setShowRecurringDropdown(false); }}>
+                    <Text style={[styles.dropdownItemTxt, recurring === r.value && styles.dropdownItemTxtActive]}>{r.label}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-              <Text style={styles.uploadTitle}>Pick from Gallery / Files</Text>
-              <Text style={styles.uploadSub}>Select a high-quality banner</Text>
-            </>
+            )}
+          </View>
+
+          {recurring !== 'One-time event' && (
+            <View style={styles.fGroup}>
+              <Text style={styles.fLabel}>Recurrence Duration</Text>
+              <TouchableOpacity style={styles.inputWrap} onPress={() => setShowDurationDropdown(!showDurationDropdown)}>
+                <Text style={styles.inputText}>{DURATION_OPTIONS.find((t: any) => t.value === recurrenceDuration)?.label || `For ${recurrenceDuration} month(s)`}</Text>
+                <ChevronDown size={14} color="#374151" />
+              </TouchableOpacity>
+              {showDurationDropdown && (
+                <View style={styles.dropdownMenu}>
+                  {DURATION_OPTIONS.map(o => (
+                    <TouchableOpacity key={o.value} style={[styles.dropdownItem, recurrenceDuration === o.value && styles.dropdownItemActive]} onPress={() => { setRecurrenceDuration(o.value); setShowDurationDropdown(false); }}>
+                      <Text style={[styles.dropdownItemTxt, recurrenceDuration === o.value && styles.dropdownItemTxtActive]}>{o.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
           )}
-        </TouchableOpacity>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Or paste Image URL</Text>
-          <TextInput
-            style={styles.input}
-            value={bannerUrl}
-            onChangeText={setBannerUrl}
-            placeholder="https://example.com/image.jpg"
-            placeholderTextColor="#94a3b8"
-          />
-        </View>
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Banner colour <Text style={styles.labelSub}>(if no image)</Text></Text>
-          <View style={styles.colorRow}>
-            {['#c0392b', '#1a2d5a', '#15803D', '#7C3AED', '#D97706', '#dc2626'].map(c => (
-              <TouchableOpacity
-                key={c}
-                style={[styles.colorCircle, { backgroundColor: c }, bannerColor === c && styles.colorCircleActive]}
-                onPress={() => setBannerColor(c)}
-              />
-            ))}
-          </View>
         </View>
 
-        {/* ── SECTION 6: NOTIFICATION ── */}
-        <SectionHeader icon={Bell} title="Notification" color="#D97706" />
-
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Notify members when published</Text>
-          <Switch 
-            value={notifyOnPublish} 
-            onValueChange={(val) => setNotifyOnPublish(val)} 
-            trackColor={{ false: '#d1d5db', true: '#1a2d5a' }}
-            thumbColor={Platform.OS === 'android' ? (notifyOnPublish ? '#fff' : '#f4f3f4') : ''}
-          />
-        </View>
-
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Send reminder 1 day before</Text>
-          <Switch 
-            value={reminder1Day} 
-            onValueChange={(val) => setReminder1Day(val)} 
-            trackColor={{ false: '#d1d5db', true: '#1a2d5a' }}
-            thumbColor={Platform.OS === 'android' ? (reminder1Day ? '#fff' : '#f4f3f4') : ''}
-          />
-        </View>
-
-        <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Send reminder 1 hour before</Text>
-          <Switch 
-            value={reminder1Hour} 
-            onValueChange={(val) => setReminder1Hour(val)} 
-            trackColor={{ false: '#d1d5db', true: '#1a2d5a' }}
-            thumbColor={Platform.OS === 'android' ? (reminder1Hour ? '#fff' : '#f4f3f4') : ''}
-          />
-        </View>
-
-        {/* ── SECTION 7: EVENT PREVIEW ── */}
-        <SectionHeader icon={Eye} title="Event card preview" color="#16a34a" />
-
-        <View style={styles.previewContainer}>
-          <View style={styles.previewHeader}>
-            <View style={styles.previewChurchIcon} />
-            <View style={{ flex: 1, marginLeft: 8 }}>
-              <Text style={styles.previewChurchName}>Your Church · Now</Text>
-              <Text style={styles.previewNotifyTitle}>New Event — {titleEn || 'Event Title'}</Text>
-              <Text style={styles.previewNotifySub}>{date} · {startTime} · {venueEn || 'Venue'} · Tap to RSVP</Text>
+        {/* 3. Venue & Location */}
+        <View style={[styles.section, styles.secGreen]}>
+          <View style={styles.secHd}>
+            <View style={styles.secHdPill}>
+              <MapPin size={13} color="#fff" />
             </View>
+            <Text style={styles.secHdTXT}>Venue & Location</Text>
           </View>
 
-          <View style={[styles.cardPreview, { backgroundColor: bannerColor }]}>
-            {bannerUrl ? (
-              <Image source={{ uri: bannerUrl }} style={styles.cardBannerImg} />
-            ) : null}
-            <View style={styles.cardOverlay}>
-              <View style={styles.cardTypeRow}>
-                <Text style={styles.cardType}>● {(metadata?.types || EVENT_TYPES).find((t: any) => t.value === eventType)?.label.split(' · ')[0] || eventType}</Text>
-                <View ><Text >{mode}</Text></View>
-              </View>
-              <Text style={styles.cardTitle}>{titleEn || 'Event title...'}</Text>
-              <Text style={styles.cardTitleTe}>{titleTe || 'తెలుగు పేరు...'}</Text>
-              <View style={styles.cardInfoRow}>
-                <Calendar size={12} color="#fff" />
-                <Text style={styles.cardInfoTxt}>{date} · {startTime} — {endTime}</Text>
-              </View>
-              <View style={styles.cardInfoRow}>
-                <MapPin size={12} color="#fff" />
-                <Text style={styles.cardInfoTxt}>{venueEn || 'Main Auditorium'}</Text>
-              </View>
-              <View style={styles.cardInfoRow}>
-                <Users size={12} color="#fff" />
-                <Text style={styles.cardInfoTxt}>{rsvpEnabled ? 'RSVP enabled' : 'No RSVP required'} · 0 attending</Text>
-              </View>
-
-              <TouchableOpacity style={styles.previewRsvpBtn}>
-                <CheckCircle2 size={14} color="#1a2d5a" />
-                <Text style={styles.previewRsvpBtnTxt}>I'll be there - హాజరవుతాను</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Venue Name — English <Text style={{color:'#c0392b'}}>*</Text></Text>
+            <TextInput style={styles.input} placeholder="e.g. Main Auditorium" value={venueEn} onChangeText={setVenueEn} />
           </View>
-        </View>
 
-        {/* ── FOOTER BUTTONS ── */}
-        <View style={styles.footer}>
-          <Text style={styles.footerLabel}>Publish status</Text>
-          <TouchableOpacity style={styles.statusBox} onPress={() => setShowStatusDropdown(!showStatusDropdown)}>
-            <Text style={styles.statusTxt}>
-              {(metadata?.statuses || PUBLISH_STATUS_OPTIONS).find((o: any) => o.value === publishStatus)?.label || publishStatus}
-            </Text>
-            <ChevronDown size={16} color="#64748b" />
-          </TouchableOpacity>
-          {showStatusDropdown && (
-            <View style={[styles.dropdownMenuStatic, { marginBottom: 15 }]}>
-              {(metadata?.statuses || PUBLISH_STATUS_OPTIONS).map((o: any) => (
-                <TouchableOpacity
-                  key={o.value}
-                  style={[styles.dropdownItem, publishStatus === o.value && styles.dropdownItemActive]}
-                  onPress={() => { setPublishStatus(o.value); setShowStatusDropdown(false); }}
-                >
-                  <Text style={[styles.dropdownItemTxt, publishStatus === o.value && styles.dropdownItemTxtActive]}>{o.label}</Text>
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Venue Name — Telugu</Text>
+            <TextInput style={[styles.input, styles.teIn]} placeholder="ఆవరణ పేరు తెలుగులో..." value={venueTe} onChangeText={setVenueTe} />
+          </View>
+
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Full Address <Text style={styles.fHint}>Shown on Google Maps link</Text></Text>
+            <TextInput style={[styles.input, styles.textarea]} multiline placeholder="Street, area, city..." value={address} onChangeText={setAddress} />
+          </View>
+
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Event Mode</Text>
+            <View style={styles.modeRow}>
+              {(metadata?.modes?.length > 0 ? metadata.modes : [
+                { label: 'In person', value: 'In person' },
+                { label: 'Online', value: 'Online' },
+                { label: 'Hybrid', value: 'Hybrid' }
+              ]).map((m: any) => (
+                <TouchableOpacity key={m.value} style={[styles.modeBtn, mode === m.value && styles.modeBtnActive]} onPress={() => setMode(m.value)}>
+                  <Text style={[styles.modeBtnTxt, mode === m.value && styles.modeBtnTxtActive]}>{m.label}</Text>
                 </TouchableOpacity>
               ))}
             </View>
-          )}
+          </View>
+        </View>
 
-          <TouchableOpacity style={styles.publishBtn} onPress={() => handleSave('Published')} disabled={loading}>
+        {/* 4. RSVP & Audience */}
+        <View style={[styles.section, styles.secAmber]}>
+          <View style={styles.secHd}>
+            <View style={styles.secHdPill}>
+              <Users size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>RSVP & Audience</Text>
+          </View>
+
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Enable RSVP from members</Text>
+            <Switch value={rsvpEnabled} onValueChange={setRsvpEnabled} trackColor={{ true: '#1a2d5a' }} />
+          </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Show RSVP count publicly</Text>
+            <Switch value={rsvpPublic} onValueChange={setRsvpPublic} trackColor={{ true: '#1a2d5a' }} />
+          </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Cap attendance (set max)</Text>
+            <Switch value={capAttendance} onValueChange={setCapAttendance} trackColor={{ true: '#1a2d5a' }} />
+          </View>
+
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Audience</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
+              {(metadata?.audiences?.length > 0 ? metadata.audiences : [
+                { label: 'All members', value: 'All members' },
+                { label: 'Youth', value: 'Youth' },
+                { label: 'Women', value: 'Women' },
+                { label: 'Men', value: 'Men' },
+                { label: 'Leaders', value: 'Leaders' }
+              ]).map((a: any) => (
+                <TouchableOpacity key={a.value} style={[styles.chip, audience === a.value && styles.chipActive]} onPress={() => setAudience(a.value)}>
+                  <Text style={[styles.chipTxt, audience === a.value && styles.chipTxtActive]}>{a.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+
+        {/* 5. Banner & Media */}
+        <View style={[styles.section, styles.secPurple]}>
+          <View style={styles.secHd}>
+            <View style={styles.secHdPill}>
+              <ImageIcon size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>Event Banner</Text>
+          </View>
+
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Upload Banner Image</Text>
+            {bannerUrl ? (
+              <View style={styles.thumbnailPreviewContainer}>
+                <Image source={{ uri: bannerUrl }} style={styles.thumbnailImg} resizeMode="cover" />
+                <TouchableOpacity style={styles.removeThumbnailBtn} onPress={() => setBannerUrl('')}>
+                  <Text style={styles.btnChangeThumbTxt}>Remove Image</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <TouchableOpacity style={styles.btnUploadThumb} onPress={pickImage}>
+                <ImageIcon size={24} color="#7C3AED" style={{ marginBottom: 8 }} />
+                <Text style={styles.btnUploadThumbTxt}>Pick from Gallery / Files</Text>
+                <Text style={styles.fHint}>Select a high-quality banner</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Or Paste Image URL</Text>
+            <TextInput style={styles.input} value={bannerUrl} onChangeText={setBannerUrl} placeholder="https://example.com/image.jpg" />
+          </View>
+
+          <View style={styles.fGroup}>
+            <Text style={styles.fLabel}>Fallback Banner Color</Text>
+            <View style={styles.themeRow}>
+              {['#c0392b', '#1a2d5a', '#15803D', '#7C3AED', '#D97706', '#dc2626'].map(c => (
+                <TouchableOpacity key={c} style={[styles.themeChip, { backgroundColor: c }, bannerColor === c && styles.themeActive]} onPress={() => setBannerColor(c)} />
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* 6. Notifications */}
+        <View style={[styles.section, styles.secBlue]}>
+          <View style={styles.secHd}>
+            <View style={styles.secHdPill}>
+              <Bell size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>Notifications</Text>
+          </View>
+
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Notify members when published</Text>
+            <Switch value={notifyOnPublish} onValueChange={setNotifyOnPublish} trackColor={{ true: '#1a2d5a' }} />
+          </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Send reminder 1 day before</Text>
+            <Switch value={reminder1Day} onValueChange={setReminder1Day} trackColor={{ true: '#1a2d5a' }} />
+          </View>
+          <View style={styles.switchRow}>
+            <Text style={styles.switchLabel}>Send reminder 1 hour before</Text>
+            <Switch value={reminder1Hour} onValueChange={setReminder1Hour} trackColor={{ true: '#1a2d5a' }} />
+          </View>
+        </View>
+
+        {/* Footer Actions */}
+        <View style={styles.footerBtnRow}>
+          <TouchableOpacity style={styles.btnDraft} onPress={() => handleSave('Draft')} disabled={loading}>
+            {loading && publishStatus === 'Draft' ? (
+              <ActivityIndicator color="#1a2d5a" size="small" />
+            ) : (
+              <Text style={styles.btnDraftTxt}>Save as Draft</Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.btnSave} onPress={() => handleSave('Published')} disabled={loading}>
             {loading && publishStatus === 'Published' ? (
               <ActivityIndicator color="#fff" size="small" />
             ) : (
-              <Text style={styles.publishBtnTxt}>Publish Event</Text>
+              <Text style={styles.btnSaveTxt}>Publish Event</Text>
             )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.draftBtn} onPress={() => handleSave('Draft')} disabled={loading}>
-            {loading && publishStatus === 'Draft' ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <Text style={styles.draftBtnTxt}>Save as Draft</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.backBtn} onPress={() => { resetForm(); setActiveTab(7); }}>
-            <ArrowLeft size={14} color="#1a2d5a" />
-            <Text style={styles.backBtnTxt}>Back to events</Text>
           </TouchableOpacity>
         </View>
 
+        <TouchableOpacity style={styles.btnBack} onPress={() => { resetForm(); setActiveTab(8); }}>
+          <Text style={styles.btnBackTxt}>← Back to list</Text>
+        </TouchableOpacity>
+
         <View style={{ height: 100 }} />
       </ScrollView>
+      
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={(d) => {
+          setDate(d.toLocaleDateString('en-GB').replace(/\//g, '-'));
+          setDatePickerVisibility(false);
+        }}
+        onCancel={() => setDatePickerVisibility(false)}
+      />
+      <DateTimePickerModal
+        isVisible={isStartTimeVisible}
+        mode="time"
+        onConfirm={(t) => {
+          setStartTime(t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+          setStartTimeVisibility(false);
+        }}
+        onCancel={() => setStartTimeVisibility(false)}
+      />
+      <DateTimePickerModal
+        isVisible={isEndTimeVisible}
+        mode="time"
+        onConfirm={(t) => {
+          setEndTime(t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+          setEndTimeVisibility(false);
+        }}
+        onCancel={() => setEndTimeVisibility(false)}
+      />
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  scroll: { paddingBottom: 40 },
+  container: { flex: 1, backgroundColor: '#EDE8DC' },
+  scroll: { padding: 14, paddingBottom: 100 },
 
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f1f5f9', gap: 10 },
-  headerTitle: { fontSize: 17, fontWeight: '800', color: '#1a2d5a', flex: 1 },
-  headerSub: { fontSize: 11, color: '#64748b', marginTop: 2 },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
-  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a' },
+  hero: { 
+    backgroundColor: '#1a2d5a', 
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6
+  },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' },
+  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
 
-  sectionHeader: { flexDirection: 'row', alignItems: 'center', padding: 10, paddingHorizontal: 20, marginTop: 15, marginBottom: 15 },
-  sectionHeaderText: { fontSize: 12, fontWeight: '800', marginLeft: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+    borderTopWidth: 3,
+    borderTopColor: '#1a2d5a',
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  secNavy: { borderTopColor: '#1a2d5a' },
+  secBlue: { borderTopColor: '#0891B2' },
+  secRed: { borderTopColor: '#c0392b' },
+  secGreen: { borderTopColor: '#15803D' },
+  secPurple: { borderTopColor: '#7C3AED' },
+  secAmber: { borderTopColor: '#D97706' },
 
-  inputGroup: { paddingHorizontal: 20, marginBottom: 15 },
-  label: { fontSize: 11, fontWeight: '700', color: '#475569', marginBottom: 6 },
-  labelSub: { fontWeight: '400', color: '#94a3b8' },
-  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, padding: 12, fontSize: 14, color: '#1e293b' },
-  textArea: { textAlignVertical: 'top', minHeight: 80 },
+  secHd: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9,
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(26,45,90,0.07)',
+    paddingBottom: 10,
+  },
+  secHdPill: {
+    width: 26,
+    height: 26,
+    borderRadius: 7,
+    backgroundColor: '#1a2d5a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  secHdTXT: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    textTransform: 'uppercase',
+    letterSpacing: 1.3,
+    flex: 1,
+  },
 
-  dropdown: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  dropdownTxt: { fontSize: 14, color: '#1e293b' },
-  dropdownMenu: { position: 'absolute', top: 75, left: 20, right: 20, backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0', elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10, zIndex: 1000 },
-  dropdownMenuStatic: { backgroundColor: '#fff', borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0', marginTop: 4 },
-  dropdownItem: { padding: 12, borderBottomWidth: 0.5, borderBottomColor: '#f1f5f9' },
-  dropdownItemActive: { backgroundColor: '#f0f7ff' },
-  dropdownItemTxt: { fontSize: 13, color: '#475569' },
-  dropdownItemTxtActive: { color: '#1a2d5a', fontWeight: '700' },
+  fGroup: { marginBottom: 12 },
+  fLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#374151',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+    marginBottom: 6,
+  },
+  fHint: { fontWeight: '500', color: '#9CA3AF', fontSize: 11, textTransform: 'none', letterSpacing: 0 },
 
-  row: { flexDirection: 'row', paddingHorizontal: 20 },
+  inputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FAFAF9',
+    borderWidth: 1,
+    borderColor: '#E2DDD5',
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+  },
+  inputText: { flex: 1, fontSize: 13, color: '#1a2d5a', fontWeight: '500' },
+  input: {
+    backgroundColor: '#FAFAF9',
+    borderWidth: 1,
+    borderColor: '#E2DDD5',
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 11,
+    fontSize: 13,
+    color: '#1a2d5a',
+    fontWeight: '500',
+  },
+  textarea: { minHeight: 80, textAlignVertical: 'top', paddingTop: 11 },
+  teIn: { fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', color: '#1a2d5a', fontSize: 14, lineHeight: 22 },
 
-  modeRow: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 10, padding: 4, borderWidth: 1, borderColor: '#e2e8f0' },
-  modeBtn: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 8 },
-  modeBtnActive: { backgroundColor: '#1a2d5a' },
-  modeBtnTxt: { fontSize: 12, fontWeight: '600', color: '#64748b' },
+  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  switchLabel: { fontSize: 13, color: '#1a2d5a', fontWeight: '500' },
+
+  dropdownMenu: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, marginTop: 4, elevation: 3 },
+  dropdownItem: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' },
+  dropdownItemActive: { backgroundColor: '#1a2d5a' },
+  dropdownItemTxt: { fontSize: 13, color: '#1e293b' },
+  dropdownItemTxtActive: { color: '#fff', fontWeight: '700' },
+
+  modeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  modeBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0' },
+  modeBtnActive: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
+  modeBtnTxt: { fontSize: 12, color: '#475569', fontWeight: '600' },
   modeBtnTxtActive: { color: '#fff' },
 
-  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, marginBottom: 15 },
-  switchLabel: { fontSize: 13, color: '#475569', fontWeight: '500' },
-
-  chipRow: { paddingLeft: 20, marginBottom: 5 },
-  chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#fff', borderWidth: 1, borderColor: '#e2e8f0', marginRight: 8 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 4 },
+  chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0', marginRight: 8 },
   chipActive: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
-  chipTxt: { fontSize: 11, fontWeight: '600', color: '#64748b' },
+  chipTxt: { fontSize: 12, color: '#475569', fontWeight: '600' },
   chipTxtActive: { color: '#fff' },
 
-  uploadBox: { marginHorizontal: 20, height: (width - 40) * 9 / 16, borderRadius: 12, borderWidth: 1.5, borderColor: '#e2e8f0', borderStyle: 'dashed', backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  uploadIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f5f3ff', justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
-  uploadTitle: { fontSize: 13, fontWeight: '600', color: '#111827', marginTop: 10 },
-  uploadSub: { fontSize: 10, color: '#6B7280', marginTop: 4 },
-  uploadPreview: { width: '100%', height: '100%', borderRadius: 10 },
+  themeRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6, gap: 10, paddingVertical: 4 },
+  themeChip: { width: 38, height: 38, borderRadius: 19, borderWidth: 2.5, borderColor: 'transparent' },
+  themeActive: { borderColor: '#C9A84C', transform: [{ scale: 1.1 }] },
 
-  imagePreviewContainer: { marginHorizontal: 20, height: 160, borderRadius: 12, overflow: 'hidden', backgroundColor: '#f1f5f9', marginBottom: 15 },
-  removeImgBtn: { position: 'absolute', bottom: 10, right: 10, backgroundColor: 'rgba(220, 38, 38, 0.9)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6 },
-  removeImgBtnTxt: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  btnUploadThumb: {
+    backgroundColor: '#FAFAF9',
+    borderRadius: 14,
+    padding: 24,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#D9D3C7',
+    borderStyle: 'dashed',
+  },
+  btnUploadThumbTxt: { color: '#4B5563', fontSize: 14, fontWeight: '700' },
+  thumbnailPreviewContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 15 },
+  thumbnailImg: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', borderWidth: 1, borderColor: '#D9D3C7' },
+  removeThumbnailBtn: { backgroundColor: '#FEE2E2', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' },
+  btnChangeThumbTxt: { color: '#991B1B', fontSize: 13, fontWeight: '700' },
 
-  cardOverlay: { padding: 15, width: '100%', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 12 },
-  cardBannerImg: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%', borderRadius: 12 },
-  cardTypeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  footerBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
+  btnSave: {
+    flex: 1, backgroundColor: '#2E6B4F', borderRadius: 14, paddingVertical: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    elevation: 6, shadowColor: '#2E6B4F', shadowOpacity: 0.35, shadowRadius: 10, shadowOffset: { width: 0, height: 5 },
+  },
+  btnSaveTxt: { color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  btnDraft: {
+    flex: 1, backgroundColor: '#F5F0E8', borderRadius: 14, paddingVertical: 16,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.30)',
+  },
+  btnDraftTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '700', letterSpacing: 0.2 },
+  btnBack: { alignItems: 'center', paddingVertical: 10 },
+  btnBackTxt: { fontSize: 14, color: '#6B7280', fontWeight: '600' },
 
-  colorRow: { flexDirection: 'row', paddingHorizontal: 20, gap: 10 },
-  colorCircle: { width: 36, height: 36, borderRadius: 18, borderWidth: 2, borderColor: 'transparent' },
-  colorCircleActive: { borderColor: '#fff', elevation: 4, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 5 },
-
-  previewContainer: { marginHorizontal: 20, padding: 15, backgroundColor: '#fff', borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
-  previewHeader: { flexDirection: 'row', marginBottom: 15, paddingBottom: 10, borderBottomWidth: 0.5, borderBottomColor: '#f1f5f9' },
-  previewChurchIcon: { width: 32, height: 32, borderRadius: 6, backgroundColor: '#1a2d5a' },
-  previewChurchName: { fontSize: 11, fontWeight: '700', color: '#1e293b' },
-  previewNotifyTitle: { fontSize: 13, fontWeight: '700', color: '#1e293b', marginTop: 2 },
-  previewNotifySub: { fontSize: 10, color: '#64748b', marginTop: 2 },
-
-  cardPreview: { borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#f1f5f9', elevation: 5, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 10 },
-  cardBanner: { padding: 15, minHeight: 100, justifyContent: 'flex-end' },
-  cardType: { color: 'rgba(255,255,255,0.8)', fontSize: 10, fontWeight: '800', marginBottom: 6, textTransform: 'uppercase' },
-  cardTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  cardTitleTe: { color: 'rgba(255,255,255,0.9)', fontSize: 14, fontWeight: '600', marginTop: 2 },
-  cardContent: { backgroundColor: '#fff', padding: 15 },
-  cardInfoRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
-  cardInfoTxt: { fontSize: 11, color: '#64748b', fontWeight: '500' },
-  previewRsvpBtn: { backgroundColor: '#c0392b', height: 44, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10 },
-  previewRsvpBtnTxt: { color: '#fff', fontSize: 13, fontWeight: '700' },
-
-  footer: { paddingHorizontal: 20, marginTop: 30 },
-  footerLabel: { fontSize: 11, fontWeight: '700', color: '#64748b', marginBottom: 10 },
-  statusBox: { backgroundColor: '#fff', padding: 12, borderRadius: 8, borderWidth: 1, borderColor: '#e2e8f0', marginBottom: 15, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  statusTxt: { fontSize: 13, color: '#475569' },
-  publishBtn: { backgroundColor: '#c0392b', height: 50, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  publishBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  draftBtn: { backgroundColor: '#1a2d5a', height: 50, borderRadius: 10, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  draftBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '700' },
-
-
-  fab: { position: 'absolute', right: 20, bottom: 20, width: 56, height: 56, borderRadius: 28, backgroundColor: '#c0392b', justifyContent: 'center', alignItems: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10 },
-
-  // JS Picker Modals
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  modalContent: { backgroundColor: '#fff', width: width * 0.85, borderRadius: 16, padding: 20, elevation: 20, shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 15 },
+  // JSPicker Modals
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { backgroundColor: '#fff', width: '85%', borderRadius: 20, padding: 20 },
   modalTitle: { fontSize: 16, fontWeight: '800', color: '#1a2d5a', marginBottom: 20, textAlign: 'center' },
-  pickerRow: { flexDirection: 'row', height: 180, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#f1f5f9' },
-  pickerCol: { flex: 1 },
-  pickerItem: { paddingVertical: 12, textAlign: 'center', fontSize: 15, color: '#64748b' },
-  pickerItemActive: { color: '#1a2d5a', fontWeight: '800', backgroundColor: '#f0f7ff' },
-  modalFooter: { flexDirection: 'row', gap: 12, marginTop: 20 },
-  modalCancel: { flex: 1, height: 48, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f1f5f9' },
-  modalCancelTxt: { fontSize: 14, fontWeight: '700', color: '#64748b' },
-  modalConfirm: { flex: 1, height: 48, borderRadius: 8, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a2d5a' },
-  modalConfirmTxt: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  pickerRow: { flexDirection: 'row', height: 200 },
+  pickerCol: { flex: 1, borderRightWidth: 1, borderRightColor: '#f1f5f9' },
+  pickerItem: { paddingVertical: 12, textAlign: 'center', color: '#475569', fontSize: 15 },
+  pickerItemActive: { color: '#1a2d5a', fontWeight: '800', backgroundColor: '#f1f5f9' },
+  modalFooter: { flexDirection: 'row', marginTop: 20, borderTopWidth: 1, borderTopColor: '#f1f5f9', paddingTop: 15 },
+  modalCancel: { flex: 1, padding: 10, alignItems: 'center' },
+  modalCancelTxt: { color: '#94a3b8', fontWeight: '700', fontSize: 15 },
+  modalConfirm: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: '#1a2d5a', borderRadius: 8 },
+  modalConfirmTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
 
-  // Success Card Styles
-  successCard: { backgroundColor: '#fff', width: width * 0.85, borderRadius: 24, padding: 30, alignItems: 'center', elevation: 25, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 20 },
-  successIconOuter: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#c0392b20', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  successIconInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: '#c0392b', justifyContent: 'center', alignItems: 'center' },
-  successTitle: { fontSize: 22, fontWeight: '800', color: '#1a2d5a', marginBottom: 12, textAlign: 'center' },
-  successSub: { fontSize: 14, color: '#64748b', lineHeight: 20, textAlign: 'center', marginBottom: 30 },
-  successBtnPrimary: { backgroundColor: '#1a2d5a', width: '100%', height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  successBtnPrimaryTxt: { color: '#fff', fontSize: 15, fontWeight: '700' },
-  successBtnSecondary: { backgroundColor: '#f1f5f9', width: '100%', height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
-  successBtnSecondaryTxt: { color: '#475569', fontSize: 15, fontWeight: '700' }
+  // Success Modal
+  successCard: { backgroundColor: '#fff', width: '85%', borderRadius: 24, padding: 25, alignItems: 'center' },
+  successIconOuter: { backgroundColor: '#F0FDF4', borderRadius: 50, padding: 10, marginBottom: 20 },
+  successIconInner: { backgroundColor: '#22c55e', borderRadius: 40, padding: 15 },
+  successTitle: { fontSize: 22, fontWeight: '800', color: '#1a2d5a', marginBottom: 10 },
+  successSub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 25, lineHeight: 22 },
+  successBtnPrimary: { backgroundColor: '#1a2d5a', width: '100%', paddingVertical: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10 },
+  successBtnPrimaryTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  successBtnSecondary: { width: '100%', paddingVertical: 15, alignItems: 'center' },
+  successBtnSecondaryTxt: { color: '#1a2d5a', fontWeight: '700', fontSize: 15 },
+  sectionHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 16 },
+  sectionHeaderText: { fontFamily: 'Outfit-Bold', fontSize: 14, fontWeight: '700' }
 });

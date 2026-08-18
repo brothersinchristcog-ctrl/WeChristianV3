@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking, Platform } from 'react-native';
 import Share from 'react-native-share';
-import { Gift, Heart, PlusCircle } from 'lucide-react-native';
+import { Gift, Heart, PlusCircle, ChevronLeft } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
 import ChurchService from '../../services/ChurchService';
+import { AdminTabContext } from '../../context/AdminTabContext';
 import AdminCelebrationsList from './AdminCelebrationsList';
 import AdminCelebrationsPersonalize from './AdminCelebrationsPersonalize';
 import AdminCelebrationsMemberDetails from './AdminCelebrationsMemberDetails';
@@ -25,9 +26,11 @@ type ViewMode = 'dashboard' | 'list' | 'details' | 'personalize' | 'themePicker'
 
 export default function AdminCelebrations({ navigation }: any) {
   const { activeChurch, setActiveChurch } = useChurch();
+  const { setActiveTab } = React.useContext(AdminTabContext);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
-  const [selectedCategory, setSelectedCategory] = useState('');
+  const [activeDateFilter, setActiveDateFilter] = useState('Today');
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState('All');
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
   // Hoisted state for personalization flow
@@ -159,16 +162,9 @@ export default function AdminCelebrations({ navigation }: any) {
   }
 
   if (viewMode === 'list') {
-    return (
-      <AdminCelebrationsList 
-        category={selectedCategory} 
-        onBack={() => setViewMode('dashboard')} 
-        onSelectMember={(member) => {
-          setSelectedMember(member);
-          setViewMode('details');
-        }}
-      />
-    );
+    // viewMode list is obsolete as it's merged with dashboard
+    setViewMode('dashboard');
+    return null;
   }
 
   const handleSendWhatsApp = async (localImageUri?: string) => {
@@ -248,7 +244,7 @@ export default function AdminCelebrations({ navigation }: any) {
       }
 
       await FirestoreService.createNotificationBroadcast({
-         title: `${selectedCategory === 'Birthday' ? '🎂 Happy Birthday' : selectedCategory === 'Anniversary' ? '💒 Happy Anniversary' : '🎉 Happy Baptism Anniversary'}, ${selectedMember.name}!`,
+         title: `${(selectedMember?.celebrationType || 'Birthday') === 'Birthday' ? '🎂 Happy Birthday' : (selectedMember?.celebrationType || 'Birthday') === 'Anniversary' ? '💒 Happy Anniversary' : '🎉 Happy Baptism Anniversary'}, ${selectedMember.name}!`,
          content: text,
          date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' }),
          type: 'celebration',
@@ -273,14 +269,14 @@ export default function AdminCelebrations({ navigation }: any) {
       return (
         <AdminCelebrationsMemberDetails 
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           onBack={() => setViewMode('list')}
           onPrepareWish={() => {
             // Reset personalization state when starting a new wish
             setSelectedThemeId(null);
             setSelectedVerse(null);
             setGreetingMessage('');
-            setTitleOverlay(selectedCategory);
+            setTitleOverlay((selectedMember?.celebrationType || 'Birthday'));
             setNameOverlay(selectedMember?.name || '');
             setViewMode('personalize');
           }}
@@ -291,7 +287,7 @@ export default function AdminCelebrations({ navigation }: any) {
         <View style={{flex: 1}}>
           <AdminCelebrationsPersonalize 
             member={selectedMember}
-            category={selectedCategory}
+            category={(selectedMember?.celebrationType || 'Birthday')}
             layout={layout}
             onLayoutChange={setLayout}
             photoUri={photoUri}
@@ -353,7 +349,7 @@ export default function AdminCelebrations({ navigation }: any) {
     case 'versePicker':
       return (
         <AdminCelebrationsVersePicker
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           selectedVerseRef={selectedVerse?.ref}
           onBack={() => setViewMode('personalize')}
           onSelectVerse={(verse) => {
@@ -388,7 +384,7 @@ export default function AdminCelebrations({ navigation }: any) {
       return (
         <AdminCelebrationsPreview
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           theme={themeObj}
           layout={layout}
           photoUri={photoUri}
@@ -416,7 +412,7 @@ export default function AdminCelebrations({ navigation }: any) {
       return (
         <AdminCelebrationsWhatsAppPreview
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           theme={themeObj}
           layout={layout}
           photoUri={photoUri}
@@ -435,24 +431,26 @@ export default function AdminCelebrations({ navigation }: any) {
       return (
         <AdminCelebrationsConfirm
           member={selectedMember}
-          category={selectedCategory}
+          category={(selectedMember?.celebrationType || 'Birthday')}
           onDone={() => setViewMode('dashboard')}
         />
       );
   }
 
-  const handleCategoryPress = (category: string) => {
-    setSelectedCategory(category);
-    setViewMode('list');
-  };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       
-      {/* Header */}
+      {/* ── Fixed Header ── */}
       <View style={styles.header}>
-        <Text style={styles.eyebrow}>CHURCH COMPANION</Text>
-        <Text style={styles.title}>Celebrations</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => setActiveTab(0)}>
+          <ChevronLeft size={22} color="#fff" />
+          <Text style={styles.backBtnTxt}>Back</Text>
+        </TouchableOpacity>
+        <View style={styles.heroTitles}>
+          <Text style={styles.headerTitle}>Celebrations</Text>
+          <Text style={styles.headerSub}>Manage birthdays & anniversaries</Text>
+        </View>
       </View>
 
       {/* Hero Card */}
@@ -479,36 +477,48 @@ export default function AdminCelebrations({ navigation }: any) {
         </View>
       </View>
 
-      <Text style={styles.sectionTitle}>CELEBRATION CATEGORIES</Text>
 
-      {/* Categories */}
-      <TouchableOpacity style={[styles.categoryCard, { backgroundColor: '#F3E4B6' }]} onPress={() => handleCategoryPress('Birthday')}>
-        <Gift size={24} color="#B88A2E" style={styles.catIcon} />
-        <Text style={styles.catTitle}>Birthday</Text>
-        <Text style={styles.catDesc}>
-          <Text style={{color: '#6B5720', fontWeight: '500'}}>{stats.birthdays.total} members</Text>
-          {stats.birthdays.thisWeek > 0 && (
-            <Text style={{color: '#B88A2E'}}>{' \u00B7 '}{stats.birthdays.thisWeek} this week</Text>
-          )}
-        </Text>
-      </TouchableOpacity>
 
-      <View style={styles.row}>
-        <TouchableOpacity style={[styles.categoryCard, styles.halfCard, { backgroundColor: '#E2E5F2' }]} onPress={() => handleCategoryPress('Wedding Anniversary')}>
-          <Heart size={24} color="#455490" style={styles.catIcon} />
-          <Text style={styles.catTitle}>Wedding{'\n'}Anniversary</Text>
-          <Text style={styles.catDesc}>
-            <Text style={{color: '#525B7E', fontWeight: '500'}}>{stats.anniversaries.total} members</Text>
-          </Text>
-        </TouchableOpacity>
+      {/* Date Filters */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 8, marginBottom: 20 }}>
+        {['Today', 'Upcoming', 'Week', 'Month', 'Past', 'All'].map(filter => (
+          <TouchableOpacity 
+            key={filter}
+            style={[styles.filterBtn, activeDateFilter === filter && styles.filterBtnActive]}
+            onPress={() => setActiveDateFilter(filter)}
+          >
+            <Text style={[styles.filterBtnTxt, activeDateFilter === filter && styles.filterBtnTxtActive]}>{filter}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-        <TouchableOpacity style={[styles.categoryCard, styles.halfCard, { backgroundColor: '#DDF1E7' }]} onPress={() => handleCategoryPress('Baptism Anniversary')}>
-          <PlusCircle size={24} color="#358B6D" style={styles.catIcon} />
-          <Text style={styles.catTitle}>Baptism{'\n'}Anniversary</Text>
-          <Text style={styles.catDesc}>
-            <Text style={{color: '#4B6B5E', fontWeight: '500'}}>{stats.baptisms.total} members</Text>
-          </Text>
-        </TouchableOpacity>
+      {/* Category Buttons */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 20, gap: 10, marginBottom: 16 }}>
+        {['Birthday', 'Wedding Anniversary', 'Baptism Anniversary'].map(cat => {
+          let bgColor = cat === 'Birthday' ? '#F3E4B6' : cat === 'Wedding Anniversary' ? '#E2E5F2' : '#DDF1E7';
+          let textColor = cat === 'Birthday' ? '#B88A2E' : cat === 'Wedding Anniversary' ? '#455490' : '#358B6D';
+          return (
+            <TouchableOpacity 
+              key={cat}
+              style={[{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, backgroundColor: bgColor }, activeCategoryFilter === cat && { borderWidth: 2, borderColor: textColor }]}
+              onPress={() => setActiveCategoryFilter(activeCategoryFilter === cat ? 'All' : cat)}
+            >
+              <Text style={[{ fontSize: 13, color: textColor }, activeCategoryFilter === cat && { fontWeight: '800' }]}>{cat}</Text>
+            </TouchableOpacity>
+          )
+        })}
+      </ScrollView>
+
+      {/* Embedded List */}
+      <View style={{ flex: 1, minHeight: 400 }}>
+        <AdminCelebrationsList 
+          category={activeCategoryFilter} 
+          activeTab={activeDateFilter}
+          onSelectMember={(member) => {
+            setSelectedMember(member);
+            setViewMode('details');
+          }}
+        />
       </View>
 
       <Text style={styles.footerText}>
@@ -542,29 +552,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center'
   },
-  content: {
-    padding: 20,
+    content: {
+    padding: 0,
     paddingBottom: 40,
   },
-  header: {
+  header: { 
+    backgroundColor: '#1a2d5a', 
+    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    position: 'relative',
+    zIndex: 10,
     marginBottom: 20,
   },
-  eyebrow: {
-    color: '#B88A2E', // Gold
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1.5,
-    marginBottom: 4,
-  },
-  title: {
-    color: '#162057', // Deep navy
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  heroCard: {
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 2, paddingVertical: 4, paddingHorizontal: 2 },
+  backBtnTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  heroTitles: { flex: 1, borderLeftWidth: 1, borderLeftColor: 'rgba(255,255,255,0.2)', paddingLeft: 12 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2 },
+    heroCard: {
     backgroundColor: '#162057', // Deep navy
     borderRadius: 24,
     padding: 24,
+    marginHorizontal: 20,
     marginBottom: 32,
   },
   heroEyebrow: {
@@ -606,24 +621,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 1,
   },
-  sectionTitle: {
+    sectionTitle: {
     color: '#848796',
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1.5,
     marginBottom: 16,
+    marginHorizontal: 20,
   },
   categoryCard: {
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
+    marginHorizontal: 20,
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginHorizontal: 20,
   },
   halfCard: {
     width: '48%',
+    marginHorizontal: 0,
   },
   catIcon: {
     marginBottom: 16,
@@ -641,6 +660,35 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#9CA3AF',
     fontSize: 11,
-    marginTop: 40,
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  chipBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: 'transparent'
+  },
+  chipBtnTxt: {
+    fontSize: 14,
+    fontWeight: '600'
+  },
+  filterBtn: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#E5E7EB',
+  },
+  filterBtnActive: {
+    backgroundColor: '#1a2d5a',
+  },
+  filterBtnTxt: {
+    color: '#4B5563',
+    fontSize: 13,
+    fontWeight: '600'
+  },
+  filterBtnTxtActive: {
+    color: '#FFFFFF'
   }
 });

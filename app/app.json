@@ -27,11 +27,11 @@
       "package": "com.wechristian.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
+        "foregroundImage": "./assets/adaptive-logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "versionCode": 3,
+      "versionCode": 11,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyAa7M7Xr7W_hNOpy3BeSHMBD6oEYjD78HA"
@@ -52,7 +52,20 @@
           "microphonePermission": "Allow We Christian to access your microphone to create events via voice."
         }
       ],
-      "expo-web-browser"
+      [
+        "expo-media-library",
+        {
+          "saveOnly": true
+        }
+      ],
+      "expo-web-browser",
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow We Christian to access your contacts to invite members to the church."
+        }
+      ]
     ],
     "extra": {
       "eas": {

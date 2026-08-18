@@ -1,0 +1,20 @@
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBEZ-FrpqgECCx6qk7-do15rtLssHjtWMY",
+  authDomain: "wechristian-67f07.firebaseapp.com",
+  projectId: "wechristian-67f07",
+  storageBucket: "wechristian-67f07.firebasestorage.app",
+  messagingSenderId: "962252889183",
+  appId: "1:962252889183:web:f76dd0d76af372900f8fea",
+  measurementId: "G-0VKHN9VSWH"
+};
+
+// Initialize Firebase only once
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+
+
