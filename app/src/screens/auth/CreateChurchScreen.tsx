@@ -14,6 +14,7 @@ import {
   FlatList,
   Image,
   KeyboardAvoidingView,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -65,6 +66,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
     pincode: '',
     website: '',
     tagline: '',
+    hasBranches: false,
   });
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -90,7 +92,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
   const indianStates = State.getStatesOfCountry('IN');
   const availableCities = form.stateIsoCode ? City.getCitiesOfState('IN', form.stateIsoCode) : [];
 
-  const updateForm = (key: string, value: string) =>
+  const updateForm = (key: string, value: string | boolean) =>
     setForm(prev => ({ ...prev, [key]: value }));
 
   const requestOtp = async () => {
@@ -185,6 +187,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
         subdomain: churchCode.toLowerCase(),
         contactEmail: form.contactEmail.trim(),
         contactPhone: form.contactPhone.trim(),
+        isParentOrganization: form.hasBranches,
         address: `${form.houseNo ? form.houseNo + ', ' : ''}${form.street ? form.street + ', ' : ''}${form.city ? form.city + ', ' : ''}${form.state ? form.state + ' - ' : ''}${form.pincode}`,
         tagline: form.tagline.trim(),
         theme: {
@@ -516,6 +519,21 @@ export default function CreateChurchScreen({ navigation }: Props) {
                 <Text style={styles.previewTxt}>{form.name || 'Your Church Name'}</Text>
                 <Text style={styles.previewSub}>{form.tagline || 'Preview'}</Text>
               </View>
+            </View>
+
+            {/* Multiple Branches Option */}
+            <View style={{ backgroundColor: '#f8fafc', borderRadius: 16, padding: 16, marginBottom: 24, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, borderColor: '#e2e8f0' }}>
+              <View style={{ flex: 1, paddingRight: 16 }}>
+                <Text style={{ color: '#1e293b', fontSize: 15, fontWeight: '700', marginBottom: 4 }}>Multiple Branches</Text>
+                <Text style={{ color: '#64748b', fontSize: 12, lineHeight: 18 }}>Enable this to manage multiple church branches or locations from your dashboard.</Text>
+              </View>
+              <Switch
+                trackColor={{ false: '#e2e8f0', true: '#1a2d5a' }}
+                thumbColor={'#ffffff'}
+                ios_backgroundColor="#e2e8f0"
+                onValueChange={(val) => updateForm('hasBranches', val)}
+                value={form.hasBranches}
+              />
             </View>
 
             {/* Submit */}

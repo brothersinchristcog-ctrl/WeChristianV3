@@ -48,7 +48,7 @@ const { width } = Dimensions.get('window');
 
 export default function ProfileScreen({ navigation }: any) {
   const { user, signOut, member: authMember, setViewMode, setMember: setGlobalMember } = useAuth();
-  const { activeChurch } = useChurch();
+  const { activeChurch, isImpersonating, impersonatedBranchName, stopImpersonation } = useChurch();
   const { isDark, toggleTheme, colors } = useTheme();
   
   const [member, setMember] = useState<AppMember | null>(authMember as AppMember | null);
@@ -297,8 +297,26 @@ export default function ProfileScreen({ navigation }: any) {
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
-      
-      {/* ── Hero Section (Navy) ── */}
+
+      {isImpersonating ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Shield size={64} color="#1a2d5a" style={{ marginBottom: 20 }} />
+          <Text style={{ fontSize: 24, fontWeight: '800', color: '#1a2d5a', textAlign: 'center', marginBottom: 12 }}>
+            Admin View
+          </Text>
+          <Text style={{ fontSize: 16, color: '#64748b', textAlign: 'center', marginBottom: 30, lineHeight: 24 }}>
+            You are currently viewing {impersonatedBranchName} as an administrator. Your personal profile is not active in this view.
+          </Text>
+          <TouchableOpacity 
+            style={{ backgroundColor: '#1a2d5a', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 12 }}
+            onPress={stopImpersonation}
+          >
+            <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Return to Main Church</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          {/* ── Hero Section (Navy) ── */}
       <View style={styles.heroSection}>
         <View style={styles.headerTop}>
           <View style={{ width: 40 }} />
@@ -804,6 +822,8 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </View>
       </Modal>
+      </>
+      )}
     </View>
   );
 }

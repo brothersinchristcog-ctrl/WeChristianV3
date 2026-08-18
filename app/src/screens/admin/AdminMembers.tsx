@@ -17,12 +17,13 @@ import {
   Image,
   Linking
 } from 'react-native';
-import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2, ChevronLeft } from 'lucide-react-native';
+import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2, ChevronLeft, UserPlus, Search, MoreVertical } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
 import { CustomAlert, AlertButton } from '../../components/CustomAlert';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { AdminTabContext } from '../../context/AdminTabContext';
+import InviteMembersModal from '../../components/InviteMembersModal';
 
 const { width } = Dimensions.get('window');
 
@@ -72,9 +73,11 @@ export default function AdminMembers() {
   const [villageDropdownVisible, setVillageDropdownVisible] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedHouseholdIds, setExpandedHouseholdIds] = useState<Record<string, boolean>>({});
+  const [headerMenuVisible, setHeaderMenuVisible] = useState(false);
 
   // Add/Edit Member State
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [editMemberId, setEditMemberId] = useState<string | null>(null);
   const [addMemberLoading, setAddMemberLoading] = useState(false);
   const [newMemberForm, setNewMemberForm] = useState({
@@ -319,7 +322,7 @@ export default function AdminMembers() {
                   const churchName = activeChurch?.name || 'WeChristian Church';
                   const churchCode = activeChurch?.subdomain?.toUpperCase() || (activeChurch as any)?.churchCode || '';
                   Share.share({
-                    message: `Hello ${newMemberForm.name},\n\nYou have been added to "${churchName}" on WeChristian!\n\nPlease download the app here: https://play.google.com/store/apps/details?id=com.wechristian.app\n\nOnce downloaded, sign in with your phone number. If asked, use Church Code: ${churchCode}`,
+                    message: `Hello ${newMemberForm.name},\n\nYou have been added to "${churchName}" on We Christian!\n\nChurch Code: *${churchCode}*\n\nDownload the app:\nhttps://play.google.com/store/apps/details?id=com.wechristian.app`,
                     title: `Join ${churchName}`,
                   });
                 }
@@ -454,21 +457,21 @@ export default function AdminMembers() {
 
       {/* ── Hero Section ── */}
       <View style={styles.hero}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
-            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1, paddingRight: 4 }}>
+            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 2 }} />
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>
-            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-            <View>
-              <Text style={styles.heroTitle}>Members</Text>
-              <Text style={[styles.heroSub, { marginTop: 2 }]}>{totalMembers} total · {activeMembers} active</Text>
-            </View>
+            <Text style={[styles.heroTitle, { marginHorizontal: 8, opacity: 0.4 }]}>|</Text>
+            <Text style={[styles.heroTitle, { flexShrink: 1 }]} numberOfLines={1}>Members</Text>
           </View>
-          <TouchableOpacity style={styles.newBtn} onPress={() => setAddModalVisible(true)}>
-            <Plus size={16} color="#1a2d5a" />
-            <Text style={styles.newBtnTxt}>New</Text>
+          
+          <TouchableOpacity 
+            onPress={() => setHeaderMenuVisible(true)} 
+            style={{ padding: 8, marginRight: -8 }}
+          >
+            <MoreVertical size={22} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
@@ -504,9 +507,10 @@ export default function AdminMembers() {
         </View>
 
         {/* Search Bar */}
-        <View style={styles.searchBarContainer}>
+        <View style={[styles.searchBarContainer, { marginBottom: 14 }]}>
+          <Search size={18} color="#9CA3AF" style={{ marginRight: 8 }} />
           <TextInput
-            placeholder="Search by name, email, phone, or village..."
+            placeholder="Search members..."
             placeholderTextColor="#9CA3AF"
             style={styles.searchInput}
             value={searchQuery}
@@ -773,6 +777,16 @@ export default function AdminMembers() {
         <View style={{ height: 100 }} />
       </ScrollView>
 
+      <InviteMembersModal
+        visible={inviteModalVisible}
+        onClose={() => setInviteModalVisible(false)}
+        churchName={activeChurch?.name || 'Our Church'}
+        churchCode={activeChurch?.subdomain?.toUpperCase() || ''}
+        churchId={activeChurch?.id || ''}
+        onMembersAdded={() => fetchMembers(true)}
+        existingMembers={members}
+      />
+
       {/* Add/Edit Member Modal */}
       <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => { setAddModalVisible(false); setEditMemberId(null); }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(26,45,90,0.6)', justifyContent: 'center', alignItems: 'center' }}>
@@ -929,6 +943,46 @@ export default function AdminMembers() {
         </TouchableOpacity>
       </Modal>
 
+      {/* Header Menu Modal */}
+      <Modal
+        visible={headerMenuVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setHeaderMenuVisible(false)}
+      >
+        <TouchableOpacity 
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }} 
+          activeOpacity={1} 
+          onPress={() => setHeaderMenuVisible(false)}
+        >
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, width: '80%', padding: 20, elevation: 10 }}>
+            <Text style={{ fontSize: 18, fontWeight: '700', color: '#1a2d5a', marginBottom: 16, textAlign: 'center' }}>Member Options</Text>
+            
+            <TouchableOpacity 
+              style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#f1f5f9', borderRadius: 12, marginBottom: 12 }} 
+              onPress={() => {
+                setHeaderMenuVisible(false);
+                setTimeout(() => setInviteModalVisible(true), 150);
+              }}
+            >
+              <UserPlus size={20} color="#1a2d5a" />
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1a2d5a', marginLeft: 12 }}>Add Contacts</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={{ flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#f1f5f9', borderRadius: 12 }} 
+              onPress={() => {
+                setHeaderMenuVisible(false);
+                setTimeout(() => setAddModalVisible(true), 150);
+              }}
+            >
+              <Plus size={20} color="#1a2d5a" />
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1a2d5a', marginLeft: 12 }}>Add Member</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
     </View>
   );
 }
@@ -998,11 +1052,12 @@ const styles = StyleSheet.create({
   statLbl: { fontSize: 10, color: '#6B7280', marginTop: 2, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
 
   searchBarContainer: { 
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF', 
     borderRadius: 12, 
     paddingHorizontal: 16, 
     height: 48, 
-    justifyContent: 'center', 
     borderWidth: 1.5, 
     borderColor: 'rgba(26,45,90,0.1)', 
     marginBottom: 14,
@@ -1012,7 +1067,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 1
   },
-  searchInput: { fontSize: 14, color: '#1a2d5a', fontWeight: '500' },
+  searchInput: { flex: 1, fontSize: 14, color: '#1a2d5a', fontWeight: '500' },
 
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 14 },
   filterChip: { 

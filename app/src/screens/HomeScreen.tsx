@@ -59,7 +59,10 @@ import { useTheme } from '../context/ThemeContext';
 import Theme from '../theme/Theme';
 import FirestoreService, { DailyPromise, ScheduleEvent, AppMember, Sermon } from '../services/FirestoreService';
 import { CustomAlert } from '../components/CustomAlert';
-import Svg, { Path, Circle, Rect, Polygon, Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Path, Circle, Rect, Polygon, Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText, Mask } from 'react-native-svg';
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
 
 const YoutubeIcon = ({ size = 26, color = '#fff' }: { size?: number; color?: string }) => (
   <Svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
@@ -68,7 +71,7 @@ const YoutubeIcon = ({ size = 26, color = '#fff' }: { size?: number; color?: str
   </Svg>
 );
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 // Utility to strip HTML tags
 const stripHtml = (html: string | undefined): string => {
@@ -273,7 +276,7 @@ let hasShownCelebrationThisSession = false; /* forced refresh */ // Reset by scr
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { user, signOut, member: authMember } = useAuth();
-  const { activeChurch } = useChurch();
+  const { activeChurch, isImpersonating, impersonatedBranchName, stopImpersonation } = useChurch();
   const { mode, isDark, toggleTheme, colors } = useTheme();
   const [member, setMember] = useState<AppMember | null>(authMember as AppMember | null);
   const [promise, setPromise] = useState<DailyPromise | null>(cachedPromise);
@@ -290,6 +293,7 @@ export default function HomeScreen() {
   const pan = useRef(new Animated.ValueXY()).current;
   const emojiAnim = useRef(new Animated.Value(0)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
+  const curveLineAnim = useRef(new Animated.Value(0)).current;
   const [currentEmojiIdx, setCurrentEmojiIdx] = useState(0);
 
   const fetchLiveCelebrations = async () => {
@@ -304,17 +308,7 @@ export default function HomeScreen() {
       
       const todays = allCelebs.filter((c: any) => {
         let isCeleb = false;
-        ['Birthdate', 'Anniversary_Date__c', 'Baptism_Date__c'].forEach(field => {
-          // Also check allBirthdates if it exists
-          if (field === 'Birthdate' && c.allBirthdates && c.allBirthdates.length > 0) {
-            c.allBirthdates.forEach((bDate: string) => {
-              const parts = bDate.split('-');
-              let mm, dd;
-              if (parts[0].length === 4) { mm = parseInt(parts[1], 10); dd = parseInt(parts[2], 10); }
-              else { dd = parseInt(parts[0], 10); mm = parseInt(parts[1], 10); }
-              if (mm === m && dd === d) isCeleb = true;
-            });
-          }
+        ['dob', 'anniversaryDate', 'baptismDate'].forEach(field => {
           if (c[field]) {
             const parts = c[field].split('-');
             let mm, dd;
@@ -348,7 +342,7 @@ export default function HomeScreen() {
       };
 
       if (member) {
-        const isSelfBirthday = isToday((member as any).dob) || isToday((member as any).birthdate) || isToday((member as any).dateOfBirth) || isToday((member as any).birthday);
+        const isSelfBirthday = isToday((member as any).dob);
         if (isSelfBirthday) {
           const alreadyInTodays = todays.some((t: any) => t.Id === (member as any).id || t.Phone === (member as any).phone);
           if (!alreadyInTodays) {
@@ -356,7 +350,7 @@ export default function HomeScreen() {
               ...member,
               Id: (member as any).id || 'self',
               Name: (member as any).name || (member as any).firstName || 'Member',
-              Birthdate: (member as any).dob || (member as any).birthdate || (member as any).dateOfBirth || (member as any).birthday,
+              dob: (member as any).dob,
               isSelf: true
             });
           }
@@ -415,9 +409,22 @@ export default function HomeScreen() {
     return () => wave.stop();
   }, [liveCelebrations.length]);
 
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.timing(curveLineAnim, {
+        toValue: 1,
+        duration: 12000, // Doubled to maintain speed since travel distance is much larger
+        easing: Easing.linear, // Prevents jumping/stuttering from default ease-in-out
+        useNativeDriver: false,
+      })
+    );
+    anim.start();
+    return () => anim.stop();
+  }, []);
+
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (e, gestureState) => Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5,
       onPanResponderGrant: () => {
         pan.setOffset({
           x: (pan.x as any)._value,
@@ -459,8 +466,11 @@ export default function HomeScreen() {
 
   const fetchData = async () => {
     try {
+      // Create a timeout promise to ensure the spinner doesn't hang indefinitely (max 2 seconds)
+      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 2000));
+      
       // Run ALL Salesforce calls in parallel for maximum speed
-      const [memberResult, promiseResult, todayEventsResult, upcomingEventsResult, sermonsResult, prayersResult] = await Promise.allSettled([
+      const fetchPromise = Promise.allSettled([
         // 1. Fetch Member Details
         user?.phoneNumber ? FirestoreService.checkContactExists(user.phoneNumber) : Promise.resolve(null),
         // 2. Fetch Daily Promise
@@ -470,23 +480,37 @@ export default function HomeScreen() {
         // 4. Fetch Upcoming Events
         FirestoreService.getUpcomingEvents(3),
         // 5. Fetch Latest Sermon
-        FirestoreService.getSermons(1),
-        // 6. Fetch Latest Prayer
-        (async () => {
-          if (!user?.phoneNumber) return [];
-          const res = await FirestoreService.checkContactExists(user.phoneNumber);
-          if (res?.member?.id) {
-            return await FirestoreService.getPrayerRequests({ contactId: res.member.id });
-          }
-          return [];
-        })()
+        FirestoreService.getSermons(1)
       ]);
+
+      const [memberResult, promiseResult, todayEventsResult, upcomingEventsResult, sermonsResult] = await Promise.race([
+        fetchPromise,
+        timeoutPromise.then(() => []) // If timeout hits, return empty array to unblock UI
+      ]) as any;
+
+      if (!memberResult) return; // Timeout hit or failed
+
+      let memberIdForPrayer = member?.id;
 
       // Process results safely
       if (memberResult.status === 'fulfilled' && memberResult.value?.exists && memberResult.value.member) {
         setMember(memberResult.value.member);
+        memberIdForPrayer = memberResult.value.member.id;
         FirestoreService.updateLastAppOpened(memberResult.value.member.id);
       }
+      
+      // Fetch Latest Prayer async without blocking the pull-to-refresh spinner
+      if (memberIdForPrayer) {
+        FirestoreService.getPrayerRequests({ contactId: memberIdForPrayer }).then((prayers: any[]) => {
+          if (prayers && prayers.length > 0) {
+            cachedLatestPrayer = prayers[0];
+            cachedPrayerCount = prayers.length;
+            setLatestPrayer(cachedLatestPrayer);
+            setPrayerCount(cachedPrayerCount);
+          }
+        }).catch(() => {});
+      }
+
       if (promiseResult.status === 'fulfilled' && promiseResult.value) {
         const prom = promiseResult.value;
         cachedPromise = prom;
@@ -511,13 +535,6 @@ export default function HomeScreen() {
         cachedLatestSermon = sermonsResult.value[0];
         setLatestSermon(cachedLatestSermon);
       }
-      if (prayersResult.status === 'fulfilled' && prayersResult.value?.length > 0) {
-        cachedLatestPrayer = prayersResult.value[0];
-        cachedPrayerCount = prayersResult.value.length;
-        setLatestPrayer(cachedLatestPrayer);
-        setPrayerCount(cachedPrayerCount);
-      }
-
     } catch (error) {
       console.error('Error fetching home data:', error);
     } finally {
@@ -571,7 +588,7 @@ export default function HomeScreen() {
         };
 
         const activeCelebrations: string[] = [];
-        if (isToday((member as any).dob) || isToday((member as any).birthdate) || isToday((member as any).dateOfBirth) || isToday((member as any).birthday)) activeCelebrations.push('birthday');
+        if (isToday((member as any).dob)) activeCelebrations.push('birthday');
         if (isToday((member as any).anniversaryDate)) activeCelebrations.push('wedding');
         if (isToday((member as any).baptismDate)) activeCelebrations.push('baptism');
 
@@ -758,8 +775,19 @@ export default function HomeScreen() {
               <View style={styles.notifBadge} />
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.avatarWrapper} onPress={() => handleGuestProtectedNavigation('Profile')}>
+            <TouchableOpacity style={styles.avatarWrapper} onPress={() => {
+              if (isImpersonating) return;
+              handleGuestProtectedNavigation('Profile');
+            }}>
               {(() => {
+                if (isImpersonating) {
+                  return (
+                    <View style={styles.avatarPlaceholder}>
+                      <Text style={styles.avatarLetter}>AD</Text>
+                    </View>
+                  );
+                }
+
                 const m: any = member;
                 let displayPhoto = null;
                 if (m) {
@@ -824,15 +852,59 @@ export default function HomeScreen() {
                 {getGreeting()},
               </SvgText>
             </Svg>
-            <Text style={styles.userNameCream} numberOfLines={1}>
-              {(`${member?.firstName || ''} ${member?.lastName || ''}`.trim()) || member?.name || user?.displayName || 'Guest'}
-            </Text>
+            {isImpersonating ? (
+              <Text style={[styles.userNameCream, { fontSize: 22, marginTop: 4 }]} numberOfLines={1}>
+                Branch Admin
+              </Text>
+            ) : (
+              <Text style={styles.userNameCream} numberOfLines={1}>
+                {(`${member?.firstName || ''} ${member?.lastName || ''}`.trim()) || member?.name || user?.displayName || 'Guest'}
+              </Text>
+            )}
           </View>
           
           <View style={{ position: 'absolute', right: 20, top: 5 }}>
             <HexagonDate />
           </View>
         </View>
+
+        {/* Animated Gradient Glow Line */}
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 35 }}>
+          <Svg width={width} height={35}>
+            <Defs>
+              <SvgLinearGradient id="borderGrad" x1="0" y1="0" x2="1" y2="0">
+                <Stop offset="0%" stopColor="#f59e0b" />
+                <Stop offset="30%" stopColor="#ec4899" />
+                <Stop offset="70%" stopColor="#8b5cf6" />
+                <Stop offset="100%" stopColor="#3b82f6" />
+              </SvgLinearGradient>
+
+            </Defs>
+            
+            {/* Static Gradient Border */}
+            <Path
+              d={`M 0 0 A 30 30 0 0 0 30 30 L ${width - 30} 30 A 30 30 0 0 0 ${width} 0`}
+              stroke="url(#borderGrad)"
+              strokeWidth={3}
+              fill="none"
+            />
+
+            {/* Light Glow Animation passing on top of the border */}
+            <AnimatedPath
+              d={`M 0 0 A 30 30 0 0 0 30 30 L ${width - 30} 30 A 30 30 0 0 0 ${width} 0`}
+              stroke="rgba(255, 255, 255, 0.6)"
+              strokeWidth={3}
+              fill="none"
+              strokeLinecap="round"
+              strokeDasharray={`${width * 0.25}, 10000`}
+              strokeDashoffset={curveLineAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [width, -(width * 2)]
+              })}
+            />
+          </Svg>
+        </View>
+
       </LinearGradient>
 
       <ScrollView 

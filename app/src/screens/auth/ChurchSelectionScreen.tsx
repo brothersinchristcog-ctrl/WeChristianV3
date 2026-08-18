@@ -14,22 +14,35 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RouteProp } from '@react-navigation/native';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useChurch } from '../../context/ChurchContext';
 import { Church, Search, ArrowRight, Plus } from 'lucide-react-native';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import { SubscriptionGuard } from '../../services/SubscriptionGuard';
+import * as Application from 'expo-application';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'ChurchSelection'>;
+  route: RouteProp<AuthStackParamList, 'ChurchSelection'>;
 };
 
-export default function ChurchSelectionScreen({ navigation }: Props) {
+export default function ChurchSelectionScreen({ navigation, route }: Props) {
   const { setChurchId } = useChurch();
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(route.params?.code || '');
   const [loading, setLoading] = useState(false);
-  const handleJoinByCode = async () => {
-    const trimmed = code.trim().toUpperCase();
+  const initialized = React.useRef(false);
+
+  React.useEffect(() => {
+    if (route.params?.code && !initialized.current) {
+      initialized.current = true;
+      handleJoinByCode(route.params.code);
+    }
+  }, [route.params?.code]);
+
+  const handleJoinByCode = async (overrideCode?: string) => {
+    const codeToUse = (typeof overrideCode === 'string' ? overrideCode : code);
+    const trimmed = codeToUse.trim().toUpperCase();
     if (trimmed.length < 4) {
       Alert.alert('Invalid Code', 'Please enter a valid Church Code.');
       return;
@@ -95,7 +108,7 @@ export default function ChurchSelectionScreen({ navigation }: Props) {
                 />
                 <TouchableOpacity
                   style={[styles.primaryBtn, (!code.trim() || loading) && styles.btnDisabled]}
-                  onPress={handleJoinByCode}
+                  onPress={() => handleJoinByCode()}
                   disabled={!code.trim() || loading}
                 >
                   {loading ? (

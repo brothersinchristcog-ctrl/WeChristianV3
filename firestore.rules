@@ -133,7 +133,12 @@ service cloud.firestore {
           let hasMemberDoc = exists(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
           let isMemberAdmin = hasMemberDoc && get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
           
-          return isAuthenticated() && (isGlobalAdmin || isMemberAdmin);
+          let churchData = resource != null ? resource.data : get(/databases/$(database)/documents/churches/$(churchId)).data;
+          let parentId = churchData.get('parentChurchId', null);
+          let hasParentMemberDoc = parentId != null && exists(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid));
+          let isParentAdmin = hasParentMemberDoc && get(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
+
+          return isAuthenticated() && (isGlobalAdmin || isMemberAdmin || isParentAdmin);
         }
 
       // Church info is public — allow lookup by code even before login (needed during signup).

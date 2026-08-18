@@ -67,6 +67,8 @@ export default function SuperAdminDashboard({ navigation }: any) {
       // 1. Create church document first
       const churchId = await ChurchService.createChurch({
         name: formData.name,
+        churchCode: formData.subdomain.toUpperCase().substring(0, 6) + Math.floor(100 + Math.random() * 900),
+        isParentOrganization: true,
         tagline: formData.tagline,
         subdomain: formData.subdomain.toLowerCase(),
         contactEmail: 'admin@' + formData.subdomain.toLowerCase() + '.com',

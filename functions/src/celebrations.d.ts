@@ -1,5 +1,5 @@
 import * as functions from 'firebase-functions/v1';
-export declare const weCelebrationDailySweep: functions.CloudFunction<unknown>;
+export declare const weCelebrationDailySweepV3: functions.CloudFunction<unknown>;
 /**
  * HTTP endpoint so Cloud Scheduler can Force-Run the daily celebrations sweep.
  */

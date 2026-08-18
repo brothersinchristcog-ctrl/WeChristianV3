@@ -10,7 +10,7 @@ import { sendWhatsAppTemplateInternal } from './whatsapp.js';
 import { generateCelebrationImage } from './imageGenerator.js';
 import { randomUUID } from 'crypto';
 export {
-  weCelebrationDailySweep,
+  weCelebrationDailySweepV3,
   weCelebrationWishCreatedTrigger,
   weCelebrationBatchedWishes,
   executeBatchedWishes,

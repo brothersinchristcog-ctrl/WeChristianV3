@@ -9,6 +9,12 @@ interface ChurchContextType {
   setChurchId: (id: string) => Promise<void>;
   setActiveChurch: (church: ChurchDetails | null) => void;
   loading: boolean;
+  // Multi-branch impersonation
+  originalChurchId: string | null;
+  isImpersonating: boolean;
+  impersonatedBranchName: string | null;
+  startImpersonation: (branchId: string, branchName: string) => Promise<void>;
+  stopImpersonation: () => Promise<void>;
 }
 
 const ChurchContext = createContext<ChurchContextType | undefined>(undefined);
@@ -18,6 +24,11 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [activeChurch, setActiveChurch] = useState<ChurchDetails | null>(null);
   const [churchId, setChurchIdState] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Multi-branch impersonation state
+  const [originalChurchId, setOriginalChurchId] = useState<string | null>(null);
+  const [impersonatedBranchName, setImpersonatedBranchName] = useState<string | null>(null);
+  const isImpersonating = !!originalChurchId;
 
   // When auth state changes, if the member has a churchId, use it.
   useEffect(() => {
@@ -77,8 +88,52 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const startImpersonation = async (branchId: string, branchName: string) => {
+    setLoading(true);
+    try {
+      const details = await ChurchService.getChurchDetails(branchId);
+      if (details) {
+        if (!originalChurchId) {
+          setOriginalChurchId(churchId);
+        }
+        setImpersonatedBranchName(branchName);
+        setActiveChurch(details);
+        setChurchIdState(branchId);
+        await require('../services/FirestoreService').default.setChurchId(branchId);
+      }
+    } catch (e) {
+      console.error('Error starting impersonation', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stopImpersonation = async () => {
+    if (originalChurchId) {
+      setLoading(true);
+      try {
+        const details = await ChurchService.getChurchDetails(originalChurchId);
+        if (details) {
+          setActiveChurch(details);
+          setChurchIdState(originalChurchId);
+          await require('../services/FirestoreService').default.setChurchId(originalChurchId);
+          setOriginalChurchId(null);
+          setImpersonatedBranchName(null);
+        }
+      } catch (e) {
+        console.error('Error stopping impersonation', e);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   return (
-    <ChurchContext.Provider value={{ activeChurch, churchId, setChurchId, setActiveChurch, loading }}>
+    <ChurchContext.Provider value={{ 
+      activeChurch, churchId, setChurchId, setActiveChurch, loading,
+      originalChurchId, isImpersonating, impersonatedBranchName,
+      startImpersonation, stopImpersonation
+    }}>
       {children}
     </ChurchContext.Provider>
   );

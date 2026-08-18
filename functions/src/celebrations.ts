@@ -36,8 +36,18 @@ function getTodayStr(): string {
 }
 
 async function runDailyCelebrationsSweep() {
-  const monthDay = getTodayMonthDay();
   const todayStr = getTodayStr();
+
+  // We use the IST date components (m, d) to match
+  const today = new Date();
+  const istFormatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    month: 'numeric',
+    day: 'numeric'
+  });
+  const parts = istFormatter.formatToParts(today);
+  const m = parseInt(parts.find(p => p.type === 'month')?.value || '0', 10);
+  const d = parseInt(parts.find(p => p.type === 'day')?.value || '0', 10);
 
   // Find all churches
   const churchesSnap = await getDb().collection('churches').get();
@@ -45,25 +55,49 @@ async function runDailyCelebrationsSweep() {
   for (const churchDoc of churchesSnap.docs) {
     const churchId = churchDoc.id;
 
-    // Query members for today's celebrations
-    const membersRef = getDb().collection('churches').doc(churchId).collection('members');
-
-    const [birthdaysSnap, anniversariesSnap, baptismsSnap] = await Promise.all([
-      membersRef.where('dob', '==', monthDay).get(),
-      membersRef.where('weddingAnniversary', '==', monthDay).get(),
-      membersRef.where('baptismDate', '==', monthDay).get()
-    ]);
+    // Fetch all members for this church
+    const membersSnap = await getDb().collection('churches').doc(churchId).collection('members').get();
 
     const celebrantsMap = new Map<string, any>();
 
-    birthdaysSnap.docs.forEach((doc: any) => {
-      celebrantsMap.set(doc.id, { id: doc.id, data: doc.data(), type: 'Birthday' });
-    });
-    anniversariesSnap.docs.forEach((doc: any) => {
-      celebrantsMap.set(doc.id, { id: doc.id, data: doc.data(), type: 'Wedding Anniversary' });
-    });
-    baptismsSnap.docs.forEach((doc: any) => {
-      celebrantsMap.set(doc.id, { id: doc.id, data: doc.data(), type: 'Baptism Anniversary' });
+    // We use the IST date components (m, d) to match
+    const checkDate = (dateStr: any) => {
+      if (!dateStr || typeof dateStr !== 'string') return false;
+      const dParts = dateStr.split(/[-/]/);
+      if (dParts.length < 3) return false;
+      const p0 = dParts[0];
+      const p1 = dParts[1];
+      const p2 = dParts[2];
+      if (!p0 || !p1 || !p2) return false;
+      
+      let month, day;
+      if (p0.length === 4) { // YYYY-MM-DD
+        month = parseInt(p1, 10);
+        day = parseInt(p2, 10);
+      } else { // DD-MM-YYYY
+        day = parseInt(p0, 10);
+        month = parseInt(p1, 10);
+      }
+      return month === m && day === d;
+    };
+
+    membersSnap.forEach((doc: any) => {
+      const data = doc.data();
+      
+      const dobStr = data.dob;
+      if (checkDate(dobStr)) {
+        celebrantsMap.set(doc.id + '_bday', { id: doc.id + '_bday', memberId: doc.id, data, type: 'Birthday' });
+      }
+      
+      const annivStr = data.anniversaryDate;
+      if (checkDate(annivStr)) {
+        celebrantsMap.set(doc.id + '_anniv', { id: doc.id + '_anniv', memberId: doc.id, data, type: 'Wedding Anniversary' });
+      }
+
+      const bapStr = data.baptismDate;
+      if (checkDate(bapStr)) {
+        celebrantsMap.set(doc.id + '_bap', { id: doc.id + '_bap', memberId: doc.id, data, type: 'Baptism Anniversary' });
+      }
     });
 
     if (celebrantsMap.size === 0) continue;
@@ -93,6 +127,7 @@ async function runDailyCelebrationsSweep() {
       if (celebrant.data.fcmToken) fcmTokens.push(celebrant.data.fcmToken);
 
       await liveDocRef.collection('celebrants').doc(celebrant.id).set({
+        memberId: celebrant.memberId,
         name: name,
         type: celebrant.type,
         fcmTokens: Array.from(new Set(fcmTokens)), // unique
@@ -131,7 +166,7 @@ async function runDailyCelebrationsSweep() {
     }
 
     const broadcastPayload = {
-      topic: `church_${churchId}_all`,
+      topic: `church_${churchId}`,
       notification: {
         title: "🎉 Today's Celebrations",
         body: broadcastBody
@@ -156,7 +191,7 @@ async function runDailyCelebrationsSweep() {
   }
 }
 
-export const weCelebrationDailySweep = functions.pubsub.schedule('0 7 * * *').timeZone('Asia/Kolkata').onRun(async (context: any) => {
+export const weCelebrationDailySweepV3 = functions.pubsub.schedule('0 7 * * *').timeZone('Asia/Kolkata').onRun(async (context: any) => {
   await runDailyCelebrationsSweep();
   return null;
 });
@@ -231,14 +266,14 @@ async function runBatchedWishesSweep() {
     const unnotified = data.unnotifiedWishes || 0;
     const total = data.totalWishes || 0;
     const type = data.type || 'Celebration';
-    const celebrantMemberId = doc.id;
+    const celebrantMemberId = data.memberId || doc.id.split('_')[0];
 
     // Try to get up-to-date FCM tokens from the member document
     if (tokens.length === 0) {
       // Path: churches/{churchId}/live_celebrations/{dateId}/celebrants/{memberId}
       // Parent path gives us the church
       const pathParts = doc.ref.path.split('/');
-      // pathParts: ['churches', churchId, 'live_celebrations', dateId, 'celebrants', memberId]
+      // pathParts: ['churches', churchId, 'live_celebrations', dateId, 'celebrants', celebrantId]
       if (pathParts.length >= 6) {
         const churchId = pathParts[1] as string;
         const memberSnap = await getDb()

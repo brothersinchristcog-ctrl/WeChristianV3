@@ -77,8 +77,21 @@ export default function App() {
     return unsubscribe;
   }, [slideAnim]);
 
+  const linking = {
+    prefixes: ['wechristian://', 'https://wechristian.app'],
+    config: {
+      screens: {
+        Auth: {
+          screens: {
+            ChurchSelection: 'invite',
+          }
+        }
+      }
+    }
+  };
+
   return (
-    <NavigationContainer ref={navigationRef}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <StatusBar style="light" />
       <RootNavigator />
       

@@ -1294,8 +1294,8 @@ class FirestoreService {
       const d = today.getDate();
       
       return all.filter(c => {
-        if (!c.Birthdate) return false;
-        const parts = c.Birthdate.split('-');
+        if (!c.dob) return false;
+        const parts = c.dob.split('-');
         if (parts.length < 3) return false;
         let month, day;
         if (parts[0].length === 4) { // YYYY-MM-DD
@@ -1320,8 +1320,8 @@ class FirestoreService {
       const d = today.getDate();
 
       return all.filter(c => {
-        if (!c.Anniversary_Date__c) return false;
-        const parts = c.Anniversary_Date__c.split('-');
+        if (!c.anniversaryDate) return false;
+        const parts = c.anniversaryDate.split('-');
         if (parts.length < 3) return false;
         let month, day;
         if (parts[0].length === 4) { // YYYY-MM-DD

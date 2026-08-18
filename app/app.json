@@ -5,7 +5,7 @@
     "scheme": "wechristian",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon_clean.png",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -27,7 +27,7 @@
       "package": "com.wechristian.app",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon_clean.png",
+        "foregroundImage": "./assets/adaptive-logo.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
@@ -59,7 +59,13 @@
         }
       ],
       "expo-web-browser",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "Allow We Christian to access your contacts to invite members to the church."
+        }
+      ]
     ],
     "extra": {
       "eas": {

@@ -535,9 +535,9 @@ export default function LiveCelebrationsChat({ navigation, route }: any) {
       return false;
     };
 
-    if (checkDate(celeb.Birthdate || celeb.dob || celeb.birthday || celeb.dateOfBirth)) return 'Birthday';
-    if (checkDate(celeb.Anniversary_Date__c || celeb.weddingAnniversary)) return 'Wedding Anniversary';
-    if (checkDate(celeb.Baptism_Date__c || celeb.baptismDate)) return 'Baptism';
+    if (checkDate(celeb.dob)) return 'Birthday';
+    if (checkDate(celeb.anniversaryDate)) return 'Wedding Anniversary';
+    if (checkDate(celeb.baptismDate)) return 'Baptism';
     
     return 'Birthday'; // Default fallback
   };

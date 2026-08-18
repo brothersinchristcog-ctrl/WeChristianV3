@@ -285,7 +285,7 @@ export default function MembersScreen({ navigation }: any) {
                           phone: contactPhone || '',
                           relation: c.relation || c.Relation || 'Child',
                           gender: c.gender || c.Gender || 'Male',
-                          dob: c.dob || c.birthdate || c.dateOfBirth || c.birthday || c.Birthdate || '',
+                          dob: c.dob || '',
                           anniversaryDate: c.anniversaryDate || c.AnniversaryDate || ''
                         });
                         setShowAddModal(true);

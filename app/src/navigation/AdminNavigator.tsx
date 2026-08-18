@@ -36,7 +36,9 @@ import {
   Building2,
   PhoneCall,
   Sliders,
-  ChevronLeft
+  ChevronLeft,
+  Eye,
+  X
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -57,6 +59,7 @@ import AdminPrayerModeration from '../screens/admin/AdminPrayerModeration';
 import AdminSongEditor from '../screens/admin/AdminSongEditor';
 import AdminMembers from '../screens/admin/AdminMembers';
 import AdminCelebrations from '../screens/admin/AdminCelebrations';
+import AdminOrganization from '../screens/admin/AdminOrganization'; // Re-evaluating import
 import AdminAboutUsEditor from '../screens/admin/AdminAboutUsEditor';
 import AdminContactUsEditor from '../screens/admin/AdminContactUsEditor';
 import AdminChurchSettings from '../screens/admin/AdminChurchSettings';
@@ -98,7 +101,7 @@ const DotGridIcon = ({ color, size }: { color: string; size: number }) => {
 
 export default function AdminNavigator({ navigation, route }: any) {
   const { signOut, user, member, setViewMode } = useAuth();
-  const { activeChurch } = useChurch();
+  const { activeChurch, isImpersonating, impersonatedBranchName, stopImpersonation } = useChurch();
   const [activeTab, setActiveTab] = useState(0);
   const [tabHistory, setTabHistory] = useState<number[]>([]);
   const [editingData, setEditingData] = useState(null);
@@ -107,7 +110,8 @@ export default function AdminNavigator({ navigation, route }: any) {
     visible: boolean;
     title: string;
     message: string;
-    type: 'success' | 'info' | 'error' | 'warning';
+    type: 'success' | 'info' | 'error' | 'warning' | 'confirm';
+    onConfirm?: () => void;
   }>({ visible: false, title: '', message: '', type: 'info' });
 
   useEffect(() => {
@@ -191,6 +195,7 @@ export default function AdminNavigator({ navigation, route }: any) {
 
   const tabs = [
     { name: 'Dashboard', icon: DotGridIcon, component: AdminDashboard },
+    ...(activeChurch?.isParentOrganization ? [{ name: 'Church Branches', icon: Building2, component: AdminOrganization }] : []),
     { name: 'Promises', icon: BookOpen, component: AdminPromiseList },
     { name: 'New Promise', icon: BookPlus, component: AdminPromiseEditor },
     { name: 'Schedule', icon: CalendarClock, component: AdminPromiseCalendar },
@@ -262,11 +267,106 @@ export default function AdminNavigator({ navigation, route }: any) {
     <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack, setTabByName, dashboardScrollY, setDashboardScrollY }}>
       <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
         <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : '#1a2d5a' }} />
+        
+        {isImpersonating && (
+          <TouchableOpacity 
+            activeOpacity={0.8}
+            style={{ 
+              backgroundColor: '#1a2d5a', 
+              marginHorizontal: 16,
+              marginTop: 12,
+              marginBottom: 4,
+              borderRadius: 100, // Pill shape
+              paddingVertical: 10, 
+              paddingHorizontal: 14,
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              shadowColor: '#1a2d5a',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.25,
+              shadowRadius: 12,
+              elevation: 8,
+              zIndex: 10
+            }}
+            onPress={() => {
+              setAlertConfig({
+                visible: true,
+                title: "Return to Main Church",
+                message: "Are you sure you want to stop viewing this branch and return to your main organization dashboard?",
+                type: 'confirm',
+                onConfirm: async () => { 
+                  if (setDashboardScrollY) setDashboardScrollY(0);
+                  handleSetTab(0);
+                  await stopImpersonation(); 
+                }
+              });
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+              <View style={{ backgroundColor: 'rgba(255,255,255,0.15)', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginRight: 12 }}>
+                <Eye size={18} color="#fff" />
+              </View>
+              <View style={{ flex: 1, paddingRight: 12, justifyContent: 'center' }}>
+                <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 2 }}>
+                  Viewing Branch
+                </Text>
+                <Text style={{ color: '#fff', fontWeight: '800', fontSize: 14 }}>
+                  {impersonatedBranchName}
+                </Text>
+              </View>
+            </View>
+            <View style={{ backgroundColor: 'rgba(239, 68, 68, 0.15)', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 }}>
+              <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '800' }}>Exit</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
         {activeTab !== 0 && (
           <View style={[styles.header, { backgroundColor: '#1a2d5a' }]}>
             <View style={styles.headerTop}>
               <View style={styles.headerText}>
-                <Text style={styles.headerTitle}>Admin Dashboard</Text>
+                {/* Admin Dashboard text removed as requested */}
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Custom Alert Modal */}
+        {alertConfig.visible && (
+          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+            <View style={{ backgroundColor: '#fff', width: '85%', borderRadius: 16, padding: 24, alignItems: 'center' }}>
+              <View style={{ width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', marginBottom: 16, backgroundColor: alertConfig.type === 'error' ? '#fee2e2' : alertConfig.type === 'confirm' ? '#e0e7ff' : alertConfig.type === 'warning' ? '#fef3c7' : alertConfig.type === 'info' ? '#e0f2fe' : '#dcfce7' }}>
+                {alertConfig.type === 'error' ? (
+                  <Text style={{fontSize: 24}}>❌</Text>
+                ) : alertConfig.type === 'confirm' ? (
+                  <Text style={{fontSize: 24}}>❓</Text>
+                ) : alertConfig.type === 'warning' ? (
+                  <Text style={{fontSize: 24}}>⚠️</Text>
+                ) : alertConfig.type === 'info' ? (
+                  <Text style={{fontSize: 24}}>ℹ️</Text>
+                ) : (
+                  <Text style={{fontSize: 24}}>✅</Text>
+                )}
+              </View>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 8, textAlign: 'center' }}>{alertConfig.title}</Text>
+              <Text style={{ fontSize: 15, color: '#475569', textAlign: 'center', marginBottom: 24, lineHeight: 22 }}>{alertConfig.message}</Text>
+              
+              <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'center' }}>
+                {alertConfig.type === 'confirm' && (
+                  <TouchableOpacity style={{ paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12, marginRight: 12, backgroundColor: '#f1f5f9' }} onPress={() => setAlertConfig({...alertConfig, visible: false})}>
+                    <Text style={{ color: '#475569', fontSize: 16, fontWeight: '700' }}>Cancel</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity 
+                  style={{ paddingVertical: 12, paddingHorizontal: 32, borderRadius: 12, minWidth: 120, alignItems: 'center', backgroundColor: alertConfig.type === 'error' ? '#ef4444' : alertConfig.type === 'confirm' ? '#1a2d5a' : alertConfig.type === 'warning' ? '#f59e0b' : alertConfig.type === 'info' ? '#0ea5e9' : '#22c55e' }} 
+                  onPress={() => {
+                    setAlertConfig({...alertConfig, visible: false});
+                    if (alertConfig.onConfirm) alertConfig.onConfirm();
+                  }}
+                >
+                  <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>{alertConfig.type === 'confirm' ? 'Yes, Return' : 'Got it'}</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -283,13 +383,6 @@ export default function AdminNavigator({ navigation, route }: any) {
         {/* Premium Floating Bottom Tab Bar Removed */}
 
         {/* Full-Height Left Side Drawer Overlay Removed */}
-        <CustomAlert
-          visible={alertConfig.visible}
-          title={alertConfig.title}
-          message={alertConfig.message}
-          type={alertConfig.type}
-          onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
-        />
 
       </View>
     </AdminTabContext.Provider>

@@ -99,9 +99,9 @@ export default function AdminCelebrationsList({ category, activeTab, onSelectMem
 
         if (category === 'All') {
             data.forEach((d: any) => {
-                const bday = processEvent(d, 'Birthdate', 'Birthday');
-                const wedding = processEvent(d, 'Anniversary_Date__c', 'Wedding Anniversary');
-                const baptism = processEvent(d, 'Baptism_Date__c', 'Baptism Anniversary');
+                const bday = processEvent(d, 'dob', 'Birthday');
+                const wedding = processEvent(d, 'anniversaryDate', 'Wedding Anniversary');
+                const baptism = processEvent(d, 'baptismDate', 'Baptism Anniversary');
                 
                 if (bday) processed.push(bday);
                 if (wedding) processed.push(wedding);
@@ -109,9 +109,9 @@ export default function AdminCelebrationsList({ category, activeTab, onSelectMem
             });
         } else {
             let dateField = '';
-            if (category === 'Birthday') dateField = 'Birthdate';
-            else if (category === 'Wedding Anniversary') dateField = 'Anniversary_Date__c';
-            else if (category === 'Baptism Anniversary') dateField = 'Baptism_Date__c';
+            if (category === 'Birthday') dateField = 'dob';
+            else if (category === 'Wedding Anniversary') dateField = 'anniversaryDate';
+            else if (category === 'Baptism Anniversary') dateField = 'baptismDate';
             
             if (dateField) {
                 processed = data.filter((d: any) => !!d[dateField]).map((d: any) => processEvent(d, dateField, category)).filter(Boolean);
