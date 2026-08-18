@@ -21,6 +21,10 @@ export default function AdminOrganization({ navigation }: any) {
   const [creating, setCreating] = useState(false);
   const [editingBranchId, setEditingBranchId] = useState<string | null>(null);
   
+  // New Admin State
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminPhone, setNewAdminPhone] = useState('');
+  
   // Custom Alert Modal State
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
@@ -43,6 +47,17 @@ export default function AdminOrganization({ navigation }: any) {
       console.log(error);
     }
   };
+
+  const handleShareBranch = async (branch: ChurchDetails) => {
+    try {
+      await Share.share({
+        message: `We've created a new branch: ${branch.name}!\nYou have been added to "${activeChurch?.name || 'our Church'}" on WeChristian!\n\nPlease download the app here: https://play.google.com/store/apps/details?id=com.wechristian.app\n\nOnce downloaded, sign in with your phone number. If asked, use Church Code: ${branch.churchCode}`
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   const handleNameChange = (text: string) => {
     setNewBranchName(text);
     if (text.length > 0 && !editingBranchId) {
@@ -112,10 +127,22 @@ export default function AdminOrganization({ navigation }: any) {
           isParentOrganization: false
         };
 
-        await ChurchService.createBranch(activeChurch.id, newBranch);
+        const newBranchId = await ChurchService.createBranch(activeChurch.id, newBranch);
+        
+        if (newAdminName && newAdminPhone) {
+          // Add the admin to the new branch
+          const FirestoreService = require('../../services/FirestoreService').default;
+          await FirestoreService.adminAddMember(newBranchId, {
+            name: newAdminName,
+            phone: newAdminPhone,
+            userType: 'Admin'
+          });
+        }
         
         setNewBranchName('');
         setNewBranchCode('');
+        setNewAdminName('');
+        setNewAdminPhone('');
         setShowCreateModal(false);
         setBranchSuccess({ visible: true, name: newBranch.name, code: newBranch.churchCode });
         
@@ -236,6 +263,9 @@ export default function AdminOrganization({ navigation }: any) {
                 </View>
               </View>
               <View style={styles.branchActions}>
+                <TouchableOpacity style={styles.iconBtn} onPress={() => handleShareBranch(branch)}>
+                  <Share2 size={18} color="#10b981" />
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.iconBtn} onPress={() => handleEditBranch(branch)}>
                   <Edit2 size={18} color="#64748b" />
                 </TouchableOpacity>
@@ -285,12 +315,30 @@ export default function AdminOrganization({ navigation }: any) {
                   editable={false}
                   placeholder="Type a name to generate..." 
                 />
-                <Text style={styles.helpText}>This code is automatically generated. Members will use it to join this branch.</Text>
+                
+                <Text style={styles.label}>Branch Admin Name (Optional)</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={newAdminName} 
+                  onChangeText={setNewAdminName} 
+                  placeholder="e.g. Pastor John" 
+                />
+
+                <Text style={styles.label}>Branch Admin Phone (Optional)</Text>
+                <TextInput 
+                  style={styles.input} 
+                  value={newAdminPhone} 
+                  onChangeText={setNewAdminPhone} 
+                  placeholder="e.g. +91 9876543210" 
+                  keyboardType="phone-pad"
+                />
+
+                <Text style={styles.helpText}>This code is automatically generated. Members will use it to join this branch. If an admin phone is provided, they will immediately have admin access.</Text>
               </>
             )}
 
             <View style={styles.modalActions}>
-              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowCreateModal(false); setNewBranchName(''); setNewBranchCode(''); setEditingBranchId(null); }}>
+              <TouchableOpacity style={styles.cancelBtn} onPress={() => { setShowCreateModal(false); setNewBranchName(''); setNewBranchCode(''); setNewAdminName(''); setNewAdminPhone(''); setEditingBranchId(null); }}>
                 <Text style={styles.cancelBtnTxt}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.createBtn} onPress={handleCreateBranch} disabled={creating}>

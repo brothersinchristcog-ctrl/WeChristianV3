@@ -168,10 +168,23 @@ class ChurchService {
         .orderBy('name')
         .get();
         
-      return snapshot.docs.map(doc => ({
+      const branches = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as ChurchDetails[];
+
+      // Fetch member count dynamically for each branch
+      const branchesWithCounts = await Promise.all(branches.map(async (branch) => {
+        try {
+          const countSnap = await firestore().collection('churches').doc(branch.id).collection('members').count().get();
+          return { ...branch, memberCount: countSnap.data().count };
+        } catch (e) {
+          console.error(`Error fetching member count for branch ${branch.id}:`, e);
+          return branch;
+        }
+      }));
+
+      return branchesWithCounts;
     } catch (error) {
       console.error('Error fetching branches:', error);
       return [];
