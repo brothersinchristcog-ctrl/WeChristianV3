@@ -198,10 +198,10 @@ export default function AdminPromiseCalendar() {
                   key={day} 
                   style={[
                     styles.calDay,
-                    isToday && styles.cToday,
                     isMissing && styles.cMiss,
                     isDraft && styles.cDft,
-                    (isPublished || isScheduled) && styles.cPub
+                    (isPublished || isScheduled) && styles.cPub,
+                    isToday && styles.cToday,
                   ]}
                   onPress={() => { 
                     setEditingData(promise || { date: dStr }); 
@@ -210,17 +210,17 @@ export default function AdminPromiseCalendar() {
                 >
                   <Text style={[
                     styles.calNum,
-                    isToday && styles.cTodayNum,
                     isMissing && styles.cMissNum,
                     isDraft && styles.cDftNum,
                     (isPublished || isScheduled) && styles.cPubNum,
+                    isToday && styles.cTodayNum,
                   ]}>{day}</Text>
                   <Text style={[
                     styles.calStatus,
-                    isToday && styles.cTodayStatus,
                     isMissing && styles.cMissStatus,
                     isDraft && styles.cDftStatus,
                     (isPublished || isScheduled) && styles.cPubStatus,
+                    isToday && styles.cTodayStatus,
                   ]}>
                     {isToday ? 'Today' : isMissing ? 'Missing' : isDraft ? 'Draft' : 'OK'}
                   </Text>

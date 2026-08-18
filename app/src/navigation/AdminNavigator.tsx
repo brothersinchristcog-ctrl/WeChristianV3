@@ -75,7 +75,8 @@ import DonationsDashboard from '../screens/admin/DonationsDashboard';
 import AdminDashboard from '../screens/admin/AdminDashboard';
 import AdminOnlineMeetings from '../screens/admin/AdminOnlineMeetings';
 import AdminOnlineMeetingEditor from '../screens/admin/AdminOnlineMeetingEditor';
-import { Shield, Video as VideoIcon } from 'lucide-react-native';
+import AdminSupportTeam from '../screens/admin/AdminSupportTeam';
+import { Shield, Video as VideoIcon, Headset } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -214,6 +215,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     ...(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') ? [{ name: 'WhatsApp', icon: MessageCircle, component: AdminWhatsAppInbox }] : []),
     { name: 'About Us', icon: Building2, component: AdminAboutUsEditor },
     { name: 'Contact Us', icon: PhoneCall, component: AdminContactUsEditor },
+    { name: 'Support Team', icon: Headset, component: AdminSupportTeam },
     { name: 'Church Settings', icon: Sliders, component: AdminChurchSettings },
     { name: 'Expense', icon: Wallet, component: AdminFinanceDashboard },
     { name: 'Donations', icon: HeartHandshake, component: DonationsDashboard },

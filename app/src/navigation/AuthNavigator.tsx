@@ -10,7 +10,7 @@ import JoinSuccessScreen from '../screens/auth/JoinSuccessScreen';
 import Theme from '../theme/Theme';
 
 export type AuthStackParamList = {
-  Login: undefined;
+  Login: { showPhoneInput?: boolean } | undefined;
   SignUp: undefined;
   RegistrationSuccess: undefined;
   VerifyOtp: { confirmation: any; phoneNumber: string; contactId?: string; memberName?: string; formData?: any; isSignUp?: boolean };

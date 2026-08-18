@@ -78,7 +78,7 @@ const PUBLISH_STATUS_OPTIONS = [
 ];
 
 export default function AdminEventEditor() {
-  const { setActiveTab, editingData, setEditingData } = useContext(AdminTabContext);
+  const { setActiveTab, editingData, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [loading, setLoading] = useState(false);
 
   // Form State
@@ -261,16 +261,30 @@ export default function AdminEventEditor() {
       setPublishStatus(status);
       setLoading(true);
     // 🛠️ FIX: Re-format date for Salesforce (wants YYYY-MM-DD)
-    const dateParts = date.split('-');
-    const sfDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+    const cleanDate = (date || '').trim();
+    let sfDate = cleanDate;
+    if (cleanDate.includes('-')) {
+      const parts = cleanDate.split('-');
+      if (parts.length === 3) {
+        if (parts[2].length === 4) {
+          sfDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        } else if (parts[0].length === 4) {
+          sfDate = cleanDate;
+        }
+      }
+    }
 
     const formatToSFTime = (timeStr: string) => {
       if (!timeStr) return null;
       try {
-        const [time, period] = timeStr.split(' ');
-        let [hours, minutes] = time.split(':').map(Number);
-        if (period === 'PM' && hours < 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
+        const cleanStr = timeStr.toUpperCase().replace(/\s+/g, '').replace(/[\u202F\u00A0]/g, '');
+        const isPM = cleanStr.includes('PM');
+        const isAM = cleanStr.includes('AM');
+        const timePart = cleanStr.replace('AM', '').replace('PM', '');
+        let [hours, minutes] = timePart.split(':').map(Number);
+        if (isNaN(minutes)) minutes = 0;
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
         return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00.000Z`;
       } catch (e) {
         return timeStr; // Fallback to original if format is unexpected
@@ -435,7 +449,7 @@ export default function AdminEventEditor() {
             Your event "{titleEn}" has been successfully {publishStatus === 'Published' ? 'published to all members' : 'saved as a draft'}.
           </Text>
 
-          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(8); }}>
+          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); if (setTabByName) setTabByName('Events'); else setActiveTab(8); }}>
             <Text style={styles.successBtnPrimaryTxt}>View Event List</Text>
           </TouchableOpacity>
 
@@ -780,7 +794,11 @@ export default function AdminEventEditor() {
         isVisible={isStartTimeVisible}
         mode="time"
         onConfirm={(t) => {
-          setStartTime(t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+          let h = t.getHours();
+          const m = String(t.getMinutes()).padStart(2, '0');
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          h = h % 12 || 12;
+          setStartTime(`${String(h).padStart(2, '0')}:${m} ${ampm}`);
           setStartTimeVisibility(false);
         }}
         onCancel={() => setStartTimeVisibility(false)}
@@ -789,7 +807,11 @@ export default function AdminEventEditor() {
         isVisible={isEndTimeVisible}
         mode="time"
         onConfirm={(t) => {
-          setEndTime(t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+          let h = t.getHours();
+          const m = String(t.getMinutes()).padStart(2, '0');
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          h = h % 12 || 12;
+          setEndTime(`${String(h).padStart(2, '0')}:${m} ${ampm}`);
           setEndTimeVisibility(false);
         }}
         onCancel={() => setEndTimeVisibility(false)}

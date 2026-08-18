@@ -105,6 +105,7 @@ const EventMarquee = ({ events, onEventPress }: { events: any[], onEventPress: (
       const timePart = timeStr.includes('T') ? timeStr.split('T')[1].split('.')[0] : timeStr;
       const [hours, minutes] = timePart.split(':');
       const h = parseInt(hours);
+      if (isNaN(h)) return 'Time TBD';
       const ampmEn = h >= 12 ? 'PM' : 'AM';
       
       let ampmTe = '';
@@ -593,8 +594,8 @@ export default function HomeScreen() {
         if (isToday((member as any).baptismDate)) activeCelebrations.push('baptism');
 
         if (activeCelebrations.length > 0) {
-          if (!hasShownCelebrationThisSession) {
-            hasShownCelebrationThisSession = true;
+          if (!(global as any).hasShownCelebration) {
+            (global as any).hasShownCelebration = true;
             setTimeout(() => {
               navigation.navigate('Celebration', { 
                 celebrations: activeCelebrations, 
@@ -654,8 +655,8 @@ export default function HomeScreen() {
     }
   };
 
-  const onRefresh = () => {
-    hasShownCelebrationThisSession = false;
+  const onRefresh = async () => {
+    (global as any).hasShownCelebration = false;
     setRefreshing(true);
     fetchData();
   };

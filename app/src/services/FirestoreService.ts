@@ -45,8 +45,13 @@ export interface AppMember {
   accountId?: string;
   description?: string;
   mailingCity?: string;
+  city?: string;
+  village?: string;
   mailingState?: string;
   mailingStreet?: string;
+  dob?: string;
+  baptismDate?: string;
+  anniversaryDate?: string;
 }
 
 export interface FirestorePromise {
@@ -385,7 +390,7 @@ class FirestoreService {
     }
   }
 
-  async checkContactExists(phone: string, churchId?: string): Promise<any> {
+  async checkContactExists(phone: string, churchId?: string, strictChurch?: boolean): Promise<any> {
     const rawDigits = phone.replace(/\D/g, '');
     const last10 = rawDigits.slice(-10);
     const plus91 = `+91${last10}`;
@@ -447,11 +452,45 @@ class FirestoreService {
         }
       }
 
-      // Query specific church members
+      // Enforce strictChurch using collectionGroup if specific query fails or to avoid index requirements
+      if (strictChurch) {
+        console.log(`Checking strict church: ${churchId} using collectionGroup fallback.`);
+        try {
+          const queries = possibleFormats.map(format => 
+            firestore().collectionGroup('members').where('phone', '==', format).get({ source: 'server' })
+          );
+          const results = await Promise.all(queries);
+          let foundAny = false;
+          for (const snap of results) {
+            for (const doc of snap.docs) {
+              foundAny = true;
+              const data = doc.data();
+              console.log("Found matching member doc at path:", doc.ref.path, "with data:", JSON.stringify(data));
+              // Ensure this member actually belongs to the requested church
+              const parentChurchId = doc.ref.parent.parent?.id;
+              console.log("Validating churchId. Parent churchId:", parentChurchId, "Data churchId:", data.churchId, "Expected:", churchId);
+              if (parentChurchId === churchId || data.churchId === churchId) {
+                return { exists: true, member: { id: doc.id, ...data } };
+              }
+            }
+          }
+          if (!foundAny) {
+            console.log("Strict church mode: collectionGroup found absolutely no matching documents for any format.");
+          } else {
+            console.log("Strict church mode: member found, but it belonged to a different church.");
+          }
+          return { exists: false };
+        } catch (err: any) {
+          console.log("Strict church query failed:", err.message);
+          return { exists: false };
+        }
+      }
+
+      // If NOT strictChurch, try specific first, then global fallback
       try {
         console.log(`Checking specific church: ${churchId}`);
         const queries = possibleFormats.map(format => 
-          firestore().collection('churches').doc(churchId).collection('members').where('phone', '==', format).limit(1).get({ source: 'server' })
+          firestore().collection('churches').doc(churchId!).collection('members').where('phone', '==', format).limit(1).get({ source: 'server' })
         );
         const results = await Promise.all(queries);
         for (const snap of results) {

@@ -69,9 +69,12 @@ export default function ProfileScreen({ navigation }: any) {
     firstName: authMember?.firstName || '',
     lastName: authMember?.lastName || '',
     email: authMember?.email || '',
-    mailingCity: authMember?.mailingCity || '',
+    city: authMember?.city || authMember?.village || authMember?.mailingCity || '',
     mailingStreet: authMember?.mailingStreet || '',
-    mailingState: authMember?.mailingState || ''
+    mailingState: authMember?.mailingState || '',
+    dob: authMember?.dob || '',
+    baptismDate: authMember?.baptismDate || '',
+    anniversaryDate: authMember?.anniversaryDate || ''
   });
   const [updating, setUpdating] = useState(false);
   const [biometricAvailable, setBiometricAvailable] = useState(false);
@@ -98,9 +101,12 @@ export default function ProfileScreen({ navigation }: any) {
             firstName: contactCheck.member.firstName || '',
             lastName: contactCheck.member.lastName || '',
             email: contactCheck.member.email || '',
-            mailingCity: contactCheck.member.mailingCity || '',
+            city: contactCheck.member.city || contactCheck.member.village || contactCheck.member.mailingCity || '',
             mailingStreet: contactCheck.member.mailingStreet || '',
-            mailingState: contactCheck.member.mailingState || ''
+            mailingState: contactCheck.member.mailingState || '',
+            dob: contactCheck.member.dob || '',
+            baptismDate: contactCheck.member.baptismDate || '',
+            anniversaryDate: contactCheck.member.anniversaryDate || ''
           });
         }
       }
@@ -118,6 +124,7 @@ export default function ProfileScreen({ navigation }: any) {
     try {
       const updatedDetails = {
         ...editForm,
+        mailingCity: editForm.city, // Keep synced for any legacy UI
         name: `${editForm.firstName || ''} ${editForm.lastName || ''}`.trim()
       };
       await FirestoreService.updateMemberProfile(member.churchId || activeChurch?.id || '', member.id, updatedDetails);
@@ -579,6 +586,36 @@ export default function ProfileScreen({ navigation }: any) {
               </View>
 
               <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Birthday (YYYY-MM-DD)</Text>
+                <TextInput 
+                  style={styles.input}
+                  value={editForm.dob}
+                  onChangeText={(t) => setEditForm({...editForm, dob: t})}
+                  placeholder="YYYY-MM-DD"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Baptism Date (YYYY-MM-DD)</Text>
+                <TextInput 
+                  style={styles.input}
+                  value={editForm.baptismDate}
+                  onChangeText={(t) => setEditForm({...editForm, baptismDate: t})}
+                  placeholder="YYYY-MM-DD"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Wedding Anniversary Date (YYYY-MM-DD)</Text>
+                <TextInput 
+                  style={styles.input}
+                  value={editForm.anniversaryDate}
+                  onChangeText={(t) => setEditForm({...editForm, anniversaryDate: t})}
+                  placeholder="YYYY-MM-DD"
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Phone Number (Managed by Auth)</Text>
                 <TextInput 
                   style={[styles.input, { backgroundColor: '#f1f5f9', color: '#64748b' }]}
@@ -589,12 +626,12 @@ export default function ProfileScreen({ navigation }: any) {
 
               <View style={styles.inputRow}>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>City</Text>
-                  <TextInput 
+                  <Text style={styles.inputLabel}>City / Village</Text>
+                  <TextInput
                     style={styles.input}
-                    value={editForm.mailingCity}
-                    onChangeText={(t) => setEditForm({...editForm, mailingCity: t})}
-                    placeholder="City"
+                    value={editForm.city}
+                    onChangeText={(t) => setEditForm({...editForm, city: t})}
+                    placeholder="City / Village"
                   />
                 </View>
                 <View style={[styles.inputGroup, { flex: 1, marginLeft: 10 }]}>

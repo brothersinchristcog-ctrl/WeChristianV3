@@ -40,6 +40,8 @@ export default function AdminChurchSettings({ navigation }: any) {
   const [uploadingImage, setUploadingImage] = useState<'logo' | 'banner' | null>(null);
 
   const [form, setForm] = useState<Partial<ChurchDetails>>({});
+  const [linkCode, setLinkCode] = useState('');
+  const [linking, setLinking] = useState(false);
   const [secrets, setSecrets] = useState<{ phonePeMerchantId?: string; phonePeSaltKey?: string; phonePeSaltIndex?: string; whatsappAccessToken?: string; whatsappPhoneId?: string; useWeChristianWhatsApp?: boolean }>({});
   const [activeTab, setActiveTab] = useState<'info' | 'branding' | 'giving' | 'integrations'>('info');
   const [isEditing, setIsEditing] = useState(false);
@@ -166,6 +168,47 @@ export default function AdminChurchSettings({ navigation }: any) {
     } finally {
       setSaving(false);
       setIsEditing(false);
+    }
+  };
+
+  const handleLinkParent = async () => {
+    if (!churchId) return;
+    if (!linkCode.trim()) {
+      setAlertConfig({ visible: true, title: 'Required', message: 'Please enter a Church Code.', type: 'error' });
+      return;
+    }
+    setLinking(true);
+    try {
+      const parent = await ChurchService.getChurchBySubdomain(linkCode.trim().toLowerCase());
+      if (!parent) {
+        setAlertConfig({ visible: true, title: 'Not Found', message: 'No church found with that code.', type: 'error' });
+        setLinking(false);
+        return;
+      }
+      if (!parent.isParentOrganization) {
+        setAlertConfig({ visible: true, title: 'Invalid Parent', message: 'This church is not configured as a Main Branch. They must enable multiple branches in their settings.', type: 'error' });
+        setLinking(false);
+        return;
+      }
+      if (parent.id === churchId) {
+        setAlertConfig({ visible: true, title: 'Invalid Code', message: 'You cannot link a church to itself.', type: 'error' });
+        setLinking(false);
+        return;
+      }
+      
+      await ChurchService.updateChurch(churchId, { parentChurchId: parent.id });
+      
+      setForm(prev => ({ ...prev, parentChurchId: parent.id }));
+      const updated = await ChurchService.getChurchDetails(churchId);
+      if (updated) setActiveChurch(updated);
+      
+      setAlertConfig({ visible: true, title: 'Success', message: `Successfully linked to ${parent.name}!`, type: 'success' });
+      setLinkCode('');
+    } catch (e) {
+      console.error(e);
+      setAlertConfig({ visible: true, title: 'Error', message: 'Failed to link church.', type: 'error' });
+    } finally {
+      setLinking(false);
     }
   };
 
@@ -366,6 +409,53 @@ export default function AdminChurchSettings({ navigation }: any) {
                       disabled={!isEditing}
                       trackColor={{ false: '#cbd5e1', true: primaryColor }}
                     />
+                  </View>
+                </>
+              )}
+
+              {/* Branch Management - Link to Parent */}
+              {member?.userType === 'super_admin' && !form.isParentOrganization && !form.parentChurchId && (
+                <>
+                  <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Branch Management</Text>
+                  <View style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1e293b', marginBottom: 4 }}>Link to Parent Church</Text>
+                    <Text style={{ fontSize: 12, color: '#64748b', marginBottom: 12, lineHeight: 18 }}>If this church is a branch of a larger organization, enter the Main Branch's Church Code below to link your accounts.</Text>
+                    
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                      <TextInput 
+                        style={[styles.input, { flex: 1, marginBottom: 0, marginRight: 12, backgroundColor: '#ffffff' }]} 
+                        placeholder="Enter Church Code" 
+                        placeholderTextColor="#94a3b8"
+                        autoCapitalize="characters"
+                        value={linkCode}
+                        onChangeText={setLinkCode}
+                      />
+                      <TouchableOpacity 
+                        style={{ backgroundColor: primaryColor, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}
+                        onPress={handleLinkParent}
+                        disabled={linking}
+                      >
+                        {linking ? (
+                          <ActivityIndicator size="small" color="#ffffff" />
+                        ) : (
+                          <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 14 }}>Link Branch</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {/* Connected Parent Info */}
+              {form.parentChurchId && (
+                <>
+                  <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Branch Management</Text>
+                  <View style={{ backgroundColor: '#f0fdf4', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#bbf7d0', flexDirection: 'row', alignItems: 'center' }}>
+                    <Link size={20} color="#16a34a" style={{ marginRight: 12 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#166534', marginBottom: 2 }}>Connected to Main Branch</Text>
+                      <Text style={{ fontSize: 12, color: '#15803d' }}>This church is successfully linked as a child branch.</Text>
+                    </View>
                   </View>
                 </>
               )}

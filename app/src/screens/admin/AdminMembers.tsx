@@ -269,10 +269,9 @@ export default function AdminMembers() {
       return;
     }
     
-    let formattedPhone = newMemberForm.phone.trim();
-    if (!formattedPhone.startsWith('+')) {
-       formattedPhone = `+91${formattedPhone}`;
-    }
+    const digitsOnly = newMemberForm.phone.replace(/\D/g, '');
+    const last10 = digitsOnly.slice(-10);
+    const formattedPhone = `+91${last10}`;
 
     try {
       setAddMemberLoading(true);
@@ -289,6 +288,24 @@ export default function AdminMembers() {
           anniversaryDate: newMemberForm.anniversaryDate,
         });
       } else {
+        const isDuplicate = members.some(member => {
+          const mPhoneRaw = (member.phone || '').replace(/\D/g, '');
+          const mPhone10 = mPhoneRaw.slice(-10);
+          return mPhone10 === last10 && mPhone10.length === 10;
+        });
+
+        if (isDuplicate) {
+          setAlertConfig({
+            visible: true,
+            title: 'Duplicate Member',
+            message: 'A member with this phone number already exists in this church.',
+            type: 'warning',
+            buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+          });
+          setAddMemberLoading(false);
+          return;
+        }
+
         res = await FirestoreService.adminAddMember(activeChurch?.id || '', {
           name: newMemberForm.name,
           phone: formattedPhone,
@@ -966,7 +983,7 @@ export default function AdminMembers() {
               }}
             >
               <UserPlus size={20} color="#1a2d5a" />
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1a2d5a', marginLeft: 12 }}>Add Contacts</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1a2d5a', marginLeft: 12 }}>Add From Contacts</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
