@@ -48,7 +48,7 @@ const COLORS = {
   paper: '#FFFCF5',
   gold: '#A67C3D',
   goldDeep: '#8C6428',
-  goldBright: '#D8B369',
+  goldBright: '#F4C430',
   clay: '#A24B34',
   clayBg: '#F3E1D6',
   clayLine: '#E3C3B2',
@@ -704,12 +704,12 @@ const styles = StyleSheet.create({
   // Success Modal Styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(21, 28, 51, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
   successCard: { backgroundColor: COLORS.paper, borderRadius: 24, padding: 32, width: '92%', maxWidth: 400, alignItems: 'center', elevation: 10, borderWidth: 1, borderColor: COLORS.rule },
-  successIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.mossBg, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  successIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#16a34a', justifyContent: 'center', alignItems: 'center', marginBottom: 20, elevation: 4, shadowColor: '#16a34a', shadowOpacity: 0.4, shadowRadius: 10 },
   successIconInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.moss, justifyContent: 'center', alignItems: 'center' },
   successTitle: { fontSize: 24, fontWeight: '900', color: COLORS.ink, marginBottom: 12, textAlign: 'center', fontFamily: FONTS.serif },
   successSub: { fontSize: 14, color: COLORS.inkSoft, textAlign: 'center', lineHeight: 22, marginBottom: 30, fontFamily: FONTS.serif },
-  successBtn: { backgroundColor: COLORS.goldBright, height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3 },
-  successBtnTxt: { color: COLORS.ink, fontSize: 14, fontWeight: '800', fontFamily: FONTS.serif },
+  successBtn: { backgroundColor: '#F4C430', height: 52, borderRadius: 14, width: '100%', justifyContent: 'center', alignItems: 'center', marginBottom: 10, elevation: 4, shadowColor: '#b8860b', shadowOpacity: 0.3, shadowRadius: 6 },
+  successBtnTxt: { color: '#1a2d5a', fontSize: 16, fontWeight: '900', fontFamily: FONTS.serif, letterSpacing: 0.3 },
 
   // Replies Styles
   repliesContainer: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: COLORS.rule },

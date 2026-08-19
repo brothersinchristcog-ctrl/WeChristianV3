@@ -39,6 +39,7 @@ import * as FileSystem from 'expo-file-system';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import FirestoreService, { ChurchDonation } from '../../services/FirestoreService';
 import { useAuth } from '../../context/AuthContext';
+import { formatDateDisplay } from '../../utils/DateUtils';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { LinearGradient } from 'expo-linear-gradient';
 import firestore from '@react-native-firebase/firestore';
@@ -286,7 +287,7 @@ export default function AdminDonationDashboard() {
               </div>
               <div class="meta">
                 <div class="meta-box"><div class="label">RECEIPT NO</div><div class="value">${receiptNo}</div></div>
-                <div class="meta-box"><div class="label">DONATION DATE</div><div class="value">${don.date}</div></div>
+                <div class="meta-box"><div class="label">DONATION DATE</div><div class="value">${formatDateDisplay(don.date)}</div></div>
                 <div class="meta-box"><div class="label">RECEIVED FROM</div><div class="value">${don.donorName}</div></div>
                 <div class="meta-box"><div class="label">DONOR PHONE</div><div class="value">${don.donorPhone || 'N/A'}</div></div>
               </div>
@@ -459,7 +460,7 @@ export default function AdminDonationDashboard() {
               </div>
               <div class="meta">
                 <div class="meta-box"><div class="label">REPORT NO</div><div class="value">${reportNo}</div></div>
-                <div class="meta-box"><div class="label">GENERATION DATE</div><div class="value">${new Date().toISOString().split('T')[0]}</div></div>
+                <div class="meta-box"><div class="label">GENERATION DATE</div><div class="value">${formatDateDisplay(new Date().toISOString().split('T')[0])}</div></div>
                 <div class="meta-box"><div class="label">CATEGORY</div><div class="value">${category}</div></div>
                 <div class="meta-box"><div class="label">TOTAL ITEMS</div><div class="value">${dons.length} donations</div></div>
               </div>
@@ -885,7 +886,7 @@ export default function AdminDonationDashboard() {
                               {don.donorName || `${don.category} Donation`}
                             </Text>
                             <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginBottom: 8 }}>
-                              {don.date} • {don.paymentMethod || 'Cash'}
+                              {formatDateDisplay(don.date)} • {don.paymentMethod || 'Cash'}
                             </Text>
                           </View>
                         </View>
@@ -1151,7 +1152,7 @@ export default function AdminDonationDashboard() {
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.label}>Date</Text>
                   <TouchableOpacity style={styles.input} onPress={() => setShowAddDonationDatePicker(true)}>
-                    <Text style={{ fontFamily: FONTS.sans, fontSize: 14, color: '#241f1a' }}>{donationDate}</Text>
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 14, color: '#241f1a' }}>{formatDateDisplay(donationDate)}</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
@@ -1253,7 +1254,7 @@ export default function AdminDonationDashboard() {
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>DATE</Text>
-                        <Text style={styles.invValue}>{selectedDonationForInvoice.date}</Text>
+                        <Text style={styles.invValue}>{formatDateDisplay(selectedDonationForInvoice.date)}</Text>
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>RECEIVED FROM</Text>
@@ -1373,10 +1374,10 @@ export default function AdminDonationDashboard() {
             {reportDateFilter === 'Custom Range' && (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 15 }}>
                 <TouchableOpacity style={{ flex: 1, padding: 10, borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8 }} onPress={() => setShowReportStartPicker(true)}>
-                  <Text style={{ fontSize: 12, color: '#645d54' }}>From: {reportCustomStartDate ? reportCustomStartDate.toISOString().split('T')[0] : 'Select'}</Text>
+                  <Text style={{ fontSize: 12, color: '#645d54' }}>From: {reportCustomStartDate ? formatDateDisplay(reportCustomStartDate.toISOString().split('T')[0]) : 'Select'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={{ flex: 1, padding: 10, borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8 }} onPress={() => setShowReportEndPicker(true)}>
-                  <Text style={{ fontSize: 12, color: '#645d54' }}>To: {reportCustomEndDate ? reportCustomEndDate.toISOString().split('T')[0] : 'Select'}</Text>
+                  <Text style={{ fontSize: 12, color: '#645d54' }}>To: {reportCustomEndDate ? formatDateDisplay(reportCustomEndDate.toISOString().split('T')[0]) : 'Select'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={{ padding: 10, backgroundColor: '#1b2a4a', borderRadius: 8, justifyContent: 'center' }} onPress={() => {
                     const catDons = donations.filter(e => e.category === selectedCategoryView);
@@ -1438,7 +1439,7 @@ export default function AdminDonationDashboard() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontFamily: FONTS.sans, fontSize: 14, fontWeight: '700', color: '#1b2a4a' }}>{don.donorName}</Text>
-                      <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54', marginTop: 2 }}>{don.date} • {don.paymentMethod || 'N/A'}</Text>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54', marginTop: 2 }}>{formatDateDisplay(don.date)} • {don.paymentMethod || 'N/A'}</Text>
                     </View>
                     <Text style={{ fontFamily: FONTS.sans, fontSize: 14, fontWeight: '700', color: '#1b2a4a' }}>₹{don.amount.toLocaleString('en-IN')}</Text>
                   </TouchableOpacity>
@@ -1509,7 +1510,7 @@ export default function AdminDonationDashboard() {
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>DATE RANGE</Text>
-                        <Text style={styles.invValue}>{reportDateFilter === 'Custom Range' && reportCustomStartDate && reportCustomEndDate ? `${reportCustomStartDate.toISOString().split('T')[0]} to ${reportCustomEndDate.toISOString().split('T')[0]}` : reportDateFilter === 'All Time' ? 'All Time' : reportDateFilter}</Text>
+                        <Text style={styles.invValue}>{reportDateFilter === 'Custom Range' && reportCustomStartDate && reportCustomEndDate ? `${formatDateDisplay(reportCustomStartDate.toISOString().split('T')[0])} to ${formatDateDisplay(reportCustomEndDate.toISOString().split('T')[0])}` : reportDateFilter === 'All Time' ? 'All Time' : reportDateFilter}</Text>
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>CATEGORY</Text>

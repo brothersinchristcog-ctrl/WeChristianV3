@@ -477,10 +477,9 @@ export default function BibleSearchScreen({ route, navigation }: any) {
       </View>
 
       {/* Search Input + Dropdown Suggestions wrapper - hide when results are shown */}
-      {!hasSearched && (
-        <View style={{ marginHorizontal: 20, zIndex: 100 }}>
+      <View style={{ marginHorizontal: 20, zIndex: 100 }}>
           <View style={[styles.searchContainer, { backgroundColor: isDark ? '#1e293b' : '#fff', marginHorizontal: 0, marginTop: 16, marginBottom: 0 }]}>
-            <TouchableOpacity onPress={() => performSearch(query)} style={{ padding: 4, marginRight: 6 }}>
+            <TouchableOpacity onPress={() => performSearch(query)} style={{ padding: 4, flexShrink: 0 }}>
               <Search size={20} color={isDark ? '#94a3b8' : '#64748b'} />
             </TouchableOpacity>
             <TextInput
@@ -494,14 +493,14 @@ export default function BibleSearchScreen({ route, navigation }: any) {
               autoFocus={!initialQuery}
             />
             {query.length > 0 && (
-              <TouchableOpacity onPress={() => { setQuery(''); setResults([]); setSuggestions([]); }} style={{ padding: 8 }}>
-                <Text style={styles.clearBtn}>×</Text>
+              <TouchableOpacity onPress={() => { setQuery(''); setResults([]); setSuggestions([]); setHasSearched(false); }} style={{ padding: 8, flexShrink: 0 }}>
+                <X size={18} color={isDark ? '#64748b' : '#94a3b8'} />
               </TouchableOpacity>
             )}
           </View>
 
           {/* Dropdown Suggestions */}
-          {suggestions.length > 0 && (
+          {!hasSearched && suggestions.length > 0 && (
             <View style={[styles.suggestionDropdown, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
               {suggestions.slice(0, 6).map((sugg, idx) => (
                 <TouchableOpacity
@@ -513,14 +512,13 @@ export default function BibleSearchScreen({ route, navigation }: any) {
                   ]}
                   onPress={() => { setQuery(sugg); performSearch(sugg); setSuggestions([]); }}
                 >
-                  <Search size={14} color={isDark ? '#64748b' : '#94a3b8'} style={{ marginRight: 10 }} />
+                  <Search size={14} color={isDark ? '#64748b' : '#64748b'} style={{ marginRight: 10 }} />
                   <Text style={[styles.suggestionItemTxt, { color: isDark ? '#f1f5f9' : '#0f172a' }]}>{sugg}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           )}
         </View>
-      )}
 
       {/* Filters Row - always shown so user can refine search */}
       <View style={styles.filtersRow}>
@@ -743,9 +741,11 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: 8,
+    marginRight: 4,
     fontSize: 15,
-    fontWeight: '600'
+    fontWeight: '600',
+    minWidth: 0,
   },
   clearBtn: {
     fontSize: 20,

@@ -32,7 +32,7 @@ import { Linking } from 'react-native';
 const { width } = Dimensions.get('window');
 
 export default function AdminSermonList() {
-  const { setActiveTab, setEditingData } = useContext(AdminTabContext);
+  const { setActiveTab, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
@@ -57,7 +57,7 @@ export default function AdminSermonList() {
 
   const handleEdit = (sermon: Sermon) => {
     setEditingData(sermon);
-    setActiveTab(5); // Switch to New Sermon editor tab (index 5)
+    setTabByName?.('New Sermon'); // Switch to New Sermon editor tab
   };
 
   const handlePlay = (sermon: Sermon) => {
@@ -97,7 +97,12 @@ export default function AdminSermonList() {
   };
 
   const seriesList = ['All', ...new Set(sermons.map(s => s.series).filter((s): s is string => Boolean(s)))];
-  const filteredSermons = filter === 'All' ? sermons : sermons.filter(s => s.series === filter);
+  const filteredSermons = sermons.filter(s => {
+    if (filter === 'All') return true;
+    if (filter === 'Published') return s.status === 'Published' || !s.status;
+    if (filter === 'Drafts') return s.status === 'Draft';
+    return s.series === filter;
+  });
 
   if (loading && sermons.length === 0) {
     return (
@@ -125,7 +130,7 @@ export default function AdminSermonList() {
               <Text style={[styles.heroSub, { marginTop: 2 }]}>{sermons.length} total · {stats.series} series</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(5); }}>
+          <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setTabByName?.('New Sermon'); }}>
             <Plus size={16} color="#1a2d5a" />
             <Text style={styles.newBtnTxt}>New</Text>
           </TouchableOpacity>
@@ -136,18 +141,18 @@ export default function AdminSermonList() {
         
         {/* ── Stats Bar ── */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <TouchableOpacity style={styles.statCard} onPress={() => setFilter('Published')}>
             <Text style={[styles.statNum, { color: '#2E6B4F' }]}>{stats.published}</Text>
             <Text style={styles.statLbl}>Published</Text>
-          </View>
-          <View style={styles.statCard}>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.statCard} onPress={() => setFilter('Drafts')}>
             <Text style={[styles.statNum, { color: '#C9A84C' }]}>{stats.drafts}</Text>
             <Text style={styles.statLbl}>Drafts</Text>
-          </View>
-          <View style={styles.statCard}>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.statCard} onPress={() => setFilter('All')}>
             <Text style={[styles.statNum, { color: '#1a2d5a' }]}>{stats.series}</Text>
             <Text style={styles.statLbl}>Series</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* ── Filter Chips ── */}

@@ -21,6 +21,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { formatDateDisplay } from '../utils/DateUtils';
 import { 
   Bell, 
   Hexagon,
@@ -51,7 +52,7 @@ import {
 } from 'lucide-react-native';
 
 import firestore from '@react-native-firebase/firestore';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import HexagonDate from '../components/HexagonDate';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -291,6 +292,7 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   // Floating Live Celebrations State
   const [liveCelebrations, setLiveCelebrations] = useState<any[]>([]);
+  const [unreadLiveMsgs, setUnreadLiveMsgs] = useState(0);
   const pan = useRef(new Animated.ValueXY()).current;
   const emojiAnim = useRef(new Animated.Value(0)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
@@ -366,8 +368,40 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchLiveCelebrations();
-    
-    // Load saved position (Commented out to reset position)
+  }, [activeChurch?.id, member]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      if (liveCelebrations.length === 0 || !activeChurch?.id) return;
+
+      const todayStr = new Date().toISOString().split('T')[0];
+      const unsubscribe = firestore()
+        .collection('churches')
+        .doc(activeChurch.id)
+        .collection('live_celebrations')
+        .doc(todayStr)
+        .collection('messages')
+        .onSnapshot(async (snapshot) => {
+          if (!snapshot) return;
+          const lastRead = await AsyncStorage.getItem(`@lastReadCeleb_${todayStr}`);
+          const lastReadTime = lastRead ? parseInt(lastRead, 10) : 0;
+          
+          let unread = 0;
+          snapshot.docs.forEach(doc => {
+            const data = doc.data();
+            const msgTime = data.createdAt?.toMillis?.() || (typeof data.createdAt === 'number' ? data.createdAt : 0);
+            if (msgTime > lastReadTime) {
+              unread++;
+            }
+          });
+          setUnreadLiveMsgs(unread);
+        });
+        
+      return () => unsubscribe();
+    }, [liveCelebrations.length, activeChurch?.id])
+  );
+  
+  // Load saved position (Commented out to reset position)
     /*
     AsyncStorage.getItem('@live_celebrations_pos').then(val => {
       if (val) {
@@ -382,8 +416,6 @@ export default function HomeScreen() {
       }
     });
     */
-  }, [activeChurch?.id, member]);
-
   useEffect(() => {
     if (liveCelebrations.length === 0) return;
     const interval = setInterval(() => {
@@ -467,78 +499,79 @@ export default function HomeScreen() {
 
   const fetchData = async () => {
     try {
-      // Create a timeout promise to ensure the spinner doesn't hang indefinitely (max 2 seconds)
-      const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 2000));
-      
-      // Run ALL Salesforce calls in parallel for maximum speed
-      const fetchPromise = Promise.allSettled([
-        // 1. Fetch Member Details
-        user?.phoneNumber ? FirestoreService.checkContactExists(user.phoneNumber) : Promise.resolve(null),
-        // 2. Fetch Daily Promise
-        FirestoreService.getDailyPromise(),
-        // 3. Fetch Today's Events
-        FirestoreService.getTodayEvents(),
-        // 4. Fetch Upcoming Events
-        FirestoreService.getUpcomingEvents(3),
-        // 5. Fetch Latest Sermon
-        FirestoreService.getSermons(1)
-      ]);
-
-      const [memberResult, promiseResult, todayEventsResult, upcomingEventsResult, sermonsResult] = await Promise.race([
-        fetchPromise,
-        timeoutPromise.then(() => []) // If timeout hits, return empty array to unblock UI
-      ]) as any;
-
-      if (!memberResult) return; // Timeout hit or failed
-
-      let memberIdForPrayer = member?.id;
-
-      // Process results safely
-      if (memberResult.status === 'fulfilled' && memberResult.value?.exists && memberResult.value.member) {
-        setMember(memberResult.value.member);
-        memberIdForPrayer = memberResult.value.member.id;
-        FirestoreService.updateLastAppOpened(memberResult.value.member.id);
-      }
-      
-      // Fetch Latest Prayer async without blocking the pull-to-refresh spinner
-      if (memberIdForPrayer) {
-        FirestoreService.getPrayerRequests({ contactId: memberIdForPrayer }).then((prayers: any[]) => {
-          if (prayers && prayers.length > 0) {
-            cachedLatestPrayer = prayers[0];
-            cachedPrayerCount = prayers.length;
-            setLatestPrayer(cachedLatestPrayer);
-            setPrayerCount(cachedPrayerCount);
+      // 1. Try to load cached promise for instant rendering on cold boot
+      if (!promise) {
+        AsyncStorage.getItem('@cached_daily_promise').then(val => {
+          if (val && !promise) {
+            try {
+              const cached = JSON.parse(val);
+              setPromise(cached);
+              if (cached.imageUrl) setPromiseThumbnail(cached.imageUrl);
+            } catch (e) {}
           }
         }).catch(() => {});
       }
 
-      if (promiseResult.status === 'fulfilled' && promiseResult.value) {
-        const prom = promiseResult.value;
-        cachedPromise = prom;
-        setPromise(prom);
-        if (prom.imageUrl) {
-          cachedPromiseThumbnail = prom.imageUrl;
-          setPromiseThumbnail(prom.imageUrl);
-        } else {
-          cachedPromiseThumbnail = null;
-          setPromiseThumbnail(null);
+      // 2. Fetch Member Details non-blocking
+      if (user?.phoneNumber) {
+        FirestoreService.checkContactExists(user.phoneNumber).then((res: any) => {
+          if (res?.exists && res?.member) {
+            setMember(res.member);
+            const mId = res.member.id;
+            FirestoreService.updateLastAppOpened(mId);
+            // Fetch Latest Prayer async
+            FirestoreService.getPrayerRequests({ contactId: mId }).then((prayers: any[]) => {
+              if (prayers && prayers.length > 0) {
+                cachedLatestPrayer = prayers[0];
+                cachedPrayerCount = prayers.length;
+                setLatestPrayer(cachedLatestPrayer);
+                setPrayerCount(cachedPrayerCount);
+              }
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+      }
+
+      // 3. Fetch Daily Promise non-blocking
+      FirestoreService.getDailyPromise().then((prom: any) => {
+        if (prom) {
+          cachedPromise = prom;
+          setPromise(prom);
+          AsyncStorage.setItem('@cached_daily_promise', JSON.stringify(prom));
+          if (prom.imageUrl) {
+            cachedPromiseThumbnail = prom.imageUrl;
+            setPromiseThumbnail(prom.imageUrl);
+          } else {
+            cachedPromiseThumbnail = null;
+            setPromiseThumbnail(null);
+          }
         }
-      }
-      if (todayEventsResult.status === 'fulfilled') {
-        cachedTodayEvents = todayEventsResult.value || [];
+      }).catch(() => {});
+
+      // 4. Fetch Today's Events non-blocking
+      FirestoreService.getTodayEvents().then((ev: any) => {
+        cachedTodayEvents = ev || [];
         setTodayEvents(cachedTodayEvents);
-      }
-      if (upcomingEventsResult.status === 'fulfilled') {
-        cachedEvents = upcomingEventsResult.value || [];
+      }).catch(() => {});
+
+      // 5. Fetch Upcoming Events non-blocking
+      FirestoreService.getUpcomingEvents(3).then((ev: any) => {
+        cachedEvents = ev || [];
         setEvents(cachedEvents);
-      }
-      if (sermonsResult.status === 'fulfilled' && sermonsResult.value?.length > 0) {
-        cachedLatestSermon = sermonsResult.value[0];
-        setLatestSermon(cachedLatestSermon);
-      }
+      }).catch(() => {});
+
+      // 6. Fetch Latest Sermon non-blocking
+      FirestoreService.getSermons(1).then((s: any) => {
+        if (s?.length > 0) {
+          cachedLatestSermon = s[0];
+          setLatestSermon(cachedLatestSermon);
+        }
+      }).catch(() => {});
+
     } catch (error) {
       console.error('Error fetching home data:', error);
     } finally {
+      // Unblock UI immediately so skeletons/cached UI can render while background fetches run
       setLoading(false);
       setInitialFetchDone(true);
       setRefreshing(false);
@@ -1143,7 +1176,7 @@ export default function HomeScreen() {
                 <Text style={styles.scTitle} numberOfLines={1}>
                   {latestSermon?.title} {latestSermon?.titleTelugu ? `|| ${latestSermon.titleTelugu}` : ''}
                 </Text>
-                <Text style={styles.scMeta} numberOfLines={1}>{latestSermon?.pastor || 'Pastor'} · {latestSermon?.date || 'Apr 13'} · {latestSermon?.duration || '42 min'}</Text>
+                <Text style={styles.scMeta} numberOfLines={1}>{latestSermon?.pastor || 'Pastor'} • {latestSermon?.date ? formatDateDisplay(latestSermon.date) : 'Apr 13'} • {latestSermon?.duration || '42 min'}</Text>
               </View>
               <View style={styles.playBtnCircle}>
                 <Play size={18} color="#1a2d5a" />
@@ -1195,6 +1228,11 @@ export default function HomeScreen() {
                 {getEmoji()}
               </Animated.Text>
               <View style={styles.floatingIndicator} />
+              {unreadLiveMsgs > 0 && (
+                <View style={{ position: 'absolute', top: -5, right: -5, backgroundColor: '#ef4444', borderRadius: 10, minWidth: 20, height: 20, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 4, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 2 }}>
+                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>{unreadLiveMsgs}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </Animated.View>
           <Text style={styles.floatingLabel}>Live Celebrations</Text>

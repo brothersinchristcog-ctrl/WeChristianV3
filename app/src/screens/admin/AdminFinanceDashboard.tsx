@@ -37,6 +37,8 @@ import FirestoreService, { ChurchExpense, ChurchInvoice } from '../../services/F
 import { useAuth } from '../../context/AuthContext';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as DocumentPicker from 'expo-document-picker';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { formatDateDisplay } from '../../utils/DateUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -382,7 +384,7 @@ const openAddExpense = () => {
             </div>
             <div class="meta">
               <div class="meta-box"><div class="label">INVOICE NO</div><div class="value">${selectedInvoiceForApproval?.id || ('INV-' + (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase() + '-' + String(invoices.length + 1).padStart(7, '0'))}</div></div>
-              <div class="meta-box"><div class="label">INVOICE DATE</div><div class="value">${invDate}</div></div>
+              <div class="meta-box"><div class="label">INVOICE DATE</div><div class="value">${formatDateDisplay(invDate)}</div></div>
               <div class="meta-box"><div class="label">CATEGORY</div><div class="value">${invoiceCategory}</div></div>
               <div class="meta-box"><div class="label">PREPARED BY</div><div class="value">${selectedInvoiceForApproval?.preparedBy || userName}</div></div>
               <div class="meta-box"><div class="label">REPORTED BY</div><div class="value">${(selectedInvoiceForApproval?.reportedByNames && selectedInvoiceForApproval.reportedByNames.length > 0) ? selectedInvoiceForApproval.reportedByNames.join(', ') : (selectedInvoiceForApproval?.reportedByName || userName)}</div></div>
@@ -856,7 +858,7 @@ const openAddExpense = () => {
                     <View style={styles.catBody}>
                       <View>
                         <Text style={styles.catName}>{group.title}</Text>
-                        <Text style={styles.catMeta}>{group.items.length} items • {group.date}</Text>
+                        <Text style={styles.catMeta}>{group.items.length} items • {formatDateDisplay(group.date)}</Text>
                       </View>
                       <Text style={styles.catAmt}>₹{group.total.toLocaleString('en-IN')}</Text>
                     </View>
@@ -969,10 +971,10 @@ const openAddExpense = () => {
                                   ? exp.lineItems[0].type + (exp.lineItems.length > 1 ? ` (+${exp.lineItems.length - 1} more)` : '')
                                   : exp.title || `${exp.category} Expense`}
                             </Text>
-                            <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginBottom: 8 }}>
-                              {exp.date} • {exp.paymentMethod || 'Cash'} {exp.lineItems && exp.lineItems.length > 0 ? `• ${exp.lineItems.length} items` : ''}
+                            <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54', marginTop: 2 }}>
+                              {formatDateDisplay(exp.date)} • {exp.paymentMethod || 'Cash'} {exp.lineItems && exp.lineItems.length > 0 ? `• ${exp.lineItems.length} items` : ''}
                             </Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
                               <View style={{ backgroundColor: exp.status === 'Pending' ? '#fef3c7' : '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
                                 <Text style={{ fontSize: 11, color: exp.status === 'Pending' ? '#b45309' : '#15803d', fontWeight: '700' }}>
                                   {exp.status || 'Paid'}
@@ -1082,7 +1084,7 @@ const openAddExpense = () => {
                       onPress={() => setShowCustomStartPicker(true)}
                     >
                       <Text style={[styles.customRangeInputTxt, !customStartDate && { color: '#a89f92' }]} numberOfLines={1} adjustsFontSizeToFit>
-                        {customStartDate ? customStartDate.toLocaleDateString('en-GB').replace(/\//g, '-') : 'Select'}
+                        {customStartDate ? formatDateDisplay(getLocalDateStr(customStartDate)) : 'Select'}
                       </Text>
                       <Calendar size={14} color="#1b2a4a" />
                     </TouchableOpacity>
@@ -1094,7 +1096,7 @@ const openAddExpense = () => {
                       onPress={() => setShowCustomEndPicker(true)}
                     >
                       <Text style={[styles.customRangeInputTxt, !customEndDate && { color: '#a89f92' }]} numberOfLines={1} adjustsFontSizeToFit>
-                        {customEndDate ? customEndDate.toLocaleDateString('en-GB').replace(/\//g, '-') : 'Select'}
+                        {customEndDate ? formatDateDisplay(getLocalDateStr(customEndDate)) : 'Select'}
                       </Text>
                       <Calendar size={14} color="#1b2a4a" />
                     </TouchableOpacity>
@@ -1291,7 +1293,7 @@ const openAddExpense = () => {
                   <View style={styles.catBody}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.catName, { fontFamily: FONTS.serif, fontWeight: '700' }]}>{inv.id}</Text>
-                      <Text style={styles.catMeta}>{inv.category} • {inv.date}</Text>
+                      <Text style={styles.catMeta}>{inv.category} • {formatDateDisplay(inv.date)}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={[styles.catAmt, { fontSize: 14 }]}>₹{(inv.amount || 0).toLocaleString('en-IN')}</Text>
@@ -1588,7 +1590,7 @@ const openAddExpense = () => {
                 onPress={() => setShowDatePicker(true)}
               >
                 <Text style={{ flex: 1, fontSize: 15, fontFamily: FONTS.sans, color: '#241f1a' }}>
-                  {expenseDate.split('-').reverse().join('-')}
+                  {formatDateDisplay(expenseDate)}
                 </Text>
                 <Calendar size={18} color="#241f1a" />
               </TouchableOpacity>
@@ -1792,7 +1794,7 @@ const openAddExpense = () => {
                           {exp.vendorName || exp.title || 'Unknown Vendor'}
                         </Text>
                         <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54', marginTop: 2 }}>
-                          {exp.date} • {exp.paymentMethod || 'N/A'}
+                          {formatDateDisplay(exp.date)} • {exp.paymentMethod || 'N/A'}
                         </Text>
                       </View>
                       
@@ -1870,7 +1872,7 @@ const openAddExpense = () => {
                   </View>
                   <View style={{ width: '45%' }}>
                     <Text style={styles.invLabel}>INVOICE DATE</Text>
-                    <Text style={styles.invValue}>{new Date().toISOString().split('T')[0]}</Text>
+                    <Text style={styles.invValue}>{formatDateDisplay(new Date().toISOString().split('T')[0])}</Text>
                   </View>
                   <View style={{ width: '45%' }}>
                     <Text style={styles.invLabel}>CATEGORY</Text>
@@ -2112,7 +2114,7 @@ const openAddExpense = () => {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#e5ddd0', paddingBottom: 16, marginBottom: 16 }}>
                     <View>
                       <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 4 }}>Date</Text>
-                      <Text style={{ fontFamily: FONTS.mono, fontSize: 14, color: '#241f1a' }}>{selectedExpenseForView.date}</Text>
+                      <Text style={{ fontFamily: FONTS.mono, fontSize: 14, color: '#241f1a' }}>{formatDateDisplay(selectedExpenseForView.date)}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 4 }}>Amount</Text>

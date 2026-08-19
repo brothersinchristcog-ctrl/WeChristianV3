@@ -15,6 +15,7 @@ import {
   Share
 } from 'react-native';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { formatDateDisplay } from '../../utils/DateUtils';
 import { 
   Plus, 
   Search, 
@@ -60,7 +61,7 @@ const SERMON_CATEGORIES = [
 ];
 
 export default function AdminSermonEditor() {
-  const { setActiveTab, editingData, setEditingData } = useContext(AdminTabContext);
+  const { setActiveTab, editingData, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -201,7 +202,7 @@ export default function AdminSermonEditor() {
 
   const closeSuccess = () => {
     setShowSuccess(false);
-    setActiveTab(0);
+    setTabByName?.('Sermons');
   };
 
   return (
@@ -212,7 +213,7 @@ export default function AdminSermonEditor() {
         {/* ── Hero Section ── */}
         <View style={styles.hero}>
           <View style={styles.heroTitleRow}>
-            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity onPress={() => setTabByName?.('Sermons')} style={{ flexDirection: 'row', alignItems: 'center' }}>
               <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>
@@ -248,7 +249,7 @@ export default function AdminSermonEditor() {
               <Text style={styles.fLabel}>Sermon Date</Text>
               <TouchableOpacity style={styles.inputWithIcon} onPress={() => setShowDatePicker(true)}>
                 <Text style={[styles.inputTxt, { flex: 1 }]}>
-                  {form.date}
+                  {formatDateDisplay(form.date)}
                 </Text>
                 <CalendarIcon size={16} color="#1a2d5a" style={{ marginLeft: 8 }} />
               </TouchableOpacity>

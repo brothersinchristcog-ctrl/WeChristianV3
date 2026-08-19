@@ -11,7 +11,8 @@ import {
   Modal,
   Platform
 } from 'react-native';
-import { ChevronLeft, Share2, BookMarked, Settings, Search, CheckCircle2 } from 'lucide-react-native';
+import * as Clipboard from 'expo-clipboard';
+import { ChevronLeft, Share2, BookMarked, Settings, Search, CheckCircle2, Copy } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 
@@ -271,6 +272,14 @@ export default function BibleReaderScreen({ route, navigation }: any) {
       console.error(e);
       Alert.alert('Error', 'Failed to save verses.');
     }
+  };
+
+  const copyVerseToClipboard = async (item: any) => {
+    setShowVerseOptionsModal(false);
+    const ref = `${englishBookName} ${chapter}:${item.verse}`;
+    const textToCopy = `"${item.text}" - ${ref}`;
+    await Clipboard.setStringAsync(textToCopy);
+    Alert.alert('✅ Copied!', `${ref} copied to clipboard.`);
   };
 
   const saveToSermonNotes = async (item: any) => {
@@ -557,9 +566,17 @@ export default function BibleReaderScreen({ route, navigation }: any) {
               </View>
             )}
 
-            {/* Action Button */}
+            {/* Action Buttons */}
             <TouchableOpacity
               style={styles.optionsActionBtn}
+              onPress={() => selectedVerseItem && copyVerseToClipboard(selectedVerseItem)}
+            >
+              <Copy color="#ffffff" size={18} />
+              <Text style={styles.optionsActionBtnTxt}>Copy Verse</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.optionsActionBtn, { backgroundColor: isDark ? '#1e3a5f' : '#1a2d5a', marginTop: 10 }]}
               onPress={() => selectedVerseItem && saveToSermonNotes(selectedVerseItem)}
             >
               <BookMarked color="#ffffff" size={18} />

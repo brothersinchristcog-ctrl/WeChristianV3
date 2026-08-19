@@ -229,7 +229,7 @@ export default function SermonsScreen({ navigation }: any) {
       {/* Sermons Grouped by Category */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />}
       >
         {sections.length === 0 ? (

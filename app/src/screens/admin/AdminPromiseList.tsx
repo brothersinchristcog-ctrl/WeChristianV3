@@ -35,7 +35,7 @@ const colors = {
 const serifFont = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
 export default function AdminPromiseList() {
-  const { setActiveTab, setEditingData } = useContext(AdminTabContext);
+  const { setActiveTab, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [promises, setPromises] = useState<DailyPromise[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -45,12 +45,12 @@ export default function AdminPromiseList() {
 
   const handleEdit = (item: DailyPromise) => {
     setEditingData(item);
-    setActiveTab(1);
+    setTabByName?.('New Promise');
   };
 
   const handleView = (item: DailyPromise) => {
     setEditingData(item);
-    setActiveTab(1);
+    setTabByName?.('New Promise');
   };
 
   useEffect(() => {
@@ -136,13 +136,22 @@ export default function AdminPromiseList() {
         </View>
 
         <View style={styles.vcBody}>
-          <View style={styles.vcRef}>
-            {(item.verseReferenceEn || item.verseReference) && (
-              <View style={styles.tag}><Text style={styles.tagText}>{item.verseReferenceEn || item.verseReference}</Text></View>
-            )}
-            {item.verseReferenceTe && (
-              <View style={styles.tag}><Text style={[styles.tagText, { fontStyle: 'italic' }]}>{item.verseReferenceTe}</Text></View>
-            )}
+          <View style={[styles.vcRef, { alignItems: 'baseline' }]}>
+            <Text style={{ includeFontPadding: false, textAlignVertical: 'bottom' }}>
+              {(item.verseReferenceEn || item.verseReference) && (
+                <Text style={{ fontSize: 13, color: colors.ink, fontWeight: '700' }}>
+                  {item.verseReferenceEn || item.verseReference}
+                </Text>
+              )}
+              {item.verseReferenceTe && (item.verseReferenceEn || item.verseReference) && (
+                <Text style={{ fontSize: 13, color: colors.rule, marginHorizontal: 8 }}>  |  </Text>
+              )}
+              {item.verseReferenceTe && (
+                <Text style={{ fontSize: 13, color: colors.ink, fontWeight: '700' }}>
+                  {item.verseReferenceTe}
+                </Text>
+              )}
+            </Text>
             {(item as any).author && (
               <>
                 <Text style={styles.dot}>•</Text>
@@ -169,7 +178,7 @@ export default function AdminPromiseList() {
               <Text style={isMissingLink ? styles.flagOff : styles.flagOn}>{isMissingLink ? '▶ No link' : '▶ YouTube'}</Text>
             </View>
             <TouchableOpacity onPress={() => type === 'past' ? handleView(item) : handleEdit(item)}>
-              <Text style={styles.viewLink}>View →</Text>
+              <Text style={styles.viewLink}>Edit →</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -190,7 +199,7 @@ export default function AdminPromiseList() {
       <View style={styles.hero}>
         <View style={styles.heroTitleRow}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 1 }}>
-            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, flexShrink: 0 }}>
+            <TouchableOpacity onPress={() => setTabByName?.('Dashboard')} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, flexShrink: 0 }}>
               <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>
@@ -201,7 +210,7 @@ export default function AdminPromiseList() {
           </View>
           
           <View style={{ width: 10 }} />
-          <TouchableOpacity style={[styles.newBtn, { flexShrink: 0 }]} onPress={() => { setEditingData(null); setActiveTab(2); }}>
+          <TouchableOpacity style={[styles.newBtn, { flexShrink: 0 }]} onPress={() => { setEditingData(null); setTabByName?.('New Promise'); }}>
             <Text style={styles.newBtnTxt}>+ New</Text>
           </TouchableOpacity>
         </View>
@@ -243,7 +252,7 @@ export default function AdminPromiseList() {
           {todayPromise ? renderCard(todayPromise, 'today') : (
             <View style={styles.emptyCard}>
               <Text style={styles.emptyText}>Nothing is scheduled for <Text style={styles.dateTag}>{displayDateFullStr}</Text> yet.</Text>
-              <TouchableOpacity style={styles.ghostBtn} onPress={() => { setEditingData({ date: todayStr }); setActiveTab(2); }}>
+              <TouchableOpacity style={styles.ghostBtn} onPress={() => { setEditingData({ date: todayStr }); setTabByName?.('New Promise'); }}>
                 <Text style={styles.ghostBtnTxt}>+ Schedule today's promise</Text>
               </TouchableOpacity>
             </View>
@@ -268,7 +277,7 @@ export default function AdminPromiseList() {
                 const now = new Date();
                 const dStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(missingDates[0]).padStart(2, '0')}`;
                 setEditingData({ date: dStr });
-                setActiveTab(2);
+                setTabByName?.('New Promise');
               }
             }}>
               <Text style={styles.fillAllTxt}>Fill all</Text>
@@ -282,7 +291,7 @@ export default function AdminPromiseList() {
                   const now = new Date();
                   const dStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
                   setEditingData({ date: dStr }); 
-                  setActiveTab(2); 
+                  setTabByName?.('New Promise'); 
                 }}>
                   <View style={styles.missingMonth}><Text style={styles.missingMonthTxt}>{monthStr}</Text></View>
                   <Text style={styles.missingDay}>{d}</Text>
@@ -306,7 +315,7 @@ export default function AdminPromiseList() {
         </View>
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={() => { setEditingData(null); setActiveTab(1); }}>
+      <TouchableOpacity style={styles.fab} onPress={() => { setEditingData(null); setTabByName?.('New Promise'); }}>
         <Plus size={32} color={colors.ink} strokeWidth={3} />
       </TouchableOpacity>
     </View>

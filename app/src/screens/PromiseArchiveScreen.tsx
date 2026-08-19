@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   titleCol: { flex: 1, alignItems: 'center' },
   pageTitle: { color: '#fff', fontSize: 14, fontWeight: '600' },
   pageSub: { color: '#aac4e8', fontSize: 9.5, marginTop: 1 },
-  scroll: { paddingBottom: 40 },
+  scroll: { paddingBottom: 140 },
   mainContent: { padding: 16 },
   topDate: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textAlign: 'center', marginBottom: 15, letterSpacing: 0.5 },
 

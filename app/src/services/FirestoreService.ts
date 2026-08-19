@@ -1059,17 +1059,22 @@ class FirestoreService {
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const snapshot = await col
         .where('date', '==', todayStr)
-        .where('status', 'in', ['Published', 'Scheduled'])
         .get();
       if (!snapshot.empty) {
-        const promises = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DailyPromise));
-        promises.sort((a: any, b: any) => {
-          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
-          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
-          return tB - tA;
-        });
-        const withImage = promises.find(p => p.imageUrl && p.imageUrl.trim().length > 0);
-        return withImage || promises[0];
+        let promises = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DailyPromise));
+        
+        // Filter by Published or Scheduled status in JS to avoid composite index requirements
+        promises = promises.filter(p => p.status === 'Published' || p.status === 'Scheduled');
+        
+        if (promises.length > 0) {
+          promises.sort((a: any, b: any) => {
+            const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+            const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+            return tB - tA;
+          });
+          const withImage = promises.find(p => p.imageUrl && p.imageUrl.trim().length > 0);
+          return withImage || promises[0];
+        }
       }
       return null;
     } catch (e) {
@@ -1586,7 +1591,7 @@ class FirestoreService {
     try {
       const col = await this.getCollection('attendanceRequests');
       // Get the most recent active request
-      const snapshot = await col.where('status', '==', 'active').orderBy('createdAt', 'desc').limit(1).get();
+      const snapshot = await col.where('status', '==', 'Active').orderBy('createdAt', 'desc').limit(1).get();
       
       if (snapshot.empty) return null;
       

@@ -11,6 +11,7 @@ import {
   onSnapshot 
 } from '@react-native-firebase/firestore';
 import { useAuth } from '../context/AuthContext';
+import { formatDateDisplay } from '../utils/DateUtils';
 import { useChurch } from '../context/ChurchContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -472,7 +473,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
                 <View style={styles.updateInfo}>
                   <View style={styles.metaRow}>
                     <Text style={[styles.typeTag, { color: update.color }]}>{update.type.toUpperCase()}</Text>
-                    <Text style={styles.dateTxt}>{update.date}</Text>
+                    <Text style={styles.dateTxt}>{formatDateDisplay(update.date)}</Text>
                   </View>
                   <Text style={styles.updateTitle}>{update.title}</Text>
                   <Text style={styles.updateContent} numberOfLines={2}>{update.content}</Text>
@@ -624,7 +625,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     ]}>
                       {selectedUpdate?.type?.toUpperCase() || 'ANNOUNCEMENT'}
                     </Text>
-                    <Text style={styles.stdDateTxt}>{selectedUpdate?.date}</Text>
+                    <Text style={styles.stdDateTxt}>{formatDateDisplay(selectedUpdate?.date)}</Text>
                   </View>
                 </View>
 

@@ -51,7 +51,7 @@ const KEYS = [
 ];
 
 export default function AdminSongEditor() {
-  const { setActiveTab } = useContext(AdminTabContext);
+  const { setActiveTab, setTabByName } = useContext(AdminTabContext);
 
   // Screen-level tab
   const [screenTab, setScreenTab] = useState<'list' | 'theme'>('list');
@@ -811,11 +811,14 @@ export default function AdminSongEditor() {
                 "{titleEn}" has been published under <Text style={{ fontWeight: '800', color: '#1a2d5a' }}>{categories[0] || 'Other'}</Text> and saved to the database!
               </Text>
 
-              <TouchableOpacity style={styles.successActionBtn} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(0); }}>
-                <Text style={styles.successActionTxt}>Back to Dashboard</Text>
+              <TouchableOpacity style={styles.successActionBtn} onPress={() => { setShowSuccess(false); resetForm(); setTabByName?.('Songs'); }}>
+                <Text style={styles.successActionTxt}>✅ Done — Back to Songs</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.successSecBtn} onPress={() => { setShowSuccess(false); resetForm(); }}>
                 <Text style={styles.successSecTxt}>Post Another Song</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.successSecBtn, { marginTop: 6, borderColor: '#c7d2fe' }]} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(0); }}>
+                <Text style={[styles.successSecTxt, { color: '#6366f1' }]}>Back to Dashboard</Text>
               </TouchableOpacity>
             </View>
           </View>

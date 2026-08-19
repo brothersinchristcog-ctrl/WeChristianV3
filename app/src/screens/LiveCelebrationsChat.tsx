@@ -22,6 +22,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import storage from '@react-native-firebase/storage';
 import firestore from '@react-native-firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -120,6 +121,22 @@ export default function LiveCelebrationsChat({ navigation, route }: any) {
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isTypingLocally = useRef(false);
+  
+  const [initialLastReadTime, setInitialLastReadTime] = useState<number>(0);
+
+  useEffect(() => {
+    const fetchLastRead = async () => {
+      const lastRead = await AsyncStorage.getItem(`@lastReadCeleb_${todayStr}`);
+      setInitialLastReadTime(lastRead ? parseInt(lastRead, 10) : 0);
+    };
+    fetchLastRead();
+  }, []);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      AsyncStorage.setItem(`@lastReadCeleb_${todayStr}`, Date.now().toString());
+    }
+  }, [messages.length]);
 
   const updateTypingStatus = async (isTyping: boolean) => {
     if (!activeChurch?.id || !member) return;
@@ -304,7 +321,7 @@ export default function LiveCelebrationsChat({ navigation, route }: any) {
             text: text.trim(),
             userId: member.id,
             userName: member.name || user?.displayName || 'Unknown',
-            userPhoto: (member as any).profilePhoto || (member as any).photoURL || user?.photoURL || null,
+            userPhoto: (member as any).profilePhoto || (member as any).photoURL || (member as any).photoUrl || (member as any).profileImageUrl || (member as any).PhotoUrl || (member as any).Photo || user?.photoURL || null,
             createdAt: firestore.FieldValue.serverTimestamp(),
             reactions: {},
             ...(selectedCelebrantId ? { targetCelebrantId: selectedCelebrantId, targetCelebrantName: selectedCelebrantName } : {})
@@ -440,7 +457,7 @@ export default function LiveCelebrationsChat({ navigation, route }: any) {
           audioUrl,
           userId: member.id,
           userName: member.name || user?.displayName || 'Unknown',
-          userPhoto: (member as any).profilePhoto || (member as any).photoURL || user?.photoURL || null,
+          userPhoto: (member as any).profilePhoto || (member as any).photoURL || (member as any).photoUrl || (member as any).profileImageUrl || (member as any).PhotoUrl || (member as any).Photo || user?.photoURL || null,
           createdAt: firestore.FieldValue.serverTimestamp(),
           reactions: {},
           ...(selectedCelebrantId ? { targetCelebrantId: selectedCelebrantId, targetCelebrantName: selectedCelebrantName } : {})
@@ -705,8 +722,8 @@ export default function LiveCelebrationsChat({ navigation, route }: any) {
                           {item.userPhoto ? (
                             <Image source={{ uri: item.userPhoto }} style={styles.avatarImage} />
                           ) : (
-                            <View style={[styles.avatarImage, { backgroundColor: COLORS.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' }]}>
-                              <Text style={{color: COLORS.onBackground, fontSize: 12}}>{item.userName?.[0]}</Text>
+                            <View style={[styles.avatarImage, { backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' }]}>
+                              <Text style={{color: '#ffffff', fontSize: 16, fontWeight: 'bold'}}>{item.userName?.[0]?.toUpperCase()}</Text>
                             </View>
                           )}
                         </View>
@@ -749,7 +766,14 @@ export default function LiveCelebrationsChat({ navigation, route }: any) {
                         </TouchableOpacity>
                       ) : (
                         <View style={[styles.messageBubble, styles.messageBubbleInbound, { flexShrink: 1 }]}>
-                          <Text style={styles.messageSenderName}>{item.userName}</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
+                            <Text style={[styles.messageSenderName, { marginBottom: 0 }]}>{item.userName}</Text>
+                            {initialLastReadTime > 0 && (item.createdAt?.toMillis?.() || (typeof item.createdAt === 'number' ? item.createdAt : 0)) > initialLastReadTime && (
+                              <View style={{ backgroundColor: '#ef4444', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, marginLeft: 8 }}>
+                                <Text style={{ color: '#fff', fontSize: 9, fontWeight: 'bold' }}>NEW</Text>
+                              </View>
+                            )}
+                          </View>
                           {item.targetCelebrantName && (
                             <Text style={styles.mentionTag}>To @{item.targetCelebrantName}</Text>
                           )}
@@ -781,8 +805,8 @@ export default function LiveCelebrationsChat({ navigation, route }: any) {
                            {item.userPhoto ? (
                             <Image source={{ uri: item.userPhoto }} style={styles.avatarImage} />
                           ) : (
-                            <View style={[styles.avatarImage, { backgroundColor: COLORS.surfaceContainerHigh, justifyContent: 'center', alignItems: 'center' }]}>
-                              <Text style={{color: COLORS.onBackground, fontSize: 12}}>{item.userName?.[0]}</Text>
+                            <View style={[styles.avatarImage, { backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center' }]}>
+                              <Text style={{color: '#ffffff', fontSize: 16, fontWeight: 'bold'}}>{item.userName?.[0]?.toUpperCase()}</Text>
                             </View>
                           )}
                         </View>
@@ -1205,12 +1229,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   avatarContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: 'rgba(82, 69, 52, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarImage: {
     width: '100%',

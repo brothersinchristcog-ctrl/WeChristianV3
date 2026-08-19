@@ -43,6 +43,8 @@ import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
 import { Lock } from 'lucide-react-native';
 import storage from '@react-native-firebase/storage';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { formatDateDisplay } from '../utils/DateUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -77,6 +79,16 @@ export default function ProfileScreen({ navigation }: any) {
     anniversaryDate: authMember?.anniversaryDate || ''
   });
   const [updating, setUpdating] = useState(false);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [activeDateField, setActiveDateField] = useState<'dob' | 'baptismDate' | 'anniversaryDate' | null>(null);
+
+  const handleConfirmDate = (date: Date) => {
+    const formattedDate = date.toISOString().split('T')[0];
+    if (activeDateField === 'dob') setEditForm({ ...editForm, dob: formattedDate });
+    if (activeDateField === 'baptismDate') setEditForm({ ...editForm, baptismDate: formattedDate });
+    if (activeDateField === 'anniversaryDate') setEditForm({ ...editForm, anniversaryDate: formattedDate });
+    setDatePickerVisibility(false);
+  };
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   
@@ -586,33 +598,48 @@ export default function ProfileScreen({ navigation }: any) {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Birthday (YYYY-MM-DD)</Text>
-                <TextInput 
-                  style={styles.input}
-                  value={editForm.dob}
-                  onChangeText={(t) => setEditForm({...editForm, dob: t})}
-                  placeholder="YYYY-MM-DD"
-                />
+                <Text style={styles.inputLabel}>Birthday</Text>
+                <TouchableOpacity 
+                  style={[styles.input, { justifyContent: 'center' }]}
+                  onPress={() => {
+                    setActiveDateField('dob');
+                    setDatePickerVisibility(true);
+                  }}
+                >
+                  <Text style={{ fontSize: 15, color: editForm.dob ? '#1e293b' : '#94a3b8' }}>
+                    {editForm.dob ? formatDateDisplay(editForm.dob) : "Select Date"}
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Baptism Date (YYYY-MM-DD)</Text>
-                <TextInput 
-                  style={styles.input}
-                  value={editForm.baptismDate}
-                  onChangeText={(t) => setEditForm({...editForm, baptismDate: t})}
-                  placeholder="YYYY-MM-DD"
-                />
+                <Text style={styles.inputLabel}>Baptism Date</Text>
+                <TouchableOpacity 
+                  style={[styles.input, { justifyContent: 'center' }]}
+                  onPress={() => {
+                    setActiveDateField('baptismDate');
+                    setDatePickerVisibility(true);
+                  }}
+                >
+                  <Text style={{ fontSize: 15, color: editForm.baptismDate ? '#1e293b' : '#94a3b8' }}>
+                    {editForm.baptismDate ? formatDateDisplay(editForm.baptismDate) : "Select Date"}
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Wedding Anniversary Date (YYYY-MM-DD)</Text>
-                <TextInput 
-                  style={styles.input}
-                  value={editForm.anniversaryDate}
-                  onChangeText={(t) => setEditForm({...editForm, anniversaryDate: t})}
-                  placeholder="YYYY-MM-DD"
-                />
+                <Text style={styles.inputLabel}>Wedding Anniversary Date</Text>
+                <TouchableOpacity 
+                  style={[styles.input, { justifyContent: 'center' }]}
+                  onPress={() => {
+                    setActiveDateField('anniversaryDate');
+                    setDatePickerVisibility(true);
+                  }}
+                >
+                  <Text style={{ fontSize: 15, color: editForm.anniversaryDate ? '#1e293b' : '#94a3b8' }}>
+                    {editForm.anniversaryDate ? formatDateDisplay(editForm.anniversaryDate) : "Select Date"}
+                  </Text>
+                </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
@@ -670,6 +697,19 @@ export default function ProfileScreen({ navigation }: any) {
               
               <View style={{ height: 60 }} />
             </ScrollView>
+
+            <DateTimePickerModal
+              isVisible={isDatePickerVisible}
+              mode="date"
+              onConfirm={handleConfirmDate}
+              onCancel={() => setDatePickerVisibility(false)}
+              date={
+                activeDateField && editForm[activeDateField] 
+                ? new Date(editForm[activeDateField]) 
+                : new Date()
+              }
+              maximumDate={new Date()}
+            />
           </View>
         </View>
       )}

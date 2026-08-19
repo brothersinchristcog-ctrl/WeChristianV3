@@ -449,7 +449,7 @@ export default function AdminEventEditor() {
             Your event "{titleEn}" has been successfully {publishStatus === 'Published' ? 'published to all members' : 'saved as a draft'}.
           </Text>
 
-          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); if (setTabByName) setTabByName('Events'); else setActiveTab(8); }}>
+          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); setTabByName?.('Events'); }}>
             <Text style={styles.successBtnPrimaryTxt}>View Event List</Text>
           </TouchableOpacity>
 
@@ -482,7 +482,7 @@ export default function AdminEventEditor() {
       {/* ── Page Header ── */}
       <View style={styles.hero}>
         <View style={styles.heroTitleRow}>
-          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => setTabByName?.('Events')} style={{ flexDirection: 'row', alignItems: 'center' }}>
             <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
             <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>
@@ -774,7 +774,7 @@ export default function AdminEventEditor() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.btnBack} onPress={() => { resetForm(); setActiveTab(8); }}>
+        <TouchableOpacity style={styles.btnBack} onPress={() => { resetForm(); setTabByName?.('Events'); }}>
           <Text style={styles.btnBackTxt}>← Back to list</Text>
         </TouchableOpacity>
 

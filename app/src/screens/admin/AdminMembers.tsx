@@ -20,6 +20,7 @@ import {
 import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2, ChevronLeft, UserPlus, Search, MoreVertical } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
+import { formatDateDisplay } from '../../utils/DateUtils';
 import { CustomAlert, AlertButton } from '../../components/CustomAlert';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { AdminTabContext } from '../../context/AdminTabContext';
@@ -763,7 +764,7 @@ export default function AdminMembers() {
                                   {details.dob ? (
                                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                                       <Text style={{ fontSize: 14, marginRight: 8 }}>🎂</Text>
-                                      <Text style={{ color: '#4B5563', fontSize: 13 }}>DOB: {details.dob}</Text>
+                                      <Text style={{ color: '#4B5563', fontSize: 13 }}>DOB: {formatDateDisplay(details.dob)}</Text>
                                     </View>
                                   ) : null}
                                   {details.gender ? (
@@ -862,7 +863,7 @@ export default function AdminMembers() {
                 onPress={() => setDatePickerVisibility(true)}
               >
                 <Text style={{ color: newMemberForm.dob ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
-                  {newMemberForm.dob || 'Select Date'}
+                  {newMemberForm.dob ? formatDateDisplay(newMemberForm.dob) : 'Select Date'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -875,7 +876,7 @@ export default function AdminMembers() {
                 onPress={() => { setActiveDateField('baptismDate'); setDatePickerVisibility(true); }}
               >
                 <Text style={{ color: newMemberForm.baptismDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
-                  {newMemberForm.baptismDate || 'Select Date'}
+                  {newMemberForm.baptismDate ? formatDateDisplay(newMemberForm.baptismDate) : 'Select Date'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -888,7 +889,7 @@ export default function AdminMembers() {
                 onPress={() => { setActiveDateField('anniversaryDate'); setDatePickerVisibility(true); }}
               >
                 <Text style={{ color: newMemberForm.anniversaryDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
-                  {newMemberForm.anniversaryDate || 'Select Date'}
+                  {newMemberForm.anniversaryDate ? formatDateDisplay(newMemberForm.anniversaryDate) : 'Select Date'}
                 </Text>
               </TouchableOpacity>
             </View>

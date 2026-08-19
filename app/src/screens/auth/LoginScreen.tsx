@@ -164,7 +164,7 @@ export default function LoginScreen({ navigation, route }: LoginScreenProps) {
           <Text style={[styles.bibleQuote, { marginTop: 40, marginBottom: 0, fontSize: 15, fontStyle: 'normal', opacity: 0.9, paddingHorizontal: 20 }]}>
             A place to connect, pray, and walk together in faith as one church family.
           </Text>
-          <Text style={[styles.bibleQuote, { marginTop: 25 }]}>
+          <Text style={[styles.bibleQuote, { marginTop: 25, paddingHorizontal: 20, lineHeight: 26 }]}>
             "But those who hope in the Lord will renew their strength. They will soar on wings like eagles; they will run and not grow weary, they will walk and not be faint."{'\n'}— Isaiah 40:31
           </Text>
         </View>
@@ -216,10 +216,10 @@ export default function LoginScreen({ navigation, route }: LoginScreenProps) {
 
   return (
     <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={styles.authContainer}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+      <StatusBar barStyle="light-content" backgroundColor="#0A1128" />
       
       {/* ── Page Header ── */}
       <View style={styles.pageHeader}>
@@ -232,10 +232,10 @@ export default function LoginScreen({ navigation, route }: LoginScreenProps) {
             <Text style={styles.backBtnTxt}>Back</Text>
           </TouchableOpacity>
           <View style={styles.titleCol}>
-            <Text style={styles.pageTitle}>
+            <Text style={styles.pageTitle} numberOfLines={1} adjustsFontSizeToFit>
               {activeChurch ? 'Welcome Back' : (isCreatingChurch ? 'Register Church' : 'Sign In')}
             </Text>
-            <Text style={styles.pageSub}>
+            <Text style={styles.pageSub} numberOfLines={1} adjustsFontSizeToFit>
               {activeChurch ? 'Sign in to your member account' : (isCreatingChurch ? 'Verify number for new church' : 'Verify number to continue')}
             </Text>
           </View>
@@ -313,8 +313,7 @@ const styles = StyleSheet.create({
     fontStyle: 'italic', 
     fontWeight: '600', 
     marginBottom: 8, 
-    textAlign: 'center',
-    marginTop: -80 
+    textAlign: 'center'
   },
   churchTitleLarge: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 10, textAlign: 'center', letterSpacing: 1, textTransform: 'uppercase' },
   bibleQuote: { color: '#aac4e8', fontSize: 16, fontStyle: 'italic', fontWeight: '500', marginTop: 40, textAlign: 'center', lineHeight: 24 },
@@ -348,7 +347,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minWidth: 60 },
   backBtnTxt: { color: '#aac4e8', fontSize: 16, fontWeight: '500' },
-  titleCol: { flex: 1, alignItems: 'center' },
+  titleCol: { flex: 1, alignItems: 'center', paddingHorizontal: 16 },
   pageTitle: { 
     color: '#F4D389', 
     fontSize: 40, 
@@ -365,7 +364,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 24,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: 'rgba(244, 211, 137, 0.4)',
   },
   cardContainerSuccess: {
     borderColor: '#F4D389',
