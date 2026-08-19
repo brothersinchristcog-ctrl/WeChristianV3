@@ -262,6 +262,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
               color: color,
               url: data.url || '',
               imageUrl: data.imageUrl || null,
+              relatedId: data.relatedId || null,
               rawDate: data.createdAt?.toMillis?.() || (typeof data.createdAt === 'number' ? data.createdAt : 0)
             };
           }).filter(item => item !== null);
@@ -448,7 +449,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
                 activeOpacity={0.7}
                 onPress={() => {
                   if (update.type === 'song') {
-                    navigation.navigate('Songs');
+                    navigation.navigate('Songs', { songId: update.relatedId });
                   } else if (update.type === 'promise') {
                     if (viewMode === 'admin') {
                       if (navigation.canGoBack()) navigation.goBack();

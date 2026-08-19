@@ -51,7 +51,7 @@ const CATEGORIES = [
   'Other'
 ];
 
-export default function SongsScreen({ navigation }: any) {
+export default function SongsScreen({ navigation, route }: any) {
   const { isDark, toggleTheme } = useTheme();
 
   // ── Tabs ──────────────────────────────────────────
@@ -111,6 +111,19 @@ export default function SongsScreen({ navigation }: any) {
     fetchSongs();
     loadSavedIds();
   }, []);
+
+  // ── Open specific song from notification ──────────
+  const { songId } = route?.params || {};
+  useEffect(() => {
+    if (songId && songs.length > 0) {
+      const songToOpen = songs.find(s => s.id === songId);
+      if (songToOpen) {
+        setSelectedSong(songToOpen);
+        // Clear param so it doesn't reopen if the user closes it and navigates back
+        navigation.setParams({ songId: undefined });
+      }
+    }
+  }, [songId, songs, navigation]);
 
   const onRefresh = () => { setRefreshing(true); fetchSongs(); };
 

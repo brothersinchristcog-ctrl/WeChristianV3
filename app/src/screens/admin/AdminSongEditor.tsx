@@ -151,7 +151,8 @@ export default function AdminSongEditor() {
         category: primaryCategory,
         youtubeId: youtubeId.trim()
       });
-      setSyncReceipt({ savedTo: 'Firebase DB', id: typeof receipt === 'string' ? receipt : (receipt as any)?.id || 'Unknown' });
+      const newSongId = typeof receipt === 'string' ? receipt : (receipt as any)?.id || 'Unknown';
+      setSyncReceipt({ savedTo: 'Firebase DB', id: newSongId });
 
       try {
         const churchId = await FirestoreService.getChurchId();
@@ -159,8 +160,9 @@ export default function AdminSongEditor() {
           title: `🎵 New Song: ${titleEn.trim()}`,
           content: `A new worship song "${titleEn.trim()}" has been posted under ${primaryCategory}!`,
           date: new Date().toISOString().split('T')[0],
-          type: 'announcement',
+          type: 'song',
           targetChurchId: churchId,
+          relatedId: newSongId !== 'Unknown' ? newSongId : null
         });
       } catch { /* rules may block — OK */ }
 
