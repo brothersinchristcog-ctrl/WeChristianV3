@@ -401,9 +401,7 @@ export default function PrayerWallScreen({ navigation }: any) {
           <Text style={styles.headerSub}>{prayers.length} requests · Share your prayer</Text>
         </View>
 
-        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-          <Text style={styles.themeToggleText}>{isDark ? '🌙 Dark' : '☀️ Light'}</Text>
-        </TouchableOpacity>
+        <View style={{ width: 70 }} />
       </View>
 
       <FlatList

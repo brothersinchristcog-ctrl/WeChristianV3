@@ -59,7 +59,7 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           youtubeId: p.youtubeId,
           date: p.date,
           duration: p.duration || '',
-          pastor: p.pastor || 'Brother Y. Rajesh'
+          pastor: p.pastor || 'Pastor'
         }));
       setVideos(data);
       
@@ -72,7 +72,7 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           youtubeId: sermonData.youtubeId || '',
           date: sermonData.date || 'Today',
           duration: sermonData.duration || '',
-          pastor: sermonData.pastor || 'Brother Y. Rajesh'
+          pastor: sermonData.pastor || 'Pastor'
         });
       } else if (data.length > 0) {
         setActiveVideo(data[0]);
@@ -166,7 +166,7 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           <View style={styles.pastorCard}>
             <View style={styles.pastorAv}><Text style={styles.pastorAvTxt}>P</Text></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.pastorName}>{activeVideo?.pastor || 'Brother Y. Rajesh'}</Text>
+              <Text style={styles.pastorName}>{activeVideo?.pastor || 'Pastor'}</Text>
               <Text style={styles.pastorRole}>Main Speaker</Text>
             </View>
             <TouchableOpacity style={styles.subBtn} onPress={handleSubscribe}>

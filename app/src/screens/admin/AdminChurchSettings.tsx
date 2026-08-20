@@ -42,7 +42,7 @@ export default function AdminChurchSettings({ navigation }: any) {
   const [form, setForm] = useState<Partial<ChurchDetails>>({});
   const [linkCode, setLinkCode] = useState('');
   const [linking, setLinking] = useState(false);
-  const [secrets, setSecrets] = useState<{ phonePeMerchantId?: string; phonePeSaltKey?: string; phonePeSaltIndex?: string; whatsappAccessToken?: string; whatsappPhoneId?: string; useWeChristianWhatsApp?: boolean }>({});
+  const [secrets, setSecrets] = useState<{ razorpayKeyId?: string; razorpayKeySecret?: string; whatsappAccessToken?: string; whatsappPhoneId?: string; useWeChristianWhatsApp?: boolean }>({});
   const [activeTab, setActiveTab] = useState<'info' | 'branding' | 'giving' | 'integrations'>('info');
   const [isEditing, setIsEditing] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{
@@ -285,7 +285,7 @@ export default function AdminChurchSettings({ navigation }: any) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'giving' && { borderBottomColor: primaryColor }]}
-            onPress={() => setAlertConfig({ visible: true, title: 'Giving Details', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })}
+            onPress={() => setActiveTab('giving')}
           >
             <DollarSign size={18} color={activeTab === 'giving' ? primaryColor : '#64748b'} />
             <Text style={[styles.tabTxt, activeTab === 'giving' && { color: primaryColor, fontWeight: '700' }]}>Giving</Text>
@@ -515,19 +515,27 @@ export default function AdminChurchSettings({ navigation }: any) {
             <View>
               {!isEditing && <Text style={styles.viewModeHint}>Tap 'Edit' in the top right to make changes.</Text>}
 
-              <Text style={styles.sectionLabel}>PhonePe Payment Gateway Config (Secrets)</Text>
-              <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 12 }}>
-                These values are stored securely and never exposed to members. Used for automated web checkout.
-              </Text>
+              <View style={[styles.switchRow, { marginBottom: 20 }]}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={styles.switchLabel}>Enable Giving / Tithe</Text>
+                  <Text style={styles.switchHint}>If enabled, members will be able to make donations securely using Razorpay in the app.</Text>
+                </View>
+                <Switch
+                  value={form.features?.hasGiving}
+                  onValueChange={v => updateField('features', 'hasGiving', v)}
+                  trackColor={{ false: '#cbd5e1', true: '#10b981' }}
+                  thumbColor={form.features?.hasGiving ? '#fff' : '#f8fafc'}
+                  disabled={!isEditing}
+                />
+              </View>
 
-              <Text style={styles.label}>Merchant ID</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeMerchantId} onChangeText={v => updateSecret('phonePeMerchantId', v)} placeholder="e.g. M1234567890" placeholderTextColor="#64748b" editable={isEditing} />
+              <Text style={[styles.sectionLabel, { marginTop: 12 }]}>Razorpay Gateway Configuration</Text>
 
-              <Text style={styles.label}>Salt Key</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeSaltKey} onChangeText={v => updateSecret('phonePeSaltKey', v)} placeholder="e.g. 099eb0cd-02cf-4e2a-8aca-3e6c6aff0399" placeholderTextColor="#64748b" secureTextEntry={!isEditing} editable={isEditing} />
+              <Text style={styles.label}>Key ID</Text>
+              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.razorpayKeyId} onChangeText={v => updateSecret('razorpayKeyId', v)} placeholder="e.g. rzp_live_XXXXX" placeholderTextColor="#64748b" editable={isEditing} />
 
-              <Text style={styles.label}>Salt Index</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeSaltIndex} onChangeText={v => updateSecret('phonePeSaltIndex', v)} placeholder="e.g. 1" placeholderTextColor="#64748b" keyboardType="numeric" editable={isEditing} />
+              <Text style={styles.label}>Key Secret</Text>
+              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.razorpayKeySecret} onChangeText={v => updateSecret('razorpayKeySecret', v)} placeholder="e.g. 099eb0cd-02cf-4e2a-8aca-3e6c6aff0399" placeholderTextColor="#64748b" editable={isEditing} secureTextEntry={!isEditing} />
 
               <Text style={[styles.sectionLabel, { marginTop: 12 }]}>Primary UPI & Mobile Payments</Text>
 
@@ -565,17 +573,6 @@ export default function AdminChurchSettings({ navigation }: any) {
                   <TextInput style={[styles.input, !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 30 }]} value={upi.phonepeNumber} onChangeText={v => updateUpi(i, 'phonepeNumber', v)} placeholder="Optional" placeholderTextColor="#64748b" keyboardType="phone-pad" editable={isEditing} />
                 </View>
               ))}
-
-              <Text style={[styles.sectionLabel, { marginTop: 24 }]}>PhonePe Gateway Configuration</Text>
-
-              <Text style={styles.label}>Merchant ID</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeMerchantId} onChangeText={v => updateSecret('phonePeMerchantId', v)} placeholder="e.g. PGTESTPAYUAT" placeholderTextColor="#64748b" editable={isEditing} />
-
-              <Text style={styles.label}>Salt Key</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeSaltKey} onChangeText={v => updateSecret('phonePeSaltKey', v)} placeholder="e.g. 099eb0cd-02cf-4e2a-8aca-3e6c6aff0399" placeholderTextColor="#64748b" editable={isEditing} secureTextEntry={!isEditing} />
-
-              <Text style={styles.label}>Salt Index</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeSaltIndex} onChangeText={v => updateSecret('phonePeSaltIndex', v)} placeholder="1" placeholderTextColor="#64748b" editable={isEditing} keyboardType="numeric" />
 
               <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Primary Bank Transfer Details</Text>
 
@@ -679,14 +676,6 @@ export default function AdminChurchSettings({ navigation }: any) {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-      
-      <CustomAlert
-        visible={alertConfig.visible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        type={alertConfig.type}
-        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
-      />
     </View>
   );
 }

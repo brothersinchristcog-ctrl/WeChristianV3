@@ -32,7 +32,8 @@ import {
   MapPin,
   Crown,
   Award,
-  Shield
+  Shield,
+  Sun
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -340,7 +341,10 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.headerTop}>
           <View style={{ width: 40 }} />
           <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-             <Text style={styles.themeToggleText}>{isDark ? '🌙 Dark' : '☀️ Light'}</Text>
+            {isDark
+              ? <Sun size={18} color="#FCD34D" />
+              : <Moon size={18} color="#fff" />
+            }
           </TouchableOpacity>
         </View>
 
@@ -437,8 +441,12 @@ export default function ProfileScreen({ navigation }: any) {
             title="Giving history" 
             sub="Available Soon" 
             onPress={() => {
-              setInfoMessage('Online donations via the app are coming soon. Please contact the church administration for offline donation options.');
-              setInfoModalVisible(true);
+              if (!activeChurch?.features?.hasGiving) {
+                setInfoMessage('Online donations via the app are coming soon. Please contact the church administration for offline donation options.');
+                setInfoModalVisible(true);
+              } else {
+                navigation.navigate('Give');
+              }
             }}
           />
           <MenuItem 
@@ -938,7 +946,7 @@ const styles = StyleSheet.create({
     alignItems: 'center'
   },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, alignItems: 'center', alignSelf: 'stretch' },
-  themeToggle: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  themeToggle: { backgroundColor: 'rgba(255,255,255,0.15)', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   themeToggleText: { color: '#fff', fontSize: 10, fontWeight: '800' },
 
   avatarContainer: { alignItems: 'center', marginTop: 10 },

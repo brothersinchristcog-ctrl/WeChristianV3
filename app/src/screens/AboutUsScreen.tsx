@@ -53,11 +53,19 @@ export default function AboutUsScreen() {
             if (doc.exists()) {
               const d = doc.data() as AboutUsData;
               setData({
-                churchName: d.churchName || DEFAULT.churchName,
-                churchSubtitle: d.churchSubtitle || DEFAULT.churchSubtitle,
-                description: d.description || DEFAULT.description,
-                mission: d.mission || DEFAULT.mission,
-                vision: d.vision || DEFAULT.vision,
+                churchName: d.churchName || activeChurch?.name || 'Your Church',
+                churchSubtitle: d.churchSubtitle || '',
+                description: d.description || activeChurch?.aboutUs || '',
+                mission: d.mission || '',
+                vision: d.vision || '',
+              });
+            } else {
+              setData({
+                churchName: activeChurch?.name || 'Your Church',
+                churchSubtitle: '',
+                description: activeChurch?.aboutUs || '',
+                mission: '',
+                vision: '',
               });
             }
             setLoading(false);

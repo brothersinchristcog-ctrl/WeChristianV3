@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -27,8 +27,11 @@ import { Buffer } from 'buffer';
 import * as Crypto from 'expo-crypto';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import { captureRef } from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
 import storage from '@react-native-firebase/storage';
+import RazorpayCheckout from 'react-native-razorpay';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
 import firestoreService, { SubscriptionPlan, GlobalUser } from '../services/FirestoreService';
@@ -52,9 +55,11 @@ const colors = {
   forestSoft: '#E4EBE1',
 };
 
-export default function SubscriptionTab() {
-  const { member, user } = useAuth();
+export default function SubscriptionTab({ member }: { member: any }) {
+  const { user } = useAuth();
   const { activeChurch } = useChurch();
+  
+  const receiptRef = useRef<View>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [paymentMethod, setPaymentMethod] = useState('upi');
@@ -63,6 +68,8 @@ export default function SubscriptionTab() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [globalUser, setGlobalUser] = useState<GlobalUser | null>(null);
   const [viewReceiptModalVisible, setViewReceiptModalVisible] = useState(false);
+  const [downloadSuccessModalVisible, setDownloadSuccessModalVisible] = useState(false);
+  const [receiptTxnId, setReceiptTxnId] = useState('');
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -125,49 +132,34 @@ export default function SubscriptionTab() {
 
   const cycleText = billingCycle === 'annual' ? '/ year' : '/ month';
 
-  const handlePhonePePayment = async () => {
+  const handleRazorpayPayment = async () => {
     try {
-      // Bypassing Firebase function to avoid GCP lock issues and use test keys directly
-      const amount = planPrice * 100;
-      const transactionId = `T${Date.now()}`;
+      const amount = planPrice;
+      const receipt = `RCPT_${Date.now()}`;
       
-      const payload = {
-        merchantId: 'PGTESTPAYUAT86',
-        merchantTransactionId: transactionId,
-        merchantUserId: user?.uid || member?.phone || 'U123456',
-        amount: amount,
-        redirectUrl: 'exp://localhost:8081/--/subscription-success', 
-        redirectMode: 'REDIRECT',
-        callbackUrl: 'https://us-central1-wechristian-67f07.cloudfunctions.net/phonePeCallback', 
-        mobileNumber: user?.phoneNumber || member?.phone || "9999999999",
-        paymentInstrument: {
-          type: 'PAY_PAGE'
-        }
+      const createOrder = functions().httpsCallable('createRazorpayOrderV4');
+      const res = await createOrder({ amount, receipt });
+      const { orderId, keyId } = (res.data as any);
+
+      const options = {
+        description: 'Subscription',
+        image: activeChurch?.theme?.logoUrl || 'https://cdn-icons-png.flaticon.com/512/8662/8662584.png',
+        currency: 'INR',
+        key: keyId,
+        amount: amount * 100,
+        name: activeChurch?.name || 'We Christian',
+        order_id: orderId,
+        prefill: {
+          email: user?.email || '',
+          contact: user?.phoneNumber || member?.phone || '',
+          name: member?.firstName ? `${member.firstName} ${member.lastName || ''}` : ''
+        },
+        theme: { color: colors.brass }
       };
 
-      const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-      const apiEndPoint = "/pg/v1/pay";
-      const saltKey = '96434309-7796-489d-8924-ab56988a6076';
-      
-      const stringToHash = base64Payload + apiEndPoint + saltKey;
-      const sha256 = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        stringToHash
-      );
-      
-      const checksum = sha256 + "###1";
-
-      const response = await axios.post('https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay', {
-        request: base64Payload
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-VERIFY': checksum
-        }
-      });
-
-      if (response.data.success) {
-        const redirectUrl = response.data.data.instrumentResponse.redirectInfo.url;
+      RazorpayCheckout.open(options).then(async (data: any) => {
+        const transactionId = data.razorpay_payment_id;
+        setReceiptTxnId(transactionId);
         
         // --- ADDED FIRESTORE WRITE FOR MEMBERS ---
         const nextDate = new Date();
@@ -207,105 +199,61 @@ export default function SubscriptionTab() {
         }
         // -----------------------------------------
 
-        await Linking.openURL(redirectUrl);
         nextStep(5);
-      } else {
-        Alert.alert('Payment Error', 'Failed to generate PhonePe payment link.');
-      }
+      }).catch((error: any) => {
+        console.error('Razorpay Error:', error);
+        Alert.alert('Payment Failed', `Code: ${error.code} | Description: ${error.description}`);
+      });
     } catch (e: any) {
-      console.error(e.response?.data || e.message);
-      Alert.alert('Initialization Error', e.response?.data?.message || e.message || 'Could not initialize payment.');
+      console.error(e);
+      Alert.alert('Initialization Error', e.message || 'Could not initialize payment.');
     }
   };
 
   const downloadReceipt = async () => {
     try {
-      const transactionId = `WC-${Math.floor(1000 + Math.random() * 9000)}-X91`;
-      const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
-      const name = user?.displayName || member?.name || "Member";
-      
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; }
-              .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
-              .logo { width: 80px; height: 80px; margin-bottom: 10px; object-fit: contain; }
-              .church-name { font-size: 28px; font-weight: bold; color: #1e293b; margin: 0; }
-              .church-details { font-size: 14px; color: #64748b; margin-top: 5px; }
-              .title { font-size: 24px; font-weight: bold; color: #1e293b; margin-bottom: 30px; text-align: center; }
-              .info-row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
-              .label { font-size: 14px; color: #64748b; font-weight: bold; text-transform: uppercase; }
-              .value { font-size: 16px; color: #1e293b; font-weight: 500; }
-              .total-row { display: flex; justify-content: space-between; margin-top: 30px; padding-top: 20px; border-top: 2px solid #1e293b; }
-              .total-label { font-size: 20px; font-weight: bold; color: #1e293b; }
-              .total-value { font-size: 24px; font-weight: bold; color: #d97706; }
-              .footer { margin-top: 60px; text-align: center; font-size: 14px; color: #94a3b8; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <img src="${activeChurch?.theme?.logoUrl || 'https://cdn-icons-png.flaticon.com/512/8662/8662584.png'}" class="logo" />
-              <h1 class="church-name">${activeChurch?.name || 'Bethesda Pentecostal Church'}</h1>
-              <p class="church-details">${activeChurch?.address || '123 Faith Avenue, Blessing City'} • ${activeChurch?.contactEmail || 'contact@church.org'}</p>
-            </div>
-            
-            <div class="title">DONATION RECEIPT</div>
-            
-            <div class="info-row">
-              <div class="label">Member Name</div>
-              <div class="value">${name}</div>
-            </div>
-            <div class="info-row">
-              <div class="label">Transaction ID</div>
-              <div class="value">${transactionId}</div>
-            </div>
-            <div class="info-row">
-              <div class="label">Date</div>
-              <div class="value">${date}</div>
-            </div>
-            <div class="info-row">
-              <div class="label">Subscription Plan</div>
-              <div class="value">${activePlan?.name || billingCycle.toUpperCase()}</div>
-            </div>
-            
-            <div class="total-row">
-              <div class="total-label">Amount Paid</div>
-              <div class="total-value">₹${planPrice.toFixed(2)}</div>
-            </div>
-            
-            <div class="footer">
-              Thank you for your generous contribution.<br>
-              May God bless you abundantly!
-            </div>
-          </body>
-        </html>
-      `;
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'We need photo gallery permissions to save the receipt.');
+        return;
+      }
 
-      const { uri } = await Print.printToFileAsync({ html: htmlContent });
-
-      // Upload to Firebase and open URL to bypass the Share Sheet
-      const reference = storage().ref(`receipts/Donation_Receipt_${transactionId}.pdf`);
-      await reference.putFile(uri, { 
-        contentType: 'application/pdf',
-        contentDisposition: `attachment; filename="Donation_Receipt_${transactionId}.pdf"`
-      });
-      const downloadUrl = await reference.getDownloadURL();
-
-      Alert.alert(
-        'Receipt Ready', 
-        'Your receipt is ready to download. It will now open in your browser where you can save it directly.',
-        [
-          { text: 'OK', onPress: () => Linking.openURL(downloadUrl) }
-        ]
-      );
+      if (receiptRef.current) {
+        setTimeout(async () => {
+          try {
+            const uri = await captureRef(receiptRef, { format: 'png', quality: 1 });
+            await MediaLibrary.saveToLibraryAsync(uri);
+            setDownloadSuccessModalVisible(true);
+          } catch (e: any) {
+            console.error('Capture Error:', e);
+            Alert.alert('Error', 'Could not capture receipt image.');
+          }
+        }, 100);
+      }
     } catch (e: any) {
-      console.error('Receipt Error:', e);
-      Alert.alert("Error", `Could not generate receipt: ${e.message}`);
+      console.error(e);
+      Alert.alert('Error', e.message || 'Could not save receipt.');
     }
   };
+
+  const receiptData = useMemo(() => {
+    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+    let nextDateStr = 'N/A';
+    if (globalUser?.subscription?.validUntil) {
+      nextDateStr = new Date(globalUser.subscription.validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+    } else {
+      const nextDate = new Date();
+      if (billingCycle === 'annual') nextDate.setFullYear(nextDate.getFullYear() + 1);
+      else nextDate.setMonth(nextDate.getMonth() + 1);
+      nextDateStr = nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+    }
+    return {
+      transactionId: receiptTxnId || globalUser?.subscription?.lastPaymentId || `WC-${Math.floor(1000 + Math.random() * 9000)}-X91`,
+      date,
+      name: user?.displayName || member?.name || "Member",
+      nextDateStr
+    };
+  }, [globalUser?.subscription?.validUntil, globalUser?.subscription?.lastPaymentId, billingCycle, user?.displayName, member?.name, receiptTxnId]);
 
   const renderProgressBar = () => (
     <View style={styles.progressContainer}>
@@ -347,6 +295,12 @@ export default function SubscriptionTab() {
                 Valid until: {new Date(globalUser.subscription.validUntil).toLocaleDateString()}
               </Text>
             )}
+            <TouchableOpacity 
+              style={{ marginTop: 25, paddingVertical: 12, paddingHorizontal: 24, backgroundColor: '#047857', borderRadius: 8, flexDirection: 'row', alignItems: 'center' }}
+              onPress={downloadReceipt}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Download Receipt PDF</Text>
+            </TouchableOpacity>
           </View>
         </View>
       ) : currentStep === 1 ? (
@@ -534,8 +488,8 @@ export default function SubscriptionTab() {
             </Text>
           </View>
 
-          <TouchableOpacity style={styles.primaryButton} onPress={handlePhonePePayment}>
-            <Text style={styles.primaryButtonText}>Pay ₹{planPrice} via PhonePe</Text>
+          <TouchableOpacity style={styles.primaryButton} onPress={handleRazorpayPayment}>
+            <Text style={styles.primaryButtonText}>Pay ₹{planPrice} via Razorpay</Text>
           </TouchableOpacity>
         </View>
       ) : currentStep === 5 ? (
@@ -558,7 +512,7 @@ export default function SubscriptionTab() {
             <View style={{ padding: 24 }}>
               <View style={styles.reviewRow}>
                 <Text style={styles.reviewLabel}>TRANSACTION ID</Text>
-                <Text style={styles.receiptValue}>WC-8923-X91</Text>
+                <Text style={styles.receiptValue}>{receiptData.transactionId}</Text>
               </View>
               <View style={styles.reviewRow}>
                 <Text style={styles.reviewLabel}>DATE</Text>
@@ -582,7 +536,7 @@ export default function SubscriptionTab() {
             
             <View style={styles.secondaryActionsRow}>
               <TouchableOpacity style={styles.secondaryActionBtn} onPress={downloadReceipt}>
-                <Text style={styles.secondaryActionBtnText}>Download PDF</Text>
+                <Text style={styles.secondaryActionBtnText}>Save Image</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.secondaryActionBtn} onPress={() => nextStep(1)}>
                 <Text style={styles.secondaryActionBtnText}>Done</Text>
@@ -602,7 +556,7 @@ export default function SubscriptionTab() {
               <Text style={styles.receiptChurchDetails}>{activeChurch?.address || '123 Faith Avenue, Blessing City'} • {activeChurch?.contactEmail || 'contact@church.org'}</Text>
             </View>
 
-            <Text style={styles.receiptTitle}>DONATION RECEIPT</Text>
+            <Text style={styles.receiptTitle}>SUBSCRIPTION RECEIPT</Text>
 
             <View style={styles.receiptInfoRow}>
               <Text style={styles.receiptLabel}>MEMBER NAME</Text>
@@ -610,7 +564,7 @@ export default function SubscriptionTab() {
             </View>
             <View style={styles.receiptInfoRow}>
               <Text style={styles.receiptLabel}>TRANSACTION ID</Text>
-              <Text style={styles.receiptValueTxt}>WC-8923-X91</Text>
+              <Text style={styles.receiptValueTxt}>{receiptData.transactionId}</Text>
             </View>
             <View style={styles.receiptInfoRow}>
               <Text style={styles.receiptLabel}>DATE</Text>
@@ -634,6 +588,77 @@ export default function SubscriptionTab() {
           </View>
         </View>
       </Modal>
+
+      {downloadSuccessModalVisible && (
+        <Modal transparent animationType="fade" visible={downloadSuccessModalVisible} onRequestClose={() => setDownloadSuccessModalVisible(false)}>
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 105 }]}>
+            <View style={{ backgroundColor: '#fff', width: '85%', borderRadius: 24, padding: 30, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 }}>
+              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#f0fdf4', alignItems: 'center', justifyContent: 'center', marginBottom: 20, borderWidth: 4, borderColor: '#dcfce7' }}>
+                <CheckCircle size={36} color="#16a34a" />
+              </View>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 12, textAlign: 'center' }}>Success!</Text>
+              <Text style={{ fontSize: 15, color: '#475569', textAlign: 'center', marginBottom: 30, lineHeight: 22 }}>
+                Your receipt has been beautifully rendered and saved securely to your photo gallery.
+              </Text>
+              
+              <TouchableOpacity 
+                style={{ backgroundColor: '#16a34a', width: '100%', paddingVertical: 16, borderRadius: 16, alignItems: 'center' }}
+                onPress={() => setDownloadSuccessModalVisible(false)}
+              >
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Great, thanks!</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Hidden Receipt View for Snapshot */}
+      <View style={{ position: 'absolute', top: -10000, left: 0, width: 600 }}>
+        <View collapsable={false} ref={receiptRef} style={{ width: 600, backgroundColor: '#ffffff', padding: 40 }}>
+          <View style={{ alignItems: 'center', marginBottom: 40, borderBottomWidth: 2, borderBottomColor: '#e2e8f0', paddingBottom: 20 }}>
+            {activeChurch?.theme?.logoUrl ? (
+              <Image source={{ uri: activeChurch.theme.logoUrl }} style={{ width: 80, height: 80, marginBottom: 10 }} resizeMode="contain" />
+            ) : (
+              <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/8662/8662584.png' }} style={{ width: 80, height: 80, marginBottom: 10 }} resizeMode="contain" />
+            )}
+            <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1e293b', marginBottom: 5 }}>{activeChurch?.name || 'We Christian'}</Text>
+            <Text style={{ fontSize: 14, color: '#64748b' }}>{activeChurch?.address || 'City'} • {activeChurch?.contactEmail || 'contact'}</Text>
+          </View>
+          
+          <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#1e293b', marginBottom: 30, textAlign: 'center' }}>SUBSCRIPTION RECEIPT</Text>
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>MEMBER NAME</Text>
+            <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '500' }}>{receiptData.name}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>TRANSACTION ID</Text>
+            <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '500' }}>{receiptData.transactionId}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>DATE</Text>
+            <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '500' }}>{receiptData.date}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>SUBSCRIPTION PLAN</Text>
+            <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '500' }}>{activePlan?.name || billingCycle.toUpperCase()}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>NEXT SUBSCRIPTION DATE</Text>
+            <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '500' }}>{receiptData.nextDateStr}</Text>
+          </View>
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 30, paddingTop: 20, borderTopWidth: 2, borderTopColor: '#1e293b' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1e293b' }}>Amount Paid</Text>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#d97706' }}>₹{planPrice.toFixed(2)}</Text>
+          </View>
+          
+          <View style={{ marginTop: 60, alignItems: 'center' }}>
+            <Text style={{ fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>Thank you for subscribing to We Christian Platform.</Text>
+            <Text style={{ fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>May God bless you abundantly!</Text>
+          </View>
+        </View>
+      </View>
 
     </ScrollView>
   );

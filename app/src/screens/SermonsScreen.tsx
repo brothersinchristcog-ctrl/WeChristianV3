@@ -145,7 +145,7 @@ export default function SermonsScreen({ navigation }: any) {
           {item.title}{item.titleTelugu ? ` · ${item.titleTelugu}` : ''}
         </Text>
         <Text style={[styles.scMeta, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-          {item.pastor || 'Brother Y. Rajesh'} · {item.date || 'N/A'}{item.duration && item.duration !== 'N/A' ? ` · ${item.duration}` : ''}
+          {item.pastor || 'Pastor'} · {item.date || 'N/A'}{item.duration && item.duration !== 'N/A' ? ` · ${item.duration}` : ''}
         </Text>
         {item.scripture ? (
           <View style={styles.scriptureTag}>
@@ -202,9 +202,7 @@ export default function SermonsScreen({ navigation }: any) {
           <Text style={styles.headerTitle}>Sermons</Text>
           <Text style={styles.headerSub}>{sermons.length} sermons</Text>
         </View>
-        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-          <Text style={styles.themeToggleText}>{isDark ? '🌙' : '☀️'}</Text>
-        </TouchableOpacity>
+        <View style={{ width: 70 }} />
       </View>
 
       {/* Category Filter Pills */}

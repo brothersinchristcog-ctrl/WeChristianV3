@@ -981,8 +981,8 @@ class FirestoreService {
   async createDonation(data: any) {
     try {
       const col = await this.getCollection('donations');
-      await col.add({ ...data, createdAt: firestore.FieldValue.serverTimestamp() });
-      return true;
+      const docRef = await col.add({ ...data, createdAt: firestore.FieldValue.serverTimestamp() });
+      return docRef.id;
     } catch (e) {
       throw e;
     }

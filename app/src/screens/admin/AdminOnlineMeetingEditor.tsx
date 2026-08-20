@@ -400,7 +400,7 @@ export default function AdminOnlineMeetingEditor() {
           <TouchableOpacity style={styles.inputWrapper} onPress={() => setShowDatePicker(true)}>
             <CalendarIcon size={18} color="#9CA3AF" style={styles.inputIcon} />
             <Text style={[styles.input, { color: '#111827', marginTop: 0, lineHeight: 50, textAlignVertical: 'center' }]}>
-              {form.date.toLocaleDateString()}
+              {`${String(form.date.getDate()).padStart(2, '0')}/${String(form.date.getMonth() + 1).padStart(2, '0')}/${form.date.getFullYear()}`}
             </Text>
           </TouchableOpacity>
 

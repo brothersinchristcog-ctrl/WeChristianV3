@@ -1047,12 +1047,18 @@ export default function HomeScreen() {
               icon={<DollarSign size={26} color="#fff" />} 
               label="Give / Tithe" 
               color="#f0a500" 
-              onPress={() => setAlertConfig({
-                visible: true,
-                title: 'Coming Soon',
-                message: 'Online donations via the app are coming soon. Please contact the church administration for offline donation options.',
-                type: 'info'
-              })} 
+              onPress={() => {
+                if (!activeChurch?.features?.hasGiving) {
+                  setAlertConfig({
+                    visible: true,
+                    title: 'Coming Soon',
+                    message: 'Online donations via the app are coming soon. Please contact the church administration for offline donation options.',
+                    type: 'info'
+                  });
+                } else {
+                  handleGuestProtectedNavigation('Give');
+                }
+              }} 
             />
             
             <GridItem isDark={isDark} icon={<BookOpen size={26} color="#fff" />} label="Bible" color="#7C3AED" onPress={() => handleGuestProtectedNavigation('Bible')} />
@@ -1088,17 +1094,18 @@ export default function HomeScreen() {
             <GridItem isDark={isDark} icon={<MoreHorizontal size={26} color="#fff" />} label="More" color="#64748b" onPress={() => setAlertConfig({ visible: true, title: 'More Features', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })} />
           </View>
 
-          <View style={styles.eventBanner}>
-            <View style={styles.ebHd}>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-                <Calendar size={14} color="#FCD34D" />
-                <Text style={styles.ebHdLbl}>UPCOMING EVENTS · రాబోయే కార్యక్రమాలు</Text>
-              </View>
-              <TouchableOpacity onPress={() => navigation.navigate('Events')}>
-                <Text style={styles.ebSeeAll}>See all →</Text>
-              </TouchableOpacity>
+          {/* ─── Upcoming Events ─── */}
+          <View style={styles.sectionHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Calendar size={16} color={isDark ? '#FCD34D' : '#1a2d5a'} />
+              <Text style={[styles.sectionHeaderTxt, { color: isDark ? '#f1f5f9' : '#1a2d5a' }]}>Upcoming Events</Text>
             </View>
+            <TouchableOpacity onPress={() => navigation.navigate('Events')}>
+              <Text style={[styles.sectionSeeAll, { color: isDark ? '#FCD34D' : '#1a2d5a' }]}>See all →</Text>
+            </TouchableOpacity>
+          </View>
 
+          <View style={styles.eventBanner}>
             <View style={styles.ebList}>
               {events.length > 0 ? (
                 events.map((item: any, index: number) => (
@@ -1116,14 +1123,14 @@ export default function HomeScreen() {
                       </View>
                       <View style={styles.ebInfo}>
                         <Text style={styles.ebTitle} numberOfLines={2}>
-                          {item.title} || {item.titleTelugu || item.title}
+                          {item.title}
                         </Text>
                         
                         <View style={styles.highlightRow}>
                           <View style={styles.dateBadge}>
                             <Calendar size={11} color="#1a2d5a" />
                             <Text style={styles.badgeTextMain}>
-                              {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} || {formatTeluguDate(item.date)}
+                              {new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                             </Text>
                           </View>
                         </View>
@@ -1156,16 +1163,18 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          <View style={styles.sermonCard}>
-            <View style={styles.scHd}>
-              <View style={styles.scHdLblRow}>
-                <Mic size={16} color="#fff" />
-                <Text style={styles.scHdLbl}>LATEST SERMON · తాజా ప్రసంగం</Text>
-              </View>
-              <TouchableOpacity onPress={() => navigation.navigate('Sermons')}>
-                <Text style={styles.scSee}>See all →</Text>
-              </TouchableOpacity>
+          {/* ─── Latest Sermon ─── */}
+          <View style={styles.sectionHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Mic size={16} color={isDark ? '#FCD34D' : '#1a2d5a'} />
+              <Text style={[styles.sectionHeaderTxt, { color: isDark ? '#f1f5f9' : '#1a2d5a' }]}>Latest Sermon</Text>
             </View>
+            <TouchableOpacity onPress={() => navigation.navigate('Sermons')}>
+              <Text style={[styles.sectionSeeAll, { color: isDark ? '#FCD34D' : '#1a2d5a' }]}>See all →</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.sermonCard}>
             <TouchableOpacity style={styles.scBody} onPress={() => navigation.navigate('Sermons')}>
               <View style={styles.scThumb}>
                 <View style={styles.playIconOverlay}>
@@ -1174,7 +1183,7 @@ export default function HomeScreen() {
               </View>
               <View style={styles.scInfo}>
                 <Text style={styles.scTitle} numberOfLines={1}>
-                  {latestSermon?.title} {latestSermon?.titleTelugu ? `|| ${latestSermon.titleTelugu}` : ''}
+                  {latestSermon?.title}
                 </Text>
                 <Text style={styles.scMeta} numberOfLines={1}>{latestSermon?.pastor || 'Pastor'} • {latestSermon?.date ? formatDateDisplay(latestSermon.date) : 'Apr 13'} • {latestSermon?.duration || '42 min'}</Text>
               </View>
@@ -1184,14 +1193,18 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={[styles.prayerCard, { marginBottom: 40 }]}>
-            <View style={styles.pcHd}>
-              <View style={styles.pcHdLblRow}>
-                <Heart size={16} color="#fff" fill="rgba(255,255,255,0.3)" />
-                <Text style={styles.pcHdLbl}>PRAYER WALL · ప్రార్థన</Text>
-              </View>
-              <Text style={styles.pcCount}>{prayerCount} requests</Text>
+          {/* ─── Prayer Wall ─── */}
+          <View style={styles.sectionHeader}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Heart size={16} color={isDark ? '#FCD34D' : '#1a2d5a'} fill={isDark ? 'rgba(252,211,77,0.2)' : 'rgba(26,45,90,0.15)'} />
+              <Text style={[styles.sectionHeaderTxt, { color: isDark ? '#f1f5f9' : '#1a2d5a' }]}>Prayer Wall</Text>
             </View>
+            <TouchableOpacity onPress={() => handleGuestProtectedNavigation('Prayer')}>
+              <Text style={[styles.sectionSeeAll, { color: isDark ? '#FCD34D' : '#1a2d5a' }]}>See all →</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={[styles.prayerCard, { marginBottom: 40 }]}>
             <TouchableOpacity style={styles.pcBody} onPress={() => handleGuestProtectedNavigation('Prayer')}>
               <View style={styles.pcTextContainer}>
                 <Text style={styles.pcText} numberOfLines={3}>
@@ -1203,7 +1216,7 @@ export default function HomeScreen() {
                    <CheckCircle size={14} color="#1a2d5a" />
                    <Text style={styles.prayedBtnTxt}>I prayed</Text>
                 </TouchableOpacity>
-                <Text style={styles.pcSeeAll}>See all prayers →</Text>
+                <Text style={styles.pcSeeAll}>{prayerCount} requests</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -1541,8 +1554,13 @@ const styles = StyleSheet.create({
   marqueeItemTimeTe: { color: '#FCD34D', fontSize: 12, fontWeight: '800' },
   marqueeItemLocTe: { color: '#94a3b8', fontSize: 11.5, fontWeight: '500', marginLeft: 8 },
 
-  // Event Banner (Sermon Style)
-  eventBanner: { margin: 16, marginTop: 4, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, borderWidth: 1, borderColor: '#f1f5f9' },
+  // Section header (external to card)
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginHorizontal: 16, marginTop: 12, marginBottom: 8 },
+  sectionHeaderTxt: { fontSize: 16, fontWeight: '800', color: '#1a2d5a' },
+  sectionSeeAll: { fontSize: 12, fontWeight: '700', color: '#1a2d5a' },
+
+  // Event Banner (clean card, no header band)
+  eventBanner: { marginHorizontal: 16, marginBottom: 4, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, borderWidth: 1, borderColor: '#f1f5f9' },
   ebHd: { backgroundColor: '#1a2d5a', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   ebHdLbl: { fontSize: 12, color: '#fff', fontWeight: '700' },
   ebSeeAll: { fontSize: 11, color: '#aac4e8', fontWeight: '600' },
@@ -1592,8 +1610,8 @@ const styles = StyleSheet.create({
   iconBox: { width: 62, height: 62, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginBottom: 8, elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 },
   iconLbl: { fontSize: 11, color: '#475569', fontWeight: '600', textAlign: 'center' },
 
-  // Sermon Card
-  sermonCard: { margin: 16, marginTop: 4, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, borderWidth: 1, borderColor: '#f1f5f9' },
+  // Sermon Card (clean card, no header band)
+  sermonCard: { marginHorizontal: 16, marginBottom: 4, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, borderWidth: 1, borderColor: '#f1f5f9' },
   scHd: { backgroundColor: '#1a2d5a', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   scHdLblRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
   scHdLbl: { fontSize: 12, color: '#fff', fontWeight: '700' },
@@ -1607,12 +1625,12 @@ const styles = StyleSheet.create({
   scMeta: { fontSize: 10.5, color: '#64748b' },
   playBtnCircle: { width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: '#e2e8f0', justifyContent: 'center', alignItems: 'center' },
 
-  // Prayer Card
-  prayerCard: { margin: 16, marginTop: 4, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, borderWidth: 1, borderColor: '#f1f5f9' },
+  // Prayer Card (clean card, no header band)
+  prayerCard: { marginHorizontal: 16, marginBottom: 4, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, borderWidth: 1, borderColor: '#f1f5f9' },
   pcHd: { backgroundColor: '#1a2d5a', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   pcHdLblRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 10 },
   pcHdLbl: { fontSize: 12, color: '#fff', fontWeight: '700' },
-  pcCount: { fontSize: 11, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
+  pcCount: { fontSize: 12, color: '#64748b', fontWeight: '600' },
   pcBody: { padding: 16 },
   pcTextContainer: { backgroundColor: '#f8fafc', padding: 15, borderRadius: 12, borderWidth: 1, borderColor: '#f1f5f9', marginBottom: 15 },
   pcText: { fontSize: 13, color: '#334155', lineHeight: 22, fontStyle: 'italic' },
