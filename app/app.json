@@ -16,6 +16,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.wechristian.app",
+      "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -49,7 +50,14 @@
     },
     "plugins": [
       "@react-native-firebase/app",
-      "@react-native-firebase/auth",
+      [
+        "@react-native-firebase/auth",
+        {
+          "ios": {
+            "experimentalUrlScheme": false
+          }
+        }
+      ],
       "@react-native-firebase/messaging",
       "@react-native-community/datetimepicker",
       [
