@@ -120,7 +120,6 @@ export default function SignUpScreen({ navigation }: any) {
       }
 
       // Send OTP
-      auth().settings.appVerificationDisabledForTesting = true;
       const confirmation = await auth().signInWithPhoneNumber(cleanNum);
       
       // Navigate to OTP screen and pass the formData so it can be saved after verification

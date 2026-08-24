@@ -121,7 +121,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
         return;
       }
 
-      auth().settings.appVerificationDisabledForTesting = true;
+
       const confirmation = await auth().signInWithPhoneNumber(cleanNum);
       setConfirmation(confirmation);
       setOtpModalVisible(true);
