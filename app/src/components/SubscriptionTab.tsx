@@ -62,7 +62,7 @@ const colors = {
   forestSoft: '#E4EBE1',
 };
 
-export default function SubscriptionTab({ member, onClose, isExpired }: { member?: any; onClose?: () => void; isExpired?: boolean }) {
+export default function SubscriptionTab({ member }: { member?: any }) {
   const { user } = useAuth();
   const { activeChurch, setChurchId } = useChurch();
   const navigation = useNavigation<any>();
@@ -449,13 +449,12 @@ export default function SubscriptionTab({ member, onClose, isExpired }: { member
         </View>
       ) : currentStep === 1 ? (
         <View style={styles.stepContainer}>
-          {onClose && (
-            <TouchableOpacity style={styles.backBtn} onPress={onClose}>
+          {activeChurch?.subscription?.status === 'active' && (
+            <TouchableOpacity style={styles.backBtn} onPress={() => setPlanSelectModalVisible(false)}>
               <ArrowLeft size={24} color={colors.ink} />
-              <Text style={{ fontSize: 16, fontWeight: '700', color: colors.ink, marginLeft: 8 }}>{isExpired ? 'Sign Out' : 'Back'}</Text>
             </TouchableOpacity>
           )}
-          <View style={[styles.header, { marginTop: onClose ? 0 : 20 }]}>
+          <View style={styles.header}>
             <Text style={styles.title}>Welcome back, {member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</Text>
             <Text style={styles.subtitle}>Your journey of faith continues.</Text>
           </View>
@@ -491,7 +490,7 @@ export default function SubscriptionTab({ member, onClose, isExpired }: { member
 
           <View style={styles.header}>
             <Text style={styles.title}>Choose Your Path</Text>
-            <Text style={styles.subtitle}>Unlock full access to manage your church and grow your congregation.</Text>
+            <Text style={styles.subtitle}>Scholarly access tailored for personal devotion.</Text>
           </View>
 
           <View style={[styles.planCard, { borderColor: colors.brass, borderWidth: 2 }]}>
@@ -943,8 +942,6 @@ const styles = StyleSheet.create({
     marginLeft: -8,
     marginBottom: 10,
     alignSelf: 'flex-start',
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   header: {
     alignItems: 'center',
