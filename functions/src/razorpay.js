@@ -167,4 +167,134 @@ export const verifyRazorpayDonationV6 = functions.https.onCall(async (data, cont
         throw new functions.https.HttpsError('internal', error.message || 'Unknown error verifying payment');
     }
 });
+/**
+ * Callable function to verify a platform subscription Razorpay signature
+ */
+export const verifyRazorpaySubscription = functions.https.onCall(async (data, context) => {
+    try {
+        const { razorpay_payment_id, razorpay_order_id, razorpay_signature, type, userId, churchId, amount, plan } = data;
+        if (!razorpay_payment_id || !razorpay_order_id || !razorpay_signature || !type || !userId) {
+            throw new functions.https.HttpsError('invalid-argument', 'Missing required subscription verification data');
+        }
+        const keySecret = process.env.RAZORPAY_KEY_SECRET || 'Vz8oYPOYf0yOJ2st13r0abn0';
+        // Verify signature
+        const hmac = crypto.createHmac('sha256', keySecret);
+        hmac.update(razorpay_order_id + "|" + razorpay_payment_id);
+        const generated_signature = hmac.digest('hex');
+        if (generated_signature !== razorpay_signature) {
+            throw new functions.https.HttpsError('invalid-argument', 'Invalid payment signature');
+        }
+        const db = getFirestore();
+        const paidAt = FieldValue.serverTimestamp();
+        let nextDate = new Date();
+        let memberRef = null;
+        // We update differently depending on type
+        if (type === 'admin') {
+            if (!churchId)
+                throw new functions.https.HttpsError('invalid-argument', 'Church ID required for admin subscription');
+            if (plan === 'annual') {
+                nextDate.setFullYear(nextDate.getFullYear() + 1);
+            }
+            const churchRef = db.collection('churches').doc(churchId);
+            const churchDoc = await churchRef.get();
+            const currentValidUntil = churchDoc.data()?.subscription?.validUntil;
+            if (currentValidUntil && new Date(currentValidUntil) > new Date()) {
+                nextDate = new Date(currentValidUntil);
+                if (plan === 'annual') {
+                    nextDate.setFullYear(nextDate.getFullYear() + 1);
+                }
+            }
+            // Update the church's main document
+            await churchRef.update({
+                'subscription.status': 'active',
+                'subscription.tier': 'premium',
+                'subscriptionTier': 'premium',
+                'subscription.validUntil': nextDate.toISOString(),
+                'subscription.lastPaymentId': razorpay_payment_id
+            });
+        }
+        else if (type === 'member') {
+            // Determine existing valid until
+            const memberGroupSnap = await db.collectionGroup('members').where('id', '==', userId).limit(1).get();
+            let currentValidUntil = null;
+            let actualChurchId = churchId;
+            if (!memberGroupSnap.empty) {
+                const memberDoc = memberGroupSnap.docs[0];
+                if (memberDoc) {
+                    currentValidUntil = memberDoc.data()?.subscription?.validUntil;
+                    actualChurchId = memberDoc.ref.parent.parent?.id;
+                    memberRef = memberDoc.ref;
+                }
+            }
+            else if (churchId) {
+                memberRef = db.collection('churches').doc(churchId).collection('members').doc(userId);
+            }
+            if (currentValidUntil && new Date(currentValidUntil) > new Date()) {
+                nextDate = new Date(currentValidUntil);
+            }
+            // Default member is monthly unless stated otherwise or annual is passed
+            if (plan === 'annual' || plan === 'Annual') {
+                nextDate.setFullYear(nextDate.getFullYear() + 1);
+            }
+            else {
+                nextDate.setMonth(nextDate.getMonth() + 1);
+            }
+            // Update global user
+            await db.collection('users').doc(userId).set({
+                subscription: {
+                    status: 'active',
+                    plan: plan || 'monthly',
+                    validUntil: nextDate.toISOString(),
+                    lastPaymentId: razorpay_payment_id
+                }
+            }, { merge: true });
+            // Update church member document if it exists so UI updates correctly
+            if (memberRef) {
+                await memberRef.update({
+                    'subscription.status': 'active',
+                    'subscription.plan': plan || 'monthly',
+                    'subscription.validUntil': nextDate.toISOString(),
+                    'subscription.lastPaymentId': razorpay_payment_id
+                });
+            }
+        }
+        // Save transaction
+        if (type === 'admin') {
+            await db.collection('churches').doc(churchId).collection('subscriptions').doc(razorpay_payment_id).set({
+                type,
+                userId,
+                amount: amount || 0,
+                plan: plan || 'annual',
+                status: 'active',
+                validUntil: nextDate.toISOString(),
+                paymentId: razorpay_payment_id,
+                orderId: razorpay_order_id,
+                paidAt
+            });
+        }
+        else {
+            if (memberRef) {
+                await memberRef.collection('subscriptions').doc(razorpay_payment_id).set({
+                    type,
+                    userId,
+                    amount: amount || 0,
+                    plan: plan || 'monthly',
+                    status: 'active',
+                    validUntil: nextDate.toISOString(),
+                    paymentId: razorpay_payment_id,
+                    orderId: razorpay_order_id,
+                    paidAt
+                });
+            }
+        }
+        return {
+            success: true,
+            message: 'Subscription payment verified successfully'
+        };
+    }
+    catch (error) {
+        console.error('verifyRazorpaySubscription Error:', error);
+        throw new functions.https.HttpsError('internal', error.message || 'Unknown error verifying subscription');
+    }
+});
 //# sourceMappingURL=razorpay.js.map

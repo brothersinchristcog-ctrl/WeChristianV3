@@ -358,6 +358,127 @@ class FirestoreService {
     }
   }
 
+  async getSubscribedMembers(churchId: string, limitNum: number = 20, lastDoc?: any, searchQuery?: string, statusFilter: string = 'all') {
+    try {
+      let membersRef = firestore().collection('churches').doc(churchId).collection('members');
+      
+      let query: any = membersRef;
+      
+      // For active/inactive, we can query directly
+      if (statusFilter === 'active' || statusFilter === 'inactive') {
+        query = query.where('subscription.status', '==', statusFilter);
+      }
+      
+      if (searchQuery && searchQuery.trim().length > 0) {
+         // Firestore doesn't support full-text search directly via simple queries for case-insensitive substrings.
+         // For a simple implementation, we can order by name and use startAt/endAt.
+         // Note: If 'name' is missing, it might use 'firstName'. This requires a composite index.
+         // To avoid index issues and keep existing functionality undisturbed, we will fetch without search 
+         // and filter locally if a search query is provided, or rely on a simple where clause if possible.
+         // For now, we will fetch ordered by subscription.validUntil.
+      }
+      // If we are filtering for trial or searching, we fetch a larger batch because we have to filter locally
+      // (since missing fields or partial strings can't be queried directly in Firestore).
+      const fetchLimit = (statusFilter === 'trial' || (searchQuery && searchQuery.trim().length > 0)) ? 100 : limitNum;
+      query = query.limit(fetchLimit);
+
+      if (lastDoc) {
+        query = query.startAfter(lastDoc);
+      }
+
+      const snapshot = await query.get();
+      
+      let docs = snapshot.docs;
+      
+      // Local filtering for trial (including missing status)
+      if (statusFilter === 'trial') {
+         docs = docs.filter((doc: any) => {
+           const status = doc.data()?.subscription?.status;
+           return status === 'trial' || !status;
+         });
+      }
+      
+      // Local search filter as fallback if search query is provided
+      if (searchQuery && searchQuery.trim().length > 0) {
+         const lowerSearch = searchQuery.toLowerCase();
+         docs = docs.filter((doc: any) => {
+           const data = doc.data();
+           const name = (data.name || data.firstName || '').toLowerCase();
+           return name.includes(lowerSearch);
+         });
+      }
+      
+      const members = docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      return {
+        members,
+        lastDoc: snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null
+      };
+    } catch (error) {
+      console.error('Error fetching subscribed members:', error);
+      return { members: [], lastDoc: null };
+    }
+  }
+
+  async getMemberSubscriptionHistory(churchId: string, memberId: string) {
+    try {
+      const snap = await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('members')
+        .doc(memberId)
+        .collection('subscriptions')
+        .orderBy('paidAt', 'desc')
+        .get();
+        
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error fetching member subscription history:', error);
+      return [];
+    }
+  }
+
+  async deleteSubscriptionHistory(churchId: string, memberId: string, historyId: string) {
+    try {
+      await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('members')
+        .doc(memberId)
+        .collection('subscriptions')
+        .doc(historyId)
+        .delete();
+      return true;
+    } catch (e) {
+      console.error('Error deleting subscription history:', e);
+      return false;
+    }
+  }
+
+  async logCancelledSubscription(churchId: string, memberId: string, amount: number, plan: string) {
+    try {
+      await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('members')
+        .doc(memberId)
+        .collection('subscriptions')
+        .add({
+          amount,
+          plan,
+          status: 'cancelled',
+          paidAt: firestore.FieldValue.serverTimestamp()
+        });
+      return true;
+    } catch (e) {
+      console.warn('Error logging cancelled subscription:', e);
+      return false;
+    }
+  }
+
   // --- 👤 Global User & Member Logic ---
 
   async getGlobalUser(uid: string): Promise<GlobalUser | null> {

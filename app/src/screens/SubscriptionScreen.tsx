@@ -8,7 +8,7 @@ export default function SubscriptionScreen({ navigation }: any) {
   const { isDark } = useTheme();
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
+    <View style={[styles.container, { backgroundColor: '#F7F3E9' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
 
       {/* Header */}
@@ -18,6 +18,11 @@ export default function SubscriptionScreen({ navigation }: any) {
             <ChevronLeft size={24} color="#FCD34D" />
             <Text style={styles.backBtnTxt}>Back</Text>
           </TouchableOpacity>
+          <View style={{ width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.3)', marginHorizontal: 12 }} />
+          
+          <Text style={{ color: '#FFFFFF', fontSize: 14.5, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+            Subscription
+          </Text>
         </View>
       </View>
 
@@ -33,8 +38,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { 
     backgroundColor: '#1a2d5a', 
-    paddingTop: Platform.OS === 'ios' ? 50 : 20, 
-    paddingBottom: 10,
+    paddingTop: Platform.OS === 'ios' ? 80 : 56, 
+    paddingBottom: 32,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },

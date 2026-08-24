@@ -505,8 +505,14 @@ export default function HomeScreen() {
           if (val && !promise) {
             try {
               const cached = JSON.parse(val);
-              setPromise(cached);
-              if (cached.imageUrl) setPromiseThumbnail(cached.imageUrl);
+              const today = new Date();
+              const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+              if (cached.date === todayStr) {
+                setPromise(cached);
+                if (cached.imageUrl) setPromiseThumbnail(cached.imageUrl);
+              } else {
+                AsyncStorage.removeItem('@cached_daily_promise');
+              }
             } catch (e) {}
           }
         }).catch(() => {});
@@ -545,6 +551,12 @@ export default function HomeScreen() {
             cachedPromiseThumbnail = null;
             setPromiseThumbnail(null);
           }
+        } else {
+          cachedPromise = null;
+          setPromise(null);
+          AsyncStorage.removeItem('@cached_daily_promise');
+          cachedPromiseThumbnail = null;
+          setPromiseThumbnail(null);
         }
       }).catch(() => {});
 

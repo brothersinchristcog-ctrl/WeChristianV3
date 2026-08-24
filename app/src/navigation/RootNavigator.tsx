@@ -154,11 +154,33 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
 
 function TabNavigator() {
   const { user, signOut, member, viewMode, setViewMode } = useAuth();
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const [globalUser, setGlobalUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (user?.uid && !user.isAnonymous) {
+      const unsubscribe = firestore()
+        .collection('users')
+        .doc(user.uid)
+        .onSnapshot(
+          (doc) => {
+            if (doc.exists) {
+              setGlobalUser(doc.data());
+            }
+          },
+          (error) => {
+            console.error('Error listening to globalUser:', error);
+          }
+        );
+      return () => unsubscribe();
+    }
+  }, [user]);
+
   const isGuest = user?.isAnonymous;
   const isActualAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER');
 
-  const handleGuestInteraction = (e: any) => {
+  const handleFeatureInteraction = (e: any) => {
     if (isGuest) {
       e.preventDefault();
       Alert.alert(
@@ -169,6 +191,27 @@ function TabNavigator() {
           { text: 'Sign In', onPress: () => signOut() }
         ]
       );
+      return;
+    }
+
+    if (!isActualAdmin && globalUser?.subscription) {
+      const subStatus = globalUser.subscription.status;
+      const validUntil = globalUser.subscription.validUntil;
+      
+      let isExpired = false;
+      if (subStatus === 'expired') {
+        isExpired = true;
+      } else if (validUntil) {
+        const validDate = validUntil.toDate ? validUntil.toDate() : (validUntil.seconds ? new Date(validUntil.seconds * 1000) : new Date(validUntil));
+        if (validDate < new Date()) {
+          isExpired = true;
+        }
+      }
+
+      if (isExpired) {
+        e.preventDefault();
+        navigation.navigate('Subscription');
+      }
     }
   };
 
@@ -185,20 +228,22 @@ function TabNavigator() {
       <Tab.Screen 
         name="Promise" 
         component={PromiseArchiveScreen} 
+        listeners={{ tabPress: handleFeatureInteraction }}
       /> 
       <Tab.Screen 
         name="Sermons" 
         component={SermonsScreen} 
+        listeners={{ tabPress: handleFeatureInteraction }}
       />
       <Tab.Screen 
         name="Prayer" 
         component={PrayerWallScreen} 
-        listeners={{ tabPress: handleGuestInteraction }}
+        listeners={{ tabPress: handleFeatureInteraction }}
       />
       <Tab.Screen 
         name="Profile" 
         component={ProfileScreen} 
-        listeners={{ tabPress: handleGuestInteraction }}
+        listeners={{ tabPress: handleFeatureInteraction }}
       />
     </Tab.Navigator>
 

@@ -15,4 +15,8 @@ export declare const createRazorpayDonationOrderV6: functions.HttpsFunction & fu
  * Callable function to verify a church-specific Razorpay donation signature
  */
 export declare const verifyRazorpayDonationV6: functions.HttpsFunction & functions.Runnable<any>;
+/**
+ * Callable function to verify a platform subscription Razorpay signature
+ */
+export declare const verifyRazorpaySubscription: functions.HttpsFunction & functions.Runnable<any>;
 //# sourceMappingURL=razorpay.d.ts.map
