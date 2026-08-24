@@ -405,12 +405,12 @@ export default function AdminDonationDashboard() {
   };
 
   const generateCategoryInvoiceHtml = (category: string, dons: ChurchDonation[]) => {
-      const cName = churchProfile?.name || "We Christian Church";
-      const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
+      const cName = activeChurch?.name || "We Christian Church";
+      const churchCode = ((activeChurch?.name || 'WEC')).substring(0, 3).toUpperCase();
       const reportNo = `${churchCode}-REP-${Date.now().toString().slice(-6)}`;
-      const cAddress = churchProfile?.address || churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "";
-      const cPhone = churchProfile?.phone || "";
-      const logoUrl = churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto || null;
+      const cAddress = activeChurch?.address || (activeChurch as any)?.mailingCity ? `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}` : "";
+      const cPhone = (activeChurch as any)?.phone || "";
+      const logoUrl = activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto || null;
       
       const logoHtml = logoUrl 
          ? `<img src="${logoUrl}" style="width: 80px; height: 80px; border-radius: 40px; object-fit: cover; margin-bottom: 15px; border: 3px solid #c9973f; padding: 2px;" />` 
@@ -1225,26 +1225,26 @@ export default function AdminDonationDashboard() {
                 <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, borderTopWidth: 6, borderTopColor: '#c9973f' }}>
                   
                   <View style={{ alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f4efe6', paddingBottom: 20 }}>
-                    {churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto ? (
-                      <Image source={{ uri: churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12, borderWidth: 2, borderColor: '#c9973f' }} />
+                    {activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto ? (
+                      <Image source={{ uri: activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12, borderWidth: 2, borderColor: '#c9973f' }} />
                     ) : (
                       <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#c9973f', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
                         <Text style={{ fontFamily: FONTS.serif, fontSize: 22, color: '#141d33', fontWeight: '700' }}>
-                          {(churchProfile?.name || member?.churchId || 'W').charAt(0).toUpperCase()}
+                          {(activeChurch?.name || 'W').charAt(0).toUpperCase()}
                         </Text>
                       </View>
                     )}
                     <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#1b2a4a', fontWeight: '700', textAlign: 'center' }}>
-                      {churchProfile?.name || member?.churchId || "We Christian Church"}
+                      {activeChurch?.name || "We Christian Church"}
                     </Text>
-                    {churchProfile?.address || churchProfile?.mailingCity ? (
+                    {activeChurch?.address || (activeChurch as any)?.mailingCity ? (
                       <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 4, textAlign: 'center' }}>
-                        {churchProfile?.address || `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}`}
+                        {activeChurch?.address || `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}`}
                       </Text>
                     ) : null}
-                    {churchProfile?.phone ? (
+                    {(activeChurch as any)?.phone ? (
                       <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 2, textAlign: 'center' }}>
-                        Phone: {churchProfile.phone}
+                        Phone: {(activeChurch as any).phone}
                       </Text>
                     ) : null}
                   </View>
@@ -1253,7 +1253,7 @@ export default function AdminDonationDashboard() {
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 }}>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>RECEIPT NO</Text>
-                        <Text style={styles.invValue}>{(churchProfile?.name || 'WEC').substring(0, 3).toUpperCase()}-DON-{getSequentialDonationNumber(selectedDonationForInvoice.id)}</Text>
+                        <Text style={styles.invValue}>{((activeChurch?.name || 'WEC')).substring(0, 3).toUpperCase()}-DON-{getSequentialDonationNumber(selectedDonationForInvoice.id)}</Text>
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>DATE</Text>
@@ -1486,21 +1486,21 @@ export default function AdminDonationDashboard() {
                 <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, borderTopWidth: 6, borderTopColor: '#c9973f' }}>
                   
                   <View style={{ alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f4efe6', paddingBottom: 20 }}>
-                    {churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto ? (
-                      <Image source={{ uri: churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12, borderWidth: 2, borderColor: '#c9973f' }} />
+                    {activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto ? (
+                      <Image source={{ uri: activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12, borderWidth: 2, borderColor: '#c9973f' }} />
                     ) : (
                       <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#c9973f', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
                         <Text style={{ fontFamily: FONTS.serif, fontSize: 22, color: '#141d33', fontWeight: '700' }}>
-                          {(churchProfile?.name || member?.churchId || 'W').charAt(0).toUpperCase()}
+                          {(activeChurch?.name || 'W').charAt(0).toUpperCase()}
                         </Text>
                       </View>
                     )}
                     <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#1b2a4a', fontWeight: '700', textAlign: 'center' }}>
-                      {churchProfile?.name || member?.churchId || "We Christian Church"}
+                      {activeChurch?.name || "We Christian Church"}
                     </Text>
-                    {churchProfile?.address || churchProfile?.mailingCity ? (
+                    {activeChurch?.address || (activeChurch as any)?.mailingCity ? (
                       <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 4, textAlign: 'center' }}>
-                        {churchProfile?.address || `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}`}
+                        {activeChurch?.address || `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}`}
                       </Text>
                     ) : null}
                   </View>
@@ -1509,7 +1509,7 @@ export default function AdminDonationDashboard() {
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 }}>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>REPORT NO</Text>
-                        <Text style={styles.invValue}>{(churchProfile?.name || 'WEC').substring(0, 3).toUpperCase()}-REP-{Date.now().toString().slice(-6)}</Text>
+                        <Text style={styles.invValue}>{((activeChurch?.name || 'WEC')).substring(0, 3).toUpperCase()}-REP-{Date.now().toString().slice(-6)}</Text>
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>DATE RANGE</Text>

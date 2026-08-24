@@ -76,7 +76,7 @@ export default function AdminFinanceDashboard({ navigation, routeParams }: any) 
   const [isMultiCatSelecting, setIsMultiCatSelecting] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [churchProfile, setChurchProfile] = useState<any>(null);
+  // churchProfile replaced by activeChurch
 
   const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
   const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
@@ -386,7 +386,7 @@ const openAddExpense = () => {
               </div>
             </div>
             <div class="meta">
-              <div class="meta-box"><div class="label">INVOICE NO</div><div class="value">${selectedInvoiceForApproval?.id || ('INV-' + (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase() + '-' + String(invoices.length + 1).padStart(7, '0'))}</div></div>
+              <div class="meta-box"><div class="label">INVOICE NO</div><div class="value">${selectedInvoiceForApproval?.id || ('INV-' + (activeChurch?.name || 'WEC').substring(0, 3).toUpperCase() + '-' + String(invoices.length + 1).padStart(7, '0'))}</div></div>
               <div class="meta-box"><div class="label">INVOICE DATE</div><div class="value">${formatDateDisplay(invDate)}</div></div>
               <div class="meta-box"><div class="label">CATEGORY</div><div class="value">${invoiceCategory}</div></div>
               <div class="meta-box"><div class="label">PREPARED BY</div><div class="value">${selectedInvoiceForApproval?.preparedBy || userName}</div></div>
@@ -456,7 +456,7 @@ const openAddExpense = () => {
       return;
     }
     const totalAmt = expenses.filter(e => selectedInvoiceExpenses.includes(e.id!)).reduce((sum, e) => sum + e.amount, 0);
-    const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
+    const churchCode = (activeChurch?.name || 'WEC').substring(0, 3).toUpperCase();
     const uniqueId = String(invoices.length + 1).padStart(7, '0');
     const newInvId = `INV-${churchCode}-${uniqueId}`;
     const invData: Partial<ChurchInvoice> = {
@@ -486,7 +486,7 @@ const openAddExpense = () => {
               content: `${member?.name || 'A user'} has submitted a new expense invoice (${newInvId}) for your approval.`,
               type: 'invoice',
               id: newInvId,
-              targetChurchId: churchProfile?.id || '',
+              targetChurchId: activeChurch?.id || '',
               targetPhone: approver.phone,
               date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
             });
@@ -521,7 +521,7 @@ const openAddExpense = () => {
             content: `Your expense invoice (${selectedInvoiceForApproval.id}) was ${actionType === 'Approve' ? 'Approved' : (actionType === 'Reject' ? 'Rejected' : 'marked for Changes Requested')} by ${member?.name || 'an Admin'}.`,
             type: 'invoice',
             id: selectedInvoiceForApproval.id,
-            targetChurchId: churchProfile?.id || '',
+            targetChurchId: activeChurch?.id || '',
             targetPhone: selectedInvoiceForApproval.submitterPhone,
             date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
           });
@@ -579,7 +579,7 @@ const openAddExpense = () => {
 
       let newExpId = editExpenseId;
       if (!editExpenseId) {
-        const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
+        const churchCode = (activeChurch?.name || 'WEC').substring(0, 3).toUpperCase();
         const uniqueId = String(expenses.length + 1).padStart(6, '0');
         newExpId = `Exp-${churchCode}-${uniqueId}`;
       }
@@ -1871,7 +1871,7 @@ const openAddExpense = () => {
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 }}>
                   <View style={{ width: '45%' }}>
                     <Text style={styles.invLabel}>INVOICE NO</Text>
-                    <Text style={styles.invValue}>{selectedInvoiceForApproval?.id || ('INV-' + (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase() + '-' + String(invoices.length + 1).padStart(7, '0'))}</Text>
+                    <Text style={styles.invValue}>{selectedInvoiceForApproval?.id || ('INV-' + (activeChurch?.name || 'WEC').substring(0, 3).toUpperCase() + '-' + String(invoices.length + 1).padStart(7, '0'))}</Text>
                   </View>
                   <View style={{ width: '45%' }}>
                     <Text style={styles.invLabel}>INVOICE DATE</Text>
