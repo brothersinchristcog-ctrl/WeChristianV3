@@ -30,6 +30,7 @@ import FirestoreService from '../services/FirestoreService';
 import { formatDateDisplay } from '../utils/DateUtils';
 import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -132,11 +133,16 @@ export default function GivingHistoryScreen({ navigation }: any) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f4f7fb' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
       
       {/* ── Page Header ── */}
-      <View style={[styles.header, { backgroundColor: isDark ? '#1e293b' : '#1a2d5a' }]}>
+      <LinearGradient 
+        colors={isDark ? ['#1e293b', '#0f172a'] : ['#1a2d5a', '#294382']} 
+        style={styles.header}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+      >
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <ChevronLeft size={24} color="#fff" />
@@ -144,8 +150,8 @@ export default function GivingHistoryScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
         <Text style={styles.headerTitle}>Giving History</Text>
-        <Text style={styles.headerSubtitle}>View and download your past donations</Text>
-      </View>
+        <Text style={styles.headerSubtitle}>Your legacy of generosity</Text>
+      </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* ── Summary Card ── */}
@@ -173,8 +179,11 @@ export default function GivingHistoryScreen({ navigation }: any) {
             </View>
           ) : donations.length === 0 ? (
             <View style={styles.emptyState}>
-              <Gift size={48} color={isDark ? '#475569' : '#cbd5e1'} />
-              <Text style={[styles.emptyText, { color: isDark ? '#94a3b8' : '#64748b' }]}>No giving history found.</Text>
+              <View style={styles.emptyIconBg}>
+                <Gift size={40} color="#1a2d5a" />
+              </View>
+              <Text style={[styles.emptyTitle, { color: isDark ? '#f8fafc' : '#1e293b' }]}>No History Yet</Text>
+              <Text style={[styles.emptyText, { color: isDark ? '#94a3b8' : '#64748b' }]}>When you give, your history will securely appear here.</Text>
             </View>
           ) : (
             donations.map((donation) => (
@@ -302,36 +311,47 @@ export default function GivingHistoryScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    paddingHorizontal: 20,
-    paddingBottom: 25,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 40,
+    paddingHorizontal: 25,
+    paddingBottom: 40,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
   },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
   },
   backBtnTxt: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '600',
     marginLeft: 4,
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   headerSubtitle: {
-    color: '#e2e8f0',
-    fontSize: 14,
-    marginTop: 4,
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 15,
+    marginTop: 6,
+    fontWeight: '500',
   },
   scrollContent: {
     padding: 20,
@@ -339,15 +359,15 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-    marginBottom: 25,
-    marginTop: -10,
+    borderRadius: 20,
+    padding: 25,
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 15,
+    elevation: 5,
+    marginBottom: 30,
+    marginTop: -30,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -392,10 +412,33 @@ const styles = StyleSheet.create({
     padding: 40,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  emptyIconBg: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
   emptyText: {
-    marginTop: 12,
-    fontSize: 16,
+    fontSize: 15,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   donationCard: {
     flexDirection: 'row',
