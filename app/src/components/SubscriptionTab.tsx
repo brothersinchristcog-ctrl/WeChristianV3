@@ -64,7 +64,7 @@ const colors = {
 
 export default function SubscriptionTab({ member }: { member?: any }) {
   const { user } = useAuth();
-  const { activeChurch } = useChurch();
+  const { activeChurch, setChurchId } = useChurch();
   const navigation = useNavigation<any>();
   
   const receiptRef = useRef<View>(null);
@@ -198,10 +198,11 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             plan: actualCycle
           });
           
-          // Refresh history and user
+          // Refresh history, user, and church context
           if (activeChurch && user) {
-            // Member history might not show up if we don't change how it fetches,
-            // but the GlobalUser will be updated.
+            // Force ChurchContext to fetch latest data to unblock the app!
+            await setChurchId(activeChurch.id);
+
             const u = await firestoreService.getGlobalUser(user.uid);
             setGlobalUser(u);
             

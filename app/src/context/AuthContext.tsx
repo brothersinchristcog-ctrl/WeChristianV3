@@ -76,7 +76,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // CRITICAL FIX: Force token refresh immediately after login
           // This ensures the native Firestore SDK receives the Auth token properly
           // which prevents [firestore/permission-denied] errors.
-          await userState.getIdToken(true);
+          try {
+            await userState.getIdToken(true);
+          } catch (tokenErr) {
+            console.warn('⚠️ [Auth] Token refresh failed (offline?):', tokenErr);
+          }
 
           // Fetch GLOBAL profile from Firestore
           const globalUser = await FirestoreService.getGlobalUser(userState.uid);

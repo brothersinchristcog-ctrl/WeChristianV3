@@ -19,13 +19,16 @@ import {
   Lock, 
   Coins,
   CreditCard,
-  Share2
+  Share2,
+  CheckCircle2
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useChurch } from '../context/ChurchContext';
 import FirestoreService, { AppMember } from '../services/FirestoreService';
 import { functions } from '../services/firebaseConfig';
+import storage from '@react-native-firebase/storage';
+import * as ImagePicker from 'expo-image-picker';
 import RazorpayCheckout from 'react-native-razorpay';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -53,6 +56,14 @@ export default function GivingScreen({ navigation }: any) {
   const [loading, setLoading] = useState(false);
   const [customEventName, setCustomEventName] = useState('');
   const [showEventModal, setShowEventModal] = useState(false);
+  
+  // Custom Success Modal State
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  
+  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'upi'>('razorpay');
+  const [receiptImage, setReceiptImage] = useState<string | null>(null);
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   // Pull giving details from the active church; fall back to defaults
   const giving = activeChurch?.givingDetails;
@@ -72,6 +83,98 @@ export default function GivingScreen({ navigation }: any) {
     fetchMember();
   }, [user]);
 
+  const handlePickReceipt = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setReceiptImage(result.assets[0].uri);
+      }
+    } catch (err) {
+      console.error('Error picking image:', err);
+      Alert.alert('Error', 'Failed to pick image');
+    }
+  };
+
+  const submitUpiDonation = async () => {
+    if (!receiptImage) {
+      Alert.alert('Missing Receipt', 'Please upload a screenshot of your payment receipt.');
+      return;
+    }
+
+    const numAmt = parseFloat(amount);
+    if (isNaN(numAmt) || numAmt < 1) {
+      Alert.alert('Invalid Amount', 'Please enter a valid amount (Minimum ₹1).');
+      return;
+    }
+
+    setUploadingReceipt(true);
+    setLoading(true);
+    try {
+      // Upload image
+      const filename = receiptImage.substring(receiptImage.lastIndexOf('/') + 1);
+      const storageRef = storage().ref(`donations/receipts/${member?.id || user?.uid}_${Date.now()}_${filename}`);
+      
+      const response = await fetch(receiptImage);
+      const blob = await response.blob();
+      
+      await storageRef.put(blob);
+      const downloadUrl = await storageRef.getDownloadURL();
+
+      const finalPurpose = activeCat === 'Others' ? `Others: ${customEventName.trim()}` : activeCat;
+
+      // Save donation
+      await FirestoreService.createDonation({
+        amount: numAmt,
+        donationType: finalPurpose,
+        category: finalPurpose, // Added for Admin compatibility
+        date: new Date().toISOString().split('T')[0], // Added for Admin compatibility
+        donorName: member?.name || member?.firstName || '', // Added for Admin compatibility
+        donorPhone: user?.phoneNumber || member?.phone || '', // Added for Admin compatibility
+        contactId: member?.id || '',
+        accountId: member?.accountId || '',
+        phone: user?.phoneNumber || '',
+        churchId: activeChurch?.id || '',
+        status: 'Pending Verification',
+        paymentMethod: 'UPI/PhonePe',
+        receiptUrl: downloadUrl
+      });
+
+      // Add Admin Push Notification for UPI
+      try {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const dateStr = `${now.toISOString().split('T')[0]} • ${timeStr}`;
+
+        await FirestoreService.createNotificationBroadcast({
+          title: `New UPI Donation: ₹${numAmt}`,
+          content: `${member?.name || member?.firstName || 'A member'} uploaded a UPI payment receipt for ₹${numAmt}. Please verify.`,
+          date: dateStr,
+          type: 'donation',
+          targetChurchId: activeChurch?.id,
+          targetAudience: 'Admin',
+        });
+      } catch (err) {
+        console.warn('Failed to send donation notification:', err);
+      }
+
+      setSuccessMessage('Your donation receipt has been submitted and is pending verification. Thank you!');
+      setShowSuccessModal(true);
+      setReceiptImage(null);
+      setAmount('500');
+    } catch (err) {
+      console.error('Submit UPI error:', err);
+      Alert.alert('Error', 'Failed to submit donation. Please try again.');
+    } finally {
+      setUploadingReceipt(false);
+      setLoading(false);
+    }
+  };
+
   const handlePayment = async () => {
     const numAmt = parseFloat(amount);
     if (isNaN(numAmt) || numAmt < 1) {
@@ -81,6 +184,11 @@ export default function GivingScreen({ navigation }: any) {
 
     if (activeCat === 'Others' && !customEventName.trim()) {
       Alert.alert('Missing Info', 'Please enter the Event or Offering name.');
+      return;
+    }
+
+    if (paymentMethod === 'upi') {
+      // Just alert if they didn't attach. The actual submit is a different button for UPI.
       return;
     }
 
@@ -95,7 +203,8 @@ export default function GivingScreen({ navigation }: any) {
         accountId: member?.accountId || '',
         phone: user?.phoneNumber || '',
         churchId: activeChurch?.id || '',
-        status: 'pending'
+        status: 'pending',
+        paymentMethod: 'Razorpay'
       });
       
       // 2. Call Cloud Function to initiate Razorpay order
@@ -138,11 +247,27 @@ export default function GivingScreen({ navigation }: any) {
               churchId: activeChurch?.id,
               donationId: donationRef
             });
-            
             if ((verifyRes.data as any).success) {
-              // Optionally update Firestore document directly here or let backend do it
-              Alert.alert('Success', 'Your donation was successful. Thank you!');
-              // navigation.navigate('PaymentResultScreen', { success: true });
+              // Add Admin Push Notification for Razorpay
+              try {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                const dateStr = `${now.toISOString().split('T')[0]} • ${timeStr}`;
+
+                await FirestoreService.createNotificationBroadcast({
+                  title: `New Donation: ₹${numAmt}`,
+                  content: `${member?.name || member?.firstName || 'A member'} has made a successful online donation of ₹${numAmt}.`,
+                  date: dateStr,
+                  type: 'donation',
+                  targetChurchId: activeChurch?.id,
+                  targetAudience: 'Admin',
+                });
+              } catch (err) {
+                console.warn('Failed to send donation notification:', err);
+              }
+
+              setSuccessMessage('Your donation was successful. Thank you!');
+              setShowSuccessModal(true);
             } else {
               Alert.alert('Verification Failed', 'Payment verification failed.');
             }
@@ -256,20 +381,78 @@ export default function GivingScreen({ navigation }: any) {
              />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.payBtn, loading && { opacity: 0.7 }]}
-            onPress={handlePayment}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#fff" />
+          <View style={{ marginTop: 20 }}>
+            <Text style={styles.sectionLabel}>PAYMENT METHOD</Text>
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
+              <TouchableOpacity 
+                style={[styles.paymentMethodBtn, paymentMethod === 'razorpay' && styles.paymentMethodBtnActive]}
+                onPress={() => setPaymentMethod('razorpay')}
+              >
+                <Text style={[styles.paymentMethodTxt, paymentMethod === 'razorpay' && styles.paymentMethodTxtActive]}>Razorpay</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.paymentMethodBtn, paymentMethod === 'upi' && styles.paymentMethodBtnActive]}
+                onPress={() => setPaymentMethod('upi')}
+              >
+                <Text style={[styles.paymentMethodTxt, paymentMethod === 'upi' && styles.paymentMethodTxtActive]}>PhonePe / UPI</Text>
+              </TouchableOpacity>
+            </View>
+
+            {paymentMethod === 'razorpay' ? (
+              <TouchableOpacity 
+                style={[styles.payBtn, loading && { opacity: 0.7 }]}
+                onPress={handlePayment}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <View style={styles.payBtnInner}>
+                    <CreditCard size={20} color="#fff" />
+                    <Text style={styles.payBtnTxt}>Pay ₹{amount} Securely</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
             ) : (
-              <View style={styles.payBtnInner}>
-                <CreditCard size={20} color="#fff" />
-                <Text style={styles.payBtnTxt}>Pay ₹{amount} Securely</Text>
+              <View style={[styles.upiFlowContainer, { backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#e2e8f0' }]}>
+                <Text style={[styles.upiFlowTitle, { color: isDark ? '#fff' : '#1e293b' }]}>Complete your payment via UPI</Text>
+                <Text style={[styles.upiFlowSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>Use the church's UPI ID or PhonePe number listed below to make a payment of ₹{amount}. Once paid, upload the screenshot below.</Text>
+                
+                {upiId ? (
+                  <TouchableOpacity 
+                    style={styles.openUpiBtn}
+                    onPress={() => Linking.openURL(`upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`)}
+                  >
+                    <Text style={styles.openUpiBtnTxt}>Open UPI App</Text>
+                  </TouchableOpacity>
+                ) : null}
+                
+                <View style={styles.uploadSection}>
+                  <TouchableOpacity style={[styles.uploadBtn, { borderColor: isDark ? '#475569' : '#cbd5e1' }]} onPress={handlePickReceipt}>
+                    {receiptImage ? (
+                      <Text style={{ color: '#16a34a', fontWeight: 'bold' }}>Screenshot Selected ✓</Text>
+                    ) : (
+                      <Text style={{ color: isDark ? '#cbd5e1' : '#64748b' }}>Upload Payment Screenshot</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                <TouchableOpacity 
+                  style={[styles.payBtn, (uploadingReceipt || !receiptImage) && { opacity: 0.7 }]}
+                  onPress={submitUpiDonation}
+                  disabled={uploadingReceipt || !receiptImage}
+                >
+                  {uploadingReceipt ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <View style={styles.payBtnInner}>
+                      <Text style={styles.payBtnTxt}>Submit Donation</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
               </View>
             )}
-          </TouchableOpacity>
+          </View>
 
           {/* UPI Copy Box */}
           <View style={[styles.upiInfoCard, { backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#e2e8f0' }]}>
@@ -412,6 +595,28 @@ export default function GivingScreen({ navigation }: any) {
                 <Text style={{ color: '#fff', fontWeight: '600' }}>Save</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Beautiful Success Modal */}
+      <Modal visible={showSuccessModal} animationType="fade" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : '#fff', paddingVertical: 40 }]}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#dcfce7', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+              <CheckCircle2 size={36} color="#16a34a" />
+            </View>
+            <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#1e293b', fontSize: 22 }]}>Success</Text>
+            <Text style={[styles.modalSubtitle, { color: isDark ? '#94a3b8' : '#64748b', fontSize: 15, marginTop: 4 }]}>
+              {successMessage}
+            </Text>
+            
+            <TouchableOpacity 
+              style={[styles.modalBtn, { backgroundColor: '#16a34a', width: '100%', marginTop: 10 }]}
+              onPress={() => setShowSuccessModal(false)}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>OK</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -574,8 +779,70 @@ const styles = StyleSheet.create({
     height: 1,
     marginVertical: 12,
   },
-  bankSection: {
-    marginTop: 4,
+  bankSection: { marginTop: 10 },
+  
+  paymentMethodBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    alignItems: 'center',
+    backgroundColor: 'transparent'
+  },
+  paymentMethodBtnActive: {
+    backgroundColor: '#1a2d5a',
+    borderColor: '#1a2d5a'
+  },
+  paymentMethodTxt: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#64748b'
+  },
+  paymentMethodTxtActive: {
+    color: '#fff'
+  },
+  upiFlowContainer: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 20,
+    marginTop: 10
+  },
+  upiFlowTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8
+  },
+  upiFlowSub: {
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 15
+  },
+  openUpiBtn: {
+    backgroundColor: '#eff6ff',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#bfdbfe'
+  },
+  openUpiBtnTxt: {
+    color: '#1d4ed8',
+    fontWeight: '700',
+    fontSize: 14
+  },
+  uploadSection: {
+    marginBottom: 20
+  },
+  uploadBtn: {
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderRadius: 8,
+    paddingVertical: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.02)'
   },
 
   // Modal styles
@@ -583,5 +850,5 @@ const styles = StyleSheet.create({
   modalContent: { width: '100%', borderRadius: 20, padding: 24, alignItems: 'center', elevation: 10 },
   modalTitle: { fontSize: 18, fontWeight: '800', marginBottom: 8 },
   modalSubtitle: { fontSize: 13, textAlign: 'center', marginBottom: 20, lineHeight: 20 },
-  modalBtn: { flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center' }
+  modalBtn: { paddingVertical: 14, borderRadius: 12, alignItems: 'center' }
 });

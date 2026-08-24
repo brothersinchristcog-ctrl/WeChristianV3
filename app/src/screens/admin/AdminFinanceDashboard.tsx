@@ -160,7 +160,6 @@ export default function AdminFinanceDashboard({ navigation, routeParams }: any) 
         const cDoc = await firestore().collection('churches').doc(churchId).get();
         const docData: any = typeof cDoc.data === 'function' ? cDoc.data() : cDoc.data;
         if (docData) {
-          setChurchProfile(docData);
           if (docData.customExpenseItems) {
             setCustomExpenseItems(docData.customExpenseItems);
           }
@@ -296,7 +295,7 @@ const openAddExpense = () => {
 
   const generateInvoiceHtml = () => {
     const invDate = new Date().toISOString().split('T')[0];
-    const cName = activeChurch?.name || member?.churchId || "We Christian Finance";
+    const cName = activeChurch?.name || "We Christian Finance";
     const userName = member?.name || (member?.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : 'Admin');
     const cAddress = activeChurch?.address || (activeChurch as any)?.mailingCity ? `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}` : "";
     const cPhone = (activeChurch as any)?.phone || "";

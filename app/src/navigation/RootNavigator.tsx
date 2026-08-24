@@ -244,7 +244,6 @@ function TabNavigator() {
       <Tab.Screen 
         name="Profile" 
         component={ProfileScreen} 
-        listeners={{ tabPress: handleFeatureInteraction }}
       />
     </Tab.Navigator>
 
@@ -580,7 +579,7 @@ export default function RootNavigator() {
 const styles = StyleSheet.create({
   tabBarContainer: {
     flexDirection: 'row',
-    height: 75,
+    height: 65,
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 65 : 50,
     left: 20,
@@ -599,13 +598,13 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 75,
+    height: 65,
   },
   activeCircle: {
     backgroundColor: '#ffffff',
-    width: 60,
-    height: 60,
-    borderRadius: 30, 
+    width: 55,
+    height: 55,
+    borderRadius: 27.5, 
     justifyContent: 'center',
     alignItems: 'center',
   },

@@ -30,7 +30,6 @@ import FirestoreService from '../services/FirestoreService';
 import { formatDateDisplay } from '../utils/DateUtils';
 import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
-import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -41,10 +40,15 @@ export default function GivingHistoryScreen({ navigation }: any) {
   
   const [donations, setDonations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState('All');
   
   const [selectedDonation, setSelectedDonation] = useState<any | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  
+  // Custom Success Modal State
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
   
   const receiptRef = useRef<any>(null);
 
@@ -103,7 +107,8 @@ export default function GivingHistoryScreen({ navigation }: any) {
       if (receiptRef.current) {
         const uri = await receiptRef.current.capture();
         await MediaLibrary.saveToLibraryAsync(uri);
-        Alert.alert('Success', 'Receipt saved to your gallery!');
+        setSuccessMessage('Receipt saved to your gallery!');
+        setShowSuccessModal(true);
       }
     } catch (error) {
       console.error('Download error:', error);
@@ -132,42 +137,85 @@ export default function GivingHistoryScreen({ navigation }: any) {
     return 'Unknown Date';
   };
 
+  const filteredDonations = donations.filter(d => {
+    if (activeFilter === 'All') return true;
+    const cat = (d.donationType || d.category || '').toLowerCase();
+    return cat.includes(activeFilter.toLowerCase());
+  });
+
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f4f7fb' }]}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent={true} />
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
+      <StatusBar barStyle="light-content" />
       
       {/* ── Page Header ── */}
-      <LinearGradient 
-        colors={isDark ? ['#1e293b', '#0f172a'] : ['#1a2d5a', '#294382']} 
-        style={styles.header}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-      >
-        <View style={styles.headerTop}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft size={24} color="#fff" />
-            <Text style={styles.backBtnTxt}>Back</Text>
+      <View style={[styles.header, { backgroundColor: '#1a2d5a', borderBottomLeftRadius: 24, borderBottomRightRadius: 24, paddingTop: Platform.OS === 'ios' ? 60 : 40 }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingBottom: 20, marginTop: 15 }}>
+          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }} onPress={() => navigation.goBack()}>
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>
+          <Text style={{ fontSize: 20, fontWeight: '300', color: '#fff', opacity: 0.4, marginHorizontal: 12 }}>|</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff' }} numberOfLines={1}>Giving History</Text>
+            <Text style={{ fontSize: 13, color: '#e2e8f0', marginTop: 2 }}>View and download your past donations</Text>
+          </View>
         </View>
-        <Text style={styles.headerTitle}>Giving History</Text>
-        <Text style={styles.headerSubtitle}>Your legacy of generosity</Text>
-      </LinearGradient>
+      </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* ── Summary Card ── */}
-        <View style={styles.summaryCard}>
-            <View style={styles.summaryRow}>
-                <View style={styles.summaryItem}>
-                    <Text style={styles.summaryLabel}>Total Given</Text>
-                    <Text style={styles.summaryValue}>{formatAmount(calculateTotal())}</Text>
+        <View style={{
+            backgroundColor: isDark ? '#1e293b' : '#fff', 
+            borderColor: isDark ? '#334155' : '#e2e8f0', 
+            borderWidth: 1, 
+            elevation: 4, 
+            shadowColor: '#000', 
+            shadowOffset: { width: 0, height: 4 }, 
+            shadowOpacity: 0.05, 
+            shadowRadius: 15, 
+            borderRadius: 16, 
+            padding: 20, 
+            marginBottom: 20,
+            marginTop: 10
+        }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#94a3b8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Total Given</Text>
+                    <Text style={{ fontSize: 28, fontWeight: '800', color: isDark ? '#fff' : '#0f172a' }}>{formatAmount(calculateTotal())}</Text>
                 </View>
-                <View style={styles.summaryDivider} />
-                <View style={styles.summaryItem}>
-                    <Text style={styles.summaryLabel}>Total Donations</Text>
-                    <Text style={styles.summaryValue}>{donations.length}</Text>
+                <View style={{ width: 1, height: '80%', backgroundColor: isDark ? '#334155' : '#e2e8f0' }} />
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#94a3b8', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>Total Donations</Text>
+                    <Text style={{ fontSize: 24, fontWeight: '800', color: isDark ? '#fff' : '#0f172a' }}>{donations.length}</Text>
                 </View>
             </View>
         </View>
+
+        {/* ── Categories Filter ── */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20, paddingBottom: 5 }} contentContainerStyle={{ gap: 10 }}>
+          {['All', 'Tithe', 'Offering', 'Special', 'Building', 'Other'].map(cat => (
+            <TouchableOpacity 
+              key={cat}
+              onPress={() => setActiveFilter(cat)}
+              style={{
+                paddingHorizontal: 16,
+                paddingVertical: 8,
+                borderRadius: 20,
+                backgroundColor: activeFilter === cat ? '#1a2d5a' : (isDark ? '#1e293b' : '#fff'),
+                borderWidth: 1,
+                borderColor: activeFilter === cat ? '#1a2d5a' : (isDark ? '#334155' : '#e2e8f0')
+              }}
+            >
+              <Text style={{ 
+                color: activeFilter === cat ? '#fff' : (isDark ? '#94a3b8' : '#64748b'),
+                fontWeight: activeFilter === cat ? '700' : '500',
+                fontSize: 13
+              }}>
+                {cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
         {/* ── Donations List ── */}
         <View style={styles.listContainer}>
@@ -177,16 +225,13 @@ export default function GivingHistoryScreen({ navigation }: any) {
             <View style={styles.centerContainer}>
               <ActivityIndicator size="large" color="#1a2d5a" />
             </View>
-          ) : donations.length === 0 ? (
+          ) : filteredDonations.length === 0 ? (
             <View style={styles.emptyState}>
-              <View style={styles.emptyIconBg}>
-                <Gift size={40} color="#1a2d5a" />
-              </View>
-              <Text style={[styles.emptyTitle, { color: isDark ? '#f8fafc' : '#1e293b' }]}>No History Yet</Text>
-              <Text style={[styles.emptyText, { color: isDark ? '#94a3b8' : '#64748b' }]}>When you give, your history will securely appear here.</Text>
+              <Gift size={48} color={isDark ? '#475569' : '#cbd5e1'} />
+              <Text style={[styles.emptyText, { color: isDark ? '#94a3b8' : '#64748b' }]}>No giving history found.</Text>
             </View>
           ) : (
-            donations.map((donation) => (
+            filteredDonations.map((donation) => (
               <TouchableOpacity 
                 key={donation.id} 
                 style={[styles.donationCard, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}
@@ -201,10 +246,31 @@ export default function GivingHistoryScreen({ navigation }: any) {
                 </View>
                 <View style={styles.donationAmountBox}>
                   <Text style={[styles.donationAmount, { color: isDark ? '#f8fafc' : '#0f172a' }]}>{formatAmount(donation.amount)}</Text>
-                  <View style={styles.statusBadge}>
-                    <CheckCircle2 size={12} color="#16a34a" />
-                    <Text style={styles.statusText}>Success</Text>
-                  </View>
+                  
+                  {(() => {
+                    const status = (donation.status || 'success').toLowerCase();
+                    if (status.includes('pending')) {
+                      return (
+                        <View style={[styles.statusBadge, { backgroundColor: '#fef3c7' }]}>
+                          <Clock size={12} color="#d97706" />
+                          <Text style={[styles.statusText, { color: '#d97706' }]}>Pending</Text>
+                        </View>
+                      );
+                    } else if (status === 'failed' || status === 'rejected') {
+                      return (
+                        <View style={[styles.statusBadge, { backgroundColor: '#fee2e2' }]}>
+                          <X size={12} color="#dc2626" />
+                          <Text style={[styles.statusText, { color: '#dc2626' }]}>Failed</Text>
+                        </View>
+                      );
+                    }
+                    return (
+                      <View style={styles.statusBadge}>
+                        <CheckCircle2 size={12} color="#16a34a" />
+                        <Text style={styles.statusText}>Success</Text>
+                      </View>
+                    );
+                  })()}
                 </View>
               </TouchableOpacity>
             ))
@@ -270,8 +336,30 @@ export default function GivingHistoryScreen({ navigation }: any) {
                     <View style={styles.receiptDetailRow}>
                       <Text style={styles.receiptLabel}>Payment Status</Text>
                       <View style={styles.receiptStatusRow}>
-                        <CheckCircle2 size={16} color="#16a34a" />
-                        <Text style={styles.receiptStatusText}>Successful</Text>
+                        {(() => {
+                          const status = (selectedDonation.status || 'success').toLowerCase();
+                          if (status.includes('pending')) {
+                            return (
+                              <>
+                                <Clock size={16} color="#d97706" />
+                                <Text style={[styles.receiptStatusText, { color: '#d97706' }]}>Pending Verification</Text>
+                              </>
+                            );
+                          } else if (status === 'failed' || status === 'rejected') {
+                            return (
+                              <>
+                                <X size={16} color="#dc2626" />
+                                <Text style={[styles.receiptStatusText, { color: '#dc2626' }]}>Failed</Text>
+                              </>
+                            );
+                          }
+                          return (
+                            <>
+                              <CheckCircle2 size={16} color="#16a34a" />
+                              <Text style={styles.receiptStatusText}>Successful</Text>
+                            </>
+                          );
+                        })()}
                       </View>
                     </View>
 
@@ -304,6 +392,28 @@ export default function GivingHistoryScreen({ navigation }: any) {
         </View>
       </Modal>
 
+      {/* Beautiful Success Modal */}
+      <Modal visible={showSuccessModal} animationType="fade" transparent={true}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20, zIndex: 1000 }}>
+          <View style={{ width: '100%', borderRadius: 20, padding: 24, paddingVertical: 40, alignItems: 'center', elevation: 10, backgroundColor: isDark ? '#1e293b' : '#fff' }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#dcfce7', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+              <CheckCircle2 size={36} color="#16a34a" />
+            </View>
+            <Text style={{ fontSize: 22, fontWeight: '800', marginBottom: 8, color: isDark ? '#fff' : '#1e293b' }}>Success</Text>
+            <Text style={{ fontSize: 15, textAlign: 'center', marginBottom: 20, lineHeight: 20, color: isDark ? '#94a3b8' : '#64748b' }}>
+              {successMessage}
+            </Text>
+            
+            <TouchableOpacity 
+              style={{ paddingVertical: 14, borderRadius: 12, alignItems: 'center', backgroundColor: '#16a34a', width: '100%', marginTop: 10 }}
+              onPress={() => setShowSuccessModal(false)}
+            >
+              <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -311,47 +421,36 @@ export default function GivingHistoryScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 60 : StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 40,
-    paddingHorizontal: 25,
-    paddingBottom: 40,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingHorizontal: 20,
+    paddingBottom: 25,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   headerTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
   },
   backBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
   },
   backBtnTxt: {
     color: '#fff',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     marginLeft: 4,
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 32,
-    fontWeight: '800',
-    letterSpacing: -0.5,
+    fontSize: 28,
+    fontWeight: 'bold',
   },
   headerSubtitle: {
-    color: 'rgba(255,255,255,0.8)',
-    fontSize: 15,
-    marginTop: 6,
-    fontWeight: '500',
+    color: '#e2e8f0',
+    fontSize: 14,
+    marginTop: 4,
   },
   scrollContent: {
     padding: 20,
@@ -359,15 +458,15 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 25,
-    shadowColor: '#1a2d5a',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 15,
-    elevation: 5,
-    marginBottom: 30,
-    marginTop: -30,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+    marginBottom: 25,
+    marginTop: -10,
   },
   summaryRow: {
     flexDirection: 'row',
@@ -412,33 +511,10 @@ const styles = StyleSheet.create({
     padding: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  emptyIconBg: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#eff6ff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
   },
   emptyText: {
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 22,
+    marginTop: 12,
+    fontSize: 16,
   },
   donationCard: {
     flexDirection: 'row',

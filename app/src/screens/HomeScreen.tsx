@@ -485,6 +485,21 @@ export default function HomeScreen() {
   const [carouselSlide, setCarouselSlide] = useState(0); // 0 = text, 1 = image
   const carouselScrollRef = useRef<ScrollView>(null);
   
+  // -- Sticky Header Animation --
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerPadding = Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ? StatusBar.currentHeight + 15 : 40);
+  const HEADER_SCROLL_DISTANCE = 85;
+  const headerTranslateY = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [0, -HEADER_SCROLL_DISTANCE],
+    extrapolate: 'clamp'
+  });
+  const topRowOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE / 1.5],
+    outputRange: [1, 0],
+    extrapolate: 'clamp'
+  });
+
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -778,11 +793,13 @@ export default function HomeScreen() {
         onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
       />
       
+      {/* Animated Header with Gradient Bleed for seamless status bar */}
+      <Animated.View style={{ position: 'absolute', top: -200, left: 0, right: 0, zIndex: 10, transform: [{ translateY: headerTranslateY }] }}>
       <LinearGradient 
         colors={['#020b22', '#081d4a']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.appHeader}
+        style={[styles.appHeader, { paddingTop: headerPadding + 200 }]}
       >
         {/* Decorative Particles */}
         <View style={styles.particleLayer}>
@@ -796,7 +813,8 @@ export default function HomeScreen() {
           <AnimatedParticle left="15%" size={6} duration={6500} delay={1500} opacity={0.5} />
         </View>
 
-        <View style={styles.headerTopRow}>
+        <Animated.View style={{ opacity: topRowOpacity }}>
+          <View style={styles.headerTopRow}>
           <View style={styles.headerLeft}>
             <View style={styles.logoCircle}>
               {activeChurch?.theme?.logoUrl ? (
@@ -875,6 +893,7 @@ export default function HomeScreen() {
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
           style={styles.goldDivider}
         />
+        </Animated.View>
 
         {/* --- Greeting Row --- */}
         <View style={styles.greetingSection}>
@@ -914,50 +933,43 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Animated Gradient Glow Line */}
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 35 }}>
-          <Svg width={width} height={35}>
+        {/* Static Medium Gradient Glow Line */}
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 30, overflow: 'hidden' }}>
+          <Svg width={width} height={30} style={{ position: 'absolute', bottom: 0 }}>
             <Defs>
               <SvgLinearGradient id="borderGrad" x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0%" stopColor="#f59e0b" />
-                <Stop offset="30%" stopColor="#ec4899" />
-                <Stop offset="70%" stopColor="#8b5cf6" />
-                <Stop offset="100%" stopColor="#3b82f6" />
+                <Stop offset="0%" stopColor="rgba(29, 78, 216, 0.2)" />
+                <Stop offset="20%" stopColor="rgba(59, 130, 246, 0.8)" />
+                <Stop offset="50%" stopColor="rgba(147, 197, 253, 1)" />
+                <Stop offset="80%" stopColor="rgba(59, 130, 246, 0.8)" />
+                <Stop offset="100%" stopColor="rgba(29, 78, 216, 0.2)" />
               </SvgLinearGradient>
-
             </Defs>
-            
-            {/* Static Gradient Border */}
-            <Path
-              d={`M 0 0 A 30 30 0 0 0 30 30 L ${width - 30} 30 A 30 30 0 0 0 ${width} 0`}
-              stroke="url(#borderGrad)"
-              strokeWidth={3}
-              fill="none"
-            />
 
-            {/* Light Glow Animation passing on top of the border */}
-            <AnimatedPath
-              d={`M 0 0 A 30 30 0 0 0 30 30 L ${width - 30} 30 A 30 30 0 0 0 ${width} 0`}
-              stroke="rgba(255, 255, 255, 0.6)"
-              strokeWidth={3}
+            {/* Static Perfect-Fit Gradient Border (Medium Width = 6) */}
+            <Path
+              d={`M 3 0 A 27 27 0 0 0 30 27 L ${width - 30} 27 A 27 27 0 0 0 ${width - 3} 0`}
+              stroke="url(#borderGrad)"
+              strokeWidth={6}
               fill="none"
-              strokeLinecap="round"
-              strokeDasharray={`${width * 0.25}, 10000`}
-              strokeDashoffset={curveLineAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [width, -(width * 2)]
-              })}
             />
           </Svg>
         </View>
 
       </LinearGradient>
+      </Animated.View>
 
-      <ScrollView 
+      <Animated.ScrollView 
         style={styles.scroll} 
+        contentContainerStyle={{ paddingTop: headerPadding + 195 }} // Padding to clear the absolute header
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" progressViewOffset={headerPadding + 195} />
         }
       >
         <EventMarquee events={todayEvents} onEventPress={(event) => navigation.navigate('EventDetails', { event })} />
@@ -1187,7 +1199,7 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.sermonCard}>
-            <TouchableOpacity style={styles.scBody} onPress={() => navigation.navigate('Sermons')}>
+            <TouchableOpacity style={styles.scBody} onPress={() => navigation.navigate('SermonVideo', { sermonData: latestSermon })}>
               <View style={styles.scThumb}>
                 <View style={styles.playIconOverlay}>
                    <Play size={20} color="#fff" fill="#c0392b" />
@@ -1233,7 +1245,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {liveCelebrations.length > 0 && (
         <Animated.View
@@ -1367,7 +1379,7 @@ const styles = StyleSheet.create({
   notifBadge: { position: 'absolute', top: 8, right: 10, width: 6, height: 6, backgroundColor: '#ef4444', borderRadius: 3 },
   avatarWrapper: { width: 40, height: 40, borderRadius: 20, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 4 },
   avatarImg: { width: 40, height: 40, borderRadius: 20 },
-  avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#b48a36', justifyContent: 'center', alignItems: 'center' },
+  avatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f59e0b', justifyContent: 'center', alignItems: 'center' },
   avatarLetter: { color: '#fff', fontWeight: '800', fontSize: 18 },
   
   goldDivider: { height: 1, marginVertical: 18, width: '100%', opacity: 0.7, zIndex: 2 },

@@ -390,6 +390,9 @@ class FirestoreService {
       
       let docs = snapshot.docs;
       
+      // Filter out members who have Left
+      docs = docs.filter((doc: any) => doc.data()?.status !== 'Left');
+      
       // Local filtering for trial (including missing status)
       if (statusFilter === 'trial') {
          docs = docs.filter((doc: any) => {
@@ -483,13 +486,23 @@ class FirestoreService {
 
   async getGlobalUser(uid: string): Promise<GlobalUser | null> {
     try {
-      // Find the member across all churches to determine their primary church
-      const snap = await firestore().collectionGroup('members').where('id', '==', uid).limit(1).get();
+      // Find all memberships across all churches for this uid
+      const snap = await firestore().collectionGroup('members').where('id', '==', uid).get();
       if (!snap.empty) {
-        const doc = snap.docs[0];
-        // The parent of the member doc is the 'members' collection. The parent of that is the church doc.
-        const churchId = doc.ref.parent.parent?.id;
-        return { uid: doc.id, primaryChurchId: churchId, ...doc.data() } as GlobalUser;
+        // Prioritize the 'Active' membership
+        let activeDoc = snap.docs.find(d => {
+          const data = d.data();
+          return !data.status || data.status === 'Active'; // default to Active if missing
+        });
+
+        if (!activeDoc) {
+          // If the user has memberships but NONE are active (all 'Left' or 'Inactive'),
+          // we return null to force them into onboarding so they can join a new church.
+          return null;
+        }
+
+        const churchId = activeDoc.ref.parent.parent?.id;
+        return { uid: activeDoc.id, primaryChurchId: churchId, ...activeDoc.data() } as GlobalUser;
       }
       return null;
     } catch (error) {
@@ -653,6 +666,7 @@ class FirestoreService {
     try {
       const docRef = await firestore().collection('churches').doc(churchId).collection('members').add({
         ...details,
+        status: 'Active',
         joinDate: new Date().toISOString(),
         onboardingComplete: false,
       });
@@ -675,7 +689,9 @@ class FirestoreService {
 
   async adminRemoveMember(churchId: string, memberId: string) {
     try {
-      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).delete();
+      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).update({
+        status: 'Left'
+      });
       return { success: true };
     } catch (error: any) {
       console.error("Error removing member:", error);
@@ -763,11 +779,12 @@ class FirestoreService {
 
   async createMember(churchId: string, data: any, customId?: string) {
     try {
+      const memberData = { ...data, status: data.status || 'Active' };
       if (customId) {
-        await firestore().collection('churches').doc(churchId).collection('members').doc(customId).set(data);
+        await firestore().collection('churches').doc(churchId).collection('members').doc(customId).set(memberData);
         return { success: true, id: customId };
       } else {
-        const docRef = await firestore().collection('churches').doc(churchId).collection('members').add(data);
+        const docRef = await firestore().collection('churches').doc(churchId).collection('members').add(memberData);
         return { success: true, id: docRef.id };
       }
     } catch (e) {
@@ -778,12 +795,14 @@ class FirestoreService {
     try {
       const col = await this.getCollection('members');
       const snapshot = await col.get();
-      return snapshot.docs.map((doc: any) => ({ 
-        name: doc.data().name || doc.data().firstName || 'Unknown',
-        email: doc.data().email || '',
-        ...doc.data(),
-        id: doc.id
-      }));
+      return snapshot.docs
+        .filter((doc: any) => doc.data().status !== 'Left')
+        .map((doc: any) => ({ 
+          name: doc.data().name || doc.data().firstName || 'Unknown',
+          email: doc.data().email || '',
+          ...doc.data(),
+          id: doc.id
+        }));
     } catch (error) {
       console.error('Error fetching all members:', error);
       return [];
@@ -823,7 +842,7 @@ class FirestoreService {
   async getSermons(limit = 50): Promise<Sermon[]> {
     try {
       const col = await this.getCollection('sermons');
-      const snapshot = await col.orderBy('date', 'desc').limit(limit).get();
+      const snapshot = await col.orderBy('createdAt', 'desc').limit(limit).get();
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Sermon[];
     } catch (error) {
       return [];
@@ -1112,12 +1131,25 @@ class FirestoreService {
   async getMemberDonations(phone: string): Promise<any[]> {
     try {
       const col = await this.getCollection('donations');
-      // Fetching by phone only to avoid Firestore composite index requirement
-      const snapshot = await col
-        .where('phone', '==', phone)
-        .get();
-        
-      let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Execute two separate queries to avoid Firestore composite/OR index requirements
+      const [snapshotPhone, snapshotDonorPhone] = await Promise.all([
+        col.where('phone', '==', phone).get(),
+        col.where('donorPhone', '==', phone).get()
+      ]);
+      
+      // Merge results and deduplicate by ID
+      const donationMap = new Map();
+      
+      snapshotPhone.docs.forEach(doc => {
+        donationMap.set(doc.id, { id: doc.id, ...doc.data() });
+      });
+      
+      snapshotDonorPhone.docs.forEach(doc => {
+        donationMap.set(doc.id, { id: doc.id, ...doc.data() });
+      });
+      
+      let results = Array.from(donationMap.values());
       
       // Sort locally by createdAt desc
       results.sort((a: any, b: any) => {

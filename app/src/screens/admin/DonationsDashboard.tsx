@@ -93,6 +93,11 @@ export default function AdminDonationDashboard() {
   const invoiceRef = React.useRef<any>(null);
   const categoryInvoiceRef = React.useRef<any>(null);
 
+  // Pending Donations Review State
+  const [showPendingReviewModal, setShowPendingReviewModal] = useState(false);
+  const [selectedPendingDonation, setSelectedPendingDonation] = useState<any>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+
   // Add Donation Modal State
   const [showAddDonationModal, setShowAddDonationModal] = useState(false);
   const [addDonCategory, setAddDonCategory] = useState('Tithes');
@@ -110,6 +115,10 @@ export default function AdminDonationDashboard() {
   // Success Card State
   const [showSuccessCard, setShowSuccessCard] = useState(false);
 
+  // Members Autocomplete State
+  const [churchMembers, setChurchMembers] = useState<any[]>([]);
+  const [showDonorDropdown, setShowDonorDropdown] = useState(false);
+
   const displayToast = (msg: string) => {
     setToastMessage(msg);
     setShowToast(true);
@@ -123,7 +132,6 @@ export default function AdminDonationDashboard() {
         const cDoc = await firestore().collection('churches').doc(churchId).get();
         const docData: any = typeof cDoc.data === 'function' ? cDoc.data() : cDoc.data;
         if (docData) {
-          setChurchProfile(docData);
           if (docData.customDonationCategories && Array.isArray(docData.customDonationCategories)) {
             setCategories(prev => Array.from(new Set([...prev, ...docData.customDonationCategories])));
           }
@@ -132,6 +140,9 @@ export default function AdminDonationDashboard() {
 
       const donData = await FirestoreService.getDonations(500);
       setDonations(donData);
+      
+      const memData = await FirestoreService.getAllMembers();
+      setChurchMembers(memData);
       
       const usedCategories = donData.map(e => e.category).filter(Boolean);
       setCategories(prev => Array.from(new Set([...prev, ...usedCategories])));
@@ -157,6 +168,7 @@ export default function AdminDonationDashboard() {
     setDonationDate(new Date().toISOString().split('T')[0]);
     setDonationPaymentMethod('Cash');
     setDonationNotes('');
+    setShowCategoryDropdown(false);
     setShowAddDonationModal(true);
   };
 
@@ -232,6 +244,34 @@ export default function AdminDonationDashboard() {
         }
       }}
     ]);
+  };
+
+  const handleApprovePendingDonation = async (id: string) => {
+    setReviewLoading(true);
+    try {
+      await FirestoreService.saveDonation({ id, status: 'Success' });
+      displayToast("Donation approved successfully");
+      setShowPendingReviewModal(false);
+      fetchData();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to approve donation');
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleRejectPendingDonation = async (id: string) => {
+    setReviewLoading(true);
+    try {
+      await FirestoreService.saveDonation({ id, status: 'Rejected' });
+      displayToast("Donation rejected");
+      setShowPendingReviewModal(false);
+      fetchData();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to reject donation');
+    } finally {
+      setReviewLoading(false);
+    }
   };
 
   const getSequentialDonationNumber = (donId?: string) => {
@@ -890,6 +930,9 @@ export default function AdminDonationDashboard() {
                             </Text>
                             <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginBottom: 8 }}>
                               {formatDateDisplay(don.date)} • {don.paymentMethod || 'Cash'}
+                              {(don as any).status?.toLowerCase().includes('pending') ? (
+                                <Text style={{ color: '#d97706', fontWeight: 'bold' }}> • Pending</Text>
+                              ) : null}
                             </Text>
                           </View>
                         </View>
@@ -899,6 +942,17 @@ export default function AdminDonationDashboard() {
                             ₹{don.amount?.toLocaleString('en-IN') || 0}
                           </Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            { (don as any).status?.toLowerCase().includes('pending') ? (
+                              <TouchableOpacity 
+                                onPress={() => {
+                                  setSelectedPendingDonation(don);
+                                  setShowPendingReviewModal(true);
+                                }}
+                                style={{ padding: 8, backgroundColor: '#fef3c7', borderRadius: 8, marginRight: 8 }}
+                              >
+                                <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#d97706' }}>Review</Text>
+                              </TouchableOpacity>
+                            ) : null}
                             <TouchableOpacity 
                               onPress={() => {
                                 setSelectedDonationForInvoice(don);
@@ -1083,15 +1137,74 @@ export default function AdminDonationDashboard() {
               
               <Text style={styles.helperText}>Record a new donation entry.</Text>
 
-              <View style={styles.inputGroup}>
+              <View style={[styles.inputGroup, { zIndex: 10 }]}>
                 <Text style={styles.label}>Donor Name</Text>
-                <TextInput 
-                  style={styles.input}
-                  placeholder="Enter donor name"
-                  placeholderTextColor="#a89f92"
-                  value={donationDonorName}
-                  onChangeText={setDonationDonorName}
-                />
+                <View style={{ zIndex: 10 }}>
+                  <TextInput 
+                    style={styles.input}
+                    placeholder="Search or enter donor name"
+                    placeholderTextColor="#a89f92"
+                    value={donationDonorName}
+                    onChangeText={(txt) => {
+                      setDonationDonorName(txt);
+                      setShowDonorDropdown(txt.length > 0);
+                    }}
+                    onFocus={() => {
+                      if (donationDonorName.length > 0) setShowDonorDropdown(true);
+                    }}
+                  />
+                  {showDonorDropdown && (
+                    <View style={{ 
+                      position: 'absolute', top: 52, left: 0, right: 0, 
+                      backgroundColor: '#fff', 
+                      borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8, 
+                      maxHeight: 180, zIndex: 1000, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10
+                    }}>
+                      <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                        {churchMembers
+                          .filter(m => {
+                            const fn = (m.firstName || '') + ' ' + (m.lastName || '');
+                            const nameMatch = fn.toLowerCase().includes(donationDonorName.toLowerCase());
+                            const phoneMatch = m.phone?.includes(donationDonorName) || m.phoneNumber?.includes(donationDonorName);
+                            return nameMatch || phoneMatch;
+                          })
+                          .slice(0, 15)
+                          .map((m, idx) => {
+                            const fullName = ((m.firstName || '') + ' ' + (m.lastName || '')).trim() || 'Unknown Member';
+                            const phoneNum = m.phone || m.phoneNumber || '';
+                            return (
+                              <TouchableOpacity
+                                key={m.id || idx}
+                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#f4efe6' }}
+                                onPress={() => {
+                                  setDonationDonorName(fullName);
+                                  if (phoneNum) setDonationDonorPhone(phoneNum);
+                                  setShowDonorDropdown(false);
+                                }}
+                              >
+                                <Text style={{ fontFamily: FONTS.sans, fontSize: 14, fontWeight: '600', color: '#1b2a4a' }}>{fullName}</Text>
+                                {phoneNum ? <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54', marginTop: 2 }}>{phoneNum}</Text> : null}
+                              </TouchableOpacity>
+                            )
+                          })
+                        }
+                        {churchMembers.filter(m => {
+                            const fn = (m.firstName || '') + ' ' + (m.lastName || '');
+                            const nameMatch = fn.toLowerCase().includes(donationDonorName.toLowerCase());
+                            const phoneMatch = m.phone?.includes(donationDonorName) || m.phoneNumber?.includes(donationDonorName);
+                            return nameMatch || phoneMatch;
+                          }).length === 0 && (
+                          <View style={{ padding: 12 }}>
+                            <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', fontStyle: 'italic' }}>No matching members. Proceed to add manually.</Text>
+                          </View>
+                        )}
+                        <TouchableOpacity style={{ padding: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f4efe6' }} onPress={() => setShowDonorDropdown(false)}>
+                          <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#a89f92', fontWeight: '600' }}>Close Suggestions</Text>
+                        </TouchableOpacity>
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
               </View>
 
               <View style={styles.inputGroup}>
@@ -1619,6 +1732,69 @@ export default function AdminDonationDashboard() {
           </View>
         </View>
       )}
+
+      {/* ── Pending Donation Review Modal ── */}
+      <Modal visible={showPendingReviewModal} transparent animationType="slide">
+        <View style={styles.modalOverlayFull}>
+          <View style={styles.addExpModal}>
+            <View style={styles.addExpHeader}>
+              <Text style={styles.addExpTitle}>Review Pending Donation</Text>
+              <TouchableOpacity style={styles.addExpClose} onPress={() => setShowPendingReviewModal(false)}>
+                <X size={20} color="#645d54" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.addExpBody} showsVerticalScrollIndicator={false}>
+              
+              {selectedPendingDonation && (
+                <View>
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={styles.label}>Donor Name</Text>
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 16, color: '#1b2a4a' }}>{selectedPendingDonation.donorName || 'Member'}</Text>
+                  </View>
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={styles.label}>Amount</Text>
+                    <Text style={{ fontFamily: FONTS.mono, fontSize: 24, fontWeight: '700', color: '#1b2a4a' }}>₹{selectedPendingDonation.amount}</Text>
+                  </View>
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={styles.label}>Category</Text>
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 16, color: '#1b2a4a' }}>{selectedPendingDonation.category}</Text>
+                  </View>
+
+                  <Text style={styles.label}>Payment Screenshot</Text>
+                  {selectedPendingDonation.receiptUrl ? (
+                    <View style={{ width: '100%', height: 300, backgroundColor: '#e2e8f0', borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
+                      <Image source={{ uri: selectedPendingDonation.receiptUrl }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
+                    </View>
+                  ) : (
+                    <View style={{ width: '100%', padding: 20, backgroundColor: '#fef2f2', borderRadius: 12, marginBottom: 20 }}>
+                      <Text style={{ color: '#dc2626', textAlign: 'center' }}>No receipt image found.</Text>
+                    </View>
+                  )}
+
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 10, marginBottom: 40 }}>
+                    <TouchableOpacity 
+                      style={[styles.saveBtn, { flex: 1, backgroundColor: '#dc2626' }, reviewLoading && { opacity: 0.7 }]} 
+                      onPress={() => handleRejectPendingDonation(selectedPendingDonation.id)}
+                      disabled={reviewLoading}
+                    >
+                      {reviewLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnTxt}>Reject</Text>}
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.saveBtn, { flex: 2, backgroundColor: '#16a34a' }, reviewLoading && { opacity: 0.7 }]} 
+                      onPress={() => handleApprovePendingDonation(selectedPendingDonation.id)}
+                      disabled={reviewLoading}
+                    >
+                      {reviewLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnTxt}>Approve Verification</Text>}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
     </View>
   );

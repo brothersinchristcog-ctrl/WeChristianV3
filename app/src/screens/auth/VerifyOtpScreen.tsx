@@ -53,6 +53,19 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
       const { firestore, FieldValue } = require('../../services/firebaseConfig');
 
       if (result?.user && isSignUp && formData && activeChurchId) {
+        setStatus('Checking existing memberships...');
+        
+        // Prevent duplicate active memberships
+        const globalCheck = await FirestoreService.getGlobalUser(result.user.uid);
+        if (globalCheck && globalCheck.primaryChurchId && globalCheck.primaryChurchId !== activeChurchId) {
+          Alert.alert(
+            'Membership Active', 
+            'You are currently an active member of another church. You must leave or be removed from your previous church before joining a new one.'
+          );
+          setLoading(false);
+          return;
+        }
+
         setStatus('Creating your member profile...');
         
         // Global users collection is no longer used. Members are strictly stored in the church.
