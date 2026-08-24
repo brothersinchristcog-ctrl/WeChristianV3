@@ -448,14 +448,9 @@ export default function ProfileScreen({ navigation }: any) {
             icon={<CreditCard size={20} color="#94a3b8" />} 
             iconBg="#f1f5f9"
             title="Giving history" 
-            sub="Available Soon" 
+            sub="View your donation records" 
             onPress={() => {
-              if (!activeChurch?.features?.hasGiving) {
-                setInfoMessage('Online donations via the app are coming soon. Please contact the church administration for offline donation options.');
-                setInfoModalVisible(true);
-              } else {
-                navigation.navigate('Give');
-              }
+              navigation.navigate('GivingHistory');
             }}
           />
           <MenuItem 

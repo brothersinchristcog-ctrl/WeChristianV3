@@ -33,6 +33,7 @@ import SermonVideoScreen from '../screens/SermonVideoScreen';
 import EventsScreen from '../screens/EventsScreen';
 import PrayerWallScreen from '../screens/PrayerWallScreen';
 import GivingScreen from '../screens/GivingScreen';
+import GivingHistoryScreen from '../screens/GivingHistoryScreen';
 import SermonsScreen from '../screens/SermonsScreen';
 import SongsScreen from '../screens/SongsScreen';
 import EventDetailsScreen from '../screens/EventDetailsScreen';
@@ -534,6 +535,7 @@ function Navigation() {
             <Stack.Screen name="SermonVideo" component={SermonVideoScreen} />
             <Stack.Screen name="Events" component={EventsScreen} />
             <Stack.Screen name="Give" component={GivingScreen} />
+            <Stack.Screen name="GivingHistory" component={GivingHistoryScreen} />
             <Stack.Screen name="Sermons" component={SermonsScreen} />
             <Stack.Screen name="Songs" component={SongsScreen} />
             <Stack.Screen name="EventDetails" component={EventDetailsScreen} />

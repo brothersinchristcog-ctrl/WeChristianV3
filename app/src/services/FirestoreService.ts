@@ -1109,6 +1109,25 @@ class FirestoreService {
     }
   }
 
+  async getMemberDonations(phone: string): Promise<any[]> {
+    try {
+      const col = await this.getCollection('donations');
+      // Query where phone matches and order by createdAt desc
+      // Assuming 'status' is tracked. For member history, we want successful donations.
+      // If 'status' is consistently used: .where('status', '==', 'success')
+      // but let's just fetch by phone first and filter on client if needed, or query both.
+      const snapshot = await col
+        .where('phone', '==', phone)
+        .orderBy('createdAt', 'desc')
+        .get();
+        
+      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error fetching member donations:', error);
+      return [];
+    }
+  }
+
   // --- 📖 Bible Progress ---
 
   async getBibleProgress(churchId: string, memberId: string): Promise<any> {
