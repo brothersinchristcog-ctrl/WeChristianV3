@@ -134,20 +134,63 @@ export default function AdminOnlineMeetingEditor() {
     setGeneratingMeet(true);
     try {
       await GoogleSignin.hasPlayServices();
-      await GoogleSignin.signIn();
-      const tokens = await GoogleSignin.getTokens();
-      if (tokens.accessToken) {
-        await generateMeetLinkWithToken(tokens.accessToken);
-      } else {
-        throw new Error("No access token received from Google.");
+
+      let accessToken: string | null = null;
+
+      // Step 1: Try to get a token silently (user already signed in)
+      try {
+        const currentUser = await GoogleSignin.getCurrentUser();
+        if (currentUser) {
+          // User is signed in — add the calendar scope if not already present
+          await GoogleSignin.addScopes({
+            scopes: ['https://www.googleapis.com/auth/calendar.events'],
+          });
+          // Force a fresh token with the new scope
+          await GoogleSignin.clearCachedAccessToken((await GoogleSignin.getTokens()).accessToken);
+          const tokens = await GoogleSignin.getTokens();
+          accessToken = tokens.accessToken;
+        }
+      } catch (_silentErr) {
+        // Silent attempt failed — will fall through to interactive sign-in
       }
+
+      // Step 2: If no token yet, do interactive sign-in
+      if (!accessToken) {
+        await GoogleSignin.signIn();
+        const tokens = await GoogleSignin.getTokens();
+        accessToken = tokens.accessToken;
+      }
+
+      if (!accessToken) {
+        throw new Error('No access token received from Google.');
+      }
+
+      await generateMeetLinkWithToken(accessToken);
+
     } catch (error: any) {
-      console.error(error);
-      setErrorMsg(error.message || "Google Sign-In failed.");
-      setShowError(true);
+      // If it was a scope/permission error, force a fresh interactive sign-in
+      if (error?.message?.includes('403') || error?.message?.includes('PERMISSION_DENIED') || error?.message?.includes('insufficient')) {
+        try {
+          await GoogleSignin.signOut();
+          await GoogleSignin.signIn();
+          const tokens = await GoogleSignin.getTokens();
+          if (tokens.accessToken) {
+            await generateMeetLinkWithToken(tokens.accessToken);
+            return;
+          }
+        } catch (retryErr: any) {
+          setErrorMsg(retryErr.message || 'Google Sign-In failed. Please try again.');
+          setShowError(true);
+        }
+      } else {
+        console.error(error);
+        setErrorMsg(error.message || 'Google Sign-In failed.');
+        setShowError(true);
+      }
       setGeneratingMeet(false);
     }
   };
+
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
