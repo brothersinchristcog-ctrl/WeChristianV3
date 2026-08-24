@@ -266,7 +266,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
 
   const downloadReceipt = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'We need photo gallery permissions to save the receipt.');
         return;

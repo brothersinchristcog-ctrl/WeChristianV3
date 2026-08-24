@@ -275,7 +275,7 @@ const openAddExpense = () => {
 
   const handleDownloadImage = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'Please grant permission to save photos to your gallery.');
         return;

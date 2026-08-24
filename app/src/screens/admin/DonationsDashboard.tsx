@@ -419,7 +419,7 @@ export default function AdminDonationDashboard() {
     try {
       if (invoiceRef.current) {
         const uri = await invoiceRef.current.capture();
-        const { status } = await MediaLibrary.requestPermissionsAsync();
+        const { status } = await MediaLibrary.requestPermissionsAsync(true);
         if (status === 'granted') {
           await MediaLibrary.saveToLibraryAsync(uri);
           Alert.alert('Success', 'Receipt saved to photos');
@@ -580,7 +580,7 @@ export default function AdminDonationDashboard() {
     try {
       if (categoryInvoiceRef.current) {
         const uri = await categoryInvoiceRef.current.capture();
-        const { status } = await MediaLibrary.requestPermissionsAsync();
+        const { status } = await MediaLibrary.requestPermissionsAsync(true);
         if (status === 'granted') {
           await MediaLibrary.saveToLibraryAsync(uri);
           Alert.alert('Success', 'Report saved to photos');

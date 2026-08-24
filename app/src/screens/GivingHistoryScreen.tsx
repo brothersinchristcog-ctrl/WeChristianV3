@@ -91,7 +91,7 @@ export default function GivingHistoryScreen({ navigation }: any) {
     try {
       setDownloading(true);
       
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'We need permission to save the receipt to your gallery.');
         setDownloading(false);

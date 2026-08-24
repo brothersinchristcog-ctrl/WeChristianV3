@@ -116,7 +116,7 @@ export default function PromiseArchiveScreen({ navigation }: { navigation: any }
 
   const handleSaveCard = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== 'granted') {
         Alert.alert('Permission Needed', 'Please grant permission to save images to your gallery.');
         return;

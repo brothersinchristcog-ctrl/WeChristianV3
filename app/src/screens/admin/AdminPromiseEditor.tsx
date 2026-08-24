@@ -28,7 +28,8 @@ import {
   ChevronRight,
   CheckCircle2
 } from 'lucide-react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+
 import { AppAlert } from '../../components/CustomAlert';
 import { formatDateDisplay } from '../../utils/DateUtils';
 import { AdminTabContext } from '../../context/AdminTabContext';
@@ -138,7 +139,7 @@ export default function AdminPromiseEditor() {
 
   const handleSaveToGallery = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'We need access to your gallery to save the promise card.');
         return;
