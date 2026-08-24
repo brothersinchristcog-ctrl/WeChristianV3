@@ -348,35 +348,44 @@ export default function ProfileScreen({ navigation }: any) {
           </TouchableOpacity>
         </View>
 
-        <View style={styles.avatarContainer}>
-          {localPhotoUrl ? (
-            <Image source={{ uri: localPhotoUrl }} style={styles.avatarImg} />
-          ) : (
-            <View style={styles.avatarCircle}>
-               <User size={45} color="#fff" strokeWidth={1.5} />
+        {/* ── Hero Content ── */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: 14, width: '100%' }}>
+          {/* Avatar */}
+          <View style={[styles.avatarContainer, { marginTop: 0, marginRight: 18 }]}>
+            {localPhotoUrl ? (
+              <Image source={{ uri: localPhotoUrl }} style={styles.avatarImg} />
+            ) : (
+              <View style={styles.avatarCircle}>
+                <User size={42} color="#fff" strokeWidth={1.5} />
+              </View>
+            )}
+          </View>
+
+          {/* Name + Greeting */}
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 20, color: '#a78bfa', fontStyle: 'italic', fontWeight: '400', marginBottom: 2 }}>Welcome back,</Text>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', lineHeight: 28 }}>
+              {member?.firstName ? `${member.firstName} ${member.lastName || ''}` : member?.name || user?.displayName || 'Beloved Member'}
+            </Text>
+            {/* Member Since Pill */}
+            <View style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 }}>
+              <Text style={{ color: '#e2e8f0', fontSize: 12, fontWeight: '500' }}>
+                Member since {member?.joinDate ? new Date(member.joinDate).getFullYear() : '2026'}
+              </Text>
             </View>
-          )}
-          <View style={styles.verifiedBadge}>
-            <Text style={{ fontSize: 10 }}>✨</Text>
           </View>
         </View>
 
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{member?.firstName ? `${member.firstName} ${member.lastName || ''}` : member?.name || user?.displayName || 'Beloved Member'}</Text>
-          <Text style={styles.userSub}>
-            {activeChurch?.name || 'Church'}{member?.mailingCity ? `, ${member.mailingCity}` : ''}
-          </Text>
-          <Text style={[styles.userSub, { marginTop: 2, marginBottom: 8 }]}>
-            Member since {member?.joinDate ? new Date(member.joinDate).getFullYear() : '2026'}
-          </Text>
+        {/* ── Stats Row ── */}
+        <View style={{ paddingHorizontal: 16, width: '100%', marginTop: 20 }}>
           <View style={styles.statsCard}>
             <View style={styles.statItem}>
               <View style={[styles.statIconContainer, { backgroundColor: '#3b82f6' }]}>
-                <Award size={14} color="#fff" strokeWidth={2.5} />
+                <MapPin size={14} color="#fff" strokeWidth={2.5} />
               </View>
               <View style={styles.statTextCol}>
-                <Text style={styles.statLabel}>Membership</Text>
-                <Text style={styles.statValue} numberOfLines={1}>Free Trial</Text>
+                <Text style={styles.statLabel}>Village</Text>
+                <Text style={styles.statValue} numberOfLines={1}>{member?.mailingCity || 'N/A'}</Text>
               </View>
             </View>
 
@@ -458,16 +467,18 @@ export default function ProfileScreen({ navigation }: any) {
               navigation.navigate('PrayerWall');
             }}
           />
-          <MenuItem 
-            icon={<CreditCard size={20} color="#d97706" />} 
-            iconBg="#fffbeb"
-            title="Subscription" 
-            sub="Manage your plan and billing" 
-            isLast 
-            onPress={() => {
-              navigation.navigate('Subscription');
-            }}
-          />
+          {(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') || String(member?.userType || '').toUpperCase().includes('PASTOR')) && (
+            <MenuItem 
+              icon={<CreditCard size={20} color="#d97706" />} 
+              iconBg="#fffbeb"
+              title="Church Subscription" 
+              sub="Manage church plan and billing" 
+              isLast 
+              onPress={() => {
+                navigation.navigate('Subscription');
+              }}
+            />
+          )}
         </View>
 
         {/* ── Settings Section ── */}
@@ -940,21 +951,21 @@ const styles = StyleSheet.create({
   heroSection: { 
     backgroundColor: '#1a2d5a', 
     paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 45), 
-    paddingBottom: 40,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     alignItems: 'center'
   },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, alignItems: 'center', alignSelf: 'stretch' },
   themeToggle: { backgroundColor: 'rgba(255,255,255,0.15)', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   themeToggleText: { color: '#fff', fontSize: 10, fontWeight: '800' },
 
-  avatarContainer: { alignItems: 'center', marginTop: 10 },
+  avatarContainer: { alignItems: 'center', marginTop: 0 },
   avatarCircle: { 
     width: 90, height: 90, borderRadius: 45, backgroundColor: '#c0392b', 
-    justifyContent: 'center', alignItems: 'center', borderWidth: 4, borderColor: '#FCD34D' 
+    justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#e0c88a'
   },
-  avatarImg: { width: 90, height: 90, borderRadius: 45, borderWidth: 4, borderColor: '#FCD34D' },
+  avatarImg: { width: 90, height: 90, borderRadius: 45, borderWidth: 3, borderColor: '#e0c88a' },
   avatarText: { color: '#fff', fontSize: 32, fontWeight: '800' },
   verifiedBadge: { 
     position: 'absolute', 
@@ -975,7 +986,7 @@ const styles = StyleSheet.create({
   },
 
   userInfo: { alignItems: 'center', marginTop: 15 },
-  userName: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  userName: { fontSize: 20, fontWeight: '800', color: '#fff' },
   userSub: { fontSize: 12, color: '#aac4e8', marginTop: 4 },
   
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 15 },

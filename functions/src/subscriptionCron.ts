@@ -3,11 +3,12 @@ import { getMessaging } from 'firebase-admin/messaging';
 import { getFirestore } from 'firebase-admin/firestore';
 
 /**
- * Scheduled cron job to check subscription expirations and send push notifications.
+ * Scheduled cron job to check church subscription expirations and send push notifications.
  * Runs daily at 9:00 AM.
  * 
- * Target: users where subscription.status === 'trial' or 'active' (specifically 'trial' based on requirements).
- * Checks the validUntil field. Sends FCM notifications for 3 days, 1 day, and 0 days (expiry).
+ * Target: churches
+ * Checks the validUntil field or 60 days from createdAt. 
+ * Sends FCM notifications for 3 days, 1 day, and 0 days (expiry) to church admins.
  */
 export const checkSubscriptionExpirations = onSchedule({
   schedule: '0 9 * * *',
@@ -19,98 +20,127 @@ export const checkSubscriptionExpirations = onSchedule({
   const now = new Date();
   
   try {
-    console.log('Running daily subscription expiration check at:', now.toISOString());
+    console.log('Running daily church subscription expiration check at:', now.toISOString());
 
-    // Only look at users whose subscription hasn't already completely expired
-    const usersSnapshot = await db.collection('users')
-      .where('subscription.status', 'in', ['trial', 'active'])
-      .get();
+    const churchesSnapshot = await db.collection('churches').get();
 
-    if (usersSnapshot.empty) {
-      console.log('No active/trial users found.');
+    if (churchesSnapshot.empty) {
+      console.log('No churches found.');
       return;
     }
 
     let notificationsSent = 0;
     let expiredUpdated = 0;
 
-    for (const doc of usersSnapshot.docs) {
+    for (const doc of churchesSnapshot.docs) {
       const data = doc.data();
-      const subscription = data.subscription;
       
-      if (!subscription || !subscription.validUntil) {
+      // Calculate expiration date
+      let expirationDate: Date | null = null;
+      
+      if (data.subscription?.validUntil) {
+        let validUntil = data.subscription.validUntil;
+        if (typeof validUntil === 'string') {
+          expirationDate = new Date(validUntil);
+        } else if (validUntil.toDate) {
+          expirationDate = validUntil.toDate();
+        } else if (validUntil.seconds) {
+          expirationDate = new Date(validUntil.seconds * 1000);
+        }
+      } 
+      
+      if (!expirationDate) {
+        // Fallback to 60 days after createdAt
+        let createdAt = data.createdAt;
+        if (createdAt) {
+          if (typeof createdAt === 'string') {
+            expirationDate = new Date(createdAt);
+          } else if (createdAt.toDate) {
+            expirationDate = createdAt.toDate();
+          } else if (createdAt.seconds) {
+            expirationDate = new Date(createdAt.seconds * 1000);
+          }
+          if (expirationDate) {
+            expirationDate.setDate(expirationDate.getDate() + 60); // 60 days trial
+          }
+        }
+      }
+
+      if (!expirationDate) {
+        // Cannot determine expiration, skip
         continue;
       }
 
-      // Handle Timestamp or ISO String
-      let validUntilDate: Date;
-      if (typeof subscription.validUntil === 'string') {
-        validUntilDate = new Date(subscription.validUntil);
-      } else if (subscription.validUntil.toDate) {
-        validUntilDate = subscription.validUntil.toDate();
-      } else if (subscription.validUntil.seconds) {
-        validUntilDate = new Date(subscription.validUntil.seconds * 1000);
-      } else {
-        continue;
-      }
-
-      const timeDiff = validUntilDate.getTime() - now.getTime();
+      const timeDiff = expirationDate.getTime() - now.getTime();
       const daysLeft = Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
 
       // 1. Check if completely expired
       if (daysLeft < 0) {
-        // Expired! Update status in Firestore
-        await doc.ref.update({
-          'subscription.status': 'expired'
-        });
-        expiredUpdated++;
+        // Expired! Update status in Firestore if not already marked inactive
+        if (data.subscription?.status !== 'expired' || data.isActive !== false) {
+          await doc.ref.update({
+            'subscription.status': 'expired',
+            isActive: false
+          });
+          expiredUpdated++;
+        }
         continue;
       }
 
       // 2. Check for upcoming expiry notifications
-      let tokens: string[] = [];
-      if (data.fcmTokens && Array.isArray(data.fcmTokens) && data.fcmTokens.length > 0) {
-        tokens = data.fcmTokens;
-      } else if (data.fcmToken && typeof data.fcmToken === 'string') {
-        tokens = [data.fcmToken];
-      }
-
-      if (tokens.length > 0) {
-        let title = '';
-        let body = '';
+      if (daysLeft === 3 || daysLeft === 1 || daysLeft === 0) {
+        // Find admins for this church
+        const adminsSnapshot = await doc.ref.collection('members').where('role', 'in', ['admin', 'pastor']).get();
+        let tokens: string[] = [];
         
-        if (daysLeft === 3) {
-          title = 'Subscription Expiring Soon';
-          body = 'Your subscription trial expires in 3 days. Renew now to avoid losing access.';
-        } else if (daysLeft === 1) {
-          title = 'Subscription Expires Tomorrow';
-          body = 'Your subscription trial expires tomorrow. Renew now to maintain full access to the app.';
-        } else if (daysLeft === 0) {
-          title = 'Subscription Expiring Today';
-          body = 'Your subscription trial expires today. Please renew your plan to continue using all features.';
+        for (const adminDoc of adminsSnapshot.docs) {
+           const adminData = adminDoc.data();
+           // Get global user to find FCM tokens
+           const globalUserDoc = await db.collection('users').doc(adminDoc.id).get();
+           if (globalUserDoc.exists) {
+              const globalData = globalUserDoc.data();
+              if (globalData?.fcmTokens && Array.isArray(globalData.fcmTokens)) {
+                tokens.push(...globalData.fcmTokens);
+              } else if (globalData?.fcmToken) {
+                tokens.push(globalData.fcmToken);
+              }
+           }
         }
 
-        if (title && body) {
-          const message = {
-            notification: { title, body },
-            data: { type: 'subscription_reminder' },
-            tokens: tokens
-          };
+        if (tokens.length > 0) {
+          let title = '';
+          let body = '';
+          
+          if (daysLeft === 3) {
+            title = 'Church Subscription Expiring Soon';
+            body = 'Your church subscription/trial expires in 3 days. Please renew to avoid losing access for all members.';
+          } else if (daysLeft === 1) {
+            title = 'Church Subscription Expires Tomorrow';
+            body = 'Your church subscription/trial expires tomorrow. Renew now to maintain app access.';
+          } else if (daysLeft === 0) {
+            title = 'Church Subscription Expiring Today';
+            body = 'Your church subscription/trial expires today. Please renew your plan immediately.';
+          }
 
-          try {
-            const response = await messaging.sendEachForMulticast(message);
-            notificationsSent += response.successCount;
-            if (response.failureCount > 0) {
-              console.log(`Failed to send ${response.failureCount} notifications to user ${doc.id}`);
+          if (title && body) {
+            const message = {
+              notification: { title, body },
+              data: { type: 'subscription_reminder' },
+              tokens: [...new Set(tokens)] // Unique tokens
+            };
+
+            try {
+              const response = await messaging.sendEachForMulticast(message);
+              notificationsSent += response.successCount;
+            } catch (err) {
+              console.error(`Error sending notification to church ${doc.id} admins:`, err);
             }
-          } catch (err) {
-            console.error(`Error sending notification to user ${doc.id}:`, err);
           }
         }
       }
     }
 
-    console.log(`Cron job completed. Sent ${notificationsSent} notifications. Marked ${expiredUpdated} users as expired.`);
+    console.log(`Cron job completed. Sent ${notificationsSent} notifications. Marked ${expiredUpdated} churches as expired/inactive.`);
   } catch (error) {
     console.error('Error running checkSubscriptionExpirations cron job:', error);
   }

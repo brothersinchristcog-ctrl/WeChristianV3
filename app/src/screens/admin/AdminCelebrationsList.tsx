@@ -201,8 +201,9 @@ export default function AdminCelebrationsList({ category, activeTab, onSelectMem
     setIsSendingAll(true);
     try {
       for (const member of filteredMembers) {
-        const title = `${category === 'Birthday' ? '🎂 Happy Birthday' : category === 'Wedding Anniversary' ? '💒 Happy Anniversary' : '🎉 Happy Baptism Anniversary'}, ${member.name}!`;
-        let content = `Praise the Lord!\n\nDear ${member.name}, wishing you a very Happy ${category}! May God bless you abundantly.\n\nWith Love ❤️\n${activeChurch?.name || 'Your Church'}`;
+        const memberCelebrationType = member.celebrationType || category;
+        const title = `${memberCelebrationType === 'Birthday' ? '🎂 Happy Birthday' : memberCelebrationType === 'Wedding Anniversary' ? '💒 Happy Anniversary' : '🎉 Happy Baptism Anniversary'}, ${member.name}!`;
+        let content = `Praise the Lord!\n\nDear ${member.name}, wishing you a very Happy ${memberCelebrationType}! May God bless you abundantly.\n\nWith Love ❤️\n${activeChurch?.name || 'Your Church'}`;
         
         await FirestoreService.createNotificationBroadcast({
           title,

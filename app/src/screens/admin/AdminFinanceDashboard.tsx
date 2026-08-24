@@ -35,6 +35,7 @@ import {
 import { AdminTabContext } from '../../context/AdminTabContext';
 import FirestoreService, { ChurchExpense, ChurchInvoice } from '../../services/FirestoreService';
 import { useAuth } from '../../context/AuthContext';
+import { useChurch } from '../../context/ChurchContext';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as DocumentPicker from 'expo-document-picker';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
@@ -56,6 +57,8 @@ type SubTab = 'dashboard' | 'expenses' | 'invoices' | 'editor';
 export default function AdminFinanceDashboard({ navigation, routeParams }: any) {
   const { setActiveTab } = useContext(AdminTabContext);
   const { member } = useAuth();
+  const { activeChurch } = useChurch();
+  // churchProfile is now sourced from activeChurch (ChurchContext)
   const [expenses, setExpenses] = useState<ChurchExpense[]>([]);
   const [invoices, setInvoices] = useState<ChurchInvoice[]>([]);
 
@@ -293,11 +296,11 @@ const openAddExpense = () => {
 
   const generateInvoiceHtml = () => {
     const invDate = new Date().toISOString().split('T')[0];
-    const cName = churchProfile?.name || member?.churchId || "We Christian Finance";
+    const cName = activeChurch?.name || member?.churchId || "We Christian Finance";
     const userName = member?.name || (member?.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : 'Admin');
-    const cAddress = churchProfile?.address || churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "";
-    const cPhone = churchProfile?.phone || "";
-    const logoUrl = churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto || null;
+    const cAddress = activeChurch?.address || (activeChurch as any)?.mailingCity ? `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}` : "";
+    const cPhone = (activeChurch as any)?.phone || "";
+    const logoUrl = activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto || null;
     
     const filteredExp = expenses.filter(e => selectedInvoiceExpenses.includes(e.id || ''));
     const totalAmt = filteredExp.reduce((sum, e) => sum + e.amount, 0);
@@ -1839,26 +1842,26 @@ const openAddExpense = () => {
                 <View style={styles.invoiceCard}>
                   {/* Header */}
                 <View style={{ alignItems: 'center', marginBottom: 20 }}>
-                  {churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto ? (
-                    <Image source={{ uri: churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12 }} />
+                  {activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto ? (
+                    <Image source={{ uri: activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12 }} />
                   ) : (
                     <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#c9973f', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
                       <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#141d33', fontWeight: '700' }}>
-                        {(churchProfile?.name || member?.churchId || 'W').charAt(0).toUpperCase()}
+                        {(activeChurch?.name || 'W').charAt(0).toUpperCase()}
                       </Text>
                     </View>
                   )}
                   <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#1b2a4a', fontWeight: '700', textAlign: 'center', paddingHorizontal: 20 }}>
-                    {churchProfile?.name || member?.churchId || "We Christian Finance"}
+                    {activeChurch?.name || "We Christian Finance"}
                   </Text>
-                  {churchProfile?.address || churchProfile?.mailingCity ? (
+                  {activeChurch?.address || (activeChurch as any)?.mailingCity ? (
                     <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 4, textAlign: 'center', paddingHorizontal: 20 }}>
-                      {churchProfile?.address || `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}`}
+                      {activeChurch?.address || `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}`}
                     </Text>
                   ) : null}
-                  {churchProfile?.phone ? (
+                  {(activeChurch as any)?.phone ? (
                     <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 2, textAlign: 'center' }}>
-                      Phone: {churchProfile.phone}
+                      Phone: {(activeChurch as any).phone}
                     </Text>
                   ) : null}
                   <View style={{ height: 1, backgroundColor: '#c9973f', width: '100%', marginTop: 15 }} />

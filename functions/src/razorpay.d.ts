@@ -18,5 +18,8 @@ export declare const verifyRazorpayDonationV6: functions.HttpsFunction & functio
 /**
  * Callable function to verify a platform subscription Razorpay signature
  */
-export declare const verifyRazorpaySubscription: functions.HttpsFunction & functions.Runnable<any>;
+export declare const verifyRazorpaySubscriptionV3: import("firebase-functions/v2/https").CallableFunction<any, Promise<{
+    success: boolean;
+    message: string;
+}>, unknown>;
 //# sourceMappingURL=razorpay.d.ts.map

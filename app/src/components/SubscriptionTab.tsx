@@ -69,7 +69,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   
   const receiptRef = useRef<View>(null);
   const [currentStep, setCurrentStep] = useState(1);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [paymentMethod, setPaymentMethod] = useState('upi');
 
   const [loading, setLoading] = useState(true);
@@ -114,20 +114,27 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const annualPlan = plans.find(p => p.billingCycle === 'annual');
 
   const activePlan = billingCycle === 'annual' ? annualPlan : monthlyPlan;
-  const planPrice = billingCycle === 'annual' ? 120 : 10; // Enforce correct pricing
-  const planFeatures = activePlan ? activePlan.features : ['Unlimited access to the Sacred Ledger', 'Personalized prayer notifications', 'Offline access for scripture study', 'Exclusive liturgical commentaries'];
-  const planSavings = annualPlan?.savings || 'SAVE ₹89';
+  const planPrice = 199; // Church annual plan - ₹199 per year
+  const planFeatures = ['Church-wide access for all members', 'Unlimited push notifications', 'Manage events and sermons', 'Pastoral and admin tools'];
+  const planSavings = 'PREMIUM';
 
   const calculateDaysRemaining = () => {
-    // If they have an explicit trial end date saved
-    if (globalUser?.subscription?.trialEndsAt) {
-      const endsAt = globalUser.subscription.trialEndsAt.toDate ? globalUser.subscription.trialEndsAt.toDate() : new Date(globalUser.subscription.trialEndsAt);
+    // Check if the subscription is actively paid
+    if (activeChurch?.subscription?.status === 'active' && activeChurch?.subscription?.validUntil) {
+      const endsAt = (activeChurch.subscription.validUntil as any).toDate ? (activeChurch.subscription.validUntil as any).toDate() : new Date(activeChurch.subscription.validUntil as any);
+      const diffTime = Math.max(0, endsAt.getTime() - new Date().getTime());
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    // If they have an explicit trial end date saved on the church
+    if (activeChurch?.subscription?.trialEndsAt) {
+      const endsAt = activeChurch.subscription.trialEndsAt.toDate ? activeChurch.subscription.trialEndsAt.toDate() : new Date(activeChurch.subscription.trialEndsAt);
       const diffTime = Math.max(0, endsAt.getTime() - new Date().getTime());
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
     
-    // Otherwise, calculate 60 days from their registration date
-    const dateToUse = globalUser?.createdAt || member?.joinDate;
+    // Otherwise, calculate 60 days from church registration date
+    const dateToUse = activeChurch?.createdAt;
     if (dateToUse) {
       const createdDate = (typeof dateToUse === 'object' && dateToUse.toDate) ? dateToUse.toDate() : new Date(dateToUse);
       const trialEnd = new Date(createdDate);
@@ -136,7 +143,6 @@ export default function SubscriptionTab({ member }: { member?: any }) {
       return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
     }
 
-    // Default to 60 for brand new users if no data is found yet
     return 60;
   };
 
@@ -150,9 +156,8 @@ export default function SubscriptionTab({ member }: { member?: any }) {
 
   const handleRazorpayPayment = async (overrideCycle?: 'monthly' | 'annual') => {
     try {
-      const actualCycle = overrideCycle || billingCycle;
-      const actualPlan = actualCycle === 'annual' ? annualPlan : monthlyPlan;
-      const amount = actualCycle === 'annual' ? 108 : 10;
+      const actualCycle = 'annual';
+      const amount = planPrice;
       const receipt = `RCPT_${Date.now()}`;
       
       const createOrder = functions().httpsCallable('createRazorpayOrderV4');
@@ -180,13 +185,13 @@ export default function SubscriptionTab({ member }: { member?: any }) {
         setReceiptTxnId(transactionId);
         
         try {
-          // --- SECURE BACKEND VERIFICATION FOR MEMBERS ---
-          const verifyPayment = functions().httpsCallable('verifyRazorpaySubscription');
+          // --- SECURE BACKEND VERIFICATION FOR CHURCHES ---
+          const verifyPayment = functions().httpsCallable('verifyRazorpaySubscriptionV3');
           await verifyPayment({
             razorpay_payment_id: transactionId,
             razorpay_order_id: data.razorpay_order_id,
             razorpay_signature: data.razorpay_signature,
-            type: 'member',
+            type: 'church',
             userId: user?.uid,
             churchId: activeChurch?.id,
             amount: amount,
@@ -287,21 +292,20 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const receiptData = useMemo(() => {
     const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
     let nextDateStr = 'N/A';
-    if (globalUser?.subscription?.validUntil) {
-      nextDateStr = new Date(globalUser.subscription.validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+    if (activeChurch?.subscription?.validUntil) {
+      nextDateStr = new Date(activeChurch.subscription.validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
     } else {
       const nextDate = new Date();
-      if (billingCycle === 'annual') nextDate.setFullYear(nextDate.getFullYear() + 1);
-      else nextDate.setMonth(nextDate.getMonth() + 1);
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
       nextDateStr = nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
     }
     return {
-      transactionId: receiptTxnId || globalUser?.subscription?.lastPaymentId || `WC-${Math.floor(1000 + Math.random() * 9000)}-X91`,
+      transactionId: receiptTxnId || activeChurch?.subscription?.lastPaymentId || `WC-${Math.floor(1000 + Math.random() * 9000)}-X91`,
       date,
-      name: user?.displayName || member?.name || "Member",
+      name: activeChurch?.name || "Church",
       nextDateStr
     };
-  }, [globalUser?.subscription?.validUntil, globalUser?.subscription?.lastPaymentId, billingCycle, user?.displayName, member?.name, receiptTxnId]);
+  }, [activeChurch?.subscription?.validUntil, activeChurch?.subscription?.lastPaymentId, receiptTxnId, activeChurch?.name]);
 
   const renderProgressBar = () => (
     <View style={styles.progressContainer}>
@@ -319,24 +323,24 @@ export default function SubscriptionTab({ member }: { member?: any }) {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#F7F3E9' }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} bounces={false}>
-      {!loading && globalUser?.subscription?.status !== 'active' && renderProgressBar()}
+      {!loading && activeChurch?.subscription?.status !== 'active' && renderProgressBar()}
 
       {loading ? (
         <View style={[styles.stepContainer, { justifyContent: 'center', alignItems: 'center' }]}>
           <Text style={styles.title}>Loading...</Text>
         </View>
-      ) : globalUser?.subscription?.status === 'active' ? (
+      ) : (activeChurch?.subscription?.status === 'active' && !planSelectModalVisible) ? (
         <View style={[{ minHeight: 600, backgroundColor: '#F7F3E9' }]}>
           {/* Hero */}
           <View style={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 4 }}>
             <Text style={{ fontSize: 11, letterSpacing: 1.4, color: '#C98A3E', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', textTransform: 'uppercase' }}>
-              {activeChurch?.name || 'MEMBER ACCOUNT'}
+              CHURCH ACCOUNT
             </Text>
             <Text style={{ color: '#1F3B3D', fontSize: 36, lineHeight: 40, marginTop: 8, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}>
-              Welcome, {member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}
+              {activeChurch?.name || 'Your Church'}
             </Text>
             <Text style={{ color: '#6B7A6C', fontSize: 14.5, marginTop: 4 }}>
-              Your journey of faith continues.
+              Equipping your congregation for the digital age.
             </Text>
           </View>
 
@@ -355,13 +359,13 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                     strokeWidth="10"
                     strokeLinecap="round"
                     strokeDasharray={2 * Math.PI * 54}
-                    strokeDashoffset={(2 * Math.PI * 54) - ((2 * Math.PI * 54) * Math.max(0, Math.min(1, Math.round((new Date().getTime() - (globalUser?.subscription?.validUntil ? ((globalUser.subscription.validUntil as any).toDate ? (globalUser.subscription.validUntil as any).toDate().getTime() : new Date(globalUser.subscription.validUntil as any).getTime()) : new Date().getTime()) + 30 * 86400000) / 86400000) / 30)))}
+                    strokeDashoffset={(2 * Math.PI * 54) - ((2 * Math.PI * 54) * Math.max(0, Math.min(1, Math.round((new Date().getTime() - (activeChurch?.subscription?.validUntil ? ((activeChurch.subscription.validUntil as any).toDate ? (activeChurch.subscription.validUntil as any).toDate().getTime() : new Date(activeChurch.subscription.validUntil as any).getTime()) : new Date().getTime()) + 30 * 86400000) / 86400000) / 30)))}
                     transform="rotate(-90 64 64)"
                   />
                 </Svg>
                 <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 24, fontWeight: '700', color: '#1F3B3D', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}>
-                    {Math.max(0, Math.ceil(((globalUser?.subscription?.validUntil ? ((globalUser.subscription.validUntil as any).toDate ? (globalUser.subscription.validUntil as any).toDate().getTime() : new Date(globalUser.subscription.validUntil as any).getTime()) : new Date().getTime()) - new Date().getTime()) / 86400000))}
+                    {Math.max(0, Math.ceil(((activeChurch?.subscription?.validUntil ? ((activeChurch.subscription.validUntil as any).toDate ? (activeChurch.subscription.validUntil as any).toDate().getTime() : new Date(activeChurch.subscription.validUntil as any).getTime()) : new Date().getTime()) - new Date().getTime()) / 86400000))}
                   </Text>
                   <Text style={{ fontSize: 9, letterSpacing: 0.8, color: '#9A8F72', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', marginTop: 0 }}>
                     DAYS LEFT
@@ -372,7 +376,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               <View style={{ flex: 1, marginLeft: 16 }}>
                 <View style={{ backgroundColor: '#EAF1EA', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, marginBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
                   <Text style={{ color: '#4F7A55', fontSize: 10, fontWeight: '700', letterSpacing: 0.2 }} numberOfLines={1} adjustsFontSizeToFit>
-                    ACTIVE — {(globalUser.subscription.plan || '').toUpperCase()} TIER
+                    ACTIVE — {(activeChurch?.subscription?.tier || 'PREMIUM').toUpperCase()} TIER
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -380,18 +384,12 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                     NEXT RENEWAL
                   </Text>
                   <Text style={{ color: '#1F3B3D', fontSize: 15, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }} numberOfLines={1} adjustsFontSizeToFit>
-                    {globalUser.subscription.validUntil ? ((globalUser.subscription.validUntil as any).toDate ? (globalUser.subscription.validUntil as any).toDate() : new Date(globalUser.subscription.validUntil as any)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                    {activeChurch?.subscription?.validUntil ? ((activeChurch.subscription.validUntil as any).toDate ? (activeChurch.subscription.validUntil as any).toDate() : new Date(activeChurch.subscription.validUntil as any)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
                   </Text>
                 </View>
               </View>
             </View>
             <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-              <TouchableOpacity 
-                style={{ flex: 1, backgroundColor: '#1F3B3D', borderRadius: 12, paddingVertical: 12, alignItems: 'center' }}
-                onPress={() => setPlanSelectModalVisible(true)}
-              >
-                <Text style={{ color: '#F7F3E9', fontSize: 14, fontWeight: '600' }}>Pay in Advance</Text>
-              </TouchableOpacity>
               <TouchableOpacity 
                 style={{ flex: 1, backgroundColor: '#FFFFFF', borderColor: '#D9D0BC', borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
                 onPress={downloadReceipt}
@@ -450,6 +448,11 @@ export default function SubscriptionTab({ member }: { member?: any }) {
         </View>
       ) : currentStep === 1 ? (
         <View style={styles.stepContainer}>
+          {activeChurch?.subscription?.status === 'active' && (
+            <TouchableOpacity style={styles.backBtn} onPress={() => setPlanSelectModalVisible(false)}>
+              <ArrowLeft size={24} color={colors.ink} />
+            </TouchableOpacity>
+          )}
           <View style={styles.header}>
             <Text style={styles.title}>Welcome back, {member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</Text>
             <Text style={styles.subtitle}>Your journey of faith continues.</Text>
@@ -458,15 +461,17 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           <View style={styles.circularProgressContainer}>
             <View style={styles.circularProgressInner}>
               <Text style={styles.daysText}>{daysRemaining}</Text>
-              <Text style={styles.daysLabel}>{daysRemaining > 0 ? "DAYS REMAINING" : "TRIAL EXPIRED"}</Text>
+              <Text style={styles.daysLabel}>{activeChurch?.subscription?.status === 'active' ? "DAYS REMAINING" : (daysRemaining > 0 ? "DAYS REMAINING" : "TRIAL EXPIRED")}</Text>
             </View>
           </View>
 
           <View style={styles.card}>
             <Text style={styles.cardText}>
-              {daysRemaining > 0 
-                ? `You are currently in a 2-month trial. Add a personal subscription now to ensure uninterrupted access to the Sacred Ledger features.`
-                : `Your 2-month trial has concluded. Please add a personal subscription to restore uninterrupted access to all features.`
+              {activeChurch?.subscription?.status === 'active' 
+                ? `Your church has an active subscription. Enjoy uninterrupted premium access for all your members.`
+                : daysRemaining > 0 
+                  ? `Your church is currently in a 2-month trial. Add a church subscription now to ensure uninterrupted access for all your members.`
+                  : `Your church's 2-month trial has concluded. Please add a subscription to restore uninterrupted access for all your members.`
               }
             </Text>
           </View>
@@ -487,36 +492,16 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             <Text style={styles.subtitle}>Scholarly access tailored for personal devotion.</Text>
           </View>
 
-          <View style={styles.toggleContainer}>
-            <TouchableOpacity
-              style={[styles.toggleBtn, billingCycle === 'monthly' && styles.toggleBtnActive]}
-              onPress={() => setBillingCycle('monthly')}
-            >
-              <Text style={[styles.toggleText, billingCycle === 'monthly' && styles.toggleTextActive]}>Monthly</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toggleBtn, billingCycle === 'annual' && styles.toggleBtnActive]}
-              onPress={() => setBillingCycle('annual')}
-            >
-              <Text style={[styles.toggleText, billingCycle === 'annual' && styles.toggleTextActive]}>Annual</Text>
-            </TouchableOpacity>
-          </View>
-
           <View style={[styles.planCard, { borderColor: colors.brass, borderWidth: 2 }]}>
-            {billingCycle === 'annual' && (
-              <View style={styles.saveBadge}>
-                <Text style={styles.saveBadgeText}>{planSavings}</Text>
-              </View>
-            )}
 
             <View style={styles.planHeader}>
               <View>
-                <Text style={styles.planTitle}>Personal Access</Text>
-                <Text style={styles.planSubtitle}>Full library & prayer tracking</Text>
+                <Text style={styles.planTitle}>Church Access</Text>
+                <Text style={styles.planSubtitle}>Full platform access for all members</Text>
               </View>
               <View style={{ alignItems: 'flex-end' }}>
                 <Text style={styles.planPrice}>₹{planPrice}</Text>
-                <Text style={styles.planSubtitle}>{cycleText}</Text>
+                <Text style={styles.planSubtitle}>/ year</Text>
               </View>
             </View>
 
@@ -596,16 +581,12 @@ export default function SubscriptionTab({ member }: { member?: any }) {
 
             <View style={styles.reviewContent}>
               <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>MEMBER</Text>
-                <Text style={styles.reviewValue}>{member?.firstName ? `${member.firstName} ${member.lastName || ''}` : (user?.displayName || 'Member')}</Text>
+                <Text style={styles.reviewLabel}>CHURCH</Text>
+                <Text style={styles.reviewValue}>{activeChurch?.name || 'Church'}</Text>
               </View>
               <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>PLAN TYPE</Text>
-                <Text style={styles.reviewValue}>Personal Access</Text>
-              </View>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>BILLING CYCLE</Text>
-                <Text style={styles.reviewValue}>{billingCycle === 'annual' ? 'Annual' : 'Monthly'}</Text>
+                <Text style={styles.reviewLabel}>PLAN</Text>
+                <Text style={styles.reviewValue}>Church Access (Annual)</Text>
               </View>
               <View style={styles.reviewRow}>
                 <Text style={styles.reviewLabel}>TRIAL ENDS ON</Text>
@@ -619,8 +600,8 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={styles.billedAfter}>Trial Activated Today</Text>
-                  <Text style={{ fontSize: 11, color: colors.textSoft, marginTop: 2 }}>
-                    Then ₹{planPrice}/{billingCycle === 'annual' ? 'yr' : 'mo'}
+                  <Text style={{ fontSize: 12, color: colors.textSoft, marginTop: 4, fontWeight: '500' }}>
+                    Then ₹{planPrice} / year
                   </Text>
                 </View>
               </View>
@@ -629,7 +610,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
 
           <View style={styles.disclaimerCard}>
             <Text style={styles.disclaimerText}>
-              Your first 2 months are completely free! If you do not subscribe after your trial ends on {trialEndDateStr}, your app access will be locked. By confirming, you authorize We Christian to begin your trial and securely save your payment method.
+              Your first 2 months are completely free! If you do not subscribe after your trial ends on {trialEndDateStr}, your church's access will be locked for all members. By confirming, you authorize We Christian to begin your trial and securely save your payment method.
             </Text>
           </View>
 
@@ -704,8 +685,8 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             <Text style={styles.receiptTitle}>SUBSCRIPTION RECEIPT</Text>
 
             <View style={styles.receiptInfoRow}>
-              <Text style={styles.receiptLabel}>MEMBER NAME</Text>
-              <Text style={styles.receiptValueTxt}>{user?.displayName || member?.name || "Member"}</Text>
+              <Text style={styles.receiptLabel}>ADMIN NAME</Text>
+              <Text style={styles.receiptValueTxt}>{user?.displayName || member?.name || "Admin"}</Text>
             </View>
             <View style={styles.receiptInfoRow}>
               <Text style={styles.receiptLabel}>TRANSACTION ID</Text>
@@ -773,7 +754,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#1e293b', marginBottom: 30, textAlign: 'center' }}>SUBSCRIPTION RECEIPT</Text>
           
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
-            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>MEMBER NAME</Text>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>ADMIN NAME</Text>
             <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '500' }}>{receiptData.name}</Text>
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
@@ -1184,21 +1165,28 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   reviewCard: {
-    backgroundColor: colors.paperRaised,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.forest, // Highlight the card with a green border
-    borderRadius: 14,
+    borderColor: '#E2E8F0', // Cleaner border
+    borderRadius: 16,
     marginBottom: 24,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   trialBanner: {
-    backgroundColor: colors.forest,
-    paddingVertical: 10,
+    backgroundColor: '#F0FDF4', // Light green
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#DCFCE7'
   },
   trialBannerText: {
-    color: colors.paper,
+    color: '#16A34A', // Dark green text
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -1209,41 +1197,40 @@ const styles = StyleSheet.create({
   reviewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.rule,
-    paddingBottom: 8,
-    marginBottom: 16,
+    borderBottomColor: '#F1F5F9',
   },
   reviewLabel: {
-    fontSize: 9.5,
-    color: colors.textSoft,
-    fontWeight: '600',
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '700',
     letterSpacing: 0.5,
+    textTransform: 'uppercase'
   },
   reviewValue: {
-    fontSize: 13,
-    color: colors.ink,
-    fontWeight: '500',
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '600',
   },
   reviewFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     borderTopWidth: 1,
-    borderStyle: 'dashed',
-    borderTopColor: colors.ruleStrong,
-    paddingTop: 16,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 20,
     marginTop: 8,
   },
   dueTodayPrice: {
-    fontSize: 26,
-    color: colors.forest,
-    fontWeight: '600',
+    fontSize: 32,
+    color: '#16A34A',
+    fontWeight: '800',
   },
   billedAfter: {
-    fontSize: 12.5,
-    color: colors.textSoft,
-    fontStyle: 'italic',
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '500',
   },
   disclaimerCard: {
     backgroundColor: colors.forestSoft,

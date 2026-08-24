@@ -255,7 +255,7 @@ function TabNavigator() {
 }
 
 function Navigation() {
-  const { user, member, loading, viewMode, setViewMode } = useAuth();
+  const { user, member, loading, viewMode, setViewMode, signOut } = useAuth();
   const { activeChurch } = useChurch();
   const navigation = useNavigation();
   const [onboardingComplete, setOnboardingComplete] = React.useState<boolean | null>(null);
@@ -475,6 +475,36 @@ function Navigation() {
         </View>
       </View>
     );
+  }
+
+  // ── Church Expiration Logic ──
+  const isChurchExpired = activeChurch?.isActive === false || activeChurch?.subscription?.status === 'expired';
+
+  if (isChurchExpired && user && !user.isAnonymous) {
+    if (isAdmin) {
+      // Force admin to the Subscription screen
+      return (
+        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'none' }}>
+          <Stack.Screen name="Subscription" component={SubscriptionScreen} initialParams={{ isExpired: true }} />
+        </Stack.Navigator>
+      );
+    } else {
+      // Block members completely
+      return (
+        <View style={lockStyles.container}>
+          <View style={lockStyles.card}>
+            <View style={lockStyles.iconContainer}>
+              <Lock size={40} color="#e74c3c" />
+            </View>
+            <Text style={lockStyles.title}>Subscription Expired</Text>
+            <Text style={lockStyles.subtitle}>Your church subscription has expired. Please reach out to your church admin/pastor.</Text>
+            <TouchableOpacity style={lockStyles.button} onPress={signOut}>
+              <Text style={lockStyles.buttonText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
   }
 
   return (

@@ -66,7 +66,7 @@ import AdminChurchSettings from '../screens/admin/AdminChurchSettings';
 import AdminAttendance from '../screens/admin/AdminAttendance';
 import PastorEventDashboard from '../screens/admin/pastor_events/PastorEventDashboard';
 import SuperAdminDashboard from '../screens/admin/SuperAdminDashboard';
-import AdminSubscriptionScreen from '../screens/admin/AdminSubscriptionScreen';
+
 import AdminWeCelebrations from '../screens/admin/AdminWeCelebrations';
 import AdminWhatsAppInbox from '../screens/admin/AdminWhatsAppInbox';
 import AdminFinanceDashboard from '../screens/admin/AdminFinanceDashboard';
@@ -219,7 +219,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     { name: 'Church Settings', icon: Sliders, component: AdminChurchSettings },
     { name: 'Expense', icon: Wallet, component: AdminFinanceDashboard },
     { name: 'Donations', icon: HeartHandshake, component: DonationsDashboard },
-    { name: 'Subscription', icon: Crown, component: AdminSubscriptionScreen },
+
     { name: 'Online Meetings', icon: VideoIcon, component: AdminOnlineMeetings },
     { name: 'New Online Meeting', icon: VideoIcon, component: AdminOnlineMeetingEditor },
     ...(member?.userType === 'super_admin' ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),

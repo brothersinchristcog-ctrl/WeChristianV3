@@ -149,7 +149,21 @@ class ChurchService {
    */
   async createChurch(data: Omit<ChurchDetails, 'id'>): Promise<string> {
     try {
-      const docRef = await firestore().collection('churches').add(data);
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 60);
+
+      const churchData = {
+        ...data,
+        isActive: true,
+        subscription: {
+          status: 'trialing',
+          tier: 'free',
+          trialEndsAt: trialEndsAt.toISOString(),
+          validUntil: trialEndsAt.toISOString()
+        }
+      };
+      
+      const docRef = await firestore().collection('churches').add(churchData);
       return docRef.id;
     } catch (error) {
       console.error('Error creating church:', error);

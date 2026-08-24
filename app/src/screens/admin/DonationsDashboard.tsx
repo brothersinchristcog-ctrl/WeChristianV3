@@ -39,6 +39,7 @@ import * as FileSystem from 'expo-file-system';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import FirestoreService, { ChurchDonation } from '../../services/FirestoreService';
 import { useAuth } from '../../context/AuthContext';
+import { useChurch } from '../../context/ChurchContext';
 import { formatDateDisplay } from '../../utils/DateUtils';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { LinearGradient } from 'expo-linear-gradient';
@@ -52,6 +53,8 @@ type SubTab = 'dashboard' | 'donations';
 export default function AdminDonationDashboard() {
   const { setActiveTab } = useContext(AdminTabContext);
   const { member } = useAuth();
+  const { activeChurch } = useChurch();
+  // churchProfile now sourced from activeChurch
   const [donations, setDonations] = useState<ChurchDonation[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -62,7 +65,7 @@ export default function AdminDonationDashboard() {
   const [selectedCategoryView, setSelectedCategoryView] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [churchProfile, setChurchProfile] = useState<any>(null);
+  // churchProfile removed - using activeChurch from context instead
 
   const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
   const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
@@ -239,12 +242,12 @@ export default function AdminDonationDashboard() {
   };
 
   const generateInvoiceHtml = (don: ChurchDonation) => {
-      const cName = churchProfile?.name || "We Christian Church";
-      const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
-      const receiptNo = `${churchCode}-DON-${getSequentialDonationNumber(don.id)}`;
-      const cAddress = churchProfile?.address || churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "";
-      const cPhone = churchProfile?.phone || "";
-      const logoUrl = churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto || null;
+      const cName = activeChurch?.name || "We Christian Church";
+      const churchCode = (activeChurch?.name || 'WEC').substring(0, 3).toUpperCase();
+      const invDate = new Date().toISOString().split('T')[0];
+      const cAddress = activeChurch?.address || (activeChurch as any)?.mailingCity ? `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}` : "";
+      const cPhone = (activeChurch as any)?.phone || "";
+      const logoUrl = activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto || null;
       
       const logoHtml = logoUrl 
          ? `<img src="${logoUrl}" style="width: 80px; height: 80px; border-radius: 40px; object-fit: cover; margin-bottom: 15px; border: 3px solid #c9973f; padding: 2px;" />` 
