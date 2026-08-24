@@ -1112,19 +1112,24 @@ class FirestoreService {
   async getMemberDonations(phone: string): Promise<any[]> {
     try {
       const col = await this.getCollection('donations');
-      // Query where phone matches and order by createdAt desc
-      // Assuming 'status' is tracked. For member history, we want successful donations.
-      // If 'status' is consistently used: .where('status', '==', 'success')
-      // but let's just fetch by phone first and filter on client if needed, or query both.
+      // Fetching by phone only to avoid Firestore composite index requirement
       const snapshot = await col
         .where('phone', '==', phone)
-        .orderBy('createdAt', 'desc')
         .get();
         
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (error) {
+      let results = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      
+      // Sort locally by createdAt desc
+      results.sort((a: any, b: any) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return dateB - dateA;
+      });
+      
+      return results;
+    } catch (error: any) {
       console.error('Error fetching member donations:', error);
-      return [];
+      throw error; // Rethrow so the UI can show the actual error if it's something else
     }
   }
 
