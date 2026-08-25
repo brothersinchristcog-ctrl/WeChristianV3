@@ -133,7 +133,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           const u = await firestoreService.getGlobalUser(user.uid);
           setGlobalUser(u);
           if (activeChurch?.id) {
-            const hist = await firestoreService.getMemberSubscriptionHistory(activeChurch.id, user.uid);
+            const hist = await firestoreService.getChurchSubscriptionHistory(activeChurch.id);
             setSubscriptionHistory(hist);
           }
         }
@@ -278,7 +278,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             // To properly show history, we might need a backend call or fetch from platform_subscriptions.
             // For now, we will just fetch whatever was in the old collection so it doesn't break,
             // but ideally you'd fetch from platform_subscriptions.
-            const hist = await firestoreService.getMemberSubscriptionHistory(activeChurch.id, user.uid);
+            const hist = await firestoreService.getChurchSubscriptionHistory(activeChurch.id);
             setSubscriptionHistory(hist);
           }
           // The church context refresh above will automatically transition the UI
@@ -304,7 +304,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
         if (isCancellation) {
           if (activeChurch && user) {
             firestoreService.logCancelledSubscription(activeChurch.id, user.uid, amount, actualCycle).then(() => {
-              firestoreService.getMemberSubscriptionHistory(activeChurch.id, user.uid).then(hist => {
+              firestoreService.getChurchSubscriptionHistory(activeChurch.id).then(hist => {
                 setSubscriptionHistory(hist);
               });
             });

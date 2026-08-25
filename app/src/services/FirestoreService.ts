@@ -444,6 +444,22 @@ class FirestoreService {
     }
   }
 
+  async getChurchSubscriptionHistory(churchId: string) {
+    try {
+      const snap = await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('subscriptions')
+        .orderBy('paidAt', 'desc')
+        .get();
+        
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error fetching church subscription history:', error);
+      return [];
+    }
+  }
+
   async deleteSubscriptionHistory(churchId: string, memberId: string, historyId: string) {
     try {
       await firestore()
