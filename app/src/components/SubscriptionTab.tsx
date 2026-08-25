@@ -533,13 +533,13 @@ export default function SubscriptionTab({ member }: { member?: any }) {
         </View>
       ) : currentStep === 2 ? (
         <View style={[styles.stepContainer, { flex: 1, paddingHorizontal: 16 }]}>
-          <Text style={{ color: '#1F3B3D', fontSize: 16, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', textAlign: 'center', marginTop: 10 }}>
+          <Text style={{ color: '#1F3B3D', fontSize: 22, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase', textAlign: 'center', marginTop: 16, marginBottom: 8 }}>
             Pricing
           </Text>
           <View style={{ flex: 1, justifyContent: 'center' }}>
             <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
-            <View style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#f59e0b', paddingHorizontal: 16, paddingVertical: 6, borderBottomLeftRadius: 20 }}>
-              <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 12 }}>Save 89% •</Text>
+            <View style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#f59e0b', paddingHorizontal: 24, paddingVertical: 14, borderBottomLeftRadius: 32 }}>
+              <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Save 89% •</Text>
             </View>
             
             <Text style={{ color: '#f8fafc', fontSize: 24, fontWeight: '600', marginBottom: 16, marginTop: 4 }}>{activeChurch?.name || 'Church of GOD'}</Text>
