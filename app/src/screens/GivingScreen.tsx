@@ -378,12 +378,11 @@ export default function GivingScreen({ navigation }: any) {
                 {[...GIVING_WORDS, GIVING_WORDS[0]].map((w, index) => (
                   <View key={`${w.text}-${index}`} style={{ height: 38, justifyContent: 'center', alignItems: 'center' }}>
                     <Text style={{ 
-                      fontSize: 28, 
+                      fontSize: 26, 
                       fontStyle: 'italic', 
                       color: w.textCol, 
                       fontWeight: '600', 
-                      fontFamily: Platform.OS === 'ios' ? 'Snell Roundhand' : 'cursive',
-                      marginBottom: 4 // moves text slightly up within the view
+                      fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' 
                     }}>
                       {w.text}
                     </Text>
