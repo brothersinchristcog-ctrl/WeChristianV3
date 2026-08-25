@@ -327,7 +327,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const annualPlan = plans.find(p => p.billingCycle === 'annual');
 
   const activePlan = billingCycle === 'annual' ? annualPlan : monthlyPlan;
-  const planPrice = 1; // Church annual plan - ₹1 for testing (later 199)
+  const planPrice = 199; // Church annual plan - final production pricing
   const planFeatures = ['Church-wide access for all members', 'Unlimited push notifications', 'Manage events and sermons', 'Pastoral and admin tools'];
   const planSavings = 'PREMIUM';
 
@@ -596,11 +596,11 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 16, marginTop: 4 }}>{activeChurch?.name || 'Church of GOD'}</Text>
             
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹108</Text>
-              <Text style={{ color: '#10b981', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹1</Text>
+              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹1999</Text>
+              <Text style={{ color: '#10b981', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹199</Text>
               <View>
                 <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '500' }}>/ year (INR)</Text>
-                <Text style={{ color: '#10b981', fontSize: 12, marginTop: 2 }}>₹1 billed yearly</Text>
+                <Text style={{ color: '#10b981', fontSize: 12, marginTop: 2 }}>₹199 billed yearly</Text>
               </View>
             </View>
 
@@ -852,11 +852,11 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '600', marginBottom: 20, marginTop: -8 }}>{activeChurch?.name || 'Church of GOD'}</Text>
             
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹108</Text>
-              <Text style={{ color: '#eab308', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹1</Text>
+              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹1999</Text>
+              <Text style={{ color: '#eab308', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹199</Text>
               <View>
                 <Text style={{ color: '#eab308', fontSize: 14, fontWeight: '500' }}>/ year (INR)</Text>
-                <Text style={{ color: '#eab308', fontSize: 12, marginTop: 2 }}>₹1 billed yearly</Text>
+                <Text style={{ color: '#eab308', fontSize: 12, marginTop: 2 }}>₹199 billed yearly</Text>
               </View>
             </View>
 
