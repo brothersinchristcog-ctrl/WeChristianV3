@@ -547,19 +547,15 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </TouchableOpacity>
         </View>
       ) : currentStep === 2 ? (
-        <View style={[styles.stepContainer, { paddingHorizontal: 16 }]}>
-          <TouchableOpacity style={[styles.backBtn, { marginBottom: 16 }]} onPress={() => nextStep(1)}>
-            <ArrowLeft size={24} color={colors.ink} />
-          </TouchableOpacity>
-
-          <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 24, paddingBottom: 28, overflow: 'hidden' }}>
+        <View style={[styles.stepContainer, { paddingHorizontal: 16, paddingTop: 16 }]}>
+          <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
             <View style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#f59e0b', paddingHorizontal: 16, paddingVertical: 6, borderBottomLeftRadius: 20 }}>
               <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 12 }}>Save 89% •</Text>
             </View>
             
-            <Text style={{ color: '#f8fafc', fontSize: 24, fontWeight: '600', marginBottom: 24, marginTop: 8 }}>{activeChurch?.name || 'Church of GOD'}</Text>
+            <Text style={{ color: '#f8fafc', fontSize: 24, fontWeight: '600', marginBottom: 16, marginTop: 4 }}>{activeChurch?.name || 'Church of GOD'}</Text>
             
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹108</Text>
               <Text style={{ color: '#eab308', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹1</Text>
               <View>
@@ -568,15 +564,15 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               </View>
             </View>
 
-            <Text style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 22, marginBottom: 24 }}>
+            <Text style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 20, marginBottom: 16 }}>
               A comprehensive solution for spiritual growth, offering enhanced features to streamline your daily walk with God.
             </Text>
 
-            <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 24, borderRadius: 1 }} />
+            <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 16, borderRadius: 1 }} />
 
-            <View style={{ marginBottom: 32 }}>
+            <View style={{ marginBottom: 20 }}>
               {['Bible', 'Sermons', 'Events', 'Songs', 'Bible plan', 'Online bible classes', 'Prayer wall', 'YouTube live'].map((feat, idx) => (
-                <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+                <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                   <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                     <Check size={14} color="#171e2e" strokeWidth={3} />
                   </View>
@@ -586,7 +582,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             </View>
 
             <TouchableOpacity 
-              style={{ backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+              style={{ backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
               onPress={() => handleRazorpayPayment()}
             >
               <Crown size={20} color="#171e2e" style={{ marginRight: 8 }} />
