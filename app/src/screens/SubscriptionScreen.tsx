@@ -13,8 +13,8 @@ export default function SubscriptionScreen({ navigation, route }: any) {
   const isExpired = route?.params?.isExpired;
 
   return (
-    <View style={[styles.container, { backgroundColor: '#F7F3E9' }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F7F3E9" />
+    <View style={[styles.container, { backgroundColor: '#e2e8f0' }]}>
+      <StatusBar barStyle="dark-content" backgroundColor="#e2e8f0" />
 
       {/* Header Removed */}
 
