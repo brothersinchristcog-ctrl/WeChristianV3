@@ -14,7 +14,7 @@ export default function SubscriptionScreen({ navigation, route }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: '#F7F3E9' }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+      <StatusBar barStyle="dark-content" backgroundColor="#F7F3E9" />
 
       {/* Header */}
       <View style={styles.header}>
@@ -29,12 +29,12 @@ export default function SubscriptionScreen({ navigation, route }: any) {
               }
             }}
           >
-            {!isExpired && <ChevronLeft size={24} color="#FCD34D" />}
+            {!isExpired && <ChevronLeft size={24} color="#1F3B3D" />}
             <Text style={[styles.backBtnTxt, isExpired && { marginLeft: 16 }]}>{isExpired ? 'Sign Out' : 'Back'}</Text>
           </TouchableOpacity>
-          <View style={{ width: 1, height: 16, backgroundColor: 'rgba(255,255,255,0.3)', marginHorizontal: 12 }} />
+          <View style={{ width: 1, height: 16, backgroundColor: 'rgba(31, 59, 61, 0.2)', marginHorizontal: 12 }} />
           
-          <Text style={{ color: '#FFFFFF', fontSize: 14.5, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+          <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' }}>
             Subscription
           </Text>
         </View>
@@ -51,13 +51,11 @@ export default function SubscriptionScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { 
-    backgroundColor: '#1a2d5a', 
-    paddingTop: Platform.OS === 'ios' ? 80 : 56, 
-    paddingBottom: 32,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    backgroundColor: 'transparent', 
+    paddingTop: Platform.OS === 'ios' ? 60 : 40, 
+    paddingBottom: 16,
   },
   headerTop: { flexDirection: 'row', paddingHorizontal: 20, alignItems: 'center' },
   backBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  backBtnTxt: { color: '#FCD34D', fontSize: 16, fontWeight: '700', marginLeft: 4 },
+  backBtnTxt: { color: '#1F3B3D', fontSize: 16, fontWeight: '700', marginLeft: 4 },
 });
