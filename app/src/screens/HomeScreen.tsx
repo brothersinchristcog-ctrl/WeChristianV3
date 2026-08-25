@@ -947,9 +947,9 @@ export default function HomeScreen() {
 
               <Mask id="lineMask">
                 <Path
-                  d={`M 1.5 -10 L 1.5 0 A 28.5 28.5 0 0 0 30 28.5 L ${width - 30} 28.5 A 28.5 28.5 0 0 0 ${width - 1.5} 0 L ${width - 1.5} -10`}
+                  d={`M 2 -10 L 2 0 A 28 28 0 0 0 30 28 L ${width - 30} 28 A 28 28 0 0 0 ${width - 2} 0 L ${width - 2} -10`}
                   stroke="white"
-                  strokeWidth={3}
+                  strokeWidth={4}
                   fill="none"
                 />
               </Mask>
@@ -958,7 +958,7 @@ export default function HomeScreen() {
             <AnimatedRect
               x={curveLineAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0, -width * 2]
+                outputRange: [-width * 2, 0]
               })}
               y="0"
               width={width * 3}
