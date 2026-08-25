@@ -332,7 +332,10 @@ export default function SubscriptionTab({ member }: { member?: any }) {
     return 0;
   }, [activeChurch?.subscription?.validUntil]);
   
-  const maxDays = (activeChurch?.subscription as any)?.plan?.toLowerCase().includes('month') ? 30 : 365;
+  // Assume 30 days is a standard 100% circle (e.g., for monthly or a countdown window), 
+  // unless they have more than 30 days left, then maxDays becomes their remaining days rounded up.
+  // This ensures the progress circle is always visibly filled based on a 30-day window.
+  const maxDays = Math.max(30, daysLeft);
   const progressRatio = Math.max(0, Math.min(1, daysLeft / maxDays));
   const dashOffset = (2 * Math.PI * 54) - ((2 * Math.PI * 54) * progressRatio);
 
