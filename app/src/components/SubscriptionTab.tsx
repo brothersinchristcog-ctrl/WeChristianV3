@@ -364,7 +364,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const progressRatio = Math.max(0, Math.min(1, daysLeft / maxDays));
   const dashOffset = (2 * Math.PI * 54) - ((2 * Math.PI * 54) * progressRatio);
 
-  const bgColor = (currentStep === 1 && activeChurch?.subscription?.status !== 'active') ? '#cbd5e1' : '#F7F3E9';
+  const bgColor = (currentStep === 1 && activeChurch?.subscription?.status !== 'active') ? '#F7F3E9' : '#cbd5e1';
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: bgColor }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} bounces={false}>
