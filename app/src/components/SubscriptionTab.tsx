@@ -328,7 +328,14 @@ export default function SubscriptionTab({ member }: { member?: any }) {
 
   const activePlan = billingCycle === 'annual' ? annualPlan : monthlyPlan;
   const planPrice = 1; // Church annual plan - ₹1 for testing (later 199)
-  const planFeatures = ['Church-wide access for all members', 'Unlimited push notifications', 'Manage events and sermons', 'Pastoral and admin tools'];
+  const planFeatures = [
+    'Church-wide access for all members',
+    'Unlimited push notifications',
+    'Manage events and sermons',
+    'Pastoral and admin tools',
+    'Live celebrations',
+    'Celebrations (through WhatsApp for birthdays, anniversaries, baptisms)'
+  ];
   const planSavings = 'PREMIUM';
 
   const calculateDaysRemaining = () => {
