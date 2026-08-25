@@ -171,6 +171,8 @@ export interface ChurchDonation {
   notes?: string;
   addedBy?: string;
   createdAt?: any;
+  status?: string;
+  receiptNo?: string;
   updatedAt?: any;
 }
 
