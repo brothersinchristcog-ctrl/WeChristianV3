@@ -397,9 +397,20 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             </View>
           </View>
 
-          <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 24, paddingBottom: 28, marginHorizontal: 16, overflow: 'hidden' }}>
-            <View style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#10b981', paddingHorizontal: 16, paddingVertical: 6, borderBottomLeftRadius: 20 }}>
-              <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 12 }}>Active Plan</Text>
+          <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#10b981', padding: 16, paddingBottom: 20, marginHorizontal: 28, overflow: 'hidden' }}>
+            <View style={{ position: 'absolute', top: 0, right: 0, width: 160, height: 75 }}>
+              <Svg width="160" height="75" style={{ position: 'absolute', top: 0, right: 0 }}>
+                <Defs>
+                  <LinearGradient id="greenBadge" x1="0" y1="0" x2="1" y2="0">
+                    <Stop offset="0" stopColor="#34d399" stopOpacity="1" />
+                    <Stop offset="1" stopColor="#059669" stopOpacity="1" />
+                  </LinearGradient>
+                </Defs>
+                <Path d="M 0 0 C 25 0, 20 45, 45 45 L 140 45 C 155 45, 160 60, 160 75 L 160 0 Z" fill="url(#greenBadge)" />
+              </Svg>
+              <View style={{ height: 45, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
+                <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Active Plan</Text>
+              </View>
             </View>
             
             <Text style={{ color: '#f8fafc', fontSize: 24, fontWeight: '600', marginBottom: 24, marginTop: 8 }}>{activeChurch?.name || 'Church of GOD'}</Text>
@@ -532,7 +543,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </TouchableOpacity>
         </View>
       ) : currentStep === 2 ? (
-        <View style={[styles.stepContainer, { flex: 1, paddingHorizontal: 16 }]}>
+        <View style={[styles.stepContainer, { flex: 1, paddingHorizontal: 28 }]}>
           <Text style={{ color: '#1F3B3D', fontSize: 22, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase', textAlign: 'center', marginTop: 16, marginBottom: 8 }}>
             Pricing
           </Text>
