@@ -1010,11 +1010,15 @@ export default function HomeScreen() {
                 onPress={() => handleGuestProtectedNavigation('Promise')}
               >
                 <LinearGradient
-                  colors={['#020b22', '#081d4a']}
+                  colors={['#3b82f6', '#1e40af']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
-                  style={styles.phInner}
+                  style={[styles.phInner, { overflow: 'hidden' }]}
                 >
+                  {/* Decorative Ash Colored Circles */}
+                  <View style={{ position: 'absolute', top: -30, right: -20, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(226, 232, 240, 0.15)' }} />
+                  <View style={{ position: 'absolute', bottom: -40, left: -30, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(226, 232, 240, 0.1)' }} />
+
                   <Text style={styles.phLabel}>TODAY'S PROMISE · ఈ రోజు వాగ్దానం</Text>
                   <Text style={styles.phEn}>{promise ? `"${stripHtml(promise.verse)}"` : ''}</Text>
                   <Text style={styles.phRefEn}>{promise ? `— ${promise.verseReferenceEn || promise.verseReference}` : ''}</Text>
