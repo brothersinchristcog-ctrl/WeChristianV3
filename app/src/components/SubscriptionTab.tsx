@@ -462,19 +462,22 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                 Payment History
               </Text>
               <Text style={{ fontSize: 10.5, color: '#9A8F72', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                {(isPaymentSuccessful && subscriptionHistory.length === 0) ? 1 : subscriptionHistory.length} ENTR{(isPaymentSuccessful && subscriptionHistory.length === 0) || subscriptionHistory.length === 1 ? 'Y' : 'IES'}
+                {subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0)} ENTR{subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0) === 1 ? 'Y' : 'IES'}
               </Text>
             </View>
           </View>
 
           <View style={{ paddingHorizontal: 24, paddingBottom: 64, marginTop: 24 }}>
-            {((isPaymentSuccessful && subscriptionHistory.length === 0) 
-              ? [{ id: 'temp_active', plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' }] 
-              : subscriptionHistory
-            ).map((h, i, arr) => (
+            {(() => {
+              let history = [...subscriptionHistory];
+              if (isPaymentSuccessful) {
+                history = [{ id: 'temp_active', plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' }, ...history];
+              }
+              return history;
+            })().map((h, i, arr) => (
               <TouchableOpacity onPress={() => setSelectedInvoice(h)} key={h.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
                 <Text style={{ color: '#C4B896', fontSize: 12, width: 22, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                  {String((isPaymentSuccessful && subscriptionHistory.length === 0 ? 1 : subscriptionHistory.length) - i).padStart(2, '0')}
+                  {String((subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0)) - i).padStart(2, '0')}
                 </Text>
                 <View style={{ width: 36, height: 36, backgroundColor: '#F1EADA', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
                   <CreditCard size={16} color="#C98A3E" />
