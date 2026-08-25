@@ -20,7 +20,7 @@ export default function SubscriptionScreen({ navigation, route }: any) {
       <View style={styles.header}>
         <View style={styles.headerTop}>
           <TouchableOpacity 
-            style={styles.backBtn} 
+            style={[styles.backBtn, { position: 'absolute', left: 20, zIndex: 10 }]} 
             onPress={() => {
               if (isExpired) {
                 signOut();
@@ -32,9 +32,8 @@ export default function SubscriptionScreen({ navigation, route }: any) {
             {!isExpired && <ChevronLeft size={24} color="#1F3B3D" />}
             <Text style={[styles.backBtnTxt, isExpired && { marginLeft: 16 }]}>{isExpired ? 'Sign Out' : 'Back'}</Text>
           </TouchableOpacity>
-          <View style={{ width: 1, height: 16, backgroundColor: 'rgba(31, 59, 61, 0.2)', marginHorizontal: 12 }} />
           
-          <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+          <Text style={{ color: '#1F3B3D', fontSize: 16, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' }}>
             Subscription
           </Text>
         </View>
@@ -55,7 +54,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 40, 
     paddingBottom: 16,
   },
-  headerTop: { flexDirection: 'row', paddingHorizontal: 20, alignItems: 'center' },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 44, width: '100%' },
   backBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
   backBtnTxt: { color: '#1F3B3D', fontSize: 16, fontWeight: '700', marginLeft: 4 },
 });

@@ -356,7 +356,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                     cy="64"
                     r={54}
                     fill="none"
-                    stroke="#C98A3E"
+                    stroke="#F59E0B"
                     strokeWidth="10"
                     strokeLinecap="round"
                     strokeDasharray={2 * Math.PI * 54}
