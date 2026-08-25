@@ -448,10 +448,13 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               ))}
             </View>
 
-            <View style={{ backgroundColor: '#10b981', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
+            <TouchableOpacity 
+              onPress={() => setSelectedInvoice(subscriptionHistory[0] || { id: receiptTxnId || 'temp_active', plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' })}
+              style={{ backgroundColor: '#10b981', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+            >
               <Crown size={20} color="#f8fafc" style={{ marginRight: 8 }} />
-              <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700' }}>Current Plan</Text>
-            </View>
+              <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700' }}>Current Plan Details</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -849,15 +852,35 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               <TouchableOpacity 
                 style={{ flex: 1, padding: 16, alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E4DDC8', flexDirection: 'row', justifyContent: 'center' }}
                 onPress={async () => {
-                  if (activeChurch && user && selectedInvoice) {
-                    await firestoreService.deleteSubscriptionHistory(activeChurch.id, user.uid, selectedInvoice.id);
-                    setSubscriptionHistory(prev => prev.filter(h => h.id !== selectedInvoice.id));
-                    setSelectedInvoice(null);
+                  try {
+                    const html = `
+                      <html>
+                        <body style="font-family: sans-serif; padding: 40px;">
+                          <h1>Subscription Receipt</h1>
+                          <h2>${activeChurch?.name || 'Church Name'}</h2>
+                          <hr />
+                          <p><strong>Member Name:</strong> ${member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</p>
+                          <p><strong>Plan:</strong> ${selectedInvoice?.plan || 'Monthly'} Plan</p>
+                          <p><strong>Date:</strong> ${selectedInvoice?.paidAt ? ((selectedInvoice.paidAt as any).toDate ? (selectedInvoice.paidAt as any).toDate() : ((selectedInvoice.paidAt as any).seconds ? new Date((selectedInvoice.paidAt as any).seconds * 1000) : new Date(selectedInvoice.paidAt as any))).toLocaleDateString() : 'N/A'}</p>
+                          <p><strong>Transaction ID:</strong> ${selectedInvoice?.id || 'N/A'}</p>
+                          <p><strong>Status:</strong> ${selectedInvoice?.status?.toUpperCase() || 'N/A'}</p>
+                          <hr />
+                          <h3>Total Paid: ₹${selectedInvoice?.amount || '0'}</h3>
+                        </body>
+                      </html>
+                    `;
+                    const { uri } = await Print.printToFileAsync({ html });
+                    if (await Sharing.isAvailableAsync()) {
+                      await Sharing.shareAsync(uri);
+                    }
+                  } catch (error) {
+                    console.error(error);
+                    Alert.alert('Error', 'Failed to generate receipt');
                   }
                 }}
               >
-                <Trash2 size={16} color="#ef4444" style={{ marginRight: 6 }} />
-                <Text style={{ color: '#ef4444', fontSize: 15, fontWeight: '600' }}>Delete</Text>
+                <Download size={16} color="#10b981" style={{ marginRight: 6 }} />
+                <Text style={{ color: '#10b981', fontSize: 15, fontWeight: '600' }}>Download</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={{ flex: 1, padding: 16, alignItems: 'center' }}
