@@ -166,7 +166,7 @@ function TabNavigator() {
         .doc(user.uid)
         .onSnapshot(
           (doc) => {
-            if (doc && (typeof doc.exists === 'function' ? doc.exists() : doc.exists)) {
+            if (doc.exists) {
               setGlobalUser(doc.data());
             }
           },
@@ -478,7 +478,7 @@ function Navigation() {
   }
 
   // ── Church Expiration Logic ──
-  const isChurchExpired = activeChurch?.subscription?.status === 'expired';
+  const isChurchExpired = activeChurch?.isActive === false || activeChurch?.subscription?.status === 'expired';
 
   if (isChurchExpired && user && !user.isAnonymous) {
     if (isAdmin) {

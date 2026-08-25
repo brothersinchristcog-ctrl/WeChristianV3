@@ -91,7 +91,7 @@ const CATEGORIES = [
     keywords: ['Notification', 'WhatsApp']
   },
   {
-    title: 'Finance & Subscriptions',
+    title: 'Church Ledger',
     icon: DollarSign,
     color: '#206A5D', // Deep green
     keywords: ['Expense', 'Donation', 'Subscription']

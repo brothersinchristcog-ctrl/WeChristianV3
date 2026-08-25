@@ -504,6 +504,31 @@ export default function SubscriptionTab({ member }: { member?: any }) {
     }
   };
 
+  const handleDeleteHistoryItem = (invoice: any) => {
+    Alert.alert(
+      "Delete Payment History",
+      "Are you sure you want to delete this payment record?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (activeChurch?.id && invoice.id) {
+                await firestoreService.deleteChurchSubscriptionHistory(activeChurch.id, invoice.id);
+                setSubscriptionHistory(prev => prev.filter(item => item.id !== invoice.id));
+              }
+            } catch (error) {
+              console.error('Error deleting history item', error);
+              Alert.alert('Error', 'Failed to delete payment record.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const receiptData = useMemo(() => {
     const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
     let nextDateStr = 'N/A';
@@ -592,8 +617,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                 <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Active Plan</Text>
               </View>
             </View>
-            
-            <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 16, marginTop: 4 }}>{activeChurch?.name || 'Church of GOD'}</Text>
+            <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 16, marginTop: 4, width: '70%' }} numberOfLines={2} adjustsFontSizeToFit>{activeChurch?.name || 'Church of GOD'}</Text>
             
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹999</Text>
@@ -762,6 +786,9 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ padding: 10, backgroundColor: '#10b981', borderRadius: 8 }}>
                       <Download size={16} color="#ffffff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteHistoryItem(h)} style={{ padding: 10, backgroundColor: '#fee2e2', borderRadius: 8 }}>
+                      <Trash2 size={16} color="#ef4444" />
                     </TouchableOpacity>
                   </View>
                 </View>

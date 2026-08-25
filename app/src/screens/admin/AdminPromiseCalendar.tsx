@@ -22,11 +22,6 @@ export default function AdminPromiseCalendar() {
   const { setActiveTab, setEditingData } = useContext(AdminTabContext);
   const [loading, setLoading] = useState(true);
   const [promises, setPromises] = useState<any[]>([]);
-  const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState(0);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showError, setShowError] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
     fetchCalendarData();
@@ -42,87 +37,6 @@ export default function AdminPromiseCalendar() {
       console.error(err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleImport = async () => {
-    setImporting(true);
-    setImportProgress(0);
-    setShowSuccess(false);
-    setShowError(false);
-
-    try {
-      let DocumentPicker;
-      try {
-        DocumentPicker = require('expo-document-picker');
-      } catch (e) {
-        throw new Error('File upload requires a Development Build with expo-document-picker linked.');
-      }
-
-      if (!DocumentPicker || !DocumentPicker.getDocumentAsync) {
-        throw new Error('Native Document Picker is unavailable in this environment.');
-      }
-
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['text/comma-separated-values', 'text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-        copyToCacheDirectory: true
-      });
-
-      if (result.canceled || !result.assets || result.assets.length === 0) {
-        setImporting(false);
-        return;
-      }
-
-      const response = await fetch(result.assets[0].uri);
-      const finalCsvText = await response.text();
-
-      // Basic CSV Parser
-      const rows = finalCsvText.split(/\r?\n/);
-      if (rows.length < 2) throw new Error('Data is empty or invalid format.');
-
-      const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
-      const dataRows = rows.slice(1).filter(r => r.trim().length > 0);
-
-      let count = 0;
-      for (const rowStr of dataRows) {
-        const cols = rowStr.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-        const rowData: any = {};
-        headers.forEach((h, i) => { rowData[h] = cols[i]; });
-
-        const promiseData = {
-          date: rowData.date,
-          verseReferenceEn: rowData.en_ref || rowData['english reference'],
-          verse: rowData.en_verse || rowData['english verse'],
-          verseReferenceTe: rowData.te_ref || rowData['telugu reference'],
-          verseTelugu: rowData.te_verse || rowData['telugu verse'],
-          youtubeId: rowData.youtube_url || rowData['youtube url'],
-          status: 'Published'
-        };
-
-        // Check if date already exists in current calendar
-        const existingRecord = promises.find(p => p.date === promiseData.date);
-        
-        if (promiseData.date && promiseData.verse) {
-          const finalData = {
-            ...promiseData,
-            id: existingRecord?.id
-          };
-          
-          await FirestoreService.createDailyPromise(finalData);
-          count++;
-          setImportProgress(count);
-        }
-      }
-
-      setShowSuccess(true);
-      fetchCalendarData();
-      setTimeout(() => setShowSuccess(false), 5000);
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err.message || 'Import failed. Check format.');
-      setShowError(true);
-    } finally {
-      setImporting(false);
     }
   };
 
@@ -243,43 +157,6 @@ export default function AdminPromiseCalendar() {
           <LegendItem color="#FFFBEB" border="#F59E0B" label="Today" />
         </View>
 
-        {/* ── Import ── */}
-        <View style={styles.importWrap}>
-          <View style={styles.importHd}>
-            <Text style={styles.importHdTXT}>📁 Import from CSV / Excel</Text>
-            {importing && <ActivityIndicator size="small" color="#fff" />}
-          </View>
-          
-          <View style={styles.importBody}>
-            {importing ? (
-              <View style={styles.progressBox}>
-                <Text style={styles.progressTxt}>Importing: {importProgress} records processed...</Text>
-                <ActivityIndicator color="#1a2d5a" style={{ marginTop: 10 }} />
-              </View>
-            ) : (
-              <>
-                <Text style={styles.importHint}>Upload a spreadsheet with columns: Date, English Reference, English Verse, Telugu Reference, Telugu Verse, YouTube URL</Text>
-                <TouchableOpacity style={styles.uploadBox} onPress={handleImport}>
-                  <Text style={styles.uploadIcon}>📊</Text>
-                  <Text style={styles.uploadTxt}>Tap to upload CSV or Excel file</Text>
-                  <Text style={styles.uploadSubHint}>Columns: date · en_ref · en_verse · te_ref · te_verse · youtube_url</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
-        </View>
-
-        {/* Status Modals */}
-        {showSuccess && (
-          <View style={styles.statusMsg}>
-            <Text style={styles.statusMsgTxt}>✅ Import Successful!</Text>
-          </View>
-        )}
-        {showError && (
-          <View style={[styles.statusMsg, { backgroundColor: '#FEE2E2' }]}>
-            <Text style={[styles.statusMsgTxt, { color: '#991B1B' }]}>❌ {errorMsg}</Text>
-          </View>
-        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>

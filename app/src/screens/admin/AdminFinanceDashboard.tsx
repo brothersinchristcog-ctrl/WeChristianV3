@@ -767,13 +767,13 @@ const openAddExpense = () => {
             </TouchableOpacity>
             <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
             <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={[styles.heroTitle, currentSubTab === 'dashboard' && { color: '#FCD34D' }]} numberOfLines={1}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 4 }}>
+                <Text style={[styles.heroTitle, currentSubTab === 'dashboard' && { color: '#FCD34D' }, { flex: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
                   {currentSubTab === 'dashboard' ? 'Dashboard' : 
                    currentSubTab === 'expenses' ? (selectedCategoryView ? 'Expenses' : 'Expenses') : 'Invoices'}
                 </Text>
                 <TouchableOpacity 
-                  style={{ backgroundColor: '#c9973f', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginLeft: 14 }}
+                  style={{ backgroundColor: '#c9973f', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, marginLeft: 10, flexShrink: 0 }}
                   onPress={openAddExpense}
                 >
                   <Text style={{ color: '#141d33', fontSize: 11, fontWeight: '700' }}>+ New Expense</Text>
@@ -2218,7 +2218,7 @@ const styles = StyleSheet.create({
   
   quickActions: { flexDirection: 'column', gap: 10 },
   qaBtn: {
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12,
+    flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: 12,
     backgroundColor: '#ffffff',
     borderWidth: 1, borderColor: '#e5ddd0',
     borderRadius: 14,
@@ -2473,7 +2473,7 @@ const styles = StyleSheet.create({
   addBtn: {
     backgroundColor: '#1b2a4a',
     borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12,
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6
+    flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: 6
   },
   addBtnTxt: {
     fontFamily: FONTS.sans, fontSize: 13, fontWeight: '600', color: '#ffffff'
@@ -2504,9 +2504,7 @@ const styles = StyleSheet.create({
     borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14,
     fontSize: 14, fontFamily: FONTS.sans, color: '#241f1a'
   },
-  row: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 15
-  },
+  row: { flexDirection: 'column', gap: 15 },
   pmBtn: {
     backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0',
     borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14

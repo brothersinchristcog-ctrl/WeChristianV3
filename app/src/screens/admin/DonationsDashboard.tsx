@@ -293,6 +293,8 @@ export default function AdminDonationDashboard() {
          ? `<img src="${logoUrl}" style="width: 80px; height: 80px; border-radius: 40px; object-fit: cover; margin-bottom: 15px; border: 3px solid #c9973f; padding: 2px;" />` 
          : `<div style="width: 80px; height: 80px; border-radius: 40px; background-color: #c9973f; color: #141d33; font-size: 36px; font-weight: bold; line-height: 80px; text-align: center; margin: 0 auto 15px auto;">${cName.charAt(0).toUpperCase()}</div>`;
 
+      const receiptNo = don.receiptNo || 'RCPT-' + (don.id || Date.now().toString()).substring(0, 8).toUpperCase();
+
       return `
         <html>
           <head>
@@ -779,13 +781,13 @@ export default function AdminDonationDashboard() {
             </TouchableOpacity>
             <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
             <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={[styles.heroTitle, currentSubTab === 'dashboard' && { color: '#FCD34D' }]} numberOfLines={1}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 4 }}>
+                <Text style={[styles.heroTitle, currentSubTab === 'dashboard' && { color: '#FCD34D' }, { flex: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
                   {currentSubTab === 'dashboard' ? 'Dashboard' : 
                    (selectedCategoryView ? 'Donations' : 'Donations')}
                 </Text>
                 <TouchableOpacity 
-                  style={{ backgroundColor: '#c9973f', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginLeft: 14 }}
+                  style={{ backgroundColor: '#c9973f', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, marginLeft: 10, flexShrink: 0 }}
                   onPress={openAddDonation}
                 >
                   <Text style={{ color: '#141d33', fontSize: 11, fontWeight: '700' }}>+ New Donation</Text>
@@ -1840,7 +1842,7 @@ const styles = StyleSheet.create({
   // Quick Actions
   quickActions: { flexDirection: 'column', gap: 10, marginBottom: 35 },
   qaBtn: {
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12,
+    flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: 12,
     backgroundColor: '#ffffff',
     borderWidth: 1, borderColor: '#e5ddd0',
     borderRadius: 14,
@@ -1857,7 +1859,7 @@ const styles = StyleSheet.create({
   // Buttons & Chips
   btnSecondary: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#c9973f', borderRadius: 14, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 20, shadowColor: '#c9973f', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 2 },
   btnSecondaryTxt: { fontFamily: FONTS.sans, fontSize: 14, fontWeight: '700', color: '#c9973f' },
-  chipMini: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#e7ebf3', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, gap: 4 },
+  chipMini: { flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', backgroundColor: '#e7ebf3', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, gap: 4 },
   chipMiniTxt: { fontFamily: FONTS.sans, fontSize: 11, fontWeight: '700', color: '#1a2d5a' },
   
   // Filter Row
@@ -1912,7 +1914,7 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 20 },
   label: { fontFamily: FONTS.sans, fontSize: 12, fontWeight: '700', color: '#645d54', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, fontSize: 14, fontFamily: FONTS.sans, color: '#241f1a' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 15 },
+  row: { flexDirection: 'column', gap: 15 },
   pmBtn: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14 },
   pmBtnActive: { backgroundColor: '#1b2a4a', borderColor: '#1b2a4a' },
   pmBtnTxt: { fontFamily: FONTS.sans, fontSize: 13, fontWeight: '600', color: '#645d54' },

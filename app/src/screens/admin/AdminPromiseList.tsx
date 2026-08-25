@@ -394,9 +394,9 @@ const styles = StyleSheet.create({
   tagText: { fontSize: 10, color: colors.inkSoft, fontWeight: '600' },
   dot: { color: colors.gold, fontSize: 9 },
   author: { fontSize: 11, color: colors.goldDeep, fontWeight: '700' },
-  vcQuote: { fontFamily: serifFont, fontStyle: 'italic', fontSize: 14, lineHeight: 20, color: colors.ink, marginBottom: 8 },
+  vcQuote: { fontFamily: serifFont, fontStyle: 'italic', fontSize: 14, color: colors.ink, marginBottom: 8, paddingBottom: 4 },
   dropCap: { fontFamily: serifFont, fontSize: 28, fontWeight: '600', color: colors.gold },
-  vcQuoteTel: { fontStyle: 'italic', fontSize: 12.5, lineHeight: 18, color: colors.inkSoft, marginBottom: 10 },
+  vcQuoteTel: { fontStyle: 'italic', fontSize: 12.5, color: colors.inkSoft, marginBottom: 12 },
   vcBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.rule, borderStyle: 'dashed' },
   vcFlags: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   flagOn: { fontSize: 10, color: colors.moss, fontWeight: '600' },
@@ -405,5 +405,5 @@ const styles = StyleSheet.create({
 
   footerBranding: { textAlign: 'center', paddingTop: 20, paddingBottom: 8, fontSize: 11, letterSpacing: 0.8, color: '#B3A67E', textTransform: 'uppercase', fontWeight: '600' },
 
-  fab: { position: 'absolute', bottom: 26, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.goldBright, justifyContent: 'center', alignItems: 'center', elevation: 6, shadowColor: '#8C6428', shadowOpacity: 0.6, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }
+  fab: { position: 'absolute', bottom: 90, right: 24, width: 56, height: 56, borderRadius: 28, backgroundColor: colors.goldBright, justifyContent: 'center', alignItems: 'center', elevation: 6, shadowColor: '#8C6428', shadowOpacity: 0.6, shadowRadius: 10, shadowOffset: { width: 0, height: 6 }, borderWidth: 2, borderColor: 'rgba(255,255,255,0.3)' }
 });

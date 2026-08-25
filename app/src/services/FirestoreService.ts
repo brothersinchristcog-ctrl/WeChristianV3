@@ -170,9 +170,10 @@ export interface ChurchDonation {
   paymentMethod: string;
   notes?: string;
   addedBy?: string;
-  createdAt?: any;
   status?: string;
   receiptNo?: string;
+  receiptUrl?: string;
+  createdAt?: any;
   updatedAt?: any;
 }
 
@@ -357,6 +358,21 @@ class FirestoreService {
     } catch (error) {
       console.error('Error fetching subscription plans:', error);
       return [];
+    }
+  }
+
+  async deleteChurchSubscriptionHistory(churchId: string, subscriptionId: string) {
+    try {
+      await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('subscriptions')
+        .doc(subscriptionId)
+        .delete();
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting subscription history:', error);
+      throw error;
     }
   }
 

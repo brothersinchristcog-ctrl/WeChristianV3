@@ -236,15 +236,15 @@ export default function AdminChurchSettings({ navigation }: any) {
         {/* ── Hero Section ── */}
         <View style={styles.hero}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1, paddingRight: 12 }}>
               <TouchableOpacity onPress={goBack} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                 <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
                 <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
               </TouchableOpacity>
               <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-              <View>
+              <View style={{ flexShrink: 1 }}>
                 <Text style={styles.heroTitle}>Settings</Text>
-                <Text style={[styles.heroSub, { marginTop: 2 }]}>Church info, branding & APIs</Text>
+                <Text style={[styles.heroSub, { marginTop: 2 }]} numberOfLines={1} adjustsFontSizeToFit>Church info, branding & APIs</Text>
               </View>
             </View>
             {isEditing ? (
@@ -274,21 +274,21 @@ export default function AdminChurchSettings({ navigation }: any) {
             onPress={() => setActiveTab('info')}
           >
             <Building2 size={18} color={activeTab === 'info' ? primaryColor : '#64748b'} />
-            <Text style={[styles.tabTxt, activeTab === 'info' && { color: primaryColor, fontWeight: '700' }]}>Info</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.tabTxt, activeTab === 'info' && { color: primaryColor, fontWeight: '700' }]}>Info</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'branding' && { borderBottomColor: primaryColor }]}
             onPress={() => setActiveTab('branding')}
           >
             <Palette size={18} color={activeTab === 'branding' ? primaryColor : '#64748b'} />
-            <Text style={[styles.tabTxt, activeTab === 'branding' && { color: primaryColor, fontWeight: '700' }]}>Brand</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.tabTxt, activeTab === 'branding' && { color: primaryColor, fontWeight: '700' }]}>Brand</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'giving' && { borderBottomColor: primaryColor }]}
             onPress={() => setActiveTab('giving')}
           >
             <DollarSign size={18} color={activeTab === 'giving' ? primaryColor : '#64748b'} />
-            <Text style={[styles.tabTxt, activeTab === 'giving' && { color: primaryColor, fontWeight: '700' }]}>Giving</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.tabTxt, activeTab === 'giving' && { color: primaryColor, fontWeight: '700' }]}>Giving</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'integrations' && { borderBottomColor: primaryColor }]}
@@ -306,7 +306,7 @@ export default function AdminChurchSettings({ navigation }: any) {
             }}
           >
             <Plug size={18} color={activeTab === 'integrations' ? primaryColor : '#64748b'} />
-            <Text style={[styles.tabTxt, activeTab === 'integrations' && { color: primaryColor, fontWeight: '700' }]}>WhatsApp</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.tabTxt, activeTab === 'integrations' && { color: primaryColor, fontWeight: '700' }]}>WhatsApp</Text>
           </TouchableOpacity>
         </View>
 
@@ -377,19 +377,19 @@ export default function AdminChurchSettings({ navigation }: any) {
 
               <View style={[styles.inputRow, !isEditing && styles.inputDisabled]}>
                 <Link size={16} color="#64748b" />
-                <TextInput style={styles.inputFlex} placeholder="Website URL" value={form.socialLinks?.website} onChangeText={v => updateField('socialLinks', 'website', v)} editable={isEditing} />
+                <TextInput style={styles.inputFlex} placeholder="Website URL" placeholderTextColor="#94a3b8" value={form.socialLinks?.website} onChangeText={v => updateField('socialLinks', 'website', v)} editable={isEditing} />
               </View>
               <View style={[styles.inputRow, !isEditing && styles.inputDisabled]}>
                 <Text style={styles.socialPrefix}>YouTube</Text>
-                <TextInput style={styles.inputFlex} placeholder="Channel or Live URL" value={form.socialLinks?.youtube} onChangeText={v => updateField('socialLinks', 'youtube', v)} editable={isEditing} />
+                <TextInput style={styles.inputFlex} placeholder="Channel or Live URL" placeholderTextColor="#94a3b8" value={form.socialLinks?.youtube} onChangeText={v => updateField('socialLinks', 'youtube', v)} editable={isEditing} />
               </View>
               <View style={[styles.inputRow, !isEditing && styles.inputDisabled]}>
                 <Text style={styles.socialPrefix}>Facebook</Text>
-                <TextInput style={styles.inputFlex} placeholder="Page URL" value={form.socialLinks?.facebook} onChangeText={v => updateField('socialLinks', 'facebook', v)} editable={isEditing} />
+                <TextInput style={styles.inputFlex} placeholder="Page URL" placeholderTextColor="#94a3b8" value={form.socialLinks?.facebook} onChangeText={v => updateField('socialLinks', 'facebook', v)} editable={isEditing} />
               </View>
               <View style={[styles.inputRow, !isEditing && styles.inputDisabled]}>
                 <Text style={styles.socialPrefix}>Instagram</Text>
-                <TextInput style={styles.inputFlex} placeholder="Profile URL" value={form.socialLinks?.instagram} onChangeText={v => updateField('socialLinks', 'instagram', v)} editable={isEditing} />
+                <TextInput style={styles.inputFlex} placeholder="Profile URL" placeholderTextColor="#94a3b8" value={form.socialLinks?.instagram} onChangeText={v => updateField('socialLinks', 'instagram', v)} editable={isEditing} />
               </View>
 
               {member?.userType === 'super_admin' && (
@@ -708,7 +708,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 4
+    elevation: 4,
+    flexShrink: 0
   },
   saveBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
   
@@ -724,7 +725,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 4
+    elevation: 4,
+    flexShrink: 0
   },
   editBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
@@ -735,8 +737,8 @@ const styles = StyleSheet.create({
     shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4, zIndex: 10
   },
   tab: {
-    flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 16, borderBottomWidth: 3, borderBottomColor: 'transparent',
+    flex: 1, flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'center', gap: 4,
+    paddingVertical: 16, borderBottomWidth: 3, borderBottomColor: 'transparent', paddingHorizontal: 2,
   },
   tabTxt: { fontSize: 13, color: '#64748b', fontWeight: '700' },
 

@@ -500,7 +500,7 @@ export default function AdminPromiseEditor() {
                 <CheckCircle2 size={50} color="#15803D" strokeWidth={3} />
               </View>
               <Text style={styles.successTitle}>Success!</Text>
-              <Text style={styles.successSub}>Your daily promise has been published successfully.</Text>
+              <Text style={styles.successSub}>Your daily promise has been {form.status === 'Published' ? 'published and members have been notified!' : 'saved successfully.'}</Text>
               <TouchableOpacity style={styles.successBtn} onPress={closeSuccess}>
                 <Text style={styles.successBtnTxt}>Done</Text>
               </TouchableOpacity>
