@@ -134,7 +134,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
     }
     
     // Otherwise, calculate 60 days from church registration date
-    const dateToUse = activeChurch?.createdAt;
+    const dateToUse = (activeChurch as any)?.createdAt;
     if (dateToUse) {
       const createdDate = (typeof dateToUse === 'object' && dateToUse.toDate) ? dateToUse.toDate() : new Date(dateToUse);
       const trialEnd = new Date(createdDate);
@@ -301,12 +301,12 @@ export default function SubscriptionTab({ member }: { member?: any }) {
       nextDateStr = nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
     }
     return {
-      transactionId: receiptTxnId || activeChurch?.subscription?.lastPaymentId || `WC-${Math.floor(1000 + Math.random() * 9000)}-X91`,
+      transactionId: receiptTxnId || (activeChurch?.subscription as any)?.lastPaymentId || `WC-${Math.floor(1000 + Math.random() * 9000)}-X91`,
       date,
       name: activeChurch?.name || "Church",
       nextDateStr
     };
-  }, [activeChurch?.subscription?.validUntil, activeChurch?.subscription?.lastPaymentId, receiptTxnId, activeChurch?.name]);
+  }, [activeChurch?.subscription?.validUntil, (activeChurch?.subscription as any)?.lastPaymentId, receiptTxnId, activeChurch?.name]);
 
   const renderProgressBar = () => (
     <View style={styles.progressContainer}>
@@ -377,7 +377,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               <View style={{ flex: 1, marginLeft: 16 }}>
                 <View style={{ backgroundColor: '#EAF1EA', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, marginBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
                   <Text style={{ color: '#4F7A55', fontSize: 10, fontWeight: '700', letterSpacing: 0.2 }} numberOfLines={1} adjustsFontSizeToFit>
-                    ACTIVE — {(activeChurch?.subscription?.tier || 'PREMIUM').toUpperCase()} TIER
+                    ACTIVE — {((activeChurch?.subscription as any)?.tier || 'PREMIUM').toUpperCase()} TIER
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
