@@ -446,9 +446,9 @@ export default function HomeScreen() {
     const anim = Animated.loop(
       Animated.timing(curveLineAnim, {
         toValue: 1,
-        duration: 12000,
-        easing: Easing.linear,
-        useNativeDriver: true,
+        duration: 12000, // Doubled to maintain speed since travel distance is much larger
+        easing: Easing.linear, // Prevents jumping/stuttering from default ease-in-out
+        useNativeDriver: false,
       })
     );
     anim.start();
@@ -938,13 +938,13 @@ export default function HomeScreen() {
           <Svg width={width} height={30} style={{ position: 'absolute', bottom: 0 }}>
             <Defs>
               <SvgLinearGradient id="borderGrad" x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0%" stopColor="rgba(29, 78, 216, 0.3)" />
-                <Stop offset="40%" stopColor="rgba(29, 78, 216, 0.3)" />
-                <Stop offset="48%" stopColor="rgba(96, 165, 250, 1)" />
+                <Stop offset="0%" stopColor="rgba(29, 78, 216, 0.2)" />
+                <Stop offset="35%" stopColor="rgba(29, 78, 216, 0.2)" />
+                <Stop offset="45%" stopColor="rgba(96, 165, 250, 0.8)" />
                 <Stop offset="50%" stopColor="rgba(255, 255, 255, 1)" />
-                <Stop offset="52%" stopColor="rgba(96, 165, 250, 1)" />
-                <Stop offset="60%" stopColor="rgba(29, 78, 216, 0.3)" />
-                <Stop offset="100%" stopColor="rgba(29, 78, 216, 0.3)" />
+                <Stop offset="55%" stopColor="rgba(96, 165, 250, 0.8)" />
+                <Stop offset="65%" stopColor="rgba(29, 78, 216, 0.2)" />
+                <Stop offset="100%" stopColor="rgba(29, 78, 216, 0.2)" />
               </SvgLinearGradient>
 
               <Mask id="lineMask">
@@ -958,18 +958,12 @@ export default function HomeScreen() {
             </Defs>
 
             <AnimatedRect
-              style={{
-                transform: [
-                  {
-                    translateX: curveLineAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [-width, 0],
-                    }),
-                  },
-                ],
-              }}
+              x={curveLineAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [-width * 2, 0]
+              })}
               y="0"
-              width={width * 2}
+              width={width * 3}
               height="30"
               fill="url(#borderGrad)"
               mask="url(#lineMask)"
