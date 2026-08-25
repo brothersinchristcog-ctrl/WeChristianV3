@@ -1141,10 +1141,10 @@ export default function HomeScreen() {
 
           {/* ── Arched Navigation Section ── */}
           <View style={{ marginTop: 20, marginBottom: 30, width: '100%', height: 160, alignItems: 'center' }}>
-            <View style={{ position: 'absolute', top: 35, left: 0, right: 0, height: 100 }}>
+            <View style={{ position: 'absolute', top: 30, left: 0, right: 0, height: 100 }}>
               <Svg width={width} height={100}>
                 <Path
-                  d={`M -20 85 Q ${width/2} -15 ${width + 20} 85`}
+                  d={`M -20 45 Q ${width/2} -15 ${width + 20} 45`}
                   stroke={isDark ? '#3b82f6' : '#60a5fa'}
                   strokeWidth={2}
                   strokeDasharray="8, 6"
@@ -1153,44 +1153,44 @@ export default function HomeScreen() {
               </Svg>
             </View>
 
-            <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-evenly', alignItems: 'flex-start', paddingTop: 10 }}>
+            <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', paddingHorizontal: 35, alignItems: 'flex-start', paddingTop: 10 }}>
               {/* About Us */}
               <TouchableOpacity 
-                style={{ alignItems: 'center', marginTop: 35 }}
+                style={{ alignItems: 'center', marginTop: 35, width: 80 }}
                 onPress={() => navigation.navigate('AboutUs')}
                 activeOpacity={0.8}
               >
                 <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderWidth: 4, borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
                   <Users size={26} color="#ef4444" />
                 </View>
-                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13 }}>About us</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Our mission</Text>
+                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13, textAlign: 'center' }}>About us</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>Our mission</Text>
               </TouchableOpacity>
 
               {/* Contact Us */}
               <TouchableOpacity 
-                style={{ alignItems: 'center', marginTop: -5 }}
+                style={{ alignItems: 'center', marginTop: 5, width: 80 }}
                 onPress={() => navigation.navigate('ContactUs')}
                 activeOpacity={0.8}
               >
                 <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderWidth: 4, borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
                   <MessageSquare size={26} color="#a855f7" />
                 </View>
-                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13 }}>Contact us</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Get in touch</Text>
+                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13, textAlign: 'center' }}>Contact us</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>Get in touch</Text>
               </TouchableOpacity>
 
               {/* More */}
               <TouchableOpacity 
-                style={{ alignItems: 'center', marginTop: 35 }}
+                style={{ alignItems: 'center', marginTop: 35, width: 80 }}
                 onPress={() => setAlertConfig({ visible: true, title: 'More Features', message: 'Option Available Soon\n\nWe are currently working on integrating this feature.', type: 'info' })}
                 activeOpacity={0.8}
               >
                 <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderWidth: 4, borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
                   <MoreHorizontal size={26} color="#10b981" />
                 </View>
-                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13 }}>More</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Explore features</Text>
+                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13, textAlign: 'center' }}>More</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>Explore features</Text>
               </TouchableOpacity>
             </View>
           </View>
