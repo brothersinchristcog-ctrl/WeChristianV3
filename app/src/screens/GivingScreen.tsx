@@ -18,9 +18,10 @@ import {
 import { 
   Lock, 
   Coins,
-  CreditCard,
   Share2,
-  CheckCircle2
+  CheckCircle2,
+  ArrowLeft,
+  ShieldCheck
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -310,34 +311,48 @@ export default function GivingScreen({ navigation }: any) {
     <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
-      {/* ── Page Header (Navy) ── */}
-      <View style={styles.header}>
+      {/* ── Page Header ── */}
+      <View style={[styles.header, isDark && { backgroundColor: '#0f172a' }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.backBtnTxt}>‹ Back</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-            <Text style={styles.themeToggleText}>{isDark ? '🌙 Dark' : '☀️ Light'}</Text>
+            <ArrowLeft size={24} color="#FCD34D" />
           </TouchableOpacity>
         </View>
         
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Give with Joy</Text>
-          <Text style={styles.headerSubTe}>ఆనందంగా ఇవ్వండి</Text>
-          <Text style={styles.headerQuote}>“God loves a cheerful giver” — 2 Cor 9:7</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginTop: 10 }}>
+            <Text style={[styles.headerTitle, isDark && { color: '#fff' }]}>Give with</Text>
+            <View style={{ 
+              borderWidth: 1.5, 
+              borderColor: '#3b82f6', 
+              borderRadius: 30, 
+              paddingHorizontal: 20, 
+              paddingVertical: 4, 
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              marginLeft: 8
+            }}>
+              <Text style={{ fontSize: 26, fontStyle: 'italic', color: '#60a5fa', fontWeight: '600', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}>Joy</Text>
+            </View>
+          </View>
+          <Text style={[styles.headerQuote, isDark && { color: '#94a3b8' }]}>"God loves a cheerful giver" — 2 Cor 9:7</Text>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <View>
             {/* ── Category Selection ── */}
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionLabel}>SELECT GIVING CATEGORY</Text>
+        <View style={[styles.sectionCard, isDark && { backgroundColor: 'transparent', elevation: 0, borderWidth: 0, paddingHorizontal: 0 }]}>
+          <Text style={[styles.sectionLabel, isDark && { color: '#94a3b8', paddingLeft: 4 }]}>SELECT GIVING CATEGORY</Text>
           <View style={styles.grid}>
             {CATEGORIES.map(cat => (
               <TouchableOpacity 
                 key={cat.id} 
-                style={[styles.gridItem, activeCat === cat.id && styles.gridItemActive]}
+                style={[
+                  styles.gridItem, 
+                  activeCat === cat.id && styles.gridItemActive,
+                  isDark && { backgroundColor: '#1e293b', borderColor: '#334155' },
+                  activeCat === cat.id && isDark && { borderColor: '#FCD34D', backgroundColor: '#1e293b' }
+                ]}
                 onPress={() => {
                   setActiveCat(cat.id);
                   if (cat.id === 'Others') {
@@ -345,9 +360,14 @@ export default function GivingScreen({ navigation }: any) {
                   }
                 }}
               >
+                {activeCat === cat.id && (
+                  <View style={{ position: 'absolute', top: 8, right: 8 }}>
+                    <ShieldCheck size={16} color={isDark ? '#FCD34D' : '#1a2d5a'} />
+                  </View>
+                )}
                 <Text style={styles.catEmoji}>{cat.icon}</Text>
-                <Text style={styles.catTitle}>{cat.label}</Text>
-                <Text style={styles.catTitleTe}>{cat.labelTe}</Text>
+                <Text style={[styles.catTitle, isDark && { color: '#f8fafc' }]}>{cat.label}</Text>
+                <Text style={[styles.catTitleTe, isDark && { color: '#94a3b8' }]}>{cat.labelTe}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -640,11 +660,11 @@ const styles = StyleSheet.create({
   themeToggle: { backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
   themeToggleText: { color: '#fff', fontSize: 10, fontWeight: '800' },
   
-  headerContent: { alignItems: 'center', marginTop: 0 },
+  headerContent: { alignItems: 'center', marginTop: -10 },
   iconCircle: { width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(252,211,77,0.15)', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 26, fontWeight: '800', color: '#fff' },
   headerSubTe: { fontSize: 13, color: '#FCD34D', fontWeight: '500', marginTop: 2 },
-  headerQuote: { fontSize: 11, color: '#aac4e8', marginTop: 6, fontStyle: 'italic' },
+  headerQuote: { fontSize: 13, color: '#aac4e8', marginTop: 6, fontStyle: 'italic' },
 
   scrollContent: { padding: 16, paddingBottom: 40 },
   comingSoonCard: {
@@ -686,19 +706,21 @@ const styles = StyleSheet.create({
   
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   gridItem: { 
-    width: (width - 64 - 20) / 3, // 3 column grid with 10 spacing between each (20 total)
+    width: (width - 32 - 20) / 3, // 3 column grid with 10 spacing between each (20 total)
     backgroundColor: '#fff', 
     borderRadius: 16, 
-    padding: 10, 
+    paddingTop: 20,
+    paddingBottom: 16,
+    paddingHorizontal: 8,
     alignItems: 'center', 
     borderWidth: 1, 
     borderColor: '#e2e8f0',
     marginBottom: 10
   },
-  gridItemActive: { borderColor: '#1a2d5a', borderWidth: 2, backgroundColor: '#f0f4ff' },
-  catEmoji: { fontSize: 20, marginBottom: 6 },
-  catTitle: { fontSize: 11, fontWeight: '700', color: '#1e293b', textAlign: 'center' },
-  catTitleTe: { fontSize: 9, color: '#64748b', marginTop: 2, textAlign: 'center' },
+  gridItemActive: { borderColor: '#1a2d5a', borderWidth: 1.5, backgroundColor: '#f0f4ff' },
+  catEmoji: { fontSize: 28, marginBottom: 8 },
+  catTitle: { fontSize: 13, fontWeight: '700', color: '#1e293b', textAlign: 'center' },
+  catTitleTe: { fontSize: 10, color: '#64748b', marginTop: 4, textAlign: 'center' },
   label: { fontSize: 12, fontWeight: '600', color: '#475569', marginBottom: 8, marginLeft: 4 },
 
   presetRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 6, marginBottom: 15 },
