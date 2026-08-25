@@ -259,8 +259,8 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           <div class="receipt-container">
             <div class="header">
               <div class="logo-container">
-                \${activeChurch?.logoUrl || activeChurch?.imageUrl ? \`<img src="\${activeChurch.logoUrl || activeChurch.imageUrl}" class="church-logo" />\` : \`<div style="width: 60px; height: 60px; border-radius: 10px; margin-right: 15px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #999;">\${activeChurch?.name?.charAt(0) || 'C'}</div>\`}
-                <h2 class="church-name">\${activeChurch?.name || 'Church Name'}</h2>
+                ${activeChurch?.logoUrl || activeChurch?.imageUrl ? `<img src="${activeChurch.logoUrl || activeChurch.imageUrl}" class="church-logo" />` : `<div style="width: 60px; height: 60px; border-radius: 10px; margin-right: 15px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #999;">${activeChurch?.name?.charAt(0) || 'C'}</div>`}
+                <h2 class="church-name">${activeChurch?.name || 'Church Name'}</h2>
               </div>
               <div class="receipt-title">Receipt</div>
             </div>
@@ -268,35 +268,35 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             <div style="margin-bottom: 30px;">
               <div class="info-row">
                 <span class="label">Billed To</span>
-                <span class="value">\${member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</span>
+                <span class="value">${member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</span>
               </div>
               <div class="info-row">
                 <span class="label">Transaction ID</span>
-                <span class="value" style="font-family: monospace;">\${invoice?.id || 'N/A'}</span>
+                <span class="value" style="font-family: monospace;">${invoice?.id || 'N/A'}</span>
               </div>
               <div class="info-row">
                 <span class="label">Date Paid</span>
-                <span class="value">\${invoice?.paidAt ? ((invoice.paidAt as any).toDate ? (invoice.paidAt as any).toDate() : ((invoice.paidAt as any).seconds ? new Date((invoice.paidAt as any).seconds * 1000) : new Date(invoice.paidAt as any))).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
+                <span class="value">${invoice?.paidAt ? ((invoice.paidAt as any).toDate ? (invoice.paidAt as any).toDate() : ((invoice.paidAt as any).seconds ? new Date((invoice.paidAt as any).seconds * 1000) : new Date(invoice.paidAt as any))).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
               </div>
               <div class="info-row">
                 <span class="label">Plan Details</span>
-                <span class="value" style="text-transform: capitalize;">\${invoice?.plan || 'Monthly'} Plan</span>
+                <span class="value" style="text-transform: capitalize;">${invoice?.plan || 'Monthly'} Plan</span>
               </div>
-              \${invoice?.validUntil ? \`
+              ${invoice?.validUntil ? `
               <div class="info-row">
                 <span class="label">Valid Until</span>
-                <span class="value">\${((invoice.validUntil as any).toDate ? (invoice.validUntil as any).toDate() : ((invoice.validUntil as any).seconds ? new Date((invoice.validUntil as any).seconds * 1000) : new Date(invoice.validUntil as any))).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                <span class="value">${((invoice.validUntil as any).toDate ? (invoice.validUntil as any).toDate() : ((invoice.validUntil as any).seconds ? new Date((invoice.validUntil as any).seconds * 1000) : new Date(invoice.validUntil as any))).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
               </div>
-              \` : ''}
+              ` : ''}
               <div class="info-row" style="margin-top: 20px;">
                 <span class="label">Status</span>
-                <span class="status-badge">\${invoice?.status || 'N/A'}</span>
+                <span class="status-badge">${invoice?.status || 'N/A'}</span>
               </div>
             </div>
             
             <div class="total-section">
               <span class="total-label">Total Paid</span>
-              <span class="total-amount">₹\${invoice?.amount || '0'}</span>
+              <span class="total-amount">₹${invoice?.amount || '0'}</span>
             </div>
             
             <div class="footer">
@@ -306,7 +306,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </div>
         </body>
         </html>
-      \`;
+      `;
       const { uri } = await Print.printToFileAsync({ html });
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri);
