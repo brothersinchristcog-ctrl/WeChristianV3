@@ -142,11 +142,53 @@ export default function SuperAdminDashboard({ navigation }: any) {
     }
   };
 
+  const handleExtendSubscription = async (churchId: string, churchName: string) => {
+    try {
+      Alert.alert(
+        'Confirm Extension',
+        `Extend subscription for ${churchName} by 1 year?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Extend', 
+            style: 'default',
+            onPress: async () => {
+              setLoading(true);
+              const { firestore } = await import('../../services/firebaseConfig');
+              const newDate = new Date();
+              newDate.setFullYear(newDate.getFullYear() + 1);
+              
+              await ChurchService.updateChurch(churchId, {
+                'subscription.validUntil': firestore.Timestamp.fromDate(newDate),
+                'subscription.status': 'active'
+              });
+              
+              Alert.alert('Success', `${churchName} subscription extended!`);
+              fetchChurches();
+            }
+          }
+        ]
+      );
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Failed to extend subscription');
+    }
+  };
+
   const renderChurch = ({ item }: { item: ChurchDetails }) => (
     <View style={styles.card}>
-      <Text style={styles.cardTitle}>{item.name}</Text>
-      <Text style={styles.cardSub}>Subdomain: {item.subdomain}</Text>
-      <Text style={styles.cardSub}>Members: {item.memberCount || 0}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.cardTitle}>{item.name}</Text>
+        <Text style={styles.cardSub}>Subdomain: {item.subdomain}</Text>
+        <Text style={styles.cardSub}>Members: {item.memberCount || 0}</Text>
+        <Text style={styles.cardSub}>Status: {item.subscription?.status === 'active' ? 'Active' : 'Trial / Expired'}</Text>
+      </View>
+      <TouchableOpacity 
+        style={{ backgroundColor: '#10b981', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, justifyContent: 'center' }}
+        onPress={() => handleExtendSubscription(item.id, item.name)}
+      >
+        <Text style={{ color: '#fff', fontWeight: '600', fontSize: 12 }}>+ 1 Year</Text>
+      </TouchableOpacity>
     </View>
   );
 
@@ -269,8 +311,11 @@ const styles = StyleSheet.create({
   card: { 
     backgroundColor: '#fff', 
     padding: 16, 
-    borderRadius: 8, 
+    borderRadius: 12, 
     marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     elevation: 2 
   },
   cardTitle: { fontSize: 16, fontWeight: 'bold', color: '#1a2d5a', marginBottom: 4 },
