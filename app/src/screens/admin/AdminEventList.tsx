@@ -210,22 +210,22 @@ export default function AdminEventList() {
               )}
             </TouchableOpacity>
             <View style={styles.eiBody}>
-              <Text style={styles.eiTitle} numberOfLines={1}>{event.name || 'No Title'}</Text>
-              <Text style={styles.eiTe} numberOfLines={1}>{event.titleTe || ''}</Text>
+              <Text style={[styles.eiTitle, { flexShrink: 1 }]} numberOfLines={1}>{event.name || 'No Title'}</Text>
+              <Text style={[styles.eiTe, { flexShrink: 1 }]} numberOfLines={1}>{event.titleTe || ''}</Text>
               <View style={styles.eiMetaRow}>
                 <Calendar size={11} color="#c0392b" />
                 <Text style={[styles.eiMetaTxt, { color: '#c0392b', fontWeight: '700' }]}>{formatDate(event.date)}</Text>
               </View>
               <View style={styles.eiMetaRow}>
                 <Clock size={11} color="#6B7280" />
-                <Text style={styles.eiMetaTxt} numberOfLines={1}>
+                <Text style={[styles.eiMetaTxt, { flexShrink: 1 }]} numberOfLines={1}>
                   {formatDisplayTime(event.startTime)}
                   {event.endTime ? ` — ${formatDisplayTime(event.endTime)}` : ''}
                 </Text>
               </View>
               <View style={styles.eiMetaRow}>
                 <MapPin size={11} color="#6B7280" />
-                <Text style={styles.eiMetaTxt} numberOfLines={1}>{event.venueEn || event.location || 'No Venue'}</Text>
+                <Text style={[styles.eiMetaTxt, { flexShrink: 1 }]} numberOfLines={1}>{event.venueEn || event.location || 'No Venue'}</Text>
               </View>
               <View style={styles.eiFoot}>
                 <View style={[event.status?.toLowerCase().includes('dra') ? styles.badgeDraft : styles.badgePub, { flexShrink: 1 }]}>

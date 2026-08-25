@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking, Platform } from 'react-native';
 import Share from 'react-native-share';
-import * as Clipboard from 'expo-clipboard';
 import { Gift, Heart, PlusCircle, ChevronLeft } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
@@ -189,44 +188,18 @@ export default function AdminCelebrations({ navigation }: any) {
       text += `\n\nWith Love ❤️\n${activeChurch?.name || 'Your Church'}`;
       
       if (localImageUri) {
-        if (Platform.OS === 'android') {
-          await Clipboard.setStringAsync(text);
-          Alert.alert(
-            'Message Copied',
-            'Because of an Android limitation, WhatsApp sometimes drops the message text when sharing an image. We have copied it to your clipboard just in case—simply paste it in the chat!',
-            [
-              {
-                text: 'Continue to WhatsApp',
-                onPress: async () => {
-                  try {
-                    await Share.shareSingle({
-                      title: 'Share Celebration Card',
-                      message: text,
-                      url: localImageUri,
-                      social: Share.Social.WHATSAPP,
-                      whatsAppNumber: formattedPhone
-                    } as any);
-                    setViewMode('confirm');
-                  } catch (err: any) {
-                    console.log('Share error or cancelled:', err);
-                  }
-                }
-              }
-            ]
-          );
-        } else {
-          try {
-            await Share.shareSingle({
-              title: 'Share Celebration Card',
-              message: text,
-              url: localImageUri,
-              social: Share.Social.WHATSAPP,
-              whatsAppNumber: formattedPhone
-            } as any);
-            setViewMode('confirm');
-          } catch (err: any) {
-            console.log('Share error or cancelled:', err);
-          }
+        try {
+          await Share.shareSingle({
+            title: 'Share Celebration Card',
+            message: text,
+            url: localImageUri,
+            social: Share.Social.WHATSAPP,
+            whatsAppNumber: formattedPhone
+          } as any);
+          setViewMode('confirm');
+        } catch (err: any) {
+          console.log('Share error or cancelled:', err);
+          // If cancelled, it might throw, just continue
         }
       } else {
         const url = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(text)}`;
