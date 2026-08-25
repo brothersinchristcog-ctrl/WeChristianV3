@@ -1052,11 +1052,15 @@ export default function HomeScreen() {
               {promiseThumbnail && (
                 <View style={[styles.phSlide, styles.phThumbnailSlide, { elevation: isDark ? 0 : 8 }]}>
                   <LinearGradient
-                    colors={['#020b22', '#081d4a']}
+                    colors={['#17357a', '#0a1945']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
-                    style={{ flex: 1, paddingTop: 16, borderRadius: 20 }}
+                    style={{ flex: 1, paddingTop: 16, borderRadius: 20, overflow: 'hidden' }}
                   >
+                    {/* Decorative Ash Colored Circle Lines */}
+                    <View style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.15)' }} />
+                    <View style={{ position: 'absolute', top: -10, right: -10, width: 100, height: 100, borderRadius: 50, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.1)' }} />
+                    <View style={{ position: 'absolute', bottom: -50, left: -20, width: 140, height: 140, borderRadius: 70, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.1)' }} />
                     <Text style={styles.phLabel}>TODAY'S PROMISE · ఈ రోజు వాగ్దానం</Text>
                     <Image
                       source={{ uri: promiseThumbnail }}
