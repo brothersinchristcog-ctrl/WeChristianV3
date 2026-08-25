@@ -18,6 +18,7 @@ import {
 import { 
   Lock, 
   Coins,
+  CreditCard,
   Share2,
   CheckCircle2,
   ArrowLeft,
