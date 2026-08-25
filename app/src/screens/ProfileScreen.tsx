@@ -545,7 +545,7 @@ export default function ProfileScreen({ navigation }: any) {
           />
         </View>
 
-        <Text style={styles.versionTxt}>Version {Constants.expoConfig?.version || '1.0.0'}</Text>
+        <Text style={styles.versionTxt}>Version {Constants.expoConfig?.version || '1.0.1'}</Text>
       </ScrollView>
 
       {/* ── Edit Profile Modal (Using View for better reliability) ── */}
