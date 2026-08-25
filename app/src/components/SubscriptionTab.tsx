@@ -152,6 +152,10 @@ export default function SubscriptionTab({ member }: { member?: any }) {
 
   const downloadPdfReceipt = async (invoice: any) => {
     try {
+      const churchLogoHtml = activeChurch?.theme?.logoUrl 
+        ? `<img src="${activeChurch.theme.logoUrl}" class="church-logo" />` 
+        : `<div style="width: 60px; height: 60px; border-radius: 10px; margin-right: 15px; background: #f0f0f0; text-align: center; line-height: 60px; font-size: 24px; font-weight: bold; color: #999; display: inline-block;">${activeChurch?.name?.charAt(0) || 'C'}</div>`;
+
       const html = `
         <!DOCTYPE html>
         <html>
@@ -189,6 +193,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               border-radius: 10px;
               margin-right: 15px;
               object-fit: cover;
+              display: inline-block;
             }
             .church-name {
               font-size: 24px;
@@ -259,7 +264,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           <div class="receipt-container">
             <div class="header">
               <div class="logo-container">
-                ${(activeChurch as any)?.logoUrl || (activeChurch as any)?.imageUrl ? `<img src="${(activeChurch as any).logoUrl || (activeChurch as any).imageUrl}" class="church-logo" />` : `<div style="width: 60px; height: 60px; border-radius: 10px; margin-right: 15px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #999;">${activeChurch?.name?.charAt(0) || 'C'}</div>`}
+                ${churchLogoHtml}
                 <h2 class="church-name">${activeChurch?.name || 'Church Name'}</h2>
               </div>
               <div class="receipt-title">Receipt</div>
