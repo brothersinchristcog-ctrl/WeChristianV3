@@ -87,12 +87,20 @@ export default function GivingScreen({ navigation }: any) {
   useEffect(() => {
     const interval = setInterval(() => {
       setWordIdx(prev => {
-        const nextIdx = (prev + 1) % GIVING_WORDS.length;
+        const isLastRealWord = prev === GIVING_WORDS.length - 1;
+        const nextIdx = prev + 1; // Can go to GIVING_WORDS.length (the fake duplicate)
+
         Animated.timing(scrollAnim, {
           toValue: -nextIdx * 38, // Fixed height per word
           duration: 500,
           useNativeDriver: true,
-        }).start();
+        }).start(() => {
+          if (isLastRealWord) {
+            // Instantly snap back to the first 'Joy' after animating to the fake one
+            scrollAnim.setValue(0);
+            setWordIdx(0);
+          }
+        });
         return nextIdx;
       });
     }, 3000);
@@ -351,12 +359,12 @@ export default function GivingScreen({ navigation }: any) {
             <Text style={[styles.headerTitle, isDark && { color: '#fff' }]}>Give with</Text>
             
             <LinearGradient
-              colors={GIVING_WORDS[wordIdx].colors}
+              colors={GIVING_WORDS[wordIdx % GIVING_WORDS.length].colors}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{
                 borderWidth: 1.5, 
-                borderColor: GIVING_WORDS[wordIdx].border, 
+                borderColor: GIVING_WORDS[wordIdx % GIVING_WORDS.length].border, 
                 borderRadius: 30, 
                 paddingHorizontal: 20, 
                 height: 38,
@@ -367,14 +375,15 @@ export default function GivingScreen({ navigation }: any) {
               }}
             >
               <Animated.View style={{ transform: [{ translateY: scrollAnim }] }}>
-                {GIVING_WORDS.map((w, index) => (
-                  <View key={w.text} style={{ height: 38, justifyContent: 'center', alignItems: 'center' }}>
+                {[...GIVING_WORDS, GIVING_WORDS[0]].map((w, index) => (
+                  <View key={`${w.text}-${index}`} style={{ height: 38, justifyContent: 'center', alignItems: 'center' }}>
                     <Text style={{ 
-                      fontSize: 26, 
+                      fontSize: 28, 
                       fontStyle: 'italic', 
                       color: w.textCol, 
                       fontWeight: '600', 
-                      fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' 
+                      fontFamily: Platform.OS === 'ios' ? 'Snell Roundhand' : 'cursive',
+                      marginBottom: 4 // moves text slightly up within the view
                     }}>
                       {w.text}
                     </Text>
