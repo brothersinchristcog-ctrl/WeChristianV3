@@ -699,7 +699,6 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => {
                       setSelectedInvoice(h);
-                      setViewReceiptModalVisible(true);
                     }} style={{ backgroundColor: '#ecfdf5', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#a7f3d0' }}>
                       <Eye size={20} color="#059669" />
                     </TouchableOpacity>
@@ -743,7 +742,6 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                   <View style={{ flexDirection: 'row', gap: 8 }}>
                     <TouchableOpacity onPress={() => {
                       setSelectedInvoice(h);
-                      setViewReceiptModalVisible(true);
                     }} style={{ padding: 10, backgroundColor: '#E4DDC8', borderRadius: 8 }}>
                       <Eye size={16} color="#1F3B3D" />
                     </TouchableOpacity>
