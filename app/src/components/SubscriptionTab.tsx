@@ -818,7 +818,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             </Text>
           </View>
           <View style={{ flex: 1, justifyContent: 'center' }}>
-            <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#f59e0b', padding: 24, paddingBottom: 28, overflow: 'hidden' }}>
+            <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#f59e0b', padding: 24, paddingVertical: 40, overflow: 'hidden' }}>
             <View style={{ position: 'absolute', top: 0, right: 0, width: 130, height: 75 }}>
               <Svg width="130" height="75" style={{ position: 'absolute', top: 0, right: 0 }}>
                 <Defs>
@@ -834,9 +834,9 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               </View>
             </View>
             
-            <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 16, marginTop: 4 }}>{activeChurch?.name || 'Church of GOD'}</Text>
+            <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '600', marginBottom: 20, marginTop: 12 }}>{activeChurch?.name || 'Church of GOD'}</Text>
             
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
               <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹108</Text>
               <Text style={{ color: '#eab308', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹1</Text>
               <View>
@@ -845,16 +845,16 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               </View>
             </View>
 
-            <Text style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 20, marginBottom: 16 }}>
+            <Text style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 22, marginBottom: 24 }}>
               A comprehensive solution for spiritual growth, offering enhanced features to streamline your daily walk with God.
             </Text>
 
-            <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 16, borderRadius: 1 }} />
+            <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 24, borderRadius: 1 }} />
 
             <View style={{ flexDirection: 'row', marginBottom: 20 }}>
               <View style={{ flex: 1 }}>
                 {['Bible', 'Sermons', 'Events', 'Songs', 'Bible plan', 'Online bible classes'].map((feat, idx) => (
-                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                     <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
                       <Check size={12} color="#171e2e" strokeWidth={3} />
                     </View>
@@ -864,7 +864,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               </View>
               <View style={{ flex: 1, paddingLeft: 8 }}>
                 {['Prayer wall', 'YouTube live', 'Celebrations', 'Live celebrations', 'Expense', 'Donation'].map((feat, idx) => (
-                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                     <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
                       <Check size={12} color="#171e2e" strokeWidth={3} />
                     </View>
