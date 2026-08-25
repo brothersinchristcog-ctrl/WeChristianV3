@@ -933,42 +933,38 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Animated Curved Gradient Glow Line */}
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 30, overflow: 'hidden' }}>
-          <Svg width={width} height={30} style={{ position: 'absolute', bottom: 0 }}>
-            <Defs>
-              <SvgLinearGradient id="borderGrad" x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0%" stopColor="rgba(29, 78, 216, 0.2)" />
-                <Stop offset="35%" stopColor="rgba(29, 78, 216, 0.2)" />
-                <Stop offset="45%" stopColor="rgba(96, 165, 250, 0.8)" />
-                <Stop offset="50%" stopColor="rgba(255, 255, 255, 1)" />
-                <Stop offset="55%" stopColor="rgba(96, 165, 250, 0.8)" />
-                <Stop offset="65%" stopColor="rgba(29, 78, 216, 0.2)" />
-                <Stop offset="100%" stopColor="rgba(29, 78, 216, 0.2)" />
-              </SvgLinearGradient>
-
-              <Mask id="lineMask">
-                <Path
-                  d={`M 2 -10 L 2 0 A 28 28 0 0 0 30 28 L ${width - 30} 28 A 28 28 0 0 0 ${width - 2} 0 L ${width - 2} -10`}
-                  stroke="white"
-                  strokeWidth={4}
-                  fill="none"
-                />
-              </Mask>
-            </Defs>
-
-            <AnimatedRect
-              x={curveLineAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-width * 2, 0]
-              })}
-              y="0"
-              width={width * 3}
-              height="30"
-              fill="url(#borderGrad)"
-              mask="url(#lineMask)"
+        {/* Animated Gradient Glow Line (Sharp Edges) */}
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, overflow: 'hidden' }}>
+          <Animated.View
+            style={{
+              width: width * 3, // Wide enough to pan across continuously without blinking
+              height: '100%',
+              transform: [
+                {
+                  translateX: curveLineAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-width * 2, 0], // Move left to right
+                  }),
+                },
+              ],
+            }}
+          >
+            <LinearGradient
+              colors={[
+                'rgba(29, 78, 216, 0.2)',
+                'rgba(29, 78, 216, 0.2)',
+                'rgba(96, 165, 250, 0.8)',
+                'rgba(255, 255, 255, 1)',
+                'rgba(96, 165, 250, 0.8)',
+                'rgba(29, 78, 216, 0.2)',
+                'rgba(29, 78, 216, 0.2)',
+              ]}
+              locations={[0, 0.35, 0.45, 0.5, 0.55, 0.65, 1]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={{ flex: 1 }}
             />
-          </Svg>
+          </Animated.View>
         </View>
 
       </LinearGradient>
@@ -1369,8 +1365,6 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 45,
     paddingHorizontal: 20,
     paddingBottom: 30,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
     overflow: 'hidden',
   },
   particleLayer: {
