@@ -413,7 +413,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               </View>
             </View>
             
-            <Text style={{ color: '#f8fafc', fontSize: 24, fontWeight: '600', marginBottom: 24, marginTop: 8 }}>{activeChurch?.name || 'Church of GOD'}</Text>
+            <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 24, marginTop: 8 }}>{activeChurch?.name || 'Church of GOD'}</Text>
             
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
               <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹108</Text>
@@ -544,9 +544,14 @@ export default function SubscriptionTab({ member }: { member?: any }) {
         </View>
       ) : currentStep === 2 ? (
         <View style={[styles.stepContainer, { flex: 1, paddingHorizontal: 28 }]}>
-          <Text style={{ color: '#1F3B3D', fontSize: 22, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase', textAlign: 'center', marginTop: 16, marginBottom: 8 }}>
-            Pricing
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16, marginBottom: 8, position: 'relative' }}>
+            <TouchableOpacity style={{ position: 'absolute', left: -8, padding: 8 }} onPress={() => nextStep(1)}>
+              <ArrowLeft size={24} color={'#1F3B3D'} />
+            </TouchableOpacity>
+            <Text style={{ color: '#1F3B3D', fontSize: 22, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+              Pricing
+            </Text>
+          </View>
           <View style={{ flex: 1, justifyContent: 'center' }}>
             <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#f59e0b', padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
             <View style={{ position: 'absolute', top: 0, right: 0, width: 130, height: 75 }}>
@@ -564,7 +569,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               </View>
             </View>
             
-            <Text style={{ color: '#f8fafc', fontSize: 24, fontWeight: '600', marginBottom: 16, marginTop: 4 }}>{activeChurch?.name || 'Church of GOD'}</Text>
+            <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 16, marginTop: 4 }}>{activeChurch?.name || 'Church of GOD'}</Text>
             
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹108</Text>
