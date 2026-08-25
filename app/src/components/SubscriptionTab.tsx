@@ -1,5 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import {
   View,
   Text,
@@ -538,8 +538,19 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </Text>
           <View style={{ flex: 1, justifyContent: 'center' }}>
             <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
-            <View style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#f59e0b', paddingHorizontal: 24, paddingVertical: 14, borderBottomLeftRadius: 32 }}>
-              <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Save 89% •</Text>
+            <View style={{ position: 'absolute', top: 0, right: 0, width: 140, height: 45 }}>
+              <Svg width="140" height="45" style={{ position: 'absolute', top: 0, right: 0 }}>
+                <Defs>
+                  <LinearGradient id="goldBadge" x1="0" y1="0" x2="1" y2="0">
+                    <Stop offset="0" stopColor="#f59e0b" stopOpacity="1" />
+                    <Stop offset="1" stopColor="#d97706" stopOpacity="1" />
+                  </LinearGradient>
+                </Defs>
+                <Path d="M 0 0 C 0 22.5, 30 22.5, 30 45 L 140 45 L 140 0 Z" fill="url(#goldBadge)" />
+              </Svg>
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
+                <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13, marginTop: -4 }}>Save 89% •</Text>
+              </View>
             </View>
             
             <Text style={{ color: '#f8fafc', fontSize: 24, fontWeight: '600', marginBottom: 16, marginTop: 4 }}>{activeChurch?.name || 'Church of GOD'}</Text>
