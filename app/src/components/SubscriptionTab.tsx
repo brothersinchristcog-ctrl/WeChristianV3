@@ -863,7 +863,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                 ))}
               </View>
               <View style={{ flex: 1, paddingLeft: 8 }}>
-                {['Member Management', 'Celebrations', 'Live celebrations', 'Expense', 'Donation'].map((feat, idx) => (
+                {['Celebrations', 'Live celebrations', 'Expense', 'Donation'].map((feat, idx) => (
                   <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                     <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
                       <Check size={12} color="#171e2e" strokeWidth={3} />
