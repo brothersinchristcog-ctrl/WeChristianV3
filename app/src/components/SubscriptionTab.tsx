@@ -82,6 +82,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const [planSelectModalVisible, setPlanSelectModalVisible] = useState(false);
   const [selectedAdvancePlan, setSelectedAdvancePlan] = useState<'monthly' | 'annual'>('annual');
   const [receiptTxnId, setReceiptTxnId] = useState('');
+  const [isPaymentSuccessful, setIsPaymentSuccessful] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [subscriptionHistory, setSubscriptionHistory] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState({ days: '00', hours: '00', minutes: '00', seconds: '00' });
@@ -240,6 +241,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           // Refresh history, user, and church context
           if (activeChurch && user) {
             // Force ChurchContext to fetch latest data to unblock the app!
+            setIsPaymentSuccessful(true);
             await setChurchId(activeChurch.id);
 
             const u = await firestoreService.getGlobalUser(user.uid);
@@ -371,8 +373,8 @@ export default function SubscriptionTab({ member }: { member?: any }) {
         <View style={[styles.stepContainer, { justifyContent: 'center', alignItems: 'center' }]}>
           <Text style={styles.title}>Loading...</Text>
         </View>
-      ) : (activeChurch?.subscription?.status === 'active' && !planSelectModalVisible) ? (
-        <View style={[{ minHeight: 600, backgroundColor: '#cbd5e1', paddingTop: 24 }]}>
+      ) : ((activeChurch?.subscription?.status === 'active' || isPaymentSuccessful) && !planSelectModalVisible) ? (
+        <View style={[{ minHeight: 600, paddingTop: 24 }]}>
           <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 20, paddingBottom: 16, marginBottom: 24, marginHorizontal: 16, alignItems: 'center' }}>
             <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 12 }}>TIME REMAINING</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'center', width: '100%' }}>
@@ -398,8 +400,9 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             </View>
           </View>
 
-          <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#10b981', padding: 16, paddingBottom: 20, marginHorizontal: 28, overflow: 'hidden' }}>
-            <View style={{ position: 'absolute', top: 0, right: 0, width: 130, height: 75 }}>
+          <View style={{ paddingHorizontal: 28 }}>
+            <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#10b981', padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
+              <View style={{ position: 'absolute', top: 0, right: 0, width: 130, height: 75 }}>
               <Svg width="130" height="75" style={{ position: 'absolute', top: 0, right: 0 }}>
                 <Defs>
                   <LinearGradient id="greenBadge" x1="0" y1="0" x2="1" y2="0">
@@ -414,9 +417,9 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               </View>
             </View>
             
-            <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 24, marginTop: 8 }}>{activeChurch?.name || 'Church of GOD'}</Text>
+            <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 16, marginTop: 4 }}>{activeChurch?.name || 'Church of GOD'}</Text>
             
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹108</Text>
               <Text style={{ color: '#10b981', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹1</Text>
               <View>
@@ -425,27 +428,29 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               </View>
             </View>
 
-            <Text style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 22, marginBottom: 24 }}>
+            <Text style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 20, marginBottom: 16 }}>
               A comprehensive solution for spiritual growth, offering enhanced features to streamline your daily walk with God.
             </Text>
 
-            <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 24, borderRadius: 1 }} />
+            <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 16, borderRadius: 1 }} />
 
-            <View style={{ marginBottom: 32 }}>
+            <View style={{ marginBottom: 20 }}>
               {['Bible', 'Sermons', 'Events', 'Songs', 'Bible plan', 'Online bible classes', 'Prayer wall', 'YouTube live'].map((feat, idx) => (
-                <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+                <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                   <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                     <Check size={14} color="#171e2e" strokeWidth={3} />
                   </View>
-                  <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '500' }}>{feat}</Text>
+                  <Text style={{ color: '#cbd5e1', fontSize: 14.5 }}>{feat}</Text>
                 </View>
               ))}
             </View>
 
-            <View style={{ backgroundColor: '#10b981', borderRadius: 12, paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
-              <Text style={{ color: '#171e2e', fontSize: 18, fontWeight: '700' }}>Current Plan</Text>
+            <View style={{ backgroundColor: '#10b981', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
+              <Crown size={20} color="#f8fafc" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700' }}>Current Plan</Text>
             </View>
           </View>
+        </View>
 
           {/* Ledger */}
           <View style={{ paddingHorizontal: 24, marginTop: 24 }}>
