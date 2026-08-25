@@ -537,7 +537,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             Pricing
           </Text>
           <View style={{ flex: 1, justifyContent: 'center' }}>
-            <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
+            <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#f59e0b', padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
             <View style={{ position: 'absolute', top: 0, right: 0, width: 160, height: 45 }}>
               <Svg width="160" height="45" style={{ position: 'absolute', top: 0, right: 0 }}>
                 <Defs>
