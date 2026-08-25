@@ -398,15 +398,15 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </View>
 
           <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#10b981', padding: 16, paddingBottom: 20, marginHorizontal: 28, overflow: 'hidden' }}>
-            <View style={{ position: 'absolute', top: 0, right: 0, width: 160, height: 75 }}>
-              <Svg width="160" height="75" style={{ position: 'absolute', top: 0, right: 0 }}>
+            <View style={{ position: 'absolute', top: 0, right: 0, width: 130, height: 75 }}>
+              <Svg width="130" height="75" style={{ position: 'absolute', top: 0, right: 0 }}>
                 <Defs>
                   <LinearGradient id="greenBadge" x1="0" y1="0" x2="1" y2="0">
                     <Stop offset="0" stopColor="#34d399" stopOpacity="1" />
                     <Stop offset="1" stopColor="#059669" stopOpacity="1" />
                   </LinearGradient>
                 </Defs>
-                <Path d="M 0 0 C 25 0, 20 45, 45 45 L 140 45 C 155 45, 160 60, 160 75 L 160 0 Z" fill="url(#greenBadge)" />
+                <Path d="M 0 0 C 25 0, 20 45, 45 45 L 110 45 C 125 45, 130 60, 130 75 L 130 0 Z" fill="url(#greenBadge)" />
               </Svg>
               <View style={{ height: 45, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
                 <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Active Plan</Text>
@@ -549,15 +549,15 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </Text>
           <View style={{ flex: 1, justifyContent: 'center' }}>
             <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#f59e0b', padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
-            <View style={{ position: 'absolute', top: 0, right: 0, width: 160, height: 75 }}>
-              <Svg width="160" height="75" style={{ position: 'absolute', top: 0, right: 0 }}>
+            <View style={{ position: 'absolute', top: 0, right: 0, width: 130, height: 75 }}>
+              <Svg width="130" height="75" style={{ position: 'absolute', top: 0, right: 0 }}>
                 <Defs>
                   <LinearGradient id="goldBadge" x1="0" y1="0" x2="1" y2="0">
                     <Stop offset="0" stopColor="#f59e0b" stopOpacity="1" />
                     <Stop offset="1" stopColor="#d97706" stopOpacity="1" />
                   </LinearGradient>
                 </Defs>
-                <Path d="M 0 0 C 25 0, 20 45, 45 45 L 140 45 C 155 45, 160 60, 160 75 L 160 0 Z" fill="url(#goldBadge)" />
+                <Path d="M 0 0 C 25 0, 20 45, 45 45 L 110 45 C 125 45, 130 60, 130 75 L 130 0 Z" fill="url(#goldBadge)" />
               </Svg>
               <View style={{ height: 45, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
                 <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Save 89% •</Text>
