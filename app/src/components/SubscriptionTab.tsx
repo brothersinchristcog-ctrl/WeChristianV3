@@ -364,7 +364,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const dashOffset = (2 * Math.PI * 54) - ((2 * Math.PI * 54) * progressRatio);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#B2BEB5' }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} bounces={false}>
+    <ScrollView style={{ flex: 1, backgroundColor: '#cbd5e1' }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} bounces={false}>
 
       {loading ? (
         <View style={[styles.stepContainer, { justifyContent: 'center', alignItems: 'center' }]}>
