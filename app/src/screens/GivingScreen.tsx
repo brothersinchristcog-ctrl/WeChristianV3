@@ -353,32 +353,32 @@ export default function GivingScreen({ navigation }: any) {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginTop: 10 }}>
             <Text style={[styles.headerTitle, isDark && { color: '#fff' }]}>Give with</Text>
             
-            <Animated.View style={{ opacity: fadeAnim, marginLeft: 8 }}>
-              <LinearGradient
-                colors={GIVING_WORDS[wordIdx].colors}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  borderWidth: 1.5, 
-                  borderColor: GIVING_WORDS[wordIdx].border, 
-                  borderRadius: 30, 
-                  paddingHorizontal: 20, 
-                  paddingVertical: 4,
-                  minWidth: 90,
-                  alignItems: 'center'
-                }}
-              >
-                <Text style={{ 
-                  fontSize: 26, 
-                  fontStyle: 'italic', 
-                  color: GIVING_WORDS[wordIdx].textCol, 
-                  fontWeight: '600', 
-                  fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' 
-                }}>
-                  {GIVING_WORDS[wordIdx].text}
-                </Text>
-              </LinearGradient>
-            </Animated.View>
+            <LinearGradient
+              colors={GIVING_WORDS[wordIdx].colors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                borderWidth: 1.5, 
+                borderColor: GIVING_WORDS[wordIdx].border, 
+                borderRadius: 30, 
+                paddingHorizontal: 20, 
+                paddingVertical: 4,
+                minWidth: 90,
+                alignItems: 'center',
+                marginLeft: 8
+              }}
+            >
+              <Animated.Text style={{ 
+                opacity: fadeAnim,
+                fontSize: 26, 
+                fontStyle: 'italic', 
+                color: GIVING_WORDS[wordIdx].textCol, 
+                fontWeight: '600', 
+                fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' 
+              }}>
+                {GIVING_WORDS[wordIdx].text}
+              </Animated.Text>
+            </LinearGradient>
           </View>
           <Text style={[styles.headerQuote, isDark && { color: '#94a3b8' }]}>"God loves a cheerful giver" — 2 Cor 9:7</Text>
         </View>
