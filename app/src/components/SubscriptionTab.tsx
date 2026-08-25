@@ -153,21 +153,160 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const downloadPdfReceipt = async (invoice: any) => {
     try {
       const html = `
+        <!DOCTYPE html>
         <html>
-          <body style="font-family: sans-serif; padding: 40px;">
-            <h1>Subscription Receipt</h1>
-            <h2>${activeChurch?.name || 'Church Name'}</h2>
-            <hr />
-            <p><strong>Member Name:</strong> ${member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</p>
-            <p><strong>Plan:</strong> ${invoice?.plan || 'Monthly'} Plan</p>
-            <p><strong>Date:</strong> ${invoice?.paidAt ? ((invoice.paidAt as any).toDate ? (invoice.paidAt as any).toDate() : ((invoice.paidAt as any).seconds ? new Date((invoice.paidAt as any).seconds * 1000) : new Date(invoice.paidAt as any))).toLocaleDateString() : 'N/A'}</p>
-            <p><strong>Transaction ID:</strong> ${invoice?.id || 'N/A'}</p>
-            <p><strong>Status:</strong> ${invoice?.status?.toUpperCase() || 'N/A'}</p>
-            <hr />
-            <h3>Total Paid: ₹${invoice?.amount || '0'}</h3>
-          </body>
+        <head>
+          <style>
+            body {
+              font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+              padding: 40px;
+              color: #333;
+              background-color: #f9f9f9;
+            }
+            .receipt-container {
+              background: #ffffff;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 40px;
+              border-radius: 12px;
+              box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 2px solid #eee;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            .logo-container {
+              display: flex;
+              align-items: center;
+            }
+            .church-logo {
+              width: 60px;
+              height: 60px;
+              border-radius: 10px;
+              margin-right: 15px;
+              object-fit: cover;
+            }
+            .church-name {
+              font-size: 24px;
+              font-weight: bold;
+              color: #1a1a1a;
+              margin: 0;
+            }
+            .receipt-title {
+              font-size: 20px;
+              color: #666;
+              font-weight: 500;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 15px;
+            }
+            .label {
+              color: #888;
+              font-size: 14px;
+              font-weight: 500;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .value {
+              color: #1a1a1a;
+              font-size: 16px;
+              font-weight: 600;
+            }
+            .total-section {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 2px solid #eee;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .total-label {
+              font-size: 18px;
+              font-weight: bold;
+              color: #333;
+            }
+            .total-amount {
+              font-size: 28px;
+              font-weight: bold;
+              color: #10b981;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              color: #888;
+              font-size: 12px;
+            }
+            .status-badge {
+              background-color: #d1fae5;
+              color: #059669;
+              padding: 4px 10px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: bold;
+              text-transform: uppercase;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-container">
+            <div class="header">
+              <div class="logo-container">
+                \${activeChurch?.logoUrl || activeChurch?.imageUrl ? \`<img src="\${activeChurch.logoUrl || activeChurch.imageUrl}" class="church-logo" />\` : \`<div style="width: 60px; height: 60px; border-radius: 10px; margin-right: 15px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; color: #999;">\${activeChurch?.name?.charAt(0) || 'C'}</div>\`}
+                <h2 class="church-name">\${activeChurch?.name || 'Church Name'}</h2>
+              </div>
+              <div class="receipt-title">Receipt</div>
+            </div>
+            
+            <div style="margin-bottom: 30px;">
+              <div class="info-row">
+                <span class="label">Billed To</span>
+                <span class="value">\${member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Transaction ID</span>
+                <span class="value" style="font-family: monospace;">\${invoice?.id || 'N/A'}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Date Paid</span>
+                <span class="value">\${invoice?.paidAt ? ((invoice.paidAt as any).toDate ? (invoice.paidAt as any).toDate() : ((invoice.paidAt as any).seconds ? new Date((invoice.paidAt as any).seconds * 1000) : new Date(invoice.paidAt as any))).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Plan Details</span>
+                <span class="value" style="text-transform: capitalize;">\${invoice?.plan || 'Monthly'} Plan</span>
+              </div>
+              \${invoice?.validUntil ? \`
+              <div class="info-row">
+                <span class="label">Valid Until</span>
+                <span class="value">\${((invoice.validUntil as any).toDate ? (invoice.validUntil as any).toDate() : ((invoice.validUntil as any).seconds ? new Date((invoice.validUntil as any).seconds * 1000) : new Date(invoice.validUntil as any))).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+              </div>
+              \` : ''}
+              <div class="info-row" style="margin-top: 20px;">
+                <span class="label">Status</span>
+                <span class="status-badge">\${invoice?.status || 'N/A'}</span>
+              </div>
+            </div>
+            
+            <div class="total-section">
+              <span class="total-label">Total Paid</span>
+              <span class="total-amount">₹\${invoice?.amount || '0'}</span>
+            </div>
+            
+            <div class="footer">
+              <p>Thank you for your continued support!</p>
+              <p>Generated by WeChristian App</p>
+            </div>
+          </div>
+        </body>
         </html>
-      `;
+      \`;
       const { uri } = await Print.printToFileAsync({ html });
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(uri);
