@@ -346,20 +346,6 @@ export default function SubscriptionTab({ member }: { member?: any }) {
     };
   }, [activeChurch?.subscription?.validUntil, (activeChurch?.subscription as any)?.lastPaymentId, receiptTxnId, activeChurch?.name]);
 
-  const renderProgressBar = () => (
-    <View style={styles.progressContainer}>
-      {[1, 2, 3, 4, 5].map((step) => (
-        <View
-          key={step}
-          style={[
-            styles.progressBar,
-            { backgroundColor: step <= currentStep ? colors.brass : colors.rule }
-          ]}
-        />
-      ))}
-    </View>
-  );
-
   const daysLeft = useMemo(() => {
     if (activeChurch?.subscription?.validUntil) {
       const date = (activeChurch.subscription.validUntil as any).toDate 
@@ -379,7 +365,6 @@ export default function SubscriptionTab({ member }: { member?: any }) {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#F7F3E9' }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} bounces={false}>
-      {!loading && activeChurch?.subscription?.status !== 'active' && renderProgressBar()}
 
       {loading ? (
         <View style={[styles.stepContainer, { justifyContent: 'center', alignItems: 'center' }]}>
