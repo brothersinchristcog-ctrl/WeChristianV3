@@ -853,7 +853,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
 
             <View style={{ flexDirection: 'row', marginBottom: 20 }}>
               <View style={{ flex: 1 }}>
-                {['Bible', 'Sermons', 'Events', 'Songs', 'Bible plan', 'Online bible classes', 'Prayer wall', 'YouTube live'].map((feat, idx) => (
+                {['Bible', 'Sermons', 'Events', 'Songs', 'Bible plan', 'Online bible classes'].map((feat, idx) => (
                   <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                     <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
                       <Check size={12} color="#171e2e" strokeWidth={3} />
@@ -863,7 +863,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                 ))}
               </View>
               <View style={{ flex: 1, paddingLeft: 8 }}>
-                {['Celebrations', 'Live celebrations', 'Expense', 'Donation'].map((feat, idx) => (
+                {['Prayer wall', 'YouTube live', 'Celebrations', 'Live celebrations', 'Expense', 'Donation'].map((feat, idx) => (
                   <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                     <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
                       <Check size={12} color="#171e2e" strokeWidth={3} />
