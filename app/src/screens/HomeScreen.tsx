@@ -1010,16 +1010,15 @@ export default function HomeScreen() {
                 onPress={() => handleGuestProtectedNavigation('Promise')}
               >
                 <LinearGradient
-                  colors={['#020b22', '#081d4a']}
+                  colors={['#17357a', '#0a1945']}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={[styles.phInner, { overflow: 'hidden' }]}
                 >
-                  {/* Decorative Ash Colored Lines */}
-                  <View style={{ position: 'absolute', top: 10, right: -60, width: 250, height: 2, backgroundColor: 'rgba(203, 213, 225, 0.1)', transform: [{ rotate: '-45deg' }] }} />
-                  <View style={{ position: 'absolute', top: 50, right: -60, width: 250, height: 2, backgroundColor: 'rgba(203, 213, 225, 0.1)', transform: [{ rotate: '-45deg' }] }} />
-                  <View style={{ position: 'absolute', top: 90, right: -60, width: 250, height: 2, backgroundColor: 'rgba(203, 213, 225, 0.1)', transform: [{ rotate: '-45deg' }] }} />
-                  <View style={{ position: 'absolute', top: 130, right: -60, width: 250, height: 2, backgroundColor: 'rgba(203, 213, 225, 0.1)', transform: [{ rotate: '-45deg' }] }} />
+                  {/* Decorative Ash Colored Circle Lines */}
+                  <View style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.15)' }} />
+                  <View style={{ position: 'absolute', top: -10, right: -10, width: 100, height: 100, borderRadius: 50, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.1)' }} />
+                  <View style={{ position: 'absolute', bottom: -50, left: -20, width: 140, height: 140, borderRadius: 70, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.1)' }} />
 
                   <Text style={styles.phLabel}>TODAY'S PROMISE · ఈ రోజు వాగ్దానం</Text>
                   <Text style={styles.phEn}>{promise ? `"${stripHtml(promise.verse)}"` : ''}</Text>
