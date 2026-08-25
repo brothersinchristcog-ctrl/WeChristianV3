@@ -19,7 +19,7 @@ export default function SubscriptionScreen({ navigation, route }: any) {
       {/* Header Removed */}
 
       {/* Main Content */}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 60 : 40 }}>
         <SubscriptionTab />
       </View>
     </View>
