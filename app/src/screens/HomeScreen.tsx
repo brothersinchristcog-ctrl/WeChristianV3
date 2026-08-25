@@ -1144,7 +1144,7 @@ export default function HomeScreen() {
             <View style={{ position: 'absolute', top: 30, left: 0, right: 0, height: 100 }}>
               <Svg width={width} height={100}>
                 <Path
-                  d={`M -20 55 Q ${width/2} -5 ${width + 20} 55`}
+                  d={`M -20 55 Q ${width/2} -45 ${width + 20} 55`}
                   stroke={isDark ? '#3b82f6' : '#60a5fa'}
                   strokeWidth={2}
                   strokeDasharray="8, 6"
@@ -1169,7 +1169,7 @@ export default function HomeScreen() {
 
               {/* Contact Us */}
               <TouchableOpacity 
-                style={{ alignItems: 'center', marginTop: 15, width: 80 }}
+                style={{ alignItems: 'center', marginTop: -5, width: 80 }}
                 onPress={() => navigation.navigate('ContactUs')}
                 activeOpacity={0.8}
               >
