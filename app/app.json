@@ -3,7 +3,7 @@
     "name": "We Christian",
     "slug": "we-christian",
     "scheme": "wechristian",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
@@ -38,7 +38,7 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "versionCode": 11,
+      "versionCode": 12,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyAa7M7Xr7W_hNOpy3BeSHMBD6oEYjD78HA"
