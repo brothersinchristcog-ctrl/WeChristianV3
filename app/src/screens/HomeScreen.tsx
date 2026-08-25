@@ -938,11 +938,13 @@ export default function HomeScreen() {
           <Svg width={width} height={30} style={{ position: 'absolute', bottom: 0 }}>
             <Defs>
               <SvgLinearGradient id="borderGrad" x1="0" y1="0" x2="1" y2="0">
-                <Stop offset="0%" stopColor="rgba(29, 78, 216, 0.2)" />
-                <Stop offset="20%" stopColor="rgba(59, 130, 246, 1)" />
-                <Stop offset="50%" stopColor="rgba(147, 197, 253, 1)" />
-                <Stop offset="80%" stopColor="rgba(59, 130, 246, 1)" />
-                <Stop offset="100%" stopColor="rgba(29, 78, 216, 0.2)" />
+                <Stop offset="0%" stopColor="rgba(29, 78, 216, 0.3)" />
+                <Stop offset="40%" stopColor="rgba(29, 78, 216, 0.3)" />
+                <Stop offset="48%" stopColor="rgba(96, 165, 250, 1)" />
+                <Stop offset="50%" stopColor="rgba(255, 255, 255, 1)" />
+                <Stop offset="52%" stopColor="rgba(96, 165, 250, 1)" />
+                <Stop offset="60%" stopColor="rgba(29, 78, 216, 0.3)" />
+                <Stop offset="100%" stopColor="rgba(29, 78, 216, 0.3)" />
               </SvgLinearGradient>
 
               <Mask id="lineMask">
@@ -958,10 +960,10 @@ export default function HomeScreen() {
             <AnimatedRect
               x={curveLineAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [-width * 2, 0]
+                outputRange: [-width, 0]
               })}
               y="0"
-              width={width * 3}
+              width={width * 2}
               height="30"
               fill="url(#borderGrad)"
               mask="url(#lineMask)"
