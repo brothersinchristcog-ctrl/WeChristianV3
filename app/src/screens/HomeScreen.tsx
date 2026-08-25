@@ -446,9 +446,9 @@ export default function HomeScreen() {
     const anim = Animated.loop(
       Animated.timing(curveLineAnim, {
         toValue: 1,
-        duration: 12000, // Doubled to maintain speed since travel distance is much larger
-        easing: Easing.linear, // Prevents jumping/stuttering from default ease-in-out
-        useNativeDriver: false,
+        duration: 12000,
+        easing: Easing.linear,
+        useNativeDriver: true,
       })
     );
     anim.start();
@@ -958,10 +958,16 @@ export default function HomeScreen() {
             </Defs>
 
             <AnimatedRect
-              x={curveLineAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [-width, 0]
-              })}
+              style={{
+                transform: [
+                  {
+                    translateX: curveLineAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-width, 0],
+                    }),
+                  },
+                ],
+              }}
               y="0"
               width={width * 2}
               height="30"
