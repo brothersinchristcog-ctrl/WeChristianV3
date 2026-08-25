@@ -161,7 +161,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
               await ChurchService.updateChurch(churchId, {
                 'subscription.validUntil': firestore.Timestamp.fromDate(newDate),
                 'subscription.status': 'active'
-              });
+              } as any);
               
               Alert.alert('Success', `${churchName} subscription extended!`);
               fetchChurches();
