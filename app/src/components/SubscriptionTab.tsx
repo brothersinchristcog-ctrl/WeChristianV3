@@ -13,6 +13,7 @@ import {
   Image,
   Platform,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import {
   ArrowRight,
   ArrowLeft,
@@ -67,6 +68,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const { user } = useAuth();
   const { activeChurch, setChurchId } = useChurch();
   const navigation = useNavigation<any>();
+  const backgroundColor = activeChurch?.theme?.primaryColor || colors.background;
   
   const receiptRef = useRef<View>(null);
   const [currentStep, setCurrentStep] = useState(1);
@@ -363,8 +365,10 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const progressRatio = Math.max(0, Math.min(1, daysLeft / maxDays));
   const dashOffset = (2 * Math.PI * 54) - ((2 * Math.PI * 54) * progressRatio);
 
+  const bgColor = (currentStep === 1 && activeChurch?.subscription?.status !== 'active') ? '#cbd5e1' : '#F7F3E9';
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#cbd5e1' }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} bounces={false}>
+    <ScrollView style={{ flex: 1, backgroundColor: bgColor }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} bounces={false}>
 
       {loading ? (
         <View style={[styles.stepContainer, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -493,7 +497,10 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </View>
         </View>
       ) : currentStep === 1 ? (
-        <View style={styles.stepContainer}>
+        <View style={[styles.stepContainer, { paddingTop: 24 }]}>
+          <TouchableOpacity style={{ alignSelf: 'flex-start', marginBottom: 16, padding: 8, marginLeft: -8 }} onPress={() => navigation.goBack()}>
+            <ArrowLeft size={24} color={'#1F3B3D'} />
+          </TouchableOpacity>
           {activeChurch?.subscription?.status === 'active' && (
             <TouchableOpacity style={styles.backBtn} onPress={() => setPlanSelectModalVisible(false)}>
               <ArrowLeft size={24} color={colors.ink} />
