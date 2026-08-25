@@ -933,37 +933,40 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Animated Gradient Glow Line (Sharp Edges) */}
-        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 4, overflow: 'hidden' }}>
-          <Animated.View
-            style={{
-              width: width * 3, // Wide enough to pan across continuously
-              height: '100%',
-              transform: [
-                {
-                  translateX: curveLineAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, -width * 2], // Move left
-                  }),
-                },
-              ],
-            }}
-          >
-            <LinearGradient
-              colors={[
-                'rgba(29, 78, 216, 0.2)',
-                'rgba(59, 130, 246, 0.8)',
-                'rgba(147, 197, 253, 1)',
-                'rgba(59, 130, 246, 0.8)',
-                'rgba(147, 197, 253, 1)',
-                'rgba(59, 130, 246, 0.8)',
-                'rgba(29, 78, 216, 0.2)',
-              ]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ flex: 1 }}
+        {/* Animated Curved Gradient Glow Line */}
+        <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 30, overflow: 'hidden' }}>
+          <Svg width={width} height={30} style={{ position: 'absolute', bottom: 0 }}>
+            <Defs>
+              <SvgLinearGradient id="borderGrad" x1="0" y1="0" x2="1" y2="0">
+                <Stop offset="0%" stopColor="rgba(29, 78, 216, 0.2)" />
+                <Stop offset="20%" stopColor="rgba(59, 130, 246, 1)" />
+                <Stop offset="50%" stopColor="rgba(147, 197, 253, 1)" />
+                <Stop offset="80%" stopColor="rgba(59, 130, 246, 1)" />
+                <Stop offset="100%" stopColor="rgba(29, 78, 216, 0.2)" />
+              </SvgLinearGradient>
+
+              <Mask id="lineMask">
+                <Path
+                  d={`M 3 0 A 27 27 0 0 0 30 27 L ${width - 30} 27 A 27 27 0 0 0 ${width - 3} 0`}
+                  stroke="white"
+                  strokeWidth={6}
+                  fill="none"
+                />
+              </Mask>
+            </Defs>
+
+            <AnimatedRect
+              x={curveLineAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, -width * 2]
+              })}
+              y="0"
+              width={width * 3}
+              height="30"
+              fill="url(#borderGrad)"
+              mask="url(#lineMask)"
             />
-          </Animated.View>
+          </Svg>
         </View>
 
       </LinearGradient>
@@ -1364,6 +1367,8 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 60 : 45,
     paddingHorizontal: 20,
     paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     overflow: 'hidden',
   },
   particleLayer: {
