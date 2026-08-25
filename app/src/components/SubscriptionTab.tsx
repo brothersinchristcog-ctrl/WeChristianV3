@@ -471,7 +471,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             {(() => {
               let history = [...subscriptionHistory];
               if (isPaymentSuccessful) {
-                history = [{ id: 'temp_active', plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' }, ...history];
+                history = [{ id: receiptTxnId || 'temp_active', plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' }, ...history];
               }
               return history;
             })().map((h, i, arr) => (
@@ -484,8 +484,8 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontWeight: '500' }}>{h.plan} Plan</Text>
-                  <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 2, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                    {h.paidAt 
+                  <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 4, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                    Date: {h.paidAt 
                       ? ((h.paidAt as any).toDate 
                           ? (h.paidAt as any).toDate() 
                           : ((h.paidAt as any).seconds 
@@ -493,6 +493,12 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                               : new Date(h.paidAt as any))
                         ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
                       : 'N/A'}
+                  </Text>
+                  <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 2, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                    Txn ID: {h.id?.slice(0,18) || 'N/A'}
+                  </Text>
+                  <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 2 }}>
+                    Name: {member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
