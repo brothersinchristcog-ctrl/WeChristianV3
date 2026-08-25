@@ -547,8 +547,12 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </TouchableOpacity>
         </View>
       ) : currentStep === 2 ? (
-        <View style={[styles.stepContainer, { paddingHorizontal: 16, justifyContent: 'center' }]}>
-          <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
+        <View style={[styles.stepContainer, { flex: 1, paddingHorizontal: 16 }]}>
+          <Text style={{ color: '#1F3B3D', fontSize: 16, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', textAlign: 'center', marginTop: 10 }}>
+            Pricing
+          </Text>
+          <View style={{ flex: 1, justifyContent: 'center' }}>
+            <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
             <View style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#f59e0b', paddingHorizontal: 16, paddingVertical: 6, borderBottomLeftRadius: 20 }}>
               <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 12 }}>Save 89% •</Text>
             </View>
@@ -590,6 +594,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             </TouchableOpacity>
           </View>
         </View>
+      </View>
       ) : null}
 
       <Modal visible={viewReceiptModalVisible} animationType="slide" transparent>
