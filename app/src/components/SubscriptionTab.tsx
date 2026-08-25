@@ -932,6 +932,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 12,
     marginBottom: 24,
+    marginHorizontal: 24,
   },
   cardText: {
     fontSize: 13,
@@ -946,7 +947,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 15,
     borderRadius: 12,
-    width: '100%',
+    marginHorizontal: 24,
   },
   primaryButtonText: {
     color: colors.paper,
