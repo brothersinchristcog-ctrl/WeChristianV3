@@ -82,21 +82,18 @@ export default function GivingScreen({ navigation }: any) {
   const payeeName = activeChurch?.name || 'Your Church';
 
   const [wordIdx, setWordIdx] = useState(0);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const scrollAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const interval = setInterval(() => {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 400,
-        useNativeDriver: true,
-      }).start(() => {
-        setWordIdx(prev => (prev + 1) % GIVING_WORDS.length);
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 400,
+      setWordIdx(prev => {
+        const nextIdx = (prev + 1) % GIVING_WORDS.length;
+        Animated.timing(scrollAnim, {
+          toValue: -nextIdx * 38, // Fixed height per word
+          duration: 500,
           useNativeDriver: true,
         }).start();
+        return nextIdx;
       });
     }, 3000);
     return () => clearInterval(interval);
@@ -362,22 +359,28 @@ export default function GivingScreen({ navigation }: any) {
                 borderColor: GIVING_WORDS[wordIdx].border, 
                 borderRadius: 30, 
                 paddingHorizontal: 20, 
-                paddingVertical: 4,
-                minWidth: 90,
+                height: 38,
+                minWidth: 100,
                 alignItems: 'center',
-                marginLeft: 8
+                marginLeft: 8,
+                overflow: 'hidden'
               }}
             >
-              <Animated.Text style={{ 
-                opacity: fadeAnim,
-                fontSize: 26, 
-                fontStyle: 'italic', 
-                color: GIVING_WORDS[wordIdx].textCol, 
-                fontWeight: '600', 
-                fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' 
-              }}>
-                {GIVING_WORDS[wordIdx].text}
-              </Animated.Text>
+              <Animated.View style={{ transform: [{ translateY: scrollAnim }] }}>
+                {GIVING_WORDS.map((w, index) => (
+                  <View key={w.text} style={{ height: 38, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ 
+                      fontSize: 26, 
+                      fontStyle: 'italic', 
+                      color: w.textCol, 
+                      fontWeight: '600', 
+                      fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' 
+                    }}>
+                      {w.text}
+                    </Text>
+                  </View>
+                ))}
+              </Animated.View>
             </LinearGradient>
           </View>
           <Text style={[styles.headerQuote, isDark && { color: '#94a3b8' }]}>"God loves a cheerful giver" — 2 Cor 9:7</Text>
