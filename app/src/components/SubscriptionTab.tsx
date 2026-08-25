@@ -852,7 +852,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 16, borderRadius: 1 }} />
 
             <View style={{ marginBottom: 20 }}>
-              {['Bible', 'Sermons', 'Events', 'Songs', 'Bible plan', 'Online bible classes', 'Prayer wall', 'YouTube live', 'Member Management', 'Celebrations', 'Live celebrations'].map((feat, idx) => (
+              {['Bible', 'Sermons', 'Events', 'Songs', 'Bible plan', 'Online bible classes', 'Prayer wall', 'YouTube live', 'Member Management', 'Celebrations', 'Live celebrations', 'Expense', 'Donation'].map((feat, idx) => (
                 <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
                   <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
                     <Check size={14} color="#171e2e" strokeWidth={3} />
