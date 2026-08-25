@@ -322,6 +322,20 @@ export default function SubscriptionTab({ member }: { member?: any }) {
     </View>
   );
 
+  const daysLeft = useMemo(() => {
+    if (activeChurch?.subscription?.validUntil) {
+      const date = (activeChurch.subscription.validUntil as any).toDate 
+        ? (activeChurch.subscription.validUntil as any).toDate() 
+        : new Date(activeChurch.subscription.validUntil as any);
+      return Math.max(0, Math.ceil((date.getTime() - new Date().getTime()) / 86400000));
+    }
+    return 0;
+  }, [activeChurch?.subscription?.validUntil]);
+  
+  const maxDays = (activeChurch?.subscription as any)?.plan?.toLowerCase().includes('month') ? 30 : 365;
+  const progressRatio = Math.max(0, Math.min(1, daysLeft / maxDays));
+  const dashOffset = (2 * Math.PI * 54) - ((2 * Math.PI * 54) * progressRatio);
+
   return (
     <ScrollView style={{ flex: 1, backgroundColor: '#F7F3E9' }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} bounces={false}>
       {!loading && activeChurch?.subscription?.status !== 'active' && renderProgressBar()}
@@ -360,13 +374,13 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                     strokeWidth="10"
                     strokeLinecap="round"
                     strokeDasharray={2 * Math.PI * 54}
-                    strokeDashoffset={(2 * Math.PI * 54) - ((2 * Math.PI * 54) * Math.max(0, Math.min(1, Math.round((new Date().getTime() - (activeChurch?.subscription?.validUntil ? ((activeChurch.subscription.validUntil as any).toDate ? (activeChurch.subscription.validUntil as any).toDate().getTime() : new Date(activeChurch.subscription.validUntil as any).getTime()) : new Date().getTime()) + 30 * 86400000) / 86400000) / 30)))}
+                    strokeDashoffset={dashOffset}
                     transform="rotate(-90 64 64)"
                   />
                 </Svg>
                 <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ fontSize: 24, fontWeight: '700', color: '#1F3B3D', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}>
-                    {Math.max(0, Math.ceil(((activeChurch?.subscription?.validUntil ? ((activeChurch.subscription.validUntil as any).toDate ? (activeChurch.subscription.validUntil as any).toDate().getTime() : new Date(activeChurch.subscription.validUntil as any).getTime()) : new Date().getTime()) - new Date().getTime()) / 86400000))}
+                    {daysLeft}
                   </Text>
                   <Text style={{ fontSize: 9, letterSpacing: 0.8, color: '#9A8F72', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', marginTop: 0 }}>
                     DAYS LEFT
