@@ -241,20 +241,20 @@ export default function SongsScreen({ navigation, route }: any) {
       <View style={styles.tabBar}>
         <TouchableOpacity style={[styles.tab, activeTab === 'browse' && styles.tabActive]}
           onPress={() => { setActiveTab('browse'); setSearch(''); }}>
-          <Music size={14} color={activeTab === 'browse' ? '#fff' : '#64748b'} />
-          <Text style={[styles.tabTxt, activeTab === 'browse' && styles.tabTxtActive]}>Browse Songs</Text>
+          <Music size={13} color={activeTab === 'browse' ? '#fff' : '#64748b'} />
+          <Text style={[styles.tabTxt, activeTab === 'browse' && styles.tabTxtActive]} numberOfLines={1}>Browse</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'songbook' && styles.tabActive]}
           onPress={() => { setActiveTab('songbook'); setSearch(''); }}>
-          <BookMarked size={14} color={activeTab === 'songbook' ? '#fff' : '#64748b'} />
-          <Text style={[styles.tabTxt, activeTab === 'songbook' && styles.tabTxtActive]}>
-            My Songbook {savedIds.length > 0 ? `(${savedIds.length})` : ''}
+          <BookMarked size={13} color={activeTab === 'songbook' ? '#fff' : '#64748b'} />
+          <Text style={[styles.tabTxt, activeTab === 'songbook' && styles.tabTxtActive]} numberOfLines={1}>
+            My Songs{savedIds.length > 0 ? ` (${savedIds.length})` : ''}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'theme' && styles.tabActive]}
           onPress={() => { setActiveTab('theme'); setSearch(''); }}>
-          <Music size={14} color={activeTab === 'theme' ? '#fff' : '#64748b'} />
-          <Text style={[styles.tabTxt, activeTab === 'theme' && styles.tabTxtActive]}>Theme Songs</Text>
+          <Music size={13} color={activeTab === 'theme' ? '#fff' : '#64748b'} />
+          <Text style={[styles.tabTxt, activeTab === 'theme' && styles.tabTxtActive]} numberOfLines={1}>Theme</Text>
         </TouchableOpacity>
       </View>
 
@@ -457,10 +457,10 @@ const styles = StyleSheet.create({
   themeToggleText: { color: '#fff', fontSize: 16 },
 
   // Tabs
-  tabBar: { flexDirection: 'row', flexWrap: 'wrap', backgroundColor: '#e2e8f0', marginHorizontal: 16, marginTop: 15, marginBottom: 0, borderRadius: 25, padding: 4, gap: 4 },
-  tab: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 21, gap: 6 },
+  tabBar: { flexDirection: 'row', backgroundColor: '#e2e8f0', marginHorizontal: 16, marginTop: 15, marginBottom: 0, borderRadius: 25, padding: 4 },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 21, gap: 4, minWidth: 0 },
   tabActive: { backgroundColor: '#1a2d5a' },
-  tabTxt: { fontSize: 12, fontWeight: '700', color: '#64748b' },
+  tabTxt: { fontSize: 11, fontWeight: '700', color: '#64748b', flexShrink: 1 },
   tabTxtActive: { color: '#fff' },
 
   // Category chips

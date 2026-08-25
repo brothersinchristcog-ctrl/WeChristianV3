@@ -104,6 +104,12 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
+    // Global Master Songs
+    match /masterSongs/{songId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminGlobally();
+    }
+
     // 10. Subscription Plans
     match /subscription_plans/{planId} {
       allow read: if isAuthenticated();

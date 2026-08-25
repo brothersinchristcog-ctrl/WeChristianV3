@@ -23,7 +23,9 @@ import {
   getFirestore,
   collection,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch,
+  doc
 } from '@react-native-firebase/firestore';
 
 const { width, height } = Dimensions.get('window');
@@ -85,6 +87,8 @@ export default function AdminSongEditor() {
   const [postedSongs, setPostedSongs] = useState<WorshipSong[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [listSearchQuery, setListSearchQuery] = useState('');
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 50;
 
   // ── EDIT MODAL ──────────────────────────────────
   const [editingSong, setEditingSong] = useState<WorshipSong | null>(null);
@@ -100,15 +104,16 @@ export default function AdminSongEditor() {
   const [showEditCategoryPicker, setShowEditCategoryPicker] = useState(false);
   const [showEditKeyPicker, setShowEditKeyPicker] = useState(false);
 
-  const fetchPostedSongs = async () => {
+  const fetchPostedSongs = async (forceRefresh = false) => {
     setLoadingList(true);
     try {
-      const data = await FirestoreService.getWorshipSongs();
-      setPostedSongs(data);
+      const allSongs = await FirestoreService.getWorshipSongs({ forceRefresh });
+      setPostedSongs(allSongs);
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingList(false);
+      setLoadingMore(false);
     }
   };
 
@@ -120,6 +125,7 @@ export default function AdminSongEditor() {
 
   const fetchMemberSongs = async () => {
     try {
+      // Use cache — already loaded from admin tab
       const data = await FirestoreService.getWorshipSongs();
       setMemberSongs(data);
       const stored = await AsyncStorage.getItem(SONGBOOK_KEY);
@@ -168,6 +174,8 @@ export default function AdminSongEditor() {
 
       setShowSuccess(true);
       setShowPostModal(false); // Close modal on success
+      FirestoreService.clearWorshipSongsCache();
+      fetchPostedSongs(true);
     } catch (error: any) {
       Alert.alert('Salesforce Sync Error', error.message || 'Failed to sync with Salesforce.');
     } finally {
@@ -179,6 +187,43 @@ export default function AdminSongEditor() {
     setTitleEn(''); setTitleTe(''); setLyrics(''); setYoutubeId('');
     setArtist(''); setCategories(['Stuthi Songs']); setStatus('Published');
   };
+
+  const handleUpload1000 = async () => {
+    try {
+      Alert.alert('Uploading', 'Starting bulk upload...');
+      const songs = require('../../../master_songs.json');
+      const db = getFirestore();
+      
+      let batch = writeBatch(db);
+      let count = 0;
+      let total = 0;
+
+      for (const song of songs) {
+        const newRef = doc(collection(db, 'masterSongs'));
+        batch.set(newRef, {
+           ...song,
+           createdAt: serverTimestamp()
+        });
+        count++;
+        total++;
+
+        if (count === 400) {
+           await batch.commit();
+           batch = writeBatch(db);
+           count = 0;
+        }
+      }
+      
+      if (count > 0) {
+        await batch.commit();
+      }
+      Alert.alert('Success', `Uploaded ${total} global master songs!`);
+      fetchPostedSongs();
+    } catch(err: any) {
+      Alert.alert('Error', err.message);
+    }
+  };
+
 
   // ── OPEN EDIT MODAL ──────────────────────────────
   const openEdit = (song: WorshipSong) => {
@@ -212,7 +257,9 @@ export default function AdminSongEditor() {
       });
       setShowUpdateSuccess(true);
       setEditingSong(null);
-      fetchPostedSongs();
+      FirestoreService.clearWorshipSongsCache();
+      fetchPostedSongs(true);
+
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to update song.');
     } finally {
@@ -227,8 +274,10 @@ export default function AdminSongEditor() {
     if (!songToDelete) return;
     try {
       await FirestoreService.deleteWorshipSong(songToDelete.id);
-      fetchPostedSongs();
+      FirestoreService.clearWorshipSongsCache();
+      fetchPostedSongs(true);
       setSongToDelete(null);
+
       setShowDeleteSuccess(true);
       setTimeout(() => setShowDeleteSuccess(false), 2500);
     } catch (e: any) {
@@ -268,7 +317,10 @@ export default function AdminSongEditor() {
           <Music size={16} color="#1a2d5a" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.songItemTitle} numberOfLines={1}>{postedSongs.findIndex(s => s.id === item.id) + 1}. {item.title}</Text>
+          <Text style={styles.songItemTitle} numberOfLines={1}>
+            {postedSongs.findIndex(s => s.id === item.id) + 1}. {item.title}
+            {item.isDefault ? <Text style={{color: '#c0392b', fontSize: 10}}> [GLOBAL]</Text> : null}
+          </Text>
           <Text style={styles.songItemSub} numberOfLines={1}>
             {item.category || 'Other'}
           </Text>
@@ -617,7 +669,13 @@ export default function AdminSongEditor() {
             </View>
           )}
           refreshing={loadingList}
-          onRefresh={fetchPostedSongs}
+          onRefresh={() => fetchPostedSongs(true)}
+          ListFooterComponent={() => loadingMore ? (
+            <View style={{ padding: 16, alignItems: 'center' }}>
+              <ActivityIndicator size="small" color="#1a2d5a" />
+              <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Loading more songs...</Text>
+            </View>
+          ) : null}
         />
         </>
       )}
@@ -639,10 +697,7 @@ export default function AdminSongEditor() {
             <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
             <Text style={[styles.heroTitle, { flexShrink: 1 }]} numberOfLines={1}>Song Manager</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.newBtn}
-            onPress={() => setShowPostModal(true)}
-          >
+          <TouchableOpacity style={styles.newBtn} onPress={() => setShowPostModal(true)}>
             <Plus size={16} color="#1a2d5a" />
             <Text style={styles.newBtnTxt}>New</Text>
           </TouchableOpacity>
@@ -685,6 +740,9 @@ export default function AdminSongEditor() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          <Text style={{ fontSize: 11, color: '#475569', fontWeight: '500', fontStyle: 'italic', textAlign: 'center', marginTop: 12, marginHorizontal: 20 }}>
+            Note: If you are not interested in the Global Songs, please contact the WeChristian app team to disable them for your church.
+          </Text>
         </View>
 
       {/* Content */}

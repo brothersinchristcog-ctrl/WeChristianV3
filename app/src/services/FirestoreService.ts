@@ -97,12 +97,15 @@ export interface WorshipSong {
   id: string;
   title: string;
   titleTe?: string;
-  artist: string;
-  key: string;
+  artist?: string; // made optional
+  key?: string; // made optional
   lyrics?: string;
   category?: string;
   youtubeId?: string;
   isThemeSong?: boolean;
+  isDefault?: boolean;
+  overridesMasterSongId?: string;
+  isHidden?: boolean;
 }
 
 export interface ScheduleEvent {
@@ -883,15 +886,75 @@ class FirestoreService {
     }
   }
 
-  async getWorshipSongs(): Promise<WorshipSong[]> {
+  // In-memory cache to avoid re-fetching on tab switches
+  private _worshipSongsCache: WorshipSong[] | null = null;
+  private _worshipSongsCacheChurchId: string | null = null;
+
+  clearWorshipSongsCache() {
+    this._worshipSongsCache = null;
+    this._worshipSongsCacheChurchId = null;
+  }
+
+  async getWorshipSongs(options?: { forceRefresh?: boolean; limit?: number; offset?: number }): Promise<WorshipSong[]> {
     try {
-      const col = await this.getCollection('worshipSongs');
-      const snapshot = await col.get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as WorshipSong[];
+      const churchId = await this.getChurchId();
+      if (!churchId) return [];
+
+      // Return cache if available and same church (unless forced refresh)
+      if (
+        !options?.forceRefresh &&
+        this._worshipSongsCache &&
+        this._worshipSongsCacheChurchId === churchId
+      ) {
+        const allCached = this._worshipSongsCache;
+        if (options?.limit) {
+          return allCached.slice(options.offset ?? 0, (options.offset ?? 0) + options.limit);
+        }
+        return allCached;
+      }
+
+      const churchDoc = await firestore().collection('churches').doc(churchId).get();
+      const disableMasterSongs = churchDoc.data()?.disableMasterSongs === true;
+
+      const customCol = firestore().collection('churches').doc(churchId).collection('worshipSongs');
+      const masterCol = firestore().collection('masterSongs');
+
+      // Fetch custom songs and optionally global songs concurrently
+      const promises: any[] = [customCol.get()];
+      if (!disableMasterSongs) {
+        promises.push(masterCol.where('isDefault', '==', true).get());
+      }
+      
+      const results = await Promise.all(promises);
+      const customSnap = results[0];
+      const masterSnap = !disableMasterSongs ? results[1] : { docs: [] };
+
+      const customSongs = customSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as WorshipSong));
+      // Track IDs of master songs that have been overridden (edited or deleted) by this church
+      const overriddenIds = new Set(customSongs.map((s: WorshipSong) => s.overridesMasterSongId).filter(Boolean));
+
+      // Filter out any global songs that have been overridden
+      const masterSongs = masterSnap.docs
+        .map((doc: any) => ({ id: doc.id, ...doc.data() } as WorshipSong))
+        .filter((s: WorshipSong) => !overriddenIds.has(s.id));
+
+      // Combine both lists and remove any hidden (deleted) songs
+      const finalSongs = [...customSongs, ...masterSongs].filter(s => !s.isHidden);
+
+      // Cache the full result
+      this._worshipSongsCache = finalSongs;
+      this._worshipSongsCacheChurchId = churchId;
+
+      if (options?.limit) {
+        return finalSongs.slice(options.offset ?? 0, (options.offset ?? 0) + options.limit);
+      }
+      return finalSongs;
     } catch (error) {
+      console.error('Error fetching worship songs:', error);
       return [];
     }
   }
+
 
   async createSermon(data: any) {
     try {
@@ -937,6 +1000,20 @@ class FirestoreService {
 
   async deleteWorshipSong(id: string) {
     try {
+      const masterDoc = await firestore().collection('masterSongs').doc(id).get();
+      // Ensure we check existence properly based on the firebase version's type
+      const docExists = typeof masterDoc.exists === 'function' ? masterDoc.exists() : masterDoc.exists;
+      if (docExists && masterDoc.data()?.isDefault) {
+        const col = await this.getCollection('worshipSongs');
+        // Hide the master song for this church without actually deleting it from the global DB
+        await col.add({
+          overridesMasterSongId: id,
+          isHidden: true,
+          createdAt: FieldValue.serverTimestamp()
+        });
+        return true;
+      }
+
       const col = await this.getCollection('worshipSongs');
       await col.doc(id).delete();
       return true;
@@ -947,6 +1024,26 @@ class FirestoreService {
 
   async updateWorshipSong(id: string, data: any) {
     try {
+      const masterDoc = await firestore().collection('masterSongs').doc(id).get();
+      const docExists = typeof masterDoc.exists === 'function' ? masterDoc.exists() : masterDoc.exists;
+      if (docExists && masterDoc.data()?.isDefault) {
+        // Smart Edit Override: Instead of updating global document, create a custom copy
+        const col = await this.getCollection('worshipSongs');
+        const originalData = masterDoc.data();
+        // Omit the `id` from originalData so it doesn't conflict
+        const { id: _ignoredId, ...dataWithoutId } = originalData || {};
+        const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+        
+        await col.add({
+          ...dataWithoutId,
+          ...cleanData,
+          overridesMasterSongId: id,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp()
+        });
+        return true;
+      }
+
       const col = await this.getCollection('worshipSongs');
       const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
       await col.doc(id).update({ ...cleanData, updatedAt: FieldValue.serverTimestamp() });
