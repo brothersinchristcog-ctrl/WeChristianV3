@@ -652,35 +652,35 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               return history;
             })().map((h, i, arr) => (
               i === 0 && h.status === 'active' ? (
-                <View key={h.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: '#10b981', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                <View key={h.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#10b981', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <View style={{ width: 44, height: 44, backgroundColor: '#d1fae5', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
-                        <Crown size={24} color="#059669" />
+                      <View style={{ width: 40, height: 40, backgroundColor: '#d1fae5', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                        <Crown size={20} color="#059669" />
                       </View>
                       <View>
-                        <Text style={{ color: '#059669', fontSize: 11, fontWeight: '800', letterSpacing: 0.5, marginBottom: 2 }}>CURRENT PLAN</Text>
-                        <Text style={{ color: '#1F3B3D', fontSize: 18, fontWeight: '700', textTransform: 'capitalize' }}>{h.plan} Plan</Text>
+                        <Text style={{ color: '#059669', fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 2 }}>CURRENT PLAN</Text>
+                        <Text style={{ color: '#1F3B3D', fontSize: 16, fontWeight: '700', textTransform: 'capitalize' }}>{h.plan} Plan</Text>
                       </View>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={{ color: '#1F3B3D', fontSize: 22, fontWeight: '800' }}>₹{h.amount}</Text>
-                      <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '500' }}>Billed {h.plan?.toLowerCase() === 'annual' ? 'yearly' : 'monthly'}</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 20, fontWeight: '800' }}>₹{h.amount}</Text>
+                      <Text style={{ color: '#64748b', fontSize: 11, fontWeight: '500' }}>Billed {h.plan?.toLowerCase() === 'annual' ? 'yearly' : 'monthly'}</Text>
                     </View>
                   </View>
                   
-                  <View style={{ backgroundColor: '#F8F9FA', borderRadius: 12, padding: 16, marginBottom: 16 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '500' }}>Billed to</Text>
-                      <Text style={{ color: '#1F3B3D', fontSize: 13.5, fontWeight: '700' }}>{member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</Text>
+                  <View style={{ backgroundColor: '#F8F9FA', borderRadius: 12, padding: 12, marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '500' }}>Billed to</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 12.5, fontWeight: '700' }}>{member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</Text>
                     </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '500' }}>Transaction ID</Text>
-                      <Text style={{ color: '#1F3B3D', fontSize: 13.5, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>{h.id?.slice(0,18) || 'N/A'}</Text>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '500' }}>Transaction ID</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 12.5, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>{h.id?.slice(0,18) || 'N/A'}</Text>
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '500' }}>Date</Text>
-                      <Text style={{ color: '#1F3B3D', fontSize: 13.5, fontWeight: '700' }}>
+                      <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '500' }}>Date</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 12.5, fontWeight: '700' }}>
                         {h.paidAt 
                           ? ((h.paidAt as any).toDate 
                               ? (h.paidAt as any).toDate() 
@@ -693,7 +693,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                     </View>
                   </View>
                   
-                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 10, justifyContent: 'flex-end' }}>
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 4, justifyContent: 'flex-end' }}>
                     <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ backgroundColor: '#10b981', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
                       <Download size={20} color="#ffffff" />
                     </TouchableOpacity>
