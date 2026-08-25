@@ -547,7 +547,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </TouchableOpacity>
         </View>
       ) : currentStep === 2 ? (
-        <View style={[styles.stepContainer, { paddingHorizontal: 16, paddingTop: 16 }]}>
+        <View style={[styles.stepContainer, { paddingHorizontal: 16, justifyContent: 'center' }]}>
           <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
             <View style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#f59e0b', paddingHorizontal: 16, paddingVertical: 6, borderBottomLeftRadius: 20 }}>
               <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 12 }}>Save 89% •</Text>
