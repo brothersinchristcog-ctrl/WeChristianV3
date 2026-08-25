@@ -834,7 +834,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               </View>
             </View>
             
-            <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '600', marginBottom: 20, marginTop: 12 }}>{activeChurch?.name || 'Church of GOD'}</Text>
+            <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '600', marginBottom: 20 }}>{activeChurch?.name || 'Church of GOD'}</Text>
             
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
               <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹108</Text>
