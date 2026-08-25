@@ -1144,7 +1144,7 @@ export default function HomeScreen() {
             <View style={{ position: 'absolute', top: 35, left: 0, right: 0, height: 100 }}>
               <Svg width={width} height={100}>
                 <Path
-                  d={`M -20 60 Q ${width/2} -20 ${width + 20} 60`}
+                  d={`M -20 85 Q ${width/2} -15 ${width + 20} 85`}
                   stroke={isDark ? '#3b82f6' : '#60a5fa'}
                   strokeWidth={2}
                   strokeDasharray="8, 6"
@@ -1180,17 +1180,17 @@ export default function HomeScreen() {
                 <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Get in touch</Text>
               </TouchableOpacity>
 
-              {/* Church Gallery / More */}
+              {/* More */}
               <TouchableOpacity 
                 style={{ alignItems: 'center', marginTop: 35 }}
-                onPress={() => setAlertConfig({ visible: true, title: 'Church Gallery', message: 'Option Available Soon\n\nWe are currently working on integrating this feature.', type: 'info' })}
+                onPress={() => setAlertConfig({ visible: true, title: 'More Features', message: 'Option Available Soon\n\nWe are currently working on integrating this feature.', type: 'info' })}
                 activeOpacity={0.8}
               >
                 <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderWidth: 4, borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
-                  <LucideImage size={26} color="#10b981" />
+                  <MoreHorizontal size={26} color="#10b981" />
                 </View>
-                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13 }}>Church gallery</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Our memories</Text>
+                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13 }}>More</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Explore features</Text>
               </TouchableOpacity>
             </View>
           </View>
