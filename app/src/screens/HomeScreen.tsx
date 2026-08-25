@@ -1144,7 +1144,7 @@ export default function HomeScreen() {
             <View style={{ position: 'absolute', top: 30, left: 0, right: 0, height: 100 }}>
               <Svg width={width} height={100}>
                 <Path
-                  d={`M -20 65 Q ${width/2} -15 ${width + 20} 65`}
+                  d={`M -20 55 Q ${width/2} -5 ${width + 20} 55`}
                   stroke={isDark ? '#3b82f6' : '#60a5fa'}
                   strokeWidth={2}
                   strokeDasharray="8, 6"
@@ -1156,7 +1156,7 @@ export default function HomeScreen() {
             <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', paddingHorizontal: 35, alignItems: 'flex-start', paddingTop: 10 }}>
               {/* About Us */}
               <TouchableOpacity 
-                style={{ alignItems: 'center', marginTop: 55, width: 80 }}
+                style={{ alignItems: 'center', marginTop: 45, width: 80 }}
                 onPress={() => navigation.navigate('AboutUs')}
                 activeOpacity={0.8}
               >
@@ -1182,7 +1182,7 @@ export default function HomeScreen() {
 
               {/* More */}
               <TouchableOpacity 
-                style={{ alignItems: 'center', marginTop: 55, width: 80 }}
+                style={{ alignItems: 'center', marginTop: 45, width: 80 }}
                 onPress={() => setAlertConfig({ visible: true, title: 'More Features', message: 'Option Available Soon\n\nWe are currently working on integrating this feature.', type: 'info' })}
                 activeOpacity={0.8}
               >
