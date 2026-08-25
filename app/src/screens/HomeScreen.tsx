@@ -947,9 +947,9 @@ export default function HomeScreen() {
 
               <Mask id="lineMask">
                 <Path
-                  d={`M 3 0 A 27 27 0 0 0 30 27 L ${width - 30} 27 A 27 27 0 0 0 ${width - 3} 0`}
+                  d={`M 1.5 -10 L 1.5 0 A 28.5 28.5 0 0 0 30 28.5 L ${width - 30} 28.5 A 28.5 28.5 0 0 0 ${width - 1.5} 0 L ${width - 1.5} -10`}
                   stroke="white"
-                  strokeWidth={6}
+                  strokeWidth={3}
                   fill="none"
                 />
               </Mask>
