@@ -796,7 +796,7 @@ export default function HomeScreen() {
       {/* Animated Header with Gradient Bleed for seamless status bar */}
       <Animated.View style={{ position: 'absolute', top: -200, left: 0, right: 0, zIndex: 10, transform: [{ translateY: headerTranslateY }] }}>
       <LinearGradient 
-        colors={['#020b22', '#081d4a']}
+        colors={['#17357a', '#0a1945']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.appHeader, { paddingTop: headerPadding + 200 }]}
