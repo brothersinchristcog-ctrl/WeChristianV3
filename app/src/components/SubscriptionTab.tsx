@@ -596,7 +596,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 16, marginTop: 4 }}>{activeChurch?.name || 'Church of GOD'}</Text>
             
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹1999</Text>
+              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹999</Text>
               <Text style={{ color: '#10b981', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹199</Text>
               <View>
                 <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '500' }}>/ year (INR)</Text>
@@ -845,14 +845,14 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                 <Path d="M 0 0 C 25 0, 20 45, 45 45 L 110 45 C 125 45, 130 60, 130 75 L 130 0 Z" fill="url(#goldBadge)" />
               </Svg>
               <View style={{ height: 45, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
-                <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Save 89% •</Text>
+                <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Save 80% •</Text>
               </View>
             </View>
             
             <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '600', marginBottom: 20, marginTop: -8 }}>{activeChurch?.name || 'Church of GOD'}</Text>
             
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹1999</Text>
+              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹999</Text>
               <Text style={{ color: '#eab308', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹199</Text>
               <View>
                 <Text style={{ color: '#eab308', fontSize: 14, fontWeight: '500' }}>/ year (INR)</Text>
