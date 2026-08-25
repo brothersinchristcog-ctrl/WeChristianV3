@@ -25,7 +25,8 @@ import {
   Clock,
   Download,
   X,
-  Trash2
+  Trash2,
+  Crown
 } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -82,6 +83,43 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const [receiptTxnId, setReceiptTxnId] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [subscriptionHistory, setSubscriptionHistory] = useState<any[]>([]);
+  const [timeLeft, setTimeLeft] = useState({ days: '00', hours: '00', minutes: '00', seconds: '00' });
+
+  React.useEffect(() => {
+    const calculateTimeLeft = () => {
+      let endsAt = new Date();
+      if (activeChurch?.subscription?.status === 'active' && activeChurch?.subscription?.validUntil) {
+        endsAt = (activeChurch.subscription.validUntil as any).toDate ? (activeChurch.subscription.validUntil as any).toDate() : new Date(activeChurch.subscription.validUntil as any);
+      } else if (activeChurch?.subscription?.trialEndsAt) {
+        endsAt = (activeChurch.subscription.trialEndsAt as any).toDate ? (activeChurch.subscription.trialEndsAt as any).toDate() : new Date(activeChurch.subscription.trialEndsAt as any);
+      } else if ((activeChurch as any)?.createdAt) {
+        const created = ((activeChurch as any).createdAt.toDate ? (activeChurch as any).createdAt.toDate() : new Date((activeChurch as any).createdAt));
+        endsAt = new Date(created.getTime() + 60 * 24 * 60 * 60 * 1000);
+      }
+      
+      const diff = endsAt.getTime() - new Date().getTime();
+      
+      if (diff > 0) {
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const m = Math.floor((diff / 1000 / 60) % 60);
+        const s = Math.floor((diff / 1000) % 60);
+        
+        setTimeLeft({
+          days: d.toString().padStart(2, '0'),
+          hours: h.toString().padStart(2, '0'),
+          minutes: m.toString().padStart(2, '0'),
+          seconds: s.toString().padStart(2, '0'),
+        });
+      } else {
+        setTimeLeft({ days: '00', hours: '00', minutes: '00', seconds: '00' });
+      }
+    };
+    
+    calculateTimeLeft();
+    const interval = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [activeChurch]);
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -114,7 +152,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const annualPlan = plans.find(p => p.billingCycle === 'annual');
 
   const activePlan = billingCycle === 'annual' ? annualPlan : monthlyPlan;
-  const planPrice = 199; // Church annual plan - ₹199 per year
+  const planPrice = 1; // Church annual plan - ₹1 for testing (later 199)
   const planFeatures = ['Church-wide access for all members', 'Unlimited push notifications', 'Manage events and sermons', 'Pastoral and admin tools'];
   const planSavings = 'PREMIUM';
 
@@ -212,8 +250,8 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             const hist = await firestoreService.getMemberSubscriptionHistory(activeChurch.id, user.uid);
             setSubscriptionHistory(hist);
           }
-          
-          nextStep(5);
+          // The church context refresh above will automatically transition the UI
+          // to the active dashboard. No need to go to a separate step 5.
         } catch (verificationError: any) {
           console.error('Subscription Verification Error:', verificationError);
           Alert.alert('Payment Successful, but Verification Failed', 'We could not securely verify your payment with our servers. Please contact support.');
@@ -348,73 +386,67 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           <Text style={styles.title}>Loading...</Text>
         </View>
       ) : (activeChurch?.subscription?.status === 'active' && !planSelectModalVisible) ? (
-        <View style={[{ minHeight: 600, backgroundColor: '#F7F3E9' }]}>
-          {/* Hero */}
-          <View style={{ paddingHorizontal: 24, paddingTop: 32, paddingBottom: 4 }}>
-            <Text style={{ fontSize: 11, letterSpacing: 1.4, color: '#C98A3E', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', textTransform: 'uppercase' }}>
-              CHURCH ACCOUNT
-            </Text>
-            <Text style={{ color: '#1F3B3D', fontSize: 36, lineHeight: 40, marginTop: 8, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}>
-              {activeChurch?.name || 'Your Church'}
-            </Text>
-            <Text style={{ color: '#6B7A6C', fontSize: 14.5, marginTop: 4 }}>
-              Equipping your congregation for the digital age.
-            </Text>
-          </View>
-
-          {/* Dial section */}
-          <View style={{ paddingHorizontal: 24, marginTop: 20 }}>
-            <View style={{ backgroundColor: '#FFFFFF', borderRadius: 16, borderColor: '#C98A3E', borderWidth: 1, paddingVertical: 20, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ width: 110, height: 110, position: 'relative' }}>
-                <Svg width="110" height="110" viewBox="0 0 128 128">
-                  <Circle cx="64" cy="64" r={54} fill="none" stroke="#EFE9D8" strokeWidth="10" />
-                  <Circle
-                    cx="64"
-                    cy="64"
-                    r={54}
-                    fill="none"
-                    stroke="#F59E0B"
-                    strokeWidth="10"
-                    strokeLinecap="round"
-                    strokeDasharray={2 * Math.PI * 54}
-                    strokeDashoffset={dashOffset}
-                    transform="rotate(-90 64 64)"
-                  />
-                </Svg>
-                <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: 24, fontWeight: '700', color: '#1F3B3D', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}>
-                    {daysLeft}
-                  </Text>
-                  <Text style={{ fontSize: 9, letterSpacing: 0.8, color: '#9A8F72', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', marginTop: 0 }}>
-                    DAYS LEFT
-                  </Text>
-                </View>
+        <View style={[{ minHeight: 600, backgroundColor: '#cbd5e1', paddingTop: 24 }]}>
+          <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 20, paddingBottom: 16, marginBottom: 24, marginHorizontal: 16, alignItems: 'center' }}>
+            <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 12 }}>TIME REMAINING</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', width: '100%' }}>
+              <View style={{ alignItems: 'center', width: 60 }}>
+                <Text style={{ color: '#f8fafc', fontSize: 28, fontWeight: '800' }}>{timeLeft.days}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 4, fontWeight: '600' }}>DAYS</Text>
               </View>
-
-              <View style={{ flex: 1, marginLeft: 16 }}>
-                <View style={{ backgroundColor: '#EAF1EA', alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 99, marginBottom: 8, flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ color: '#4F7A55', fontSize: 10, fontWeight: '700', letterSpacing: 0.2 }} numberOfLines={1} adjustsFontSizeToFit>
-                    ACTIVE — {((activeChurch?.subscription as any)?.tier || 'PREMIUM').toUpperCase()} TIER
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Text style={{ fontSize: 10.5, letterSpacing: 0.8, color: '#9A8F72', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', marginRight: 6 }}>
-                    NEXT RENEWAL
-                  </Text>
-                  <Text style={{ color: '#1F3B3D', fontSize: 15, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }} numberOfLines={1} adjustsFontSizeToFit>
-                    {activeChurch?.subscription?.validUntil ? ((activeChurch.subscription.validUntil as any).toDate ? (activeChurch.subscription.validUntil as any).toDate() : new Date(activeChurch.subscription.validUntil as any)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
-                  </Text>
-                </View>
+              <Text style={{ color: '#64748b', fontSize: 24, fontWeight: '600', marginHorizontal: 4, marginTop: 2 }}>:</Text>
+              <View style={{ alignItems: 'center', width: 60 }}>
+                <Text style={{ color: '#f8fafc', fontSize: 28, fontWeight: '800' }}>{timeLeft.hours}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 4, fontWeight: '600' }}>HRS</Text>
+              </View>
+              <Text style={{ color: '#64748b', fontSize: 24, fontWeight: '600', marginHorizontal: 4, marginTop: 2 }}>:</Text>
+              <View style={{ alignItems: 'center', width: 60 }}>
+                <Text style={{ color: '#f8fafc', fontSize: 28, fontWeight: '800' }}>{timeLeft.minutes}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 4, fontWeight: '600' }}>MIN</Text>
+              </View>
+              <Text style={{ color: '#64748b', fontSize: 24, fontWeight: '600', marginHorizontal: 4, marginTop: 2 }}>:</Text>
+              <View style={{ alignItems: 'center', width: 60 }}>
+                <Text style={{ color: '#f8fafc', fontSize: 28, fontWeight: '800' }}>{timeLeft.seconds}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 4, fontWeight: '600' }}>SEC</Text>
               </View>
             </View>
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 16 }}>
-              <TouchableOpacity 
-                style={{ flex: 1, backgroundColor: '#FFFFFF', borderColor: '#D9D0BC', borderWidth: 1, borderRadius: 12, paddingVertical: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
-                onPress={downloadReceipt}
-              >
-                <Download size={16} color="#1F3B3D" style={{ marginRight: 6 }} />
-                <Text style={{ color: '#1F3B3D', fontSize: 14, fontWeight: '600' }}>Save Receipt</Text>
-              </TouchableOpacity>
+          </View>
+
+          <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 24, paddingBottom: 28, marginHorizontal: 16, overflow: 'hidden' }}>
+            <View style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#10b981', paddingHorizontal: 16, paddingVertical: 6, borderBottomLeftRadius: 20 }}>
+              <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 12 }}>Active Plan</Text>
+            </View>
+            
+            <Text style={{ color: '#f8fafc', fontSize: 24, fontWeight: '600', marginBottom: 24, marginTop: 8 }}>{activeChurch?.name || 'Church of GOD'}</Text>
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹108</Text>
+              <Text style={{ color: '#10b981', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹1</Text>
+              <View>
+                <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '500' }}>/ year (INR)</Text>
+                <Text style={{ color: '#10b981', fontSize: 12, marginTop: 2 }}>₹1 billed yearly</Text>
+              </View>
+            </View>
+
+            <Text style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 22, marginBottom: 24 }}>
+              A comprehensive solution for spiritual growth, offering enhanced features to streamline your daily walk with God.
+            </Text>
+
+            <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 24, borderRadius: 1 }} />
+
+            <View style={{ marginBottom: 32 }}>
+              {['Bible', 'Sermons', 'Events', 'Songs', 'Bible plan', 'Online bible classes', 'Prayer wall', 'YouTube live'].map((feat, idx) => (
+                <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                    <Check size={14} color="#171e2e" strokeWidth={3} />
+                  </View>
+                  <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '500' }}>{feat}</Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={{ backgroundColor: '#10b981', borderRadius: 12, paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}>
+              <Text style={{ color: '#171e2e', fontSize: 18, fontWeight: '700' }}>Current Plan</Text>
             </View>
           </View>
 
@@ -515,194 +547,52 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </TouchableOpacity>
         </View>
       ) : currentStep === 2 ? (
-        <View style={styles.stepContainer}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => nextStep(1)}>
+        <View style={[styles.stepContainer, { paddingHorizontal: 16 }]}>
+          <TouchableOpacity style={[styles.backBtn, { marginBottom: 16 }]} onPress={() => nextStep(1)}>
             <ArrowLeft size={24} color={colors.ink} />
           </TouchableOpacity>
 
-          <View style={styles.header}>
-            <Text style={styles.title}>Choose Your Path</Text>
-            <Text style={styles.subtitle}>Scholarly access tailored for personal devotion.</Text>
-          </View>
-
-          <View style={[styles.planCard, { borderColor: colors.brass, borderWidth: 2 }]}>
-
-            <View style={styles.planHeader}>
+          <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 24, paddingBottom: 28, overflow: 'hidden' }}>
+            <View style={{ position: 'absolute', top: 0, right: 0, backgroundColor: '#f59e0b', paddingHorizontal: 16, paddingVertical: 6, borderBottomLeftRadius: 20 }}>
+              <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 12 }}>Save 89% •</Text>
+            </View>
+            
+            <Text style={{ color: '#f8fafc', fontSize: 24, fontWeight: '600', marginBottom: 24, marginTop: 8 }}>{activeChurch?.name || 'Church of GOD'}</Text>
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹108</Text>
+              <Text style={{ color: '#eab308', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹1</Text>
               <View>
-                <Text style={styles.planTitle}>Church Access</Text>
-                <Text style={styles.planSubtitle}>Full platform access for all members</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.planPrice}>₹{planPrice}</Text>
-                <Text style={styles.planSubtitle}>/ year</Text>
+                <Text style={{ color: '#eab308', fontSize: 14, fontWeight: '500' }}>/ year (INR)</Text>
+                <Text style={{ color: '#eab308', fontSize: 12, marginTop: 2 }}>₹1 billed yearly</Text>
               </View>
             </View>
 
-            <View style={styles.featureList}>
-              {planFeatures.map((feat, idx) => (
-                <View key={idx} style={styles.featureItem}>
-                  <CheckCircle size={18} color={colors.forest} />
-                  <Text style={styles.featureText}>{feat}</Text>
+            <Text style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 22, marginBottom: 24 }}>
+              A comprehensive solution for spiritual growth, offering enhanced features to streamline your daily walk with God.
+            </Text>
+
+            <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 24, borderRadius: 1 }} />
+
+            <View style={{ marginBottom: 32 }}>
+              {['Bible', 'Sermons', 'Events', 'Songs', 'Bible plan', 'Online bible classes', 'Prayer wall', 'YouTube live'].map((feat, idx) => (
+                <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14 }}>
+                  <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                    <Check size={14} color="#171e2e" strokeWidth={3} />
+                  </View>
+                  <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '500' }}>{feat}</Text>
                 </View>
               ))}
             </View>
-          </View>
 
-          <TouchableOpacity style={styles.primaryButton} onPress={() => nextStep(3)}>
-            <Text style={styles.primaryButtonText}>Continue to Payment</Text>
-          </TouchableOpacity>
-        </View>
-      ) : currentStep === 3 ? (
-        <View style={styles.stepContainer}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => nextStep(2)}>
-            <ArrowLeft size={24} color={colors.ink} />
-          </TouchableOpacity>
-
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>Payment Method</Text>
-            <Text style={styles.subtitle}>Safe and encrypted processing.</Text>
-          </View>
-
-          <View style={styles.paymentMethods}>
-            {[
-              { id: 'upi', label: 'UPI (GPay, PhonePe, etc.)', icon: <MenuSquare size={20} color={colors.textSoft} /> },
-              { id: 'card', label: 'Credit / Debit Card', icon: <CreditCard size={20} color={colors.textSoft} /> },
-              { id: 'netbanking', label: 'Net Banking', icon: <Building size={20} color={colors.textSoft} /> },
-            ].map((method) => (
-              <TouchableOpacity
-                key={method.id}
-                style={[
-                  styles.paymentMethodCard,
-                  paymentMethod === method.id && { borderColor: colors.brass }
-                ]}
-                onPress={() => setPaymentMethod(method.id)}
-              >
-                <View style={styles.radioOuter}>
-                  {paymentMethod === method.id && <View style={styles.radioInner} />}
-                </View>
-                <Text style={styles.paymentMethodLabel}>{method.label}</Text>
-                {method.icon}
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.secureContainer}>
-            <View style={styles.secureLine} />
-            <Text style={styles.secureText}>SECURED BY RAZORPAY</Text>
-            <View style={styles.secureLine} />
-          </View>
-
-          <TouchableOpacity style={styles.primaryButton} onPress={() => nextStep(4)}>
-            <Text style={styles.primaryButtonText}>Review Details</Text>
-          </TouchableOpacity>
-        </View>
-      ) : currentStep === 4 ? (
-        <View style={styles.stepContainer}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => nextStep(3)}>
-            <ArrowLeft size={24} color={colors.ink} />
-          </TouchableOpacity>
-
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>Confirm Devotion</Text>
-            <Text style={styles.subtitle}>Verify your subscription details.</Text>
-          </View>
-
-          <View style={styles.reviewCard}>
-            <View style={styles.trialBanner}>
-              <Text style={styles.trialBannerText}>🎁 2 Months Free Trial</Text>
-            </View>
-
-            <View style={styles.reviewContent}>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>CHURCH</Text>
-                <Text style={styles.reviewValue}>{activeChurch?.name || 'Church'}</Text>
-              </View>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>PLAN</Text>
-                <Text style={styles.reviewValue}>Church Access (Annual)</Text>
-              </View>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>TRIAL ENDS ON</Text>
-                <Text style={[styles.reviewValue, { color: colors.forest, fontWeight: '700' }]}>{trialEndDateStr}</Text>
-              </View>
-
-              <View style={styles.reviewFooter}>
-                <View>
-                  <Text style={styles.reviewLabel}>DUE TODAY</Text>
-                  <Text style={styles.dueTodayPrice}>₹0</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.billedAfter}>Trial Activated Today</Text>
-                  <Text style={{ fontSize: 12, color: colors.textSoft, marginTop: 4, fontWeight: '500' }}>
-                    Then ₹{planPrice} / year
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.disclaimerCard}>
-            <Text style={styles.disclaimerText}>
-              Your first 2 months are completely free! If you do not subscribe after your trial ends on {trialEndDateStr}, your church's access will be locked for all members. By confirming, you authorize We Christian to begin your trial and securely save your payment method.
-            </Text>
-          </View>
-
-          <TouchableOpacity style={styles.primaryButton} onPress={() => handleRazorpayPayment()}>
-            <Text style={styles.primaryButtonText}>Pay ₹{planPrice} via Razorpay</Text>
-          </TouchableOpacity>
-        </View>
-      ) : currentStep === 5 ? (
-        <View style={styles.stepContainer}>
-          <View style={{ alignItems: 'center', paddingVertical: 10, paddingHorizontal: 10 }}>
-          <View style={styles.successIconWrapper}>
-            <View style={styles.successIconInner}>
-              <Check size={48} color="#fff" />
-            </View>
-          </View>
-          <Text style={styles.successTitle}>Payment Successful!</Text>
-          <Text style={styles.successSubtitle}>
-            Thank you for your generous heart. Your transaction has been verified securely.
-          </Text>
-
-          <View style={styles.receiptCard}>
-            <View style={styles.receiptCardHeader}>
-              <Text style={styles.receiptCardTitle}>TRANSACTION DETAILS</Text>
-            </View>
-            <View style={{ padding: 24 }}>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>TRANSACTION ID</Text>
-                <Text style={styles.receiptValue}>{receiptData.transactionId}</Text>
-              </View>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>DATE</Text>
-                <Text style={styles.receiptValue}>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}</Text>
-              </View>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>AMOUNT PAID</Text>
-                <Text style={styles.receiptValue}>₹{planPrice.toFixed(2)}</Text>
-              </View>
-            </View>
-            <View style={styles.receiptCardFooter}>
-              <CheckCircle size={16} color={colors.forest} style={{ marginRight: 6 }} />
-              <Text style={styles.receiptCardFooterText}>Payment verified & processed</Text>
-            </View>
-          </View>
-
-          <View style={styles.successActionsContainer}>
-            <TouchableOpacity style={styles.primaryActionBtn} onPress={() => setViewReceiptModalVisible(true)}>
-              <Text style={styles.primaryActionBtnText}>View Receipt</Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+              onPress={() => handleRazorpayPayment()}
+            >
+              <Crown size={20} color="#171e2e" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#171e2e', fontSize: 18, fontWeight: '700' }}>Upgrade now</Text>
             </TouchableOpacity>
-            
-            <View style={styles.secondaryActionsRow}>
-              <TouchableOpacity style={styles.secondaryActionBtn} onPress={downloadReceipt}>
-                <Text style={styles.secondaryActionBtnText}>Save Image</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.secondaryActionBtn} onPress={() => nextStep(1)}>
-                <Text style={styles.secondaryActionBtnText}>Done</Text>
-              </TouchableOpacity>
-            </View>
           </View>
-        </View>
         </View>
       ) : null}
 
