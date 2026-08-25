@@ -506,44 +506,93 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               }
               return history;
             })().map((h, i, arr) => (
-              <View key={h.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
-                <Text style={{ color: '#C4B896', fontSize: 12, width: 22, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                  {String((subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0)) - i).padStart(2, '0')}
-                </Text>
-                <View style={{ width: 36, height: 36, backgroundColor: '#F1EADA', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
-                  <CreditCard size={16} color="#C98A3E" />
+              i === 0 && h.status === 'active' ? (
+                <View key={h.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, marginBottom: 24, borderWidth: 1, borderColor: '#10b981', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={{ width: 44, height: 44, backgroundColor: '#d1fae5', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                        <Crown size={24} color="#059669" />
+                      </View>
+                      <View>
+                        <Text style={{ color: '#059669', fontSize: 11, fontWeight: '800', letterSpacing: 0.5, marginBottom: 2 }}>CURRENT PLAN</Text>
+                        <Text style={{ color: '#1F3B3D', fontSize: 18, fontWeight: '700', textTransform: 'capitalize' }}>{h.plan} Plan</Text>
+                      </View>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ color: '#1F3B3D', fontSize: 22, fontWeight: '800' }}>₹{h.amount}</Text>
+                      <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '500' }}>Billed {h.plan?.toLowerCase() === 'annual' ? 'yearly' : 'monthly'}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={{ backgroundColor: '#F8F9FA', borderRadius: 12, padding: 16, marginBottom: 16 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '500' }}>Billed to</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 13.5, fontWeight: '700' }}>{member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '500' }}>Transaction ID</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 13.5, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>{h.id?.slice(0,18) || 'N/A'}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ color: '#64748b', fontSize: 13, fontWeight: '500' }}>Date</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 13.5, fontWeight: '700' }}>
+                        {h.paidAt 
+                          ? ((h.paidAt as any).toDate 
+                              ? (h.paidAt as any).toDate() 
+                              : ((h.paidAt as any).seconds 
+                                  ? new Date((h.paidAt as any).seconds * 1000) 
+                                  : new Date(h.paidAt as any))
+                            ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+                          : 'N/A'}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ backgroundColor: '#ecfdf5', borderRadius: 10, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', borderWidth: 1, borderColor: '#a7f3d0' }}>
+                    <Download size={18} color="#059669" style={{ marginRight: 8 }} />
+                    <Text style={{ color: '#059669', fontSize: 15, fontWeight: '700' }}>Download Receipt</Text>
+                  </TouchableOpacity>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontWeight: '500' }}>{h.plan} Plan</Text>
-                  <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 4, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                    Date: {h.paidAt 
-                      ? ((h.paidAt as any).toDate 
-                          ? (h.paidAt as any).toDate() 
-                          : ((h.paidAt as any).seconds 
-                              ? new Date((h.paidAt as any).seconds * 1000) 
-                              : new Date(h.paidAt as any))
-                        ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
-                      : 'N/A'}
+              ) : (
+                <View key={h.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
+                  <Text style={{ color: '#C4B896', fontSize: 12, width: 22, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                    {String((subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0)) - i).padStart(2, '0')}
                   </Text>
-                  <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 2, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                    Txn ID: {h.id?.slice(0,18) || 'N/A'}
-                  </Text>
-                  <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 2 }}>
-                    Name: {member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}
-                  </Text>
+                  <View style={{ width: 36, height: 36, backgroundColor: '#F1EADA', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+                    <CreditCard size={16} color="#C98A3E" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontWeight: '500' }}>{h.plan} Plan</Text>
+                    <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 4, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                      Date: {h.paidAt 
+                        ? ((h.paidAt as any).toDate 
+                            ? (h.paidAt as any).toDate() 
+                            : ((h.paidAt as any).seconds 
+                                ? new Date((h.paidAt as any).seconds * 1000) 
+                                : new Date(h.paidAt as any))
+                          ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+                        : 'N/A'}
+                    </Text>
+                    <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 2, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                      Txn ID: {h.id?.slice(0,18) || 'N/A'}
+                    </Text>
+                    <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 2 }}>
+                      Name: {member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', marginRight: 12 }}>
+                    <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                      ₹{h.amount}
+                    </Text>
+                    <Text style={{ color: h.status === 'active' ? '#4F7A55' : (h.status === 'cancelled' ? '#ef4444' : '#C98A3E'), fontSize: 10.5, fontWeight: '600', letterSpacing: 0.3, marginTop: 4 }}>
+                      {h.status.toUpperCase()}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ padding: 10, backgroundColor: '#E4DDC8', borderRadius: 8 }}>
+                    <Download size={16} color="#1F3B3D" />
+                  </TouchableOpacity>
                 </View>
-                <View style={{ alignItems: 'flex-end', marginRight: 12 }}>
-                  <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                    ₹{h.amount}
-                  </Text>
-                  <Text style={{ color: h.status === 'active' ? '#4F7A55' : (h.status === 'cancelled' ? '#ef4444' : '#C98A3E'), fontSize: 10.5, fontWeight: '600', letterSpacing: 0.3, marginTop: 4 }}>
-                    {h.status.toUpperCase()}
-                  </Text>
-                </View>
-                <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ padding: 10, backgroundColor: '#E4DDC8', borderRadius: 8 }}>
-                  <Download size={16} color="#1F3B3D" />
-                </TouchableOpacity>
-              </View>
+              )
             ))}
           </View>
         </View>
