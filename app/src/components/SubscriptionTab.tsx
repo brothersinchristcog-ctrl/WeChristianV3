@@ -375,7 +375,10 @@ export default function SubscriptionTab({ member }: { member?: any }) {
         </View>
       ) : ((activeChurch?.subscription?.status === 'active' || isPaymentSuccessful) && !planSelectModalVisible) ? (
         <View style={[{ minHeight: 600, paddingTop: 24 }]}>
-          <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 20, paddingBottom: 16, marginBottom: 24, marginHorizontal: 16, alignItems: 'center' }}>
+          <TouchableOpacity style={{ alignSelf: 'flex-start', marginBottom: 16, padding: 8, marginLeft: 20 }} onPress={() => navigation.goBack()}>
+            <ArrowLeft size={24} color={'#1F3B3D'} />
+          </TouchableOpacity>
+          <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 20, paddingBottom: 16, marginBottom: 24, marginHorizontal: 28, alignItems: 'center' }}>
             <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 12 }}>TIME REMAINING</Text>
             <View style={{ flexDirection: 'row', justifyContent: 'center', width: '100%' }}>
               <View style={{ alignItems: 'center', width: 60 }}>
@@ -459,16 +462,19 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                 Payment History
               </Text>
               <Text style={{ fontSize: 10.5, color: '#9A8F72', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                {subscriptionHistory.length} ENTR{subscriptionHistory.length === 1 ? 'Y' : 'IES'}
+                {(isPaymentSuccessful && subscriptionHistory.length === 0) ? 1 : subscriptionHistory.length} ENTR{(isPaymentSuccessful && subscriptionHistory.length === 0) || subscriptionHistory.length === 1 ? 'Y' : 'IES'}
               </Text>
             </View>
           </View>
 
           <View style={{ paddingHorizontal: 24, paddingBottom: 64, marginTop: 24 }}>
-            {subscriptionHistory.map((h, i) => (
-              <TouchableOpacity onPress={() => setSelectedInvoice(h)} key={h.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === subscriptionHistory.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
+            {((isPaymentSuccessful && subscriptionHistory.length === 0) 
+              ? [{ id: 'temp_active', plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' }] 
+              : subscriptionHistory
+            ).map((h, i, arr) => (
+              <TouchableOpacity onPress={() => setSelectedInvoice(h)} key={h.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
                 <Text style={{ color: '#C4B896', fontSize: 12, width: 22, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                  {String(subscriptionHistory.length - i).padStart(2, '0')}
+                  {String((isPaymentSuccessful && subscriptionHistory.length === 0 ? 1 : subscriptionHistory.length) - i).padStart(2, '0')}
                 </Text>
                 <View style={{ width: 36, height: 36, backgroundColor: '#F1EADA', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
                   <CreditCard size={16} color="#C98A3E" />
