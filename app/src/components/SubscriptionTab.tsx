@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Clock,
   Download,
+  Eye,
   X,
   Trash2,
   Crown
@@ -692,10 +693,17 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                     </View>
                   </View>
                   
-                  <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ backgroundColor: '#ecfdf5', borderRadius: 10, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', borderWidth: 1, borderColor: '#a7f3d0' }}>
-                    <Download size={18} color="#059669" style={{ marginRight: 8 }} />
-                    <Text style={{ color: '#059669', fontSize: 15, fontWeight: '700' }}>Download Receipt</Text>
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 10, justifyContent: 'flex-end' }}>
+                    <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ backgroundColor: '#10b981', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                      <Download size={20} color="#ffffff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => {
+                      setSelectedInvoice(h);
+                      setViewReceiptModalVisible(true);
+                    }} style={{ backgroundColor: '#ecfdf5', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#a7f3d0' }}>
+                      <Eye size={20} color="#059669" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ) : (
                 <View key={h.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
@@ -732,9 +740,17 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                       {h.status.toUpperCase()}
                     </Text>
                   </View>
-                  <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ padding: 10, backgroundColor: '#E4DDC8', borderRadius: 8 }}>
-                    <Download size={16} color="#1F3B3D" />
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity onPress={() => {
+                      setSelectedInvoice(h);
+                      setViewReceiptModalVisible(true);
+                    }} style={{ padding: 10, backgroundColor: '#E4DDC8', borderRadius: 8 }}>
+                      <Eye size={16} color="#1F3B3D" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ padding: 10, backgroundColor: '#10b981', borderRadius: 8 }}>
+                      <Download size={16} color="#ffffff" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               )
             ))}
