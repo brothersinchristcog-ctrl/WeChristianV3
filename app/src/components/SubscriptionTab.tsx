@@ -150,7 +150,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2);
   const trialEndDateStr = twoMonthsFromNow.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  const downloadReceipt = async (invoice: any) => {
+  const downloadPdfReceipt = async (invoice: any) => {
     try {
       const html = `
         <html>
@@ -540,7 +540,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                     {h.status.toUpperCase()}
                   </Text>
                 </View>
-                <TouchableOpacity onPress={() => downloadReceipt(h)} style={{ padding: 10, backgroundColor: '#E4DDC8', borderRadius: 8 }}>
+                <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ padding: 10, backgroundColor: '#E4DDC8', borderRadius: 8 }}>
                   <Download size={16} color="#1F3B3D" />
                 </TouchableOpacity>
               </View>
@@ -882,7 +882,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             <View style={{ flexDirection: 'row', backgroundColor: '#F1EADA' }}>
               <TouchableOpacity 
                 style={{ flex: 1, padding: 16, alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E4DDC8', flexDirection: 'row', justifyContent: 'center' }}
-                onPress={() => downloadReceipt(selectedInvoice)}
+                onPress={() => downloadPdfReceipt(selectedInvoice)}
               >
                 <Download size={16} color="#10b981" style={{ marginRight: 6 }} />
                 <Text style={{ color: '#10b981', fontSize: 15, fontWeight: '600' }}>Download</Text>
