@@ -808,7 +808,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </TouchableOpacity>
         </View>
       ) : currentStep === 2 ? (
-        <View style={[styles.stepContainer, { flex: 1, paddingHorizontal: 28 }]}>
+        <View style={[styles.stepContainer, { flex: 1, paddingHorizontal: 16 }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16, marginBottom: 8, position: 'relative' }}>
             <TouchableOpacity style={{ position: 'absolute', left: -8, padding: 8 }} onPress={() => nextStep(1)}>
               <ArrowLeft size={24} color={'#1F3B3D'} />
@@ -818,7 +818,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             </Text>
           </View>
           <View style={{ flex: 1, justifyContent: 'center' }}>
-            <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#f59e0b', padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
+            <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#f59e0b', padding: 24, paddingBottom: 28, overflow: 'hidden' }}>
             <View style={{ position: 'absolute', top: 0, right: 0, width: 130, height: 75 }}>
               <Svg width="130" height="75" style={{ position: 'absolute', top: 0, right: 0 }}>
                 <Defs>
