@@ -13,7 +13,8 @@ import {
   StatusBar,
   Platform,
   Share,
-  Modal
+  Modal,
+  Animated
 } from 'react-native';
 import { 
   Lock, 
@@ -33,6 +34,7 @@ import storage from '@react-native-firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import RazorpayCheckout from 'react-native-razorpay';
 import * as WebBrowser from 'expo-web-browser';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
@@ -46,6 +48,12 @@ const CATEGORIES = [
 ];
 
 const PRESETS = [50, 100, 500, 1000, 5000];
+
+const GIVING_WORDS = [
+  { text: 'Joy', colors: ['rgba(59,130,246,0.3)', 'rgba(59,130,246,0.05)'], border: '#3b82f6', textCol: '#60a5fa' },
+  { text: 'Love', colors: ['rgba(239,68,68,0.3)', 'rgba(239,68,68,0.05)'], border: '#ef4444', textCol: '#f87171' },
+  { text: 'Faith', colors: ['rgba(234,179,8,0.3)', 'rgba(234,179,8,0.05)'], border: '#facc15', textCol: '#fde047' },
+];
 
 export default function GivingScreen({ navigation }: any) {
   const { user } = useAuth();
@@ -72,6 +80,27 @@ export default function GivingScreen({ navigation }: any) {
   const upiId = giving?.upiId || '';
   const phonepeNum = giving?.phonepeNumber || '';
   const payeeName = activeChurch?.name || 'Your Church';
+
+  const [wordIdx, setWordIdx] = useState(0);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }).start(() => {
+        setWordIdx(prev => (prev + 1) % GIVING_WORDS.length);
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const fetchMember = async () => {
@@ -323,17 +352,33 @@ export default function GivingScreen({ navigation }: any) {
         <View style={styles.headerContent}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginTop: 10 }}>
             <Text style={[styles.headerTitle, isDark && { color: '#fff' }]}>Give with</Text>
-            <View style={{ 
-              borderWidth: 1.5, 
-              borderColor: '#3b82f6', 
-              borderRadius: 30, 
-              paddingHorizontal: 20, 
-              paddingVertical: 4, 
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              marginLeft: 8
-            }}>
-              <Text style={{ fontSize: 26, fontStyle: 'italic', color: '#60a5fa', fontWeight: '600', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}>Joy</Text>
-            </View>
+            
+            <Animated.View style={{ opacity: fadeAnim, marginLeft: 8 }}>
+              <LinearGradient
+                colors={GIVING_WORDS[wordIdx].colors}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  borderWidth: 1.5, 
+                  borderColor: GIVING_WORDS[wordIdx].border, 
+                  borderRadius: 30, 
+                  paddingHorizontal: 20, 
+                  paddingVertical: 4,
+                  minWidth: 90,
+                  alignItems: 'center'
+                }}
+              >
+                <Text style={{ 
+                  fontSize: 26, 
+                  fontStyle: 'italic', 
+                  color: GIVING_WORDS[wordIdx].textCol, 
+                  fontWeight: '600', 
+                  fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' 
+                }}>
+                  {GIVING_WORDS[wordIdx].text}
+                </Text>
+              </LinearGradient>
+            </Animated.View>
           </View>
           <Text style={[styles.headerQuote, isDark && { color: '#94a3b8' }]}>"God loves a cheerful giver" — 2 Cor 9:7</Text>
         </View>
@@ -710,8 +755,8 @@ const styles = StyleSheet.create({
     width: (width - 32 - 20) / 3, // 3 column grid with 10 spacing between each (20 total)
     backgroundColor: '#fff', 
     borderRadius: 16, 
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
     paddingHorizontal: 8,
     alignItems: 'center', 
     borderWidth: 1, 
@@ -719,9 +764,9 @@ const styles = StyleSheet.create({
     marginBottom: 10
   },
   gridItemActive: { borderColor: '#1a2d5a', borderWidth: 1.5, backgroundColor: '#f0f4ff' },
-  catEmoji: { fontSize: 28, marginBottom: 8 },
-  catTitle: { fontSize: 13, fontWeight: '700', color: '#1e293b', textAlign: 'center' },
-  catTitleTe: { fontSize: 10, color: '#64748b', marginTop: 4, textAlign: 'center' },
+  catEmoji: { fontSize: 22, marginBottom: 6 },
+  catTitle: { fontSize: 12, fontWeight: '700', color: '#1e293b', textAlign: 'center' },
+  catTitleTe: { fontSize: 9, color: '#64748b', marginTop: 2, textAlign: 'center' },
   label: { fontSize: 12, fontWeight: '600', color: '#475569', marginBottom: 8, marginLeft: 4 },
 
   presetRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 6, marginBottom: 15 },
