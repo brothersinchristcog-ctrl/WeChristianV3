@@ -476,7 +476,22 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             <Text style={styles.subtitle}>Your journey of faith continues.</Text>
           </View>
 
-          <View style={styles.circularProgressContainer}>
+          <View style={[styles.circularProgressContainer, { borderWidth: 0, position: 'relative' }]}>
+            <Svg width="224" height="224" style={{ position: 'absolute' }}>
+              <Circle cx="112" cy="112" r="107" fill="none" stroke={colors.rule} strokeWidth="10" />
+              <Circle
+                cx="112"
+                cy="112"
+                r="107"
+                fill="none"
+                stroke="#F59E0B"
+                strokeWidth="10"
+                strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 107}
+                strokeDashoffset={(2 * Math.PI * 107) - ((2 * Math.PI * 107) * Math.max(0, Math.min(1, daysRemaining / Math.max(60, daysRemaining))))}
+                transform="rotate(-90 112 112)"
+              />
+            </Svg>
             <View style={styles.circularProgressInner}>
               <Text style={styles.daysText}>{daysRemaining}</Text>
               <Text style={styles.daysLabel}>{activeChurch?.subscription?.status === 'active' ? "DAYS REMAINING" : (daysRemaining > 0 ? "DAYS REMAINING" : "TRIAL EXPIRED")}</Text>
@@ -983,8 +998,6 @@ const styles = StyleSheet.create({
     width: 224,
     height: 224,
     borderRadius: 112,
-    borderWidth: 10,
-    borderColor: colors.rule,
     alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
