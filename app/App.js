@@ -5,6 +5,7 @@ import { Animated, View, Text, TouchableOpacity, StyleSheet, Dimensions, Platfor
 import messaging from '@react-native-firebase/messaging';
 import { Bell } from 'lucide-react-native';
 import RootNavigator from './src/navigation/RootNavigator';
+import * as Application from 'expo-application';
 
 import SpInAppUpdates, {
   IAUUpdateKind,
@@ -28,8 +29,25 @@ export default function App() {
       try {
         const firestore = require('@react-native-firebase/firestore').default;
         const configDoc = await firestore().collection('public_settings').doc('app_config').get();
-        const forceUpdate = configDoc.exists && configDoc.data()?.forceUpdate === true;
+        const configData = configDoc.data() || {};
+        const forceUpdate = configData.forceUpdate === true;
+        const latestVersionCode = configData.latestAndroidVersionCode || 0;
         
+        // 1. Safe way to get current version code (Android)
+        let currentVersionCode = 0;
+        if (Platform.OS === 'android' && Application.nativeBuildVersion) {
+          currentVersionCode = parseInt(Application.nativeBuildVersion, 10);
+        }
+
+        // 2. Database-driven Update Check (Fallback / Override)
+        // This is a bulletproof way to force an update if Play Store hasn't propagated yet
+        if (Platform.OS === 'android' && currentVersionCode > 0 && latestVersionCode > currentVersionCode) {
+          console.log('Update forced by Firebase settings');
+          setUpdateAvailable(true);
+          return; // Stop here, show the custom modal
+        }
+        
+        // 3. Official Google Play In-App Updates Check
         const result = await inAppUpdates.checkNeedsUpdate();
         if (result.shouldUpdate) {
           if (Platform.OS === 'android') {
@@ -37,7 +55,7 @@ export default function App() {
               updateType: forceUpdate ? IAUUpdateKind.IMMEDIATE : IAUUpdateKind.FLEXIBLE,
             };
             inAppUpdates.startUpdate(updateOptions).catch(err => {
-              console.log('Native update failed, showing fallback:', err);
+              console.log('Native update failed, showing fallback modal:', err);
               setUpdateAvailable(true);
             });
           } else {
@@ -47,8 +65,7 @@ export default function App() {
         }
       } catch (err) {
         console.log('In-app update check failed:', err);
-        // On total failure, we can also show the fallback if we know an update exists, 
-        // but it's safer to only show it when shouldUpdate is definitively true.
+        // Do not force show modal here to prevent soft-locking the app if offline
       }
     };
     
