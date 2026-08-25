@@ -48,7 +48,8 @@ import {
   Phone,
   Mail,
   Info,
-  Video
+  Video,
+  Image as LucideImage
 } from 'lucide-react-native';
 
 import firestore from '@react-native-firebase/firestore';
@@ -1136,9 +1137,62 @@ export default function HomeScreen() {
             />
             <GridItem isDark={isDark} icon={<Users size={26} color="#fff" />} label="Members" color="#db2777" onPress={handleOpenMembers} />
             <GridItem isDark={isDark} icon={<Video size={26} color="#fff" />} label="Online Meetings" color="#3B82F6" onPress={() => navigation.navigate('OnlineMeetings')} />
-            <GridItem isDark={isDark} icon={<Info size={26} color="#fff" />} label="About Us" color="#1a2d5a" onPress={() => navigation.navigate('AboutUs')} />
-            <GridItem isDark={isDark} icon={<Phone size={26} color="#fff" />} label="Contact Us" color="#0F766E" onPress={() => navigation.navigate('ContactUs')} />
-            <GridItem isDark={isDark} icon={<MoreHorizontal size={26} color="#fff" />} label="More" color="#64748b" onPress={() => setAlertConfig({ visible: true, title: 'More Features', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })} />
+          </View>
+
+          {/* ── Arched Navigation Section ── */}
+          <View style={{ marginTop: 20, marginBottom: 30, width: '100%', height: 160, alignItems: 'center' }}>
+            <View style={{ position: 'absolute', top: 35, left: 0, right: 0, height: 100 }}>
+              <Svg width={width} height={100}>
+                <Path
+                  d={`M -20 60 Q ${width/2} -20 ${width + 20} 60`}
+                  stroke={isDark ? '#3b82f6' : '#60a5fa'}
+                  strokeWidth={2}
+                  strokeDasharray="8, 6"
+                  fill="none"
+                />
+              </Svg>
+            </View>
+
+            <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-evenly', alignItems: 'flex-start', paddingTop: 10 }}>
+              {/* About Us */}
+              <TouchableOpacity 
+                style={{ alignItems: 'center', marginTop: 35 }}
+                onPress={() => navigation.navigate('AboutUs')}
+                activeOpacity={0.8}
+              >
+                <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderWidth: 4, borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                  <Users size={26} color="#ef4444" />
+                </View>
+                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13 }}>About us</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Our mission</Text>
+              </TouchableOpacity>
+
+              {/* Contact Us */}
+              <TouchableOpacity 
+                style={{ alignItems: 'center', marginTop: -5 }}
+                onPress={() => navigation.navigate('ContactUs')}
+                activeOpacity={0.8}
+              >
+                <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderWidth: 4, borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                  <MessageSquare size={26} color="#a855f7" />
+                </View>
+                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13 }}>Contact us</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Get in touch</Text>
+              </TouchableOpacity>
+
+              {/* Church Gallery / More */}
+              <TouchableOpacity 
+                style={{ alignItems: 'center', marginTop: 35 }}
+                onPress={() => setAlertConfig({ visible: true, title: 'Church Gallery', message: 'Option Available Soon\n\nWe are currently working on integrating this feature.', type: 'info' })}
+                activeOpacity={0.8}
+              >
+                <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderWidth: 4, borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                  <LucideImage size={26} color="#10b981" />
+                </View>
+                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13 }}>Church gallery</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>Our memories</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* ─── Upcoming Events ─── */}
