@@ -71,14 +71,8 @@ export default function AdminOnlineMeetingEditor() {
     }
   }, [showSuccess]);
 
-  useEffect(() => {
-    GoogleSignin.configure({
-      scopes: ['https://www.googleapis.com/auth/calendar.events'],
-      webClientId: '962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com',
-      offlineAccess: true,
-      forceCodeForRefreshToken: false,
-    });
-  }, []);
+
+
 
   const generateMeetLinkWithToken = async (accessToken: string) => {
     try {

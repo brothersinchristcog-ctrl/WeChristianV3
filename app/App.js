@@ -6,6 +6,16 @@ import messaging from '@react-native-firebase/messaging';
 import { Bell } from 'lucide-react-native';
 import RootNavigator from './src/navigation/RootNavigator';
 import * as Application from 'expo-application';
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
+
+// Configure Google Sign-In once at app startup (before any screen mounts)
+// This prevents DEVELOPER_ERROR when user taps sign-in too quickly
+GoogleSignin.configure({
+  scopes: ['https://www.googleapis.com/auth/calendar.events'],
+  webClientId: '962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com',
+  offlineAccess: true,
+  forceCodeForRefreshToken: false,
+});
 
 import SpInAppUpdates, {
   IAUUpdateKind,
