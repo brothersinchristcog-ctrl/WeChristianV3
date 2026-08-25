@@ -197,7 +197,7 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
           updateJourney(info.coords.latitude, info.coords.longitude);
         },
         (error) => console.warn('Instant location error:', error),
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        { enableHighAccuracy: false, timeout: 30000, maximumAge: 10000 }
       );
 
       // REAL GPS TRACKING (updates on movement)
@@ -209,6 +209,8 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
         {
           enableHighAccuracy: true,
           distanceFilter: 10, // update every 10 meters instead of 50 for more responsiveness
+          timeout: 30000,
+          maximumAge: 10000
         }
       );
 
