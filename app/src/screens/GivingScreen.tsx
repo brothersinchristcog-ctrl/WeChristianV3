@@ -50,9 +50,9 @@ const CATEGORIES = [
 const PRESETS = [50, 100, 500, 1000, 5000];
 
 const GIVING_WORDS = [
-  { text: 'Joy', colors: ['rgba(59,130,246,0.3)', 'rgba(59,130,246,0.05)'], border: '#3b82f6', textCol: '#60a5fa' },
-  { text: 'Love', colors: ['rgba(239,68,68,0.3)', 'rgba(239,68,68,0.05)'], border: '#ef4444', textCol: '#f87171' },
-  { text: 'Faith', colors: ['rgba(234,179,8,0.3)', 'rgba(234,179,8,0.05)'], border: '#facc15', textCol: '#fde047' },
+  { text: 'Joy', colors: ['rgba(59,130,246,0.3)', 'rgba(59,130,246,0.05)'] as const, border: '#3b82f6', textCol: '#60a5fa' },
+  { text: 'Love', colors: ['rgba(239,68,68,0.3)', 'rgba(239,68,68,0.05)'] as const, border: '#ef4444', textCol: '#f87171' },
+  { text: 'Faith', colors: ['rgba(234,179,8,0.3)', 'rgba(234,179,8,0.05)'] as const, border: '#facc15', textCol: '#fde047' },
 ];
 
 export default function GivingScreen({ navigation }: any) {
@@ -359,7 +359,7 @@ export default function GivingScreen({ navigation }: any) {
             <Text style={[styles.headerTitle, isDark && { color: '#fff' }]}>Give with</Text>
             
             <LinearGradient
-              colors={GIVING_WORDS[wordIdx % GIVING_WORDS.length].colors}
+              colors={GIVING_WORDS[wordIdx % GIVING_WORDS.length].colors as [string, string]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{
