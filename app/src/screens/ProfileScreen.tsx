@@ -453,15 +453,7 @@ export default function ProfileScreen({ navigation }: any) {
               navigation.navigate('GivingHistory');
             }}
           />
-          <MenuItem 
-            icon={<Heart size={20} color="#7c3aed" />} 
-            iconBg="#f5f3ff"
-            title="My prayer requests" 
-            sub="View & manage your requests" 
-            onPress={() => {
-              navigation.navigate('PrayerWall');
-            }}
-          />
+
           {(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') || String(member?.userType || '').toUpperCase().includes('PASTOR')) && (
             <MenuItem 
               icon={<CreditCard size={20} color="#d97706" />} 
