@@ -538,18 +538,18 @@ export default function SubscriptionTab({ member }: { member?: any }) {
           </Text>
           <View style={{ flex: 1, justifyContent: 'center' }}>
             <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#f59e0b', padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
-            <View style={{ position: 'absolute', top: 0, right: 0, width: 160, height: 45 }}>
-              <Svg width="160" height="45" style={{ position: 'absolute', top: 0, right: 0 }}>
+            <View style={{ position: 'absolute', top: 0, right: 0, width: 160, height: 90 }}>
+              <Svg width="160" height="90" style={{ position: 'absolute', top: 0, right: 0 }}>
                 <Defs>
-                  <LinearGradient id="goldBadge" x1="0" y1="0" x2="1" y2="0">
+                  <LinearGradient id="goldBadge" x1="0" y1="0" x2="1" y2="1">
                     <Stop offset="0" stopColor="#f59e0b" stopOpacity="1" />
                     <Stop offset="1" stopColor="#d97706" stopOpacity="1" />
                   </LinearGradient>
                 </Defs>
-                <Path d="M 0 0 C 25 0, 20 45, 45 45 L 160 45 L 160 0 Z" fill="url(#goldBadge)" />
+                <Path d="M 20 0 C 80 0, 160 30, 160 90 L 160 0 Z" fill="url(#goldBadge)" />
               </Svg>
-              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
-                <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13, marginTop: -4 }}>Save 89% •</Text>
+              <View style={{ position: 'absolute', top: 12, right: 16 }}>
+                <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Save 89% •</Text>
               </View>
             </View>
             
