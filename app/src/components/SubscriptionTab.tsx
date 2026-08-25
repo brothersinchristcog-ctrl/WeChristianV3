@@ -150,6 +150,34 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2);
   const trialEndDateStr = twoMonthsFromNow.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
+  const downloadReceipt = async (invoice: any) => {
+    try {
+      const html = `
+        <html>
+          <body style="font-family: sans-serif; padding: 40px;">
+            <h1>Subscription Receipt</h1>
+            <h2>${activeChurch?.name || 'Church Name'}</h2>
+            <hr />
+            <p><strong>Member Name:</strong> ${member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</p>
+            <p><strong>Plan:</strong> ${invoice?.plan || 'Monthly'} Plan</p>
+            <p><strong>Date:</strong> ${invoice?.paidAt ? ((invoice.paidAt as any).toDate ? (invoice.paidAt as any).toDate() : ((invoice.paidAt as any).seconds ? new Date((invoice.paidAt as any).seconds * 1000) : new Date(invoice.paidAt as any))).toLocaleDateString() : 'N/A'}</p>
+            <p><strong>Transaction ID:</strong> ${invoice?.id || 'N/A'}</p>
+            <p><strong>Status:</strong> ${invoice?.status?.toUpperCase() || 'N/A'}</p>
+            <hr />
+            <h3>Total Paid: ₹${invoice?.amount || '0'}</h3>
+          </body>
+        </html>
+      `;
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri);
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Failed to generate receipt');
+    }
+  };
+
   const monthlyPlan = plans.find(p => p.billingCycle === 'monthly');
   const annualPlan = plans.find(p => p.billingCycle === 'annual');
 
@@ -478,7 +506,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               }
               return history;
             })().map((h, i, arr) => (
-              <TouchableOpacity onPress={() => setSelectedInvoice(h)} key={h.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
+              <View key={h.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
                 <Text style={{ color: '#C4B896', fontSize: 12, width: 22, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
                   {String((subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0)) - i).padStart(2, '0')}
                 </Text>
@@ -504,7 +532,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                     Name: {member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}
                   </Text>
                 </View>
-                <View style={{ alignItems: 'flex-end' }}>
+                <View style={{ alignItems: 'flex-end', marginRight: 12 }}>
                   <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
                     ₹{h.amount}
                   </Text>
@@ -512,7 +540,10 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                     {h.status.toUpperCase()}
                   </Text>
                 </View>
-              </TouchableOpacity>
+                <TouchableOpacity onPress={() => downloadReceipt(h)} style={{ padding: 10, backgroundColor: '#E4DDC8', borderRadius: 8 }}>
+                  <Download size={16} color="#1F3B3D" />
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         </View>
@@ -851,33 +882,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             <View style={{ flexDirection: 'row', backgroundColor: '#F1EADA' }}>
               <TouchableOpacity 
                 style={{ flex: 1, padding: 16, alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E4DDC8', flexDirection: 'row', justifyContent: 'center' }}
-                onPress={async () => {
-                  try {
-                    const html = `
-                      <html>
-                        <body style="font-family: sans-serif; padding: 40px;">
-                          <h1>Subscription Receipt</h1>
-                          <h2>${activeChurch?.name || 'Church Name'}</h2>
-                          <hr />
-                          <p><strong>Member Name:</strong> ${member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</p>
-                          <p><strong>Plan:</strong> ${selectedInvoice?.plan || 'Monthly'} Plan</p>
-                          <p><strong>Date:</strong> ${selectedInvoice?.paidAt ? ((selectedInvoice.paidAt as any).toDate ? (selectedInvoice.paidAt as any).toDate() : ((selectedInvoice.paidAt as any).seconds ? new Date((selectedInvoice.paidAt as any).seconds * 1000) : new Date(selectedInvoice.paidAt as any))).toLocaleDateString() : 'N/A'}</p>
-                          <p><strong>Transaction ID:</strong> ${selectedInvoice?.id || 'N/A'}</p>
-                          <p><strong>Status:</strong> ${selectedInvoice?.status?.toUpperCase() || 'N/A'}</p>
-                          <hr />
-                          <h3>Total Paid: ₹${selectedInvoice?.amount || '0'}</h3>
-                        </body>
-                      </html>
-                    `;
-                    const { uri } = await Print.printToFileAsync({ html });
-                    if (await Sharing.isAvailableAsync()) {
-                      await Sharing.shareAsync(uri);
-                    }
-                  } catch (error) {
-                    console.error(error);
-                    Alert.alert('Error', 'Failed to generate receipt');
-                  }
-                }}
+                onPress={() => downloadReceipt(selectedInvoice)}
               >
                 <Download size={16} color="#10b981" style={{ marginRight: 6 }} />
                 <Text style={{ color: '#10b981', fontSize: 15, fontWeight: '600' }}>Download</Text>
