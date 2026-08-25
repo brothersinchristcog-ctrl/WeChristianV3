@@ -647,12 +647,15 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             {(() => {
               let history = [...subscriptionHistory];
               if (isPaymentSuccessful) {
-                history = [{ id: receiptTxnId || 'temp_active', plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' }, ...history];
+                const txnId = receiptTxnId || 'temp_active';
+                if (!history.some(item => item.id === txnId)) {
+                  history = [{ id: txnId, plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' }, ...history];
+                }
               }
               return history;
             })().map((h, i, arr) => (
               i === 0 && h.status === 'active' ? (
-                <View key={h.id} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#10b981', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }}>
+                <View key={`${h.id}-active`} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#10b981', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <View style={{ width: 40, height: 40, backgroundColor: '#d1fae5', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
@@ -705,7 +708,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                   </View>
                 </View>
               ) : (
-                <View key={h.id} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
+                <View key={`${h.id}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
                   <Text style={{ color: '#C4B896', fontSize: 12, width: 22, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
                     {String((subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0)) - i).padStart(2, '0')}
                   </Text>
