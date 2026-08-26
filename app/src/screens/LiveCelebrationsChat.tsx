@@ -427,7 +427,8 @@ export default function LiveCelebrationsChat({ navigation, route }: any) {
 
   const stopAndSendRecording = async () => {
     if (!recordingObj || !activeChurch?.id || !member) return;
-    setIsRecording(false);
+    // Don't set isRecording to false yet, wait for upload to finish
+
     recordingWaveAnim.stopAnimation();
     recordingWaveAnim.setValue(0);
     setUploadingAudio(true);
@@ -437,7 +438,10 @@ export default function LiveCelebrationsChat({ navigation, route }: any) {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: false });
       const uri = recordingObj.getURI();
       setRecordingObj(null);
-      if (!uri) return;
+      if (!uri) {
+        setIsRecording(false);
+        return;
+      }
 
       const fileName = `audio_${Date.now()}.m4a`;
       const ref = storage().ref(`churches/${activeChurch.id}/live_celebrations/${todayStr}/${fileName}`);
@@ -491,6 +495,7 @@ export default function LiveCelebrationsChat({ navigation, route }: any) {
       Alert.alert('Error', 'Failed to send audio. Please try again.');
     } finally {
       setUploadingAudio(false);
+      setIsRecording(false);
     }
   };
 
@@ -1104,7 +1109,7 @@ const styles = StyleSheet.create({
   },
   tapText: {
     color: '#bfc6dc', // secondary
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '500',
   },
   cardsScroll: {
@@ -1326,6 +1331,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 8,
+    paddingBottom: 16, // Added for mobile responsiveness (safe area)
     gap: 12,
   },
   addBtn: {
@@ -1344,7 +1350,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(82, 69, 52, 0.5)',
     borderRadius: 24,
-    height: 48,
+    minHeight: 48,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     justifyContent: 'center',
   },
@@ -1389,7 +1396,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingTop: 12,
+    paddingBottom: 24,
     gap: 12,
   },
   cancelRecordBtn: {

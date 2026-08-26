@@ -101,7 +101,7 @@ const DotGridIcon = ({ color, size }: { color: string; size: number }) => {
 };
 
 export default function AdminNavigator({ navigation, route }: any) {
-  const { signOut, user, member, setViewMode } = useAuth();
+  const { signOut, user, member, setViewMode, isPlatformSuperAdmin } = useAuth();
   const { activeChurch, isImpersonating, impersonatedBranchName, stopImpersonation } = useChurch();
   const [activeTab, setActiveTab] = useState(0);
   const [tabHistory, setTabHistory] = useState<number[]>([]);
@@ -222,7 +222,7 @@ export default function AdminNavigator({ navigation, route }: any) {
 
     { name: 'Online Meetings', icon: VideoIcon, component: AdminOnlineMeetings },
     { name: 'New Online Meeting', icon: VideoIcon, component: AdminOnlineMeetingEditor },
-    ...(member?.userType === 'super_admin' ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),
+    ...(isPlatformSuperAdmin ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];
 
   const ActiveComponent = tabs[activeTab].component as any;
@@ -264,11 +264,15 @@ export default function AdminNavigator({ navigation, route }: any) {
     inactiveIconColor = 'rgba(255,255,255,0.7)';
   }
 
+  const isSuperAdminTab = tabs[activeTab]?.name === 'Super Admin';
+
   // We provide handleSetTab via setActiveTab so child components can push to history
   return (
     <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack, setTabByName, dashboardScrollY, setDashboardScrollY }}>
-      <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
-        <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : '#1a2d5a' }} />
+      <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : isSuperAdminTab ? '#0a0f1e' : '#f0f2f7' }]}>
+        {!isSuperAdminTab && (
+          <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : '#1a2d5a' }} />
+        )}
         
         {isImpersonating && (
           <TouchableOpacity 
@@ -324,7 +328,7 @@ export default function AdminNavigator({ navigation, route }: any) {
           </TouchableOpacity>
         )}
 
-        {activeTab !== 0 && (
+        {activeTab !== 0 && !isSuperAdminTab && (
           <View style={[styles.header, { backgroundColor: '#1a2d5a' }]}>
             <View style={styles.headerTop}>
               <View style={styles.headerText}>

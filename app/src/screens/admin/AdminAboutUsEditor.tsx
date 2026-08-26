@@ -16,6 +16,7 @@ import firestore from '@react-native-firebase/firestore';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import firestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AboutUsData {
   churchName: string;
@@ -37,6 +38,7 @@ const DEFAULT_ABOUT: AboutUsData = {
 export default function AdminAboutUsEditor() {
   const { goBack } = useContext(AdminTabContext);
   const { activeChurch } = useChurch();
+  const insets = useSafeAreaInsets();
 
   const [data, setData] = useState<AboutUsData>(DEFAULT_ABOUT);
   const [draft, setDraft] = useState<AboutUsData>(DEFAULT_ABOUT);
@@ -119,8 +121,8 @@ export default function AdminAboutUsEditor() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
 
-                {/* ── Fixed Header ── */}
-                <View style={styles.header}>
+        {/* ── Fixed Header ── */}
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
           <TouchableOpacity onPress={goBack} style={styles.backBtn}>
             <ChevronLeft size={22} color="#fff" />
             <Text style={styles.backBtnTxt}>Back</Text>

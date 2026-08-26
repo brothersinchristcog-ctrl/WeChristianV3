@@ -99,10 +99,22 @@ class ChurchService {
   async getAllChurches(): Promise<ChurchDetails[]> {
     try {
       const snapshot = await firestore().collection('churches').orderBy('name').get();
-      return snapshot.docs.map(doc => ({
+      const churches = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as ChurchDetails[];
+
+      // Fetch live member count dynamically for each church
+      const churchesWithCounts = await Promise.all(churches.map(async (church) => {
+        try {
+          const countSnap = await firestore().collection('churches').doc(church.id).collection('members').count().get();
+          return { ...church, memberCount: countSnap.data().count };
+        } catch (e) {
+          return church;
+        }
+      }));
+
+      return churchesWithCounts;
     } catch (error) {
       console.error('Error fetching all churches:', error);
       return [];
@@ -259,6 +271,57 @@ class ChurchService {
     } catch (error) {
       console.error('Error updating church secrets:', error);
       return false;
+    }
+  }
+  /**
+   * SuperAdmin: Update specific church settings
+   */
+  async updateChurchSettings(churchId: string, data: any): Promise<void> {
+    try {
+      await firestore().collection('churches').doc(churchId).update(data);
+    } catch (error) {
+      console.error('Error updating church settings:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * SuperAdmin: Set custom subscription expiry date
+   */
+  async setSubscriptionExpiry(churchId: string, date: Date): Promise<void> {
+    try {
+      await firestore().collection('churches').doc(churchId).update({
+        'subscription.validUntil': date.toISOString(),
+        'subscription.status': 'active'
+      });
+    } catch (error) {
+      console.error('Error setting subscription expiry:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * SuperAdmin: Extend subscription by N years
+   */
+  async extendSubscription(churchId: string, years: number): Promise<void> {
+    try {
+      const church = await this.getChurchDetails(churchId);
+      if (!church) throw new Error('Church not found');
+      
+      let currentExpiry = church.subscription?.validUntil ? new Date(church.subscription.validUntil) : new Date();
+      if (currentExpiry < new Date()) {
+        currentExpiry = new Date();
+      }
+      
+      currentExpiry.setFullYear(currentExpiry.getFullYear() + years);
+      
+      await firestore().collection('churches').doc(churchId).update({
+        'subscription.validUntil': currentExpiry.toISOString(),
+        'subscription.status': 'active'
+      });
+    } catch (error) {
+      console.error('Error extending subscription:', error);
+      throw error;
     }
   }
 }

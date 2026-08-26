@@ -19,7 +19,7 @@ import FirestoreService from '../../services/FirestoreService';
 const { width } = Dimensions.get('window');
 
 export default function AdminPromiseCalendar() {
-  const { setActiveTab, setEditingData } = useContext(AdminTabContext);
+  const { setActiveTab, setTabByName, setEditingData } = useContext(AdminTabContext);
   const [loading, setLoading] = useState(true);
   const [promises, setPromises] = useState<any[]>([]);
 
@@ -119,7 +119,11 @@ export default function AdminPromiseCalendar() {
                   ]}
                   onPress={() => { 
                     setEditingData(promise || { date: dStr }); 
-                    setActiveTab(1); 
+                    if (setTabByName) {
+                      setTabByName('New Promise');
+                    } else {
+                      setActiveTab(3); // Fallback
+                    }
                   }}
                 >
                   <Text style={[

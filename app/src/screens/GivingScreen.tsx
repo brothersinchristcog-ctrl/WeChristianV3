@@ -16,6 +16,7 @@ import {
   Modal,
   Animated
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { 
   Lock, 
   Coins,
@@ -23,7 +24,9 @@ import {
   Share2,
   CheckCircle2,
   ArrowLeft,
-  ShieldCheck
+  ShieldCheck,
+  XCircle,
+  Info
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -56,6 +59,7 @@ const GIVING_WORDS = [
 ];
 
 export default function GivingScreen({ navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const { activeChurch } = useChurch();
@@ -67,9 +71,13 @@ export default function GivingScreen({ navigation }: any) {
   const [customEventName, setCustomEventName] = useState('');
   const [showEventModal, setShowEventModal] = useState(false);
   
-  // Custom Success Modal State
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
+  // Custom Status Modal State
+  const [statusModalConfig, setStatusModalConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({ visible: false, title: '', message: '', type: 'success' });
   
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'upi'>('razorpay');
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
@@ -198,8 +206,12 @@ export default function GivingScreen({ navigation }: any) {
         console.warn('Failed to send donation notification:', err);
       }
 
-      setSuccessMessage('Your donation receipt has been submitted and is pending verification. Thank you!');
-      setShowSuccessModal(true);
+      setStatusModalConfig({
+        visible: true,
+        title: 'Success',
+        message: 'Your donation receipt has been submitted and is pending verification. Thank you!',
+        type: 'success'
+      });
       setReceiptImage(null);
       setAmount('500');
     } catch (err) {
@@ -302,8 +314,12 @@ export default function GivingScreen({ navigation }: any) {
                 console.warn('Failed to send donation notification:', err);
               }
 
-              setSuccessMessage('Your donation was successful. Thank you!');
-              setShowSuccessModal(true);
+              setStatusModalConfig({
+                visible: true,
+                title: 'Success',
+                message: 'Your donation was successful. Thank you!',
+                type: 'success'
+              });
             } else {
               Alert.alert('Verification Failed', 'Payment verification failed.');
             }
@@ -312,19 +328,57 @@ export default function GivingScreen({ navigation }: any) {
             Alert.alert('Error', 'Payment verification failed.');
           }
         }).catch((error: any) => {
-          console.error('Razorpay Error:', error);
-          Alert.alert('Payment Failed', `Code: ${error.code} | Description: ${error.description}`);
+          console.log('Razorpay Checkout Error:', error);
+          let errorMessage = 'The payment process was cancelled or encountered an error. Please try again.';
+          
+          if (error && error.description) {
+            try {
+              const parsedDesc = JSON.parse(error.description);
+              if (parsedDesc.error?.reason === 'payment_cancelled') {
+                errorMessage = 'You cancelled the payment process.';
+              } else if (parsedDesc.error?.code === 'BAD_REQUEST_ERROR') {
+                errorMessage = 'Payment could not be processed due to a configuration issue. Please try again or contact the church administrator.';
+              } else if (parsedDesc.error?.description) {
+                errorMessage = parsedDesc.error.description;
+              }
+            } catch (e) {
+              if (typeof error.description === 'string') {
+                if (error.description.toLowerCase().includes('cancel')) {
+                  errorMessage = 'You cancelled the payment process.';
+                } else {
+                  errorMessage = `Payment could not be completed: ${error.description}`;
+                }
+              }
+            }
+          }
+
+          setStatusModalConfig({
+            visible: true,
+            title: 'Payment Failed',
+            message: errorMessage,
+            type: 'error'
+          });
         });
 
       } else {
         Alert.alert('Error', 'Could not initiate payment. Please try again later.');
       }
     } catch (error: any) {
-      console.error('Payment Error:', error);
+      console.log('Payment Process:', error?.message);
       if (error.message?.includes('Giving is not configured for this church yet')) {
-         Alert.alert('Not Configured', 'Giving is not configured for this church yet, please reach out to WeChristian team.');
+         setStatusModalConfig({
+           visible: true,
+           title: 'Not Configured',
+           message: 'Giving is not configured for this church yet, please reach out to your church admin/pastor.',
+           type: 'info'
+         });
       } else {
-         Alert.alert('Payment Failed', error.message || 'An error occurred while initiating the payment.');
+         setStatusModalConfig({
+           visible: true,
+           title: 'Payment Failed',
+           message: error.message || 'An error occurred while initiating the payment.',
+           type: 'error'
+         });
       }
     } finally {
       setLoading(false);
@@ -344,58 +398,58 @@ export default function GivingScreen({ navigation }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} backgroundColor="transparent" translucent={true} />
       
-      {/* ── Page Header ── */}
-      <View style={[styles.header, isDark && { backgroundColor: '#0f172a' }]}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ArrowLeft size={24} color="#FCD34D" />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.headerContent}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginTop: 10 }}>
-            <Text style={[styles.headerTitle, isDark && { color: '#fff' }]}>Give with</Text>
-            
-            <LinearGradient
-              colors={GIVING_WORDS[wordIdx % GIVING_WORDS.length].colors as [string, string]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                borderWidth: 1.5, 
-                borderColor: GIVING_WORDS[wordIdx % GIVING_WORDS.length].border, 
-                borderRadius: 30, 
-                paddingHorizontal: 20, 
-                height: 38,
-                minWidth: 100,
-                alignItems: 'center',
-                marginLeft: 8,
-                overflow: 'hidden'
-              }}
-            >
-              <Animated.View style={{ transform: [{ translateY: scrollAnim }] }}>
-                {[...GIVING_WORDS, GIVING_WORDS[0]].map((w, index) => (
-                  <View key={`${w.text}-${index}`} style={{ height: 38, justifyContent: 'center', alignItems: 'center' }}>
-                    <Text style={{ 
-                      fontSize: 26, 
-                      fontStyle: 'italic', 
-                      color: w.textCol, 
-                      fontWeight: '600', 
-                      fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' 
-                    }}>
-                      {w.text}
-                    </Text>
-                  </View>
-                ))}
-              </Animated.View>
-            </LinearGradient>
-          </View>
-          <Text style={[styles.headerQuote, isDark && { color: '#94a3b8' }]}>"God loves a cheerful giver" — 2 Cor 9:7</Text>
-        </View>
-      </View>
-
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* ── Page Header ── */}
+        <View style={[styles.header, { backgroundColor: isDark ? '#0f172a' : '#f8fafc', paddingTop: insets.top + 10, marginHorizontal: -16 }]}>
+          <View style={styles.headerTop}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+              <ArrowLeft size={24} color={isDark ? "#FCD34D" : "#1a2d5a"} />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.headerContent}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginTop: 10 }}>
+              <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#1e293b' }]}>Give with</Text>
+              
+              <LinearGradient
+                colors={GIVING_WORDS[wordIdx % GIVING_WORDS.length].colors as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  borderWidth: 1.5, 
+                  borderColor: GIVING_WORDS[wordIdx % GIVING_WORDS.length].border, 
+                  borderRadius: 30, 
+                  paddingHorizontal: 20, 
+                  height: 38,
+                  minWidth: 100,
+                  alignItems: 'center',
+                  marginLeft: 8,
+                  overflow: 'hidden'
+                }}
+              >
+                <Animated.View style={{ transform: [{ translateY: scrollAnim }] }}>
+                  {[...GIVING_WORDS, GIVING_WORDS[0]].map((w, index) => (
+                    <View key={`${w.text}-${index}`} style={{ height: 38, justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ 
+                        fontSize: 26, 
+                        fontStyle: 'italic', 
+                        color: w.textCol, 
+                        fontWeight: '600', 
+                        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' 
+                      }}>
+                        {w.text}
+                      </Text>
+                    </View>
+                  ))}
+                </Animated.View>
+              </LinearGradient>
+            </View>
+            <Text style={[styles.headerQuote, { color: isDark ? '#94a3b8' : '#64748b' }]}>"God loves a cheerful giver" — 2 Cor 9:7</Text>
+          </View>
+        </View>
+
         <View>
             {/* ── Category Selection ── */}
         <View style={[styles.sectionCard, isDark && { backgroundColor: 'transparent', elevation: 0, borderWidth: 0, paddingHorizontal: 0 }]}>
@@ -406,6 +460,7 @@ export default function GivingScreen({ navigation }: any) {
                 key={cat.id} 
                 style={[
                   styles.gridItem, 
+                  { width: (width - (isDark ? 32 : 64) - 20) / 3 },
                   activeCat === cat.id && styles.gridItemActive,
                   isDark && { backgroundColor: '#1e293b', borderColor: '#334155' },
                   activeCat === cat.id && isDark && { borderColor: '#FCD34D', backgroundColor: '#1e293b' }
@@ -676,21 +731,31 @@ export default function GivingScreen({ navigation }: any) {
         </View>
       </Modal>
 
-      {/* Beautiful Success Modal */}
-      <Modal visible={showSuccessModal} animationType="fade" transparent={true}>
+      {/* Beautiful Status Modal */}
+      <Modal visible={statusModalConfig.visible} animationType="fade" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : '#fff', paddingVertical: 40 }]}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#dcfce7', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
-              <CheckCircle2 size={36} color="#16a34a" />
+            <View style={{ 
+              width: 64, height: 64, borderRadius: 32, 
+              backgroundColor: statusModalConfig.type === 'error' ? '#fee2e2' : statusModalConfig.type === 'info' ? '#e0f2fe' : '#dcfce7', 
+              justifyContent: 'center', alignItems: 'center', marginBottom: 20 
+            }}>
+              {statusModalConfig.type === 'error' ? (
+                <XCircle size={36} color="#ef4444" />
+              ) : statusModalConfig.type === 'info' ? (
+                <Info size={36} color="#0ea5e9" />
+              ) : (
+                <CheckCircle2 size={36} color="#16a34a" />
+              )}
             </View>
-            <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#1e293b', fontSize: 22 }]}>Success</Text>
-            <Text style={[styles.modalSubtitle, { color: isDark ? '#94a3b8' : '#64748b', fontSize: 15, marginTop: 4 }]}>
-              {successMessage}
+            <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#1e293b', fontSize: 22, textAlign: 'center' }]}>{statusModalConfig.title}</Text>
+            <Text style={[styles.modalSubtitle, { color: isDark ? '#94a3b8' : '#64748b', fontSize: 15, marginTop: 4, textAlign: 'center' }]}>
+              {statusModalConfig.message}
             </Text>
             
             <TouchableOpacity 
-              style={[styles.modalBtn, { backgroundColor: '#16a34a', width: '100%', marginTop: 10 }]}
-              onPress={() => setShowSuccessModal(false)}
+              style={[styles.modalBtn, { backgroundColor: statusModalConfig.type === 'error' ? '#ef4444' : statusModalConfig.type === 'info' ? '#0ea5e9' : '#16a34a', width: '100%', marginTop: 24 }]}
+              onPress={() => setStatusModalConfig({ ...statusModalConfig, visible: false })}
             >
               <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>OK</Text>
             </TouchableOpacity>
@@ -705,11 +770,10 @@ export default function GivingScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { 
-    backgroundColor: '#1a2d5a', 
-    paddingTop: Platform.OS === 'ios' ? 55 : (StatusBar.currentHeight ? StatusBar.currentHeight + 15 : 40), 
     paddingBottom: 20,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
+    marginBottom: 10,
   },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, alignItems: 'center' },
   backBtn: { paddingVertical: 10 },

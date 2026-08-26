@@ -15,6 +15,7 @@ interface AuthContextType {
   setMember: (member: AppMember | null) => void;
   viewMode: 'admin' | 'member';
   setViewMode: (mode: 'admin' | 'member') => void;
+  isPlatformSuperAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,6 +25,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [member, setMember] = useState<AppMember | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'admin' | 'member'>('member');
+  const [isPlatformSuperAdmin, setIsPlatformSuperAdmin] = useState(false);
   const memberListenerRef = useRef<(() => void) | null>(null);
 
   const updateMember = (newMember: AppMember | null) => {
@@ -72,6 +74,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userState && !userState.isAnonymous) {
         try {
           console.log('🔐 [Auth] User Logged In:', userState.uid);
+          
+          // Check Super Admin Status
+          try {
+            const adminDoc = await firestore().collection('platform_admins').doc(userState.uid).get();
+            setIsPlatformSuperAdmin(adminDoc.exists);
+          } catch (err) {
+            console.warn('⚠️ [Auth] Failed to check platform admin status', err);
+            setIsPlatformSuperAdmin(false);
+          }
           
           // CRITICAL FIX: Force token refresh immediately after login
           // This ensures the native Firestore SDK receives the Auth token properly
@@ -193,6 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           memberListenerRef.current = null;
         }
         setMember(null);
+        setIsPlatformSuperAdmin(false);
         AsyncStorage.removeItem('@cached_member');
       }
       
@@ -223,7 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, member, loading, signInAnonymously, signOut, setMember: updateMember, viewMode, setViewMode }}>
+    <AuthContext.Provider value={{ user, member, loading, signInAnonymously, signOut, setMember: updateMember, viewMode, setViewMode, isPlatformSuperAdmin }}>
       {children}
     </AuthContext.Provider>
   );

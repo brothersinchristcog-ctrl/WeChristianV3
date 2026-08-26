@@ -17,7 +17,8 @@ import {
   Modal,
   Linking,
   Animated,
-  Easing
+  Easing,
+  Pressable
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -291,6 +292,7 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(false);
   const [initialFetchDone, setInitialFetchDone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [dynamicHeaderHeight, setDynamicHeaderHeight] = useState(0);
   // Floating Live Celebrations State
   const [liveCelebrations, setLiveCelebrations] = useState<any[]>([]);
   const [unreadLiveMsgs, setUnreadLiveMsgs] = useState(0);
@@ -801,6 +803,7 @@ export default function HomeScreen() {
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.appHeader, { paddingTop: headerPadding + 200 }]}
+        onLayout={(e) => setDynamicHeaderHeight(e.nativeEvent.layout.height - 200)}
       >
         {/* Decorative Particles */}
         <View style={styles.particleLayer}>
@@ -898,7 +901,7 @@ export default function HomeScreen() {
 
         {/* --- Greeting Row --- */}
         <View style={styles.greetingSection}>
-          <View style={styles.greetingLeft}>
+          <View style={[styles.greetingLeft, { paddingRight: 80 }]}>
             <Svg height="50" width="100%" style={{ marginBottom: 2 }}>
               <Defs>
                 <SvgLinearGradient id="greetingGrad" x1="0" y1="0" x2="1" y2="0">
@@ -908,7 +911,7 @@ export default function HomeScreen() {
               </Defs>
               <SvgText
                 fill="url(#greetingGrad)"
-                fontSize="32"
+                fontSize={Math.min(32, width * 0.075).toString()}
                 fontWeight="400"
                 fontFamily={Platform.OS === 'ios' ? 'Georgia' : 'serif'}
                 fontStyle="italic"
@@ -929,7 +932,7 @@ export default function HomeScreen() {
             )}
           </View>
           
-          <View style={{ position: 'absolute', right: 20, top: 5 }}>
+          <View style={{ position: 'absolute', right: 5, top: 5 }}>
             <HexagonDate />
           </View>
         </View>
@@ -976,7 +979,7 @@ export default function HomeScreen() {
 
       <Animated.ScrollView 
         style={styles.scroll} 
-        contentContainerStyle={{ paddingTop: headerPadding + 195 }} // Padding to clear the absolute header
+        contentContainerStyle={{ paddingTop: Math.max(headerPadding + 195, dynamicHeaderHeight + 15) }} // Dynamic padding to clear the absolute header
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={Animated.event(
@@ -984,7 +987,7 @@ export default function HomeScreen() {
           { useNativeDriver: true }
         )}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" progressViewOffset={headerPadding + 195} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" progressViewOffset={Math.max(headerPadding + 195, dynamicHeaderHeight + 15)} />
         }
       >
         <EventMarquee events={todayEvents} onEventPress={(event) => navigation.navigate('EventDetails', { event })} />
@@ -1359,12 +1362,15 @@ export default function HomeScreen() {
 
 function GridItem({ icon, label, color, onPress, isDark }: { icon: any; label: string; color: string; onPress: () => void; isDark: boolean }) {
   return (
-    <TouchableOpacity style={styles.iconItem} onPress={onPress}>
+    <Pressable 
+      style={({ pressed }) => [styles.iconItem, { opacity: pressed ? 0.7 : 1 }]} 
+      onPress={onPress}
+    >
       <View style={[styles.iconBox, { backgroundColor: color }]}>
         {icon}
       </View>
       <Text style={[styles.iconLbl, { color: isDark ? '#e2e8f0' : '#475569' }]} numberOfLines={2}>{label}</Text>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

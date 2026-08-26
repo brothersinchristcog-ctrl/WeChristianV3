@@ -2302,7 +2302,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10, paddingHorizontal: 8,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'
   },
-  customRangeInputTxt: { fontFamily: FONTS.mono, fontSize: 13, color: '#1b2a4a', fontWeight: '600' },
+  customRangeInputTxt: { flex: 1, marginRight: 4, fontFamily: FONTS.mono, fontSize: 13, color: '#1b2a4a', fontWeight: '600' },
   customRangeApplyBtn: {
     backgroundColor: '#1b2a4a', borderRadius: 8,
     paddingVertical: 11, paddingHorizontal: 16,

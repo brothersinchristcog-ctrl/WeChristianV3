@@ -99,6 +99,10 @@ service cloud.firestore {
       allow write: if isAdminGlobally();
     }
 
+    match /platform_admins/{adminId} {
+      allow read: if isAuthenticated();
+    }
+
     // 9. Worship Songs
     match /worshipSongs/{songId} {
       allow read, write: if isAuthenticated();
@@ -144,7 +148,9 @@ service cloud.firestore {
           let hasParentMemberDoc = parentId != null && exists(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid));
           let isParentAdmin = hasParentMemberDoc && get(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
 
-          return isAuthenticated() && (isGlobalAdmin || isMemberAdmin || isParentAdmin);
+          let isPlatformAdmin = exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid));
+
+          return isAuthenticated() && (isGlobalAdmin || isMemberAdmin || isParentAdmin || isPlatformAdmin);
         }
 
       // Church info is public — allow lookup by code even before login (needed during signup).

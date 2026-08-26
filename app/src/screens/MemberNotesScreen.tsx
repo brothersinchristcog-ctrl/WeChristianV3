@@ -318,15 +318,15 @@ export default function MemberNotesScreen({ navigation, route }: any) {
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 15) }]}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft color="#fff" size={28} />
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.headerTitle}>Sermon Notes</Text>
-            <Text style={styles.headerSubtitle}>ప్రసంగ గమనికలు</Text>
-          </View>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <ChevronLeft color="#fff" size={24} />
+          <Text style={styles.backText}>Back</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.headerCenter}>
+          <Text style={styles.headerTitle}>Sermon Notes</Text>
+          <Text style={styles.headerSubtitle}>ప్రసంగ గమనికలు</Text>
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
           {notes.length > 0 && (
@@ -566,18 +566,20 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
     backgroundColor: '#1a2d5a',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  backBtn: { marginRight: 12 },
-  headerTitle: { color: '#fff', fontSize: 17, fontWeight: '800' },
-  headerSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600' },
+  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
+  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  headerCenter: { alignItems: 'center' },
+  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  headerSubtitle: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
   plusBtn: {
     width: 36,
     height: 36,
