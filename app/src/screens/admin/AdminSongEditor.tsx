@@ -624,13 +624,20 @@ export default function AdminSongEditor() {
               </View>
             </View>
             <View style={{ marginBottom: 16 }}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Search songs by title or artist..."
-                placeholderTextColor="#94a3b8"
-                value={listSearchQuery}
-                onChangeText={setListSearchQuery}
-              />
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                <TextInput
+                  style={[styles.textInput, { flex: 1, borderWidth: 0, backgroundColor: 'transparent', marginBottom: 0, paddingHorizontal: 0 }]}
+                  placeholder="Search songs by title or artist..."
+                  placeholderTextColor="#94a3b8"
+                  value={listSearchQuery}
+                  onChangeText={setListSearchQuery}
+                />
+                {listSearchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setListSearchQuery('')} style={{ padding: 4 }}>
+                    <X size={16} color="#94a3b8" />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
           <FlatList
