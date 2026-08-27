@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Shield, X, Image as ImageIcon, Search, Mail, Phone, Settings, Check, UploadCloud, ChevronLeft, Save, FileText, Music, Pencil } from 'lucide-react-native';
+import { Plus, Shield, X, Image as ImageIcon, Search, Mail, Phone, Settings, Check, UploadCloud, ChevronLeft, Save, FileText, Music, Pencil, MapPin } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -477,6 +477,12 @@ export default function SuperAdminDashboard({ navigation }: any) {
                     <View style={styles.churchInfo}>
                       <Text style={styles.churchName}>{item.name}</Text>
                       <Text style={styles.churchDomain}>Code: {item.subdomain || 'N/A'}</Text>
+                      {item.address ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, paddingRight: 10 }}>
+                          <MapPin size={10} color="#94a1c4" style={{ marginRight: 4 }} />
+                          <Text style={styles.churchAddress} numberOfLines={1} ellipsizeMode="tail">{item.address}</Text>
+                        </View>
+                      ) : null}
                     </View>
                   </View>
                   
@@ -791,11 +797,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden'
   },
   churchLogoImg: { width: '100%', height: '100%' },
-  avatarFallback: { flex: 1, width: '100%', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 16, fontWeight: '800', color: '#050813', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
+  avatarFallback: { width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' },
+  avatarText: { fontSize: 20, fontWeight: '800', color: '#fff' },
   churchInfo: { flex: 1 },
   churchName: { fontSize: 16, fontWeight: '800', color: '#f4f6fb', marginBottom: 4 },
   churchDomain: { fontSize: 12, color: '#94a1c4' },
+  churchAddress: { fontSize: 11, color: '#94a1c4', flexShrink: 1 },
   
   listCountText: { fontSize: 13, fontWeight: '700', color: '#5c6890', marginBottom: 12, marginLeft: 4 },
   
@@ -803,7 +810,9 @@ const styles = StyleSheet.create({
   contactRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   contactLink: { color: '#8fb4ff', fontSize: 13, fontWeight: '500' },
   
-  cardBottom: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#242e50' },
+  cardBottom: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#242e50' },
   membersCountRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusDot: { width: 7, height: 7, borderRadius: 3.5 },
   membersCount: { fontSize: 13, color: '#94a1c4', fontWeight: '600' },
