@@ -505,7 +505,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
                         {new Date(item.subscription.validUntil).getTime() < Date.now() ? (
                           <Text style={[styles.expiryText, { color: '#f4556b', fontWeight: '800' }]}>Subscription Expired</Text>
                         ) : (
-                          <Text style={styles.expiryText}>Expires: {new Date(item.subscription.validUntil).toLocaleDateString()}</Text>
+                          <Text style={styles.expiryText}>Expires: {new Date(item.subscription.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
                         )}
                       </View>
                     ) : item.subscription?.status && item.subscription?.status !== 'active' ? (
