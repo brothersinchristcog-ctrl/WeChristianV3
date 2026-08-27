@@ -108,10 +108,15 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
+    // Helper: Is this user a platform super admin?
+    function isPlatformAdmin() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid));
+    }
+
     // Global Master Songs
     match /masterSongs/{songId} {
       allow read: if isAuthenticated();
-      allow write: if isAdminGlobally();
+      allow write: if isAdminGlobally() || isPlatformAdmin();
     }
 
     // 10. Subscription Plans

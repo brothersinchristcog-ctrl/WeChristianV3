@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Alert, SafeAreaView, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Alert, SafeAreaView, Platform, Linking, TextInput } from 'react-native';
 import { X, Shield, Calendar, Smartphone, Globe, Music, BookOpen, Heart, MessageCircle, Mail, Phone, Edit2 } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
@@ -26,6 +26,16 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
     message: '',
     type: 'success' as 'success' | 'error'
   });
+  const [availableTiers, setAvailableTiers] = useState<string[]>([]);
+  const [editForm, setEditForm] = useState({
+    visible: false,
+    tier: '',
+    customTier: '',
+    contactEmail: '',
+    secondaryEmail: '',
+    contactPhone: '',
+    secondaryPhone: '',
+  });
 
   const showCustomAlert = (title: string, message: string, type: 'success' | 'error' = 'success') => {
     setAlertConfig({ visible: true, title, message, type });
@@ -42,7 +52,47 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
     setLoading(true);
     const data = await ChurchService.getChurchDetails(churchId);
     setChurch(data);
+    const tiers = await ChurchService.getAvailableTiers();
+    setAvailableTiers(tiers);
     setLoading(false);
+  };
+
+  const openEditForm = () => {
+    if (!church) return;
+    setEditForm({
+      visible: true,
+      tier: (church.subscription as any)?.tier || church.subscriptionTier || '',
+      customTier: '',
+      contactEmail: church.contactEmail || '',
+      secondaryEmail: (church as any).secondaryEmail || '',
+      contactPhone: church.contactPhone || '',
+      secondaryPhone: (church as any).secondaryPhone || '',
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    if (!church) return;
+    setSaving(true);
+    try {
+      const finalTier = editForm.customTier.trim() !== '' ? editForm.customTier.trim().toLowerCase() : editForm.tier;
+      await ChurchService.updateChurchSettings(church.id, { 
+        contactEmail: editForm.contactEmail,
+        secondaryEmail: editForm.secondaryEmail,
+        contactPhone: editForm.contactPhone,
+        secondaryPhone: editForm.secondaryPhone,
+        subscriptionTier: finalTier,
+        'subscription.tier': finalTier,
+      });
+      await loadChurch();
+      onUpdated();
+      showCustomAlert('Success', `Church details updated successfully`, 'success');
+      setEditForm({ ...editForm, visible: false });
+    } catch (e) {
+      console.error(e);
+      showCustomAlert('Error', 'Failed to update church details', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleToggleFeature = async (featureKey: string, currentValue: boolean) => {
@@ -197,30 +247,6 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
     return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString('en-GB', opts);
   };
 
-  const handleChangeTier = () => {
-    Alert.alert('Change Tier', 'Select a new subscription tier', [
-      { text: 'Free', onPress: () => updateTier('free') },
-      { text: 'Standard', onPress: () => updateTier('standard') },
-      { text: 'Premium', onPress: () => updateTier('premium') },
-      { text: 'Cancel', style: 'cancel' }
-    ]);
-  };
-
-  const updateTier = async (tier: string) => {
-    if (!church) return;
-    setSaving(true);
-    try {
-      await ChurchService.updateChurchSettings(church.id, { subscriptionTier: tier as any });
-      await loadChurch();
-      onUpdated();
-      showCustomAlert('Success', `Tier updated to ${tier.toUpperCase()}`, 'success');
-    } catch (e) {
-      console.error(e);
-      const uid = auth().currentUser?.uid; showCustomAlert('Permission Denied', `Your UID (${uid}) lacks admin access for this church.`, 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (!visible) return null;
 
@@ -244,9 +270,17 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
           </View>
         ) : (
           <ScrollView contentContainerStyle={styles.content}>
-            
+
             {/* Info Card */}
             <View style={styles.card}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={[styles.sectionTitle, { marginTop: 0, marginBottom: 0 }]}>Church Details</Text>
+                <TouchableOpacity onPress={openEditForm} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(59, 130, 246, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}>
+                  <Edit2 size={14} color="#3b82f6" style={{ marginRight: 6 }} />
+                  <Text style={{ color: '#3b82f6', fontSize: 12, fontWeight: '700' }}>Edit</Text>
+                </TouchableOpacity>
+              </View>
+
               <View style={styles.cardRow}>
                 <Globe size={20} color="#94a3b8" />
                 <View style={styles.cardTextContainer}>
@@ -255,38 +289,103 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                 </View>
               </View>
               <View style={styles.divider} />
-              <TouchableOpacity style={styles.cardRow} onPress={handleChangeTier}>
+              
+              <View style={styles.cardRow}>
                 <Shield size={20} color="#94a3b8" />
                 <View style={styles.cardTextContainer}>
                   <Text style={styles.cardLabel}>Tier</Text>
-                  <Text style={[styles.cardValue, { color: '#8fb4ff' }]}>{(church.subscription as any)?.tier || church.subscriptionTier || 'N/A'}</Text>
+                  <Text style={[styles.cardValue, { color: '#8fb4ff', textTransform: 'capitalize' }]}>{(church.subscription as any)?.tier || church.subscriptionTier || 'N/A'}</Text>
                 </View>
-              </TouchableOpacity>
+              </View>
               <View style={styles.divider} />
-              <TouchableOpacity 
-                style={styles.cardRow} 
-                onPress={() => Linking.openURL(`mailto:${church.contactEmail || (church.subdomain ? `admin@${church.subdomain}.app` : 'admin@wechristian.app')}`)}
-              >
-                <Mail size={20} color="#94a3b8" />
-                <View style={styles.cardTextContainer}>
-                  <Text style={styles.cardLabel}>Email</Text>
-                  <Text style={[styles.cardValue, { color: '#8fb4ff' }]}>{church.contactEmail || (church.subdomain ? `admin@${church.subdomain}.app` : 'admin@wechristian.app')}</Text>
-                </View>
-              </TouchableOpacity>
+              
+              <View style={styles.cardRow}>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                  onPress={() => Linking.openURL(`mailto:${church.contactEmail || (church.subdomain ? `admin@${church.subdomain}.app` : 'admin@wechristian.app')}`)}
+                >
+                  <Mail size={20} color="#94a3b8" />
+                  <View style={styles.cardTextContainer}>
+                    <Text style={styles.cardLabel}>Primary Email</Text>
+                    {church.contactEmail ? (
+                      <Text style={[styles.cardValue, { color: '#8fb4ff' }]}>{church.contactEmail}</Text>
+                    ) : (
+                      <TouchableOpacity onPress={openEditForm} style={{ marginTop: 4 }}>
+                        <Text style={{ color: '#3b82f6', fontSize: 13, fontWeight: '600' }}>+ Add Email</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
               <View style={styles.divider} />
-              <TouchableOpacity 
-                style={styles.cardRow} 
-                onPress={() => {
-                  const phone = church.contactPhone;
-                  if (phone) Linking.openURL(`tel:${phone}`);
-                }}
-              >
-                <Phone size={20} color="#94a3b8" />
-                <View style={styles.cardTextContainer}>
-                  <Text style={styles.cardLabel}>Phone</Text>
-                  <Text style={[styles.cardValue, church.contactPhone ? { color: '#8fb4ff' } : {}]}>{church.contactPhone || 'No phone provided'}</Text>
-                </View>
-              </TouchableOpacity>
+
+              <View style={styles.cardRow}>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                  onPress={() => {
+                    const email = (church as any).secondaryEmail;
+                    if (email) Linking.openURL(`mailto:${email}`);
+                  }}
+                >
+                  <Mail size={20} color="#94a3b8" />
+                  <View style={styles.cardTextContainer}>
+                    <Text style={styles.cardLabel}>Secondary Email</Text>
+                    {(church as any).secondaryEmail ? (
+                      <Text style={[styles.cardValue, { color: '#8fb4ff' }]}>{(church as any).secondaryEmail}</Text>
+                    ) : (
+                      <TouchableOpacity onPress={openEditForm} style={{ marginTop: 4 }}>
+                        <Text style={{ color: '#3b82f6', fontSize: 13, fontWeight: '600' }}>+ Add Email</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.divider} />
+
+              <View style={styles.cardRow}>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                  onPress={() => {
+                    const phone = church.contactPhone;
+                    if (phone) Linking.openURL(`tel:${phone}`);
+                  }}
+                >
+                  <Phone size={20} color="#94a3b8" />
+                  <View style={styles.cardTextContainer}>
+                    <Text style={styles.cardLabel}>Primary Phone</Text>
+                    {church.contactPhone ? (
+                      <Text style={[styles.cardValue, { color: '#8fb4ff' }]}>{church.contactPhone}</Text>
+                    ) : (
+                      <TouchableOpacity onPress={openEditForm} style={{ marginTop: 4 }}>
+                        <Text style={{ color: '#3b82f6', fontSize: 13, fontWeight: '600' }}>+ Add Phone</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.divider} />
+
+              <View style={styles.cardRow}>
+                <TouchableOpacity
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}
+                  onPress={() => {
+                    const phone = (church as any).secondaryPhone;
+                    if (phone) Linking.openURL(`tel:${phone}`);
+                  }}
+                >
+                  <Phone size={20} color="#94a3b8" />
+                  <View style={styles.cardTextContainer}>
+                    <Text style={styles.cardLabel}>Secondary Phone</Text>
+                    {(church as any).secondaryPhone ? (
+                      <Text style={[styles.cardValue, { color: '#8fb4ff' }]}>{(church as any).secondaryPhone}</Text>
+                    ) : (
+                      <TouchableOpacity onPress={openEditForm} style={{ marginTop: 4 }}>
+                        <Text style={{ color: '#3b82f6', fontSize: 13, fontWeight: '600' }}>+ Add Phone</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Subscription Section */}
@@ -295,7 +394,7 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
               <View style={[styles.cardRow, { alignItems: 'flex-start' }]}>
                 <Calendar size={20} color={church.subscription?.status === 'active' ? '#34d399' : '#f87171'} style={{ marginTop: 2 }} />
                 <View style={[styles.cardTextContainer, { flex: 1 }]}>
-                  
+
                   {/* Badge & Edit Action Row */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <View style={{ backgroundColor: church.subscription?.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: church.subscription?.status === 'active' ? 'rgba(52, 211, 153, 0.3)' : 'rgba(248, 113, 113, 0.3)' }}>
@@ -303,9 +402,9 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                         {church.subscription?.status?.toUpperCase() || 'UNKNOWN'}
                       </Text>
                     </View>
-                    
-                    <TouchableOpacity 
-                      onPress={() => setEditDateModalVisible(true)} 
+
+                    <TouchableOpacity
+                      onPress={() => setEditDateModalVisible(true)}
                       style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(143, 180, 255, 0.1)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(143, 180, 255, 0.2)' }}
                     >
                       <Edit2 size={12} color="#8fb4ff" style={{ marginRight: 6 }} />
@@ -321,7 +420,7 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                         {formatDate((church as any).createdAt)}
                       </Text>
                     </View>
-                    
+
                     <View style={{ flex: 1 }}>
                       <Text style={styles.cardLabel}>Expires</Text>
                       <Text style={[styles.cardValue, { marginTop: 4 }]}>
@@ -332,35 +431,35 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
 
                 </View>
               </View>
-              
+
               <View style={{ marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#1e293b' }}>
                 <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
                   Extend Subscription
                 </Text>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-                  <TouchableOpacity 
-                    style={[styles.btn, { backgroundColor: 'transparent', borderColor: 'rgba(52, 211, 153, 0.5)', borderWidth: 1, width: '48%', marginBottom: 12, flex: 0 }]} 
+                  <TouchableOpacity
+                    style={[styles.btn, { backgroundColor: 'transparent', borderColor: 'rgba(52, 211, 153, 0.5)', borderWidth: 1, width: '48%', marginBottom: 12, flex: 0 }]}
                     onPress={() => handleExtendSub(1)}
                     disabled={saving}
                   >
                     <Text style={[styles.btnText, { color: '#34d399' }]}>+ 1 Year</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.btn, { backgroundColor: 'transparent', borderColor: 'rgba(52, 211, 153, 0.5)', borderWidth: 1, width: '48%', marginBottom: 12, flex: 0 }]} 
+                  <TouchableOpacity
+                    style={[styles.btn, { backgroundColor: 'transparent', borderColor: 'rgba(52, 211, 153, 0.5)', borderWidth: 1, width: '48%', marginBottom: 12, flex: 0 }]}
                     onPress={() => handleExtendMonths(1)}
                     disabled={saving}
                   >
                     <Text style={[styles.btnText, { color: '#34d399' }]}>+ 1 Month</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.btn, { backgroundColor: 'transparent', borderColor: 'rgba(52, 211, 153, 0.5)', borderWidth: 1, width: '48%', flex: 0 }]} 
+                  <TouchableOpacity
+                    style={[styles.btn, { backgroundColor: 'transparent', borderColor: 'rgba(52, 211, 153, 0.5)', borderWidth: 1, width: '48%', flex: 0 }]}
                     onPress={() => handleExtendDays(15)}
                     disabled={saving}
                   >
                     <Text style={[styles.btnText, { color: '#34d399' }]}>+ 15 Days</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={[styles.btn, { backgroundColor: 'transparent', borderColor: 'rgba(52, 211, 153, 0.5)', borderWidth: 1, width: '48%', flex: 0 }]} 
+                  <TouchableOpacity
+                    style={[styles.btn, { backgroundColor: 'transparent', borderColor: 'rgba(52, 211, 153, 0.5)', borderWidth: 1, width: '48%', flex: 0 }]}
                     onPress={() => setDatePickerVisibility(true)}
                     disabled={saving}
                   >
@@ -383,7 +482,7 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                   </View>
                 </View>
               ) : (
-                <SettingToggle 
+                <SettingToggle
                   icon={<Shield size={20} color="#94a3b8" />}
                   title="Parent Organization"
                   description="Marks this church as a parent organization that can have branches."
@@ -393,7 +492,7 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                 />
               )}
               <View style={styles.divider} />
-              <SettingToggle 
+              <SettingToggle
                 icon={<Music size={20} color="#94a3b8" />}
                 title="Disable Global Master Songs"
                 description="If checked, this church will only see their own custom songs, not the global platform songs."
@@ -406,7 +505,7 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
             {/* Integrations */}
             <Text style={styles.sectionTitle}>Integrations</Text>
             <View style={styles.card}>
-              <SettingToggle 
+              <SettingToggle
                 icon={<MessageCircle size={20} color="#34d399" />}
                 title="WhatsApp Integration & Automation"
                 description="If you want automated WhatsApp messages, WeCelebrations tab, and chat features enabled for this church."
@@ -415,7 +514,7 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                 disabled={saving}
               />
             </View>
-            
+
             <View style={{ height: 40 }} />
           </ScrollView>
         )}
@@ -435,14 +534,14 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
         {/* Custom Beautiful Alert Modal */}
         <Modal visible={alertConfig.visible} transparent animationType="fade">
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-            <View style={{ 
-              backgroundColor: '#1e293b', 
-              borderRadius: 24, 
-              width: '100%', 
-              maxWidth: 320, 
-              padding: 24, 
-              alignItems: 'center', 
-              borderWidth: 1, 
+            <View style={{
+              backgroundColor: '#1e293b',
+              borderRadius: 24,
+              width: '100%',
+              maxWidth: 320,
+              padding: 24,
+              alignItems: 'center',
+              borderWidth: 1,
               borderColor: alertConfig.type === 'success' ? 'rgba(52, 211, 153, 0.3)' : 'rgba(248, 113, 113, 0.3)',
               shadowColor: alertConfig.type === 'success' ? '#34d399' : '#f87171',
               shadowOffset: { width: 0, height: 8 },
@@ -450,27 +549,27 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
               shadowRadius: 16,
               elevation: 10
             }}>
-              <View style={{ 
-                width: 64, 
-                height: 64, 
-                borderRadius: 32, 
-                backgroundColor: alertConfig.type === 'success' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                marginBottom: 20 
+              <View style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: alertConfig.type === 'success' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 20
               }}>
                 {alertConfig.type === 'success' ? <Shield size={32} color="#34d399" /> : <X size={32} color="#f87171" />}
               </View>
               <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginBottom: 12, textAlign: 'center', letterSpacing: 0.5 }}>{alertConfig.title}</Text>
               <Text style={{ color: '#94a3b8', fontSize: 15, textAlign: 'center', marginBottom: 28, lineHeight: 22 }}>{alertConfig.message}</Text>
-              
-              <TouchableOpacity 
-                style={{ 
-                  backgroundColor: alertConfig.type === 'success' ? '#34d399' : '#f87171', 
-                  paddingVertical: 14, 
-                  paddingHorizontal: 32, 
-                  borderRadius: 12, 
-                  width: '100%' 
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: alertConfig.type === 'success' ? '#34d399' : '#f87171',
+                  paddingVertical: 14,
+                  paddingHorizontal: 32,
+                  borderRadius: 12,
+                  width: '100%'
                 }}
                 onPress={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
               >
@@ -483,14 +582,14 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
         {/* Beautiful Edit Date Selection Modal */}
         <Modal visible={isEditDateModalVisible} transparent animationType="fade">
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-            <View style={{ 
-              backgroundColor: '#1e293b', 
-              borderRadius: 24, 
-              width: '100%', 
-              maxWidth: 320, 
-              padding: 24, 
-              alignItems: 'center', 
-              borderWidth: 1, 
+            <View style={{
+              backgroundColor: '#1e293b',
+              borderRadius: 24,
+              width: '100%',
+              maxWidth: 320,
+              padding: 24,
+              alignItems: 'center',
+              borderWidth: 1,
               borderColor: 'rgba(148, 163, 184, 0.2)',
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 8 },
@@ -498,21 +597,21 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
               shadowRadius: 16,
               elevation: 10
             }}>
-              <View style={{ 
-                width: 64, 
-                height: 64, 
-                borderRadius: 32, 
-                backgroundColor: 'rgba(143, 180, 255, 0.15)', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                marginBottom: 20 
+              <View style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                backgroundColor: 'rgba(143, 180, 255, 0.15)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: 20
               }}>
                 <Calendar size={32} color="#8fb4ff" />
               </View>
               <Text style={{ color: '#fff', fontSize: 22, fontWeight: '700', marginBottom: 8, textAlign: 'center', letterSpacing: 0.5 }}>Edit Dates</Text>
               <Text style={{ color: '#94a3b8', fontSize: 15, textAlign: 'center', marginBottom: 28, lineHeight: 22 }}>Which date would you like to update?</Text>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={{ backgroundColor: '#8fb4ff', paddingVertical: 14, borderRadius: 12, width: '100%', marginBottom: 12 }}
                 onPress={() => {
                   setEditDateModalVisible(false);
@@ -521,8 +620,8 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
               >
                 <Text style={{ color: '#0f172a', fontSize: 16, fontWeight: '700', textAlign: 'center' }}>Edit Start Date</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={{ backgroundColor: 'rgba(143, 180, 255, 0.1)', paddingVertical: 14, borderRadius: 12, width: '100%', marginBottom: 16, borderWidth: 1, borderColor: 'rgba(143, 180, 255, 0.3)' }}
                 onPress={() => {
                   setEditDateModalVisible(false);
@@ -532,12 +631,93 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                 <Text style={{ color: '#8fb4ff', fontSize: 16, fontWeight: '700', textAlign: 'center' }}>Edit Expires Date</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={{ paddingVertical: 10, width: '100%' }}
                 onPress={() => setEditDateModalVisible(false)}
               >
                 <Text style={{ color: '#94a3b8', fontSize: 15, fontWeight: '600', textAlign: 'center' }}>Cancel</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Unified Edit Form Modal */}
+        <Modal transparent visible={editForm.visible} animationType="fade" onRequestClose={() => setEditForm({ ...editForm, visible: false })}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{ width: '100%', maxWidth: 400, maxHeight: '80%', backgroundColor: '#1e293b', borderRadius: 24, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10, borderWidth: 1, borderColor: '#334155' }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#f8fafc', marginBottom: 16 }}>Edit Church Details</Text>
+              
+              <ScrollView showsVerticalScrollIndicator={false} style={{ marginBottom: 20 }}>
+                <Text style={{ color: '#94a1c4', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 }}>Subscription Tier</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                  {availableTiers.map(t => (
+                    <TouchableOpacity 
+                      key={t}
+                      onPress={() => setEditForm({ ...editForm, tier: t, customTier: '' })}
+                      style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: editForm.tier === t && !editForm.customTier ? '#3b82f6' : '#334155', borderWidth: 1, borderColor: editForm.tier === t && !editForm.customTier ? '#60a5fa' : '#475569' }}
+                    >
+                      <Text style={{ color: '#f8fafc', fontSize: 13, fontWeight: '600', textTransform: 'capitalize' }}>{t}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TextInput
+                  style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', fontSize: 14, marginBottom: 16 }}
+                  value={editForm.customTier}
+                  onChangeText={(t: string) => setEditForm({ ...editForm, customTier: t, tier: t ? '' : editForm.tier })}
+                  placeholder="Or enter custom tier..."
+                  placeholderTextColor="#64748b"
+                  autoCapitalize="none"
+                />
+
+                <Text style={{ color: '#94a1c4', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 }}>Contact Details</Text>
+                
+                <TextInput
+                  style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', fontSize: 14, marginBottom: 12 }}
+                  value={editForm.contactEmail}
+                  onChangeText={(t: string) => setEditForm({ ...editForm, contactEmail: t })}
+                  placeholder="Primary Email"
+                  placeholderTextColor="#64748b"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+                
+                <TextInput
+                  style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', fontSize: 14, marginBottom: 12 }}
+                  value={editForm.secondaryEmail}
+                  onChangeText={(t: string) => setEditForm({ ...editForm, secondaryEmail: t })}
+                  placeholder="Secondary Email"
+                  placeholderTextColor="#64748b"
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                />
+
+                <TextInput
+                  style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', fontSize: 14, marginBottom: 12 }}
+                  value={editForm.contactPhone}
+                  onChangeText={(t: string) => setEditForm({ ...editForm, contactPhone: t })}
+                  placeholder="Primary Phone"
+                  placeholderTextColor="#64748b"
+                  keyboardType="phone-pad"
+                />
+
+                <TextInput
+                  style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', fontSize: 14, marginBottom: 12 }}
+                  value={editForm.secondaryPhone}
+                  onChangeText={(t: string) => setEditForm({ ...editForm, secondaryPhone: t })}
+                  placeholder="Secondary Phone"
+                  placeholderTextColor="#64748b"
+                  keyboardType="phone-pad"
+                />
+              </ScrollView>
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity onPress={() => setEditForm({ ...editForm, visible: false })} style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#334155', alignItems: 'center' }}>
+                  <Text style={{ color: '#f8fafc', fontWeight: '600' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSaveEdit} disabled={saving} style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#3b82f6', alignItems: 'center', opacity: saving ? 0.7 : 1 }}>
+                  {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: '#ffffff', fontWeight: '700' }}>Save</Text>}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
@@ -559,9 +739,9 @@ function SettingToggle({ icon, title, description, value, onToggle, disabled }: 
         <Text style={{ color: value ? '#FCD34D' : '#94a3b8', marginRight: 8, fontSize: 13, fontWeight: '700' }}>
           {value ? 'YES' : 'NO'}
         </Text>
-        <Switch 
-          value={value} 
-          onValueChange={onToggle} 
+        <Switch
+          value={value}
+          onValueChange={onToggle}
           disabled={disabled}
           trackColor={{ false: 'rgba(255,255,255,0.1)', true: 'rgba(252, 211, 77, 0.4)' }}
           thumbColor={value ? '#FCD34D' : '#94a3b8'}

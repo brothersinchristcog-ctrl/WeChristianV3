@@ -10,8 +10,8 @@ import {
   Dimensions,
   TextInput
 } from 'react-native';
-// Removed SafeAreaView as padding is handled by the header
-import { ChevronLeft, Search, BookOpen, Globe } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowLeft, ChevronLeft, Search, BookOpen, Globe } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
@@ -221,19 +221,24 @@ export default function BibleScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Holy Bible</Text>
-          <Text style={styles.headerSub}>పరిశుద్ధ గ్రంథం</Text>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
+            <Text style={styles.headerTitle}>Holy Bible</Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-          <Text style={styles.themeToggleText}>{isDark ? '🌙' : '☀️'}</Text>
-        </TouchableOpacity>
-      </View>
+
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       {/* Search Input + Dropdown Suggestions Wrapper */}
       <View style={{ marginHorizontal: 20, zIndex: 200 }}>
@@ -454,26 +459,15 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
-  themeToggle: {
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)'
-  },
-  themeToggleText: { color: '#fff', fontSize: 16 },
+  backBtn: { zIndex: 10, padding: 5 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
   
   toggleContainer: {
     flexDirection: 'row',

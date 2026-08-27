@@ -13,8 +13,10 @@ import {
   Dimensions,
   Image
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   ChevronLeft,
+  ArrowLeft,
   Calendar,
   CheckCircle2,
   X,
@@ -148,19 +150,23 @@ export default function GivingHistoryScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" />
       
       {/* ── Page Header ── */}
-      <View style={[styles.header, { backgroundColor: '#1a2d5a', borderBottomLeftRadius: 24, borderBottomRightRadius: 24, paddingTop: Platform.OS === 'ios' ? 60 : 40 }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', paddingHorizontal: 20, paddingBottom: 20, marginTop: 15 }}>
-          <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }} onPress={() => navigation.goBack()}>
-            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
-          </TouchableOpacity>
-          <Text style={{ fontSize: 20, fontWeight: '300', color: '#fff', opacity: 0.4, marginHorizontal: 12 }}>|</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff' }} numberOfLines={1}>Giving History</Text>
-            <Text style={{ fontSize: 13, color: '#e2e8f0', marginTop: 2 }}>View and download your past donations</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Giving History</Text>
+            <Text style={styles.headerSub}>View and download your past donations</Text>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* ── Summary Card ── */}
@@ -421,37 +427,20 @@ export default function GivingHistoryScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
-    paddingBottom: 25,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerTop: {
+    paddingBottom: 30,
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 15,
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  backBtnTxt: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  headerSubtitle: {
-    color: '#e2e8f0',
-    fontSize: 14,
-    marginTop: 4,
-  },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 24 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8, marginBottom: 8 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 2 },
+  headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: '500' },
   scrollContent: {
     padding: 20,
     paddingBottom: 100,

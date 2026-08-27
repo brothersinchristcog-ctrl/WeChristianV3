@@ -9,13 +9,14 @@ import {
   StatusBar,
   Platform,
   Dimensions,
-  Linking,
   Alert,
   TextInput,
   Modal
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Users, 
+  ArrowLeft,
   ChevronLeft,
   ChevronDown,
   Phone,
@@ -175,23 +176,35 @@ export default function MembersScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
 
       {/* ── Page Header (Navy) ── */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft size={24} color="#FCD34D" />
-            <Text style={styles.backBtnTxt}>Back</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.headerContent}>
-          <View style={styles.iconCircle}>
-            <Users size={32} color="#FCD34D" />
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+          <View style={styles.headerCenter} pointerEvents="box-none">
+            <Text style={styles.headerTitle}>Household Directory</Text>
           </View>
-          <Text style={styles.headerTitle}>Household Directory</Text>
-          <Text style={styles.headerSubTe}>కుటుంబ సభ్యుల వివరాలు</Text>
         </View>
 
-      </View>
+        {member && !loading ? (
+          <TouchableOpacity 
+            style={styles.headerAddBtn}
+            onPress={() => {
+              setEditingMemberId(null);
+              setNewMember({ firstName: '', lastName: '', relation: 'Husband', gender: 'Male', dob: '', anniversaryDate: '', email: '', phone: '' });
+              setShowAddModal(true);
+            }}
+          >
+            <Plus size={20} color="#1a2d5a" />
+          </TouchableOpacity>
+        ) : <View style={{ width: 32 }} />}
+      </LinearGradient>
 
       {/* ── Main Body ── */}
       {loading ? (
@@ -354,20 +367,6 @@ export default function MembersScreen({ navigation }: any) {
             })
           )}
         </ScrollView>
-      )}
-
-      {/* ── Global FAB ── */}
-      {member && !loading && (
-        <TouchableOpacity 
-          style={styles.addBtnFloating} 
-          onPress={() => {
-            setEditingMemberId(null);
-            setNewMember({ firstName: '', lastName: '', relation: 'Husband', gender: 'Male', dob: '', anniversaryDate: '', email: '', phone: '' });
-            setShowAddModal(true);
-          }}
-        >
-          <Plus size={28} color="#1a2d5a" />
-        </TouchableOpacity>
       )}
 
       {/* ── Success Modal ── */}
@@ -595,21 +594,34 @@ export default function MembersScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { 
-    backgroundColor: '#1a2d5a', 
-    paddingTop: Platform.OS === 'ios' ? 50 : 20, 
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
+    paddingHorizontal: 20,
     paddingBottom: 30,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  headerTop: { flexDirection: 'row', paddingHorizontal: 20, alignItems: 'center' },
-  backBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  backBtnTxt: { color: '#FCD34D', fontSize: 16, fontWeight: '700', marginLeft: 4 },
-  
-  headerContent: { alignItems: 'center', marginTop: 10 },
-  iconCircle: { width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(252,211,77,0.15)', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSubTe: { fontSize: 14, color: '#FCD34D', fontWeight: '500', marginTop: 2 },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 28 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8, marginBottom: 4 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  headerAddBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FCD34D',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 }
+  },
 
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   loadingText: { fontSize: 14, fontWeight: '600', marginTop: 12 },

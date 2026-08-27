@@ -386,20 +386,19 @@ export default function AdminSongEditor() {
 
   // ── MEMBER VIEW UI ────────────────────────────────
   const renderMemberView = () => {
-    const browseSongs = memberSongs.filter(s => {
+    const memberSongsWithIndex = memberSongs.map((s, index) => ({ ...s, absoluteIndex: index }));
+    const browseSongs = memberSongsWithIndex.filter(s => {
       const cats = (s.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
       if (cats.length === 1 && cats[0] === 'Theme Songs') return false;
       const q = memberSearch.toLowerCase().trim();
-      const absoluteIndex = memberSongs.findIndex(ms => ms.id === s.id);
-      const numberMatch = (absoluteIndex + 1).toString().includes(q);
+      const numberMatch = (s.absoluteIndex + 1).toString().includes(q);
       return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q)) || numberMatch;
     });
-    const themeSongs = memberSongs.filter(s => {
+    const themeSongs = memberSongsWithIndex.filter(s => {
       const cats = (s.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
       if (!cats.includes('Theme Songs')) return false;
       const q = memberSearch.toLowerCase().trim();
-      const absoluteIndex = memberSongs.findIndex(ms => ms.id === s.id);
-      const numberMatch = (absoluteIndex + 1).toString().includes(q);
+      const numberMatch = (s.absoluteIndex + 1).toString().includes(q);
       return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q)) || numberMatch;
     });
     const displaySongs = memberTab === 'browse' ? browseSongs : themeSongs;
@@ -452,6 +451,10 @@ export default function AdminSongEditor() {
           showsVerticalScrollIndicator={false}
           refreshing={false}
           onRefresh={fetchMemberSongs}
+          initialNumToRender={15}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           contentContainerStyle={{ paddingBottom: 40 }}
           ListHeaderComponent={() => (
             <Text style={{ fontSize: 10, fontWeight: '800', color: '#9CA3AF', letterSpacing: 0.8,
@@ -459,7 +462,7 @@ export default function AdminSongEditor() {
               {memberTab === 'browse' ? 'ALL SONGS' : 'THEME SONGS'} · {displaySongs.length} Songs
             </Text>
           )}
-          renderItem={({ item, index }) => (
+          renderItem={({ item }) => (
             <TouchableOpacity
               style={{ borderRadius: 14, borderWidth: 1, borderColor: 'rgba(26,45,90,0.08)', marginHorizontal: 16,
                 marginBottom: 10, flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: '#FFFFFF',
@@ -467,7 +470,7 @@ export default function AdminSongEditor() {
               onPress={() => setAdminSelectedSong(item)}>
               <View style={{ width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
                 marginRight: 12, backgroundColor: '#F8FAFC' }}>
-                <Text style={{ fontSize: 13, fontWeight: '800', color: '#1a2d5a' }}>{memberSongs.findIndex(s => s.id === item.id) + 1}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: '#1a2d5a' }}>{item.absoluteIndex + 1}</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 13, fontWeight: '800', color: '#1a2d5a' }} numberOfLines={1}>{item.title}</Text>

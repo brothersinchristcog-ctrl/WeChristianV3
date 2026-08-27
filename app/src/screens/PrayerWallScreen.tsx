@@ -14,8 +14,9 @@ import {
   Platform,
   Modal
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
-  ChevronLeft,
+  ArrowLeft,
   CheckCircle, 
   MessageCircle, 
   CheckCircle2,
@@ -389,20 +390,24 @@ export default function PrayerWallScreen({ navigation }: any) {
     <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
-      {/* ── Page Header ── */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
         
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Prayer Wall</Text>
-          <Text style={styles.headerSub}>{prayers.length} requests · Share your prayer</Text>
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
+            <Text style={styles.headerTitle}>Prayer Wall</Text>
+          </View>
         </View>
-
-        <View style={{ width: 70 }} />
-      </View>
+        
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       <FlatList
         data={prayers}
@@ -462,12 +467,11 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
+  backBtn: { zIndex: 10, padding: 5 },
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800', letterSpacing: 0.5 },
   headerSub: { color: '#aac4e8', fontSize: 12, marginTop: 2 },
   themeToggle: { 

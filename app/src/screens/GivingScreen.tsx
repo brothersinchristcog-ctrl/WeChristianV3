@@ -701,9 +701,9 @@ export default function GivingScreen({ navigation }: any) {
               onChangeText={setCustomEventName}
             />
             
-            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%', justifyContent: 'flex-end', marginTop: 4 }}>
               <TouchableOpacity 
-                style={[styles.modalBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}
+                style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20, backgroundColor: isDark ? '#334155' : '#f1f5f9' }}
                 onPress={() => {
                   setShowEventModal(false);
                   if (!customEventName.trim()) {
@@ -711,11 +711,11 @@ export default function GivingScreen({ navigation }: any) {
                   }
                 }}
               >
-                <Text style={{ color: isDark ? '#cbd5e1' : '#475569', fontWeight: '600' }}>Cancel</Text>
+                <Text style={{ color: isDark ? '#cbd5e1' : '#475569', fontWeight: '700', fontSize: 13 }}>Cancel</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
-                style={[styles.modalBtn, { backgroundColor: '#1a2d5a' }]}
+                style={{ paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20, backgroundColor: '#1a2d5a' }}
                 onPress={() => {
                   if (customEventName.trim()) {
                     setShowEventModal(false);
@@ -724,7 +724,7 @@ export default function GivingScreen({ navigation }: any) {
                   }
                 }}
               >
-                <Text style={{ color: '#fff', fontWeight: '600' }}>Save</Text>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Save</Text>
               </TouchableOpacity>
             </View>
           </View>

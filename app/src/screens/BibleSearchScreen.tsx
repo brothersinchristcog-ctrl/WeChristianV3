@@ -12,7 +12,8 @@ import {
   FlatList,
   Platform
 } from 'react-native';
-import { ChevronLeft, Search, BookOpen, CheckSquare, Square, BookMarked, Filter, ChevronDown, X } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowLeft, ChevronLeft, Search, BookOpen, CheckSquare, Square, BookMarked, Filter, ChevronDown, X } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -457,7 +458,12 @@ export default function BibleSearchScreen({ route, navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <TouchableOpacity style={styles.backBtn} onPress={() => {
           if (hasSearched) {
             setHasSearched(false);
@@ -469,12 +475,18 @@ export default function BibleSearchScreen({ route, navigation }: any) {
           } else {
             navigation.navigate('Bible');
           }
-        }}>
-          <ChevronLeft color="#fff" size={28} />
+        }} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft color="#fff" size={24} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Verse Search</Text>
-        <View style={{ width: 40 }} />
-      </View>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
+            <Text style={styles.headerTitle}>Verse Search</Text>
+          </View>
+        </View>
+
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       {/* Search Input + Dropdown Suggestions wrapper - hide when results are shown */}
       <View style={{ marginHorizontal: 20, zIndex: 100 }}>
@@ -712,18 +724,18 @@ export default function BibleSearchScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 16,
     paddingBottom: 20,
-    backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  backBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  backBtn: { zIndex: 10, padding: 5 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',

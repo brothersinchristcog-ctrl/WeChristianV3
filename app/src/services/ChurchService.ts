@@ -13,6 +13,7 @@ export interface ChurchDetails {
   id: string;
   name: string;
   churchCode: string;
+  isActive?: boolean;
   createdBy?: string;
   tagline?: string;
   subdomain: string;
@@ -118,6 +119,34 @@ class ChurchService {
     } catch (error) {
       console.error('Error fetching all churches:', error);
       return [];
+    }
+  }
+
+  /**
+   * Fetch all unique subscription tiers from all churches
+   */
+  async getAvailableTiers(): Promise<string[]> {
+    try {
+      const snapshot = await firestore().collection('churches').get();
+      const tiers = new Set<string>();
+      
+      // Default standard tiers
+      tiers.add('free');
+      tiers.add('premium');
+      tiers.add('expired');
+
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const tier1 = data.subscription?.tier;
+        const tier2 = data.subscriptionTier;
+        if (tier1 && typeof tier1 === 'string') tiers.add(tier1.toLowerCase());
+        if (tier2 && typeof tier2 === 'string') tiers.add(tier2.toLowerCase());
+      });
+
+      return Array.from(tiers).sort();
+    } catch (error) {
+      console.error('Error fetching available tiers:', error);
+      return ['expired', 'free', 'premium'];
     }
   }
 

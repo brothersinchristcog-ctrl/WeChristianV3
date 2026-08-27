@@ -15,7 +15,10 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
+  ArrowLeft,
+  MoreVertical,
   ChevronLeft, 
   Plus, 
   Trash2, 
@@ -48,6 +51,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
   const { prefillTitle, prefillContent } = route?.params || {};
   const [notes, setNotes] = useState<SermonNote[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   // Modal & form states
   const [modalVisible, setModalVisible] = useState(false);
@@ -318,37 +322,64 @@ export default function MemberNotesScreen({ navigation, route }: any) {
       />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft color="#fff" size={24} />
-          <Text style={styles.backText}>Back</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft color="#fff" size={24} />
         </TouchableOpacity>
         
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Sermon Notes</Text>
-          <Text style={styles.headerSubtitle}>ప్రసంగ గమనికలు</Text>
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Sermon Notes</Text>
+          </View>
         </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
-          {notes.length > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {isSelectionMode ? (
             <TouchableOpacity 
-              style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: isSelectionMode ? '#fff' : 'rgba(255,255,255,0.2)', borderRadius: 15 }} 
+              style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#fff', borderRadius: 15 }} 
               onPress={() => {
-                setIsSelectionMode(!isSelectionMode);
+                setIsSelectionMode(false);
                 setSelectedNoteIds([]);
               }}
             >
-              <Text style={{ color: isSelectionMode ? '#1a2d5a' : '#fff', fontSize: 12, fontWeight: '700' }}>
-                {isSelectionMode ? 'Cancel' : 'Select'}
-              </Text>
+              <Text style={{ color: '#1a2d5a', fontSize: 12, fontWeight: '700' }}>Cancel</Text>
             </TouchableOpacity>
-          )}
-          {!isSelectionMode && (
-            <TouchableOpacity style={styles.plusBtn} onPress={openCreateForm}>
-              <Plus size={22} color="#fff" />
+          ) : (
+            <TouchableOpacity style={styles.plusBtn} onPress={() => setIsMenuOpen(true)}>
+              <MoreVertical size={22} color="#fff" />
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </LinearGradient>
+
+      {/* Dropdown Menu Modal */}
+      <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={() => setIsMenuOpen(false)}>
+        <TouchableOpacity style={styles.menuOverlay} onPress={() => setIsMenuOpen(false)} activeOpacity={1}>
+          <View style={[styles.menuContainer, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
+            <TouchableOpacity style={styles.menuItem} onPress={() => {
+              setIsMenuOpen(false);
+              openCreateForm();
+            }}>
+              <Plus size={18} color={isDark ? '#e2e8f0' : '#1e293b'} />
+              <Text style={[styles.menuItemText, { color: isDark ? '#e2e8f0' : '#1e293b' }]}>Add Note</Text>
+            </TouchableOpacity>
+            {notes.length > 0 && (
+              <TouchableOpacity style={styles.menuItem} onPress={() => {
+                setIsMenuOpen(false);
+                setIsSelectionMode(true);
+                setSelectedNoteIds([]);
+              }}>
+                <CheckSquare size={18} color={isDark ? '#e2e8f0' : '#1e293b'} />
+                <Text style={[styles.menuItemText, { color: isDark ? '#e2e8f0' : '#1e293b' }]}>Select</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Search Input */}
       <View style={[styles.searchBarContainer, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
@@ -565,21 +596,20 @@ export default function MemberNotesScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 30,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8 },
   backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  headerSubtitle: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 24 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
   plusBtn: {
     width: 36,
     height: 36,
@@ -587,6 +617,33 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  
+  // Menu styles
+  menuOverlay: { flex: 1, backgroundColor: 'transparent' },
+  menuContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 100 : 80,
+    right: 20,
+    borderRadius: 12,
+    paddingVertical: 8,
+    minWidth: 160,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12
+  },
+  menuItemText: {
+    fontSize: 15,
+    fontWeight: '600'
   },
 
   // Search

@@ -16,15 +16,10 @@ import {
   Alert
 } from 'react-native';
 import ViewShot from 'react-native-view-shot';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ChevronLeft, ArrowLeft, ChevronRight, Download, Share2, Calendar, Play, BookOpen } from 'lucide-react-native';
 import * as MediaLibrary from 'expo-media-library';
-import {
-  ChevronLeft,
-  Share2,
-  Play,
-  BookOpen,
-  Calendar,
-  ChevronRight
-} from 'lucide-react-native';
 import FirestoreService, { DailyPromise } from '../services/FirestoreService';
 import { useChurch } from '../context/ChurchContext';
 import { useTheme } from '../context/ThemeContext';
@@ -147,17 +142,23 @@ export default function PromiseArchiveScreen({ navigation }: { navigation: any }
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
 
       {/* ── Page Header ── */}
-      <View style={styles.pageHeader}>
-        <TouchableOpacity style={styles.backBtn} onPress={handleBack}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backBtnTxt}>Back</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.pageHeader}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
-        <View style={styles.titleCol}>
-          <Text style={styles.pageTitle}>Daily Promise</Text>
-          <Text style={styles.pageSub}>ఈ రోజు వాగ్దానం</Text>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={styles.headerCenter}>
+            <Text style={styles.pageTitle}>Daily Promise</Text>
+            <Text style={styles.pageSub}>ఈ రోజు వాగ్దానం</Text>
+          </View>
         </View>
-        <View style={{ width: 60 }} />
-      </View>
+      </LinearGradient>
 
       <ScrollView 
         ref={scrollViewRef}
@@ -302,21 +303,20 @@ const styles = StyleSheet.create({
 
   // Header
   pageHeader: {
-    backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 45,
-    paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, minWidth: 60 },
-  backBtnTxt: { color: '#aac4e8', fontSize: 13, fontWeight: '500' },
-  titleCol: { flex: 1, alignItems: 'center' },
-  pageTitle: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  pageSub: { color: '#aac4e8', fontSize: 9.5, marginTop: 1 },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 24 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8, marginBottom: 8 },
+  pageTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 2 },
+  pageSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: '500' },
   scroll: { paddingBottom: 140 },
   mainContent: { padding: 16 },
   topDate: { fontSize: 11, fontWeight: '700', color: '#94a3b8', textAlign: 'center', marginBottom: 15, letterSpacing: 0.5 },

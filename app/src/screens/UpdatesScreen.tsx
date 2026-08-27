@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking, Alert, Image } from 'react-native';
-import { ChevronLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic , Video } from 'lucide-react-native';
+import { ChevronLeft, ArrowLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic , Video } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   getFirestore, 
   collection, 
@@ -412,26 +413,32 @@ export default function UpdatesScreen({ navigation, route }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* ── Page Header Hero Card ── */}
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft size={22} color="#fff" />
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Church Updates</Text>
+            <Text style={styles.headerSub}>Latest announcements & news from your church</Text>
+          </View>
+        </View>
 
-          {visibleUpdates.length > 0 && (
-            <View style={styles.headerBadge}>
-              <Bell size={12} color="#D4AF37" />
-              <Text style={styles.headerBadgeTxt}>{visibleUpdates.length} updates</Text>
+        {visibleUpdates.length > 0 ? (
+          <View style={styles.headerBadge}>
+            <Bell size={18} color="#fff" />
+            <View style={styles.badgeCircle}>
+              <Text style={styles.headerBadgeTxt}>{visibleUpdates.length}</Text>
             </View>
-          )}
-        </View>
-
-        <View style={styles.headerBottom}>
-          <Text style={styles.headerTitle}>Church Updates</Text>
-          <Text style={styles.headerSub}>Latest announcements & news from your church</Text>
-        </View>
-      </View>
+          </View>
+        ) : <View style={{ width: 40 }} />}
+      </LinearGradient>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
@@ -679,49 +686,48 @@ export default function UpdatesScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f8fafc' },
   header: {
-    backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 40),
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
-    paddingBottom: 28,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    // subtle shadow below the card
-    shadowColor: '#1a2d5a',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  headerTopRow: {
+    paddingBottom: 30,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  headerBottom: {
-    paddingLeft: 4,
-  },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 24 },
   headerBadge: {
-    flexDirection: 'row',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(212,175,55,0.4)',
+    marginBottom: 8,
+  },
+  badgeCircle: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    backgroundColor: '#ef4444',
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#1a3673',
   },
   headerBadgeTxt: {
-    color: '#D4AF37',
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '600' },
-  headerTitle: { color: '#fff', fontSize: 22, fontWeight: '800', marginBottom: 4 },
-  headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 12, fontWeight: '500' },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8, marginBottom: 8 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 2 },
+  headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: '500' },
   
   scroll: { flex: 1 },
   content: { padding: 16, gap: 16 },

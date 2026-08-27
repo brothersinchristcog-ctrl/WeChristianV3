@@ -140,6 +140,7 @@ export interface Sermon {
   viewCount?: number;
   status?: string;
   series?: string;
+  categories?: string;
   audioUrl?: string;
 }
 
@@ -919,29 +920,40 @@ class FirestoreService {
       const customCol = firestore().collection('churches').doc(churchId).collection('worshipSongs');
       const masterCol = firestore().collection('masterSongs');
 
-      // Fetch custom songs and optionally global songs concurrently
-      const promises: any[] = [customCol.get()];
-      if (!disableMasterSongs) {
-        promises.push(masterCol.where('isDefault', '==', true).get());
+      const fetchFromSource = async (source: 'cache' | 'server') => {
+        const promises: any[] = [customCol.get({ source })];
+        if (!disableMasterSongs) {
+          promises.push(masterCol.where('isDefault', '==', true).get({ source }));
+        }
+        const results = await Promise.all(promises);
+        const customSnap = results[0];
+        const masterSnap = !disableMasterSongs ? results[1] : { docs: [] };
+        
+        const customSongs = customSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as WorshipSong));
+        const overriddenIds = new Set(customSongs.map((s: WorshipSong) => s.overridesMasterSongId).filter(Boolean));
+        const masterSongs = masterSnap.docs
+          .map((doc: any) => ({ id: doc.id, ...doc.data() } as WorshipSong))
+          .filter((s: WorshipSong) => !overriddenIds.has(s.id));
+          
+        return [...customSongs, ...masterSongs].filter(s => !s.isHidden);
+      };
+
+      let finalSongs: WorshipSong[];
+      if (!options?.forceRefresh) {
+        try {
+          finalSongs = await fetchFromSource('cache');
+          if (finalSongs.length === 0) throw new Error('Empty cache');
+          
+          // Background fetch to ensure cache stays warm
+          fetchFromSource('server').catch(() => {});
+        } catch (e) {
+          finalSongs = await fetchFromSource('server');
+        }
+      } else {
+        finalSongs = await fetchFromSource('server');
       }
-      
-      const results = await Promise.all(promises);
-      const customSnap = results[0];
-      const masterSnap = !disableMasterSongs ? results[1] : { docs: [] };
 
-      const customSongs = customSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as WorshipSong));
-      // Track IDs of master songs that have been overridden (edited or deleted) by this church
-      const overriddenIds = new Set(customSongs.map((s: WorshipSong) => s.overridesMasterSongId).filter(Boolean));
-
-      // Filter out any global songs that have been overridden
-      const masterSongs = masterSnap.docs
-        .map((doc: any) => ({ id: doc.id, ...doc.data() } as WorshipSong))
-        .filter((s: WorshipSong) => !overriddenIds.has(s.id));
-
-      // Combine both lists and remove any hidden (deleted) songs
-      const finalSongs = [...customSongs, ...masterSongs].filter(s => !s.isHidden);
-
-      // Cache the full result
+      // Cache the full result in memory for identical subsequent calls
       this._worshipSongsCache = finalSongs;
       this._worshipSongsCacheChurchId = churchId;
 

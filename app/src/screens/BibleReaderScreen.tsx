@@ -11,8 +11,9 @@ import {
   Modal,
   Platform
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
-import { ChevronLeft, Share2, BookMarked, Settings, Search, CheckCircle2, Copy } from 'lucide-react-native';
+import { ArrowLeft, ChevronLeft, Share2, BookMarked, Settings, Search, CheckCircle2, Copy } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 
@@ -73,6 +74,7 @@ export default function BibleReaderScreen({ route, navigation }: any) {
   const [error, setError] = useState<string | null>(null);
   
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successModalType, setSuccessModalType] = useState<'saved' | 'copied'>('saved');
   const [showVerseOptionsModal, setShowVerseOptionsModal] = useState(false);
   const [selectedVerseItem, setSelectedVerseItem] = useState<any>(null);
 
@@ -267,10 +269,42 @@ export default function BibleReaderScreen({ route, navigation }: any) {
 
       setSavedVerseCount(sortedVerseNums.length);
       cancelSelection();
+      setSuccessModalType('saved');
       setShowSuccessModal(true);
     } catch (e) {
       console.error(e);
       Alert.alert('Error', 'Failed to save verses.');
+    }
+  };
+
+  const copyMultipleVerses = async () => {
+    if (selectedVerses.size === 0) return;
+    try {
+      const sortedVerseNums = Array.from(selectedVerses).map(Number).sort((a, b) => a - b);
+      const isContiguous = sortedVerseNums.every((v, i) => i === 0 || v === sortedVerseNums[i - 1] + 1);
+      const rangeLabel = isContiguous && sortedVerseNums.length > 1
+        ? `${sortedVerseNums[0]}-${sortedVerseNums[sortedVerseNums.length - 1]}`
+        : sortedVerseNums.join(',');
+      
+      const content = sortedVerseNums
+        .map(vNum => {
+          const v = verses.find((v: any) => Number(v.verse) === vNum);
+          return v ? `[${vNum}] ${v.text}` : '';
+        })
+        .filter(Boolean)
+        .join('\n');
+
+      const ref = `${englishBookName} ${chapter}:${rangeLabel}`;
+      const textToCopy = `"${content}"\n- ${ref}`;
+      
+      await Clipboard.setStringAsync(textToCopy);
+      setSavedVerseCount(sortedVerseNums.length);
+      cancelSelection();
+      setSuccessModalType('copied');
+      setShowSuccessModal(true);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Failed to copy verses.');
     }
   };
 
@@ -305,6 +339,8 @@ export default function BibleReaderScreen({ route, navigation }: any) {
 
       notes.unshift(newNote);
       await AsyncStorage.setItem('@SermonPersonalNotes', JSON.stringify(notes));
+      setSavedVerseCount(1);
+      setSuccessModalType('saved');
       setShowSuccessModal(true);
     } catch (e) {
       console.error(e);
@@ -317,19 +353,27 @@ export default function BibleReaderScreen({ route, navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Navy Blue Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft color="#fff" size={28} />
-          </TouchableOpacity>
-          <View style={styles.titleInfo}>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft color="#fff" size={24} />
+        </TouchableOpacity>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 12 }}>
             <Text style={styles.headerTitle}>
               {lang === 'Telugu' ? `${englishBookName} · ${bookName}` : englishBookName}
             </Text>
             <Text style={styles.headerSub}>Chapter {chapter} · అధ్యాయం {chapter}</Text>
           </View>
         </View>
-      </View>
+
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       <ScrollView 
         ref={scrollViewRef}
@@ -481,49 +525,67 @@ export default function BibleReaderScreen({ route, navigation }: any) {
 
       {/* Bottom Bar — switches between nav and selection action bar */}
       {selectionMode ? (
-        <View style={[styles.selectionBar, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
+        <LinearGradient 
+          colors={['#2b52a1', '#1a3673']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.selectionBar}
+        >
           <TouchableOpacity style={styles.selectionCancelBtn} onPress={cancelSelection}>
-            <Text style={[styles.selectionCancelTxt, { color: isDark ? '#94a3b8' : '#64748b' }]}>Cancel</Text>
+            <Text style={[styles.selectionCancelTxt, { color: '#fff' }]}>Cancel</Text>
           </TouchableOpacity>
           <View style={styles.selectionCountBox}>
-            <Text style={[styles.selectionCountTxt, { color: isDark ? '#e2e8f0' : '#1a2d5a' }]}>
+            <Text style={[styles.selectionCountTxt, { color: '#fff' }]}>
               {selectedVerses.size} verse{selectedVerses.size !== 1 ? 's' : ''} selected
             </Text>
           </View>
-          <TouchableOpacity
-            style={[styles.selectionSaveBtn, selectedVerses.size === 0 && { opacity: 0.4 }]}
-            onPress={saveMultipleVersesToNotes}
-            disabled={selectedVerses.size === 0}
-          >
-            <BookMarked color="#fff" size={16} />
-            <Text style={styles.selectionSaveTxt}>Save</Text>
-          </TouchableOpacity>
-        </View>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity
+              style={[styles.selectionSaveBtn, { backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', paddingHorizontal: 14, paddingVertical: 8 }, selectedVerses.size === 0 && { opacity: 0.4 }]}
+              onPress={copyMultipleVerses}
+              disabled={selectedVerses.size === 0}
+            >
+              <Copy color="#fff" size={18} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.selectionSaveBtn, selectedVerses.size === 0 && { opacity: 0.4 }]}
+              onPress={saveMultipleVersesToNotes}
+              disabled={selectedVerses.size === 0}
+            >
+              <BookMarked color="#fff" size={15} />
+              <Text style={styles.selectionSaveTxt}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
       ) : (
-        <View style={[styles.bottomBar, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
+        <LinearGradient 
+          colors={['#2b52a1', '#1a3673']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.bottomBar}
+        >
           <TouchableOpacity 
-            style={[styles.barAction, chapter <= 1 && { opacity: 0.3 }, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]} 
+            style={[styles.barAction, chapter <= 1 && { opacity: 0.3 }, { backgroundColor: 'transparent' }]} 
             onPress={() => chapter > 1 && navigation.push('BibleReader', { bookName, chapter: chapter - 1, lang })}
             disabled={chapter <= 1}
           >
-            <ChevronLeft color={isDark ? '#e2e8f0' : '#1a2d5a'} size={24} />
+            <ChevronLeft color="#fff" size={24} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.barMain}
             onPress={() => navigation.navigate('BibleChapters', { bookName, lang })}
           >
-            <Text style={[styles.barMainTxt, { color: isDark ? '#e2e8f0' : '#1a2d5a' }]}>
+            <Text style={[styles.barMainTxt, { color: '#fff' }]}>
               Chapter {chapter} of {totalChapters}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.barAction, chapter >= totalChapters && { opacity: 0.3 }, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}
+            style={[styles.barAction, chapter >= totalChapters && { opacity: 0.3 }, { backgroundColor: 'transparent' }]}
             onPress={() => chapter < totalChapters && navigation.push('BibleReader', { bookName, chapter: chapter + 1, lang })}
             disabled={chapter >= totalChapters}
           >
-            <ChevronLeft color={isDark ? '#e2e8f0' : '#1a2d5a'} size={24} style={{ transform: [{ rotate: '180deg' }] }} />
+            <ChevronLeft color="#fff" size={24} style={{ transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
       )}
 
       {/* Verse Options Modal */}
@@ -606,31 +668,39 @@ export default function BibleReaderScreen({ route, navigation }: any) {
               <CheckCircle2 color="#10b981" size={50} />
             </View>
             <Text style={[styles.modalTitle, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
-              {savedVerseCount > 1 ? `${savedVerseCount} Verses Saved!` : 'Verse Saved!'}
+              {successModalType === 'copied' 
+                ? (savedVerseCount > 1 ? `${savedVerseCount} Verses Copied!` : 'Verse Copied!')
+                : (savedVerseCount > 1 ? `${savedVerseCount} Verses Saved!` : 'Verse Saved!')}
             </Text>
             <Text style={[styles.modalDesc, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              {savedVerseCount > 1
-                ? `${savedVerseCount} verses have been added to your Sermon Notes as one entry.`
-                : 'This verse has been successfully added to your Sermon Notes.'}
+              {successModalType === 'copied'
+                ? 'The selected verses have been copied to your clipboard.'
+                : (savedVerseCount > 1
+                  ? `${savedVerseCount} verses have been added to your Sermon Notes as one entry.`
+                  : 'This verse has been successfully added to your Sermon Notes.')}
             </Text>
             
             <View style={styles.modalActions}>
               <TouchableOpacity 
-                style={[styles.modalBtn, styles.modalBtnSecondary]} 
+                style={[styles.modalBtn, successModalType === 'copied' ? styles.modalBtnPrimary : styles.modalBtnSecondary]} 
                 onPress={() => setShowSuccessModal(false)}
               >
-                <Text style={styles.modalBtnSecondaryTxt}>Continue Reading</Text>
+                <Text style={successModalType === 'copied' ? styles.modalBtnPrimaryTxt : styles.modalBtnSecondaryTxt}>
+                  {successModalType === 'copied' ? 'OK' : 'Continue Reading'}
+                </Text>
               </TouchableOpacity>
               
-              <TouchableOpacity 
-                style={[styles.modalBtn, styles.modalBtnPrimary]} 
-                onPress={() => {
-                  setShowSuccessModal(false);
-                  navigation.navigate('MemberNotes');
-                }}
-              >
-                <Text style={styles.modalBtnPrimaryTxt}>View Notes</Text>
-              </TouchableOpacity>
+              {successModalType === 'saved' && (
+                <TouchableOpacity 
+                  style={[styles.modalBtn, styles.modalBtnPrimary]} 
+                  onPress={() => {
+                    setShowSuccessModal(false);
+                    navigation.navigate('MemberNotes');
+                  }}
+                >
+                  <Text style={styles.modalBtnPrimaryTxt}>View Notes</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -642,21 +712,21 @@ export default function BibleReaderScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    backgroundColor: '#1a2d5a',
     paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 16,
     paddingBottom: 20,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  backBtn: { marginRight: 12 },
-  titleInfo: {},
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' },
+  backBtn: { zIndex: 10, padding: 5 },
+  titleInfo: { alignItems: 'center' },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginTop: 2 },
   headerRight: { flexDirection: 'row', flexWrap: 'wrap', gap: 15 },
   headerIcon: { padding: 4 },
 
@@ -794,7 +864,7 @@ const styles = StyleSheet.create({
   // Selection action bar
   selectionBar: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 50,
     left: 20,
     right: 20,
     height: 60,
@@ -856,7 +926,7 @@ const styles = StyleSheet.create({
 
   bottomBar: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 50,
     left: 20,
     right: 20,
     height: 60,

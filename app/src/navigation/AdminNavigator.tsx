@@ -222,7 +222,7 @@ export default function AdminNavigator({ navigation, route }: any) {
 
     { name: 'Online Meetings', icon: VideoIcon, component: AdminOnlineMeetings },
     { name: 'New Online Meeting', icon: VideoIcon, component: AdminOnlineMeetingEditor },
-    ...(isPlatformSuperAdmin ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),
+    ...(isPlatformSuperAdmin ? [{ name: 'App Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];
 
   const ActiveComponent = tabs[activeTab].component as any;
@@ -264,7 +264,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     inactiveIconColor = 'rgba(255,255,255,0.7)';
   }
 
-  const isSuperAdminTab = tabs[activeTab]?.name === 'Super Admin';
+  const isSuperAdminTab = tabs[activeTab]?.name === 'App Admin';
 
   // We provide handleSetTab via setActiveTab so child components can push to history
   return (

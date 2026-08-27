@@ -13,9 +13,10 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
-  ChevronLeft, 
+  ArrowLeft, 
   Play, 
   Mic,
   ChevronDown,
@@ -189,21 +190,29 @@ export default function SermonsScreen({ navigation }: any) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
+    <View style={[styles.container, { backgroundColor: '#1B2138' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Sermons</Text>
-          <Text style={styles.headerSub}>{sermons.length} sermons</Text>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
+            <Text style={styles.headerTitle}>Sermons</Text>
+            <Text style={styles.headerSub}>Watch & Listen</Text>
+          </View>
         </View>
-        <View style={{ width: 70 }} />
-      </View>
+        
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       {/* Category Filter Pills */}
       <View style={styles.filterSection}>
@@ -213,12 +222,12 @@ export default function SermonsScreen({ navigation }: any) {
               key={cat} 
               style={[
                 styles.pill,
-                { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#e2e8f0' },
+                { backgroundColor: '#1B2138', borderColor: 'rgba(255,255,255,0.1)' },
                 activeCategory === cat && { backgroundColor: CATEGORY_COLORS[cat] || '#1a2d5a', borderColor: CATEGORY_COLORS[cat] || '#1a2d5a' }
               ]}
               onPress={() => setActiveCategory(cat)}
             >
-              <Text style={[styles.pillText, { color: isDark ? '#94a3b8' : '#64748b' }, activeCategory === cat && { color: '#fff' }]}>{cat}</Text>
+              <Text style={[styles.pillText, { color: '#94a3b8' }, activeCategory === cat && { color: '#fff' }]}>{cat}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -262,19 +271,18 @@ const styles = StyleSheet.create({
   loadingText: { color: '#fbbf24', marginTop: 15, fontWeight: '600' },
 
   header: {
-    backgroundColor: '#1a2d5a',
+    backgroundColor: '#17357a',
     paddingTop: Platform.OS === 'ios' ? 60 : 45,
     paddingHorizontal: 20,
     paddingBottom: 20,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
+  backBtn: { zIndex: 10, padding: 5 },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
   headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
   themeToggle: {

@@ -681,7 +681,7 @@ export default function AdminMembers() {
                         {member.userType?.trim().toLowerCase() === 'super_admin' || member.userType?.trim().toLowerCase() === 'super admin' ? (
                           <View style={[styles.promoteBtn, { backgroundColor: '#7c3aed', opacity: 0.8 }]}>
                             <Shield size={14} color="#fff" />
-                            <Text style={styles.promoteBtnTxt}>Super Admin</Text>
+                            <Text style={styles.promoteBtnTxt}>App Admin</Text>
                           </View>
                         ) : displayRole.toLowerCase() === 'admin' ? (
                           <TouchableOpacity 

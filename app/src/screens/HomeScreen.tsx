@@ -842,52 +842,6 @@ export default function HomeScreen() {
               <Bell color="#fff" size={22} />
               <View style={styles.notifBadge} />
             </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.avatarWrapper} onPress={() => {
-              if (isImpersonating) return;
-              handleGuestProtectedNavigation('Profile');
-            }}>
-              {(() => {
-                if (isImpersonating) {
-                  return (
-                    <View style={styles.avatarPlaceholder}>
-                      <Text style={styles.avatarLetter}>AD</Text>
-                    </View>
-                  );
-                }
-
-                const m: any = member;
-                let displayPhoto = null;
-                if (m) {
-                  if (m.photoRemoved || m.profilePhoto === null) {
-                    displayPhoto = null;
-                  } else {
-                    displayPhoto = m.profilePhoto || m.photoURL || m.photoUrl || m.profileImageUrl || m.PhotoUrl || m.Photo || user?.photoURL;
-                  }
-                } else {
-                  displayPhoto = user?.photoURL;
-                }
-
-                const getInitials = () => {
-                  if (member?.firstName && member?.lastName) {
-                    return (member.firstName.charAt(0) + member.lastName.charAt(0)).toUpperCase();
-                  }
-                  const fullName = member?.name || user?.displayName || 'User';
-                  const parts = fullName.trim().split(/\s+/);
-                  const first = parts[0]?.charAt(0) || 'U';
-                  const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : '';
-                  return (first + last).toUpperCase();
-                };
-
-                return displayPhoto ? (
-                  <Image source={{ uri: displayPhoto }} style={styles.avatarImg} />
-                ) : (
-                  <View style={styles.avatarPlaceholder}>
-                    <Text style={styles.avatarLetter}>{getInitials()}</Text>
-                  </View>
-                );
-              })()}
-            </TouchableOpacity>
           </View>
         </View>
 
@@ -911,12 +865,12 @@ export default function HomeScreen() {
               </Defs>
               <SvgText
                 fill="url(#greetingGrad)"
-                fontSize={Math.min(32, width * 0.075).toString()}
+                fontSize={Math.min(44, width * 0.1).toString()}
                 fontWeight="400"
-                fontFamily={Platform.OS === 'ios' ? 'Georgia' : 'serif'}
+                fontFamily={Platform.OS === 'ios' ? 'Snell Roundhand' : 'cursive'}
                 fontStyle="italic"
                 x="0"
-                y="36"
+                y="38"
               >
                 {getGreeting()},
               </SvgText>

@@ -166,7 +166,7 @@ function TabNavigator() {
         .doc(user.uid)
         .onSnapshot(
           (doc) => {
-            if (doc.exists) {
+            if (doc.data()) {
               setGlobalUser(doc.data());
             }
           },
@@ -193,26 +193,6 @@ function TabNavigator() {
         ]
       );
       return;
-    }
-
-    if (!isActualAdmin && globalUser?.subscription) {
-      const subStatus = globalUser.subscription.status;
-      const validUntil = globalUser.subscription.validUntil;
-      
-      let isExpired = false;
-      if (subStatus === 'expired') {
-        isExpired = true;
-      } else if (validUntil) {
-        const validDate = validUntil.toDate ? validUntil.toDate() : (validUntil.seconds ? new Date(validUntil.seconds * 1000) : new Date(validUntil));
-        if (validDate < new Date()) {
-          isExpired = true;
-        }
-      }
-
-      if (isExpired) {
-        e.preventDefault();
-        navigation.navigate('Subscription');
-      }
     }
   };
 

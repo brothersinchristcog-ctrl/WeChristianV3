@@ -63,6 +63,7 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'Attendance': require('../../../assets/admin_cards/attendance.png'),
   'Online Meetings': require('../../../assets/admin_cards/online_meetings.jpg'),
   'New Online Meeting': require('../../../assets/admin_cards/new_online_meeting.png'),
+  'App Admin': require('../../../assets/admin_cards/app_admin.png'),
 };
 
 const CATEGORIES = [
@@ -106,7 +107,7 @@ const CATEGORIES = [
     title: 'Administration',
     icon: Settings,
     color: '#1E3A8A', // Deep Navy for maximum contrast
-    keywords: ['Church Setting', 'Church Branch', 'Super Admin', 'About', 'Contact', 'Schedule']
+    keywords: ['Church Setting', 'Church Branch', 'App Admin', 'About', 'Contact', 'Schedule']
   },
   {
     title: 'Support',
