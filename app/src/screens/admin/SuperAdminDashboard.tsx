@@ -492,11 +492,19 @@ export default function SuperAdminDashboard({ navigation }: any) {
                       <View style={[styles.statusDot, { backgroundColor: item.subscription?.status === 'active' ? '#2fd480' : '#f4556b' }]} />
                       <Text style={styles.membersCount}>{item.memberCount || 0} Active Member{(item.memberCount || 0) !== 1 ? 's' : ''}</Text>
                     </View>
-                    {item.subscription?.validUntil && (
+                    {item.subscription?.validUntil ? (
                       <View style={styles.expiryRow}>
-                        <Text style={styles.expiryText}>Expires: {new Date(item.subscription.validUntil).toLocaleDateString()}</Text>
+                        {new Date(item.subscription.validUntil).getTime() < Date.now() ? (
+                          <Text style={[styles.expiryText, { color: '#f4556b', fontWeight: '800' }]}>Subscription Expired</Text>
+                        ) : (
+                          <Text style={styles.expiryText}>Expires: {new Date(item.subscription.validUntil).toLocaleDateString()}</Text>
+                        )}
                       </View>
-                    )}
+                    ) : item.subscription?.status && item.subscription?.status !== 'active' ? (
+                      <View style={styles.expiryRow}>
+                        <Text style={[styles.expiryText, { color: '#f4556b', fontWeight: '800' }]}>Subscription Expired</Text>
+                      </View>
+                    ) : null}
                   </View>
                 </TouchableOpacity>
               );
