@@ -16,6 +16,7 @@ import {
   Image,
   Switch
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   ChevronRight, 
   LogOut, 
@@ -337,7 +338,12 @@ export default function ProfileScreen({ navigation }: any) {
       ) : (
         <>
           {/* ── Hero Section (Navy) ── */}
-      <View style={styles.heroSection}>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroSection}
+      >
         <View style={styles.headerTop}>
           <View style={{ width: 40 }} />
           <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
@@ -384,8 +390,8 @@ export default function ProfileScreen({ navigation }: any) {
                 <MapPin size={14} color="#fff" strokeWidth={2.5} />
               </View>
               <View style={styles.statTextCol}>
-                <Text style={styles.statLabel}>Village</Text>
-                <Text style={styles.statValue} numberOfLines={1}>{member?.mailingCity || 'N/A'}</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Village</Text>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{member?.mailingCity || 'N/A'}</Text>
               </View>
             </View>
 
@@ -396,8 +402,8 @@ export default function ProfileScreen({ navigation }: any) {
                 <Globe size={14} color="#fff" strokeWidth={2.5} />
               </View>
               <View style={styles.statTextCol}>
-                <Text style={styles.statLabel}>Language</Text>
-                <Text style={styles.statValue} numberOfLines={1}>Telugu</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Language</Text>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>Telugu</Text>
               </View>
             </View>
 
@@ -408,15 +414,15 @@ export default function ProfileScreen({ navigation }: any) {
                 <Crown size={14} color="#fff" strokeWidth={2.5} />
               </View>
               <View style={styles.statTextCol}>
-                <Text style={styles.statLabel}>Role</Text>
-                <Text style={styles.statValue} numberOfLines={1}>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Role</Text>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
                   {(member?.userType || 'MEMBER').toUpperCase()}
                 </Text>
               </View>
             </View>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView 
         showsVerticalScrollIndicator={false} 
@@ -936,7 +942,7 @@ const styles = StyleSheet.create({
 
   // Hero Section
   heroSection: { 
-    backgroundColor: '#1a2d5a', 
+    backgroundColor: 'transparent', 
     paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 45), 
     paddingBottom: 28,
     borderBottomLeftRadius: 32,
@@ -1011,7 +1017,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     marginBottom: 2
   },

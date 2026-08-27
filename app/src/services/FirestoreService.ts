@@ -785,7 +785,7 @@ class FirestoreService {
       
       if (oldDoc.exists()) {
         // Move data to new document with the correct UID
-        await membersRef.doc(uid).set({ ...oldDoc.data(), uid }, { merge: true });
+        await membersRef.doc(uid).set({ ...oldDoc.data(), uid, id: uid }, { merge: true });
         // Delete the old document with the random ID
         await membersRef.doc(contactId).delete();
       } else {

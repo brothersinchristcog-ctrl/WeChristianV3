@@ -190,7 +190,7 @@ export default function SermonsScreen({ navigation }: any) {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: '#1B2138' }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Header */}
@@ -222,12 +222,12 @@ export default function SermonsScreen({ navigation }: any) {
               key={cat} 
               style={[
                 styles.pill,
-                { backgroundColor: '#1B2138', borderColor: 'rgba(255,255,255,0.1)' },
+                { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#e2e8f0' },
                 activeCategory === cat && { backgroundColor: CATEGORY_COLORS[cat] || '#1a2d5a', borderColor: CATEGORY_COLORS[cat] || '#1a2d5a' }
               ]}
               onPress={() => setActiveCategory(cat)}
             >
-              <Text style={[styles.pillText, { color: '#94a3b8' }, activeCategory === cat && { color: '#fff' }]}>{cat}</Text>
+              <Text style={[styles.pillText, { color: isDark ? '#94a3b8' : '#64748b' }, activeCategory === cat && { color: '#fff' }]}>{cat}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>

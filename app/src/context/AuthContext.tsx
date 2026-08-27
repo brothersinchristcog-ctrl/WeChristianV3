@@ -94,7 +94,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
 
           // Fetch GLOBAL profile from Firestore
-          const globalUser = await FirestoreService.getGlobalUser(userState.uid);
+          let globalUser = await FirestoreService.getGlobalUser(userState.uid);
+          
+          // Fallback if not found by UID (e.g. added by Admin and never fully synced)
+          if (!globalUser && userState.phoneNumber) {
+            console.log('🔄 [Auth] Global user not found by UID. Falling back to phone check...', userState.phoneNumber);
+            const fallback = await FirestoreService.checkContactExists(userState.phoneNumber);
+            if (fallback?.exists && fallback?.member && fallback.member.churchId) {
+              console.log('🔄 [Auth] Found member by phone. Forcing sync...');
+              // Sync to move their document to the correct Auth UID
+              await FirestoreService.syncMember(fallback.member.churchId, fallback.member.id, userState.uid);
+              // Wait a tiny bit to ensure Firestore read is consistent, then re-fetch
+              await new Promise(r => setTimeout(r, 500));
+              globalUser = await FirestoreService.getGlobalUser(userState.uid);
+            }
+          } else if (globalUser && globalUser.uid !== userState.uid) {
+            console.log('🔄 [Auth] Document ID does not match Auth UID. Forcing sync...');
+            await FirestoreService.syncMember(globalUser.primaryChurchId, globalUser.uid, userState.uid);
+            await new Promise(r => setTimeout(r, 500));
+            globalUser = await FirestoreService.getGlobalUser(userState.uid);
+          }
           
           if (globalUser) {
             console.log('🌍 [Auth] Global User Loaded:', globalUser.name);

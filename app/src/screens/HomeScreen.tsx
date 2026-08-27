@@ -612,6 +612,12 @@ export default function HomeScreen() {
     fetchData();
   }, [user]);
 
+  useEffect(() => {
+    if (authMember) {
+      setMember(authMember as AppMember);
+    }
+  }, [authMember]);
+
   // Listen for Live/Upcoming Google Meets
   useEffect(() => {
     if (!activeChurch?.id) return;
