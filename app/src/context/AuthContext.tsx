@@ -108,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               await new Promise(r => setTimeout(r, 500));
               globalUser = await FirestoreService.getGlobalUser(userState.uid);
             }
-          } else if (globalUser && globalUser.uid !== userState.uid) {
+          } else if (globalUser && globalUser.uid !== userState.uid && globalUser.primaryChurchId) {
             console.log('🔄 [Auth] Document ID does not match Auth UID. Forcing sync...');
             await FirestoreService.syncMember(globalUser.primaryChurchId, globalUser.uid, userState.uid);
             await new Promise(r => setTimeout(r, 500));
