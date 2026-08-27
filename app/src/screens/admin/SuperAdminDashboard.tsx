@@ -40,9 +40,9 @@ export default function SuperAdminDashboard({ navigation }: any) {
   const [masterSongs, setMasterSongs] = useState<any[]>([]);
   const [churchesLoading, setChurchesLoading] = useState(true);
   const [songsLoading, setSongsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'churches' | 'songs'>('churches');
   const loading = activeTab === 'churches' ? churchesLoading : songsLoading;
   
-  const [activeTab, setActiveTab] = useState<'churches' | 'songs'>('churches');
   const [searchQuery, setSearchQuery] = useState('');
   
   const [selectedSongs, setSelectedSongs] = useState<Set<string>>(new Set());
@@ -210,7 +210,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
 
   const processBulkUpload = async () => {
     if (!bulkFile) return;
-    setLoading(true);
+    setSongsLoading(true);
     try {
       const fileUri = bulkFile.uri;
       let fileStr = '';
@@ -224,7 +224,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
       const data = JSON.parse(fileStr);
       if (!Array.isArray(data)) {
         Alert.alert('Error', 'JSON must be an array of songs');
-        setLoading(false);
+        setSongsLoading(false);
         return;
       }
 
@@ -251,7 +251,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
       Alert.alert('Error', 'Failed to upload songs. Ensure it is a valid JSON file.');
       console.error(e);
     } finally {
-      setLoading(false);
+      setSongsLoading(false);
     }
   };
 
@@ -302,7 +302,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
     Alert.alert('Confirm', `Delete ${selectedSongs.size} songs?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-          setLoading(true);
+          setSongsLoading(true);
           const batch = firestore().batch();
           selectedSongs.forEach(id => {
             const ref = firestore().collection('masterSongs').doc(id);
