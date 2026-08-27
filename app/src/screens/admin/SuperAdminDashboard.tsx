@@ -312,7 +312,8 @@ export default function SuperAdminDashboard({ navigation }: any) {
 
   const filteredChurches = churches.filter(c => 
     (c.name || '').toLowerCase().includes(query) || 
-    (c.subdomain || '').toLowerCase().includes(query)
+    (c.subdomain || '').toLowerCase().includes(query) ||
+    (c.address || '').toLowerCase().includes(query)
   );
 
   const masterSongsWithIndex = masterSongs.map((s, index) => ({ ...s, absoluteIndex: index }));
