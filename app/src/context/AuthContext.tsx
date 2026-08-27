@@ -104,15 +104,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.log('🔄 [Auth] Found member by phone. Forcing sync...');
               // Sync to move their document to the correct Auth UID
               await FirestoreService.syncMember(fallback.member.churchId, fallback.member.id, userState.uid);
-              // Wait a tiny bit to ensure Firestore read is consistent, then re-fetch
-              await new Promise(r => setTimeout(r, 500));
-              globalUser = await FirestoreService.getGlobalUser(userState.uid);
+              // Bypass collectionGroup index latency by manually constructing globalUser
+              globalUser = { ...fallback.member, uid: userState.uid, primaryChurchId: fallback.member.churchId } as any;
             }
           } else if (globalUser && globalUser.uid !== userState.uid && globalUser.primaryChurchId) {
             console.log('🔄 [Auth] Document ID does not match Auth UID. Forcing sync...');
             await FirestoreService.syncMember(globalUser.primaryChurchId, globalUser.uid, userState.uid);
-            await new Promise(r => setTimeout(r, 500));
-            globalUser = await FirestoreService.getGlobalUser(userState.uid);
+            // Bypass collectionGroup index latency by manually constructing globalUser
+            globalUser = { ...globalUser, uid: userState.uid } as any;
           }
           
           if (globalUser) {
