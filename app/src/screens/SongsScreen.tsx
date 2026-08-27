@@ -89,10 +89,24 @@ export default function SongsScreen({ navigation, route }: any) {
   });
 
   // ── Load songs ────────────────────────────────────
-  const fetchSongs = async () => {
+  const fetchSongs = async (forceRefresh = false) => {
     try {
-      const data = await FirestoreService.getWorshipSongs();
+      // Try cache first for instant display
+      if (!forceRefresh) {
+        const cached = await AsyncStorage.getItem('@songs_cache');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.length > 0) {
+            setSongs(parsed);
+            setLoading(false);
+          }
+        }
+      }
+      // Always fetch fresh data
+      const data = await FirestoreService.getWorshipSongs({ forceRefresh });
       setSongs(data);
+      // Update cache
+      AsyncStorage.setItem('@songs_cache', JSON.stringify(data)).catch(() => {});
     } catch (error) {
       console.error('Error fetching songs:', error);
     } finally {
@@ -127,7 +141,7 @@ export default function SongsScreen({ navigation, route }: any) {
     }
   }, [songId, songs, navigation]);
 
-  const onRefresh = () => { setRefreshing(true); fetchSongs(); };
+  const onRefresh = () => { setRefreshing(true); fetchSongs(true); };
 
   // ── Toggle save/unsave song ───────────────────────
   const toggleSave = async (song: WorshipSong) => {

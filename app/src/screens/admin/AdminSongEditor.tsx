@@ -118,10 +118,10 @@ export default function AdminSongEditor() {
   };
 
   useEffect(() => {
-    if (screenTab === 'list' || screenTab === 'theme') {
-      fetchPostedSongs();
-    }
-  }, [screenTab]);
+    // Pre-load songs immediately on mount so switching to 'list' tab is instant
+    fetchPostedSongs();
+    fetchMemberSongs();
+  }, []);
 
   const fetchMemberSongs = async () => {
     try {

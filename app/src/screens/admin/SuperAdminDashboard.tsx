@@ -38,7 +38,9 @@ export default function SuperAdminDashboard({ navigation }: any) {
   const { member, isPlatformSuperAdmin } = useAuth();
   const [churches, setChurches] = useState<ChurchDetails[]>([]);
   const [masterSongs, setMasterSongs] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [churchesLoading, setChurchesLoading] = useState(true);
+  const [songsLoading, setSongsLoading] = useState(false);
+  const loading = activeTab === 'churches' ? churchesLoading : songsLoading;
   
   const [activeTab, setActiveTab] = useState<'churches' | 'songs'>('churches');
   const [searchQuery, setSearchQuery] = useState('');
@@ -81,14 +83,14 @@ export default function SuperAdminDashboard({ navigation }: any) {
   }, [isPlatformSuperAdmin]);
 
   const fetchChurches = async () => {
-    setLoading(true);
+    setChurchesLoading(true);
     const data = await ChurchService.getAllChurches();
     setChurches(data);
-    setLoading(false);
+    setChurchesLoading(false);
   };
 
   const fetchMasterSongs = async (forceRefresh = false) => {
-    setLoading(true);
+    setSongsLoading(true);
     try {
       const ref = firestore().collection('masterSongs').orderBy('title');
 
@@ -97,7 +99,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
         const songs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         if (source === 'cache' && songs.length > 0) {
           setMasterSongs(songs);
-          setLoading(false);
+          setSongsLoading(false);
         } else if (source === 'server') {
           setMasterSongs(songs);
         }
@@ -109,7 +111,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
           const cached = await loadFromSource('cache');
           if (cached.length === 0) throw new Error('Empty cache');
           
-          // Keep cache warm
+          // Keep cache warm in background
           loadFromSource('server').catch(() => {});
         } catch (e) {
           await loadFromSource('server');
@@ -120,15 +122,21 @@ export default function SuperAdminDashboard({ navigation }: any) {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      setSongsLoading(false);
     }
   };
 
   useEffect(() => {
-    if (activeTab === 'churches') {
-      fetchChurches();
-    } else {
+    // Pre-fetch both on mount so switching tabs is instant
+    fetchChurches();
+    fetchMasterSongs();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'songs' && masterSongs.length === 0) {
       fetchMasterSongs();
+    } else if (activeTab === 'churches' && churches.length === 0) {
+      fetchChurches();
     }
   }, [activeTab]);
 
