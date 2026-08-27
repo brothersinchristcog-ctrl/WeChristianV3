@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Alert, SafeAreaView, Platform, Linking, TextInput } from 'react-native';
-import { X, Shield, Calendar, Smartphone, Globe, Music, BookOpen, Heart, MessageCircle, Mail, Phone, Edit2 } from 'lucide-react-native';
+import { X, Shield, Calendar, Smartphone, Globe, Music, BookOpen, Heart, MessageCircle, Mail, Phone, Edit2, MapPin } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -289,6 +289,15 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                 </View>
               </View>
               <View style={styles.divider} />
+
+              <View style={styles.cardRow}>
+                <MapPin size={20} color="#94a3b8" />
+                <View style={styles.cardTextContainer}>
+                  <Text style={styles.cardLabel}>Location (City/Address)</Text>
+                  <Text style={styles.cardValue}>{church.address || 'N/A'}</Text>
+                </View>
+              </View>
+              <View style={styles.divider} />
               
               <View style={styles.cardRow}>
                 <Shield size={20} color="#94a3b8" />
@@ -423,9 +432,19 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
 
                     <View style={{ flex: 1 }}>
                       <Text style={styles.cardLabel}>Expires</Text>
-                      <Text style={[styles.cardValue, { marginTop: 4 }]}>
-                        {formatDate(church.subscription?.validUntil)}
-                      </Text>
+                      {church.subscription?.validUntil && new Date(church.subscription.validUntil).getTime() < Date.now() ? (
+                        <Text style={[styles.cardValue, { marginTop: 4, color: '#f87171', fontWeight: '800' }]}>
+                          Subscription Expired
+                        </Text>
+                      ) : church.subscription?.status && church.subscription?.status !== 'active' ? (
+                        <Text style={[styles.cardValue, { marginTop: 4, color: '#f87171', fontWeight: '800' }]}>
+                          Subscription Expired
+                        </Text>
+                      ) : (
+                        <Text style={[styles.cardValue, { marginTop: 4 }]}>
+                          {formatDate(church.subscription?.validUntil)}
+                        </Text>
+                      )}
                     </View>
                   </View>
 
