@@ -155,14 +155,15 @@ export default function UpdatesScreen({ navigation, route }: any) {
   };
 
   useEffect(() => {
-    if (!member?.churchId) {
+    const churchToQuery = activeChurch?.id || member?.churchId;
+    if (!churchToQuery) {
       setLoading(false);
       return;
     }
 
     const db = getFirestore();
     const q = query(
-      collection(db, 'churches', member.churchId, 'broadcasts'),
+      collection(db, 'churches', churchToQuery, 'broadcasts'),
       orderBy('createdAt', 'desc'),
       limit(20)
     );
@@ -175,7 +176,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
             const data = doc.data();
             
             // SECURITY: If broadcast is targeted to a specific church, skip it if not for this user's church
-            if (data.targetChurchId && member?.churchId && data.targetChurchId !== member.churchId) {
+            if (data.targetChurchId && churchToQuery && data.targetChurchId !== churchToQuery) {
               return null;
             }
 
@@ -278,7 +279,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
     );
 
         const qMeetings = query(
-      collection(db, 'churches', member.churchId, 'online_meetings'),
+      collection(db, 'churches', churchToQuery, 'online_meetings'),
       orderBy('createdAt', 'desc'),
       limit(10)
     );
@@ -316,39 +317,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
     );
 
     return () => { unsubscribe(); unsubscribeMeetings(); };
-  }, [member?.churchId, user?.phoneNumber, member?.phone]);
-
-  const staticUpdates = [
-    {
-      id: '1',
-      title: 'Sunday Service Timing Change',
-      content: 'Please note that this Sunday\'s service will start at 10:00 AM instead of 9:30 AM due to a special baptism ceremony.',
-      date: '2026-04-27',
-      type: 'announcement',
-      icon: Calendar,
-      color: '#3b82f6'
-    },
-    {
-      id: '2',
-      title: 'Community Prayer Meeting',
-      content: 'Join us this Wednesday for our weekly community prayer meeting. We will be praying for healing and peace in our families.',
-      date: '2026-04-26',
-      type: 'event',
-      icon: MessageCircle,
-      color: '#10b981'
-    },
-    {
-      id: '3',
-      title: 'Youth Ministry Updates',
-      content: 'The youth ministry is planning a retreat for next month. Interested members please sign up at the church office.',
-      date: '2026-04-25',
-      type: 'info',
-      icon: Info,
-      color: '#f59e0b'
-    }
-  ];
-
-  const allUpdates = [...dynamicUpdates, ...staticUpdates];
+  }, [activeChurch?.id, member?.churchId, user?.phoneNumber, member?.phone]);
+  const allUpdates = dynamicUpdates;
   const visibleUpdates = allUpdates.filter(update => !deletedIds.includes(update.id));
 
   // Reset hasAutoOpened whenever route params change to allow new notification clicks to pop up
@@ -442,7 +412,12 @@ export default function UpdatesScreen({ navigation, route }: any) {
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.content}>
-          {loading ? (
+          {loading && visibleUpdates.length === 0 ? (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 100 }}>
+              <ActivityIndicator size="large" color="#f0b429" />
+              <Text style={{ marginTop: 16, fontSize: 14, color: '#94a3b8' }}>Loading updates...</Text>
+            </View>
+          ) : loading && visibleUpdates.length > 0 ? (
             <View style={styles.loadingBox}>
               <ActivityIndicator size="small" color="#1a2d5a" />
               <Text style={styles.loadingTxt}>Syncing live alerts...</Text>

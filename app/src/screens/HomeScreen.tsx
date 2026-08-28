@@ -862,25 +862,34 @@ export default function HomeScreen() {
         {/* --- Greeting Row --- */}
         <View style={styles.greetingSection}>
           <View style={[styles.greetingLeft, { paddingRight: 80 }]}>
-            <Svg height="50" width="100%" style={{ marginBottom: 2 }}>
-              <Defs>
-                <SvgLinearGradient id="greetingGrad" x1="0" y1="0" x2="1" y2="0">
-                  <Stop offset="0" stopColor="#FCD34D" stopOpacity="1" />
-                  <Stop offset="1" stopColor="#f97316" stopOpacity="1" />
-                </SvgLinearGradient>
-              </Defs>
-              <SvgText
-                fill="url(#greetingGrad)"
-                fontSize={Math.min(44, width * 0.1).toString()}
-                fontWeight="400"
-                fontFamily={Platform.OS === 'ios' ? 'Snell Roundhand' : 'cursive'}
-                fontStyle="italic"
-                x="0"
-                y="38"
-              >
-                {getGreeting()},
-              </SvgText>
-            </Svg>
+            {(() => {
+              const greetingTxt = getGreeting() + ",";
+              const availableWidth = width - 100; // Account for padding and date hexagon
+              const estimatedCharWidth = 0.45; // Approximate width-to-height ratio for this cursive font
+              const calculatedFontSize = Math.max(24, Math.min(44, availableWidth / (greetingTxt.length * estimatedCharWidth)));
+              
+              return (
+                <Svg height="55" width="100%" style={{ marginBottom: 2 }}>
+                  <Defs>
+                    <SvgLinearGradient id="greetingGrad" x1="0" y1="0" x2="1" y2="0">
+                      <Stop offset="0" stopColor="#FCD34D" stopOpacity="1" />
+                      <Stop offset="1" stopColor="#f97316" stopOpacity="1" />
+                    </SvgLinearGradient>
+                  </Defs>
+                  <SvgText
+                    fill="url(#greetingGrad)"
+                    fontSize={calculatedFontSize.toString()}
+                    fontWeight="400"
+                    fontFamily={Platform.OS === 'ios' ? 'Snell Roundhand' : 'cursive'}
+                    fontStyle="italic"
+                    x="0"
+                    y={calculatedFontSize * 0.95}
+                  >
+                    {greetingTxt}
+                  </SvgText>
+                </Svg>
+              );
+            })()}
             {isImpersonating ? (
               <Text style={[styles.userNameCream, { fontSize: 22, marginTop: 4 }]} numberOfLines={1}>
                 Branch Admin

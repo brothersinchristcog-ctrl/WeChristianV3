@@ -588,17 +588,25 @@ class FirestoreService {
       const runManualFallback = async () => {
         console.log("Running manual fallback traversal...");
         const churchesSnap = await firestore().collection('churches').get();
+        let bestMember: any = null;
         for (const churchDoc of churchesSnap.docs) {
           const queries = possibleFormats.map(format => 
-            churchDoc.ref.collection('members').where('phone', '==', format).limit(1).get()
+            churchDoc.ref.collection('members').where('phone', '==', format).get()
           );
           const results = await Promise.all(queries);
           for (const snap of results) {
-            if (!snap.empty) {
-              const doc = snap.docs[0];
-              return { exists: true, member: { id: doc.id, ...doc.data() } };
+            for (const doc of snap.docs) {
+              const data = doc.data();
+              const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+              if (!bestMember || isElevated) {
+                bestMember = { id: doc.id, churchId: churchDoc.id, ...data };
+              }
+              if (isElevated) break;
             }
           }
+        }
+        if (bestMember) {
+          return { exists: true, member: bestMember as AppMember };
         }
         return { exists: false };
       };
@@ -607,15 +615,23 @@ class FirestoreService {
         try {
           console.log("Trying collectionGroup search...");
           const queries = possibleFormats.map(format => 
-            firestore().collectionGroup('members').where('phone', '==', format).limit(1).get()
+            firestore().collectionGroup('members').where('phone', '==', format).get()
           );
           const results = await Promise.all(queries);
+          let bestMember: any = null;
           for (const snap of results) {
-            if (!snap.empty) {
-              const doc = snap.docs[0];
-              console.log("Found member in collectionGroup. From cache?", doc.metadata?.fromCache);
-              return { exists: true, member: { id: doc.id, ...doc.data() } };
+            for (const doc of snap.docs) {
+              const data = doc.data();
+              const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+              if (!bestMember || isElevated) {
+                bestMember = { id: doc.id, churchId: doc.ref.parent.parent?.id, ...data };
+              }
+              if (isElevated) break;
             }
+          }
+          if (bestMember) {
+            console.log("Found member in collectionGroup.");
+            return { exists: true, member: bestMember as AppMember };
           }
           return { exists: false };
         } catch (cgError: any) {
@@ -632,6 +648,7 @@ class FirestoreService {
             firestore().collectionGroup('members').where('phone', '==', format).get({ source: 'server' })
           );
           const results = await Promise.all(queries);
+          let bestMember: any = null;
           let foundAny = false;
           for (const snap of results) {
             for (const doc of snap.docs) {
@@ -642,9 +659,16 @@ class FirestoreService {
               const parentChurchId = doc.ref.parent.parent?.id;
               console.log("Validating churchId. Parent churchId:", parentChurchId, "Data churchId:", data.churchId, "Expected:", churchId);
               if (parentChurchId === churchId || data.churchId === churchId) {
-                return { exists: true, member: { id: doc.id, ...data } };
+                const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+                if (!bestMember || isElevated) {
+                  bestMember = { id: doc.id, churchId: parentChurchId, ...data };
+                }
+                if (isElevated) break;
               }
             }
+          }
+          if (bestMember) {
+            return { exists: true, member: bestMember as AppMember };
           }
           if (!foundAny) {
             console.log("Strict church mode: collectionGroup found absolutely no matching documents for any format.");
@@ -662,14 +686,22 @@ class FirestoreService {
       try {
         console.log(`Checking specific church: ${churchId}`);
         const queries = possibleFormats.map(format => 
-          firestore().collection('churches').doc(churchId!).collection('members').where('phone', '==', format).limit(1).get({ source: 'server' })
+          firestore().collection('churches').doc(churchId!).collection('members').where('phone', '==', format).get({ source: 'server' })
         );
         const results = await Promise.all(queries);
+        let bestMember: any = null;
         for (const snap of results) {
-          if (!snap.empty) {
-            const doc = snap.docs[0];
-            return { exists: true, member: { id: doc.id, ...doc.data() } };
+          for (const doc of snap.docs) {
+            const data = doc.data();
+            const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+            if (!bestMember || isElevated) {
+              bestMember = { id: doc.id, churchId: churchId, ...data };
+            }
+            if (isElevated) break;
           }
+        }
+        if (bestMember) {
+          return { exists: true, member: bestMember as AppMember };
         }
       } catch (err: any) {
         console.log("Specific church query failed:", err.message);
@@ -679,14 +711,22 @@ class FirestoreService {
       try {
         console.log("Not found in specific church. Trying global collectionGroup search...");
         const globalQueries = possibleFormats.map(format => 
-          firestore().collectionGroup('members').where('phone', '==', format).limit(1).get({ source: 'server' })
+          firestore().collectionGroup('members').where('phone', '==', format).get({ source: 'server' })
         );
         const globalResults = await Promise.all(globalQueries);
+        let bestMember: any = null;
         for (const snap of globalResults) {
-          if (!snap.empty) {
-            const doc = snap.docs[0];
-            return { exists: true, member: { id: doc.id, ...doc.data() } };
+          for (const doc of snap.docs) {
+            const data = doc.data();
+            const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+            if (!bestMember || isElevated) {
+              bestMember = { id: doc.id, churchId: doc.ref.parent.parent?.id, ...data };
+            }
+            if (isElevated) break;
           }
+        }
+        if (bestMember) {
+          return { exists: true, member: bestMember as AppMember };
         }
       } catch (cgError: any) {
          console.log("Global collection group index failed, falling back...", cgError.message);
@@ -750,7 +790,53 @@ class FirestoreService {
   async updateMemberRole(memberId: string, userType: string): Promise<boolean> {
     try {
       const col = await this.getCollection('members');
+      const memberDoc = await col.doc(memberId).get();
+      
+      // Update the primary targeted document first
       await col.doc(memberId).update({ userType });
+      
+      // Critical Fix: If the admin is updating a "phone" document but the user is logged in
+      // and listening to their "uid" document, we MUST update the uid document too so their app updates instantly!
+      const memberData = memberDoc.data();
+      if (memberData) {
+        const phone = memberData.phone;
+        if (phone) {
+          try {
+            const rawDigits = phone.replace(/\D/g, '');
+            const last10 = rawDigits.slice(-10);
+            const formats = [last10, `+91${last10}`, `91${last10}`, phone, `+91 ${last10}`, parseInt(last10, 10)];
+            const possibleFormats = formats.filter(v => v !== undefined && v !== null && !Number.isNaN(v));
+            
+            const queries = possibleFormats.map(format => 
+              firestore().collectionGroup('members').where('phone', '==', format).get()
+            );
+            const results = await Promise.all(queries);
+            
+            // Collect all unique document references that belong to this phone number
+            const docsToUpdate = new Map<string, any>();
+            results.forEach(snap => {
+              snap.docs.forEach(doc => {
+                if (doc.id !== memberId) {
+                  docsToUpdate.set(doc.ref.path, doc.ref);
+                }
+              });
+            });
+            
+            // Update all duplicate documents found (e.g. the active uid document)
+            if (docsToUpdate.size > 0) {
+              const batch = firestore().batch();
+              docsToUpdate.forEach(ref => {
+                batch.update(ref, { userType });
+              });
+              await batch.commit();
+              console.log(`[Admin] Successfully synced role '${userType}' across ${docsToUpdate.size} duplicate documents!`);
+            }
+          } catch (syncError) {
+            console.warn('[Admin] Failed to sync role to duplicate documents, but main doc was updated', syncError);
+          }
+        }
+      }
+      
       return true;
     } catch (error) {
       console.error('Error updating member role', error);
@@ -1776,6 +1862,61 @@ class FirestoreService {
       return { success: false };
     }
   }
+
+  async scanForDuplicateMembers(): Promise<any[]> {
+    try {
+      console.log('Scanning for duplicate members across all churches...');
+      const snapshot = await firestore().collectionGroup('members').get({ source: 'server' });
+      const phoneMap: Record<string, any[]> = {};
+      
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        let phone = data.phone || data.mobile || '';
+        phone = phone.replace(/\D/g, ''); // strip non-digits
+        
+        // Use last 10 digits as the unique identifier for grouping
+        if (phone.length >= 10) {
+          const last10 = phone.slice(-10);
+          if (!phoneMap[last10]) {
+            phoneMap[last10] = [];
+          }
+          phoneMap[last10].push({
+            id: doc.id,
+            churchId: doc.ref.parent.parent?.id,
+            name: data.name || data.firstName || 'Unknown',
+            phone: data.phone || data.mobile || '',
+            userType: data.userType || 'Member',
+            createdAt: data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Unknown'
+          });
+        }
+      });
+      
+      // Filter out those with only 1 document
+      const duplicates = Object.keys(phoneMap)
+        .filter(phone => phoneMap[phone].length > 1)
+        .map(phone => ({
+          phone,
+          documents: phoneMap[phone]
+        }));
+        
+      return duplicates;
+    } catch (error) {
+      console.error('Error scanning for duplicate members:', error);
+      return [];
+    }
+  }
+
+  async deleteDuplicateMember(churchId: string, docId: string): Promise<boolean> {
+    try {
+      if (!churchId || !docId) return false;
+      await firestore().collection('churches').doc(churchId).collection('members').doc(docId).delete();
+      return true;
+    } catch (error) {
+      console.error('Error deleting duplicate member:', error);
+      return false;
+    }
+  }
+
   async query(soql: string): Promise<any> { return null; }
   extractYoutubeId(url: string): string { return url; }
   async getDashboardStats(): Promise<any> { return { members: 0, promises: 0 }; }

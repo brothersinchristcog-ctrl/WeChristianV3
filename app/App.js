@@ -11,7 +11,7 @@ import { GoogleSignin } from '@react-native-google-signin/google-signin';
 // Configure Google Sign-In once at app startup (before any screen mounts)
 // This prevents DEVELOPER_ERROR when user taps sign-in too quickly
 GoogleSignin.configure({
-  scopes: ['https://www.googleapis.com/auth/calendar.events'],
+  scopes: ['https://www.googleapis.com/auth/meetings.space.created'],
   webClientId: '962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com',
   offlineAccess: true,
   forceCodeForRefreshToken: false,

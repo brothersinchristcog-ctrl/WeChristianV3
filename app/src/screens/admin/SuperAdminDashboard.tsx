@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, Platform, Image, ScrollView, Linking } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert, ActivityIndicator, Modal, TextInput, Platform, Image, ScrollView, Linking, KeyboardAvoidingView } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import { useAuth } from '../../context/AuthContext';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
+import FirestoreService from '../../services/FirestoreService';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Plus, Shield, X, Image as ImageIcon, Search, Mail, Phone, Settings, Check, UploadCloud, ChevronLeft, Save, FileText, Music, Pencil, MapPin, AlertCircle } from 'lucide-react-native';
@@ -75,6 +76,11 @@ export default function SuperAdminDashboard({ navigation }: any) {
   // Manager Modal
   const [managerVisible, setManagerVisible] = useState(false);
   const [selectedChurchId, setSelectedChurchId] = useState<string | null>(null);
+
+  // Duplicate Scanner Modal
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [scanningDuplicates, setScanningDuplicates] = useState(false);
+  const [duplicateMembers, setDuplicateMembers] = useState<any[]>([]);
 
   // Create Modal states
   const [showModal, setShowModal] = useState(false);
@@ -153,6 +159,49 @@ export default function SuperAdminDashboard({ navigation }: any) {
     setManagerVisible(true);
   };
 
+  const handleScanDuplicates = async () => {
+    setShowDuplicateModal(true);
+    setScanningDuplicates(true);
+    try {
+      const duplicates = await FirestoreService.scanForDuplicateMembers();
+      setDuplicateMembers(duplicates);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Failed to scan for duplicate members.');
+    } finally {
+      setScanningDuplicates(false);
+    }
+  };
+
+  const handleDeleteDuplicate = (churchId: string, docId: string) => {
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to permanently delete this duplicate profile?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              const success = await FirestoreService.deleteDuplicateMember(churchId, docId);
+              if (success) {
+                Alert.alert("Success", "Duplicate profile deleted!");
+                // Refresh list automatically
+                handleScanDuplicates();
+              } else {
+                Alert.alert("Error", "Failed to delete duplicate profile.");
+              }
+            } catch (err) {
+              console.error(err);
+              Alert.alert("Error", "An unexpected error occurred.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
   // --- Song Logic ---
   const handleAddSingleSong = async () => {
     if (!newSong.title.trim() || !newSong.lyrics.trim()) {
@@ -228,7 +277,9 @@ export default function SuperAdminDashboard({ navigation }: any) {
         fileStr = await FileSystem.readAsStringAsync(fileUri);
       }
       
-      const data = JSON.parse(fileStr);
+      // Clean up common JSON issues like trailing commas before parsing
+      const cleanFileStr = fileStr.replace(/,\s*([\]}])/g, '$1');
+      const data = JSON.parse(cleanFileStr);
       if (!Array.isArray(data)) {
         Alert.alert('Error', 'JSON must be an array of songs');
         setSongsLoading(false);
@@ -415,7 +466,13 @@ export default function SuperAdminDashboard({ navigation }: any) {
       </View>
 
       {activeTab === 'churches' && (
-        <Text style={styles.listCountText}>{filteredChurches.length} churches</Text>
+        <View style={styles.actionRow}>
+          <Text style={[styles.listCountText, { marginBottom: 0 }]}>{filteredChurches.length} churches</Text>
+          <TouchableOpacity style={[styles.btnAction, { backgroundColor: '#3b82f6' }]} onPress={handleScanDuplicates}>
+            <Search size={16} color="#ffffff" style={{ marginRight: 6 }} />
+            <Text style={[styles.btnActionText, { color: '#ffffff' }]}>Scan Duplicates</Text>
+          </TouchableOpacity>
+        </View>
       )}
       {activeTab === 'songs' && (
         <View style={styles.actionRow}>
@@ -653,9 +710,10 @@ export default function SuperAdminDashboard({ navigation }: any) {
         </View>
       </Modal>
 
-      <Modal transparent visible={showAddSongModal} animationType="slide" onRequestClose={() => setShowAddSongModal(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.addSongModalCard}>
+      {showAddSongModal && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 1000, backgroundColor: '#141b30' }]}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
             <View style={styles.bulkModalHeader}>
               <Text style={styles.bulkModalTitle}>Add Single Song</Text>
               <TouchableOpacity style={styles.bulkCloseBtn} onPress={() => setShowAddSongModal(false)}>
@@ -697,20 +755,22 @@ export default function SuperAdminDashboard({ navigation }: any) {
               </View>
               
               <Text style={styles.inputLabel}>Lyrics *</Text>
-              <TextInput style={[styles.textInput, { height: 300, textAlignVertical: 'top' }]} multiline placeholder="Song Lyrics" placeholderTextColor="#94a3b8" value={newSong.lyrics} onChangeText={t => setNewSong({...newSong, lyrics: t})} />
+              <TextInput style={[styles.textInput, { minHeight: 300, textAlignVertical: 'top' }]} scrollEnabled={false} multiline placeholder="Song Lyrics" placeholderTextColor="#94a3b8" value={newSong.lyrics} onChangeText={t => setNewSong({...newSong, lyrics: t})} />
             
               <TouchableOpacity style={styles.saveSongBtn} onPress={handleAddSingleSong} disabled={addingSong}>
                 {addingSong ? <ActivityIndicator size="small" color="#1a1200" /> : <Text style={styles.saveSongBtnTxt}>Save Song</Text>}
               </TouchableOpacity>
-              <View style={{ height: 40 }}/>
+              <View style={{ height: 400 }}/>
             </ScrollView>
-          </View>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
         </View>
-      </Modal>
+      )}
 
-      <Modal transparent visible={!!editingSong} animationType="slide" onRequestClose={() => setEditingSong(null)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.addSongModalCard}>
+      {!!editingSong && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 1000, backgroundColor: '#141b30' }]}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
             <View style={styles.bulkModalHeader}>
               <Text style={styles.bulkModalTitle}>Edit Single Song</Text>
               <TouchableOpacity style={styles.bulkCloseBtn} onPress={() => setEditingSong(null)}>
@@ -752,16 +812,17 @@ export default function SuperAdminDashboard({ navigation }: any) {
               </View>
               
               <Text style={styles.inputLabel}>Lyrics *</Text>
-              <TextInput style={[styles.textInput, { height: 300, textAlignVertical: 'top' }]} multiline placeholder="Song Lyrics" placeholderTextColor="#94a3b8" value={editingSong?.lyrics} onChangeText={t => setEditingSong({...editingSong, lyrics: t})} />
+              <TextInput style={[styles.textInput, { minHeight: 300, textAlignVertical: 'top' }]} scrollEnabled={false} multiline placeholder="Song Lyrics" placeholderTextColor="#94a3b8" value={editingSong?.lyrics} onChangeText={t => setEditingSong({...editingSong, lyrics: t})} />
             
               <TouchableOpacity style={styles.saveSongBtn} onPress={handleUpdateSingleSong} disabled={updatingSong}>
                 {updatingSong ? <ActivityIndicator size="small" color="#1a1200" /> : <Text style={styles.saveSongBtnTxt}>Update Song</Text>}
               </TouchableOpacity>
-              <View style={{ height: 40 }}/>
+              <View style={{ height: 400 }}/>
             </ScrollView>
-          </View>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
         </View>
-      </Modal>
+      )}
 
       <SuperAdminChurchManager 
         visible={managerVisible} 
@@ -819,18 +880,83 @@ export default function SuperAdminDashboard({ navigation }: any) {
             </View>
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#f8fafc', marginBottom: 12, textAlign: 'center' }}>Are you sure?</Text>
             <Text style={{ fontSize: 15, color: '#94a3b8', textAlign: 'center', marginBottom: 32, lineHeight: 22 }}>
-              {deleteTarget?.type === 'bulk' 
-                ? `You are about to delete ${selectedSongs.size} selected songs. This action cannot be undone.` 
-                : 'You are about to delete this song. This action cannot be undone.'}
+              {deleteTarget?.type === 'bulk' ? 'This will delete ALL selected songs.' : 'This will permanently delete this song.'}
             </Text>
-            
-            <View style={{ flexDirection: 'row', width: '100%', gap: 12 }}>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
               <TouchableOpacity onPress={() => setDeleteTarget(null)} style={{ flex: 1, backgroundColor: '#334155', paddingVertical: 14, borderRadius: 12, alignItems: 'center' }}>
                 <Text style={{ color: '#f8fafc', fontSize: 15, fontWeight: '600' }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={executeDelete} style={{ flex: 1, backgroundColor: '#ef4444', paddingVertical: 14, borderRadius: 12, alignItems: 'center' }}>
                 <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '700' }}>Delete</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Duplicate Scanner Modal */}
+      <Modal visible={showDuplicateModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.bulkModalCard, { maxHeight: '80%' }]}>
+            <View style={styles.bulkModalHeader}>
+              <Text style={styles.bulkModalTitle}>Duplicate Scanner</Text>
+              <TouchableOpacity onPress={() => setShowDuplicateModal(false)} style={styles.bulkCloseBtn}>
+                <X size={18} color="#94a1c4" />
+              </TouchableOpacity>
+            </View>
+            
+            {scanningDuplicates ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#f0b429" />
+                <Text style={{ color: '#94a1c4', marginTop: 16 }}>Scanning all churches for duplicates...</Text>
+              </View>
+            ) : (
+              <ScrollView style={{ padding: 20 }}>
+                {duplicateMembers.length === 0 ? (
+                  <View style={{ alignItems: 'center', padding: 20 }}>
+                    <Text style={{ color: '#10b981', fontSize: 16, fontWeight: 'bold' }}>No duplicates found!</Text>
+                  </View>
+                ) : (
+                  <View>
+                    <Text style={{ color: '#f4f6fb', marginBottom: 16 }}>Found {duplicateMembers.length} phone number(s) in multiple churches:</Text>
+                    {duplicateMembers.map((group, i) => (
+                      <View key={i} style={{ backgroundColor: '#1b2340', padding: 16, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#242e50' }}>
+                        <Text style={{ color: '#f0b429', fontSize: 16, fontWeight: 'bold', marginBottom: 8 }}>Phone: {group.phone}</Text>
+                        {group.documents.map((doc: any, j: number) => {
+                          const churchName = churches.find(c => c.id === doc.churchId)?.name || 'Unknown Church';
+                          return (
+                            <View key={j} style={{ backgroundColor: '#0f172a', padding: 12, borderRadius: 8, marginTop: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <View style={{ flex: 1, paddingRight: 12 }}>
+                                <Text style={{ color: '#fff', fontWeight: 'bold' }}>{doc.name} <Text style={{ color: '#94a3b8', fontWeight: 'normal' }}>({doc.userType})</Text></Text>
+                                <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 4 }}>Doc ID: {doc.id}</Text>
+                                <Text style={{ color: '#94a3b8', fontSize: 12 }}>Church: <Text style={{ color: '#e2e8f0', fontWeight: '500' }}>{churchName}</Text> ({doc.churchId})</Text>
+                                <Text style={{ color: '#94a3b8', fontSize: 12 }}>Created: {doc.createdAt}</Text>
+                              </View>
+                              <TouchableOpacity 
+                                onPress={() => handleDeleteDuplicate(doc.churchId, doc.id)}
+                                style={{ backgroundColor: '#ef444420', padding: 10, borderRadius: 8, borderWidth: 1, borderColor: '#ef4444' }}
+                              >
+                                <Text style={{ color: '#ef4444', fontWeight: '700', fontSize: 12 }}>Delete</Text>
+                              </TouchableOpacity>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
+            )}
+            
+            <View style={styles.bulkModalFooter}>
+              <TouchableOpacity onPress={() => setShowDuplicateModal(false)} style={styles.bulkBtnCancel}>
+                <Text style={styles.bulkBtnCancelTxt}>Close</Text>
+              </TouchableOpacity>
+              {duplicateMembers.length > 0 && !scanningDuplicates && (
+                <TouchableOpacity onPress={handleScanDuplicates} style={[styles.bulkBtnUpload, { backgroundColor: '#3b82f6' }]}>
+                  <Text style={[styles.bulkBtnUploadTxt, { color: '#fff' }]}>Scan Again</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -941,7 +1067,7 @@ const styles = StyleSheet.create({
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(5, 8, 19, 0.85)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   bulkModalCard: { backgroundColor: '#141b30', width: '100%', maxWidth: 400, borderRadius: 16, borderWidth: 1, borderColor: '#242e50', overflow: 'hidden' },
-  addSongModalCard: { backgroundColor: '#141b30', width: '100%', maxHeight: '80%', borderRadius: 16, borderWidth: 1, borderColor: '#242e50', overflow: 'hidden' },
+  addSongModalCard: { backgroundColor: '#141b30', flex: 1, width: '100%', overflow: 'hidden' },
   bulkModalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: '#242e50' },
   bulkModalTitle: { color: '#fff', fontSize: 18, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
   bulkCloseBtn: { width: 32, height: 32, borderRadius: 16, backgroundColor: '#1b2340', justifyContent: 'center', alignItems: 'center' },

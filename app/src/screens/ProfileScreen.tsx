@@ -104,8 +104,9 @@ export default function ProfileScreen({ navigation }: any) {
 
   const fetchProfileData = async () => {
     try {
-      if (user?.phoneNumber) {
-        const contactCheck = await FirestoreService.checkContactExists(user.phoneNumber);
+      const searchPhone = user?.phoneNumber || (member as AppMember)?.phone || (member as any)?.phoneNumber;
+      if (searchPhone) {
+        const contactCheck = await FirestoreService.checkContactExists(searchPhone);
         if (contactCheck?.exists && contactCheck.member) {
           setMember(contactCheck.member);
           if (setGlobalMember) {

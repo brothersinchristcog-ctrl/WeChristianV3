@@ -149,7 +149,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 setMember(null);
               } else {
                 // Fetch NESTED member profile using the actual document ID
-                const memberProfile = await FirestoreService.getMemberProfile(globalUser.primaryChurchId, globalUser.uid);
+                let memberProfile = await FirestoreService.getMemberProfile(globalUser.primaryChurchId, globalUser.uid);
+                
+                // CRITICAL FIX: To prevent stale roles (e.g., Admin promotion not reflecting),
+                // we check by phone number just like ProfileScreen does. This forces a fresh
+                // server fetch and catches cases where the admin updated a duplicate phone-based document.
+                const searchPhone = userState.phoneNumber || globalUser.phone || memberProfile?.phone;
+                if (searchPhone) {
+                  try {
+                    const contactCheck = await FirestoreService.checkContactExists(searchPhone);
+                    if (contactCheck?.exists && contactCheck.member) {
+                      // If the contact check found a record, and it has a more elevated role or different ID,
+                      // we merge it in to ensure the user gets their Admin rights immediately.
+                      if (contactCheck.member.id !== globalUser.uid) {
+                        console.log('🔄 [Auth] Found rogue member document by phone. Merging to UID...');
+                        await FirestoreService.syncMember(contactCheck.member.churchId || globalUser.primaryChurchId, contactCheck.member.id, globalUser.uid);
+                      }
+                      memberProfile = { ...memberProfile, ...contactCheck.member, id: globalUser.uid } as AppMember;
+                    }
+                  } catch (e) {
+                    console.warn('⚠️ [Auth] checkContactExists failed during login:', e);
+                  }
+                }
                 
                 if (memberProfile) {
                   console.log('✅  [Auth] Nested Member Profile Loaded:', memberProfile.name);
@@ -170,6 +191,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                       if (snap.exists() && snap.data()) {
                         const updated = snap.data() as AppMember;
                         setMember(prev => {
+                          // Prevent stale cache from downgrading Admin status immediately after login
+                          const prevIsAdmin = String(prev?.userType || '').toUpperCase().includes('ADMIN');
+                          const updatedIsAdmin = String(updated.userType || '').toUpperCase().includes('ADMIN');
+                          
+                          if (snap.metadata.fromCache && prevIsAdmin && !updatedIsAdmin) {
+                            console.log('🛡️ [Auth] Preventing stale cache from downgrading Admin status');
+                            updated.userType = prev?.userType;
+                          }
+
                           const next = { ...prev, ...updated, id: globalUser.uid, churchId: globalUser.primaryChurchId } as AppMember;
                           AsyncStorage.setItem('@cached_member', JSON.stringify(next));
                           return next;

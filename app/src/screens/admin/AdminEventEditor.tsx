@@ -81,6 +81,7 @@ const PUBLISH_STATUS_OPTIONS = [
 export default function AdminEventEditor() {
   const { setActiveTab, editingData, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [loading, setLoading] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   // Form State
   const [titleEn, setTitleEn] = useState('');
@@ -234,7 +235,7 @@ export default function AdminEventEditor() {
 
       if (!result.canceled) {
         const localUri = result.assets[0].uri;
-        setLoading(true);
+        setIsUploadingBanner(true);
         try {
           const cloudUrl = await uploadImageToCloud(localUri);
           setBannerUrl(cloudUrl);
@@ -244,7 +245,7 @@ export default function AdminEventEditor() {
           setBannerUrl(localUri);
           AppAlert.alert('Upload Failed · అప్‌లోడ్ విఫలమైంది', 'Failed to upload banner to the cloud. You can still save it or manually paste a public web link in the text box.', undefined, 'error');
         } finally {
-          setLoading(false);
+          setIsUploadingBanner(false);
         }
       }
     } catch (err) {
@@ -660,7 +661,12 @@ export default function AdminEventEditor() {
 
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Upload Banner Image</Text>
-            {bannerUrl ? (
+            {isUploadingBanner ? (
+              <View style={styles.btnUploadThumb}>
+                <ActivityIndicator size="small" color="#7C3AED" />
+                <Text style={styles.btnUploadThumbTxt}>Uploading...</Text>
+              </View>
+            ) : bannerUrl ? (
               <View style={styles.thumbnailPreviewContainer}>
                 <Image source={{ uri: bannerUrl }} style={styles.thumbnailImg} resizeMode="cover" />
                 <TouchableOpacity style={styles.removeThumbnailBtn} onPress={() => setBannerUrl('')}>

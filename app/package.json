@@ -94,6 +94,7 @@
   "private": true,
   "devDependencies": {
     "@types/react-native-razorpay": "^2.2.6",
+    "jimp": "^1.6.1",
     "typescript": "~5.9.2"
   }
 }

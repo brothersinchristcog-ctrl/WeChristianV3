@@ -65,6 +65,7 @@ const STATUS_OPTIONS = [
 export default function AdminPromiseEditor() {
   const { setActiveTab, editingData, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [loading, setLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   
@@ -200,7 +201,7 @@ export default function AdminPromiseEditor() {
       });
 
       if (!result.canceled) {
-        setLoading(true);
+        setIsUploadingImage(true);
         const cloudUrl = await uploadImageToCloud(result.assets[0].uri);
         setForm(prev => ({ ...prev, imageUrl: cloudUrl }));
         AppAlert.alert('Success', 'Thumbnail uploaded to cloud successfully! Remember to Save Changes.', undefined, 'success');
@@ -209,7 +210,7 @@ export default function AdminPromiseEditor() {
       console.error('Upload Error:', err);
       AppAlert.alert('Upload Failed', 'There was an issue uploading your image.', undefined, 'error');
     } finally {
-      setLoading(false);
+      setIsUploadingImage(false);
     }
   };
 
@@ -410,7 +411,12 @@ export default function AdminPromiseEditor() {
           </View>
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Upload Thumbnail Image <Text style={styles.fHint}>(Visible on member home screen)</Text></Text>
-            {form.imageUrl ? (
+            {isUploadingImage ? (
+              <View style={styles.btnUploadThumb}>
+                <ActivityIndicator size="small" color="#1a2d5a" />
+                <Text style={styles.btnUploadThumbTxt}>Uploading...</Text>
+              </View>
+            ) : form.imageUrl ? (
               <View style={styles.thumbnailPreviewContainer}>
                 <Image source={{ uri: form.imageUrl }} style={styles.thumbnailImg} resizeMode="cover" />
                 <TouchableOpacity style={styles.removeThumbnailBtn} onPress={() => setForm(prev => ({ ...prev, imageUrl: '' }))}>

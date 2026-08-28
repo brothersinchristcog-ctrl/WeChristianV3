@@ -13,8 +13,10 @@ import {
   Alert,
   RefreshControl,
   Modal,
-  Animated
+  Animated,
+  KeyboardAvoidingView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Heart,
   CheckCircle,
@@ -78,12 +80,12 @@ export default function AdminPrayerModeration() {
   const [memberSearchResults, setMemberSearchResults] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [searchingMembers, setSearchingMembers] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successModalData, setSuccessModalData] = useState<{ visible: boolean; title: string; sub: string }>({ visible: false, title: '', sub: '' });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const successAnim = React.useRef(new Animated.Value(0)).current;
 
-  const triggerSuccess = () => {
-    setShowSuccessModal(true);
+  const triggerSuccess = (title: string, sub: string) => {
+    setSuccessModalData({ visible: true, title, sub });
     Animated.spring(successAnim, {
       toValue: 1,
       useNativeDriver: true,
@@ -97,7 +99,7 @@ export default function AdminPrayerModeration() {
       toValue: 0,
       duration: 200,
       useNativeDriver: true
-    }).start(() => setShowSuccessModal(false));
+    }).start(() => setSuccessModalData(prev => ({ ...prev, visible: false })));
   };
 
   const handleMemberSearch = async (query: string) => {
@@ -172,7 +174,7 @@ export default function AdminPrayerModeration() {
     try {
       await FirestoreService.markAsAnswered(id);
       fetchPrayers(true);
-      Alert.alert('Success', 'Prayer request status updated.');
+      triggerSuccess('Success!', 'Prayer request status updated.');
     } catch (err) {
       Alert.alert('Error', 'Failed to update status.');
     }
@@ -220,7 +222,7 @@ export default function AdminPrayerModeration() {
       setSelectedMember(null);
       setMemberSearchQuery('');
       setShowCreateModal(false);
-      triggerSuccess();
+      triggerSuccess('Request Published!', 'The prayer request has been successfully created and published.');
       fetchPrayers(true);
     } catch (err) {
       Alert.alert('Error', 'Failed to publish request.');
@@ -404,17 +406,19 @@ export default function AdminPrayerModeration() {
       </ScrollView>
 
       {/* ── Create Prayer Request Modal ── */}
-      <Modal visible={showCreateModal} animationType="slide" transparent>
-        <View style={styles.createModalOverlay}>
-          <View style={styles.createModalContent}>
-            <View style={styles.createModalHeader}>
-              <Text style={styles.createModalTitle}>Create New Prayer Request</Text>
-              <TouchableOpacity onPress={() => setShowCreateModal(false)} style={styles.closeBtn}>
-                <XCircle size={24} color="#64748b" />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
+      {showCreateModal && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 1000, backgroundColor: COLORS.paper }]}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+              <View style={[styles.createModalContent, { flex: 1, height: undefined, borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
+                <View style={[styles.createModalHeader, { borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
+                  <Text style={styles.createModalTitle}>Create New Prayer Request</Text>
+                  <TouchableOpacity onPress={() => setShowCreateModal(false)} style={styles.closeBtn}>
+                    <XCircle size={24} color="#64748b" />
+                  </TouchableOpacity>
+                </View>
+                
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
               {/* Member Lookup */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Church Member</Text>
@@ -500,9 +504,9 @@ export default function AdminPrayerModeration() {
                 <View style={styles.textArea}>
                   <TextInput
                     placeholder="Type the prayer request details..."
+                    style={[styles.textInput, { minHeight: 120 }]}
                     multiline
-                    numberOfLines={4}
-                    style={styles.textInput}
+                    scrollEnabled={false}
                     value={pastorRequest.en}
                     onChangeText={t => setPastorRequest({ ...pastorRequest, en: t })}
                   />
@@ -513,10 +517,10 @@ export default function AdminPrayerModeration() {
                 <Text style={styles.inputLabel}>Detailed Prayer Request</Text>
                 <View style={styles.textArea}>
                   <TextInput
-                    placeholder="తెలుగులో ప్రార్థన విజ్ఞాపన..."
+                    placeholder="ప్రార్థన మనవి వివరాలను టైప్ చేయండి..."
+                    style={[styles.textInput, { minHeight: 120, fontStyle: 'italic' }]}
                     multiline
-                    numberOfLines={4}
-                    style={[styles.textInput, { fontStyle: 'italic' }]}
+                    scrollEnabled={false}
                     value={pastorRequest.te}
                     onChangeText={t => setPastorRequest({ ...pastorRequest, te: t })}
                   />
@@ -567,13 +571,16 @@ export default function AdminPrayerModeration() {
                   </>
                 )}
               </TouchableOpacity>
+              <View style={{ height: 400 }} />
             </ScrollView>
-          </View>
+              </View>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
         </View>
-      </Modal>
+      )}
 
       {/* ── Success Modal ── */}
-      <Modal visible={showSuccessModal} transparent animationType="fade">
+      <Modal visible={successModalData.visible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <Animated.View 
             style={[
@@ -590,9 +597,9 @@ export default function AdminPrayerModeration() {
             <View style={styles.successIconBox}>
               <CheckCircle2 size={40} color="#fff" />
             </View>
-            <Text style={styles.successTitle}>Request Published!</Text>
+            <Text style={styles.successTitle}>{successModalData.title}</Text>
             <Text style={styles.successSub}>
-              The prayer request has been successfully created and published.
+              {successModalData.sub}
             </Text>
             
             <TouchableOpacity style={styles.successBtn} onPress={closeSuccess}>
