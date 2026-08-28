@@ -7,21 +7,21 @@ import { Bell } from 'lucide-react-native';
 import RootNavigator from './src/navigation/RootNavigator';
 import * as Application from 'expo-application';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
-
-// Configure Google Sign-In once at app startup (before any screen mounts)
-// In @react-native-google-signin v14+, webClientId is auto-read from google-services.json
-// Passing it manually was causing DEVELOPER_ERROR in production builds
-GoogleSignin.configure({
-  scopes: ['https://www.googleapis.com/auth/meetings.space.created'],
-  offlineAccess: true,
-});
-
-import SpInAppUpdates, {
-  IAUUpdateKind,
-} from 'sp-react-native-in-app-updates/lib/commonjs/index';
+import SpInAppUpdates, { IAUUpdateKind } from 'sp-react-native-in-app-updates';
 
 // Import Firebase config to initialize it on app start
 import './src/services/firebaseConfig';
+
+// Configure Google Sign-In once at app startup (before any screen mounts)
+// In @react-native-google-signin v14+, webClientId is auto-read from google-services.json
+try {
+  GoogleSignin.configure({
+    scopes: ['https://www.googleapis.com/auth/meetings.space.created'],
+    offlineAccess: true,
+  });
+} catch (e) {
+  console.warn('GoogleSignin configure error:', e);
+}
 
 const inAppUpdates = new SpInAppUpdates(false);
 
