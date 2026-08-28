@@ -9,12 +9,11 @@ import * as Application from 'expo-application';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 // Configure Google Sign-In once at app startup (before any screen mounts)
-// This prevents DEVELOPER_ERROR when user taps sign-in too quickly
+// In @react-native-google-signin v14+, webClientId is auto-read from google-services.json
+// Passing it manually was causing DEVELOPER_ERROR in production builds
 GoogleSignin.configure({
   scopes: ['https://www.googleapis.com/auth/meetings.space.created'],
-  webClientId: '962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com',
   offlineAccess: true,
-  forceCodeForRefreshToken: false,
 });
 
 import SpInAppUpdates, {
