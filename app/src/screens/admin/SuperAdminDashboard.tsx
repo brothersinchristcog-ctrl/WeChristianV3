@@ -7,13 +7,14 @@ import { useAuth } from '../../context/AuthContext';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Shield, X, Image as ImageIcon, Search, Mail, Phone, Settings, Check, UploadCloud, ChevronLeft, Save, FileText, Music, Pencil, MapPin } from 'lucide-react-native';
+import { Plus, Shield, X, Image as ImageIcon, Search, Mail, Phone, Settings, Check, UploadCloud, ChevronLeft, Save, FileText, Music, Pencil, MapPin, AlertCircle } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import SuperAdminChurchManager from './SuperAdminChurchManager';
 import { AdminTabContext } from '../../context/AdminTabContext';
+import SongDetailModal from '../../components/SongDetailModal';
 
 const CATEGORIES = [
   'Stuthi Songs',
@@ -62,8 +63,14 @@ export default function SuperAdminDashboard({ navigation }: any) {
   const [editingSong, setEditingSong] = useState<any>(null);
   const [updatingSong, setUpdatingSong] = useState(false);
   
+  // Viewing Song Modal
+  const [viewingSong, setViewingSong] = useState<any>(null);
+  
   // Success Modal
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  
+  // Delete Modal
+  const [deleteTarget, setDeleteTarget] = useState<{type: 'single' | 'bulk', id?: string} | null>(null);
   
   // Manager Modal
   const [managerVisible, setManagerVisible] = useState(false);
@@ -299,20 +306,41 @@ export default function SuperAdminDashboard({ navigation }: any) {
 
   const handleBulkDelete = async () => {
     if (selectedSongs.size === 0) return;
-    Alert.alert('Confirm', `Delete ${selectedSongs.size} songs?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: async () => {
-          setSongsLoading(true);
-          const batch = firestore().batch();
-          selectedSongs.forEach(id => {
-            const ref = firestore().collection('masterSongs').doc(id);
-            batch.delete(ref);
-          });
-          await batch.commit();
-          setSelectedSongs(new Set());
-          fetchMasterSongs();
-      }}
-    ]);
+    setDeleteTarget({ type: 'bulk' });
+  };
+
+  const handleDeleteSingleSong = (id: string) => {
+    setDeleteTarget({ type: 'single', id });
+  };
+
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    setSongsLoading(true);
+    const targetType = deleteTarget.type;
+    const targetId = deleteTarget.id;
+    setDeleteTarget(null);
+    try {
+      if (targetType === 'bulk') {
+        const batch = firestore().batch();
+        selectedSongs.forEach(id => {
+          const ref = firestore().collection('masterSongs').doc(id);
+          batch.delete(ref);
+        });
+        await batch.commit();
+        setSelectedSongs(new Set());
+        setIsSelectionMode(false);
+        setSuccessMessage(`Deleted ${selectedSongs.size} songs successfully!`);
+      } else if (targetType === 'single' && targetId) {
+        setViewingSong(null);
+        await firestore().collection('masterSongs').doc(targetId).delete();
+        setSuccessMessage('Song deleted successfully!');
+      }
+      fetchMasterSongs();
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Failed to delete song(s)');
+      setSongsLoading(false);
+    }
   };
 
   // --- Renderers ---
@@ -543,6 +571,8 @@ export default function SuperAdminDashboard({ navigation }: any) {
                     onPress={() => {
                       if (isSelectionMode) {
                         toggleSongSelect(item.id);
+                      } else {
+                        setViewingSong(item);
                       }
                     }}
                   >
@@ -754,6 +784,58 @@ export default function SuperAdminDashboard({ navigation }: any) {
           </View>
         </View>
       </Modal>
+
+      <SongDetailModal
+        visible={!!viewingSong}
+        song={viewingSong}
+        onClose={() => setViewingSong(null)}
+        isDark={true}
+        headerColors={['#1e293b', '#0f172a']}
+        bottomBarColors={['#1e293b', '#0f172a']}
+        onEdit={(song) => {
+          setViewingSong(null);
+          const catArr = (song.category || 'Stuthi Songs').split(';').map((c: string) => c.trim());
+          setEditingSong({ ...song, category: catArr });
+        }}
+        onDelete={(song) => handleDeleteSingleSong(song.id)}
+        currentSongIndex={viewingSong ? filteredSongs.findIndex(s => s.id === viewingSong.id) : -1}
+        totalSongs={filteredSongs.length}
+        onNext={() => {
+          const idx = filteredSongs.findIndex(s => s.id === viewingSong.id);
+          if (idx !== -1 && idx < filteredSongs.length - 1) setViewingSong(filteredSongs[idx + 1]);
+        }}
+        onPrev={() => {
+          const idx = filteredSongs.findIndex(s => s.id === viewingSong.id);
+          if (idx > 0) setViewingSong(filteredSongs[idx - 1]);
+        }}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <Modal transparent visible={!!deleteTarget} animationType="fade" onRequestClose={() => setDeleteTarget(null)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <View style={{ width: '100%', maxWidth: 340, backgroundColor: '#1e293b', borderRadius: 24, padding: 32, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10, borderWidth: 1, borderColor: '#334155' }}>
+            <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#ef444420', justifyContent: 'center', alignItems: 'center', marginBottom: 24, borderWidth: 2, borderColor: '#ef4444' }}>
+              <AlertCircle size={36} color="#ef4444" />
+            </View>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#f8fafc', marginBottom: 12, textAlign: 'center' }}>Are you sure?</Text>
+            <Text style={{ fontSize: 15, color: '#94a3b8', textAlign: 'center', marginBottom: 32, lineHeight: 22 }}>
+              {deleteTarget?.type === 'bulk' 
+                ? `You are about to delete ${selectedSongs.size} selected songs. This action cannot be undone.` 
+                : 'You are about to delete this song. This action cannot be undone.'}
+            </Text>
+            
+            <View style={{ flexDirection: 'row', width: '100%', gap: 12 }}>
+              <TouchableOpacity onPress={() => setDeleteTarget(null)} style={{ flex: 1, backgroundColor: '#334155', paddingVertical: 14, borderRadius: 12, alignItems: 'center' }}>
+                <Text style={{ color: '#f8fafc', fontSize: 15, fontWeight: '600' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={executeDelete} style={{ flex: 1, backgroundColor: '#ef4444', paddingVertical: 14, borderRadius: 12, alignItems: 'center' }}>
+                <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '700' }}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
