@@ -79,7 +79,8 @@
         {
           "contactsPermission": "Allow We Christian to access your contacts to invite members to the church."
         }
-      ]
+      ],
+      "./withRazorpayPatch.js"
     ],
     "extra": {
       "eas": {
