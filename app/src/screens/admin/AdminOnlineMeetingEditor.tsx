@@ -107,6 +107,11 @@ export default function AdminOnlineMeetingEditor() {
   const handleGenerateMeetLink = async () => {
     setGeneratingMeet(true);
     try {
+      GoogleSignin.configure({
+        scopes: ['https://www.googleapis.com/auth/meetings.space.created'],
+        offlineAccess: false,
+        webClientId: '962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com',
+      });
       await GoogleSignin.hasPlayServices();
 
       let accessToken: string | null = null;

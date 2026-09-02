@@ -18,6 +18,7 @@ try {
   GoogleSignin.configure({
     scopes: ['https://www.googleapis.com/auth/meetings.space.created'],
     offlineAccess: true,
+    webClientId: '962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com',
   });
 } catch (e) {
   console.warn('GoogleSignin configure error:', e);
