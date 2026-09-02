@@ -28,6 +28,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { ChevronLeft, Building2, Palette, Phone, Mail, Globe, Check, Image as ImageIcon, ChevronDown, MapPin, Briefcase, Home } from 'lucide-react-native';
 import { State, City } from 'country-state-city';
+import ReferralService from '../../services/ReferralService';
 
 type Props = {
   navigation: NativeStackNavigationProp<AuthStackParamList, 'CreateChurch'>;
@@ -77,6 +78,53 @@ export default function CreateChurchScreen({ navigation }: Props) {
   const [otpCode, setOtpCode] = useState('');
   const [confirmation, setConfirmation] = useState<any>(null);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
+
+  const [referralCode, setReferralCode] = useState('');
+  const [referralCodeLocked, setReferralCodeLocked] = useState(false);
+  const [referralDetails, setReferralDetails] = useState<any>(null);
+  const [validatingReferral, setValidatingReferral] = useState(false);
+  const [referralError, setReferralError] = useState('');
+
+  // Check Google Play Install Referrer on Mount
+  React.useEffect(() => {
+    async function checkReferrer() {
+      const code = await ReferralService.getInstallReferrerCode();
+      if (code) {
+        setReferralCode(code);
+        setReferralCodeLocked(true);
+      }
+    }
+    checkReferrer();
+  }, []);
+
+  // Validate Referral Code Live
+  React.useEffect(() => {
+    if (!referralCode || referralCode.length < 3) {
+      setReferralDetails(null);
+      setReferralError('');
+      return;
+    }
+    const delayDebounceFn = setTimeout(async () => {
+      setValidatingReferral(true);
+      setReferralError('');
+      try {
+        const details = await ReferralService.validateReferralCode(referralCode);
+        if (details) {
+          setReferralDetails(details);
+        } else {
+          setReferralDetails(null);
+          setReferralError('Invalid referral code');
+        }
+      } catch (e) {
+        setReferralDetails(null);
+        setReferralError('Error validating code');
+      } finally {
+        setValidatingReferral(false);
+      }
+    }, 800);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [referralCode]);
 
   // Automatically trigger verification when 6 digits are detected
   React.useEffect(() => {
@@ -185,7 +233,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 60);
 
-      const churchData = {
+      const churchData: any = {
         name: form.name.trim(),
         subdomain: churchCode.toLowerCase(),
         contactEmail: form.contactEmail.trim(),
@@ -222,6 +270,14 @@ export default function CreateChurchScreen({ navigation }: Props) {
           validUntil: trialEndsAt.toISOString()
         }
       };
+
+      if (referralDetails) {
+        churchData.referredBy = {
+          uid: referralDetails.uid,
+          name: referralDetails.name,
+          code: referralDetails.code
+        };
+      }
 
       const docRef = await firestore().collection('churches').add(churchData);
 
@@ -543,6 +599,33 @@ export default function CreateChurchScreen({ navigation }: Props) {
                 onValueChange={(val) => updateForm('hasBranches', val)}
                 value={form.hasBranches}
               />
+            </View>
+
+            {/* Referral Option */}
+            <View style={styles.section}>
+              <View style={styles.sectionTitleRow}>
+                <Briefcase size={14} color="#D9A05B" />
+                <Text style={styles.sectionTitle}>REFERRAL (OPTIONAL)</Text>
+              </View>
+              <Text style={styles.fieldLabel}>Referral Code</Text>
+              <View style={[styles.inputRow, { marginTop: 0 }]}>
+                <TextInput
+                  style={[styles.inputFlex, { padding: 15, borderRadius: 15, backgroundColor: referralCodeLocked ? '#f1f5f9' : '#f8fafc', borderWidth: 1.5, borderColor: referralError ? '#ef4444' : referralDetails ? '#10b981' : '#e2e8f0', color: referralCodeLocked ? '#64748b' : '#1e293b' }]}
+                  placeholder="e.g. WE-A1B2C"
+                  placeholderTextColor="#64748b"
+                  autoCapitalize="characters"
+                  value={referralCode}
+                  onChangeText={setReferralCode}
+                  editable={!referralCodeLocked}
+                />
+                {validatingReferral && <ActivityIndicator color="#1a2d5a" style={{ marginLeft: 10 }} />}
+              </View>
+              {referralDetails && (
+                <Text style={{ color: '#10b981', fontSize: 12, marginTop: 4, fontWeight: '600', marginLeft: 4 }}>✓ Referred by {referralDetails.name}</Text>
+              )}
+              {referralError ? (
+                <Text style={{ color: '#ef4444', fontSize: 12, marginTop: 4, fontWeight: '600', marginLeft: 4 }}>{referralError}</Text>
+              ) : null}
             </View>
 
             {/* Submit */}

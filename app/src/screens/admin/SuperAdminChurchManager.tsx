@@ -397,6 +397,29 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
               </View>
             </View>
 
+            {/* Referral Section */}
+            {(church as any).referredBy && (
+              <>
+                <Text style={styles.sectionTitle}>Referral Details</Text>
+                <View style={styles.card}>
+                  <View style={[styles.cardRow, { paddingVertical: 12 }]}>
+                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(139, 92, 246, 0.15)', justifyContent: 'center', alignItems: 'center', marginRight: 16, borderWidth: 1, borderColor: 'rgba(139, 92, 246, 0.3)' }}>
+                      <Text style={{ color: '#c4b5fd', fontSize: 16, fontWeight: '800' }}>
+                        {(church as any).referredBy.name?.charAt(0).toUpperCase() || '?'}
+                      </Text>
+                    </View>
+                    <View style={styles.cardTextContainer}>
+                      <Text style={[styles.cardLabel, { color: '#a78bfa' }]}>Referred By</Text>
+                      <Text style={styles.cardValue}>{(church as any).referredBy.name}</Text>
+                      <Text style={[styles.cardValue, { fontSize: 13, color: '#94a3b8', marginTop: 2 }]}>
+                        Code: {(church as any).referredBy.code}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </>
+            )}
+
             {/* Subscription Section */}
             <Text style={styles.sectionTitle}>Subscription</Text>
             <View style={styles.card}>

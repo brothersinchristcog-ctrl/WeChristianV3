@@ -138,6 +138,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // 13. Referral Codes
+    match /referral_codes/{codeId} {
+      allow read, write: if isAuthenticated();
+    }
+
     // --- CHURCH-SCOPED COLLECTIONS (all data lives here) ---
     match /churches/{churchId} {
       // Helper: Is this user an admin for this specific church?

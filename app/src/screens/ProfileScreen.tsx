@@ -14,7 +14,8 @@ import {
   TextInput,
   Alert,
   Image,
-  Switch
+  Switch,
+  Share
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
@@ -39,6 +40,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import FirestoreService, { AppMember } from '../services/FirestoreService';
+import ReferralService from '../services/ReferralService';
 import { useChurch } from '../context/ChurchContext';
 import SecurityService from '../services/SecurityService';
 import * as ImagePicker from 'expo-image-picker';
@@ -63,6 +65,8 @@ export default function ProfileScreen({ navigation }: any) {
   const [isNotifyModalVisible, setIsNotifyModalVisible] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('Telugu');
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
   
   // Notification States
   const [dailyPromiseNotify, setDailyPromiseNotify] = useState(true);
@@ -130,6 +134,28 @@ export default function ProfileScreen({ navigation }: any) {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleReferralShare = async () => {
+    try {
+      let code = referralCode;
+      if (!code) {
+        if (!user) return;
+        setGeneratingCode(true);
+        const name = member?.name || `${member?.firstName || ''} ${member?.lastName || ''}`.trim() || user.displayName || 'Friend';
+        code = await ReferralService.getOrCreateReferralCode(user.uid, name, member?.churchId || activeChurch?.id);
+        setReferralCode(code);
+        setGeneratingCode(false);
+      }
+      
+      await Share.share({
+        message: `Join WeChristian! Register your church and get started using my referral code: ${code}\n\nDownload app: https://play.google.com/store/apps/details?id=com.wechristian.app&referrer=${code}`,
+        title: 'WeChristian Referral'
+      });
+    } catch (error) {
+      setGeneratingCode(false);
+      Alert.alert('Error', 'Could not generate referral code');
     }
   };
 
@@ -531,18 +557,43 @@ export default function ProfileScreen({ navigation }: any) {
           </>
         )}
 
-        {/* ── Support ── */}
-        <Text style={styles.sectionLabel}>SUPPORT</Text>
+        {/* ── Referrals Section ── */}
+        <Text style={styles.sectionLabel}>REFERRALS</Text>
         <View style={styles.menuGroup}>
           <MenuItem 
-            icon={<LogOut size={20} color="#c0392b" />} 
-            iconBg="#fff1f2"
-            title="Sign out" 
-            sub="Securely exit your account" 
+            icon={<Award size={20} color="#8b5cf6" />} 
+            iconBg="#f3e8ff"
+            title="Refer a Church" 
+            sub={generatingCode ? "Generating code..." : (referralCode ? `Your code: ${referralCode}` : "Share the app and earn")} 
             isLast 
-            onPress={signOut}
+            onPress={handleReferralShare}
           />
         </View>
+
+        {/* ── Sign Out Button ── */}
+        <TouchableOpacity 
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#0f172a',
+            paddingVertical: 16,
+            paddingHorizontal: 32,
+            borderRadius: 100, // Pill shape
+            alignSelf: 'center',
+            marginTop: 40,
+            marginBottom: 20,
+            shadowColor: '#0f172a',
+            shadowOpacity: 0.25,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 8
+          }}
+          onPress={signOut}
+        >
+          <LogOut size={20} color="#ffffff" style={{ marginRight: 10 }} />
+          <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>Sign out</Text>
+        </TouchableOpacity>
 
         <Text style={styles.versionTxt}>Version {Constants.expoConfig?.version || '1.0.1'}</Text>
       </ScrollView>
