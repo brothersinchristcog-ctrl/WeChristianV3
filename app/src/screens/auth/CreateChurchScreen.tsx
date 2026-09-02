@@ -182,6 +182,9 @@ export default function CreateChurchScreen({ navigation }: Props) {
       if (!currentUser) throw new Error('Not authenticated');
 
       const churchCode = generateChurchCode(form.name);
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 60);
+
       const churchData = {
         name: form.name.trim(),
         subdomain: churchCode.toLowerCase(),
@@ -212,6 +215,12 @@ export default function CreateChurchScreen({ navigation }: Props) {
         memberCount: 1,
         subscriptionTier: 'free',
         whatsappIntegrationEnabled: false,
+        subscription: {
+          status: 'trialing',
+          tier: 'free',
+          trialEndsAt: trialEndsAt.toISOString(),
+          validUntil: trialEndsAt.toISOString()
+        }
       };
 
       const docRef = await firestore().collection('churches').add(churchData);

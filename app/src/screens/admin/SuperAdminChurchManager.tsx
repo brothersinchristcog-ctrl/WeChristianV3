@@ -406,11 +406,17 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
 
                   {/* Badge & Edit Action Row */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <View style={{ backgroundColor: church.subscription?.status === 'active' ? 'rgba(52, 211, 153, 0.15)' : 'rgba(248, 113, 113, 0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: church.subscription?.status === 'active' ? 'rgba(52, 211, 153, 0.3)' : 'rgba(248, 113, 113, 0.3)' }}>
-                      <Text style={{ fontSize: 11, fontWeight: '700', color: church.subscription?.status === 'active' ? '#34d399' : '#f87171', letterSpacing: 0.5 }}>
-                        {church.subscription?.status?.toUpperCase() || 'UNKNOWN'}
-                      </Text>
-                    </View>
+                    {(() => {
+                      const rawStatus = church.subscription?.status;
+                      const computedStatus = (!rawStatus || rawStatus.toLowerCase() === 'unknown') ? 'trialing' : rawStatus.toLowerCase();
+                      return (
+                        <View style={{ backgroundColor: computedStatus === 'active' ? 'rgba(52, 211, 153, 0.15)' : computedStatus === 'trialing' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(248, 113, 113, 0.15)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, borderWidth: 1, borderColor: computedStatus === 'active' ? 'rgba(52, 211, 153, 0.3)' : computedStatus === 'trialing' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(248, 113, 113, 0.3)' }}>
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: computedStatus === 'active' ? '#34d399' : computedStatus === 'trialing' ? '#60a5fa' : '#f87171', letterSpacing: 0.5 }}>
+                            {computedStatus === 'trialing' ? 'FREE TRIAL' : (computedStatus.toUpperCase())}
+                          </Text>
+                        </View>
+                      );
+                    })()}
 
                     <TouchableOpacity
                       onPress={() => setEditDateModalVisible(true)}
@@ -431,20 +437,43 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                     </View>
 
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.cardLabel}>Expires</Text>
-                      {church.subscription?.validUntil && new Date(church.subscription.validUntil).getTime() < Date.now() ? (
-                        <Text style={[styles.cardValue, { marginTop: 4, color: '#f87171', fontWeight: '800' }]}>
-                          Subscription Expired
-                        </Text>
-                      ) : church.subscription?.status && church.subscription?.status !== 'active' ? (
-                        <Text style={[styles.cardValue, { marginTop: 4, color: '#f87171', fontWeight: '800' }]}>
-                          Subscription Expired
-                        </Text>
-                      ) : (
-                        <Text style={[styles.cardValue, { marginTop: 4 }]}>
-                          {formatDate(church.subscription?.validUntil)}
-                        </Text>
-                      )}
+                      {(() => {
+                        const rawStatus = church.subscription?.status;
+                        const computedStatus = (!rawStatus || rawStatus.toLowerCase() === 'unknown') ? 'trialing' : rawStatus.toLowerCase();
+                        let computedValidUntil = church.subscription?.validUntil;
+                        if (!computedValidUntil && computedStatus === 'trialing' && (church as any).createdAt) {
+                          const createdDate = (church as any).createdAt?.toDate ? (church as any).createdAt.toDate() : (church as any).createdAt?.seconds ? new Date((church as any).createdAt.seconds * 1000) : new Date((church as any).createdAt);
+                          if (!isNaN(createdDate.getTime())) {
+                            const trialEnd = new Date(createdDate);
+                            trialEnd.setDate(trialEnd.getDate() + 60);
+                            computedValidUntil = trialEnd.toISOString();
+                          }
+                        }
+
+                        return (
+                          <>
+                            <Text style={styles.cardLabel}>{computedStatus === 'trialing' ? 'Trial Ends' : 'Expires'}</Text>
+                            {computedValidUntil && new Date(computedValidUntil).getTime() < Date.now() ? (
+                              <Text style={[styles.cardValue, { marginTop: 4, color: '#f87171', fontWeight: '800' }]}>
+                                {computedStatus === 'trialing' ? 'Trial Expired' : 'Subscription Expired'}
+                              </Text>
+                            ) : computedStatus && computedStatus !== 'active' && computedStatus !== 'trialing' ? (
+                              <Text style={[styles.cardValue, { marginTop: 4, color: '#f87171', fontWeight: '800' }]}>
+                                Subscription Expired
+                              </Text>
+                            ) : (
+                              <Text style={[styles.cardValue, { marginTop: 4 }]}>
+                                {computedValidUntil ? formatDate(computedValidUntil) : 'N/A'}
+                                {computedStatus === 'trialing' && computedValidUntil && (
+                                  <Text style={{ color: '#60a5fa', fontSize: 12 }}>
+                                    {` (${Math.max(0, Math.ceil((new Date(computedValidUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days left)`}
+                                  </Text>
+                                )}
+                              </Text>
+                            )}
+                          </>
+                        );
+                      })()}
                     </View>
                   </View>
 

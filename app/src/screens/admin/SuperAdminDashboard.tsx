@@ -556,6 +556,9 @@ export default function SuperAdminDashboard({ navigation }: any) {
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => {
               const initials = item.name ? item.name.split(' ').map(w => w[0]).slice(0,2).join('').toUpperCase() : 'CH';
+              const rawStatus = item.subscription?.status;
+              const computedStatus = (!rawStatus || rawStatus.toLowerCase() === 'unknown') ? 'trialing' : rawStatus.toLowerCase();
+
               return (
                 <TouchableOpacity style={styles.churchCard} onPress={() => handleManage(item.id)} activeOpacity={0.7}>
                   <View style={styles.cardTop}>
@@ -582,22 +585,49 @@ export default function SuperAdminDashboard({ navigation }: any) {
                   
                   <View style={styles.cardBottom}>
                     <View style={styles.membersCountRow}>
-                      <View style={[styles.statusDot, { backgroundColor: item.subscription?.status === 'active' ? '#2fd480' : '#f4556b' }]} />
+                      <View style={[styles.statusDot, { backgroundColor: computedStatus === 'active' ? '#2fd480' : computedStatus === 'trialing' ? '#3b82f6' : '#f4556b' }]} />
                       <Text style={styles.membersCount}>{item.memberCount || 0} Active Member{(item.memberCount || 0) !== 1 ? 's' : ''}</Text>
                     </View>
-                    {item.subscription?.validUntil ? (
-                      <View style={styles.expiryRow}>
-                        {new Date(item.subscription.validUntil).getTime() < Date.now() ? (
-                          <Text style={[styles.expiryText, { color: '#f4556b', fontWeight: '800' }]}>Subscription Expired</Text>
-                        ) : (
-                          <Text style={styles.expiryText}>Expires: {new Date(item.subscription.validUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</Text>
-                        )}
-                      </View>
-                    ) : item.subscription?.status && item.subscription?.status !== 'active' ? (
-                      <View style={styles.expiryRow}>
-                        <Text style={[styles.expiryText, { color: '#f4556b', fontWeight: '800' }]}>Subscription Expired</Text>
-                      </View>
-                    ) : null}
+                    {(() => {
+                      let computedValidUntil = item.subscription?.validUntil;
+                      if (!computedValidUntil && computedStatus === 'trialing' && (item as any).createdAt) {
+                        const createdDate = (item as any).createdAt?.toDate ? (item as any).createdAt.toDate() : (item as any).createdAt?.seconds ? new Date((item as any).createdAt.seconds * 1000) : new Date((item as any).createdAt);
+                        if (!isNaN(createdDate.getTime())) {
+                          const trialEnd = new Date(createdDate);
+                          trialEnd.setDate(trialEnd.getDate() + 60);
+                          computedValidUntil = trialEnd.toISOString();
+                        }
+                      }
+                      
+                      if (computedValidUntil) {
+                        const isExpired = new Date(computedValidUntil).getTime() < Date.now();
+                        return (
+                          <View style={styles.expiryRow}>
+                            {isExpired ? (
+                              <Text style={[styles.expiryText, { color: '#f4556b', fontWeight: '800' }]}>
+                                {computedStatus === 'trialing' ? 'Trial Expired' : 'Subscription Expired'}
+                              </Text>
+                            ) : (
+                              <Text style={styles.expiryText}>
+                                {computedStatus === 'trialing' ? 'Trial Ends: ' : 'Expires: '}
+                                {new Date(computedValidUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                {computedStatus === 'trialing' ? ` (${Math.max(0, Math.ceil((new Date(computedValidUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days)` : ''}
+                              </Text>
+                            )}
+                          </View>
+                        );
+                      }
+                      
+                      if (computedStatus && computedStatus !== 'active' && computedStatus !== 'trialing') {
+                        return (
+                          <View style={styles.expiryRow}>
+                            <Text style={[styles.expiryText, { color: '#f4556b', fontWeight: '800' }]}>Subscription Expired</Text>
+                          </View>
+                        );
+                      }
+                      
+                      return null;
+                    })()}
                   </View>
                 </TouchableOpacity>
               );
