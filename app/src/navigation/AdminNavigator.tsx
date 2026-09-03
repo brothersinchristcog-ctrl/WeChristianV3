@@ -38,7 +38,8 @@ import {
   Sliders,
   ChevronLeft,
   Eye,
-  X
+  X,
+  Image as ImageIcon
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -76,6 +77,7 @@ import AdminDashboard from '../screens/admin/AdminDashboard';
 import AdminOnlineMeetings from '../screens/admin/AdminOnlineMeetings';
 import AdminOnlineMeetingEditor from '../screens/admin/AdminOnlineMeetingEditor';
 import AdminSupportTeam from '../screens/admin/AdminSupportTeam';
+import AdminGalleryNavigator from '../screens/admin/gallery/AdminGalleryNavigator';
 import { Shield, Video as VideoIcon, Headset } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
@@ -211,6 +213,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     { name: 'Attendance', icon: ClipboardCheck, component: AdminAttendance },
     { name: 'Members', icon: Users, component: AdminMembers },
     { name: 'Celebrations', icon: Gift, component: AdminCelebrations },
+    { name: 'Gallery', icon: ImageIcon, component: AdminGalleryNavigator },
     ...(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') ? [{ name: 'WeCelebrations', icon: Sparkles, component: AdminWeCelebrations }] : []),
     ...(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') ? [{ name: 'WhatsApp', icon: MessageCircle, component: AdminWhatsAppInbox }] : []),
     { name: 'About Us', icon: Building2, component: AdminAboutUsEditor },

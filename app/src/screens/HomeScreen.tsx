@@ -44,6 +44,7 @@ import {
   Moon,
   Award,
   Music,
+  Image as ImageIcon,
   FileText,
   X,
   Phone,
@@ -1152,17 +1153,17 @@ export default function HomeScreen() {
                 <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>Get in touch</Text>
               </TouchableOpacity>
 
-              {/* More */}
+              {/* Gallery */}
               <TouchableOpacity 
                 style={{ alignItems: 'center', marginTop: 25, width: 80 }}
-                onPress={() => setAlertConfig({ visible: true, title: 'More Features', message: 'Option Available Soon\n\nWe are currently working on integrating this feature.', type: 'info' })}
+                onPress={() => navigation.navigate('Gallery')}
                 activeOpacity={0.8}
               >
                 <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderWidth: 4, borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
-                  <MoreHorizontal size={26} color="#10b981" />
+                  <LucideImage size={26} color="#10b981" />
                 </View>
-                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13, textAlign: 'center' }}>More</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>Explore features</Text>
+                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13, textAlign: 'center' }}>Gallery</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>Church memories</Text>
               </TouchableOpacity>
             </View>
           </View>

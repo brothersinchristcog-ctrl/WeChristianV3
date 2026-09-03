@@ -9,6 +9,7 @@ import {
   StatusBar,
   Platform,
   Dimensions,
+  Linking,
   Alert,
   TextInput,
   Modal

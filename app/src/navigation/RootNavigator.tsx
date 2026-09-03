@@ -16,6 +16,9 @@ import Theme from '../theme/Theme';
 import AdminNavigator from './AdminNavigator'; 
 import NotificationService from '../services/NotificationService';
 import SecurityService from '../services/SecurityService';
+import * as Notifications from 'expo-notifications';
+import VerseOfTheDayScreen from '../screens/VerseOfTheDayScreen';
+import VerseNotificationService from '../services/VerseNotificationService';
 
 // Auth & Onboarding
 import AuthNavigator from './AuthNavigator';
@@ -55,6 +58,7 @@ import PastorEventRoutePlanner from '../screens/admin/pastor_events/PastorEventR
 import PastorEventMap from '../screens/admin/pastor_events/PastorEventMap';
 import OnlineMeetingsScreen from '../screens/OnlineMeetingsScreen';
 import OnlineMeetingDetailScreen from '../screens/OnlineMeetingDetailScreen';
+import MemberGalleryNavigator from '../screens/gallery/MemberGalleryNavigator';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -297,6 +301,19 @@ function Navigation() {
 
   // Handle Notifications
   useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      if (data?.type === 'daily_verse' && data.verseId) {
+        const { navigationRef } = require('../../App');
+        if (navigationRef && navigationRef.isReady()) {
+          navigationRef.navigate('VerseOfTheDay', { 
+            verseId: data.verseId, 
+            period: data.period 
+          });
+        }
+      }
+    });
+
     // 1. When app is in background and user clicks notification
     const unsubscribeOnOpen = NotificationService.messaging().onNotificationOpenedApp(remoteMessage => {
       setPendingNotification(remoteMessage);
@@ -315,6 +332,7 @@ function Navigation() {
     return () => {
       unsubscribeOnOpen();
       unsubscribeForeground();
+      subscription.remove();
     };
   }, [navigation]);
 
@@ -354,6 +372,9 @@ function Navigation() {
         if (hasPermission) {
           await NotificationService.getFcmToken();
         }
+        
+        // Initialize Daily Verses Background Sync & Local Notifications
+        VerseNotificationService.initialize();
 
         // Proactive self-healing: Ensure user profile document has 'name' and 'phone' in Firestore
         if (!user.isAnonymous) {
@@ -504,6 +525,7 @@ function Navigation() {
             <Stack.Screen name="Events" component={EventsScreen} />
             <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
             <Stack.Screen name="LiveCelebrationsChat" component={LiveCelebrationsChat} />
+            <Stack.Screen name="VerseOfTheDay" component={VerseOfTheDayScreen} />
           </>
         ) : onboardingComplete ? (
           <>
@@ -533,6 +555,8 @@ function Navigation() {
             <Stack.Screen name="OnlineMeetings" component={OnlineMeetingsScreen} />
             <Stack.Screen name="OnlineMeetingDetail" component={OnlineMeetingDetailScreen} />
             <Stack.Screen name="LiveCelebrationsChat" component={LiveCelebrationsChat} />
+            <Stack.Screen name="Gallery" component={MemberGalleryNavigator} />
+            <Stack.Screen name="VerseOfTheDay" component={VerseOfTheDayScreen} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />

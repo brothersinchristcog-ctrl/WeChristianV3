@@ -47,6 +47,10 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
+    match /daily_verses/{verseId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
     match /dailyVideos/{videoId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
@@ -200,6 +204,17 @@ service cloud.firestore {
       match /updates/{docId} {
         allow read: if isAuthenticated();
         allow write: if isChurchAdmin();
+      }
+
+      // Gallery Albums
+      match /gallery_albums/{albumId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+        
+        match /photos/{photoId} {
+          allow read: if isAuthenticated();
+          allow write: if isChurchAdmin();
+        }
       }
 
       // About Us content

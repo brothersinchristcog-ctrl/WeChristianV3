@@ -14,6 +14,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import SuperAdminChurchManager from './SuperAdminChurchManager';
+import SuperAdminVersesManager from './SuperAdminVersesManager';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import SongDetailModal from '../../components/SongDetailModal';
 
@@ -447,13 +448,16 @@ export default function SuperAdminDashboard({ navigation }: any) {
         <TouchableOpacity style={[styles.tab, activeTab === 'songs' && styles.tabActive]} onPress={() => setActiveTab('songs')}>
           <Text style={[styles.tabText, activeTab === 'songs' && styles.tabTextActive]}>Master Songs</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={[styles.tab, activeTab === 'verses' && styles.tabActive]} onPress={() => setActiveTab('verses')}>
+          <Text style={[styles.tabText, activeTab === 'verses' && styles.tabTextActive]}>Daily Verses</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchBar}>
         <Search size={18} color="#64748b" />
         <TextInput 
           style={[styles.searchInput, { flex: 1 }]}
-          placeholder={activeTab === 'churches' ? "Search churches..." : "Search master songs..."}
+          placeholder={activeTab === 'churches' ? "Search churches..." : activeTab === 'verses' ? "Search verses..." : "Search master songs..."}
           placeholderTextColor="#64748b"
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -548,6 +552,8 @@ export default function SuperAdminDashboard({ navigation }: any) {
           <ScrollView showsVerticalScrollIndicator={false}>
             <ActivityIndicator size="large" color="#FCD34D" style={{ marginTop: 40 }} />
           </ScrollView>
+        ) : activeTab === 'verses' ? (
+          <SuperAdminVersesManager />
         ) : activeTab === 'churches' ? (
           <FlatList
             data={filteredChurches}

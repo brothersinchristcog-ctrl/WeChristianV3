@@ -9,12 +9,14 @@ import {
   Dimensions,
   Alert,
   Modal,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
-import { ArrowLeft, ChevronLeft, Share2, BookMarked, Settings, Search, CheckCircle2, Copy } from 'lucide-react-native';
+import { ArrowLeft, ChevronLeft, Share2, BookMarked, Settings, Search, CheckCircle2, Copy, Play, Square, Volume2 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Speech from 'expo-speech';
 import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
@@ -88,12 +90,35 @@ export default function BibleReaderScreen({ route, navigation }: any) {
   const scrollViewRef = React.useRef<ScrollView>(null);
   const [verseLayouts, setVerseLayouts] = useState<{ [key: number]: number }>({});
 
+  // Audio state
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingVerse, setSpeakingVerse] = useState<number | null>(null);
+  const isSpeakingRef = React.useRef(false);
+  const currentVerseIndexRef = React.useRef(0);
+  
+  // Voice selection state
+  const [selectedVoice, setSelectedVoice] = useState<'male' | 'female'>('female');
+  const selectedVoiceRef = React.useRef<'male' | 'female'>('female');
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+
   // Derive English name and total chapters
   const bookIndex = (BOOK_MAP[bookName] || 1) - 1;
   const englishBookName = ENGLISH_NAMES[bookIndex] || bookName;
   const totalChapters = LOCAL_TELUGU_BIBLE?.Book?.[bookIndex]?.Chapter?.length || 150;
 
   React.useEffect(() => {
+    selectedVoiceRef.current = selectedVoice;
+  }, [selectedVoice]);
+
+  React.useEffect(() => {
+    // Load voice preference
+    AsyncStorage.getItem('@BibleVoicePref').then(stored => {
+      if (stored) {
+        setSelectedVoice(stored as any);
+        selectedVoiceRef.current = stored as any;
+      }
+    });
+
     fetchVerses();
     setVerseLayouts({});
     // Exit selection mode when chapter changes
@@ -116,6 +141,12 @@ export default function BibleReaderScreen({ route, navigation }: any) {
       }
     };
     checkReadStatus();
+    
+    return () => {
+      // Cleanup speech on unmount or chapter change
+      isSpeakingRef.current = false;
+      Speech.stop();
+    };
   }, [bookName, chapter, lang, bookIndex]);
 
   React.useEffect(() => {
@@ -198,6 +229,65 @@ export default function BibleReaderScreen({ route, navigation }: any) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const startSpeech = async () => {
+    isSpeakingRef.current = true;
+    setIsSpeaking(true);
+    currentVerseIndexRef.current = 0;
+    speakVerse(0);
+  };
+
+  const speakVerse = (index: number) => {
+    if (!isSpeakingRef.current || index >= verses.length) {
+      isSpeakingRef.current = false;
+      setIsSpeaking(false);
+      setSpeakingVerse(null);
+      return;
+    }
+    
+    currentVerseIndexRef.current = index;
+    const v = verses[index];
+    setSpeakingVerse(v.verse);
+    
+    // Auto-scroll to the speaking verse
+    if (verseLayouts[v.verse] !== undefined) {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(0, verseLayouts[v.verse] - 20),
+        animated: true
+      });
+    }
+
+    const textToSpeak = v.text;
+    const speechLang = lang === 'English' ? 'en-US' : 'te-IN';
+    const currentVoice = selectedVoiceRef.current;
+    
+    // 0.55 pitch guarantees a deep, masculine sound
+    const pitchValue = currentVoice === 'male' ? 0.55 : 1.1; 
+    
+    Speech.speak(textToSpeak, {
+      language: speechLang,
+      rate: currentVoice === 'male' ? 0.65 : 0.75, // Slower, more contemplative reading speed
+      pitch: pitchValue,
+      onDone: () => {
+        if (isSpeakingRef.current) {
+          speakVerse(index + 1);
+        }
+      },
+      onError: (e) => {
+        console.log('Speech error:', e);
+        if (isSpeakingRef.current) {
+          speakVerse(index + 1);
+        }
+      }
+    });
+  };
+
+  const stopSpeech = async () => {
+    isSpeakingRef.current = false;
+    await Speech.stop();
+    setIsSpeaking(false);
+    setSpeakingVerse(null);
   };
 
   const handleVerseLongPress = (item: any) => {
@@ -372,7 +462,9 @@ export default function BibleReaderScreen({ route, navigation }: any) {
           </View>
         </View>
 
-        <View style={{ width: 24 }} />
+        <TouchableOpacity onPress={() => setShowVoiceModal(true)} style={{ zIndex: 10, padding: 5 }}>
+          <Volume2 color="#fff" size={24} />
+        </TouchableOpacity>
       </LinearGradient>
 
       <ScrollView 
@@ -458,14 +550,31 @@ export default function BibleReaderScreen({ route, navigation }: any) {
                   key={index}
                   activeOpacity={0.6}
                   onLongPress={() => handleVerseLongPress(item)}
-                  style={styles.verseRow}
+                  style={[
+                    styles.verseRow,
+                    speakingVerse === item.verse && { backgroundColor: isDark ? 'rgba(250, 204, 21, 0.1)' : 'rgba(250, 204, 21, 0.15)', borderRadius: 8, marginHorizontal: -4, paddingHorizontal: 4, paddingVertical: 4 }
+                  ]}
                   onLayout={(e) => {
                     const y = e.nativeEvent.layout.y;
                     setVerseLayouts(prev => ({...prev, [item.verse]: y}));
                   }}
                 >
                   <Text style={[styles.verseNumber, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{item.verse}</Text>
-                  <Text style={[styles.verseText, { color: isDark ? '#e2e8f0' : '#1e293b' }]}>
+                  <Text style={[
+                  styles.verseText,
+                  // Default text color
+                  { color: isDark ? '#f8fafc' : '#334155' },
+                  // Highlighted text AND background color
+                  speakingVerse === item.verse && { 
+                    backgroundColor: isDark ? 'rgba(250, 204, 21, 0.25)' : 'rgba(250, 204, 21, 0.35)', 
+                    color: isDark ? '#ffffff' : '#000000', // Change text color!
+                    borderRadius: 8, 
+                    marginHorizontal: -4, 
+                    paddingHorizontal: 4, 
+                    paddingVertical: 4,
+                    fontWeight: '800' // Make it bold so it stands out even more
+                  }
+                ]}>
                     {item.text}
                   </Text>
                 </TouchableOpacity>
@@ -493,7 +602,6 @@ export default function BibleReaderScreen({ route, navigation }: any) {
                       progress = progress.filter((item: string) => item !== key);
                       await AsyncStorage.setItem('@BibleReadProgress', JSON.stringify(progress));
                       setIsChapterRead(false);
-                      // Optional: Alert.alert('Success', 'Chapter unmarked as read.');
                     } else {
                       if (!progress.includes(key)) {
                         progress.push(key);
@@ -522,6 +630,20 @@ export default function BibleReaderScreen({ route, navigation }: any) {
         </View>
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      {/* Floating Audio Button */}
+      {!selectionMode && !loading && verses.length > 0 && (
+        <TouchableOpacity
+          style={[styles.audioFab, isSpeaking && styles.audioFabActive]}
+          onPress={isSpeaking ? stopSpeech : startSpeech}
+        >
+          {isSpeaking ? (
+            <Square color="#fff" size={24} fill="#fff" />
+          ) : (
+            <Play color="#fff" size={24} fill="#fff" style={{ marginLeft: 3 }} />
+          )}
+        </TouchableOpacity>
+      )}
 
       {/* Bottom Bar — switches between nav and selection action bar */}
       {selectionMode ? (
@@ -652,6 +774,42 @@ export default function BibleReaderScreen({ route, navigation }: any) {
             >
               <Text style={[styles.optionsCancelTxt, { color: isDark ? '#94a3b8' : '#64748b' }]}>Cancel</Text>
             </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Voice Settings Modal */}
+      <Modal visible={showVoiceModal} transparent={true} animationType="slide">
+        <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={() => setShowVoiceModal(false)}>
+          <View style={[styles.optionsSheet, { backgroundColor: isDark ? '#1e293b' : '#ffffff' }]}>
+            <View style={styles.optionsHandle} />
+            <Text style={[styles.modalTitle, { color: isDark ? '#f8fafc' : '#0f172a', marginBottom: 20 }]}>Select Voice</Text>
+            
+            <View style={{ gap: 12 }}>
+              <TouchableOpacity
+                style={[styles.optionsActionBtn, selectedVoice === 'female' ? { backgroundColor: '#1a2d5a' } : { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}
+                onPress={() => {
+                  setSelectedVoice('female');
+                  AsyncStorage.setItem('@BibleVoicePref', 'female');
+                  setShowVoiceModal(false);
+                }}
+              >
+                <Image source={require('../../assets/voice_female.png')} style={{ width: 32, height: 32, borderRadius: 16 }} />
+                <Text style={[styles.optionsActionBtnTxt, selectedVoice !== 'female' && { color: isDark ? '#f8fafc' : '#334155' }]}>Female Voice (Standard)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionsActionBtn, selectedVoice === 'male' ? { backgroundColor: '#1a2d5a' } : { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}
+                onPress={() => {
+                  setSelectedVoice('male');
+                  AsyncStorage.setItem('@BibleVoicePref', 'male');
+                  setShowVoiceModal(false);
+                }}
+              >
+                <Image source={require('../../assets/voice_male.png')} style={{ width: 32, height: 32, borderRadius: 16 }} />
+                <Text style={[styles.optionsActionBtnTxt, selectedVoice !== 'male' && { color: isDark ? '#f8fafc' : '#334155' }]}>Male Voice (Deep)</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </TouchableOpacity>
       </Modal>
@@ -823,8 +981,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5
   },
   
-  // Legacy (kept for safety)
-
   // Multi-verse selection styles
   selectedVerseLight: {
     backgroundColor: 'rgba(26, 45, 90, 0.08)',
@@ -1125,5 +1281,25 @@ const styles = StyleSheet.create({
   optionsCancelTxt: {
     fontSize: 15,
     fontWeight: '600'
+  },
+  audioFab: {
+    position: 'absolute',
+    right: 24,
+    bottom: 130, // Increased to float above the bottom navigation bar
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#1a3673',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10, // Increased elevation for a stronger floating effect
+    zIndex: 1000,
+  },
+  audioFabActive: {
+    backgroundColor: '#ef4444',
   }
 });

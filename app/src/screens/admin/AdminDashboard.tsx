@@ -47,6 +47,7 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'Events': require('../../../assets/admin_cards/events.png'),
   'New Event': require('../../../assets/admin_cards/new_event.png'),
   'Pastor Event': require('../../../assets/admin_cards/pastor_event.png'),
+  'Gallery': require('../../../assets/admin_cards/gallery.png'),
   'Celebrations': require('../../../assets/admin_cards/celebrations.png'),
   'WeCelebrations': require('../../../assets/admin_cards/wecelebrations.png'),
   'Notifications': require('../../../assets/admin_cards/notification.png'),
@@ -101,7 +102,7 @@ const CATEGORIES = [
     title: 'Online Meeting Management',
     icon: Video,
     color: '#4F46E5', // Indigo for a professional look
-    keywords: ['Online Meeting']
+    keywords: ['Online Meeting', 'Gallery']
   },
   {
     title: 'Administration',
