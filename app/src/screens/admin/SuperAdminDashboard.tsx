@@ -8,7 +8,7 @@ import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import FirestoreService from '../../services/FirestoreService';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Shield, X, Image as ImageIcon, Search, Mail, Phone, Settings, Check, UploadCloud, ChevronLeft, Save, FileText, Music, Pencil, MapPin, AlertCircle } from 'lucide-react-native';
+import { Plus, Shield, X, Image as ImageIcon, Search, Mail, Phone, Settings, Check, UploadCloud, ChevronLeft, Save, FileText, Music, Pencil, MapPin, AlertCircle, Trash2 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -43,7 +43,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
   const [masterSongs, setMasterSongs] = useState<any[]>([]);
   const [churchesLoading, setChurchesLoading] = useState(true);
   const [songsLoading, setSongsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'churches' | 'songs'>('churches');
+  const [activeTab, setActiveTab] = useState<'churches' | 'songs' | 'verses'>('churches');
   const loading = activeTab === 'churches' ? churchesLoading : songsLoading;
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -72,7 +72,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   // Delete Modal
-  const [deleteTarget, setDeleteTarget] = useState<{type: 'single' | 'bulk', id?: string} | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{type: 'single' | 'bulk' | 'church', id?: string} | null>(null);
   
   // Manager Modal
   const [managerVisible, setManagerVisible] = useState(false);
@@ -254,6 +254,17 @@ export default function SuperAdminDashboard({ navigation }: any) {
     }
   };
 
+  const handleDeleteChurch = async (churchId: string) => {
+    try {
+      await firestore().collection('churches').doc(churchId).delete();
+      setSuccessMessage('Church deleted successfully!');
+      fetchChurches();
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Failed to delete church.');
+    }
+  };
+
   const pickBulkFile = async () => {
     try {
       const res = await DocumentPicker.getDocumentAsync({ type: ['application/json', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'text/csv', '*/*'] });
@@ -367,10 +378,16 @@ export default function SuperAdminDashboard({ navigation }: any) {
 
   const executeDelete = async () => {
     if (!deleteTarget) return;
-    setSongsLoading(true);
     const targetType = deleteTarget.type;
     const targetId = deleteTarget.id;
     setDeleteTarget(null);
+
+    if (targetType === 'church' && targetId) {
+      await handleDeleteChurch(targetId);
+      return;
+    }
+
+    setSongsLoading(true);
     try {
       if (targetType === 'bulk') {
         const batch = firestore().batch();
@@ -553,7 +570,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
             <ActivityIndicator size="large" color="#FCD34D" style={{ marginTop: 40 }} />
           </ScrollView>
         ) : activeTab === 'verses' ? (
-          <SuperAdminVersesManager />
+          <SuperAdminVersesManager searchQuery={searchQuery} />
         ) : activeTab === 'churches' ? (
           <FlatList
             data={filteredChurches}
@@ -634,6 +651,14 @@ export default function SuperAdminDashboard({ navigation }: any) {
                       
                       return null;
                     })()}
+                    
+                    {/* Delete Church Button */}
+                    <TouchableOpacity 
+                      onPress={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'church', id: item.id }); }} 
+                      style={{ padding: 8, backgroundColor: 'rgba(244,85,107,.12)', borderRadius: 8, marginLeft: 'auto' }}
+                    >
+                      <Trash2 size={16} color="#f4556b" />
+                    </TouchableOpacity>
                   </View>
                 </TouchableOpacity>
               );
@@ -916,7 +941,9 @@ export default function SuperAdminDashboard({ navigation }: any) {
             </View>
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#f8fafc', marginBottom: 12, textAlign: 'center' }}>Are you sure?</Text>
             <Text style={{ fontSize: 15, color: '#94a3b8', textAlign: 'center', marginBottom: 32, lineHeight: 22 }}>
-              {deleteTarget?.type === 'bulk' ? 'This will delete ALL selected songs.' : 'This will permanently delete this song.'}
+              {deleteTarget?.type === 'bulk' ? 'This will delete ALL selected songs.' : 
+               deleteTarget?.type === 'church' ? 'This will permanently delete this church. This cannot be undone.' :
+               'This will permanently delete this song.'}
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
               <TouchableOpacity onPress={() => setDeleteTarget(null)} style={{ flex: 1, backgroundColor: '#334155', paddingVertical: 14, borderRadius: 12, alignItems: 'center' }}>

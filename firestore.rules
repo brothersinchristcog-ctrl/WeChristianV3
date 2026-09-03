@@ -48,7 +48,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
     match /daily_verses/{verseId} {
-      allow read: if isAuthenticated();
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /daily_verses_meta/{document=**} {
+      allow read: if true;
       allow write: if isAdmin();
     }
     match /dailyVideos/{videoId} {

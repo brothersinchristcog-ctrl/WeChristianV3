@@ -36,6 +36,7 @@ import {
   MapPin,
   CircleDollarSign as DollarSign,
   BookOpen,
+  Sparkles,
   MessageSquare,
   Users,
   MoreHorizontal,
@@ -62,6 +63,7 @@ import { useChurch } from '../context/ChurchContext';
 import { useTheme } from '../context/ThemeContext';
 import Theme from '../theme/Theme';
 import FirestoreService, { DailyPromise, ScheduleEvent, AppMember, Sermon } from '../services/FirestoreService';
+import VerseNotificationService, { DailyVerse } from '../services/VerseNotificationService';
 import { CustomAlert } from '../components/CustomAlert';
 import Svg, { Path, Circle, Rect, Polygon, Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText, Mask } from 'react-native-svg';
 
@@ -278,6 +280,65 @@ const AnimatedParticle = ({ left, size, duration, delay, color, opacity }: any) 
 
 let hasShownCelebrationThisSession = false; /* forced refresh */ // Reset by script
 
+// ── Daily Verse Card ───────────────────────────────────────────────────────
+const PERIOD_COLORS: Record<string, string[]> = {
+  Morning:   ['#f97316', '#fbbf24'],
+  Afternoon: ['#2563eb', '#38bdf8'],
+  Evening:   ['#7c3aed', '#d8b4fe'],
+  Night:     ['#1e3a5f', '#3b82f6'],
+};
+
+const getCurrentPeriod = (): string => {
+  const hour = new Date().getHours();
+  if (hour >= 5 && hour < 12) return 'Morning';
+  if (hour >= 12 && hour < 17) return 'Afternoon';
+  if (hour >= 17 && hour < 21) return 'Evening';
+  return 'Night';
+};
+
+const DailyVerseCard = ({ verse, period, onPress }: { verse: DailyVerse | null; period: string; onPress: () => void }) => {
+  if (!verse) return null;
+  const colors = PERIOD_COLORS[period] || PERIOD_COLORS.Morning;
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={{ marginHorizontal: 0, marginBottom: 20 }}>
+      <LinearGradient colors={colors as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{
+        borderRadius: 20, padding: 20, overflow: 'hidden',
+        shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12, elevation: 8,
+      }}>
+        {/* Decorative circles */}
+        <View style={{ position: 'absolute', top: -30, right: -30, width: 130, height: 130, borderRadius: 65, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.2)' }} />
+        <View style={{ position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)' }} />
+
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '800', letterSpacing: 1.5 }}>
+            🕊️  GOOD {period.toUpperCase()} · DAILY VERSE
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '700' }}>
+            {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </Text>
+        </View>
+        <Text numberOfLines={3} style={{
+          color: '#fff', fontSize: 17, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+          fontStyle: 'italic', lineHeight: 26, fontWeight: '600', marginBottom: 10,
+        }}>
+          “{verse.verseEn}”
+        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '700' }}>— {verse.referenceEn}</Text>
+          <View style={{
+            flexDirection: 'row', alignItems: 'center', gap: 4,
+            backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
+          }}>
+            <BookOpen size={14} color="#fff" />
+            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Read Full Verse</Text>
+          </View>
+        </View>
+      </LinearGradient>
+    </TouchableOpacity>
+  );
+};
+// ─────────────────────────────────────────────────────────────────────────────
+
 export default function HomeScreen() {
   const navigation = useNavigation<any>();
   const { user, signOut, member: authMember } = useAuth();
@@ -294,6 +355,8 @@ export default function HomeScreen() {
   const [initialFetchDone, setInitialFetchDone] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [dynamicHeaderHeight, setDynamicHeaderHeight] = useState(0);
+  const [todayVerse, setTodayVerse] = useState<DailyVerse | null>(null);
+  const [todayPeriod, setTodayPeriod] = useState<string>(getCurrentPeriod());
   // Floating Live Celebrations State
   const [liveCelebrations, setLiveCelebrations] = useState<any[]>([]);
   const [unreadLiveMsgs, setUnreadLiveMsgs] = useState(0);
@@ -302,6 +365,15 @@ export default function HomeScreen() {
   const waveAnim = useRef(new Animated.Value(0)).current;
   const curveLineAnim = useRef(new Animated.Value(0)).current;
   const [currentEmojiIdx, setCurrentEmojiIdx] = useState(0);
+
+  // Load today's daily verse
+  useEffect(() => {
+    const period = getCurrentPeriod();
+    setTodayPeriod(period);
+    VerseNotificationService.getVerseForDate(new Date(), period).then(v => {
+      if (v) setTodayVerse(v);
+    }).catch(() => {});
+  }, []);
 
   const fetchLiveCelebrations = async () => {
     if (!activeChurch?.id) return;
@@ -1063,6 +1135,17 @@ export default function HomeScreen() {
             <GridItem isDark={isDark} icon={<Mic size={26} color="#fff" />} label="Sermons" color="#1a2d5a" onPress={() => navigation.navigate('Sermons')} />
             <GridItem isDark={isDark} icon={<Heart size={26} color="#fff" />} label="Prayer Wall" color="#c0392b" onPress={() => handleGuestProtectedNavigation('Prayer')} />
             <GridItem isDark={isDark} icon={<Calendar size={26} color="#fff" />} label="Events" color="#0F766E" onPress={() => navigation.navigate('Events')} />
+            <GridItem
+              isDark={isDark}
+              icon={<Sparkles size={26} color="#f97316" />}
+              label="Daily Verse"
+              color="#1e1b4b"
+              onPress={() => {
+                if (todayVerse) {
+                  navigation.navigate('VerseOfTheDay', { verseId: todayVerse.id, period: todayPeriod });
+                }
+              }}
+            />
             <GridItem 
               isDark={isDark} 
               icon={<DollarSign size={26} color="#fff" />} 
