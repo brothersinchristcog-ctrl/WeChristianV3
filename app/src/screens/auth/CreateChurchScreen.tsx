@@ -202,7 +202,8 @@ export default function CreateChurchScreen({ navigation }: Props) {
     }
   };
 
-    const hasProcessedRef = React.useRef(false);
+  const hasProcessedRef = React.useRef(false);
+  const isCreatingChurchRef = React.useRef(false);
 
   React.useEffect(() => {
     let subscriber: any;
@@ -230,20 +231,30 @@ export default function CreateChurchScreen({ navigation }: Props) {
       return;
     }
     setVerifyingOtp(true);
+    
+    // Lock BEFORE await to prevent onAuthStateChanged from firing simultaneously when auth state changes
+    hasProcessedRef.current = true;
+    
     try {
       const credential = auth.PhoneAuthProvider.credential(confirmation.verificationId, otpCode);
       await auth().signInWithCredential(credential);
       
-      hasProcessedRef.current = true;
       setOtpModalVisible(false);
       await performCreateChurch();
     } catch (e: any) {
+      hasProcessedRef.current = false; // Unlock if verification fails so user can try again
       Alert.alert('Error', 'Invalid OTP code. Please try again.');
       setVerifyingOtp(false);
     }
   };
 
   const performCreateChurch = async () => {
+    if (isCreatingChurchRef.current) {
+      console.log('🤖 Blocked duplicate performCreateChurch call');
+      return;
+    }
+    isCreatingChurchRef.current = true;
+    
     setLoading(true);
     setUploading(true);
     try {
@@ -320,6 +331,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
         setDuplicateErrorVisible(true);
         setLoading(false);
         setUploading(false);
+        isCreatingChurchRef.current = false;
         return;
       }
 
@@ -379,8 +391,10 @@ export default function CreateChurchScreen({ navigation }: Props) {
       await setChurchId(docRef.id);
       navigation.replace('Login');
     } catch (e: any) {
-      console.error('Error creating church:', e);
-      Alert.alert('Error', 'Failed to create church. Please try again.');
+      if (e.message !== 'DUPLICATE_CHURCH_PHONE') {
+        Alert.alert('Error', e.message || 'Unable to register church. Please try again.');
+      }
+      isCreatingChurchRef.current = false; // Unlock if creation failed
     } finally {
       setLoading(false);
       setUploading(false);

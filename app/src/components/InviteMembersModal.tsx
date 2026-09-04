@@ -161,13 +161,19 @@ export default function InviteMembersModal({ visible, onClose, churchName, churc
           });
 
           if (!isDuplicate) {
-            await FirestoreService.adminAddMember(churchId, {
-              name: contact.name,
-              phone: cleanedPhone,
-              userType: 'member',
-              churchId: churchId
-            });
-            addedCount++;
+            try {
+              await FirestoreService.adminAddMember(churchId, {
+                name: contact.name,
+                phone: cleanedPhone,
+                userType: 'member',
+                churchId: churchId
+              });
+              addedCount++;
+            } catch (addErr: any) {
+              if (addErr.message !== 'DUPLICATE_MEMBER') {
+                console.error(`Failed to add ${cleanedPhone}:`, addErr);
+              }
+            }
           }
         }
       }

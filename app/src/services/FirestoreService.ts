@@ -223,7 +223,40 @@ class FirestoreService {
     return firestore().collection('churches').doc(id).collection(collectionName);
   }
 
-  // ─── Expenses ───────────────────────────────────────────────────────────────
+  // ─── STRICT DUPLICATE CHECK FOR CHURCH ───
+  async checkMemberExistsInChurch(churchId: string, phone: string, excludeMemberId?: string): Promise<boolean> {
+    if (!phone) return false;
+    const rawDigits = phone.replace(/\D/g, '');
+    if (rawDigits.length < 10) return false;
+    const last10 = rawDigits.slice(-10);
+    const plus91 = `+91${last10}`;
+    const format91 = `91${last10}`;
+    
+    // Check local church collection directly
+    const possibleFormats = [last10, plus91, format91, phone, `+91 ${last10}`];
+    
+    try {
+      const queries = possibleFormats.map(format => 
+        firestore().collection('churches').doc(churchId).collection('members').where('phone', '==', format).get()
+      );
+      const results = await Promise.all(queries);
+      for (const snap of results) {
+        if (!snap.empty) {
+          if (excludeMemberId) {
+            const hasOther = snap.docs.some(doc => doc.id !== excludeMemberId);
+            if (hasOther) return true;
+          } else {
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error checking duplicate member:', e);
+    }
+    return false;
+  }
+
+  // ─── App Users / Auth ───────────────────────────────────────────────────────────────
 
   async getExpenses(limitNum = 200): Promise<ChurchExpense[]> {
     try {
@@ -742,6 +775,13 @@ class FirestoreService {
 
   async adminAddMember(churchId: string, details: any) {
     try {
+      if (details.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, details.phone);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
+
       const docRef = await firestore().collection('churches').doc(churchId).collection('members').add({
         ...details,
         status: 'Active',
@@ -757,6 +797,12 @@ class FirestoreService {
 
   async adminUpdateMember(churchId: string, memberId: string, details: any) {
     try {
+      if (details.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, details.phone, memberId);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
       await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).update(details);
       return { success: true };
     } catch (error: any) {
@@ -777,8 +823,24 @@ class FirestoreService {
     }
   }
 
+  async deleteMemberPermanent(churchId: string, memberId: string) {
+    try {
+      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).delete();
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error permanently deleting member:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async updateMemberProfile(churchId: string, memberId: string, details: any) {
     try {
+      if (details.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, details.phone, memberId);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
       await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).set(details, { merge: true });
       return true;
     } catch (error) {
@@ -869,7 +931,8 @@ class FirestoreService {
       const membersRef = firestore().collection('churches').doc(churchId).collection('members');
       const oldDoc = await membersRef.doc(contactId).get();
       
-      if (oldDoc.exists()) {
+      const docExists = typeof oldDoc.exists === 'function' ? oldDoc.exists() : oldDoc.exists;
+      if (docExists) {
         // Move data to new document with the correct UID
         await membersRef.doc(uid).set({ ...oldDoc.data(), uid, id: uid }, { merge: true });
         // Delete the old document with the random ID
@@ -894,6 +957,12 @@ class FirestoreService {
 
   async addFamilyMember(churchId: string, accountId: string, newMember: any) {
     try {
+      if (newMember.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, newMember.phone);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
       await firestore().collection('churches').doc(churchId).collection('members').add({ ...newMember, accountId });
       return true;
     } catch (e) {
@@ -903,6 +972,13 @@ class FirestoreService {
 
   async createMember(churchId: string, data: any, customId?: string) {
     try {
+      if (data.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, data.phone);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
+
       const memberData = { ...data, status: data.status || 'Active' };
       if (customId) {
         await firestore().collection('churches').doc(churchId).collection('members').doc(customId).set(memberData);

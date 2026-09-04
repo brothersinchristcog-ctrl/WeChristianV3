@@ -353,7 +353,7 @@ export default function AdminMembers() {
         setAlertConfig({
           visible: true,
           title: 'Error',
-          message: res.error || 'Failed to add member',
+          message: res.error === 'DUPLICATE_MEMBER' ? 'A member with this phone number already exists in this church.' : (res.error || 'Failed to add member'),
           type: 'error',
           buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
         });
@@ -362,7 +362,7 @@ export default function AdminMembers() {
       setAlertConfig({
         visible: true,
         title: 'Error',
-        message: e.message,
+        message: e.message === 'DUPLICATE_MEMBER' ? 'A member with this phone number already exists in this church.' : e.message,
         type: 'error',
         buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
       });

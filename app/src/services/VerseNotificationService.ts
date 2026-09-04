@@ -174,10 +174,11 @@ class VerseNotificationService {
                   period: time.label
                 },
               },
-              trigger: {
-                date: scheduleDate.getTime(),
-                channelId: 'default'
-              } as any,
+              trigger: { 
+                type: Notifications.SchedulableTriggerInputTypes.DATE,
+                date: scheduleDate,
+                channelId: 'default' 
+              },
             });
             scheduledCount++;
           }
