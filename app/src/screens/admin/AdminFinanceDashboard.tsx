@@ -48,13 +48,21 @@ import * as FileSystem from 'expo-file-system';
 import firestore from '@react-native-firebase/firestore';
 import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 type FilterPeriod = 'Today' | 'Week' | 'Month' | 'Year' | 'Custom Range';
 type SubTab = 'dashboard' | 'expenses' | 'invoices' | 'editor';
 
+const EXPENSE_GROUPS: Record<string, string[]> = {
+  'General': ['Water', 'Snacks', 'Tea', 'Flowers', 'Sound System', 'Décor', 'Transport', 'Printing', 'Electricity', 'Stationery', 'Cleaning Supplies', 'Musical Instruments', 'Honorarium'],
+  'Vegetables': ['Tomato', 'Onion', 'Potato', 'Carrot', 'Cabbage', 'Chilli', 'Garlic', 'Ginger', 'Beans', 'Brinjal', 'Lemon', 'Coriander'],
+  'Groceries': ['Rice', 'Sugar', 'Salt', 'Cooking Oil', 'Dal', 'Spices', 'Wheat/Atta', 'Milk', 'Tea Powder', 'Coffee Powder']
+};
+
 export default function AdminFinanceDashboard({ navigation, routeParams }: any) {
+  const insets = useSafeAreaInsets();
   const { setActiveTab } = useContext(AdminTabContext);
   const { member } = useAuth();
   const { activeChurch } = useChurch();
@@ -98,11 +106,6 @@ export default function AdminFinanceDashboard({ navigation, routeParams }: any) 
   const [newCategoryName, setNewCategoryName] = useState('');
 
   // Add Expense Modal State
-  const EXPENSE_GROUPS = {
-    'General': ['Water', 'Snacks', 'Tea', 'Flowers', 'Sound System', 'Décor', 'Transport', 'Printing', 'Electricity', 'Stationery', 'Cleaning Supplies', 'Musical Instruments', 'Honorarium'],
-    'Vegetables': ['Tomato', 'Onion', 'Potato', 'Carrot', 'Cabbage', 'Chilli', 'Garlic', 'Ginger', 'Beans', 'Brinjal', 'Lemon', 'Coriander'],
-    'Groceries': ['Rice', 'Sugar', 'Salt', 'Cooking Oil', 'Dal', 'Spices', 'Wheat/Atta', 'Milk', 'Tea Powder', 'Coffee Powder']
-  };
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [addExpCategory, setAddExpCategory] = useState('Sunday Service');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -160,8 +163,26 @@ export default function AdminFinanceDashboard({ navigation, routeParams }: any) 
         const cDoc = await firestore().collection('churches').doc(churchId).get();
         const docData: any = typeof cDoc.data === 'function' ? cDoc.data() : cDoc.data;
         if (docData) {
-          if (docData.customExpenseItems) {
-            setCustomExpenseItems(docData.customExpenseItems);
+          if (docData.customExpenseItems && typeof docData.customExpenseItems === 'object') {
+            const sanitized: Record<string, string[]> = {};
+            for (const [grp, arr] of Object.entries(docData.customExpenseItems)) {
+              if (Array.isArray(arr)) {
+                const defaultItems = EXPENSE_GROUPS[grp] || [];
+                const defaultLower = new Set(defaultItems.map(i => i.trim().toLowerCase()));
+                const seen = new Set<string>();
+                sanitized[grp] = arr.filter((item: any) => {
+                  if (typeof item !== 'string') return false;
+                  const trimmed = item.trim();
+                  const lower = trimmed.toLowerCase();
+                  if (!trimmed || defaultLower.has(lower) || seen.has(lower)) {
+                    return false;
+                  }
+                  seen.add(lower);
+                  return true;
+                });
+              }
+            }
+            setCustomExpenseItems(sanitized);
           }
           if (docData.customCategories && Array.isArray(docData.customCategories)) {
             setCategories(prev => Array.from(new Set([...prev, ...docData.customCategories])));
@@ -261,7 +282,7 @@ const openAddExpense = () => {
       t.push(exp.title || 'General');
       li[exp.title || 'General'] = { qty: '1', price: String(exp.amount) };
     }
-    setSelectedTypes(t);
+    setSelectedTypes(Array.from(new Set(t)));
     setLineItems(li);
     
     setExpenseDate(exp.date);
@@ -425,7 +446,7 @@ const openAddExpense = () => {
       delete newLineItems[type];
       setLineItems(newLineItems);
     } else {
-      setSelectedTypes([...selectedTypes, type]);
+      setSelectedTypes(Array.from(new Set([...selectedTypes, type])));
       setLineItems({...lineItems, [type]: { qty: '1', price: '0' }});
     }
   };
@@ -745,7 +766,7 @@ const openAddExpense = () => {
       <StatusBar barStyle="light-content" />
       
       {/* ── Hero Section ── */}
-      <View style={styles.hero}>
+      <View style={[styles.hero, { paddingTop: Math.max(insets.top, 10) }]}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
             <TouchableOpacity 
@@ -788,27 +809,31 @@ const openAddExpense = () => {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.mainScroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.mainScroll, { paddingBottom: 110 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         
         {/* ================= DASHBOARD ================= */}
         {currentSubTab === 'dashboard' && (
           <View>
             <View style={styles.summaryGrid}>
-              <View style={styles.sumCard}>
-                <Text style={styles.sumLabel}>Today</Text>
-                <Text style={styles.sumValue}>₹{stats.today.toLocaleString('en-IN')}</Text>
+              <View style={styles.summaryRow}>
+                <View style={styles.sumCard}>
+                  <Text style={styles.sumLabel}>Today</Text>
+                  <Text style={styles.sumValue} numberOfLines={1} adjustsFontSizeToFit>₹{stats.today.toLocaleString('en-IN')}</Text>
+                </View>
+                <View style={styles.sumCard}>
+                  <Text style={styles.sumLabel}>This Week</Text>
+                  <Text style={styles.sumValue} numberOfLines={1} adjustsFontSizeToFit>₹{stats.thisWeek.toLocaleString('en-IN')}</Text>
+                </View>
               </View>
-              <View style={styles.sumCard}>
-                <Text style={styles.sumLabel}>This Week</Text>
-                <Text style={styles.sumValue}>₹{stats.thisWeek.toLocaleString('en-IN')}</Text>
-              </View>
-              <View style={styles.sumCard}>
-                <Text style={styles.sumLabel}>This Month</Text>
-                <Text style={styles.sumValue}>₹{stats.thisMonth.toLocaleString('en-IN')}</Text>
-              </View>
-              <View style={styles.sumCard}>
-                <Text style={styles.sumLabel}>This Year</Text>
-                <Text style={styles.sumValue}>₹{stats.thisYear.toLocaleString('en-IN')}</Text>
+              <View style={styles.summaryRow}>
+                <View style={styles.sumCard}>
+                  <Text style={styles.sumLabel}>This Month</Text>
+                  <Text style={styles.sumValue} numberOfLines={1} adjustsFontSizeToFit>₹{stats.thisMonth.toLocaleString('en-IN')}</Text>
+                </View>
+                <View style={styles.sumCard}>
+                  <Text style={styles.sumLabel}>This Year</Text>
+                  <Text style={styles.sumValue} numberOfLines={1} adjustsFontSizeToFit>₹{stats.thisYear.toLocaleString('en-IN')}</Text>
+                </View>
               </View>
             </View>
 
@@ -1324,11 +1349,11 @@ const openAddExpense = () => {
           </View>
         )}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 90 + insets.bottom }} />
       </ScrollView>
 
       {/* ── Bottom Nav ── */}
-      <View style={styles.tabbar}>
+      <View style={[styles.tabbar, { bottom: Math.max(insets.bottom, 14) + (Platform.OS === 'ios' ? 14 : 10) }]}>
         <TouchableOpacity 
           style={styles.tabBtn} 
           onPress={() => setCurrentSubTab('dashboard')}
@@ -1356,7 +1381,7 @@ const openAddExpense = () => {
 
       {/* Toast */}
       {showToast && (
-        <View style={styles.toastContainer}>
+        <View style={[styles.toastContainer, { bottom: 100 + insets.bottom }]}>
           <View style={styles.toast}>
             <Text style={styles.toastText}>{toastMessage}</Text>
           </View>
@@ -1460,16 +1485,25 @@ const openAddExpense = () => {
               <Text style={[styles.catModalLabel, { marginTop: showCategoryDropdown ? 10 : 0 }]}>SELECT EXPENSE TYPES</Text>
               
               {Object.entries(EXPENSE_GROUPS).map(([groupName, items]) => {
-                const combinedItems = [...items, ...(customExpenseItems[groupName] || [])];
+                const seen = new Set<string>();
+                const combinedItems: string[] = [];
+                [...items, ...(customExpenseItems[groupName] || [])].forEach(rawType => {
+                  const t = typeof rawType === 'string' ? rawType.trim() : '';
+                  if (t && !seen.has(t.toLowerCase())) {
+                    seen.add(t.toLowerCase());
+                    combinedItems.push(t);
+                  }
+                });
+
                 return (
                   <View key={groupName} style={{ marginBottom: 15 }}>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: '#c9973f', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>{groupName}</Text>
                     <View style={styles.expChipsGrid}>
-                      {combinedItems.map(type => {
+                      {combinedItems.map((type, typeIdx) => {
                         const isSelected = selectedTypes.includes(type);
                         return (
                           <TouchableOpacity 
-                            key={type} 
+                            key={`${groupName}-${type}-${typeIdx}`} 
                             style={[styles.expChip, isSelected && styles.expChipActive]}
                             onPress={() => toggleExpenseType(type)}
                           >
@@ -1489,16 +1523,29 @@ const openAddExpense = () => {
                           />
                           <TouchableOpacity 
                             onPress={async () => {
-                              if (!newItemName.trim()) {
+                              const name = newItemName.trim();
+                              if (!name) {
                                 setAddingItemToGroup(null);
                                 return;
                               }
-                              const name = newItemName.trim();
+
+                              const currentItems = [...(EXPENSE_GROUPS[groupName] || []), ...(customExpenseItems[groupName] || [])];
+                              const existing = currentItems.find(i => i.trim().toLowerCase() === name.toLowerCase());
+
+                              if (existing) {
+                                if (!selectedTypes.includes(existing)) {
+                                  setSelectedTypes(prev => [...prev, existing]);
+                                }
+                                setAddingItemToGroup(null);
+                                setNewItemName('');
+                                return;
+                              }
+
                               setCustomExpenseItems(prev => ({
                                 ...prev,
                                 [groupName]: [...(prev[groupName] || []), name]
                               }));
-                              setSelectedTypes(prev => [...prev, name]);
+                              setSelectedTypes(prev => Array.from(new Set([...prev, name])));
                               setAddingItemToGroup(null);
                               setNewItemName('');
                               
@@ -1541,12 +1588,12 @@ const openAddExpense = () => {
               {/* Line Items */}
               {selectedTypes.length > 0 && (
                 <View style={{ marginTop: 10, gap: 12 }}>
-                  {selectedTypes.map(type => {
+                  {Array.from(new Set(selectedTypes)).map((type, idx) => {
                     const item = lineItems[type] || { qty: '1', price: '0' };
                     const q = parseFloat(item.qty) || 0;
                     const p = parseFloat(item.price) || 0;
                     return (
-                      <View key={type} style={styles.lineItemCard}>
+                      <View key={`line-item-${type}-${idx}`} style={styles.lineItemCard}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                           <Text style={styles.lineItemTitle}>{type}</Text>
                           <TouchableOpacity onPress={() => toggleExpenseType(type)}>
@@ -2201,9 +2248,10 @@ const styles = StyleSheet.create({
   mainScroll: { padding: 18, paddingBottom: 120, minHeight: 520 },
   
   // Dashboard
-  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 2, justifyContent: 'space-between' },
+  summaryGrid: { flexDirection: 'column', gap: 12, marginTop: 2 },
+  summaryRow: { flexDirection: 'row', gap: 12 },
   sumCard: {
-    width: '48%',
+    flex: 1,
     backgroundColor: '#ffffff',
     borderRadius: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 4, borderBottomRightRadius: 4,
     paddingVertical: 16, paddingHorizontal: 14,
@@ -2311,7 +2359,7 @@ const styles = StyleSheet.create({
   customRangeApplyTxt: { fontFamily: FONTS.sans, fontSize: 13, fontWeight: '700', color: '#ffffff' },
 
   searchBar: {
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 9,
+    flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: 9,
     backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0',
     borderRadius: 13, paddingVertical: 11, paddingHorizontal: 14, marginBottom: 18,
     shadowColor: '#1b2a4a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 2
