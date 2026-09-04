@@ -14,61 +14,144 @@ import * as MediaLibrary from 'expo-media-library';
 
 const { width } = Dimensions.get('window');
 
-const THEMES: Record<string, any> = {
-  Morning: {
-    Icon: Sun,
-    FooterIcon: BookOpen,
-    color: '#fbbf24',
-    textColor: '#ffffff',
-    blurTint: 'dark',
-    subtitle: "Start your day with God's Word\nand let His joy fill your heart.",
-  },
-  Afternoon: {
-    Icon: Sun,
-    FooterIcon: Heart,
-    color: '#60a5fa',
-    textColor: '#ffffff',
-    blurTint: 'dark',
-    subtitle: "May God's strength guide you\nand give you peace this afternoon.",
-  },
-  Evening: {
-    Icon: Sunset,
-    FooterIcon: Heart,
-    color: '#d8b4fe',
-    textColor: '#ffffff',
-    blurTint: 'dark',
-    subtitle: "Be a light of Christ in the evening\nand reflect His love to others.",
-  },
-  Night: {
-    Icon: Moon,
-    FooterIcon: Shield,
-    color: '#93c5fd',
-    textColor: '#ffffff',
-    blurTint: 'dark',
-    subtitle: "Thank God for today and\nrest in His loving care.",
+// Curated daily shades for each period (rotates each day of the year)
+const MORNING_ORANGE_SHADES = [
+  '#f97316', // Sunrise Vibrant Orange
+  '#fb923c', // Tangerine Glow
+  '#ff6b35', // Warm Coral Orange
+  '#f59e0b', // Amber Sun Orange
+  '#ff7a00', // Electric Sunset Orange
+  '#ea580c', // Warm Autumn Rust
+  '#f9844a', // Terracotta Dawn
+  '#fdba74', // Radiant Apricot
+  '#ff5722', // Deep Sunrise Flame
+  '#f77f00', // Marigold Orange
+  '#d97706', // Honey Gold Orange
+  '#fc5c65', // Sunset Coral
+  '#e65100', // Rich Deep Orange
+  '#ff9f43', // Golden Tangerine
+];
+
+const AFTERNOON_BLUE_SHADES = [
+  '#3b82f6', // Vivid Afternoon Blue
+  '#2563eb', // Royal Cobalt Blue
+  '#0284c7', // Deep Ocean Blue
+  '#1d4ed8', // Sapphire Blue
+  '#0ea5e9', // Horizon Blue
+  '#4f46e5', // Indigo Azure
+  '#6366f1', // Electric Iris Blue
+  '#2980b9', // Belize Blue
+  '#3498db', // Summer Sky Blue
+  '#1e40af', // Midnight Blue
+  '#0984e3', // Electronic Ocean
+  '#4338ca', // Deep Royal Blue
+  '#5352ed', // Neon Blue
+  '#3c40c6', // Majestic Cobalt
+];
+
+const EVENING_PURPLE_SHADES = [
+  '#a855f7', // Twilight Purple
+  '#9333ea', // Deep Amethyst
+  '#c084fc', // Radiant Orchid
+  '#8b5cf6', // Electric Violet
+  '#d946ef', // Fuchsia Twilight
+  '#7c3aed', // Imperial Purple
+  '#a21caf', // Sunset Berry
+  '#e879f9', // Lilac Glow
+  '#8e44ad', // Wisteria Purple
+  '#6c5ce7', // Exotic Iris
+  '#b83280', // Plum Twilight
+  '#9b59b6', // Amethyst Dusk
+  '#be185d', // Velvet Dusk
+  '#706fd3', // Lavender Nightfall
+];
+
+const NIGHT_SKYBLUE_SHADES = [
+  '#38bdf8', // Luminous Sky Blue
+  '#06b6d4', // Cyan Sky
+  '#22d3ee', // Electric Ice Sky
+  '#0ea5e9', // Clear Sky Blue
+  '#67e8f9', // Glacier Blue
+  '#00cec9', // Robin Egg Cyan
+  '#7dd3fc', // Celestial Azure
+  '#00d2d3', // Neon Sky Turquoise
+  '#2bcbba', // Aqua Marine Sky
+  '#48dbfb', // Vibrant Ice Sky
+  '#1dd1a1', // Breeze Aqua
+  '#54a0ff', // Clear Daybreak Sky
+  '#0abde3', // Pacific Sky
+  '#81ecec', // Crystal Sky
+];
+
+const getDayIndex = (date: Date = new Date()): number => {
+  const epoch = new Date('2025-01-01T00:00:00Z');
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.floor((target.getTime() - epoch.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.abs(diffDays);
+};
+
+export const getThemeForPeriod = (period: string, date: Date = new Date()) => {
+  const dayIdx = getDayIndex(date);
+  if (period === 'Morning') {
+    return {
+      Icon: Sun,
+      FooterIcon: BookOpen,
+      color: MORNING_ORANGE_SHADES[dayIdx % MORNING_ORANGE_SHADES.length],
+      textColor: '#ffffff',
+      blurTint: 'dark',
+      subtitle: "Start your day with God's Word\nand let His joy fill your heart.",
+    };
+  } else if (period === 'Afternoon') {
+    return {
+      Icon: Sun,
+      FooterIcon: Heart,
+      color: AFTERNOON_BLUE_SHADES[dayIdx % AFTERNOON_BLUE_SHADES.length],
+      textColor: '#ffffff',
+      blurTint: 'dark',
+      subtitle: "May God's strength guide you\nand give you peace this afternoon.",
+    };
+  } else if (period === 'Evening') {
+    return {
+      Icon: Sunset,
+      FooterIcon: Heart,
+      color: EVENING_PURPLE_SHADES[dayIdx % EVENING_PURPLE_SHADES.length],
+      textColor: '#ffffff',
+      blurTint: 'dark',
+      subtitle: "Be a light of Christ in the evening\nand reflect His love to others.",
+    };
+  } else {
+    return {
+      Icon: Moon,
+      FooterIcon: Shield,
+      color: NIGHT_SKYBLUE_SHADES[dayIdx % NIGHT_SKYBLUE_SHADES.length],
+      textColor: '#ffffff',
+      blurTint: 'dark',
+      subtitle: "Thank God for today and\nrest in His loving care.",
+    };
   }
+};
+
+const THEMES: Record<string, any> = {
+  get Morning() { return getThemeForPeriod('Morning'); },
+  get Afternoon() { return getThemeForPeriod('Afternoon'); },
+  get Evening() { return getThemeForPeriod('Evening'); },
+  get Night() { return getThemeForPeriod('Night'); },
 };
 
 const periods = ['Morning', 'Afternoon', 'Evening', 'Night'];
 
-// Generate beautiful dynamic gradients based on the date and time period.
-// The Golden Angle (137.5) guarantees every consecutive day has a wildly different color.
 const getDynamicGradient = (date: Date, period: string, periodIndex: number): readonly [string, string, ...string[]] => {
-  const epoch = new Date('2024-01-01T00:00:00Z');
-  const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const epochDate = new Date(epoch.getFullYear(), epoch.getMonth(), epoch.getDate());
-  const daysSinceEpoch = Math.floor((localDate.getTime() - epochDate.getTime()) / (1000 * 60 * 60 * 24));
-  
-  const hue1 = Math.floor(daysSinceEpoch * 137.5 + periodIndex * 67) % 360;
-  const hue2 = (hue1 + 40) % 360; 
-
-  let s = 85, l1 = 60, l2 = 40;
-  if (period === 'Morning') { l1 = 70; l2 = 50; }
-  else if (period === 'Afternoon') { l1 = 65; l2 = 45; }
-  else if (period === 'Evening') { s = 75; l1 = 45; l2 = 25; }
-  else if (period === 'Night') { s = 65; l1 = 25; l2 = 10; }
-
-  return [`hsl(${hue1}, ${s}%, ${l1}%)`, `hsl(${hue2}, ${s}%, ${l2}%)`];
+  const theme = getThemeForPeriod(period, date);
+  const color = theme.color;
+  if (period === 'Morning') {
+    return ['#7c2d12', color];
+  } else if (period === 'Afternoon') {
+    return ['#172554', color];
+  } else if (period === 'Evening') {
+    return ['#3b0764', color];
+  } else {
+    return ['#082f49', color];
+  }
 };
 
 export default function VerseOfTheDayScreen() {
@@ -247,7 +330,7 @@ export default function VerseOfTheDayScreen() {
           if (navigation.canGoBack()) {
             navigation.goBack();
           } else {
-            navigation.navigate('Tabs');
+            navigation.navigate('Home');
           }
         }}>
           <Text style={styles.backBtnText}>Go Back</Text>
@@ -266,7 +349,7 @@ export default function VerseOfTheDayScreen() {
             if (navigation.canGoBack()) {
               navigation.goBack();
             } else {
-              navigation.navigate('Tabs');
+              navigation.navigate('Home');
             }
           }} style={styles.iconBtn}>
             <ArrowLeft color={colors.text} size={28} />
@@ -283,6 +366,7 @@ export default function VerseOfTheDayScreen() {
         <ScrollView 
           showsVerticalScrollIndicator={false} 
           style={styles.mainScroll}
+          contentContainerStyle={{ paddingBottom: 140 }}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={() => loadVerses(true)} tintColor={colors.primary} />
           }
@@ -328,7 +412,7 @@ export default function VerseOfTheDayScreen() {
                 >
                   {dayData.verses.map((verse, periodIndex) => {
                     const period = periods[periodIndex];
-                    const theme = THEMES[period];
+                    const theme = getThemeForPeriod(period, dayData.date);
                     const Icon = theme.Icon;
                     const FooterIcon = theme.FooterIcon;
                     const dynamicColors = getDynamicGradient(dayData.date, period, periodIndex);

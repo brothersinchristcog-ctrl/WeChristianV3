@@ -100,20 +100,31 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
     { key: 'Profile', label: 'Profile', Icon: UserIcon, bg: '#27272A', fg: '#27272A' },
   ] as const;
 
-  const getTabConfig = (routeName: string) => {
+  const getTabConfig = (routeName: string, useDailyVerse: boolean = false) => {
+    if (routeName === 'Promise') {
+      return {
+        key: 'Promise',
+        label: useDailyVerse ? 'Daily Verse' : 'Promise',
+        Icon: BookOpen,
+        bg: '#0F766E',
+        fg: '#0F766E',
+      };
+    }
     return TABS.find(t => t.key === routeName) || TABS[0];
   };
 
   function CustomTabBar({ state, descriptors, navigation }: any) {
+    const { activeChurch } = useChurch();
+    const useWeChristianDailyPromise = activeChurch?.useWeChristianDailyPromise !== false;
     const currentRoute = state.routes[state.index];
-    const activeConfig = getTabConfig(currentRoute.name);
+    const activeConfig = getTabConfig(currentRoute.name, useWeChristianDailyPromise);
 
     return (
       <View style={[styles.tabBarContainer, { backgroundColor: activeConfig.bg }]}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
-          const config = getTabConfig(route.name);
+          const config = getTabConfig(route.name, useWeChristianDailyPromise);
           const IconComponent = config.Icon;
 
           const onPress = () => {
@@ -141,13 +152,25 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
             >
               {isFocused ? (
                 <View style={styles.activeCircle}>
-                  <IconComponent color={config.fg} size={22} strokeWidth={2.5} />
-                  <Text style={[styles.activeLabel, { color: config.fg }]}>{config.label}</Text>
+                  <IconComponent color={config.fg} size={20} strokeWidth={2.5} />
+                  <Text 
+                    style={[styles.activeLabel, { color: config.fg }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {config.label}
+                  </Text>
                 </View>
               ) : (
                 <View style={styles.inactiveWrapper}>
-                  <IconComponent color="rgba(255, 255, 255, 0.7)" size={24} strokeWidth={2} />
-                  <Text style={styles.inactiveLabel}>{config.label}</Text>
+                  <IconComponent color="rgba(255, 255, 255, 0.7)" size={22} strokeWidth={2} />
+                  <Text 
+                    style={styles.inactiveLabel}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {config.label}
+                  </Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -159,6 +182,8 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
 
 function TabNavigator() {
   const { user, signOut, member, viewMode, setViewMode } = useAuth();
+  const { activeChurch } = useChurch();
+  const useWeChristianDailyPromise = activeChurch?.useWeChristianDailyPromise !== false;
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
   const [globalUser, setGlobalUser] = useState<any>(null);
@@ -212,7 +237,7 @@ function TabNavigator() {
       />
       <Tab.Screen 
         name="Promise" 
-        component={PromiseArchiveScreen} 
+        component={useWeChristianDailyPromise ? VerseOfTheDayScreen : PromiseArchiveScreen} 
         listeners={{ tabPress: handleFeatureInteraction }}
       /> 
       <Tab.Screen 
@@ -613,10 +638,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeLabel: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.1,
+    letterSpacing: 0,
     marginTop: 2,
+    textAlign: 'center',
+    paddingHorizontal: 2,
   },
   inactiveWrapper: {
     alignItems: 'center',
@@ -624,10 +651,12 @@ const styles = StyleSheet.create({
   },
   inactiveLabel: {
     color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '600',
-    marginTop: 4,
-    letterSpacing: 0.2
+    marginTop: 3,
+    letterSpacing: 0,
+    textAlign: 'center',
+    paddingHorizontal: 2,
   }
 });
 

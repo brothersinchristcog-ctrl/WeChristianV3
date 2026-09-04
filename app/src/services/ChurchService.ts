@@ -24,6 +24,7 @@ export interface ChurchDetails {
   theme: ChurchTheme;
   whatsappIntegrationEnabled?: boolean;
   automatedWhatsappWishesEnabled?: boolean;
+  useWeChristianDailyPromise?: boolean;
   automatedWeCelebrationTemplate?: {
     themeId?: string;
     themeColor?: string;

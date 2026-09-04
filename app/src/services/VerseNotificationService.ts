@@ -343,6 +343,19 @@ class VerseNotificationService {
       return [];
     }
   }
+
+  /**
+   * Helper to retrieve all 4 verses for today (Morning, Afternoon, Evening, Night)
+   */
+  async getTodayVerses(forceRefresh: boolean = false): Promise<DailyVerse[]> {
+    try {
+      const recent = await this.getRecentVerses(0, true, forceRefresh);
+      return recent[0]?.verses || [];
+    } catch (e) {
+      console.error('[VerseNotificationService] Error in getTodayVerses:', e);
+      return [];
+    }
+  }
 }
 
 export default new VerseNotificationService();
