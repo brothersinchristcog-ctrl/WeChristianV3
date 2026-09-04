@@ -269,7 +269,6 @@ export default function SongsScreen({ navigation, route }: any) {
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
           <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 24 }}>
             <Text style={styles.pageTitle}>Worship & Praise</Text>
-            <Text style={styles.pageSub}>స్తుతి మరియు ఆరాధన</Text>
           </View>
         </View>
 
@@ -467,7 +466,7 @@ const styles = StyleSheet.create({
   },
   backBtn: { zIndex: 10, padding: 5, marginLeft: -10 },
   headerCenter: { alignItems: 'center' },
-  pageTitle: { color: '#fff', fontSize: 12, fontWeight: '800', marginHorizontal: 56 },
+  pageTitle: { color: '#fff', fontSize: 24, fontWeight: '800', marginHorizontal: 56 },
   pageSub: { color: '#aac4e8', fontSize: 12, marginTop: 2, fontWeight: '600', marginHorizontal: 56 },
 
   // Tabs
