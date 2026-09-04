@@ -11,27 +11,16 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
-  Image,
   StatusBar
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   ChevronLeft,
-  User,
-  Phone,
-  MapPin,
-  Heart,
-  ShieldCheck,
   AlertTriangle,
-  Calendar,
-  CircleUser,
-  Map,
-  ArrowRight
+  Calendar
 } from 'lucide-react-native';
-import Theme from '../../theme/Theme';
 import FirestoreService from '../../services/FirestoreService';
-import { firestore, FieldValue } from '../../services/firebaseConfig';
 import auth from '@react-native-firebase/auth';
 
 import { useChurch } from '../../context/ChurchContext';
@@ -131,7 +120,6 @@ export default function SignUpScreen({ navigation }: any) {
       }
 
       // Send OTP
-      auth().settings.appVerificationDisabledForTesting = true;
       const confirmation = await auth().signInWithPhoneNumber(cleanNum);
       
       // Navigate to OTP screen and pass the formData so it can be saved after verification
@@ -155,258 +143,245 @@ export default function SignUpScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
-
-      {/* ── Page Header ── */}
-      <View style={styles.pageHeader}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={20} color="#aac4e8" />
-          <Text style={styles.backBtnTxt}>Back</Text>
-        </TouchableOpacity>
-        <View style={styles.titleCol}>
-          <Text style={styles.pageTitle}>New Registration</Text>
-          <Text style={styles.pageSub}>క్రొత్త సభ్యుల నమోదు</Text>
-        </View>
-        <View style={{ width: 60 }} />
-      </View>
-
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
-      >
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-
-          <View style={styles.introBox}>
-            <Text style={styles.introTitle}>Welcome to Our Family 🙏</Text>
-            <Text style={styles.introSub}>Please fill in your details to join the {activeChurch?.name || 'WeChristian'} community.</Text>
-          </View>
-
-          {/* ── Section 1: Personal ── */}
-          <View style={styles.secHd}>
-            <CircleUser size={14} color="#1a2d5a" />
-            <Text style={styles.secLbl}>PERSONAL INFORMATION</Text>
-          </View>
-          <View style={styles.formCard}>
-            <InputRow label="First Name" value={formData.firstName} onChange={(v: string) => handleInputChange('firstName', v)} placeholder="John" />
-            <InputRow label="Last Name" value={formData.lastName} onChange={(v: string) => handleInputChange('lastName', v)} placeholder="Doe" />
-            <InputRow label="Email Address" value={formData.email} onChange={(v: string) => handleInputChange('email', v)} placeholder="john.doe@example.com" keyboardType="email-address" />
-            <TouchableOpacity onPress={() => showDatePicker('dob')}>
-              <View pointerEvents="none">
-                <InputRow label="Date of Birth" value={formData.dob} placeholder="Select Date" />
+      <StatusBar barStyle="light-content" backgroundColor="#0A1128" />
+      <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+          <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            <View style={styles.headerContainer}>
+              <View style={styles.topRow}>
+                <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                  <ChevronLeft size={20} color="#6B7B9A" />
+                </TouchableOpacity>
+                <View style={styles.titleWrapper}>
+                  <Text style={styles.scriptTitle}>Sign Up</Text>
+                </View>
+                <View style={{ width: 40 }} />
               </View>
-            </TouchableOpacity>
-
-            <Text style={styles.innerLbl}>GENDER</Text>
-            <View style={styles.pillRow}>
-              {['Male', 'Female'].map(g => (
-                <TouchableOpacity key={g} style={[styles.pill, formData.gender === g && styles.pillActive]} onPress={() => handleInputChange('gender', g)}>
-                  <Text style={[styles.pillTxt, formData.gender === g && styles.pillTxtActive]}>{g}</Text>
-                </TouchableOpacity>
-              ))}
+              <Text style={styles.subtitle}>Join our community of faith, worship and{'\n'}fellowship.</Text>
             </View>
-
-            <Text style={styles.innerLbl}>MARITAL STATUS</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillRow}>
-              {['Single', 'Married', 'Widowed', 'Divorced'].map(m => (
-                <TouchableOpacity key={m} style={[styles.pill, formData.maritalStatus === m && styles.pillActive, { marginRight: 8 }]} onPress={() => handleInputChange('maritalStatus', m)}>
-                  <Text style={[styles.pillTxt, formData.maritalStatus === m && styles.pillTxtActive]}>{m}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            {formData.maritalStatus !== 'Single' && (
-              <View style={[styles.nestedFields, { borderLeftColor: '#1a2d5a' }]}>
-                <TouchableOpacity onPress={() => showDatePicker('anniversaryDate')}>
-                  <View pointerEvents="none">
-                    <InputRow label="Anniversary Date" value={formData.anniversaryDate} placeholder="Select Date" />
+            <View style={styles.formCard}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>FIRST NAME</Text>
+                <TextInput style={styles.input} value={formData.firstName} onChangeText={(v) => handleInputChange('firstName', v)} placeholder="John" placeholderTextColor="#4B5670" />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>LAST NAME</Text>
+                <TextInput style={styles.input} value={formData.lastName} onChangeText={(v) => handleInputChange('lastName', v)} placeholder="Mathew" placeholderTextColor="#4B5670" />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>MOBILE NUMBER</Text>
+                <TextInput style={styles.input} value={formData.phone} onChangeText={(v) => handleInputChange('phone', v)} placeholder="9876543210" placeholderTextColor="#4B5670" keyboardType="phone-pad" />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>VILLAGE NAME</Text>
+                <TextInput style={styles.input} value={formData.city} onChangeText={(v) => handleInputChange('city', v)} placeholder="Enter your village" placeholderTextColor="#4B5670" />
+              </View>
+              <View style={styles.row}>
+                <View style={[styles.inputGroup, { flex: 1, marginRight: 12 }]}>
+                  <Text style={styles.inputLabel}>DATE OF BIRTH</Text>
+                  <TouchableOpacity onPress={() => showDatePicker('dob')} activeOpacity={0.8}>
+                    <View style={[styles.input, styles.dateInputContainer]}>
+                      <Text style={formData.dob ? styles.inputValue : styles.inputPlaceholder}>{formData.dob ? formData.dob.split('-').reverse().join('-') : 'DD-MM-YYYY'}</Text>
+                      <Calendar size={18} color="#F4D389" />
+                    </View>
+                  </TouchableOpacity>
+                </View>
+                <View style={[styles.inputGroup, { flex: 1 }]}>
+                  <Text style={styles.inputLabel}>GENDER</Text>
+                  <View style={styles.genderRow}>
+                    <TouchableOpacity style={[styles.genderBtn, formData.gender === 'Male' && styles.genderBtnActive]} onPress={() => handleInputChange('gender', 'Male')}>
+                      <Text style={[styles.genderTxt, formData.gender === 'Male' && styles.genderTxtActive]}>Male</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.genderBtn, formData.gender === 'Female' && styles.genderBtnActive]} onPress={() => handleInputChange('gender', 'Female')}>
+                      <Text style={[styles.genderTxt, formData.gender === 'Female' && styles.genderTxtActive]}>Female</Text>
+                    </TouchableOpacity>
                   </View>
-                </TouchableOpacity>
-                <InputRow 
-                  label="Number of Children" 
-                  value={formData.numberOfChildren} 
-                  onChange={(v: string) => handleInputChange('numberOfChildren', v)} 
-                  placeholder="0" 
-                  keyboardType="numeric" 
-                />
+                </View>
               </View>
-            )}
-
-            <InputRow label="Nationality" value={formData.nationality} onChange={(v: string) => handleInputChange('nationality', v)} placeholder="Indian" />
-          </View>
-
-          {/* ── Section 2: Spiritual ── */}
-          <View style={styles.secHd}>
-            <ShieldCheck size={14} color="#15803D" />
-            <Text style={[styles.secLbl, { color: '#15803D' }]}>SPIRITUAL JOURNEY</Text>
-          </View>
-          <View style={styles.formCard}>
-            <Text style={styles.innerLbl}>HAVE YOU BEEN BAPTIZED?</Text>
-            <View style={styles.pillRow}>
-              {['Yes', 'No'].map(b => (
-                <TouchableOpacity key={b} style={[styles.pill, formData.baptized === b && styles.pillActive]} onPress={() => handleInputChange('baptized', b)}>
-                  <Text style={[styles.pillTxt, formData.baptized === b && styles.pillTxtActive]}>{b}</Text>
-                </TouchableOpacity>
-              ))}
+              <TouchableOpacity style={[styles.submitBtn, loading && { opacity: 0.7 }]} onPress={handleSignUp} disabled={loading}>
+                {loading ? <ActivityIndicator color="#0A1128" /> : <Text style={styles.submitBtnTxt}>Create Account</Text>}
+              </TouchableOpacity>
             </View>
-
-            {formData.baptized === 'Yes' && (
-              <View style={styles.nestedFields}>
-                <TouchableOpacity onPress={() => showDatePicker('baptismDate')}>
-                  <View pointerEvents="none">
-                    <InputRow label="Baptism Date" value={formData.baptismDate} placeholder="Select Date" />
-                  </View>
-                </TouchableOpacity>
-                <InputRow label="Baptism Church" value={formData.baptismChurch} onChange={(v: string) => handleInputChange('baptismChurch', v)} placeholder="Church Name" />
-              </View>
-            )}
-          </View>
-
-          {/* ── Section 3: Contact ── */}
-          <View style={styles.secHd}>
-            <MapPin size={14} color="#c0392b" />
-            <Text style={[styles.secLbl, { color: '#c0392b' }]}>CONTACT & LOCATION</Text>
-          </View>
-          <View style={styles.formCard}>
-            <InputRow label="Phone Number" value={formData.phone} onChange={(v: string) => handleInputChange('phone', v)} placeholder="9988776655" keyboardType="phone-pad" />
-
-            <View style={styles.grid}>
-              <View style={{ flex: 1 }}>
-                <InputRow label="Street / Door No" value={formData.street} onChange={(v: string) => handleInputChange('street', v)} placeholder="1-23/A" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <InputRow label="Mandal" value={formData.mandal} onChange={(v: string) => handleInputChange('mandal', v)} placeholder="Mandal" />
-              </View>
+            <View style={styles.footer}>
+              <Text style={styles.footerTxt}>Already have an account? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login', { showPhoneInput: true })}>
+                <Text style={styles.footerLink}>Sign In</Text>
+              </TouchableOpacity>
             </View>
-
-            <View style={styles.grid}>
-              <View style={{ flex: 1 }}>
-                <InputRow label="City / Village" value={formData.city} onChange={(v: string) => handleInputChange('city', v)} placeholder="City" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <InputRow label="District" value={formData.district} onChange={(v: string) => handleInputChange('district', v)} placeholder="District" />
-              </View>
-            </View>
-
-            <View style={styles.grid}>
-              <View style={{ flex: 1 }}>
-                <InputRow label="State" value={formData.state} onChange={(v: string) => handleInputChange('state', v)} placeholder="State" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <InputRow label="Pincode" value={formData.zip} onChange={(v: string) => handleInputChange('zip', v)} placeholder="500001" keyboardType="numeric" />
-              </View>
+            <View style={{ height: 40 }} />
+          </ScrollView>
+        </KeyboardAvoidingView>
+        <Modal animationType="fade" transparent={true} visible={showDuplicateModal}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.alertCard}>
+              <View style={styles.alertIcon}><AlertTriangle size={32} color="#c0392b" /></View>
+              <Text style={styles.alertTitle}>Already a Member</Text>
+              <Text style={styles.alertSub}>This phone number is already registered in our system. Please sign in instead.</Text>
+              <TouchableOpacity style={styles.modalBtn} onPress={() => { setShowDuplicateModal(false); navigation.navigate('Login'); }}>
+                <Text style={styles.modalBtnTxt}>Go to Sign In</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.modalSecBtn} onPress={() => setShowDuplicateModal(false)}>
+                <Text style={styles.modalSecBtnTxt}>Change Number</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          <TouchableOpacity
-            style={[styles.submitBtn, loading && { opacity: 0.7 }]}
-            onPress={handleSignUp}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <View style={styles.btnContent}>
-                <Text style={styles.submitBtnTxt}>Complete Registration</Text>
-                <ArrowRight size={18} color="#fff" />
-              </View>
-            )}
-          </TouchableOpacity>
-
-          <View style={{ height: 40 }} />
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      {/* Duplicate Modal */}
-      <Modal animationType="fade" transparent={true} visible={showDuplicateModal}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.alertCard}>
-            <View style={styles.alertIcon}><AlertTriangle size={32} color="#c0392b" /></View>
-            <Text style={styles.alertTitle}>Already a Member</Text>
-            <Text style={styles.alertSub}>This phone number is already registered in our system. Please sign in instead.</Text>
-            <TouchableOpacity style={styles.modalBtn} onPress={() => { setShowDuplicateModal(false); navigation.navigate('Login'); }}>
-              <Text style={styles.modalBtnTxt}>Go to Sign In</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.modalSecBtn} onPress={() => setShowDuplicateModal(false)}>
-              <Text style={styles.modalSecBtnTxt}>Change Number</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      <DateTimePickerModal
-        isVisible={isDatePickerVisible}
-        mode="date"
-        onConfirm={handleConfirm}
-        onCancel={hideDatePicker}
-        maximumDate={new Date()}
-      />
+        </Modal>
+        <DateTimePickerModal isVisible={isDatePickerVisible} mode="date" onConfirm={handleConfirm} onCancel={hideDatePicker} maximumDate={new Date()} />
+      </SafeAreaView>
     </View>
   );
 }
 
-function InputRow({ label, value, onChange, placeholder, keyboardType = 'default' }: any) {
-  return (
-    <View style={styles.inputGroup}>
-      <Text style={styles.inputLabel}>{label}</Text>
-      <TextInput
-        style={styles.input}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor="#9CA3AF"
-        keyboardType={keyboardType}
-      />
-    </View>
-  );
-}
+const FONTS = {
+  serif: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f0f2f7' },
+  container: { flex: 1, backgroundColor: '#0A1128' },
 
-  // Header
-  pageHeader: {
-    backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 50 : 20,
-    paddingHorizontal: 16,
-    paddingBottom: 14,
-    flexDirection: 'row',
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1C2A4A',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minWidth: 60 },
-  backBtnTxt: { color: '#aac4e8', fontSize: 13, fontWeight: '500' },
-  titleCol: { flex: 1, alignItems: 'center' },
-  pageTitle: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  pageSub: { color: '#aac4e8', fontSize: 9.5, marginTop: 1 },
 
   scroll: { paddingBottom: 40 },
 
-  introBox: { padding: 25, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb', marginBottom: 15 },
-  introTitle: { fontSize: 20, fontWeight: '800', color: '#1a2d5a', marginBottom: 6 },
-  introSub: { fontSize: 13, color: '#6B7280', lineHeight: 20 },
+  headerContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    marginBottom: 30,
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  titleWrapper: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  scriptTitle: {
+    fontFamily: FONTS.serif,
+    fontSize: 42,
+    color: '#F4D389',
+    fontStyle: 'italic',
+    fontWeight: '600',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#8A99B8',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 
-  secHd: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 16, marginBottom: 10, marginTop: 10 },
-  secLbl: { fontSize: 10, fontWeight: '800', color: '#1a2d5a', letterSpacing: 1 },
+  formCard: {
+    backgroundColor: '#0F1730',
+    marginHorizontal: 20,
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: '#1C2A4A',
+  },
 
-  formCard: { backgroundColor: '#fff', marginHorizontal: 12, borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 0.5, borderColor: '#e5e7eb' },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#E2E8F0',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#1C2A4A',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#FFFFFF',
+  },
+  dateInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  inputPlaceholder: {
+    color: '#4B5670',
+    fontSize: 15,
+  },
+  inputValue: {
+    color: '#FFFFFF',
+    fontSize: 15,
+  },
 
-  inputGroup: { marginBottom: 15 },
-  inputLabel: { fontSize: 10, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', marginBottom: 8, letterSpacing: 0.5 },
-  input: { backgroundColor: '#f9fafb', borderRadius: 10, paddingHorizontal: 15, paddingVertical: 12, fontSize: 14, color: '#111827', borderWidth: 1, borderColor: '#e5e7eb' },
+  row: {
+    flexDirection: 'row',
+  },
 
-  innerLbl: { fontSize: 10, fontWeight: '700', color: '#6B7280', textTransform: 'uppercase', marginBottom: 10, marginTop: 5 },
-  pillRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
-  pill: { paddingHorizontal: 15, paddingVertical: 8, borderRadius: 10, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb' },
-  pillActive: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
-  pillTxt: { fontSize: 12, fontWeight: '600', color: '#4B5563' },
-  pillTxtActive: { color: '#fff' },
+  genderRow: {
+    flexDirection: 'row',
+    backgroundColor: '#1C2A4A',
+    borderRadius: 14,
+    padding: 4,
+    height: 52,
+  },
+  genderBtn: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 10,
+  },
+  genderBtnActive: {
+    backgroundColor: '#405B85',
+  },
+  genderTxt: {
+    color: '#8A99B8',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  genderTxtActive: {
+    color: '#FFFFFF',
+  },
 
-  nestedFields: { paddingLeft: 12, borderLeftWidth: 2, borderLeftColor: '#c0392b', marginBottom: 15, marginTop: 5 },
-  grid: { flexDirection: 'row', gap: 12 },
+  submitBtn: {
+    backgroundColor: '#F4D389',
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 10,
+    shadowColor: '#F4D389',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  submitBtnTxt: {
+    color: '#0A1128',
+    fontSize: 16,
+    fontWeight: '700',
+  },
 
-  submitBtn: { backgroundColor: '#c0392b', margin: 12, borderRadius: 16, paddingVertical: 18, alignItems: 'center', elevation: 5 },
-  btnContent: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  submitBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 30,
+  },
+  footerTxt: {
+    color: '#8A99B8',
+    fontSize: 14,
+  },
+  footerLink: {
+    color: '#F4D389',
+    fontSize: 14,
+    fontWeight: '700',
+  },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 30 },
@@ -419,4 +394,3 @@ const styles = StyleSheet.create({
   modalSecBtn: { marginTop: 15 },
   modalSecBtnTxt: { color: '#6B7280', fontSize: 13, fontWeight: '600' },
 });
-

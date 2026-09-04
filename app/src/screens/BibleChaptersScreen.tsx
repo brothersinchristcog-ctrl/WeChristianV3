@@ -9,7 +9,8 @@ import {
   StatusBar,
   Platform
 } from 'react-native';
-import { ChevronLeft, Book, CheckCircle2 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowLeft, Book, CheckCircle2 } from 'lucide-react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
@@ -122,16 +123,25 @@ export default function BibleChaptersScreen({ route, navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft color="#fff" size={28} />
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft color="#fff" size={24} />
         </TouchableOpacity>
-        <View style={styles.titleInfo}>
-          <Text style={styles.headerTitle}>{bookName}</Text>
-          <Text style={styles.headerSub}>Completed {readChapters.size} of {count} Chapters</Text>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 24 }}>
+            <Text style={styles.headerTitle}>{bookName}</Text>
+            <Text style={styles.headerSub}>Completed {readChapters.size} of {count} Chapters</Text>
+          </View>
         </View>
-        <View style={{ width: 40 }} />
-      </View>
+
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={[styles.secTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>
@@ -175,20 +185,20 @@ export default function BibleChaptersScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    backgroundColor: '#1a2d5a',
     paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 16,
-    paddingBottom: 20,
+    paddingBottom: 30,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  backBtn: { padding: 4 },
+  backBtn: { zIndex: 10, padding: 5 },
   titleInfo: { alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginTop: 2 },
 
   scroll: { flex: 1, padding: 20 },
   secTitle: { fontSize: 16, fontWeight: '800', marginBottom: 20 },

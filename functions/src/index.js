@@ -147,53 +147,51 @@ export const notifyMembersV2 = onRequest(async (request, response) => {
  * ⏰ AUTOMATED DAILY PROMISE SCHEDULER
  * Scheduled to run every day at 07:00 AM IST (01:30 AM UTC)
  */
-export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
+export const automatedDailyPromise = onSchedule({ schedule: '0 7 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
     try {
-        console.log('⏰ Running automatedDailyPromise scheduler...');
+        console.log('⏰ Running automatedDailyPromise scheduler for all churches...');
         const db = getDb();
-        // Check if enabled
-        const settingsDoc = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('settings').doc('notifications').get();
-        const settings = settingsDoc.data();
-        if (settings && settings.dailyPromise && settings.dailyPromise.enabled === false) {
-            console.log('🛑 Daily Promise automation is disabled.');
-            return;
-        }
+        // Get date in IST
         const today = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
         const dStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        const promiseSnap = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('promises').where('date', '==', dStr).limit(1).get();
-        if (promiseSnap.empty) {
-            console.log('⚠️ No daily promise found in Firestore for today (' + dStr + ').');
-            return;
-        }
-        const promise = promiseSnap.docs[0].data();
         const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-        // Fallbacks for content based on app schema
-        const content = promise.textEn || promise.text || promise.Promises__c || promise.Promise_text_telugu__c || 'Grace and Peace be multiplied to you today.';
-        // Pushed to broadcasts collection
-        await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('broadcasts').add({
-            title: '📖 Today\'s Promise · ఈ రోజు వాగ్దానం',
-            content: content,
-            date: dateStr,
-            type: 'announcement',
-            silent: true,
-            createdAt: FieldValue.serverTimestamp()
-        });
-        // Send push notification
-        const snapshot = await db.collection('users').get();
-        const tokenSet = new Set();
-        snapshot.forEach((doc) => {
-            const data = doc.data();
-            if (data.fcmToken)
-                tokenSet.add(data.fcmToken);
-        });
-        const tokens = Array.from(tokenSet);
-        if (tokens.length > 0) {
+        // Fetch all churches
+        const churchesSnap = await db.collection('churches').get();
+        for (const churchDoc of churchesSnap.docs) {
+            const churchId = churchDoc.id;
+            // Check if disabled for this specific church
+            const settingsDoc = await db.collection('churches').doc(churchId).collection('settings').doc('notifications').get();
+            const settings = settingsDoc.data();
+            if (settings && settings.dailyPromise && settings.dailyPromise.enabled === false) {
+                console.log(`🛑 Daily Promise automation is disabled for church: ${churchId}`);
+                continue;
+            }
+            // Check if there's a promise for today for this church
+            const promiseSnap = await db.collection('churches').doc(churchId).collection('promises').where('date', '==', dStr).limit(1).get();
+            if (promiseSnap.empty) {
+                console.log(`⚠️ No daily promise found in Firestore for today (${dStr}) for church: ${churchId}`);
+                continue;
+            }
+            const promise = promiseSnap.docs[0].data();
+            // Fallbacks for content based on app schema
+            const content = promise.verse || promise.textEn || promise.text || promise.Promises__c || promise.Promise_text_telugu__c || 'Grace and Peace be multiplied to you today.';
+            const title = promise.verseReferenceEn ? `📖 Daily Promise: ${promise.verseReferenceEn}` : '📖 Today\'s Promise · ఈ రోజు వాగ్దానం';
+            // Push to broadcasts collection for this church
+            await db.collection('churches').doc(churchId).collection('broadcasts').add({
+                title: title,
+                content: content,
+                date: dateStr,
+                type: 'announcement',
+                silent: true,
+                createdAt: FieldValue.serverTimestamp()
+            });
+            // Send push notification to the specific church topic
             const message = {
                 notification: {
-                    title: '📖 Daily Promise · ఈ రోజు వాగ్దానం',
+                    title: title,
                     body: stripHtml(content).slice(0, 100) + '...'
                 },
-                data: { type: 'general' },
+                data: { type: 'general', churchId: churchId },
                 android: {
                     priority: 'high',
                     notification: {
@@ -203,20 +201,13 @@ export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZon
                     }
                 },
                 apns: {
-                    headers: {
-                        'apns-priority': '10'
-                    },
-                    payload: {
-                        aps: {
-                            sound: 'default',
-                            badge: 1
-                        }
-                    }
+                    headers: { 'apns-priority': '10' },
+                    payload: { aps: { sound: 'default', badge: 1 } }
                 },
-                tokens: tokens
+                topic: `church_${churchId}`
             };
-            await getMsg().sendEachForMulticast(message);
-            console.log(`✅ Automated Daily Promise sent to ${tokens.length} members`);
+            await getMsg().send(message);
+            console.log(`✅ Automated Daily Promise sent to topic church_${churchId}`);
         }
     }
     catch (error) {
@@ -1455,4 +1446,57 @@ export const createGoogleMeet = onCall({ invoker: 'public' }, async (request) =>
     }
 });
 export * from './notifications.js';
+export { createRazorpayOrderV4, razorpayWebhookV1, createRazorpayDonationOrderV6, verifyRazorpayDonationV6, verifyRazorpaySubscriptionV3 } from './razorpay.js';
+export * from './subscriptionCron.js';
+export * from './verseBackgrounds.js';
+// ── Church Duplicate Guard ────────────────────────────────────────────────────
+// Server-side safety net: if a duplicate church is created (same name or phone),
+// automatically delete it. This fires even if the client-side check is bypassed.
+export const onChurchCreate = functionsCompat.firestore
+    .document('churches/{churchId}')
+    .onCreate(async (snap, context) => {
+    const db = getDb();
+    const newChurch = snap.data();
+    const newId = context.params.churchId;
+    if (!newChurch)
+        return null;
+    const nameLower = (newChurch.nameLower || newChurch.name || '').toLowerCase().trim();
+    const phone = (newChurch.contactPhone || '').replace(/[^0-9+]/g, '');
+    const createdBy = newChurch.createdBy || '';
+    try {
+        const [byName, byPhone, byCreator] = await Promise.all([
+            // Check for same name
+            nameLower
+                ? db.collection('churches').where('nameLower', '==', nameLower).get()
+                : Promise.resolve({ docs: [] }),
+            // Check for same phone
+            phone
+                ? db.collection('churches').where('contactPhone', '==', phone).get()
+                : Promise.resolve({ docs: [] }),
+            // Check for same creator
+            createdBy
+                ? db.collection('churches').where('createdBy', '==', createdBy).get()
+                : Promise.resolve({ docs: [] }),
+        ]);
+        const isDuplicateName = byName.docs.some((d) => d.id !== newId);
+        const isDuplicatePhone = byPhone.docs.some((d) => d.id !== newId);
+        const isDuplicateCreator = byCreator.docs.some((d) => d.id !== newId);
+        if (isDuplicateName || isDuplicatePhone || isDuplicateCreator) {
+            let reason = 'Unknown reason';
+            if (isDuplicateCreator)
+                reason = 'Creator already has a church';
+            else if (isDuplicateName)
+                reason = `Duplicate name: ${newChurch.name}`;
+            else if (isDuplicatePhone)
+                reason = `Duplicate phone: ${phone}`;
+            console.warn(`[onChurchCreate] Duplicate detected for church ${newId}. Reason: ${reason}. Deleting...`);
+            await snap.ref.delete();
+            console.log(`[onChurchCreate] Duplicate church ${newId} deleted successfully.`);
+        }
+    }
+    catch (err) {
+        console.error('[onChurchCreate] Error during duplicate check:', err);
+    }
+    return null;
+});
 //# sourceMappingURL=index.js.map

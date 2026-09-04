@@ -75,8 +75,10 @@ export default function AdminAttendance() {
   const defaultEnd = () => { const d = new Date(); d.setHours(d.getHours() + 2, 0, 0, 0); return d; };
   const [startTime, setStartTime] = useState<Date>(defaultStart());
   const [endTime, setEndTime] = useState<Date>(defaultEnd());
+  const [date, setDate] = useState<Date>(new Date());
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showEndPicker, setShowEndPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
 
   // Tick every minute to re-evaluate active/expired
@@ -152,11 +154,11 @@ export default function AdminAttendance() {
 
     setIsSubmitting(true);
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const dateStr = date.toISOString().split('T')[0];
       const data = {
         title: title.trim(),
         description: description.trim(),
-        date: todayStr,
+        date: dateStr,
         startTime: startTime.toISOString(),
         endTime: endTime.toISOString(),
       };
@@ -208,6 +210,7 @@ export default function AdminAttendance() {
       setDescription(liveActiveRequest.description || '');
       setStartTime(liveActiveRequest.startTime ? new Date(liveActiveRequest.startTime) : defaultStart());
       setEndTime(liveActiveRequest.endTime ? new Date(liveActiveRequest.endTime) : defaultEnd());
+      setDate(liveActiveRequest.date ? new Date(liveActiveRequest.date) : new Date());
       setEditingRequestId(liveActiveRequest.id);
       setShowNewForm(true);
     }
@@ -218,6 +221,7 @@ export default function AdminAttendance() {
     setDescription('');
     setStartTime(defaultStart());
     setEndTime(defaultEnd());
+    setDate(new Date());
     setEditingRequestId(null);
     setShowNewForm(true);
   };
@@ -354,6 +358,13 @@ export default function AdminAttendance() {
               multiline
             />
 
+            {/* ── Date Picker ── */}
+            <Text style={styles.inputLabel}>Event Date *</Text>
+            <TouchableOpacity style={[styles.timePicker, { marginBottom: 20 }]} onPress={() => setShowDatePicker(true)}>
+              <Calendar size={16} color={COLORS.ink} />
+              <Text style={styles.timePickerTxt}>{date.toLocaleDateString('en-US', { weekday: 'short', month: 'long', day: 'numeric', year: 'numeric' })}</Text>
+            </TouchableOpacity>
+
             {/* ── Time Window ── */}
             <Text style={styles.inputLabel}>Attendance Time Window *</Text>
             <View style={styles.timeRow}>
@@ -386,6 +397,17 @@ export default function AdminAttendance() {
                 onChange={(_, selected) => {
                   setShowStartPicker(Platform.OS === 'ios');
                   if (selected) setStartTime(selected);
+                }}
+              />
+            )}
+            {showDatePicker && (
+              <DateTimePicker
+                value={date}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(_, selected) => {
+                  setShowDatePicker(Platform.OS === 'ios');
+                  if (selected) setDate(selected);
                 }}
               />
             )}
@@ -686,12 +708,12 @@ const styles = StyleSheet.create({
   timeSeparator: { paddingTop: 20, alignItems: 'center' },
   timeSeparatorTxt: { fontSize: 13, color: COLORS.inkSoft, fontWeight: '600' },
 
-  formActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 10 },
+  formActions: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 10, marginTop: 10 },
   cancelBtn: { paddingHorizontal: 16, paddingVertical: 10 },
   cancelBtnTxt: { color: COLORS.inkSoft, fontSize: 14, fontWeight: '600' },
   sendBtn: {
-    backgroundColor: COLORS.green, borderRadius: 12, paddingVertical: 11, paddingHorizontal: 20,
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8,
+    backgroundColor: COLORS.green, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 20,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
   },
   sendBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
 

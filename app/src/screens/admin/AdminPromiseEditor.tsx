@@ -28,8 +28,10 @@ import {
   ChevronRight,
   CheckCircle2
 } from 'lucide-react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+
 import { AppAlert } from '../../components/CustomAlert';
+import { formatDateDisplay } from '../../utils/DateUtils';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
@@ -61,8 +63,9 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AdminPromiseEditor() {
-  const { setActiveTab, editingData, setEditingData } = useContext(AdminTabContext);
+  const { setActiveTab, editingData, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [loading, setLoading] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   
@@ -137,7 +140,7 @@ export default function AdminPromiseEditor() {
 
   const handleSaveToGallery = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== 'granted') {
         Alert.alert('Permission Required', 'We need access to your gallery to save the promise card.');
         return;
@@ -198,7 +201,7 @@ export default function AdminPromiseEditor() {
       });
 
       if (!result.canceled) {
-        setLoading(true);
+        setIsUploadingImage(true);
         const cloudUrl = await uploadImageToCloud(result.assets[0].uri);
         setForm(prev => ({ ...prev, imageUrl: cloudUrl }));
         AppAlert.alert('Success', 'Thumbnail uploaded to cloud successfully! Remember to Save Changes.', undefined, 'success');
@@ -207,7 +210,7 @@ export default function AdminPromiseEditor() {
       console.error('Upload Error:', err);
       AppAlert.alert('Upload Failed', 'There was an issue uploading your image.', undefined, 'error');
     } finally {
-      setLoading(false);
+      setIsUploadingImage(false);
     }
   };
 
@@ -268,7 +271,8 @@ export default function AdminPromiseEditor() {
 
   const closeSuccess = () => {
     setShowSuccess(false);
-    setActiveTab(0);
+    setEditingData?.(null);
+    setTabByName?.('Promises');
   };
 
   const currentStatusLabel = STATUS_OPTIONS.find(o => o.value === form.status)?.label || form.status;
@@ -313,7 +317,7 @@ export default function AdminPromiseEditor() {
     <View style={styles.container}>
       <View style={styles.hero}>
         <View style={styles.heroTitleRow}>
-          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => setTabByName?.('Promises')} style={{ flexDirection: 'row', alignItems: 'center' }}>
             <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
             <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>
@@ -335,7 +339,7 @@ export default function AdminPromiseEditor() {
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Promise date <Text style={{color:'#c0392b'}}>*</Text></Text>
             <TouchableOpacity style={styles.inputWrap} onPress={() => setShowDatePicker(true)}>
-              <Text style={styles.inputText}>{form.date.split('-').reverse().join(' - ')}</Text>
+              <Text style={styles.inputText}>{formatDateDisplay(form.date)}</Text>
               <CalendarIcon size={14} color="#374151" style={styles.inputIcon} />
             </TouchableOpacity>
           </View>
@@ -407,7 +411,12 @@ export default function AdminPromiseEditor() {
           </View>
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Upload Thumbnail Image <Text style={styles.fHint}>(Visible on member home screen)</Text></Text>
-            {form.imageUrl ? (
+            {isUploadingImage ? (
+              <View style={styles.btnUploadThumb}>
+                <ActivityIndicator size="small" color="#1a2d5a" />
+                <Text style={styles.btnUploadThumbTxt}>Uploading...</Text>
+              </View>
+            ) : form.imageUrl ? (
               <View style={styles.thumbnailPreviewContainer}>
                 <Image source={{ uri: form.imageUrl }} style={styles.thumbnailImg} resizeMode="cover" />
                 <TouchableOpacity style={styles.removeThumbnailBtn} onPress={() => setForm(prev => ({ ...prev, imageUrl: '' }))}>
@@ -497,7 +506,7 @@ export default function AdminPromiseEditor() {
                 <CheckCircle2 size={50} color="#15803D" strokeWidth={3} />
               </View>
               <Text style={styles.successTitle}>Success!</Text>
-              <Text style={styles.successSub}>Your daily promise has been published successfully.</Text>
+              <Text style={styles.successSub}>Your daily promise has been {form.status === 'Published' ? 'published and members have been notified!' : 'saved successfully.'}</Text>
               <TouchableOpacity style={styles.successBtn} onPress={closeSuccess}>
                 <Text style={styles.successBtnTxt}>Done</Text>
               </TouchableOpacity>
@@ -534,7 +543,7 @@ export default function AdminPromiseEditor() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.btnBack} onPress={() => setActiveTab(0)}>
+        <TouchableOpacity style={styles.btnBack} onPress={() => setTabByName?.('Promises')}>
           <Text style={styles.btnBackTxt}>← Back to list</Text>
         </TouchableOpacity>
 

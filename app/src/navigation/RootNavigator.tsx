@@ -16,6 +16,9 @@ import Theme from '../theme/Theme';
 import AdminNavigator from './AdminNavigator'; 
 import NotificationService from '../services/NotificationService';
 import SecurityService from '../services/SecurityService';
+import * as Notifications from 'expo-notifications';
+import VerseOfTheDayScreen from '../screens/VerseOfTheDayScreen';
+import VerseNotificationService from '../services/VerseNotificationService';
 
 // Auth & Onboarding
 import AuthNavigator from './AuthNavigator';
@@ -33,6 +36,7 @@ import SermonVideoScreen from '../screens/SermonVideoScreen';
 import EventsScreen from '../screens/EventsScreen';
 import PrayerWallScreen from '../screens/PrayerWallScreen';
 import GivingScreen from '../screens/GivingScreen';
+import GivingHistoryScreen from '../screens/GivingHistoryScreen';
 import SermonsScreen from '../screens/SermonsScreen';
 import SongsScreen from '../screens/SongsScreen';
 import EventDetailsScreen from '../screens/EventDetailsScreen';
@@ -54,6 +58,7 @@ import PastorEventRoutePlanner from '../screens/admin/pastor_events/PastorEventR
 import PastorEventMap from '../screens/admin/pastor_events/PastorEventMap';
 import OnlineMeetingsScreen from '../screens/OnlineMeetingsScreen';
 import OnlineMeetingDetailScreen from '../screens/OnlineMeetingDetailScreen';
+import MemberGalleryNavigator from '../screens/gallery/MemberGalleryNavigator';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -95,20 +100,31 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
     { key: 'Profile', label: 'Profile', Icon: UserIcon, bg: '#27272A', fg: '#27272A' },
   ] as const;
 
-  const getTabConfig = (routeName: string) => {
+  const getTabConfig = (routeName: string, useDailyVerse: boolean = false) => {
+    if (routeName === 'Promise') {
+      return {
+        key: 'Promise',
+        label: useDailyVerse ? 'Daily Verse' : 'Promise',
+        Icon: BookOpen,
+        bg: '#0F766E',
+        fg: '#0F766E',
+      };
+    }
     return TABS.find(t => t.key === routeName) || TABS[0];
   };
 
   function CustomTabBar({ state, descriptors, navigation }: any) {
+    const { activeChurch } = useChurch();
+    const useWeChristianDailyPromise = activeChurch?.useWeChristianDailyPromise !== false;
     const currentRoute = state.routes[state.index];
-    const activeConfig = getTabConfig(currentRoute.name);
+    const activeConfig = getTabConfig(currentRoute.name, useWeChristianDailyPromise);
 
     return (
       <View style={[styles.tabBarContainer, { backgroundColor: activeConfig.bg }]}>
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
-          const config = getTabConfig(route.name);
+          const config = getTabConfig(route.name, useWeChristianDailyPromise);
           const IconComponent = config.Icon;
 
           const onPress = () => {
@@ -136,13 +152,25 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
             >
               {isFocused ? (
                 <View style={styles.activeCircle}>
-                  <IconComponent color={config.fg} size={22} strokeWidth={2.5} />
-                  <Text style={[styles.activeLabel, { color: config.fg }]}>{config.label}</Text>
+                  <IconComponent color={config.fg} size={20} strokeWidth={2.5} />
+                  <Text 
+                    style={[styles.activeLabel, { color: config.fg }]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {config.label}
+                  </Text>
                 </View>
               ) : (
                 <View style={styles.inactiveWrapper}>
-                  <IconComponent color="rgba(255, 255, 255, 0.7)" size={24} strokeWidth={2} />
-                  <Text style={styles.inactiveLabel}>{config.label}</Text>
+                  <IconComponent color="rgba(255, 255, 255, 0.7)" size={22} strokeWidth={2} />
+                  <Text 
+                    style={styles.inactiveLabel}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                  >
+                    {config.label}
+                  </Text>
                 </View>
               )}
             </TouchableOpacity>
@@ -154,11 +182,35 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
 
 function TabNavigator() {
   const { user, signOut, member, viewMode, setViewMode } = useAuth();
+  const { activeChurch } = useChurch();
+  const useWeChristianDailyPromise = activeChurch?.useWeChristianDailyPromise !== false;
+  const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const [globalUser, setGlobalUser] = useState<any>(null);
+
+  useEffect(() => {
+    if (user?.uid && !user.isAnonymous) {
+      const unsubscribe = firestore()
+        .collection('users')
+        .doc(user.uid)
+        .onSnapshot(
+          (doc) => {
+            if (doc.data()) {
+              setGlobalUser(doc.data());
+            }
+          },
+          (error) => {
+            console.error('Error listening to globalUser:', error);
+          }
+        );
+      return () => unsubscribe();
+    }
+  }, [user]);
+
   const isGuest = user?.isAnonymous;
   const isActualAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER');
 
-  const handleGuestInteraction = (e: any) => {
+  const handleFeatureInteraction = (e: any) => {
     if (isGuest) {
       e.preventDefault();
       Alert.alert(
@@ -169,6 +221,7 @@ function TabNavigator() {
           { text: 'Sign In', onPress: () => signOut() }
         ]
       );
+      return;
     }
   };
 
@@ -184,21 +237,22 @@ function TabNavigator() {
       />
       <Tab.Screen 
         name="Promise" 
-        component={PromiseArchiveScreen} 
+        component={useWeChristianDailyPromise ? VerseOfTheDayScreen : PromiseArchiveScreen} 
+        listeners={{ tabPress: handleFeatureInteraction }}
       /> 
       <Tab.Screen 
         name="Sermons" 
         component={SermonsScreen} 
+        listeners={{ tabPress: handleFeatureInteraction }}
       />
       <Tab.Screen 
         name="Prayer" 
         component={PrayerWallScreen} 
-        listeners={{ tabPress: handleGuestInteraction }}
+        listeners={{ tabPress: handleFeatureInteraction }}
       />
       <Tab.Screen 
         name="Profile" 
         component={ProfileScreen} 
-        listeners={{ tabPress: handleGuestInteraction }}
       />
     </Tab.Navigator>
 
@@ -210,7 +264,7 @@ function TabNavigator() {
 }
 
 function Navigation() {
-  const { user, member, loading, viewMode, setViewMode } = useAuth();
+  const { user, member, loading, viewMode, setViewMode, signOut } = useAuth();
   const { activeChurch } = useChurch();
   const navigation = useNavigation();
   const [onboardingComplete, setOnboardingComplete] = React.useState<boolean | null>(null);
@@ -272,6 +326,19 @@ function Navigation() {
 
   // Handle Notifications
   useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      if (data?.type === 'daily_verse' && data.verseId) {
+        const { navigationRef } = require('../../App');
+        if (navigationRef && navigationRef.isReady()) {
+          navigationRef.navigate('VerseOfTheDay', { 
+            verseId: data.verseId, 
+            period: data.period 
+          });
+        }
+      }
+    });
+
     // 1. When app is in background and user clicks notification
     const unsubscribeOnOpen = NotificationService.messaging().onNotificationOpenedApp(remoteMessage => {
       setPendingNotification(remoteMessage);
@@ -290,6 +357,7 @@ function Navigation() {
     return () => {
       unsubscribeOnOpen();
       unsubscribeForeground();
+      subscription.remove();
     };
   }, [navigation]);
 
@@ -329,6 +397,9 @@ function Navigation() {
         if (hasPermission) {
           await NotificationService.getFcmToken();
         }
+        
+        // Initialize Daily Verses Background Sync & Local Notifications
+        VerseNotificationService.initialize();
 
         // Proactive self-healing: Ensure user profile document has 'name' and 'phone' in Firestore
         if (!user.isAnonymous) {
@@ -432,6 +503,36 @@ function Navigation() {
     );
   }
 
+  // ── Church Expiration Logic ──
+  const isChurchExpired = activeChurch?.isActive === false || activeChurch?.subscription?.status === 'expired';
+
+  if (isChurchExpired && user && !user.isAnonymous) {
+    if (isAdmin) {
+      // Force admin to the Subscription screen
+      return (
+        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'none' }}>
+          <Stack.Screen name="Subscription" component={SubscriptionScreen} initialParams={{ isExpired: true }} />
+        </Stack.Navigator>
+      );
+    } else {
+      // Block members completely
+      return (
+        <View style={lockStyles.container}>
+          <View style={lockStyles.card}>
+            <View style={lockStyles.iconContainer}>
+              <Lock size={40} color="#e74c3c" />
+            </View>
+            <Text style={lockStyles.title}>Subscription Expired</Text>
+            <Text style={lockStyles.subtitle}>Your church subscription has expired. Please reach out to your church admin/pastor.</Text>
+            <TouchableOpacity style={lockStyles.button} onPress={signOut}>
+              <Text style={lockStyles.buttonText}>Sign Out</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
+  }
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'none' }}>
       {user ? (
@@ -449,6 +550,7 @@ function Navigation() {
             <Stack.Screen name="Events" component={EventsScreen} />
             <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
             <Stack.Screen name="LiveCelebrationsChat" component={LiveCelebrationsChat} />
+            <Stack.Screen name="VerseOfTheDay" component={VerseOfTheDayScreen} />
           </>
         ) : onboardingComplete ? (
           <>
@@ -459,6 +561,7 @@ function Navigation() {
             <Stack.Screen name="SermonVideo" component={SermonVideoScreen} />
             <Stack.Screen name="Events" component={EventsScreen} />
             <Stack.Screen name="Give" component={GivingScreen} />
+            <Stack.Screen name="GivingHistory" component={GivingHistoryScreen} />
             <Stack.Screen name="Sermons" component={SermonsScreen} />
             <Stack.Screen name="Songs" component={SongsScreen} />
             <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
@@ -477,6 +580,8 @@ function Navigation() {
             <Stack.Screen name="OnlineMeetings" component={OnlineMeetingsScreen} />
             <Stack.Screen name="OnlineMeetingDetail" component={OnlineMeetingDetailScreen} />
             <Stack.Screen name="LiveCelebrationsChat" component={LiveCelebrationsChat} />
+            <Stack.Screen name="Gallery" component={MemberGalleryNavigator} />
+            <Stack.Screen name="VerseOfTheDay" component={VerseOfTheDayScreen} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
@@ -503,7 +608,7 @@ export default function RootNavigator() {
 const styles = StyleSheet.create({
   tabBarContainer: {
     flexDirection: 'row',
-    height: 75,
+    height: 65,
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 65 : 50,
     left: 20,
@@ -522,21 +627,23 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 75,
+    height: 65,
   },
   activeCircle: {
     backgroundColor: '#ffffff',
-    width: 60,
-    height: 60,
-    borderRadius: 30, 
+    width: 55,
+    height: 55,
+    borderRadius: 27.5, 
     justifyContent: 'center',
     alignItems: 'center',
   },
   activeLabel: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.1,
+    letterSpacing: 0,
     marginTop: 2,
+    textAlign: 'center',
+    paddingHorizontal: 2,
   },
   inactiveWrapper: {
     alignItems: 'center',
@@ -544,10 +651,12 @@ const styles = StyleSheet.create({
   },
   inactiveLabel: {
     color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '600',
-    marginTop: 4,
-    letterSpacing: 0.2
+    marginTop: 3,
+    letterSpacing: 0,
+    textAlign: 'center',
+    paddingHorizontal: 2,
   }
 });
 

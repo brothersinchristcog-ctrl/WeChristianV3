@@ -201,8 +201,9 @@ export default function AdminCelebrationsList({ category, activeTab, onSelectMem
     setIsSendingAll(true);
     try {
       for (const member of filteredMembers) {
-        const title = `${category === 'Birthday' ? '🎂 Happy Birthday' : category === 'Wedding Anniversary' ? '💒 Happy Anniversary' : '🎉 Happy Baptism Anniversary'}, ${member.name}!`;
-        let content = `Praise the Lord!\n\nDear ${member.name}, wishing you a very Happy ${category}! May God bless you abundantly.\n\nWith Love ❤️\n${activeChurch?.name || 'Your Church'}`;
+        const memberCelebrationType = member.celebrationType || category;
+        const title = `${memberCelebrationType === 'Birthday' ? '🎂 Happy Birthday' : memberCelebrationType === 'Wedding Anniversary' ? '💒 Happy Anniversary' : '🎉 Happy Baptism Anniversary'}, ${member.name}!`;
+        let content = `Praise the Lord!\n\nDear ${member.name}, wishing you a very Happy ${memberCelebrationType}! May God bless you abundantly.\n\nWith Love ❤️\n${activeChurch?.name || 'Your Church'}`;
         
         await FirestoreService.createNotificationBroadcast({
           title,
@@ -282,9 +283,9 @@ export default function AdminCelebrationsList({ category, activeTab, onSelectMem
               <Text style={styles.memberName} numberOfLines={1}>{member.name}</Text>
               <View style={styles.memberMetaRow}>
                 <View style={styles.tag}>
-                  <Text style={styles.tagTxt}>{member.celebrationType ? member.celebrationType.toUpperCase() : category.toUpperCase()}</Text>
+                  <Text style={styles.tagTxt} numberOfLines={1} adjustsFontSizeToFit>{member.celebrationType ? member.celebrationType.toUpperCase() : category.toUpperCase()}</Text>
                 </View>
-                <Text style={styles.metaTxt}> · {member.dateStr} · {member.age} yrs</Text>
+                <Text style={styles.metaTxt}>• {member.dateStr} {member.age ? `• ${member.age} yrs` : ''}</Text>
               </View>
             </View>
           </TouchableOpacity>
@@ -501,6 +502,9 @@ const styles = StyleSheet.create({
   memberMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 2,
   },
   tag: {
     backgroundColor: '#FDE68A', // Yellow/Gold

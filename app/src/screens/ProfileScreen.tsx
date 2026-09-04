@@ -14,8 +14,10 @@ import {
   TextInput,
   Alert,
   Image,
-  Switch
+  Switch,
+  Share
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   ChevronRight, 
   LogOut, 
@@ -32,17 +34,21 @@ import {
   MapPin,
   Crown,
   Award,
-  Shield
+  Shield,
+  Sun
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import FirestoreService, { AppMember } from '../services/FirestoreService';
+import ReferralService from '../services/ReferralService';
 import { useChurch } from '../context/ChurchContext';
 import SecurityService from '../services/SecurityService';
 import * as ImagePicker from 'expo-image-picker';
 import Constants from 'expo-constants';
 import { Lock } from 'lucide-react-native';
 import storage from '@react-native-firebase/storage';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { formatDateDisplay } from '../utils/DateUtils';
 
 const { width } = Dimensions.get('window');
 
@@ -59,6 +65,8 @@ export default function ProfileScreen({ navigation }: any) {
   const [isNotifyModalVisible, setIsNotifyModalVisible] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState('Telugu');
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [generatingCode, setGeneratingCode] = useState(false);
   
   // Notification States
   const [dailyPromiseNotify, setDailyPromiseNotify] = useState(true);
@@ -69,11 +77,24 @@ export default function ProfileScreen({ navigation }: any) {
     firstName: authMember?.firstName || '',
     lastName: authMember?.lastName || '',
     email: authMember?.email || '',
-    mailingCity: authMember?.mailingCity || '',
+    city: authMember?.city || authMember?.village || authMember?.mailingCity || '',
     mailingStreet: authMember?.mailingStreet || '',
-    mailingState: authMember?.mailingState || ''
+    mailingState: authMember?.mailingState || '',
+    dob: authMember?.dob || '',
+    baptismDate: authMember?.baptismDate || '',
+    anniversaryDate: authMember?.anniversaryDate || ''
   });
   const [updating, setUpdating] = useState(false);
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [activeDateField, setActiveDateField] = useState<'dob' | 'baptismDate' | 'anniversaryDate' | null>(null);
+
+  const handleConfirmDate = (date: Date) => {
+    const formattedDate = date.toISOString().split('T')[0];
+    if (activeDateField === 'dob') setEditForm({ ...editForm, dob: formattedDate });
+    if (activeDateField === 'baptismDate') setEditForm({ ...editForm, baptismDate: formattedDate });
+    if (activeDateField === 'anniversaryDate') setEditForm({ ...editForm, anniversaryDate: formattedDate });
+    setDatePickerVisibility(false);
+  };
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricEnabled, setBiometricEnabled] = useState(false);
   
@@ -87,8 +108,9 @@ export default function ProfileScreen({ navigation }: any) {
 
   const fetchProfileData = async () => {
     try {
-      if (user?.phoneNumber) {
-        const contactCheck = await FirestoreService.checkContactExists(user.phoneNumber);
+      const searchPhone = user?.phoneNumber || (member as AppMember)?.phone || (member as any)?.phoneNumber;
+      if (searchPhone) {
+        const contactCheck = await FirestoreService.checkContactExists(searchPhone);
         if (contactCheck?.exists && contactCheck.member) {
           setMember(contactCheck.member);
           if (setGlobalMember) {
@@ -98,9 +120,12 @@ export default function ProfileScreen({ navigation }: any) {
             firstName: contactCheck.member.firstName || '',
             lastName: contactCheck.member.lastName || '',
             email: contactCheck.member.email || '',
-            mailingCity: contactCheck.member.mailingCity || '',
+            city: contactCheck.member.city || contactCheck.member.village || contactCheck.member.mailingCity || '',
             mailingStreet: contactCheck.member.mailingStreet || '',
-            mailingState: contactCheck.member.mailingState || ''
+            mailingState: contactCheck.member.mailingState || '',
+            dob: contactCheck.member.dob || '',
+            baptismDate: contactCheck.member.baptismDate || '',
+            anniversaryDate: contactCheck.member.anniversaryDate || ''
           });
         }
       }
@@ -112,12 +137,35 @@ export default function ProfileScreen({ navigation }: any) {
     }
   };
 
+  const handleReferralShare = async () => {
+    try {
+      let code = referralCode;
+      if (!code) {
+        if (!user) return;
+        setGeneratingCode(true);
+        const name = member?.name || `${member?.firstName || ''} ${member?.lastName || ''}`.trim() || user.displayName || 'Friend';
+        code = await ReferralService.getOrCreateReferralCode(user.uid, name, member?.churchId || activeChurch?.id);
+        setReferralCode(code);
+        setGeneratingCode(false);
+      }
+      
+      await Share.share({
+        message: `Join WeChristian! Register your church and get started using my referral code: ${code}\n\nDownload app: https://play.google.com/store/apps/details?id=com.wechristian.app&referrer=${code}`,
+        title: 'WeChristian Referral'
+      });
+    } catch (error) {
+      setGeneratingCode(false);
+      Alert.alert('Error', 'Could not generate referral code');
+    }
+  };
+
   const handleUpdateProfile = async () => {
     if (!member) return;
     setUpdating(true);
     try {
       const updatedDetails = {
         ...editForm,
+        mailingCity: editForm.city, // Keep synced for any legacy UI
         name: `${editForm.firstName || ''} ${editForm.lastName || ''}`.trim()
       };
       await FirestoreService.updateMemberProfile(member.churchId || activeChurch?.id || '', member.id, updatedDetails);
@@ -317,43 +365,60 @@ export default function ProfileScreen({ navigation }: any) {
       ) : (
         <>
           {/* ── Hero Section (Navy) ── */}
-      <View style={styles.heroSection}>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.heroSection}
+      >
         <View style={styles.headerTop}>
           <View style={{ width: 40 }} />
           <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-             <Text style={styles.themeToggleText}>{isDark ? '🌙 Dark' : '☀️ Light'}</Text>
+            {isDark
+              ? <Sun size={18} color="#FCD34D" />
+              : <Moon size={18} color="#fff" />
+            }
           </TouchableOpacity>
         </View>
 
-        <View style={styles.avatarContainer}>
-          {localPhotoUrl ? (
-            <Image source={{ uri: localPhotoUrl }} style={styles.avatarImg} />
-          ) : (
-            <View style={styles.avatarCircle}>
-               <User size={45} color="#fff" strokeWidth={1.5} />
+        {/* ── Hero Content ── */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, marginTop: 14, width: '100%' }}>
+          {/* Avatar */}
+          <View style={[styles.avatarContainer, { marginTop: 0, marginRight: 18 }]}>
+            {localPhotoUrl ? (
+              <Image source={{ uri: localPhotoUrl }} style={styles.avatarImg} />
+            ) : (
+              <View style={styles.avatarCircle}>
+                <User size={42} color="#fff" strokeWidth={1.5} />
+              </View>
+            )}
+          </View>
+
+          {/* Name + Greeting */}
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 20, color: '#a78bfa', fontStyle: 'italic', fontWeight: '400', marginBottom: 2 }}>Welcome back,</Text>
+            <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', lineHeight: 28 }}>
+              {member?.firstName ? `${member.firstName} ${member.lastName || ''}` : member?.name || user?.displayName || 'Beloved Member'}
+            </Text>
+            {/* Member Since Pill */}
+            <View style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 }}>
+              <Text style={{ color: '#e2e8f0', fontSize: 12, fontWeight: '500' }}>
+                Member since {member?.joinDate ? new Date(member.joinDate).getFullYear() : '2026'}
+              </Text>
             </View>
-          )}
-          <View style={styles.verifiedBadge}>
-            <Text style={{ fontSize: 10 }}>✨</Text>
           </View>
         </View>
 
-        <View style={styles.userInfo}>
-          <Text style={styles.userName}>{member?.firstName ? `${member.firstName} ${member.lastName || ''}` : member?.name || user?.displayName || 'Beloved Member'}</Text>
-          <Text style={styles.userSub}>
-            {activeChurch?.name || 'Church'}{member?.mailingCity ? `, ${member.mailingCity}` : ''}
-          </Text>
-          <Text style={[styles.userSub, { marginTop: 2, marginBottom: 8 }]}>
-            Member since {member?.joinDate ? new Date(member.joinDate).getFullYear() : '2026'}
-          </Text>
+        {/* ── Stats Row ── */}
+        <View style={{ paddingHorizontal: 16, width: '100%', marginTop: 20 }}>
           <View style={styles.statsCard}>
             <View style={styles.statItem}>
               <View style={[styles.statIconContainer, { backgroundColor: '#3b82f6' }]}>
-                <Award size={14} color="#fff" strokeWidth={2.5} />
+                <MapPin size={14} color="#fff" strokeWidth={2.5} />
               </View>
               <View style={styles.statTextCol}>
-                <Text style={styles.statLabel}>Membership</Text>
-                <Text style={styles.statValue} numberOfLines={1}>Free Trial</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Village</Text>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{member?.mailingCity || 'N/A'}</Text>
               </View>
             </View>
 
@@ -364,8 +429,8 @@ export default function ProfileScreen({ navigation }: any) {
                 <Globe size={14} color="#fff" strokeWidth={2.5} />
               </View>
               <View style={styles.statTextCol}>
-                <Text style={styles.statLabel}>Language</Text>
-                <Text style={styles.statValue} numberOfLines={1}>Telugu</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Language</Text>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>Telugu</Text>
               </View>
             </View>
 
@@ -376,15 +441,15 @@ export default function ProfileScreen({ navigation }: any) {
                 <Crown size={14} color="#fff" strokeWidth={2.5} />
               </View>
               <View style={styles.statTextCol}>
-                <Text style={styles.statLabel}>Role</Text>
-                <Text style={styles.statValue} numberOfLines={1}>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Role</Text>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
                   {(member?.userType || 'MEMBER').toUpperCase()}
                 </Text>
               </View>
             </View>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       <ScrollView 
         showsVerticalScrollIndicator={false} 
@@ -416,31 +481,24 @@ export default function ProfileScreen({ navigation }: any) {
             icon={<CreditCard size={20} color="#94a3b8" />} 
             iconBg="#f1f5f9"
             title="Giving history" 
-            sub="Available Soon" 
+            sub="View your donation records" 
             onPress={() => {
-              setInfoMessage('Online donations via the app are coming soon. Please contact the church administration for offline donation options.');
-              setInfoModalVisible(true);
+              navigation.navigate('GivingHistory');
             }}
           />
-          <MenuItem 
-            icon={<Heart size={20} color="#7c3aed" />} 
-            iconBg="#f5f3ff"
-            title="My prayer requests" 
-            sub="View & manage your requests" 
-            onPress={() => {
-              navigation.navigate('PrayerWall');
-            }}
-          />
-          <MenuItem 
-            icon={<CreditCard size={20} color="#d97706" />} 
-            iconBg="#fffbeb"
-            title="Subscription" 
-            sub="Manage your plan and billing" 
-            isLast 
-            onPress={() => {
-              navigation.navigate('Subscription');
-            }}
-          />
+
+          {(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') || String(member?.userType || '').toUpperCase().includes('PASTOR')) && (
+            <MenuItem 
+              icon={<CreditCard size={20} color="#d97706" />} 
+              iconBg="#fffbeb"
+              title="Church Subscription" 
+              sub="Manage church plan and billing" 
+              isLast 
+              onPress={() => {
+                navigation.navigate('Subscription');
+              }}
+            />
+          )}
         </View>
 
         {/* ── Settings Section ── */}
@@ -499,20 +557,45 @@ export default function ProfileScreen({ navigation }: any) {
           </>
         )}
 
-        {/* ── Support ── */}
-        <Text style={styles.sectionLabel}>SUPPORT</Text>
+        {/* ── Referrals Section ── */}
+        <Text style={styles.sectionLabel}>REFERRALS</Text>
         <View style={styles.menuGroup}>
           <MenuItem 
-            icon={<LogOut size={20} color="#c0392b" />} 
-            iconBg="#fff1f2"
-            title="Sign out" 
-            sub="Securely exit your account" 
+            icon={<Award size={20} color="#8b5cf6" />} 
+            iconBg="#f3e8ff"
+            title="Refer a Church" 
+            sub={generatingCode ? "Generating code..." : (referralCode ? `Your code: ${referralCode}` : "Share the app and earn")} 
             isLast 
-            onPress={signOut}
+            onPress={handleReferralShare}
           />
         </View>
 
-        <Text style={styles.versionTxt}>Version {Constants.expoConfig?.version || '1.0.0'}</Text>
+        {/* ── Sign Out Button ── */}
+        <TouchableOpacity 
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#0f172a',
+            paddingVertical: 16,
+            paddingHorizontal: 32,
+            borderRadius: 100, // Pill shape
+            alignSelf: 'center',
+            marginTop: 40,
+            marginBottom: 20,
+            shadowColor: '#0f172a',
+            shadowOpacity: 0.25,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 8
+          }}
+          onPress={signOut}
+        >
+          <LogOut size={20} color="#ffffff" style={{ marginRight: 10 }} />
+          <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>Sign out</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.versionTxt}>Version {Constants.expoConfig?.version || '1.0.1'}</Text>
       </ScrollView>
 
       {/* ── Edit Profile Modal (Using View for better reliability) ── */}
@@ -579,6 +662,51 @@ export default function ProfileScreen({ navigation }: any) {
               </View>
 
               <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Birthday</Text>
+                <TouchableOpacity 
+                  style={[styles.input, { justifyContent: 'center' }]}
+                  onPress={() => {
+                    setActiveDateField('dob');
+                    setDatePickerVisibility(true);
+                  }}
+                >
+                  <Text style={{ fontSize: 15, color: editForm.dob ? '#1e293b' : '#94a3b8' }}>
+                    {editForm.dob ? formatDateDisplay(editForm.dob) : "Select Date"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Baptism Date</Text>
+                <TouchableOpacity 
+                  style={[styles.input, { justifyContent: 'center' }]}
+                  onPress={() => {
+                    setActiveDateField('baptismDate');
+                    setDatePickerVisibility(true);
+                  }}
+                >
+                  <Text style={{ fontSize: 15, color: editForm.baptismDate ? '#1e293b' : '#94a3b8' }}>
+                    {editForm.baptismDate ? formatDateDisplay(editForm.baptismDate) : "Select Date"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Wedding Anniversary Date</Text>
+                <TouchableOpacity 
+                  style={[styles.input, { justifyContent: 'center' }]}
+                  onPress={() => {
+                    setActiveDateField('anniversaryDate');
+                    setDatePickerVisibility(true);
+                  }}
+                >
+                  <Text style={{ fontSize: 15, color: editForm.anniversaryDate ? '#1e293b' : '#94a3b8' }}>
+                    {editForm.anniversaryDate ? formatDateDisplay(editForm.anniversaryDate) : "Select Date"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Phone Number (Managed by Auth)</Text>
                 <TextInput 
                   style={[styles.input, { backgroundColor: '#f1f5f9', color: '#64748b' }]}
@@ -589,12 +717,12 @@ export default function ProfileScreen({ navigation }: any) {
 
               <View style={styles.inputRow}>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>City</Text>
-                  <TextInput 
+                  <Text style={styles.inputLabel}>City / Village</Text>
+                  <TextInput
                     style={styles.input}
-                    value={editForm.mailingCity}
-                    onChangeText={(t) => setEditForm({...editForm, mailingCity: t})}
-                    placeholder="City"
+                    value={editForm.city}
+                    onChangeText={(t) => setEditForm({...editForm, city: t})}
+                    placeholder="City / Village"
                   />
                 </View>
                 <View style={[styles.inputGroup, { flex: 1, marginLeft: 10 }]}>
@@ -633,6 +761,19 @@ export default function ProfileScreen({ navigation }: any) {
               
               <View style={{ height: 60 }} />
             </ScrollView>
+
+            <DateTimePickerModal
+              isVisible={isDatePickerVisible}
+              mode="date"
+              onConfirm={handleConfirmDate}
+              onCancel={() => setDatePickerVisibility(false)}
+              date={
+                activeDateField && editForm[activeDateField] 
+                ? new Date(editForm[activeDateField]) 
+                : new Date()
+              }
+              maximumDate={new Date()}
+            />
           </View>
         </View>
       )}
@@ -853,23 +994,23 @@ const styles = StyleSheet.create({
 
   // Hero Section
   heroSection: { 
-    backgroundColor: '#1a2d5a', 
+    backgroundColor: 'transparent', 
     paddingTop: Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ? StatusBar.currentHeight + 10 : 45), 
-    paddingBottom: 40,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
     alignItems: 'center'
   },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, alignItems: 'center', alignSelf: 'stretch' },
-  themeToggle: { backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  themeToggle: { backgroundColor: 'rgba(255,255,255,0.15)', width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
   themeToggleText: { color: '#fff', fontSize: 10, fontWeight: '800' },
 
-  avatarContainer: { alignItems: 'center', marginTop: 10 },
+  avatarContainer: { alignItems: 'center', marginTop: 0 },
   avatarCircle: { 
     width: 90, height: 90, borderRadius: 45, backgroundColor: '#c0392b', 
-    justifyContent: 'center', alignItems: 'center', borderWidth: 4, borderColor: '#FCD34D' 
+    justifyContent: 'center', alignItems: 'center', borderWidth: 3, borderColor: '#e0c88a'
   },
-  avatarImg: { width: 90, height: 90, borderRadius: 45, borderWidth: 4, borderColor: '#FCD34D' },
+  avatarImg: { width: 90, height: 90, borderRadius: 45, borderWidth: 3, borderColor: '#e0c88a' },
   avatarText: { color: '#fff', fontSize: 32, fontWeight: '800' },
   verifiedBadge: { 
     position: 'absolute', 
@@ -890,7 +1031,7 @@ const styles = StyleSheet.create({
   },
 
   userInfo: { alignItems: 'center', marginTop: 15 },
-  userName: { fontSize: 22, fontWeight: '800', color: '#fff' },
+  userName: { fontSize: 20, fontWeight: '800', color: '#fff' },
   userSub: { fontSize: 12, color: '#aac4e8', marginTop: 4 },
   
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 15 },
@@ -928,7 +1069,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     color: '#fff',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     marginBottom: 2
   },

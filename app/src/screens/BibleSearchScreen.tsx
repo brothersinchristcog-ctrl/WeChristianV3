@@ -12,7 +12,8 @@ import {
   FlatList,
   Platform
 } from 'react-native';
-import { ChevronLeft, Search, BookOpen, CheckSquare, Square, BookMarked, Filter, ChevronDown, X } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowLeft, ChevronLeft, Search, BookOpen, CheckSquare, Square, BookMarked, Filter, ChevronDown, X } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -457,7 +458,12 @@ export default function BibleSearchScreen({ route, navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Header */}
-      <View style={styles.header}>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
         <TouchableOpacity style={styles.backBtn} onPress={() => {
           if (hasSearched) {
             setHasSearched(false);
@@ -469,18 +475,23 @@ export default function BibleSearchScreen({ route, navigation }: any) {
           } else {
             navigation.navigate('Bible');
           }
-        }}>
-          <ChevronLeft color="#fff" size={28} />
+        }} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft color="#fff" size={24} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Verse Search</Text>
-        <View style={{ width: 40 }} />
-      </View>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
+            <Text style={styles.headerTitle}>Verse Search</Text>
+          </View>
+        </View>
+
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       {/* Search Input + Dropdown Suggestions wrapper - hide when results are shown */}
-      {!hasSearched && (
-        <View style={{ marginHorizontal: 20, zIndex: 100 }}>
+      <View style={{ marginHorizontal: 20, zIndex: 100 }}>
           <View style={[styles.searchContainer, { backgroundColor: isDark ? '#1e293b' : '#fff', marginHorizontal: 0, marginTop: 16, marginBottom: 0 }]}>
-            <TouchableOpacity onPress={() => performSearch(query)} style={{ padding: 4, marginRight: 6 }}>
+            <TouchableOpacity onPress={() => performSearch(query)} style={{ padding: 4, flexShrink: 0 }}>
               <Search size={20} color={isDark ? '#94a3b8' : '#64748b'} />
             </TouchableOpacity>
             <TextInput
@@ -494,14 +505,14 @@ export default function BibleSearchScreen({ route, navigation }: any) {
               autoFocus={!initialQuery}
             />
             {query.length > 0 && (
-              <TouchableOpacity onPress={() => { setQuery(''); setResults([]); setSuggestions([]); }} style={{ padding: 8 }}>
-                <Text style={styles.clearBtn}>×</Text>
+              <TouchableOpacity onPress={() => { setQuery(''); setResults([]); setSuggestions([]); setHasSearched(false); }} style={{ padding: 8, flexShrink: 0 }}>
+                <X size={18} color={isDark ? '#64748b' : '#94a3b8'} />
               </TouchableOpacity>
             )}
           </View>
 
           {/* Dropdown Suggestions */}
-          {suggestions.length > 0 && (
+          {!hasSearched && suggestions.length > 0 && (
             <View style={[styles.suggestionDropdown, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
               {suggestions.slice(0, 6).map((sugg, idx) => (
                 <TouchableOpacity
@@ -513,14 +524,13 @@ export default function BibleSearchScreen({ route, navigation }: any) {
                   ]}
                   onPress={() => { setQuery(sugg); performSearch(sugg); setSuggestions([]); }}
                 >
-                  <Search size={14} color={isDark ? '#64748b' : '#94a3b8'} style={{ marginRight: 10 }} />
+                  <Search size={14} color={isDark ? '#64748b' : '#64748b'} style={{ marginRight: 10 }} />
                   <Text style={[styles.suggestionItemTxt, { color: isDark ? '#f1f5f9' : '#0f172a' }]}>{sugg}</Text>
                 </TouchableOpacity>
               ))}
             </View>
           )}
         </View>
-      )}
 
       {/* Filters Row - always shown so user can refine search */}
       <View style={styles.filtersRow}>
@@ -714,18 +724,18 @@ export default function BibleSearchScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 16,
     paddingBottom: 20,
-    backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  backBtn: { padding: 4 },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#fff' },
+  backBtn: { zIndex: 10, padding: 5 },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -743,9 +753,11 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: 8,
+    marginRight: 4,
     fontSize: 15,
-    fontWeight: '600'
+    fontWeight: '600',
+    minWidth: 0,
   },
   clearBtn: {
     fontSize: 20,

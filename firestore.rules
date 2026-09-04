@@ -47,6 +47,14 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
+    match /daily_verses/{verseId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /daily_verses_meta/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
     match /dailyVideos/{videoId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
@@ -99,9 +107,24 @@ service cloud.firestore {
       allow write: if isAdminGlobally();
     }
 
+    match /platform_admins/{adminId} {
+      allow read: if isAuthenticated();
+    }
+
     // 9. Worship Songs
     match /worshipSongs/{songId} {
       allow read, write: if isAuthenticated();
+    }
+
+    // Helper: Is this user a platform super admin?
+    function isPlatformAdmin() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid));
+    }
+
+    // Global Master Songs
+    match /masterSongs/{songId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminGlobally() || isPlatformAdmin();
     }
 
     // 10. Subscription Plans
@@ -123,6 +146,11 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // 13. Referral Codes
+    match /referral_codes/{codeId} {
+      allow read, write: if isAuthenticated();
+    }
+
     // --- CHURCH-SCOPED COLLECTIONS (all data lives here) ---
     match /churches/{churchId} {
       // Helper: Is this user an admin for this specific church?
@@ -138,7 +166,9 @@ service cloud.firestore {
           let hasParentMemberDoc = parentId != null && exists(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid));
           let isParentAdmin = hasParentMemberDoc && get(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
 
-          return isAuthenticated() && (isGlobalAdmin || isMemberAdmin || isParentAdmin);
+          let isPlatformAdmin = exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid));
+
+          return isAuthenticated() && (isGlobalAdmin || isMemberAdmin || isParentAdmin || isPlatformAdmin);
         }
 
       // Church info is public — allow lookup by code even before login (needed during signup).
@@ -178,6 +208,17 @@ service cloud.firestore {
       match /updates/{docId} {
         allow read: if isAuthenticated();
         allow write: if isChurchAdmin();
+      }
+
+      // Gallery Albums
+      match /gallery_albums/{albumId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+        
+        match /photos/{photoId} {
+          allow read: if isAuthenticated();
+          allow write: if isChurchAdmin();
+        }
       }
 
       // About Us content

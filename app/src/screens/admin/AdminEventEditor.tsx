@@ -18,7 +18,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import DateTimePickerModal from "react-native-modal-datetime-picker";
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import {
   Calendar,
   Clock,
@@ -32,7 +32,8 @@ import {
   ChevronLeft,
   Info,
   CheckCircle2,
-  ArrowLeft
+  ArrowLeft,
+  CalendarDays
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { AppAlert } from '../../components/CustomAlert';
@@ -78,8 +79,9 @@ const PUBLISH_STATUS_OPTIONS = [
 ];
 
 export default function AdminEventEditor() {
-  const { setActiveTab, editingData, setEditingData } = useContext(AdminTabContext);
+  const { setActiveTab, editingData, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [loading, setLoading] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   // Form State
   const [titleEn, setTitleEn] = useState('');
@@ -88,9 +90,11 @@ export default function AdminEventEditor() {
   const [descEn, setDescEn] = useState('');
   const [descTe, setDescTe] = useState('');
 
+
   const today = new Date();
   const todayStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
   const [date, setDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
   const [recurring, setRecurring] = useState('');
@@ -120,6 +124,7 @@ export default function AdminEventEditor() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [isEndDatePickerVisible, setEndDatePickerVisibility] = useState(false);
   const [isStartTimeVisible, setStartTimeVisibility] = useState(false);
   const [isEndTimeVisible, setEndTimeVisibility] = useState(false);
 
@@ -133,19 +138,16 @@ export default function AdminEventEditor() {
           console.log('📖 [AdminEventEditor] Metadata Loaded:', JSON.stringify(meta, null, 2));
           setMetadata(meta);
 
-          // 🛠️ FIX: If creating NEW event, set defaults from metadata if current is invalid
           if (!editingData) {
             if (meta.types?.length > 0) setEventType(meta.types[0].value);
             if (meta.modes?.length > 0) setMode(meta.modes[0].value);
             if (meta.audiences?.length > 0) setAudience(meta.audiences[0].value);
 
-            // 🛠️ FIX Status Picklist: Ensure 'Published' is a valid value, otherwise use metadata
             if (meta.statuses?.length > 0) {
               const hasPublished = meta.statuses.some((s: any) => s.value === 'Published');
               if (!hasPublished) setPublishStatus(meta.statuses[0].value);
             }
 
-            // 🛠️ FIX Recurring Picklist:
             if (meta.recurring?.length > 0) {
               const hasOneTime = meta.recurring.some((s: any) => s.value === 'One-time event');
               if (!hasOneTime) setRecurring(meta.recurring[0].value);
@@ -175,7 +177,7 @@ export default function AdminEventEditor() {
 
     const formatFromSFDate = (sfDate: string) => {
       if (!sfDate || typeof sfDate !== 'string') return '20-04-2026';
-      if (sfDate.includes('-') && sfDate.split('-')[0].length === 2) return sfDate; // Already DD-MM-YYYY
+      if (sfDate.includes('-') && sfDate.split('-')[0].length === 2) return sfDate;
       try {
         const dateOnly = sfDate.split('T')[0];
         const [y, m, d] = dateOnly.split('-');
@@ -187,6 +189,7 @@ export default function AdminEventEditor() {
       setTitleEn(editingData.name || '');
       setTitleTe(editingData.titleTe || '');
       setDate(formatFromSFDate(editingData.date));
+      setEndDate(editingData.endDate ? formatFromSFDate(editingData.endDate) : formatFromSFDate(editingData.date));
       setVenueEn(editingData.location || '');
       setVenueTe(editingData.locationTe || '');
       setAddress(editingData.address || '');
@@ -232,7 +235,7 @@ export default function AdminEventEditor() {
 
       if (!result.canceled) {
         const localUri = result.assets[0].uri;
-        setLoading(true);
+        setIsUploadingBanner(true);
         try {
           const cloudUrl = await uploadImageToCloud(localUri);
           setBannerUrl(cloudUrl);
@@ -242,7 +245,7 @@ export default function AdminEventEditor() {
           setBannerUrl(localUri);
           AppAlert.alert('Upload Failed · అప్‌లోడ్ విఫలమైంది', 'Failed to upload banner to the cloud. You can still save it or manually paste a public web link in the text box.', undefined, 'error');
         } finally {
-          setLoading(false);
+          setIsUploadingBanner(false);
         }
       }
     } catch (err) {
@@ -250,37 +253,41 @@ export default function AdminEventEditor() {
     }
   };
 
-  const [showDatePickerNative, setShowDatePickerNative] = useState(false);
-  const [showStartTimeNative, setShowStartTimeNative] = useState(false);
-  const [showEndTimeNative, setShowEndTimeNative] = useState(false);
-
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSave = async (status: 'Published' | 'Draft') => {
     const executeSave = async (updateMode?: 'single' | 'future') => {
       setPublishStatus(status);
       setLoading(true);
-    // 🛠️ FIX: Re-format date for Salesforce (wants YYYY-MM-DD)
-    const dateParts = date.split('-');
-    const sfDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
+      
+      const cleanDate = (date || '').trim();
+      const cleanEndDate = (endDate || '').trim();
+
+      const [d, m, y] = cleanDate.split('-');
+      const sfDate = `${y}-${m}-${d}`;
+
+      const [ed, em, ey] = cleanEndDate.split('-');
+      const sfEndDate = `${ey}-${em}-${ed}`;
 
     const formatToSFTime = (timeStr: string) => {
       if (!timeStr) return null;
       try {
-        const [time, period] = timeStr.split(' ');
-        let [hours, minutes] = time.split(':').map(Number);
-        if (period === 'PM' && hours < 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
+        const cleanStr = timeStr.toUpperCase().replace(/\s+/g, '').replace(/[\u202F\u00A0]/g, '');
+        const isPM = cleanStr.includes('PM');
+        const isAM = cleanStr.includes('AM');
+        const timePart = cleanStr.replace('AM', '').replace('PM', '');
+        let [hours, minutes] = timePart.split(':').map(Number);
+        if (isNaN(minutes)) minutes = 0;
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
         return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00.000Z`;
       } catch (e) {
-        return timeStr; // Fallback to original if format is unexpected
+        return timeStr;
       }
     };
 
     const resolveStatus = (requested: string) => {
       if (!metadata?.statuses || metadata.statuses.length === 0) return requested;
-      
-      // Try to find a flexible match (Published, Active, etc.)
       const match = metadata.statuses.find((s: any) =>
         s.value === requested ||
         s.label === requested ||
@@ -289,54 +296,40 @@ export default function AdminEventEditor() {
         s.label.toLowerCase().includes('pub') ||
         s.label.toLowerCase().includes('act')
       );
-
-      // If we are looking for Draft
       if (requested.toLowerCase() === 'draft') {
         const draftMatch = metadata.statuses.find((s: any) => 
           s.value.toLowerCase().includes('dra') || s.label.toLowerCase().includes('dra')
         );
         if (draftMatch) return draftMatch.value;
       }
-
-      // If we found a match for Published/Active, use it. 
-      // Otherwise, use the first status in the list to avoid "Bad Value" errors.
       return match ? match.value : metadata.statuses[0].value;
     };
 
     const resolveValue = (field: string, val: string) => {
-      if (!metadata?.[field] || metadata[field].length === 0) {
-        console.warn(`⚠️ [AdminEventEditor] No metadata found for field: ${field}. Available metadata keys:`, Object.keys(metadata || {}));
-        return val;
-      }
-      
+      if (!metadata?.[field] || metadata[field].length === 0) return val;
       const list = metadata[field];
-      // 🛠️ FIX: Strip out Telugu/hyphens from old values (e.g. "Sunday Service - ఆదివారం సేవ" -> "Sunday Service")
       const cleanVal = val.split(' - ')[0].split(' · ')[0].trim();
       const normalizedVal = cleanVal.toLowerCase();
-      
       const match = list.find((m: any) => {
         const mVal = m.value.trim().toLowerCase();
         const mLbl = m.label.trim().toLowerCase();
         return mVal === normalizedVal || mLbl === normalizedVal || mVal.includes(normalizedVal) || normalizedVal.includes(mVal);
       });
-      
-      const finalVal = match ? match.value : cleanVal;
-      console.log(`🔍 [AdminEventEditor] Resolving ${field}: "${val}" -> "${finalVal}"`);
-      return finalVal;
+      return match ? match.value : cleanVal;
     };
 
     const payload = {
       id: editingData?.id,
-      // Save under BOTH field names so all screens (admin + member) can read them
       titleEn, titleTe,
-      name: titleEn,          // AdminEventList reads event.name
-      title: titleEn,         // EventsScreen reads item.title
-      titleTelugu: titleTe,   // EventsScreen reads item.titleTelugu
+      name: titleEn,
+      title: titleEn,
+      titleTelugu: titleTe,
       date: sfDate,
+      endDate: sfEndDate,
       startTime: formatToSFTime(startTime),
       endTime: formatToSFTime(endTime),
       descEn, descTe, venueEn, venueTe, address,
-      location: venueEn,      // EventsScreen reads item.location
+      location: venueEn,
       eventType: resolveValue('types', eventType),
       type: resolveValue('types', eventType),
       mode: resolveValue('modes', mode),
@@ -354,25 +347,22 @@ export default function AdminEventEditor() {
       updateMode
     };
 
-    console.log('📤 [AdminEventEditor] Saving Payload:', JSON.stringify(payload, null, 2));
-
     try {
       await FirestoreService.createEvent(payload);
 
-      // 🔔 Push notification to all members when publishing
       if (notifyOnPublish && status === 'Published') {
         try {
-          const { getFirestore, collection, addDoc, serverTimestamp } = require('@react-native-firebase/firestore');
+          const { getFirestore } = require('@react-native-firebase/firestore');
           const churchId = await FirestoreService.getChurchId();
-          const db = getFirestore();
           await FirestoreService.createNotificationBroadcast({
             title: `📅 New Event: ${titleEn}`,
-            content: `Join us for "${titleEn}" on ${sfDate} at ${startTime}${venueEn ? ` · ${venueEn}` : ''}. ${descEn ? descEn.substring(0, 100) : ''}`,
+            content: `Join us for "${titleEn}" from ${sfDate} to ${sfEndDate} at ${startTime}${venueEn ? ` · ${venueEn}` : ''}. ${descEn ? descEn.substring(0, 100) : ''}`,
+            type: eventType,
             date: sfDate,
-            type: 'event',
+            endDate: sfEndDate,
+            startTime: startTime || undefined,
             targetChurchId: churchId,
           });
-          console.log('🔔 Event push notification queued.');
         } catch (notifErr) {
           console.warn('⚠️ Event push notification failed (non-critical):', notifErr);
         }
@@ -381,15 +371,7 @@ export default function AdminEventEditor() {
       setShowSuccess(true);
     } catch (err) {
       console.error('❌ [AdminEventEditor] Save Failed:', err);
-      const errorMsg = String(err);
-      
-      // 🛠️ SMART HELP: If it's a picklist error, show the user the available options
-      if (errorMsg.includes('bad value for restricted picklist field')) {
-        const availableTypes = metadata?.types?.map((t: any) => t.value).join('\n') || 'None found';
-        alert(`Salesforce Error: ${errorMsg}\n\nAvailable types in your Org:\n${availableTypes}`);
-      } else {
-        alert(`Error saving event: ${err}`);
-      }
+      alert(`Error saving event: ${err}`);
       } finally {
         setLoading(false);
       }
@@ -415,8 +397,9 @@ export default function AdminEventEditor() {
     setVenueEn(''); setVenueTe(''); setAddress('');
     setBannerUrl('');
     const d = new Date();
-    setDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`); 
-    setStartTime('09:00 AM'); setEndTime('12:00 PM');
+    const ds = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+    setDate(ds); setEndDate(ds);
+    setStartTime('09:00 AM'); setEndTime('12:00 PM');
     setNotifyOnPublish(true); setReminder1Day(true); setReminder1Hour(false);
     setEditingData(null);
   };
@@ -435,7 +418,7 @@ export default function AdminEventEditor() {
             Your event "{titleEn}" has been successfully {publishStatus === 'Published' ? 'published to all members' : 'saved as a draft'}.
           </Text>
 
-          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(8); }}>
+          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); setTabByName?.('Events'); }}>
             <Text style={styles.successBtnPrimaryTxt}>View Event List</Text>
           </TouchableOpacity>
 
@@ -447,28 +430,14 @@ export default function AdminEventEditor() {
     </Modal>
   );
 
-  const SectionHeader = ({ icon: Icon, title, color }: any) => (
-    <View style={[styles.sectionHeader, { backgroundColor: color + '10' }]}>
-      <Icon size={16} color={color} />
-      <Text style={[styles.sectionHeaderText, { color }]}>{title}</Text>
-    </View>
-  );
-
-  const MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-
-
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <SuccessModal />
 
-      {/* ── Page Header ── */}
       <View style={styles.hero}>
         <View style={styles.heroTitleRow}>
-          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => setTabByName?.('Events')} style={{ flexDirection: 'row', alignItems: 'center' }}>
             <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
             <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>
@@ -479,7 +448,6 @@ export default function AdminEventEditor() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         
-        {/* 1. Event Details */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
@@ -526,7 +494,6 @@ export default function AdminEventEditor() {
           </View>
         </View>
 
-        {/* 2. Date & Schedule */}
         <View style={[styles.section, styles.secRed]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
@@ -535,12 +502,21 @@ export default function AdminEventEditor() {
             <Text style={styles.secHdTXT}>Date & Schedule</Text>
           </View>
 
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Date <Text style={{color:'#c0392b'}}>*</Text></Text>
-            <TouchableOpacity style={styles.inputWrap} onPress={() => setDatePickerVisibility(true)}>
-              <Text style={styles.inputText}>{date || 'DD-MM-YYYY'}</Text>
-              <Calendar size={14} color="#374151" />
-            </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.fLabel}>Start Date <Text style={{color:'#c0392b'}}>*</Text></Text>
+              <TouchableOpacity style={styles.inputWrap} onPress={() => setDatePickerVisibility(true)}>
+                <CalendarDays size={18} color="#64748b" style={{ marginRight: 8 }} />
+                <Text style={styles.inputText}>{date || 'DD-MM-YYYY'}</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.fLabel}>End Date <Text style={{color:'#c0392b'}}>*</Text></Text>
+              <TouchableOpacity style={styles.inputWrap} onPress={() => setEndDatePickerVisibility(true)}>
+                <CalendarDays size={18} color="#64748b" style={{ marginRight: 8 }} />
+                <Text style={styles.inputText}>{endDate || 'DD-MM-YYYY'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
@@ -597,7 +573,6 @@ export default function AdminEventEditor() {
           )}
         </View>
 
-        {/* 3. Venue & Location */}
         <View style={[styles.section, styles.secGreen]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
@@ -637,7 +612,6 @@ export default function AdminEventEditor() {
           </View>
         </View>
 
-        {/* 4. RSVP & Audience */}
         <View style={[styles.section, styles.secAmber]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
@@ -677,7 +651,6 @@ export default function AdminEventEditor() {
           </View>
         </View>
 
-        {/* 5. Banner & Media */}
         <View style={[styles.section, styles.secPurple]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
@@ -688,7 +661,12 @@ export default function AdminEventEditor() {
 
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Upload Banner Image</Text>
-            {bannerUrl ? (
+            {isUploadingBanner ? (
+              <View style={styles.btnUploadThumb}>
+                <ActivityIndicator size="small" color="#7C3AED" />
+                <Text style={styles.btnUploadThumbTxt}>Uploading...</Text>
+              </View>
+            ) : bannerUrl ? (
               <View style={styles.thumbnailPreviewContainer}>
                 <Image source={{ uri: bannerUrl }} style={styles.thumbnailImg} resizeMode="cover" />
                 <TouchableOpacity style={styles.removeThumbnailBtn} onPress={() => setBannerUrl('')}>
@@ -719,7 +697,6 @@ export default function AdminEventEditor() {
           </View>
         </View>
 
-        {/* 6. Notifications */}
         <View style={[styles.section, styles.secBlue]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
@@ -742,7 +719,6 @@ export default function AdminEventEditor() {
           </View>
         </View>
 
-        {/* Footer Actions */}
         <View style={styles.footerBtnRow}>
           <TouchableOpacity style={styles.btnDraft} onPress={() => handleSave('Draft')} disabled={loading}>
             {loading && publishStatus === 'Draft' ? (
@@ -760,7 +736,7 @@ export default function AdminEventEditor() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.btnBack} onPress={() => { resetForm(); setActiveTab(8); }}>
+        <TouchableOpacity style={styles.btnBack} onPress={() => { resetForm(); setTabByName?.('Events'); }}>
           <Text style={styles.btnBackTxt}>← Back to list</Text>
         </TouchableOpacity>
 
@@ -771,16 +747,31 @@ export default function AdminEventEditor() {
         isVisible={isDatePickerVisible}
         mode="date"
         onConfirm={(d) => {
-          setDate(d.toLocaleDateString('en-GB').replace(/\//g, '-'));
+          setDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`);
           setDatePickerVisibility(false);
         }}
         onCancel={() => setDatePickerVisibility(false)}
       />
+
+      <DateTimePickerModal
+        isVisible={isEndDatePickerVisible}
+        mode="date"
+        onConfirm={(d) => {
+          setEndDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`);
+          setEndDatePickerVisibility(false);
+        }}
+        onCancel={() => setEndDatePickerVisibility(false)}
+      />
+
       <DateTimePickerModal
         isVisible={isStartTimeVisible}
         mode="time"
         onConfirm={(t) => {
-          setStartTime(t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+          let h = t.getHours();
+          const m = String(t.getMinutes()).padStart(2, '0');
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          h = h % 12 || 12;
+          setStartTime(`${String(h).padStart(2, '0')}:${m} ${ampm}`);
           setStartTimeVisibility(false);
         }}
         onCancel={() => setStartTimeVisibility(false)}
@@ -789,7 +780,11 @@ export default function AdminEventEditor() {
         isVisible={isEndTimeVisible}
         mode="time"
         onConfirm={(t) => {
-          setEndTime(t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+          let h = t.getHours();
+          const m = String(t.getMinutes()).padStart(2, '0');
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          h = h % 12 || 12;
+          setEndTime(`${String(h).padStart(2, '0')}:${m} ${ampm}`);
           setEndTimeVisibility(false);
         }}
         onCancel={() => setEndTimeVisibility(false)}

@@ -453,17 +453,17 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
               } else {
                 setAdminActiveTab(0);
               }
-            }} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+            }} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, flexShrink: 0 }}>
               <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>
-            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-            <View style={{ flexShrink: 1 }}>
-              <Text style={styles.heroTitle} numberOfLines={1} ellipsizeMode="tail">Pastor Events</Text>
-              <Text style={[styles.heroSub, { marginTop: 2 }]} numberOfLines={1} ellipsizeMode="tail">Manage schedule & travel</Text>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4, flexShrink: 0 }]}>|</Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={styles.heroTitle} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>Pastor Events</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>Manage schedule & travel</Text>
             </View>
           </View>
-          <View style={{ flexDirection: 'row', gap: 10 }}>
+          <View style={{ flexShrink: 0, marginLeft: 8 }}>
             <TouchableOpacity 
               style={styles.newBtn} 
               onPress={() => navigation.navigate('CreateEvent')}
@@ -499,8 +499,8 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
       )}
 
       {/* Tabs and Icons */}
-      <View style={[styles.tabsContainer, { justifyContent: 'space-between', alignItems: 'center' }]}>
-        <View style={{ flexDirection: 'row', flex: 1 }}>
+      <View style={styles.tabsContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', paddingRight: 8 }}>
           {(['today', 'upcoming', 'past'] as const).map(tab => (
             <TouchableOpacity
               key={tab}
@@ -520,8 +520,8 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
-        <View style={{ flexDirection: 'row', gap: 10, marginRight: 20 }}>
+        </ScrollView>
+        <View style={{ flexDirection: 'row', gap: 8, paddingRight: 8, flexShrink: 0 }}>
           <TouchableOpacity 
             style={[styles.heroIconBtn, { backgroundColor: '#fff', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 3 }]} 
             onPress={() => setShowDatePicker(true)}
@@ -656,7 +656,7 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
   },
-  heroTitle: { color: '#fff', fontSize: 24, fontWeight: '700' },
+  heroTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
   heroSub: { color: '#aac4e8', fontSize: 13, fontWeight: '500' },
   heroIconBtn: { padding: 6, backgroundColor: '#fff', borderRadius: 20 },
   newBtn: {
@@ -691,7 +691,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryLight,
     borderRadius: radius.full
   },
-  tabsContainer: { flexDirection: 'row', marginBottom: 24, marginHorizontal: -20, paddingHorizontal: 20 },
+  tabsContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 24, marginHorizontal: -20, paddingHorizontal: 20 },
   tab: {
     backgroundColor: '#e2e8f0',
     paddingHorizontal: 16,
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
   emptyStateText: { color: '#64748b', marginTop: 12, fontSize: 14, fontWeight: '500' },
   floatingButtonsContainer: {
     position: 'absolute',
-    bottom: spacing.lg,
+    bottom: 40,
     left: spacing.lg,
     right: spacing.lg,
     flexDirection: 'row',

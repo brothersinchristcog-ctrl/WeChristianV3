@@ -9,10 +9,12 @@ import {
   Linking,
   Alert,
   Platform,
+  StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronLeft, ChevronRight, MapPin, Phone, Mail } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ChevronLeft, ArrowLeft, ChevronRight, MapPin, Phone, Mail } from 'lucide-react-native';
 import Svg, { Path, Rect, Circle } from 'react-native-svg';
 import firestore from '@react-native-firebase/firestore';
 import firestoreService from '../services/FirestoreService';
@@ -141,23 +143,26 @@ export default function ContactUsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor="#2b52a1" />
       {/* Hero Header Card */}
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft size={22} color="#fff" />
-            <Text style={styles.backBtnTxt}>Back</Text>
-          </TouchableOpacity>
-          <View style={styles.headerBadge}>
-            <Text style={styles.headerBadgeTxt}>⛪ Church</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Contact Us</Text>
+            <Text style={styles.headerSub}>Reach out, we'd love to hear from you</Text>
           </View>
         </View>
-        <View style={styles.headerBottom}>
-          <Text style={styles.headerTitle}>Contact Us</Text>
-          <Text style={styles.headerSub}>Reach out, we'd love to hear from you</Text>
-        </View>
-      </View>
+      </LinearGradient>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -281,69 +286,27 @@ export default function ContactUsScreen() {
           <View style={{ height: 80 }} />
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#1a2d5a' },
-
+  safe: { flex: 1, backgroundColor: '#f5f0f0' },
   header: {
-    backgroundColor: '#1a2d5a',
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
-    paddingBottom: 28,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    shadowColor: '#1a2d5a',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
-  },
-  headerTopRow: {
+    paddingBottom: 30,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingTop: 12,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  headerBottom: {
-    paddingLeft: 4,
-  },
-  headerBadge: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  headerBadgeTxt: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  backBtnTxt: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  headerSub: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.65)',
-    fontWeight: '500',
-  },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 24 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8, marginBottom: 8 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 2 },
+  headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: '500' },
 
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#f5f0f0' },
 

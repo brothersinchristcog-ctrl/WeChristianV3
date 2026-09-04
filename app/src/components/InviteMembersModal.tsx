@@ -15,7 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Contacts from 'expo-contacts';
 import * as SMS from 'expo-sms';
-import { X, Search, Check, MessageSquare, Share2, AlertCircle } from 'lucide-react-native';
+import { X, Search, Check, MessageSquare, Share2, AlertCircle, CheckCircle } from 'lucide-react-native';
 import FirestoreService from '../services/FirestoreService';
 import firestore from '@react-native-firebase/firestore';
 
@@ -46,6 +46,7 @@ export default function InviteMembersModal({ visible, onClose, churchName, churc
   const [isProcessing, setIsProcessing] = useState(false);
   const [showWhatsAppWarning, setShowWhatsAppWarning] = useState(false);
   const [whatsappUrl, setWhatsappUrl] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     if (visible) {
@@ -148,27 +149,31 @@ export default function InviteMembersModal({ visible, onClose, churchName, churc
         const contact = contacts.find(c => c.id === id);
         if (contact && contact.phoneNumbers[0]?.number) {
           const rawPhone = contact.phoneNumbers[0].number;
-          // Clean non-digit characters except the leading '+'
-          let cleanedPhone = rawPhone.replace(/[^\d+]/g, '');
-          if (!cleanedPhone.startsWith('+')) {
-            cleanedPhone = `+91${cleanedPhone}`;
-          }
+          const digitsOnly = rawPhone.replace(/\D/g, '');
+          const last10 = digitsOnly.slice(-10);
+          const cleanedPhone = `+91${last10}`;
 
           // Duplicate check using local state to avoid Firestore index requirement
           const isDuplicate = existingMembers.some(member => {
-            const mPhone = (member.phone || '').replace(/[^\d]/g, '');
-            const cPhone = cleanedPhone.replace(/[^\d]/g, '');
-            return mPhone === cPhone && mPhone.length > 5;
+            const mPhoneRaw = (member.phone || '').replace(/[^\d]/g, '');
+            const mPhone10 = mPhoneRaw.slice(-10);
+            return mPhone10 === last10 && mPhone10.length === 10;
           });
 
           if (!isDuplicate) {
-            await FirestoreService.adminAddMember(churchId, {
-              name: contact.name,
-              phone: cleanedPhone,
-              userType: 'member',
-              churchId: churchId
-            });
-            addedCount++;
+            try {
+              await FirestoreService.adminAddMember(churchId, {
+                name: contact.name,
+                phone: cleanedPhone,
+                userType: 'member',
+                churchId: churchId
+              });
+              addedCount++;
+            } catch (addErr: any) {
+              if (addErr.message !== 'DUPLICATE_MEMBER') {
+                console.error(`Failed to add ${cleanedPhone}:`, addErr);
+              }
+            }
           }
         }
       }
@@ -192,7 +197,7 @@ export default function InviteMembersModal({ visible, onClose, churchName, churc
     if (isAvailable) {
       const numbers = getSelectedPhoneNumbers();
       await SMS.sendSMSAsync(numbers, getInviteMessage());
-      onClose();
+      setSuccessMessage(`${selectedIds.size} member(s) have been successfully added to your church records.`);
     } else {
       Alert.alert('Error', 'SMS is not available on this device.');
     }
@@ -201,7 +206,9 @@ export default function InviteMembersModal({ visible, onClose, churchName, churc
   const executeWhatsAppShare = () => {
     setShowWhatsAppWarning(false);
     Linking.openURL(whatsappUrl)
-      .then(() => onClose())
+      .then(() => {
+        setSuccessMessage(`${selectedIds.size} member(s) have been successfully added to your church records.`);
+      })
       .catch(() => {
         Alert.alert('Error', 'WhatsApp is not installed or could not be opened on this device.');
       });
@@ -229,7 +236,9 @@ export default function InviteMembersModal({ visible, onClose, churchName, churc
       setShowWhatsAppWarning(true);
     } else {
       Linking.openURL(url)
-        .then(() => onClose())
+        .then(() => {
+          setSuccessMessage(`${selectedIds.size} member(s) have been successfully added to your church records.`);
+        })
         .catch(() => {
           Alert.alert('Error', 'WhatsApp is not installed or could not be opened on this device.');
         });
@@ -400,6 +409,35 @@ export default function InviteMembersModal({ visible, onClose, churchName, churc
                   <Text style={styles.warningProceedTxt}>Open WhatsApp</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Beautiful Success Modal */}
+        <Modal
+          visible={!!successMessage}
+          transparent={true}
+          animationType="fade"
+        >
+          <View style={styles.warningOverlay}>
+            <View style={styles.successContent}>
+              <View style={styles.successIconContainer}>
+                <CheckCircle size={40} color="#15803D" />
+              </View>
+              <Text style={styles.successTitle}>Success!</Text>
+              <Text style={styles.successDesc}>
+                {successMessage}
+              </Text>
+              
+              <TouchableOpacity 
+                style={styles.successOkBtn}
+                onPress={() => {
+                  setSuccessMessage('');
+                  onClose();
+                }}
+              >
+                <Text style={styles.successOkTxt}>Awesome</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
@@ -658,5 +696,52 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#fff',
+  },
+  successContent: {
+    backgroundColor: '#fff',
+    width: '80%',
+    borderRadius: 20,
+    paddingTop: 32,
+    paddingBottom: 24,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  successIconContainer: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#dcfce7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  successTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#15803D',
+    marginBottom: 8,
+  },
+  successDesc: {
+    fontSize: 15,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  successOkBtn: {
+    backgroundColor: '#1a2d5a',
+    paddingVertical: 14,
+    width: '100%',
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  successOkTxt: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   }
 });

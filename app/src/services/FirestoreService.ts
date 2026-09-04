@@ -45,8 +45,13 @@ export interface AppMember {
   accountId?: string;
   description?: string;
   mailingCity?: string;
+  city?: string;
+  village?: string;
   mailingState?: string;
   mailingStreet?: string;
+  dob?: string;
+  baptismDate?: string;
+  anniversaryDate?: string;
 }
 
 export interface FirestorePromise {
@@ -92,12 +97,15 @@ export interface WorshipSong {
   id: string;
   title: string;
   titleTe?: string;
-  artist: string;
-  key: string;
+  artist?: string; // made optional
+  key?: string; // made optional
   lyrics?: string;
   category?: string;
   youtubeId?: string;
   isThemeSong?: boolean;
+  isDefault?: boolean;
+  overridesMasterSongId?: string;
+  isHidden?: boolean;
 }
 
 export interface ScheduleEvent {
@@ -132,6 +140,7 @@ export interface Sermon {
   viewCount?: number;
   status?: string;
   series?: string;
+  categories?: string;
   audioUrl?: string;
 }
 
@@ -165,6 +174,9 @@ export interface ChurchDonation {
   paymentMethod: string;
   notes?: string;
   addedBy?: string;
+  status?: string;
+  receiptNo?: string;
+  receiptUrl?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -211,7 +223,40 @@ class FirestoreService {
     return firestore().collection('churches').doc(id).collection(collectionName);
   }
 
-  // ─── Expenses ───────────────────────────────────────────────────────────────
+  // ─── STRICT DUPLICATE CHECK FOR CHURCH ───
+  async checkMemberExistsInChurch(churchId: string, phone: string, excludeMemberId?: string): Promise<boolean> {
+    if (!phone) return false;
+    const rawDigits = phone.replace(/\D/g, '');
+    if (rawDigits.length < 10) return false;
+    const last10 = rawDigits.slice(-10);
+    const plus91 = `+91${last10}`;
+    const format91 = `91${last10}`;
+    
+    // Check local church collection directly
+    const possibleFormats = [last10, plus91, format91, phone, `+91 ${last10}`];
+    
+    try {
+      const queries = possibleFormats.map(format => 
+        firestore().collection('churches').doc(churchId).collection('members').where('phone', '==', format).get()
+      );
+      const results = await Promise.all(queries);
+      for (const snap of results) {
+        if (!snap.empty) {
+          if (excludeMemberId) {
+            const hasOther = snap.docs.some(doc => doc.id !== excludeMemberId);
+            if (hasOther) return true;
+          } else {
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error checking duplicate member:', e);
+    }
+    return false;
+  }
+
+  // ─── App Users / Auth ───────────────────────────────────────────────────────────────
 
   async getExpenses(limitNum = 200): Promise<ChurchExpense[]> {
     try {
@@ -353,17 +398,182 @@ class FirestoreService {
     }
   }
 
+  async deleteChurchSubscriptionHistory(churchId: string, subscriptionId: string) {
+    try {
+      await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('subscriptions')
+        .doc(subscriptionId)
+        .delete();
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting subscription history:', error);
+      throw error;
+    }
+  }
+
+  async getSubscribedMembers(churchId: string, limitNum: number = 20, lastDoc?: any, searchQuery?: string, statusFilter: string = 'all') {
+    try {
+      let membersRef = firestore().collection('churches').doc(churchId).collection('members');
+      
+      let query: any = membersRef;
+      
+      // For active/inactive, we can query directly
+      if (statusFilter === 'active' || statusFilter === 'inactive') {
+        query = query.where('subscription.status', '==', statusFilter);
+      }
+      
+      if (searchQuery && searchQuery.trim().length > 0) {
+         // Firestore doesn't support full-text search directly via simple queries for case-insensitive substrings.
+         // For a simple implementation, we can order by name and use startAt/endAt.
+         // Note: If 'name' is missing, it might use 'firstName'. This requires a composite index.
+         // To avoid index issues and keep existing functionality undisturbed, we will fetch without search 
+         // and filter locally if a search query is provided, or rely on a simple where clause if possible.
+         // For now, we will fetch ordered by subscription.validUntil.
+      }
+      // If we are filtering for trial or searching, we fetch a larger batch because we have to filter locally
+      // (since missing fields or partial strings can't be queried directly in Firestore).
+      const fetchLimit = (statusFilter === 'trial' || (searchQuery && searchQuery.trim().length > 0)) ? 100 : limitNum;
+      query = query.limit(fetchLimit);
+
+      if (lastDoc) {
+        query = query.startAfter(lastDoc);
+      }
+
+      const snapshot = await query.get();
+      
+      let docs = snapshot.docs;
+      
+      // Filter out members who have Left
+      docs = docs.filter((doc: any) => doc.data()?.status !== 'Left');
+      
+      // Local filtering for trial (including missing status)
+      if (statusFilter === 'trial') {
+         docs = docs.filter((doc: any) => {
+           const status = doc.data()?.subscription?.status;
+           return status === 'trial' || !status;
+         });
+      }
+      
+      // Local search filter as fallback if search query is provided
+      if (searchQuery && searchQuery.trim().length > 0) {
+         const lowerSearch = searchQuery.toLowerCase();
+         docs = docs.filter((doc: any) => {
+           const data = doc.data();
+           const name = (data.name || data.firstName || '').toLowerCase();
+           return name.includes(lowerSearch);
+         });
+      }
+      
+      const members = docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      return {
+        members,
+        lastDoc: snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null
+      };
+    } catch (error) {
+      console.error('Error fetching subscribed members:', error);
+      return { members: [], lastDoc: null };
+    }
+  }
+
+  async getMemberSubscriptionHistory(churchId: string, memberId: string) {
+    try {
+      const snap = await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('members')
+        .doc(memberId)
+        .collection('subscriptions')
+        .orderBy('paidAt', 'desc')
+        .get();
+        
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error fetching member subscription history:', error);
+      return [];
+    }
+  }
+
+  async getChurchSubscriptionHistory(churchId: string) {
+    try {
+      const snap = await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('subscriptions')
+        .orderBy('paidAt', 'desc')
+        .get();
+        
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error fetching church subscription history:', error);
+      return [];
+    }
+  }
+
+  async deleteSubscriptionHistory(churchId: string, memberId: string, historyId: string) {
+    try {
+      await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('members')
+        .doc(memberId)
+        .collection('subscriptions')
+        .doc(historyId)
+        .delete();
+      return true;
+    } catch (e) {
+      console.error('Error deleting subscription history:', e);
+      return false;
+    }
+  }
+
+  async logCancelledSubscription(churchId: string, memberId: string, amount: number, plan: string) {
+    try {
+      await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('members')
+        .doc(memberId)
+        .collection('subscriptions')
+        .add({
+          amount,
+          plan,
+          status: 'cancelled',
+          paidAt: firestore.FieldValue.serverTimestamp()
+        });
+      return true;
+    } catch (e) {
+      console.warn('Error logging cancelled subscription:', e);
+      return false;
+    }
+  }
+
   // --- 👤 Global User & Member Logic ---
 
   async getGlobalUser(uid: string): Promise<GlobalUser | null> {
     try {
-      // Find the member across all churches to determine their primary church
-      const snap = await firestore().collectionGroup('members').where('id', '==', uid).limit(1).get();
+      // Find all memberships across all churches for this uid
+      const snap = await firestore().collectionGroup('members').where('id', '==', uid).get();
       if (!snap.empty) {
-        const doc = snap.docs[0];
-        // The parent of the member doc is the 'members' collection. The parent of that is the church doc.
-        const churchId = doc.ref.parent.parent?.id;
-        return { uid: doc.id, primaryChurchId: churchId, ...doc.data() } as GlobalUser;
+        // Prioritize the 'Active' membership
+        let activeDoc = snap.docs.find(d => {
+          const data = d.data();
+          return !data.status || data.status === 'Active'; // default to Active if missing
+        });
+
+        if (!activeDoc) {
+          // If the user has memberships but NONE are active (all 'Left' or 'Inactive'),
+          // we return null to force them into onboarding so they can join a new church.
+          return null;
+        }
+
+        const churchId = activeDoc.ref.parent.parent?.id;
+        return { uid: activeDoc.id, primaryChurchId: churchId, ...activeDoc.data() } as GlobalUser;
       }
       return null;
     } catch (error) {
@@ -385,7 +595,7 @@ class FirestoreService {
     }
   }
 
-  async checkContactExists(phone: string, churchId?: string): Promise<any> {
+  async checkContactExists(phone: string, churchId?: string, strictChurch?: boolean): Promise<any> {
     const rawDigits = phone.replace(/\D/g, '');
     const last10 = rawDigits.slice(-10);
     const plus91 = `+91${last10}`;
@@ -411,17 +621,25 @@ class FirestoreService {
       const runManualFallback = async () => {
         console.log("Running manual fallback traversal...");
         const churchesSnap = await firestore().collection('churches').get();
+        let bestMember: any = null;
         for (const churchDoc of churchesSnap.docs) {
           const queries = possibleFormats.map(format => 
-            churchDoc.ref.collection('members').where('phone', '==', format).limit(1).get()
+            churchDoc.ref.collection('members').where('phone', '==', format).get()
           );
           const results = await Promise.all(queries);
           for (const snap of results) {
-            if (!snap.empty) {
-              const doc = snap.docs[0];
-              return { exists: true, member: { id: doc.id, ...doc.data() } };
+            for (const doc of snap.docs) {
+              const data = doc.data();
+              const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+              if (!bestMember || isElevated) {
+                bestMember = { id: doc.id, churchId: churchDoc.id, ...data };
+              }
+              if (isElevated) break;
             }
           }
+        }
+        if (bestMember) {
+          return { exists: true, member: bestMember as AppMember };
         }
         return { exists: false };
       };
@@ -430,15 +648,23 @@ class FirestoreService {
         try {
           console.log("Trying collectionGroup search...");
           const queries = possibleFormats.map(format => 
-            firestore().collectionGroup('members').where('phone', '==', format).limit(1).get()
+            firestore().collectionGroup('members').where('phone', '==', format).get()
           );
           const results = await Promise.all(queries);
+          let bestMember: any = null;
           for (const snap of results) {
-            if (!snap.empty) {
-              const doc = snap.docs[0];
-              console.log("Found member in collectionGroup. From cache?", doc.metadata?.fromCache);
-              return { exists: true, member: { id: doc.id, ...doc.data() } };
+            for (const doc of snap.docs) {
+              const data = doc.data();
+              const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+              if (!bestMember || isElevated) {
+                bestMember = { id: doc.id, churchId: doc.ref.parent.parent?.id, ...data };
+              }
+              if (isElevated) break;
             }
+          }
+          if (bestMember) {
+            console.log("Found member in collectionGroup.");
+            return { exists: true, member: bestMember as AppMember };
           }
           return { exists: false };
         } catch (cgError: any) {
@@ -447,18 +673,68 @@ class FirestoreService {
         }
       }
 
-      // Query specific church members
+      // Enforce strictChurch using collectionGroup if specific query fails or to avoid index requirements
+      if (strictChurch) {
+        console.log(`Checking strict church: ${churchId} using collectionGroup fallback.`);
+        try {
+          const queries = possibleFormats.map(format => 
+            firestore().collectionGroup('members').where('phone', '==', format).get({ source: 'server' })
+          );
+          const results = await Promise.all(queries);
+          let bestMember: any = null;
+          let foundAny = false;
+          for (const snap of results) {
+            for (const doc of snap.docs) {
+              foundAny = true;
+              const data = doc.data();
+              console.log("Found matching member doc at path:", doc.ref.path, "with data:", JSON.stringify(data));
+              // Ensure this member actually belongs to the requested church
+              const parentChurchId = doc.ref.parent.parent?.id;
+              console.log("Validating churchId. Parent churchId:", parentChurchId, "Data churchId:", data.churchId, "Expected:", churchId);
+              if (parentChurchId === churchId || data.churchId === churchId) {
+                const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+                if (!bestMember || isElevated) {
+                  bestMember = { id: doc.id, churchId: parentChurchId, ...data };
+                }
+                if (isElevated) break;
+              }
+            }
+          }
+          if (bestMember) {
+            return { exists: true, member: bestMember as AppMember };
+          }
+          if (!foundAny) {
+            console.log("Strict church mode: collectionGroup found absolutely no matching documents for any format.");
+          } else {
+            console.log("Strict church mode: member found, but it belonged to a different church.");
+          }
+          return { exists: false };
+        } catch (err: any) {
+          console.log("Strict church query failed:", err.message);
+          return { exists: false };
+        }
+      }
+
+      // If NOT strictChurch, try specific first, then global fallback
       try {
         console.log(`Checking specific church: ${churchId}`);
         const queries = possibleFormats.map(format => 
-          firestore().collection('churches').doc(churchId).collection('members').where('phone', '==', format).limit(1).get({ source: 'server' })
+          firestore().collection('churches').doc(churchId!).collection('members').where('phone', '==', format).get({ source: 'server' })
         );
         const results = await Promise.all(queries);
+        let bestMember: any = null;
         for (const snap of results) {
-          if (!snap.empty) {
-            const doc = snap.docs[0];
-            return { exists: true, member: { id: doc.id, ...doc.data() } };
+          for (const doc of snap.docs) {
+            const data = doc.data();
+            const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+            if (!bestMember || isElevated) {
+              bestMember = { id: doc.id, churchId: churchId, ...data };
+            }
+            if (isElevated) break;
           }
+        }
+        if (bestMember) {
+          return { exists: true, member: bestMember as AppMember };
         }
       } catch (err: any) {
         console.log("Specific church query failed:", err.message);
@@ -468,14 +744,22 @@ class FirestoreService {
       try {
         console.log("Not found in specific church. Trying global collectionGroup search...");
         const globalQueries = possibleFormats.map(format => 
-          firestore().collectionGroup('members').where('phone', '==', format).limit(1).get({ source: 'server' })
+          firestore().collectionGroup('members').where('phone', '==', format).get({ source: 'server' })
         );
         const globalResults = await Promise.all(globalQueries);
+        let bestMember: any = null;
         for (const snap of globalResults) {
-          if (!snap.empty) {
-            const doc = snap.docs[0];
-            return { exists: true, member: { id: doc.id, ...doc.data() } };
+          for (const doc of snap.docs) {
+            const data = doc.data();
+            const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+            if (!bestMember || isElevated) {
+              bestMember = { id: doc.id, churchId: doc.ref.parent.parent?.id, ...data };
+            }
+            if (isElevated) break;
           }
+        }
+        if (bestMember) {
+          return { exists: true, member: bestMember as AppMember };
         }
       } catch (cgError: any) {
          console.log("Global collection group index failed, falling back...", cgError.message);
@@ -491,8 +775,16 @@ class FirestoreService {
 
   async adminAddMember(churchId: string, details: any) {
     try {
+      if (details.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, details.phone);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
+
       const docRef = await firestore().collection('churches').doc(churchId).collection('members').add({
         ...details,
+        status: 'Active',
         joinDate: new Date().toISOString(),
         onboardingComplete: false,
       });
@@ -505,6 +797,12 @@ class FirestoreService {
 
   async adminUpdateMember(churchId: string, memberId: string, details: any) {
     try {
+      if (details.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, details.phone, memberId);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
       await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).update(details);
       return { success: true };
     } catch (error: any) {
@@ -515,7 +813,9 @@ class FirestoreService {
 
   async adminRemoveMember(churchId: string, memberId: string) {
     try {
-      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).delete();
+      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).update({
+        status: 'Left'
+      });
       return { success: true };
     } catch (error: any) {
       console.error("Error removing member:", error);
@@ -523,8 +823,24 @@ class FirestoreService {
     }
   }
 
+  async deleteMemberPermanent(churchId: string, memberId: string) {
+    try {
+      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).delete();
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error permanently deleting member:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async updateMemberProfile(churchId: string, memberId: string, details: any) {
     try {
+      if (details.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, details.phone, memberId);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
       await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).set(details, { merge: true });
       return true;
     } catch (error) {
@@ -536,7 +852,53 @@ class FirestoreService {
   async updateMemberRole(memberId: string, userType: string): Promise<boolean> {
     try {
       const col = await this.getCollection('members');
+      const memberDoc = await col.doc(memberId).get();
+      
+      // Update the primary targeted document first
       await col.doc(memberId).update({ userType });
+      
+      // Critical Fix: If the admin is updating a "phone" document but the user is logged in
+      // and listening to their "uid" document, we MUST update the uid document too so their app updates instantly!
+      const memberData = memberDoc.data();
+      if (memberData) {
+        const phone = memberData.phone;
+        if (phone) {
+          try {
+            const rawDigits = phone.replace(/\D/g, '');
+            const last10 = rawDigits.slice(-10);
+            const formats = [last10, `+91${last10}`, `91${last10}`, phone, `+91 ${last10}`, parseInt(last10, 10)];
+            const possibleFormats = formats.filter(v => v !== undefined && v !== null && !Number.isNaN(v));
+            
+            const queries = possibleFormats.map(format => 
+              firestore().collectionGroup('members').where('phone', '==', format).get()
+            );
+            const results = await Promise.all(queries);
+            
+            // Collect all unique document references that belong to this phone number
+            const docsToUpdate = new Map<string, any>();
+            results.forEach(snap => {
+              snap.docs.forEach(doc => {
+                if (doc.id !== memberId) {
+                  docsToUpdate.set(doc.ref.path, doc.ref);
+                }
+              });
+            });
+            
+            // Update all duplicate documents found (e.g. the active uid document)
+            if (docsToUpdate.size > 0) {
+              const batch = firestore().batch();
+              docsToUpdate.forEach(ref => {
+                batch.update(ref, { userType });
+              });
+              await batch.commit();
+              console.log(`[Admin] Successfully synced role '${userType}' across ${docsToUpdate.size} duplicate documents!`);
+            }
+          } catch (syncError) {
+            console.warn('[Admin] Failed to sync role to duplicate documents, but main doc was updated', syncError);
+          }
+        }
+      }
+      
       return true;
     } catch (error) {
       console.error('Error updating member role', error);
@@ -569,9 +931,10 @@ class FirestoreService {
       const membersRef = firestore().collection('churches').doc(churchId).collection('members');
       const oldDoc = await membersRef.doc(contactId).get();
       
-      if (oldDoc.exists()) {
+      const docExists = typeof oldDoc.exists === 'function' ? oldDoc.exists() : oldDoc.exists;
+      if (docExists) {
         // Move data to new document with the correct UID
-        await membersRef.doc(uid).set({ ...oldDoc.data(), uid }, { merge: true });
+        await membersRef.doc(uid).set({ ...oldDoc.data(), uid, id: uid }, { merge: true });
         // Delete the old document with the random ID
         await membersRef.doc(contactId).delete();
       } else {
@@ -594,6 +957,12 @@ class FirestoreService {
 
   async addFamilyMember(churchId: string, accountId: string, newMember: any) {
     try {
+      if (newMember.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, newMember.phone);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
       await firestore().collection('churches').doc(churchId).collection('members').add({ ...newMember, accountId });
       return true;
     } catch (e) {
@@ -603,11 +972,19 @@ class FirestoreService {
 
   async createMember(churchId: string, data: any, customId?: string) {
     try {
+      if (data.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, data.phone);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
+
+      const memberData = { ...data, status: data.status || 'Active' };
       if (customId) {
-        await firestore().collection('churches').doc(churchId).collection('members').doc(customId).set(data);
+        await firestore().collection('churches').doc(churchId).collection('members').doc(customId).set(memberData);
         return { success: true, id: customId };
       } else {
-        const docRef = await firestore().collection('churches').doc(churchId).collection('members').add(data);
+        const docRef = await firestore().collection('churches').doc(churchId).collection('members').add(memberData);
         return { success: true, id: docRef.id };
       }
     } catch (e) {
@@ -618,12 +995,14 @@ class FirestoreService {
     try {
       const col = await this.getCollection('members');
       const snapshot = await col.get();
-      return snapshot.docs.map((doc: any) => ({ 
-        name: doc.data().name || doc.data().firstName || 'Unknown',
-        email: doc.data().email || '',
-        ...doc.data(),
-        id: doc.id
-      }));
+      return snapshot.docs
+        .filter((doc: any) => doc.data().status !== 'Left')
+        .map((doc: any) => ({ 
+          name: doc.data().name || doc.data().firstName || 'Unknown',
+          email: doc.data().email || '',
+          ...doc.data(),
+          id: doc.id
+        }));
     } catch (error) {
       console.error('Error fetching all members:', error);
       return [];
@@ -663,22 +1042,93 @@ class FirestoreService {
   async getSermons(limit = 50): Promise<Sermon[]> {
     try {
       const col = await this.getCollection('sermons');
-      const snapshot = await col.orderBy('date', 'desc').limit(limit).get();
+      const snapshot = await col.orderBy('createdAt', 'desc').limit(limit).get();
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Sermon[];
     } catch (error) {
       return [];
     }
   }
 
-  async getWorshipSongs(): Promise<WorshipSong[]> {
+  // In-memory cache to avoid re-fetching on tab switches
+  private _worshipSongsCache: WorshipSong[] | null = null;
+  private _worshipSongsCacheChurchId: string | null = null;
+
+  clearWorshipSongsCache() {
+    this._worshipSongsCache = null;
+    this._worshipSongsCacheChurchId = null;
+  }
+
+  async getWorshipSongs(options?: { forceRefresh?: boolean; limit?: number; offset?: number }): Promise<WorshipSong[]> {
     try {
-      const col = await this.getCollection('worshipSongs');
-      const snapshot = await col.get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as WorshipSong[];
+      const churchId = await this.getChurchId();
+      if (!churchId) return [];
+
+      // Return cache if available and same church (unless forced refresh)
+      if (
+        !options?.forceRefresh &&
+        this._worshipSongsCache &&
+        this._worshipSongsCacheChurchId === churchId
+      ) {
+        const allCached = this._worshipSongsCache;
+        if (options?.limit) {
+          return allCached.slice(options.offset ?? 0, (options.offset ?? 0) + options.limit);
+        }
+        return allCached;
+      }
+
+      const churchDoc = await firestore().collection('churches').doc(churchId).get();
+      const disableMasterSongs = churchDoc.data()?.disableMasterSongs === true;
+
+      const customCol = firestore().collection('churches').doc(churchId).collection('worshipSongs');
+      const masterCol = firestore().collection('masterSongs');
+
+      const fetchFromSource = async (source: 'cache' | 'server') => {
+        const promises: any[] = [customCol.get({ source })];
+        if (!disableMasterSongs) {
+          promises.push(masterCol.where('isDefault', '==', true).get({ source }));
+        }
+        const results = await Promise.all(promises);
+        const customSnap = results[0];
+        const masterSnap = !disableMasterSongs ? results[1] : { docs: [] };
+        
+        const customSongs = customSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as WorshipSong));
+        const overriddenIds = new Set(customSongs.map((s: WorshipSong) => s.overridesMasterSongId).filter(Boolean));
+        const masterSongs = masterSnap.docs
+          .map((doc: any) => ({ id: doc.id, ...doc.data() } as WorshipSong))
+          .filter((s: WorshipSong) => !overriddenIds.has(s.id));
+          
+        return [...customSongs, ...masterSongs].filter(s => !s.isHidden);
+      };
+
+      let finalSongs: WorshipSong[];
+      if (!options?.forceRefresh) {
+        try {
+          finalSongs = await fetchFromSource('cache');
+          if (finalSongs.length === 0) throw new Error('Empty cache');
+          
+          // Background fetch to ensure cache stays warm
+          fetchFromSource('server').catch(() => {});
+        } catch (e) {
+          finalSongs = await fetchFromSource('server');
+        }
+      } else {
+        finalSongs = await fetchFromSource('server');
+      }
+
+      // Cache the full result in memory for identical subsequent calls
+      this._worshipSongsCache = finalSongs;
+      this._worshipSongsCacheChurchId = churchId;
+
+      if (options?.limit) {
+        return finalSongs.slice(options.offset ?? 0, (options.offset ?? 0) + options.limit);
+      }
+      return finalSongs;
     } catch (error) {
+      console.error('Error fetching worship songs:', error);
       return [];
     }
   }
+
 
   async createSermon(data: any) {
     try {
@@ -724,6 +1174,20 @@ class FirestoreService {
 
   async deleteWorshipSong(id: string) {
     try {
+      const masterDoc = await firestore().collection('masterSongs').doc(id).get();
+      // Ensure we check existence properly based on the firebase version's type
+      const docExists = typeof masterDoc.exists === 'function' ? masterDoc.exists() : masterDoc.exists;
+      if (docExists && masterDoc.data()?.isDefault) {
+        const col = await this.getCollection('worshipSongs');
+        // Hide the master song for this church without actually deleting it from the global DB
+        await col.add({
+          overridesMasterSongId: id,
+          isHidden: true,
+          createdAt: FieldValue.serverTimestamp()
+        });
+        return true;
+      }
+
       const col = await this.getCollection('worshipSongs');
       await col.doc(id).delete();
       return true;
@@ -734,6 +1198,26 @@ class FirestoreService {
 
   async updateWorshipSong(id: string, data: any) {
     try {
+      const masterDoc = await firestore().collection('masterSongs').doc(id).get();
+      const docExists = typeof masterDoc.exists === 'function' ? masterDoc.exists() : masterDoc.exists;
+      if (docExists && masterDoc.data()?.isDefault) {
+        // Smart Edit Override: Instead of updating global document, create a custom copy
+        const col = await this.getCollection('worshipSongs');
+        const originalData = masterDoc.data();
+        // Omit the `id` from originalData so it doesn't conflict
+        const { id: _ignoredId, ...dataWithoutId } = originalData || {};
+        const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+        
+        await col.add({
+          ...dataWithoutId,
+          ...cleanData,
+          overridesMasterSongId: id,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp()
+        });
+        return true;
+      }
+
       const col = await this.getCollection('worshipSongs');
       const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
       await col.doc(id).update({ ...cleanData, updatedAt: FieldValue.serverTimestamp() });
@@ -771,26 +1255,31 @@ class FirestoreService {
         const snapshot = await query.orderBy('createdAt', 'desc').get();
         rawItems = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
       } else {
-        // Members see all approved requests
-        let approvedQuery = query.where('isAnswered', '==', true);
-        const approvedSnapshot = await approvedQuery.get();
-        let list = approvedSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-
-        // Plus member's own pending requests (so they see their request immediately after submitting)
+        // Members see their own requests AND public approved requests
         const userIdentifier = filters.contactId || filters.phone;
+        
+        let list: any[] = [];
+        
+        // 1. Fetch Public Approved Requests
+        let publicQuery = query.where('isPublic', '==', true).where('isAnswered', '==', true);
+        const publicSnapshot = await publicQuery.get();
+        const publicList = publicSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+        list.push(...publicList);
+        
+        // 2. Fetch User's Own Requests (Public or Private, Pending or Approved)
         if (userIdentifier) {
-          let pendingQuery = query.where('isAnswered', '==', false);
+          let ownQuery = query;
           if (filters.contactId) {
-            pendingQuery = pendingQuery.where('contactId', '==', filters.contactId);
+            ownQuery = ownQuery.where('contactId', '==', filters.contactId);
           } else {
-            pendingQuery = pendingQuery.where('phone', '==', filters.phone);
+            ownQuery = ownQuery.where('phone', '==', filters.phone);
           }
-          const pendingSnapshot = await pendingQuery.get();
-          const pendingList = pendingSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-
+          const ownSnapshot = await ownQuery.get();
+          const ownList = ownSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+          
           // Merge lists and prevent duplicates
           const seen = new Set(list.map((p: any) => p.id));
-          for (const p of pendingList) {
+          for (const p of ownList) {
             if (!seen.has(p.id)) {
               list.push(p);
             }
@@ -851,6 +1340,7 @@ class FirestoreService {
         requestTe: textTeVal,
         authorId: authorIdVal,
         contactId: authorIdVal,
+        isPublic: data.isPublic ?? false,
         isAnswered: data.isAnswered ?? false,
         prayCount: data.prayCount ?? 0,
         createdAt: FieldValue.serverTimestamp()
@@ -870,6 +1360,34 @@ class FirestoreService {
       });
       return true;
     } catch (e) {
+      throw e;
+    }
+  }
+
+  async closePrayerRequest(id: string) {
+    try {
+      const col = await this.getCollection('prayerRequests');
+      await col.doc(id).update({
+        isClosed: true,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+      return true;
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  async incrementPrayCount(requestId: string, uid: string, memberName: string) {
+    try {
+      const col = await this.getCollection('prayerRequests');
+      await col.doc(requestId).update({
+        prayCount: FieldValue.increment(1),
+        prayedBy: FieldValue.arrayUnion(uid),
+        prayedByNames: FieldValue.arrayUnion(memberName)
+      });
+      return true;
+    } catch (e) {
+      console.error('Error incrementing pray count:', e);
       throw e;
     }
   }
@@ -942,10 +1460,47 @@ class FirestoreService {
   async createDonation(data: any) {
     try {
       const col = await this.getCollection('donations');
-      await col.add({ ...data, createdAt: firestore.FieldValue.serverTimestamp() });
-      return true;
+      const docRef = await col.add({ ...data, createdAt: firestore.FieldValue.serverTimestamp() });
+      return docRef.id;
     } catch (e) {
       throw e;
+    }
+  }
+
+  async getMemberDonations(phone: string): Promise<any[]> {
+    try {
+      const col = await this.getCollection('donations');
+      
+      // Execute two separate queries to avoid Firestore composite/OR index requirements
+      const [snapshotPhone, snapshotDonorPhone] = await Promise.all([
+        col.where('phone', '==', phone).get(),
+        col.where('donorPhone', '==', phone).get()
+      ]);
+      
+      // Merge results and deduplicate by ID
+      const donationMap = new Map();
+      
+      snapshotPhone.docs.forEach(doc => {
+        donationMap.set(doc.id, { id: doc.id, ...doc.data() });
+      });
+      
+      snapshotDonorPhone.docs.forEach(doc => {
+        donationMap.set(doc.id, { id: doc.id, ...doc.data() });
+      });
+      
+      let results = Array.from(donationMap.values());
+      
+      // Sort locally by createdAt desc
+      results.sort((a: any, b: any) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return dateB - dateA;
+      });
+      
+      return results;
+    } catch (error: any) {
+      console.error('Error fetching member donations:', error);
+      throw error; // Rethrow so the UI can show the actual error if it's something else
     }
   }
 
@@ -1020,17 +1575,22 @@ class FirestoreService {
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const snapshot = await col
         .where('date', '==', todayStr)
-        .where('status', 'in', ['Published', 'Scheduled'])
         .get();
       if (!snapshot.empty) {
-        const promises = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DailyPromise));
-        promises.sort((a: any, b: any) => {
-          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
-          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
-          return tB - tA;
-        });
-        const withImage = promises.find(p => p.imageUrl && p.imageUrl.trim().length > 0);
-        return withImage || promises[0];
+        let promises = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DailyPromise));
+        
+        // Filter by Published or Scheduled status in JS to avoid composite index requirements
+        promises = promises.filter(p => p.status === 'Published' || p.status === 'Scheduled');
+        
+        if (promises.length > 0) {
+          promises.sort((a: any, b: any) => {
+            const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+            const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+            return tB - tA;
+          });
+          const withImage = promises.find(p => p.imageUrl && p.imageUrl.trim().length > 0);
+          return withImage || promises[0];
+        }
       }
       return null;
     } catch (e) {
@@ -1412,6 +1972,61 @@ class FirestoreService {
       return { success: false };
     }
   }
+
+  async scanForDuplicateMembers(): Promise<any[]> {
+    try {
+      console.log('Scanning for duplicate members across all churches...');
+      const snapshot = await firestore().collectionGroup('members').get({ source: 'server' });
+      const phoneMap: Record<string, any[]> = {};
+      
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        let phone = data.phone || data.mobile || '';
+        phone = phone.replace(/\D/g, ''); // strip non-digits
+        
+        // Use last 10 digits as the unique identifier for grouping
+        if (phone.length >= 10) {
+          const last10 = phone.slice(-10);
+          if (!phoneMap[last10]) {
+            phoneMap[last10] = [];
+          }
+          phoneMap[last10].push({
+            id: doc.id,
+            churchId: doc.ref.parent.parent?.id,
+            name: data.name || data.firstName || 'Unknown',
+            phone: data.phone || data.mobile || '',
+            userType: data.userType || 'Member',
+            createdAt: data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Unknown'
+          });
+        }
+      });
+      
+      // Filter out those with only 1 document
+      const duplicates = Object.keys(phoneMap)
+        .filter(phone => phoneMap[phone].length > 1)
+        .map(phone => ({
+          phone,
+          documents: phoneMap[phone]
+        }));
+        
+      return duplicates;
+    } catch (error) {
+      console.error('Error scanning for duplicate members:', error);
+      return [];
+    }
+  }
+
+  async deleteDuplicateMember(churchId: string, docId: string): Promise<boolean> {
+    try {
+      if (!churchId || !docId) return false;
+      await firestore().collection('churches').doc(churchId).collection('members').doc(docId).delete();
+      return true;
+    } catch (error) {
+      console.error('Error deleting duplicate member:', error);
+      return false;
+    }
+  }
+
   async query(soql: string): Promise<any> { return null; }
   extractYoutubeId(url: string): string { return url; }
   async getDashboardStats(): Promise<any> { return { members: 0, promises: 0 }; }
@@ -1547,7 +2162,7 @@ class FirestoreService {
     try {
       const col = await this.getCollection('attendanceRequests');
       // Get the most recent active request
-      const snapshot = await col.where('status', '==', 'active').orderBy('createdAt', 'desc').limit(1).get();
+      const snapshot = await col.where('status', '==', 'Active').orderBy('createdAt', 'desc').limit(1).get();
       
       if (snapshot.empty) return null;
       

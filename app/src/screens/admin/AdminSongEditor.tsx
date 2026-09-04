@@ -23,7 +23,9 @@ import {
   getFirestore,
   collection,
   addDoc,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch,
+  doc
 } from '@react-native-firebase/firestore';
 
 const { width, height } = Dimensions.get('window');
@@ -51,7 +53,7 @@ const KEYS = [
 ];
 
 export default function AdminSongEditor() {
-  const { setActiveTab } = useContext(AdminTabContext);
+  const { setActiveTab, setTabByName } = useContext(AdminTabContext);
 
   // Screen-level tab
   const [screenTab, setScreenTab] = useState<'list' | 'theme'>('list');
@@ -85,6 +87,8 @@ export default function AdminSongEditor() {
   const [postedSongs, setPostedSongs] = useState<WorshipSong[]>([]);
   const [loadingList, setLoadingList] = useState(false);
   const [listSearchQuery, setListSearchQuery] = useState('');
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 50;
 
   // ── EDIT MODAL ──────────────────────────────────
   const [editingSong, setEditingSong] = useState<WorshipSong | null>(null);
@@ -100,26 +104,28 @@ export default function AdminSongEditor() {
   const [showEditCategoryPicker, setShowEditCategoryPicker] = useState(false);
   const [showEditKeyPicker, setShowEditKeyPicker] = useState(false);
 
-  const fetchPostedSongs = async () => {
+  const fetchPostedSongs = async (forceRefresh = false) => {
     setLoadingList(true);
     try {
-      const data = await FirestoreService.getWorshipSongs();
-      setPostedSongs(data);
+      const allSongs = await FirestoreService.getWorshipSongs({ forceRefresh });
+      setPostedSongs(allSongs);
     } catch (err) {
       console.error(err);
     } finally {
       setLoadingList(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
-    if (screenTab === 'list' || screenTab === 'theme') {
-      fetchPostedSongs();
-    }
-  }, [screenTab]);
+    // Pre-load songs immediately on mount so switching to 'list' tab is instant
+    fetchPostedSongs();
+    fetchMemberSongs();
+  }, []);
 
   const fetchMemberSongs = async () => {
     try {
+      // Use cache — already loaded from admin tab
       const data = await FirestoreService.getWorshipSongs();
       setMemberSongs(data);
       const stored = await AsyncStorage.getItem(SONGBOOK_KEY);
@@ -151,7 +157,8 @@ export default function AdminSongEditor() {
         category: primaryCategory,
         youtubeId: youtubeId.trim()
       });
-      setSyncReceipt({ savedTo: 'Firebase DB', id: typeof receipt === 'string' ? receipt : (receipt as any)?.id || 'Unknown' });
+      const newSongId = typeof receipt === 'string' ? receipt : (receipt as any)?.id || 'Unknown';
+      setSyncReceipt({ savedTo: 'Firebase DB', id: newSongId });
 
       try {
         const churchId = await FirestoreService.getChurchId();
@@ -159,13 +166,16 @@ export default function AdminSongEditor() {
           title: `🎵 New Song: ${titleEn.trim()}`,
           content: `A new worship song "${titleEn.trim()}" has been posted under ${primaryCategory}!`,
           date: new Date().toISOString().split('T')[0],
-          type: 'announcement',
+          type: 'song',
           targetChurchId: churchId,
+          relatedId: newSongId !== 'Unknown' ? newSongId : null
         });
       } catch { /* rules may block — OK */ }
 
       setShowSuccess(true);
       setShowPostModal(false); // Close modal on success
+      FirestoreService.clearWorshipSongsCache();
+      fetchPostedSongs(true);
     } catch (error: any) {
       Alert.alert('Salesforce Sync Error', error.message || 'Failed to sync with Salesforce.');
     } finally {
@@ -177,6 +187,43 @@ export default function AdminSongEditor() {
     setTitleEn(''); setTitleTe(''); setLyrics(''); setYoutubeId('');
     setArtist(''); setCategories(['Stuthi Songs']); setStatus('Published');
   };
+
+  const handleUpload1000 = async () => {
+    try {
+      Alert.alert('Uploading', 'Starting bulk upload...');
+      const songs = require('../../../master_songs.json');
+      const db = getFirestore();
+      
+      let batch = writeBatch(db);
+      let count = 0;
+      let total = 0;
+
+      for (const song of songs) {
+        const newRef = doc(collection(db, 'masterSongs'));
+        batch.set(newRef, {
+           ...song,
+           createdAt: serverTimestamp()
+        });
+        count++;
+        total++;
+
+        if (count === 400) {
+           await batch.commit();
+           batch = writeBatch(db);
+           count = 0;
+        }
+      }
+      
+      if (count > 0) {
+        await batch.commit();
+      }
+      Alert.alert('Success', `Uploaded ${total} global master songs!`);
+      fetchPostedSongs();
+    } catch(err: any) {
+      Alert.alert('Error', err.message);
+    }
+  };
+
 
   // ── OPEN EDIT MODAL ──────────────────────────────
   const openEdit = (song: WorshipSong) => {
@@ -210,7 +257,9 @@ export default function AdminSongEditor() {
       });
       setShowUpdateSuccess(true);
       setEditingSong(null);
-      fetchPostedSongs();
+      FirestoreService.clearWorshipSongsCache();
+      fetchPostedSongs(true);
+
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to update song.');
     } finally {
@@ -225,8 +274,10 @@ export default function AdminSongEditor() {
     if (!songToDelete) return;
     try {
       await FirestoreService.deleteWorshipSong(songToDelete.id);
-      fetchPostedSongs();
+      FirestoreService.clearWorshipSongsCache();
+      fetchPostedSongs(true);
       setSongToDelete(null);
+
       setShowDeleteSuccess(true);
       setTimeout(() => setShowDeleteSuccess(false), 2500);
     } catch (e: any) {
@@ -266,7 +317,10 @@ export default function AdminSongEditor() {
           <Music size={16} color="#1a2d5a" />
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={styles.songItemTitle} numberOfLines={1}>{postedSongs.findIndex(s => s.id === item.id) + 1}. {item.title}</Text>
+          <Text style={styles.songItemTitle} numberOfLines={1}>
+            {postedSongs.findIndex(s => s.id === item.id) + 1}. {item.title}
+            {item.isDefault ? <Text style={{color: '#c0392b', fontSize: 10}}> [GLOBAL]</Text> : null}
+          </Text>
           <Text style={styles.songItemSub} numberOfLines={1}>
             {item.category || 'Other'}
           </Text>
@@ -332,20 +386,19 @@ export default function AdminSongEditor() {
 
   // ── MEMBER VIEW UI ────────────────────────────────
   const renderMemberView = () => {
-    const browseSongs = memberSongs.filter(s => {
+    const memberSongsWithIndex = memberSongs.map((s, index) => ({ ...s, absoluteIndex: index }));
+    const browseSongs = memberSongsWithIndex.filter(s => {
       const cats = (s.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
       if (cats.length === 1 && cats[0] === 'Theme Songs') return false;
       const q = memberSearch.toLowerCase().trim();
-      const absoluteIndex = memberSongs.findIndex(ms => ms.id === s.id);
-      const numberMatch = (absoluteIndex + 1).toString().includes(q);
+      const numberMatch = (s.absoluteIndex + 1).toString().includes(q);
       return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q)) || numberMatch;
     });
-    const themeSongs = memberSongs.filter(s => {
+    const themeSongs = memberSongsWithIndex.filter(s => {
       const cats = (s.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
       if (!cats.includes('Theme Songs')) return false;
       const q = memberSearch.toLowerCase().trim();
-      const absoluteIndex = memberSongs.findIndex(ms => ms.id === s.id);
-      const numberMatch = (absoluteIndex + 1).toString().includes(q);
+      const numberMatch = (s.absoluteIndex + 1).toString().includes(q);
       return !q || s.title.toLowerCase().includes(q) || (s.titleTe && s.titleTe.toLowerCase().includes(q)) || numberMatch;
     });
     const displaySongs = memberTab === 'browse' ? browseSongs : themeSongs;
@@ -398,6 +451,10 @@ export default function AdminSongEditor() {
           showsVerticalScrollIndicator={false}
           refreshing={false}
           onRefresh={fetchMemberSongs}
+          initialNumToRender={15}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
           contentContainerStyle={{ paddingBottom: 40 }}
           ListHeaderComponent={() => (
             <Text style={{ fontSize: 10, fontWeight: '800', color: '#9CA3AF', letterSpacing: 0.8,
@@ -405,7 +462,7 @@ export default function AdminSongEditor() {
               {memberTab === 'browse' ? 'ALL SONGS' : 'THEME SONGS'} · {displaySongs.length} Songs
             </Text>
           )}
-          renderItem={({ item, index }) => (
+          renderItem={({ item }) => (
             <TouchableOpacity
               style={{ borderRadius: 14, borderWidth: 1, borderColor: 'rgba(26,45,90,0.08)', marginHorizontal: 16,
                 marginBottom: 10, flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: '#FFFFFF',
@@ -413,7 +470,7 @@ export default function AdminSongEditor() {
               onPress={() => setAdminSelectedSong(item)}>
               <View style={{ width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center',
                 marginRight: 12, backgroundColor: '#F8FAFC' }}>
-                <Text style={{ fontSize: 13, fontWeight: '800', color: '#1a2d5a' }}>{memberSongs.findIndex(s => s.id === item.id) + 1}</Text>
+                <Text style={{ fontSize: 13, fontWeight: '800', color: '#1a2d5a' }}>{item.absoluteIndex + 1}</Text>
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 13, fontWeight: '800', color: '#1a2d5a' }} numberOfLines={1}>{item.title}</Text>
@@ -570,13 +627,20 @@ export default function AdminSongEditor() {
               </View>
             </View>
             <View style={{ marginBottom: 16 }}>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Search songs by title or artist..."
-                placeholderTextColor="#94a3b8"
-                value={listSearchQuery}
-                onChangeText={setListSearchQuery}
-              />
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 10, paddingHorizontal: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                <TextInput
+                  style={[styles.textInput, { flex: 1, borderWidth: 0, backgroundColor: 'transparent', marginBottom: 0, paddingHorizontal: 0 }]}
+                  placeholder="Search songs by title or artist..."
+                  placeholderTextColor="#94a3b8"
+                  value={listSearchQuery}
+                  onChangeText={setListSearchQuery}
+                />
+                {listSearchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setListSearchQuery('')} style={{ padding: 4 }}>
+                    <X size={16} color="#94a3b8" />
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           </View>
           <FlatList
@@ -615,7 +679,13 @@ export default function AdminSongEditor() {
             </View>
           )}
           refreshing={loadingList}
-          onRefresh={fetchPostedSongs}
+          onRefresh={() => fetchPostedSongs(true)}
+          ListFooterComponent={() => loadingMore ? (
+            <View style={{ padding: 16, alignItems: 'center' }}>
+              <ActivityIndicator size="small" color="#1a2d5a" />
+              <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>Loading more songs...</Text>
+            </View>
+          ) : null}
         />
         </>
       )}
@@ -637,10 +707,7 @@ export default function AdminSongEditor() {
             <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
             <Text style={[styles.heroTitle, { flexShrink: 1 }]} numberOfLines={1}>Song Manager</Text>
           </View>
-          <TouchableOpacity 
-            style={styles.newBtn}
-            onPress={() => setShowPostModal(true)}
-          >
+          <TouchableOpacity style={styles.newBtn} onPress={() => setShowPostModal(true)}>
             <Plus size={16} color="#1a2d5a" />
             <Text style={styles.newBtnTxt}>New</Text>
           </TouchableOpacity>
@@ -683,6 +750,9 @@ export default function AdminSongEditor() {
               </TouchableOpacity>
             ))}
           </ScrollView>
+          <Text style={{ fontSize: 11, color: '#475569', fontWeight: '500', fontStyle: 'italic', textAlign: 'center', marginTop: 12, marginHorizontal: 20 }}>
+            Note: If you are not interested in the Global Songs, please contact the WeChristian app team to disable them for your church.
+          </Text>
         </View>
 
       {/* Content */}
@@ -811,11 +881,14 @@ export default function AdminSongEditor() {
                 "{titleEn}" has been published under <Text style={{ fontWeight: '800', color: '#1a2d5a' }}>{categories[0] || 'Other'}</Text> and saved to the database!
               </Text>
 
-              <TouchableOpacity style={styles.successActionBtn} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(0); }}>
-                <Text style={styles.successActionTxt}>Back to Dashboard</Text>
+              <TouchableOpacity style={styles.successActionBtn} onPress={() => { setShowSuccess(false); resetForm(); setTabByName?.('Songs'); }}>
+                <Text style={styles.successActionTxt}>✅ Done — Back to Songs</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.successSecBtn} onPress={() => { setShowSuccess(false); resetForm(); }}>
                 <Text style={styles.successSecTxt}>Post Another Song</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.successSecBtn, { marginTop: 6, borderColor: '#c7d2fe' }]} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(0); }}>
+                <Text style={[styles.successSecTxt, { color: '#6366f1' }]}>Back to Dashboard</Text>
               </TouchableOpacity>
             </View>
           </View>

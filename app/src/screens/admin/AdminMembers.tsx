@@ -20,6 +20,7 @@ import {
 import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2, ChevronLeft, UserPlus, Search, MoreVertical } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
+import { formatDateDisplay } from '../../utils/DateUtils';
 import { CustomAlert, AlertButton } from '../../components/CustomAlert';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { AdminTabContext } from '../../context/AdminTabContext';
@@ -269,10 +270,9 @@ export default function AdminMembers() {
       return;
     }
     
-    let formattedPhone = newMemberForm.phone.trim();
-    if (!formattedPhone.startsWith('+')) {
-       formattedPhone = `+91${formattedPhone}`;
-    }
+    const digitsOnly = newMemberForm.phone.replace(/\D/g, '');
+    const last10 = digitsOnly.slice(-10);
+    const formattedPhone = `+91${last10}`;
 
     try {
       setAddMemberLoading(true);
@@ -289,6 +289,24 @@ export default function AdminMembers() {
           anniversaryDate: newMemberForm.anniversaryDate,
         });
       } else {
+        const isDuplicate = members.some(member => {
+          const mPhoneRaw = (member.phone || '').replace(/\D/g, '');
+          const mPhone10 = mPhoneRaw.slice(-10);
+          return mPhone10 === last10 && mPhone10.length === 10;
+        });
+
+        if (isDuplicate) {
+          setAlertConfig({
+            visible: true,
+            title: 'Duplicate Member',
+            message: 'A member with this phone number already exists in this church.',
+            type: 'warning',
+            buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+          });
+          setAddMemberLoading(false);
+          return;
+        }
+
         res = await FirestoreService.adminAddMember(activeChurch?.id || '', {
           name: newMemberForm.name,
           phone: formattedPhone,
@@ -335,7 +353,7 @@ export default function AdminMembers() {
         setAlertConfig({
           visible: true,
           title: 'Error',
-          message: res.error || 'Failed to add member',
+          message: res.error === 'DUPLICATE_MEMBER' ? 'A member with this phone number already exists in this church.' : (res.error || 'Failed to add member'),
           type: 'error',
           buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
         });
@@ -344,7 +362,7 @@ export default function AdminMembers() {
       setAlertConfig({
         visible: true,
         title: 'Error',
-        message: e.message,
+        message: e.message === 'DUPLICATE_MEMBER' ? 'A member with this phone number already exists in this church.' : e.message,
         type: 'error',
         buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
       });
@@ -663,7 +681,7 @@ export default function AdminMembers() {
                         {member.userType?.trim().toLowerCase() === 'super_admin' || member.userType?.trim().toLowerCase() === 'super admin' ? (
                           <View style={[styles.promoteBtn, { backgroundColor: '#7c3aed', opacity: 0.8 }]}>
                             <Shield size={14} color="#fff" />
-                            <Text style={styles.promoteBtnTxt}>Super Admin</Text>
+                            <Text style={styles.promoteBtnTxt}>App Admin</Text>
                           </View>
                         ) : displayRole.toLowerCase() === 'admin' ? (
                           <TouchableOpacity 
@@ -746,7 +764,7 @@ export default function AdminMembers() {
                                   {details.dob ? (
                                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                                       <Text style={{ fontSize: 14, marginRight: 8 }}>🎂</Text>
-                                      <Text style={{ color: '#4B5563', fontSize: 13 }}>DOB: {details.dob}</Text>
+                                      <Text style={{ color: '#4B5563', fontSize: 13 }}>DOB: {formatDateDisplay(details.dob)}</Text>
                                     </View>
                                   ) : null}
                                   {details.gender ? (
@@ -788,10 +806,11 @@ export default function AdminMembers() {
       />
 
       {/* Add/Edit Member Modal */}
-      <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => { setAddModalVisible(false); setEditMemberId(null); }}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(26,45,90,0.6)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ width: width * 0.92, backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 10 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <Modal visible={addModalVisible} transparent animationType="slide" onRequestClose={() => { setAddModalVisible(false); setEditMemberId(null); }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(26,45,90,0.6)', justifyContent: 'flex-end' }}>
+          <View style={{ width: '100%', backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '92%', shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 20, shadowOffset: { width: 0, height: -6 }, elevation: 10 }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
               <Text style={{ fontSize: 20, fontWeight: '800', color: '#1a2d5a', letterSpacing: -0.5 }}>
                 {editMemberId ? 'Edit Member' : 'Add New Member'}
               </Text>
@@ -800,107 +819,114 @@ export default function AdminMembers() {
               </TouchableOpacity>
             </View>
 
-            <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 20, fontWeight: '500' }}>
-              {editMemberId ? 'Update member details below.' : `They will receive a shareable link to join ${activeChurch?.name}`}
-            </Text>
+            {/* Scrollable Form */}
+            <ScrollView
+              contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 32 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 20, fontWeight: '500' }}>
+                {editMemberId ? 'Update member details below.' : `They will receive a shareable link to join ${activeChurch?.name}`}
+              </Text>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Full Name</Text>
-              <TextInput
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
-                placeholder="Enter member's name"
-                placeholderTextColor="#9CA3AF"
-                value={newMemberForm.name}
-                onChangeText={(t) => setNewMemberForm({...newMemberForm, name: t})}
-              />
-            </View>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Full Name</Text>
+                <TextInput
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
+                  placeholder="Enter member's name"
+                  placeholderTextColor="#9CA3AF"
+                  value={newMemberForm.name}
+                  onChangeText={(t) => setNewMemberForm({...newMemberForm, name: t})}
+                />
+              </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Phone Number</Text>
-              <TextInput
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
-                placeholder="e.g. 9876543210"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="phone-pad"
-                value={newMemberForm.phone}
-                onChangeText={(t) => setNewMemberForm({...newMemberForm, phone: t})}
-              />
-            </View>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Phone Number</Text>
+                <TextInput
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
+                  placeholder="e.g. 9876543210"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="phone-pad"
+                  value={newMemberForm.phone}
+                  onChangeText={(t) => setNewMemberForm({...newMemberForm, phone: t})}
+                />
+              </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>City / Village</Text>
-              <TextInput
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
-                placeholder="Enter city or village"
-                placeholderTextColor="#9CA3AF"
-                value={newMemberForm.city}
-                onChangeText={(t) => setNewMemberForm({...newMemberForm, city: t})}
-              />
-            </View>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>City / Village</Text>
+                <TextInput
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
+                  placeholder="Enter city or village"
+                  placeholderTextColor="#9CA3AF"
+                  value={newMemberForm.city}
+                  onChangeText={(t) => setNewMemberForm({...newMemberForm, city: t})}
+                />
+              </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Date of Birth (DOB)</Text>
-              <TouchableOpacity
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
-                onPress={() => setDatePickerVisibility(true)}
-              >
-                <Text style={{ color: newMemberForm.dob ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
-                  {newMemberForm.dob || 'Select Date'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Baptism Date */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Baptism Date</Text>
-              <TouchableOpacity
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
-                onPress={() => { setActiveDateField('baptismDate'); setDatePickerVisibility(true); }}
-              >
-                <Text style={{ color: newMemberForm.baptismDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
-                  {newMemberForm.baptismDate || 'Select Date'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Anniversary Date */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Wedding Anniversary Date</Text>
-              <TouchableOpacity
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
-                onPress={() => { setActiveDateField('anniversaryDate'); setDatePickerVisibility(true); }}
-              >
-                <Text style={{ color: newMemberForm.anniversaryDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
-                  {newMemberForm.anniversaryDate || 'Select Date'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Role</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                <TouchableOpacity 
-                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : '#FFFFFF' }}
-                  onPress={() => setNewMemberForm({...newMemberForm, userType: 'member'})}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Date of Birth (DOB)</Text>
+                <TouchableOpacity
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
+                  onPress={() => setDatePickerVisibility(true)}
                 >
-                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#FFFFFF' : '#6B7280' }}>Member</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#1a2d5a' : '#FFFFFF' }}
-                  onPress={() => setNewMemberForm({...newMemberForm, userType: 'admin'})}
-                >
-                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#FFFFFF' : '#6B7280' }}>Admin</Text>
+                  <Text style={{ color: newMemberForm.dob ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
+                    {newMemberForm.dob ? formatDateDisplay(newMemberForm.dob) : 'Select Date'}
+                  </Text>
                 </TouchableOpacity>
               </View>
-            </View>
 
-            <TouchableOpacity 
-              style={{ backgroundColor: '#1a2d5a', padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 4, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }}
-              onPress={handleAddMember}
-              disabled={addMemberLoading}
-            >
-              {addMemberLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '800', letterSpacing: 0.5, fontSize: 14 }}>{editMemberId ? 'SAVE CHANGES' : 'ADD MEMBER'}</Text>}
-            </TouchableOpacity>
+              {/* Baptism Date */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Baptism Date</Text>
+                <TouchableOpacity
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
+                  onPress={() => { setActiveDateField('baptismDate'); setDatePickerVisibility(true); }}
+                >
+                  <Text style={{ color: newMemberForm.baptismDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
+                    {newMemberForm.baptismDate ? formatDateDisplay(newMemberForm.baptismDate) : 'Select Date'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Anniversary Date */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Wedding Anniversary Date</Text>
+                <TouchableOpacity
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
+                  onPress={() => { setActiveDateField('anniversaryDate'); setDatePickerVisibility(true); }}
+                >
+                  <Text style={{ color: newMemberForm.anniversaryDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
+                    {newMemberForm.anniversaryDate ? formatDateDisplay(newMemberForm.anniversaryDate) : 'Select Date'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Role</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                  <TouchableOpacity
+                    style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : '#FFFFFF' }}
+                    onPress={() => setNewMemberForm({...newMemberForm, userType: 'member'})}
+                  >
+                    <Text style={{ fontWeight: '800', color: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#FFFFFF' : '#6B7280' }}>Member</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#1a2d5a' : '#FFFFFF' }}
+                    onPress={() => setNewMemberForm({...newMemberForm, userType: 'admin'})}
+                  >
+                    <Text style={{ fontWeight: '800', color: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#FFFFFF' : '#6B7280' }}>Admin</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={{ backgroundColor: '#1a2d5a', padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 4, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }}
+                onPress={handleAddMember}
+                disabled={addMemberLoading}
+              >
+                {addMemberLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '800', letterSpacing: 0.5, fontSize: 14 }}>{editMemberId ? 'SAVE CHANGES' : 'ADD MEMBER'}</Text>}
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -966,7 +992,7 @@ export default function AdminMembers() {
               }}
             >
               <UserPlus size={20} color="#1a2d5a" />
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1a2d5a', marginLeft: 12 }}>Add Contacts</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1a2d5a', marginLeft: 12 }}>Add From Contacts</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 

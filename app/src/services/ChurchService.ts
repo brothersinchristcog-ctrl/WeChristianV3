@@ -13,6 +13,7 @@ export interface ChurchDetails {
   id: string;
   name: string;
   churchCode: string;
+  isActive?: boolean;
   createdBy?: string;
   tagline?: string;
   subdomain: string;
@@ -23,6 +24,7 @@ export interface ChurchDetails {
   theme: ChurchTheme;
   whatsappIntegrationEnabled?: boolean;
   automatedWhatsappWishesEnabled?: boolean;
+  useWeChristianDailyPromise?: boolean;
   automatedWeCelebrationTemplate?: {
     themeId?: string;
     themeColor?: string;
@@ -99,13 +101,53 @@ class ChurchService {
   async getAllChurches(): Promise<ChurchDetails[]> {
     try {
       const snapshot = await firestore().collection('churches').orderBy('name').get();
-      return snapshot.docs.map(doc => ({
+      const churches = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as ChurchDetails[];
+
+      // Fetch live member count dynamically for each church
+      const churchesWithCounts = await Promise.all(churches.map(async (church) => {
+        try {
+          const countSnap = await firestore().collection('churches').doc(church.id).collection('members').count().get();
+          return { ...church, memberCount: countSnap.data().count };
+        } catch (e) {
+          return church;
+        }
+      }));
+
+      return churchesWithCounts;
     } catch (error) {
       console.error('Error fetching all churches:', error);
       return [];
+    }
+  }
+
+  /**
+   * Fetch all unique subscription tiers from all churches
+   */
+  async getAvailableTiers(): Promise<string[]> {
+    try {
+      const snapshot = await firestore().collection('churches').get();
+      const tiers = new Set<string>();
+      
+      // Default standard tiers
+      tiers.add('free');
+      tiers.add('premium');
+      tiers.add('expired');
+
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const tier1 = data.subscription?.tier;
+        const tier2 = data.subscriptionTier;
+        if (tier1 && typeof tier1 === 'string') tiers.add(tier1.toLowerCase());
+        if (tier2 && typeof tier2 === 'string') tiers.add(tier2.toLowerCase());
+      });
+
+      return Array.from(tiers).sort();
+    } catch (error) {
+      console.error('Error fetching available tiers:', error);
+      return ['expired', 'free', 'premium'];
     }
   }
 
@@ -149,7 +191,41 @@ class ChurchService {
    */
   async createChurch(data: Omit<ChurchDetails, 'id'>): Promise<string> {
     try {
-      const docRef = await firestore().collection('churches').add(data);
+      // Check for duplicate mobile number
+      if (data.contactPhone) {
+        const digitsOnly = data.contactPhone.replace(/\D/g, '');
+        const last10Digits = digitsOnly.slice(-10);
+        const v1 = `+91${last10Digits}`;
+        const v2 = last10Digits;
+        const v3 = `0${last10Digits}`;
+        const v4 = data.contactPhone.trim();
+        const variants = Array.from(new Set([v1, v2, v3, v4]));
+
+        const duplicateQuery = await firestore()
+          .collection('churches')
+          .where('contactPhone', 'in', variants)
+          .get();
+          
+        if (!duplicateQuery.empty) {
+          throw new Error('DUPLICATE_CHURCH_PHONE');
+        }
+      }
+
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 60);
+
+      const churchData = {
+        ...data,
+        isActive: true,
+        subscription: {
+          status: 'trialing',
+          tier: 'free',
+          trialEndsAt: trialEndsAt.toISOString(),
+          validUntil: trialEndsAt.toISOString()
+        }
+      };
+      
+      const docRef = await firestore().collection('churches').add(churchData);
       return docRef.id;
     } catch (error) {
       console.error('Error creating church:', error);
@@ -245,6 +321,57 @@ class ChurchService {
     } catch (error) {
       console.error('Error updating church secrets:', error);
       return false;
+    }
+  }
+  /**
+   * SuperAdmin: Update specific church settings
+   */
+  async updateChurchSettings(churchId: string, data: any): Promise<void> {
+    try {
+      await firestore().collection('churches').doc(churchId).update(data);
+    } catch (error) {
+      console.error('Error updating church settings:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * SuperAdmin: Set custom subscription expiry date
+   */
+  async setSubscriptionExpiry(churchId: string, date: Date): Promise<void> {
+    try {
+      await firestore().collection('churches').doc(churchId).update({
+        'subscription.validUntil': date.toISOString(),
+        'subscription.status': 'active'
+      });
+    } catch (error) {
+      console.error('Error setting subscription expiry:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * SuperAdmin: Extend subscription by N years
+   */
+  async extendSubscription(churchId: string, years: number): Promise<void> {
+    try {
+      const church = await this.getChurchDetails(churchId);
+      if (!church) throw new Error('Church not found');
+      
+      let currentExpiry = church.subscription?.validUntil ? new Date(church.subscription.validUntil) : new Date();
+      if (currentExpiry < new Date()) {
+        currentExpiry = new Date();
+      }
+      
+      currentExpiry.setFullYear(currentExpiry.getFullYear() + years);
+      
+      await firestore().collection('churches').doc(churchId).update({
+        'subscription.validUntil': currentExpiry.toISOString(),
+        'subscription.status': 'active'
+      });
+    } catch (error) {
+      console.error('Error extending subscription:', error);
+      throw error;
     }
   }
 }

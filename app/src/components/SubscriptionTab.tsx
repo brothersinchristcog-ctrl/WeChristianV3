@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
+import Svg, { Circle, Path, Defs, LinearGradient, Stop } from 'react-native-svg';
 import {
   View,
   Text,
@@ -19,7 +20,14 @@ import {
   CreditCard,
   Building,
   Check,
-  MenuSquare
+  MenuSquare,
+  ShieldCheck,
+  Clock,
+  Download,
+  Eye,
+  X,
+  Trash2,
+  Crown
 } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -27,12 +35,16 @@ import { Buffer } from 'buffer';
 import * as Crypto from 'expo-crypto';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import { captureRef } from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
 import storage from '@react-native-firebase/storage';
+import RazorpayCheckout from 'react-native-razorpay';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
 import firestoreService, { SubscriptionPlan, GlobalUser } from '../services/FirestoreService';
 import { firestore, functions } from '../services/firebaseConfig';
+import { useNavigation } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
@@ -52,17 +64,65 @@ const colors = {
   forestSoft: '#E4EBE1',
 };
 
-export default function SubscriptionTab() {
-  const { member, user } = useAuth();
-  const { activeChurch } = useChurch();
+export default function SubscriptionTab({ member }: { member?: any }) {
+  const { user } = useAuth();
+  const { activeChurch, setChurchId } = useChurch();
+  const navigation = useNavigation<any>();
+  const backgroundColor = activeChurch?.theme?.primaryColor || colors.background;
+  
+  const receiptRef = useRef<View>(null);
   const [currentStep, setCurrentStep] = useState(1);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [paymentMethod, setPaymentMethod] = useState('upi');
 
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [globalUser, setGlobalUser] = useState<GlobalUser | null>(null);
   const [viewReceiptModalVisible, setViewReceiptModalVisible] = useState(false);
+  const [downloadSuccessModalVisible, setDownloadSuccessModalVisible] = useState(false);
+  const [planSelectModalVisible, setPlanSelectModalVisible] = useState(false);
+  const [selectedAdvancePlan, setSelectedAdvancePlan] = useState<'monthly' | 'annual'>('annual');
+  const [receiptTxnId, setReceiptTxnId] = useState('');
+  const [isPaymentSuccessful, setIsPaymentSuccessful] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [subscriptionHistory, setSubscriptionHistory] = useState<any[]>([]);
+  const [timeLeft, setTimeLeft] = useState({ days: '00', hours: '00', minutes: '00', seconds: '00' });
+
+  React.useEffect(() => {
+    const calculateTimeLeft = () => {
+      let endsAt = new Date();
+      if (activeChurch?.subscription?.status === 'active' && activeChurch?.subscription?.validUntil) {
+        endsAt = (activeChurch.subscription.validUntil as any).toDate ? (activeChurch.subscription.validUntil as any).toDate() : new Date(activeChurch.subscription.validUntil as any);
+      } else if (activeChurch?.subscription?.trialEndsAt) {
+        endsAt = (activeChurch.subscription.trialEndsAt as any).toDate ? (activeChurch.subscription.trialEndsAt as any).toDate() : new Date(activeChurch.subscription.trialEndsAt as any);
+      } else if ((activeChurch as any)?.createdAt) {
+        const created = ((activeChurch as any).createdAt.toDate ? (activeChurch as any).createdAt.toDate() : new Date((activeChurch as any).createdAt));
+        endsAt = new Date(created.getTime() + 60 * 24 * 60 * 60 * 1000);
+      }
+      
+      const diff = endsAt.getTime() - new Date().getTime();
+      
+      if (diff > 0) {
+        const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const m = Math.floor((diff / 1000 / 60) % 60);
+        const s = Math.floor((diff / 1000) % 60);
+        
+        setTimeLeft({
+          days: d.toString().padStart(2, '0'),
+          hours: h.toString().padStart(2, '0'),
+          minutes: m.toString().padStart(2, '0'),
+          seconds: s.toString().padStart(2, '0'),
+        });
+      } else {
+        setTimeLeft({ days: '00', hours: '00', minutes: '00', seconds: '00' });
+      }
+    };
+    
+    calculateTimeLeft();
+    const interval = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(interval);
+  }, [activeChurch]);
 
   React.useEffect(() => {
     const fetchData = async () => {
@@ -73,6 +133,10 @@ export default function SubscriptionTab() {
         if (user?.uid) {
           const u = await firestoreService.getGlobalUser(user.uid);
           setGlobalUser(u);
+          if (activeChurch?.id) {
+            const hist = await firestoreService.getChurchSubscriptionHistory(activeChurch.id);
+            setSubscriptionHistory(hist);
+          }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -87,24 +151,203 @@ export default function SubscriptionTab() {
   twoMonthsFromNow.setMonth(twoMonthsFromNow.getMonth() + 2);
   const trialEndDateStr = twoMonthsFromNow.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
+  const downloadPdfReceipt = async (invoice: any) => {
+    try {
+      const churchLogoHtml = activeChurch?.theme?.logoUrl 
+        ? `<img src="${activeChurch.theme.logoUrl}" class="church-logo" />` 
+        : `<div style="width: 60px; height: 60px; border-radius: 10px; margin-right: 15px; background: #f0f0f0; text-align: center; line-height: 60px; font-size: 24px; font-weight: bold; color: #999; display: inline-block;">${activeChurch?.name?.charAt(0) || 'C'}</div>`;
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body {
+              font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+              padding: 40px;
+              color: #333;
+              background-color: #f9f9f9;
+            }
+            .receipt-container {
+              background: #ffffff;
+              max-width: 600px;
+              margin: 0 auto;
+              padding: 40px;
+              border-radius: 12px;
+              box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            }
+            .header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 2px solid #eee;
+              padding-bottom: 20px;
+              margin-bottom: 30px;
+            }
+            .logo-container {
+              display: flex;
+              align-items: center;
+            }
+            .church-logo {
+              width: 60px;
+              height: 60px;
+              border-radius: 10px;
+              margin-right: 15px;
+              object-fit: cover;
+              display: inline-block;
+            }
+            .church-name {
+              font-size: 24px;
+              font-weight: bold;
+              color: #1a1a1a;
+              margin: 0;
+            }
+            .receipt-title {
+              font-size: 20px;
+              color: #666;
+              font-weight: 500;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 15px;
+            }
+            .label {
+              color: #888;
+              font-size: 14px;
+              font-weight: 500;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            .value {
+              color: #1a1a1a;
+              font-size: 16px;
+              font-weight: 600;
+            }
+            .total-section {
+              margin-top: 40px;
+              padding-top: 20px;
+              border-top: 2px solid #eee;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+            .total-label {
+              font-size: 18px;
+              font-weight: bold;
+              color: #333;
+            }
+            .total-amount {
+              font-size: 28px;
+              font-weight: bold;
+              color: #10b981;
+            }
+            .footer {
+              margin-top: 40px;
+              text-align: center;
+              color: #888;
+              font-size: 12px;
+            }
+            .status-badge {
+              background-color: #d1fae5;
+              color: #059669;
+              padding: 4px 10px;
+              border-radius: 20px;
+              font-size: 12px;
+              font-weight: bold;
+              text-transform: uppercase;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt-container">
+            <div class="header">
+              <div class="logo-container">
+                ${churchLogoHtml}
+                <h2 class="church-name">${activeChurch?.name || 'Church Name'}</h2>
+              </div>
+              <div class="receipt-title">Receipt</div>
+            </div>
+            
+            <div style="margin-bottom: 30px;">
+              <div class="info-row">
+                <span class="label">Billed To</span>
+                <span class="value">${member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Transaction ID</span>
+                <span class="value" style="font-family: monospace;">${invoice?.id || 'N/A'}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Date Paid</span>
+                <span class="value">${invoice?.paidAt ? ((invoice.paidAt as any).toDate ? (invoice.paidAt as any).toDate() : ((invoice.paidAt as any).seconds ? new Date((invoice.paidAt as any).seconds * 1000) : new Date(invoice.paidAt as any))).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'}</span>
+              </div>
+              <div class="info-row">
+                <span class="label">Plan Details</span>
+                <span class="value" style="text-transform: capitalize;">${invoice?.plan || 'Monthly'} Plan</span>
+              </div>
+              ${invoice?.validUntil ? `
+              <div class="info-row">
+                <span class="label">Valid Until</span>
+                <span class="value">${((invoice.validUntil as any).toDate ? (invoice.validUntil as any).toDate() : ((invoice.validUntil as any).seconds ? new Date((invoice.validUntil as any).seconds * 1000) : new Date(invoice.validUntil as any))).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+              </div>
+              ` : ''}
+              <div class="info-row" style="margin-top: 20px;">
+                <span class="label">Status</span>
+                <span class="status-badge">${invoice?.status || 'N/A'}</span>
+              </div>
+            </div>
+            
+            <div class="total-section">
+              <span class="total-label">Total Paid</span>
+              <span class="total-amount">₹${invoice?.amount || '0'}</span>
+            </div>
+            
+            <div class="footer">
+              <p>Thank you for your continued support!</p>
+              <p>Generated by WeChristian App</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      const { uri } = await Print.printToFileAsync({ html });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri);
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Error', 'Failed to generate receipt');
+    }
+  };
+
   const monthlyPlan = plans.find(p => p.billingCycle === 'monthly');
   const annualPlan = plans.find(p => p.billingCycle === 'annual');
 
   const activePlan = billingCycle === 'annual' ? annualPlan : monthlyPlan;
-  const planPrice = activePlan ? activePlan.price : (billingCycle === 'annual' ? 99 : 10);
-  const planFeatures = activePlan ? activePlan.features : ['Unlimited access to the Sacred Ledger', 'Personalized prayer notifications', 'Offline access for scripture study', 'Exclusive liturgical commentaries'];
-  const planSavings = annualPlan?.savings || 'SAVE ₹89';
+  const planPrice = 199; // Church annual plan - final production pricing
+  const planFeatures = ['Church-wide access for all members', 'Unlimited push notifications', 'Manage events and sermons', 'Pastoral and admin tools'];
+  const planSavings = 'PREMIUM';
 
   const calculateDaysRemaining = () => {
-    // If they have an explicit trial end date saved
-    if (globalUser?.subscription?.trialEndsAt) {
-      const endsAt = globalUser.subscription.trialEndsAt.toDate ? globalUser.subscription.trialEndsAt.toDate() : new Date(globalUser.subscription.trialEndsAt);
+    // Check if the subscription is actively paid
+    if (activeChurch?.subscription?.status === 'active' && activeChurch?.subscription?.validUntil) {
+      const endsAt = (activeChurch.subscription.validUntil as any).toDate ? (activeChurch.subscription.validUntil as any).toDate() : new Date(activeChurch.subscription.validUntil as any);
+      const diffTime = Math.max(0, endsAt.getTime() - new Date().getTime());
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+
+    // If they have an explicit trial end date saved on the church
+    if (activeChurch?.subscription?.trialEndsAt) {
+      const endsAt = activeChurch.subscription.trialEndsAt.toDate ? activeChurch.subscription.trialEndsAt.toDate() : new Date(activeChurch.subscription.trialEndsAt);
       const diffTime = Math.max(0, endsAt.getTime() - new Date().getTime());
       return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     }
     
-    // Otherwise, calculate 60 days from their registration date
-    const dateToUse = globalUser?.createdAt || member?.joinDate;
+    // Otherwise, calculate 60 days from church registration date
+    const dateToUse = (activeChurch as any)?.createdAt;
     if (dateToUse) {
       const createdDate = (typeof dateToUse === 'object' && dateToUse.toDate) ? dateToUse.toDate() : new Date(dateToUse);
       const trialEnd = new Date(createdDate);
@@ -113,7 +356,6 @@ export default function SubscriptionTab() {
       return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
     }
 
-    // Default to 60 for brand new users if no data is found yet
     return 60;
   };
 
@@ -125,249 +367,479 @@ export default function SubscriptionTab() {
 
   const cycleText = billingCycle === 'annual' ? '/ year' : '/ month';
 
-  const handlePhonePePayment = async () => {
+  const handleRazorpayPayment = async (overrideCycle?: 'monthly' | 'annual') => {
     try {
-      // Bypassing Firebase function to avoid GCP lock issues and use test keys directly
-      const amount = planPrice * 100;
-      const transactionId = `T${Date.now()}`;
+      const actualCycle = 'annual';
+      const amount = planPrice;
+      const receipt = `RCPT_${Date.now()}`;
       
-      const payload = {
-        merchantId: 'PGTESTPAYUAT86',
-        merchantTransactionId: transactionId,
-        merchantUserId: user?.uid || member?.phone || 'U123456',
-        amount: amount,
-        redirectUrl: 'exp://localhost:8081/--/subscription-success', 
-        redirectMode: 'REDIRECT',
-        callbackUrl: 'https://us-central1-wechristian-67f07.cloudfunctions.net/phonePeCallback', 
-        mobileNumber: user?.phoneNumber || member?.phone || "9999999999",
-        paymentInstrument: {
-          type: 'PAY_PAGE'
-        }
+      const createOrder = functions().httpsCallable('createRazorpayOrderV4');
+      const res = await createOrder({ amount, receipt });
+      const { orderId, keyId } = (res.data as any);
+
+      const options = {
+        description: 'Subscription',
+        image: activeChurch?.theme?.logoUrl || 'https://cdn-icons-png.flaticon.com/512/8662/8662584.png',
+        currency: 'INR',
+        key: keyId,
+        amount: amount * 100,
+        name: activeChurch?.name || 'We Christian',
+        order_id: orderId,
+        prefill: {
+          email: user?.email || '',
+          contact: user?.phoneNumber || member?.phone || '',
+          name: member?.firstName ? `${member.firstName} ${member.lastName || ''}` : ''
+        },
+        theme: { color: colors.brass }
       };
 
-      const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64');
-      const apiEndPoint = "/pg/v1/pay";
-      const saltKey = '96434309-7796-489d-8924-ab56988a6076';
-      
-      const stringToHash = base64Payload + apiEndPoint + saltKey;
-      const sha256 = await Crypto.digestStringAsync(
-        Crypto.CryptoDigestAlgorithm.SHA256,
-        stringToHash
-      );
-      
-      const checksum = sha256 + "###1";
-
-      const response = await axios.post('https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/pay', {
-        request: base64Payload
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-VERIFY': checksum
-        }
-      });
-
-      if (response.data.success) {
-        const redirectUrl = response.data.data.instrumentResponse.redirectInfo.url;
+      RazorpayCheckout.open(options).then(async (data: any) => {
+        const transactionId = data.razorpay_payment_id;
+        setReceiptTxnId(transactionId);
         
-        // --- ADDED FIRESTORE WRITE FOR MEMBERS ---
-        const nextDate = new Date();
-        if (billingCycle === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
-        else nextDate.setFullYear(nextDate.getFullYear() + 1);
+        try {
+          // --- SECURE BACKEND VERIFICATION FOR CHURCHES ---
+          const verifyPayment = functions().httpsCallable('verifyRazorpaySubscriptionV3');
+          await verifyPayment({
+            razorpay_payment_id: transactionId,
+            razorpay_order_id: data.razorpay_order_id,
+            razorpay_signature: data.razorpay_signature,
+            type: 'church',
+            userId: user?.uid,
+            churchId: activeChurch?.id,
+            amount: amount,
+            plan: actualCycle
+          });
+          
+          // Refresh history, user, and church context
+          if (activeChurch && user) {
+            // Force ChurchContext to fetch latest data to unblock the app!
+            setIsPaymentSuccessful(true);
+            await setChurchId(activeChurch.id);
 
-        if (user && activeChurch) {
-          // 1. Create permanent record in 'subscriptions' subcollection under this member
-          await firestore()
-            .collection('churches')
-            .doc(activeChurch.id)
-            .collection('members')
-            .doc(user.uid)
-            .collection('subscriptions')
-            .doc(transactionId)
-            .set({
-              status: 'active',
-              plan: activePlan?.name || billingCycle,
-              amount: planPrice,
-              validUntil: nextDate.toISOString(),
-              paymentId: transactionId,
-              paidAt: new Date().toISOString()
-            });
-
-          // 2. Update the member's root document
-          await firestore()
-            .collection('churches')
-            .doc(activeChurch.id)
-            .collection('members')
-            .doc(user.uid)
-            .update({
-              'subscription.status': 'active',
-              'subscription.plan': activePlan?.name || billingCycle,
-              'subscription.validUntil': nextDate.toISOString(),
-              'subscription.lastPaymentId': transactionId
-            });
+            const u = await firestoreService.getGlobalUser(user.uid);
+            setGlobalUser(u);
+            
+            // To properly show history, we might need a backend call or fetch from platform_subscriptions.
+            // For now, we will just fetch whatever was in the old collection so it doesn't break,
+            // but ideally you'd fetch from platform_subscriptions.
+            const hist = await firestoreService.getChurchSubscriptionHistory(activeChurch.id);
+            setSubscriptionHistory(hist);
+          }
+          // The church context refresh above will automatically transition the UI
+          // to the active dashboard. No need to go to a separate step 5.
+        } catch (verificationError: any) {
+          console.error('Subscription Verification Error:', verificationError);
+          Alert.alert('Payment Successful, but Verification Failed', 'We could not securely verify your payment with our servers. Please contact support.');
         }
-        // -----------------------------------------
+      }).catch((error: any) => {
+        let errorMsg = error.description || 'Payment was cancelled or failed.';
+        let isCancellation = false;
 
-        await Linking.openURL(redirectUrl);
-        nextStep(5);
-      } else {
-        Alert.alert('Payment Error', 'Failed to generate PhonePe payment link.');
-      }
+        if (error.code === 0 || error.code === 2) {
+          if (typeof errorMsg === 'string') {
+            if (errorMsg.toLowerCase().includes('cancel')) {
+              isCancellation = true;
+            } else if (errorMsg.includes('payment_error') && errorMsg.includes('payment_authentication')) {
+              isCancellation = true; // User backed out of bank/UPI page
+            }
+          }
+        }
+
+        if (isCancellation) {
+          if (activeChurch && user) {
+            firestoreService.logCancelledSubscription(activeChurch.id, user.uid, amount, actualCycle).then(() => {
+              firestoreService.getChurchSubscriptionHistory(activeChurch.id).then(hist => {
+                setSubscriptionHistory(hist);
+              });
+            });
+          }
+          return;
+        }
+
+        console.error('Razorpay Error:', error);
+
+        try {
+          if (typeof error.description === 'string' && error.description.startsWith('{')) {
+            const parsed = JSON.parse(error.description);
+            if (parsed.error?.description && parsed.error.description !== 'undefined') {
+              errorMsg = parsed.error.description;
+            } else {
+              errorMsg = 'Payment could not be completed. Please try again.';
+            }
+          }
+        } catch (e) {}
+
+        Alert.alert('Payment Failed', errorMsg);
+      });
     } catch (e: any) {
-      console.error(e.response?.data || e.message);
-      Alert.alert('Initialization Error', e.response?.data?.message || e.message || 'Could not initialize payment.');
+      console.error(e);
+      Alert.alert('Initialization Error', e.message || 'Could not initialize payment.');
     }
   };
 
   const downloadReceipt = async () => {
     try {
-      const transactionId = `WC-${Math.floor(1000 + Math.random() * 9000)}-X91`;
-      const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
-      const name = user?.displayName || member?.name || "Member";
-      
-      const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="utf-8">
-            <style>
-              body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; }
-              .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #e2e8f0; padding-bottom: 20px; }
-              .logo { width: 80px; height: 80px; margin-bottom: 10px; object-fit: contain; }
-              .church-name { font-size: 28px; font-weight: bold; color: #1e293b; margin: 0; }
-              .church-details { font-size: 14px; color: #64748b; margin-top: 5px; }
-              .title { font-size: 24px; font-weight: bold; color: #1e293b; margin-bottom: 30px; text-align: center; }
-              .info-row { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
-              .label { font-size: 14px; color: #64748b; font-weight: bold; text-transform: uppercase; }
-              .value { font-size: 16px; color: #1e293b; font-weight: 500; }
-              .total-row { display: flex; justify-content: space-between; margin-top: 30px; padding-top: 20px; border-top: 2px solid #1e293b; }
-              .total-label { font-size: 20px; font-weight: bold; color: #1e293b; }
-              .total-value { font-size: 24px; font-weight: bold; color: #d97706; }
-              .footer { margin-top: 60px; text-align: center; font-size: 14px; color: #94a3b8; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <img src="${activeChurch?.theme?.logoUrl || 'https://cdn-icons-png.flaticon.com/512/8662/8662584.png'}" class="logo" />
-              <h1 class="church-name">${activeChurch?.name || 'Bethesda Pentecostal Church'}</h1>
-              <p class="church-details">${activeChurch?.address || '123 Faith Avenue, Blessing City'} • ${activeChurch?.contactEmail || 'contact@church.org'}</p>
-            </div>
-            
-            <div class="title">DONATION RECEIPT</div>
-            
-            <div class="info-row">
-              <div class="label">Member Name</div>
-              <div class="value">${name}</div>
-            </div>
-            <div class="info-row">
-              <div class="label">Transaction ID</div>
-              <div class="value">${transactionId}</div>
-            </div>
-            <div class="info-row">
-              <div class="label">Date</div>
-              <div class="value">${date}</div>
-            </div>
-            <div class="info-row">
-              <div class="label">Subscription Plan</div>
-              <div class="value">${activePlan?.name || billingCycle.toUpperCase()}</div>
-            </div>
-            
-            <div class="total-row">
-              <div class="total-label">Amount Paid</div>
-              <div class="total-value">₹${planPrice.toFixed(2)}</div>
-            </div>
-            
-            <div class="footer">
-              Thank you for your generous contribution.<br>
-              May God bless you abundantly!
-            </div>
-          </body>
-        </html>
-      `;
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'We need photo gallery permissions to save the receipt.');
+        return;
+      }
 
-      const { uri } = await Print.printToFileAsync({ html: htmlContent });
-
-      // Upload to Firebase and open URL to bypass the Share Sheet
-      const reference = storage().ref(`receipts/Donation_Receipt_${transactionId}.pdf`);
-      await reference.putFile(uri, { 
-        contentType: 'application/pdf',
-        contentDisposition: `attachment; filename="Donation_Receipt_${transactionId}.pdf"`
-      });
-      const downloadUrl = await reference.getDownloadURL();
-
-      Alert.alert(
-        'Receipt Ready', 
-        'Your receipt is ready to download. It will now open in your browser where you can save it directly.',
-        [
-          { text: 'OK', onPress: () => Linking.openURL(downloadUrl) }
-        ]
-      );
+      if (receiptRef.current) {
+        setTimeout(async () => {
+          try {
+            const uri = await captureRef(receiptRef, { format: 'png', quality: 1 });
+            await MediaLibrary.saveToLibraryAsync(uri);
+            setDownloadSuccessModalVisible(true);
+          } catch (e: any) {
+            console.error('Capture Error:', e);
+            Alert.alert('Error', 'Could not capture receipt image.');
+          }
+        }, 100);
+      }
     } catch (e: any) {
-      console.error('Receipt Error:', e);
-      Alert.alert("Error", `Could not generate receipt: ${e.message}`);
+      console.error(e);
+      Alert.alert('Error', e.message || 'Could not save receipt.');
     }
   };
 
-  const renderProgressBar = () => (
-    <View style={styles.progressContainer}>
-      {[1, 2, 3, 4, 5].map((step) => (
-        <View
-          key={step}
-          style={[
-            styles.progressBar,
-            { backgroundColor: step <= currentStep ? colors.brass : colors.rule }
-          ]}
-        />
-      ))}
-    </View>
-  );
+  const handleDeleteHistoryItem = (invoice: any) => {
+    Alert.alert(
+      "Delete Payment History",
+      "Are you sure you want to delete this payment record?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              if (activeChurch?.id && invoice.id) {
+                await firestoreService.deleteChurchSubscriptionHistory(activeChurch.id, invoice.id);
+                setSubscriptionHistory(prev => prev.filter(item => item.id !== invoice.id));
+              }
+            } catch (error) {
+              console.error('Error deleting history item', error);
+              Alert.alert('Error', 'Failed to delete payment record.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const receiptData = useMemo(() => {
+    const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+    let nextDateStr = 'N/A';
+    if (activeChurch?.subscription?.validUntil) {
+      nextDateStr = new Date(activeChurch.subscription.validUntil).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+    } else {
+      const nextDate = new Date();
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
+      nextDateStr = nextDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase();
+    }
+    return {
+      transactionId: receiptTxnId || (activeChurch?.subscription as any)?.lastPaymentId || `WC-${Math.floor(1000 + Math.random() * 9000)}-X91`,
+      date,
+      name: activeChurch?.name || "Church",
+      nextDateStr
+    };
+  }, [activeChurch?.subscription?.validUntil, (activeChurch?.subscription as any)?.lastPaymentId, receiptTxnId, activeChurch?.name]);
+
+  const daysLeft = useMemo(() => {
+    if (activeChurch?.subscription?.validUntil) {
+      const date = (activeChurch.subscription.validUntil as any).toDate 
+        ? (activeChurch.subscription.validUntil as any).toDate() 
+        : new Date(activeChurch.subscription.validUntil as any);
+      return Math.max(0, Math.ceil((date.getTime() - new Date().getTime()) / 86400000));
+    }
+    return 0;
+  }, [activeChurch?.subscription?.validUntil]);
+  
+  // Assume 30 days is a standard 100% circle (e.g., for monthly or a countdown window), 
+  // unless they have more than 30 days left, then maxDays becomes their remaining days rounded up.
+  // This ensures the progress circle is always visibly filled based on a 30-day window.
+  const maxDays = Math.max(30, daysLeft);
+  const progressRatio = Math.max(0, Math.min(1, daysLeft / maxDays));
+  const dashOffset = (2 * Math.PI * 54) - ((2 * Math.PI * 54) * progressRatio);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {!loading && globalUser?.subscription?.status !== 'active' && renderProgressBar()}
+    <ScrollView style={{ flex: 1, backgroundColor: '#F7F3E9' }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} bounces={false}>
 
       {loading ? (
         <View style={[styles.stepContainer, { justifyContent: 'center', alignItems: 'center' }]}>
           <Text style={styles.title}>Loading...</Text>
         </View>
-      ) : globalUser?.subscription?.status === 'active' ? (
-        <View style={[styles.stepContainer, { paddingHorizontal: 20 }]}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Welcome back, {member?.firstName || 'David'}</Text>
-            <Text style={styles.subtitle}>Your journey of faith continues.</Text>
+      ) : ((activeChurch?.subscription?.status === 'active' || isPaymentSuccessful) && !planSelectModalVisible) ? (
+        <View style={[{ minHeight: 600, paddingTop: 24 }]}>
+          <TouchableOpacity style={{ alignSelf: 'flex-start', marginBottom: 16, padding: 8, marginLeft: 20 }} onPress={() => navigation.goBack()}>
+            <ArrowLeft size={24} color={'#1F3B3D'} />
+          </TouchableOpacity>
+          <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 20, paddingBottom: 16, marginBottom: 24, marginHorizontal: 28, alignItems: 'center' }}>
+            <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginBottom: 12 }}>TIME REMAINING</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'center', width: '100%' }}>
+              <View style={{ alignItems: 'center', width: 60 }}>
+                <Text style={{ color: '#f8fafc', fontSize: 28, fontWeight: '800' }}>{timeLeft.days}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 4, fontWeight: '600' }}>DAYS</Text>
+              </View>
+              <Text style={{ color: '#64748b', fontSize: 24, fontWeight: '600', marginHorizontal: 4, marginTop: 2 }}>:</Text>
+              <View style={{ alignItems: 'center', width: 60 }}>
+                <Text style={{ color: '#f8fafc', fontSize: 28, fontWeight: '800' }}>{timeLeft.hours}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 4, fontWeight: '600' }}>HRS</Text>
+              </View>
+              <Text style={{ color: '#64748b', fontSize: 24, fontWeight: '600', marginHorizontal: 4, marginTop: 2 }}>:</Text>
+              <View style={{ alignItems: 'center', width: 60 }}>
+                <Text style={{ color: '#f8fafc', fontSize: 28, fontWeight: '800' }}>{timeLeft.minutes}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 4, fontWeight: '600' }}>MIN</Text>
+              </View>
+              <Text style={{ color: '#64748b', fontSize: 24, fontWeight: '600', marginHorizontal: 4, marginTop: 2 }}>:</Text>
+              <View style={{ alignItems: 'center', width: 60 }}>
+                <Text style={{ color: '#f8fafc', fontSize: 28, fontWeight: '800' }}>{timeLeft.seconds}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 4, fontWeight: '600' }}>SEC</Text>
+              </View>
+            </View>
           </View>
-          
-          <View style={[styles.card, { backgroundColor: '#ecfdf5', borderColor: '#34d399', borderWidth: 1, padding: 30, alignItems: 'center', marginTop: 40 }]}>
-            <CheckCircle size={60} color="#10b981" style={{ marginBottom: 20 }} />
-            <Text style={[styles.title, { color: '#047857', textAlign: 'center', fontSize: 24, marginBottom: 10 }]}>Active Subscription</Text>
-            <Text style={[styles.subtitle, { color: '#065f46', textAlign: 'center', fontSize: 16 }]}>
-              Thank you for subscribing to the {globalUser.subscription.plan} plan!
+
+          <View style={{ paddingHorizontal: 28 }}>
+            <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#10b981', padding: 16, paddingBottom: 20, overflow: 'hidden' }}>
+              <View style={{ position: 'absolute', top: 0, right: 0, width: 130, height: 75 }}>
+              <Svg width="130" height="75" style={{ position: 'absolute', top: 0, right: 0 }}>
+                <Defs>
+                  <LinearGradient id="greenBadge" x1="0" y1="0" x2="1" y2="0">
+                    <Stop offset="0" stopColor="#34d399" stopOpacity="1" />
+                    <Stop offset="1" stopColor="#059669" stopOpacity="1" />
+                  </LinearGradient>
+                </Defs>
+                <Path d="M 0 0 C 25 0, 20 45, 45 45 L 110 45 C 125 45, 130 60, 130 75 L 130 0 Z" fill="url(#greenBadge)" />
+              </Svg>
+              <View style={{ height: 45, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
+                <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Active Plan</Text>
+              </View>
+            </View>
+            <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 16, marginTop: 4, width: '70%' }} numberOfLines={2} adjustsFontSizeToFit>{activeChurch?.name || 'Church of GOD'}</Text>
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹999</Text>
+              <Text style={{ color: '#10b981', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹199</Text>
+              <View>
+                <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '500' }}>/ year (INR)</Text>
+                <Text style={{ color: '#10b981', fontSize: 12, marginTop: 2 }}>₹199 billed yearly</Text>
+              </View>
+            </View>
+
+            <Text style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 20, marginBottom: 16 }}>
+              A comprehensive solution for spiritual growth, offering enhanced features to streamline your daily walk with God.
             </Text>
-            {globalUser.subscription.validUntil && (
-              <Text style={{ marginTop: 20, color: '#059669', fontSize: 14, fontWeight: 'bold' }}>
-                Valid until: {new Date(globalUser.subscription.validUntil).toLocaleDateString()}
+
+            <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 16, borderRadius: 1 }} />
+
+            <View style={{ flexDirection: 'row', marginBottom: 20 }}>
+              <View style={{ flex: 1 }}>
+                {['Bible', 'Sermons', 'Events', 'Songs', 'Bible plan', 'Online bible classes'].map((feat, idx) => (
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                    <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
+                      <Check size={12} color="#171e2e" strokeWidth={3} />
+                    </View>
+                    <Text style={{ color: '#cbd5e1', fontSize: 13, fontWeight: '500' }} numberOfLines={1}>{feat}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={{ flex: 1, paddingLeft: 8 }}>
+                {['Prayer wall', 'YouTube live', 'Celebrations', 'Live celebrations', 'Expense', 'Donation'].map((feat, idx) => (
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                    <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
+                      <Check size={12} color="#171e2e" strokeWidth={3} />
+                    </View>
+                    <Text style={{ color: '#cbd5e1', fontSize: 13, fontWeight: '500' }} numberOfLines={1}>{feat}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              onPress={() => setSelectedInvoice(subscriptionHistory[0] || { id: receiptTxnId || 'temp_active', plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' })}
+              style={{ backgroundColor: '#10b981', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+            >
+              <Crown size={20} color="#f8fafc" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700' }}>Current Plan Details</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+          {/* Ledger */}
+          <View style={{ paddingHorizontal: 24, marginTop: 24 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#D9D0BC', paddingBottom: 8 }}>
+              <Text style={{ color: '#1F3B3D', fontSize: 20, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}>
+                Payment History
               </Text>
-            )}
+              <Text style={{ fontSize: 10.5, color: '#9A8F72', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                {subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0)} ENTR{subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0) === 1 ? 'Y' : 'IES'}
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ paddingHorizontal: 24, paddingBottom: 64, marginTop: 24 }}>
+            {(() => {
+              let history = [...subscriptionHistory];
+              if (isPaymentSuccessful) {
+                const txnId = receiptTxnId || 'temp_active';
+                if (!history.some(item => item.id === txnId)) {
+                  history = [{ id: txnId, plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' }, ...history];
+                }
+              }
+              return history;
+            })().map((h, i, arr) => (
+              i === 0 && h.status === 'active' ? (
+                <View key={`${h.id}-active`} style={{ backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 20, borderWidth: 1, borderColor: '#10b981', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      <View style={{ width: 40, height: 40, backgroundColor: '#d1fae5', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                        <Crown size={20} color="#059669" />
+                      </View>
+                      <View>
+                        <Text style={{ color: '#059669', fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 2 }}>CURRENT PLAN</Text>
+                        <Text style={{ color: '#1F3B3D', fontSize: 16, fontWeight: '700', textTransform: 'capitalize' }}>{h.plan} Plan</Text>
+                      </View>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ color: '#1F3B3D', fontSize: 20, fontWeight: '800' }}>₹{h.amount}</Text>
+                      <Text style={{ color: '#64748b', fontSize: 11, fontWeight: '500' }}>Billed {h.plan?.toLowerCase() === 'annual' ? 'yearly' : 'monthly'}</Text>
+                    </View>
+                  </View>
+                  
+                  <View style={{ backgroundColor: '#F8F9FA', borderRadius: 12, padding: 12, marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '500' }}>Billed to</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 12.5, fontWeight: '700' }}>{member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '500' }}>Transaction ID</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 12.5, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>{h.id?.slice(0,18) || 'N/A'}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '500' }}>Date</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 12.5, fontWeight: '700' }}>
+                        {h.paidAt 
+                          ? ((h.paidAt as any).toDate 
+                              ? (h.paidAt as any).toDate() 
+                              : ((h.paidAt as any).seconds 
+                                  ? new Date((h.paidAt as any).seconds * 1000) 
+                                  : new Date(h.paidAt as any))
+                            ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+                          : 'N/A'}
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 4, justifyContent: 'flex-end' }}>
+                    <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ backgroundColor: '#10b981', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}>
+                      <Download size={20} color="#ffffff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => {
+                      setSelectedInvoice(h);
+                    }} style={{ backgroundColor: '#ecfdf5', borderRadius: 10, width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#a7f3d0' }}>
+                      <Eye size={20} color="#059669" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View key={`${h.id}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
+                  <Text style={{ color: '#C4B896', fontSize: 12, width: 22, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                    {String((subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0)) - i).padStart(2, '0')}
+                  </Text>
+                  <View style={{ width: 36, height: 36, backgroundColor: '#F1EADA', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
+                    <CreditCard size={16} color="#C98A3E" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontWeight: '500' }}>{h.plan} Plan</Text>
+                    <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 4, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                      Date: {h.paidAt 
+                        ? ((h.paidAt as any).toDate 
+                            ? (h.paidAt as any).toDate() 
+                            : ((h.paidAt as any).seconds 
+                                ? new Date((h.paidAt as any).seconds * 1000) 
+                                : new Date(h.paidAt as any))
+                          ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+                        : 'N/A'}
+                    </Text>
+                    <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 2, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                      Txn ID: {h.id?.slice(0,18) || 'N/A'}
+                    </Text>
+                    <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 2 }}>
+                      Name: {member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', marginRight: 12 }}>
+                    <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                      ₹{h.amount}
+                    </Text>
+                    <Text style={{ color: h.status === 'active' ? '#4F7A55' : (h.status === 'cancelled' ? '#ef4444' : '#C98A3E'), fontSize: 10.5, fontWeight: '600', letterSpacing: 0.3, marginTop: 4 }}>
+                      {h.status.toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity onPress={() => {
+                      setSelectedInvoice(h);
+                    }} style={{ padding: 10, backgroundColor: '#E4DDC8', borderRadius: 8 }}>
+                      <Eye size={16} color="#1F3B3D" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ padding: 10, backgroundColor: '#10b981', borderRadius: 8 }}>
+                      <Download size={16} color="#ffffff" />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteHistoryItem(h)} style={{ padding: 10, backgroundColor: '#fee2e2', borderRadius: 8 }}>
+                      <Trash2 size={16} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )
+            ))}
           </View>
         </View>
       ) : currentStep === 1 ? (
-        <View style={styles.stepContainer}>
+        <View style={[styles.stepContainer, { paddingTop: 24 }]}>
+          <TouchableOpacity style={{ alignSelf: 'flex-start', marginBottom: 16, padding: 8, marginLeft: -8 }} onPress={() => navigation.goBack()}>
+            <ArrowLeft size={24} color={'#1F3B3D'} />
+          </TouchableOpacity>
+          {activeChurch?.subscription?.status === 'active' && (
+            <TouchableOpacity style={styles.backBtn} onPress={() => setPlanSelectModalVisible(false)}>
+              <ArrowLeft size={24} color={colors.ink} />
+            </TouchableOpacity>
+          )}
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome back, {member?.firstName || 'David'}</Text>
+            <Text style={styles.title}>Welcome back, {member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</Text>
             <Text style={styles.subtitle}>Your journey of faith continues.</Text>
           </View>
 
-          <View style={styles.circularProgressContainer}>
+          <View style={[styles.circularProgressContainer, { borderWidth: 0, position: 'relative' }]}>
+            <Svg width="224" height="224" style={{ position: 'absolute' }}>
+              <Circle cx="112" cy="112" r="107" fill="none" stroke={colors.rule} strokeWidth="10" />
+              <Circle
+                cx="112"
+                cy="112"
+                r="107"
+                fill="none"
+                stroke="#F59E0B"
+                strokeWidth="10"
+                strokeLinecap="round"
+                strokeDasharray={2 * Math.PI * 107}
+                strokeDashoffset={(2 * Math.PI * 107) - ((2 * Math.PI * 107) * Math.max(0, Math.min(1, daysRemaining / Math.max(60, daysRemaining))))}
+                transform="rotate(-90 112 112)"
+              />
+            </Svg>
             <View style={styles.circularProgressInner}>
               <Text style={styles.daysText}>{daysRemaining}</Text>
-              <Text style={styles.daysLabel}>{daysRemaining > 0 ? "DAYS REMAINING" : "TRIAL EXPIRED"}</Text>
+              <Text style={styles.daysLabel}>{activeChurch?.subscription?.status === 'active' ? "DAYS REMAINING" : (daysRemaining > 0 ? "DAYS REMAINING" : "TRIAL EXPIRED")}</Text>
             </View>
           </View>
 
           <View style={styles.card}>
             <Text style={styles.cardText}>
-              {daysRemaining > 0 
-                ? `You are currently in a 2-month trial. Add a personal subscription now to ensure uninterrupted access to the Sacred Ledger features.`
-                : `Your 2-month trial has concluded. Please add a personal subscription to restore uninterrupted access to all features.`
+              {activeChurch?.subscription?.status === 'active' 
+                ? `Your church has an active subscription. Enjoy uninterrupted premium access for all your members.`
+                : daysRemaining > 0 
+                  ? `Your church is currently in a 2-month trial. Add a church subscription now to ensure uninterrupted access for all your members.`
+                  : `Your church's 2-month trial has concluded. Please add a subscription to restore uninterrupted access for all your members.`
               }
             </Text>
           </View>
@@ -378,219 +850,82 @@ export default function SubscriptionTab() {
           </TouchableOpacity>
         </View>
       ) : currentStep === 2 ? (
-        <View style={styles.stepContainer}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => nextStep(1)}>
-            <ArrowLeft size={24} color={colors.ink} />
-          </TouchableOpacity>
-
-          <View style={styles.header}>
-            <Text style={styles.title}>Choose Your Path</Text>
-            <Text style={styles.subtitle}>Scholarly access tailored for personal devotion.</Text>
-          </View>
-
-          <View style={styles.toggleContainer}>
-            <TouchableOpacity
-              style={[styles.toggleBtn, billingCycle === 'monthly' && styles.toggleBtnActive]}
-              onPress={() => setBillingCycle('monthly')}
-            >
-              <Text style={[styles.toggleText, billingCycle === 'monthly' && styles.toggleTextActive]}>Monthly</Text>
+        <View style={[styles.stepContainer, { flex: 1, paddingHorizontal: 16 }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginTop: 16, marginBottom: 8, position: 'relative' }}>
+            <TouchableOpacity style={{ position: 'absolute', left: -8, padding: 8 }} onPress={() => nextStep(1)}>
+              <ArrowLeft size={24} color={'#1F3B3D'} />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toggleBtn, billingCycle === 'annual' && styles.toggleBtnActive]}
-              onPress={() => setBillingCycle('annual')}
-            >
-              <Text style={[styles.toggleText, billingCycle === 'annual' && styles.toggleTextActive]}>Annual</Text>
-            </TouchableOpacity>
-          </View>
-
-          <View style={[styles.planCard, { borderColor: colors.brass, borderWidth: 2 }]}>
-            {billingCycle === 'annual' && (
-              <View style={styles.saveBadge}>
-                <Text style={styles.saveBadgeText}>{planSavings}</Text>
-              </View>
-            )}
-
-            <View style={styles.planHeader}>
-              <View>
-                <Text style={styles.planTitle}>Personal Access</Text>
-                <Text style={styles.planSubtitle}>Full library & prayer tracking</Text>
-              </View>
-              <View style={{ alignItems: 'flex-end' }}>
-                <Text style={styles.planPrice}>₹{planPrice}</Text>
-                <Text style={styles.planSubtitle}>{cycleText}</Text>
-              </View>
-            </View>
-
-            <View style={styles.featureList}>
-              {planFeatures.map((feat, idx) => (
-                <View key={idx} style={styles.featureItem}>
-                  <CheckCircle size={18} color={colors.forest} />
-                  <Text style={styles.featureText}>{feat}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.primaryButton} onPress={() => nextStep(3)}>
-            <Text style={styles.primaryButtonText}>Continue to Payment</Text>
-          </TouchableOpacity>
-        </View>
-      ) : currentStep === 3 ? (
-        <View style={styles.stepContainer}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => nextStep(2)}>
-            <ArrowLeft size={24} color={colors.ink} />
-          </TouchableOpacity>
-
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>Payment Method</Text>
-            <Text style={styles.subtitle}>Safe and encrypted processing.</Text>
-          </View>
-
-          <View style={styles.paymentMethods}>
-            {[
-              { id: 'upi', label: 'UPI (GPay, PhonePe, etc.)', icon: <MenuSquare size={20} color={colors.textSoft} /> },
-              { id: 'card', label: 'Credit / Debit Card', icon: <CreditCard size={20} color={colors.textSoft} /> },
-              { id: 'netbanking', label: 'Net Banking', icon: <Building size={20} color={colors.textSoft} /> },
-            ].map((method) => (
-              <TouchableOpacity
-                key={method.id}
-                style={[
-                  styles.paymentMethodCard,
-                  paymentMethod === method.id && { borderColor: colors.brass }
-                ]}
-                onPress={() => setPaymentMethod(method.id)}
-              >
-                <View style={styles.radioOuter}>
-                  {paymentMethod === method.id && <View style={styles.radioInner} />}
-                </View>
-                <Text style={styles.paymentMethodLabel}>{method.label}</Text>
-                {method.icon}
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={styles.secureContainer}>
-            <View style={styles.secureLine} />
-            <Text style={styles.secureText}>SECURED BY RAZORPAY</Text>
-            <View style={styles.secureLine} />
-          </View>
-
-          <TouchableOpacity style={styles.primaryButton} onPress={() => nextStep(4)}>
-            <Text style={styles.primaryButtonText}>Review Details</Text>
-          </TouchableOpacity>
-        </View>
-      ) : currentStep === 4 ? (
-        <View style={styles.stepContainer}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => nextStep(3)}>
-            <ArrowLeft size={24} color={colors.ink} />
-          </TouchableOpacity>
-
-          <View style={styles.headerLeft}>
-            <Text style={styles.title}>Confirm Devotion</Text>
-            <Text style={styles.subtitle}>Verify your subscription details.</Text>
-          </View>
-
-          <View style={styles.reviewCard}>
-            <View style={styles.trialBanner}>
-              <Text style={styles.trialBannerText}>🎁 2 Months Free Trial</Text>
-            </View>
-
-            <View style={styles.reviewContent}>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>MEMBER</Text>
-                <Text style={styles.reviewValue}>{member?.firstName ? `${member.firstName} ${member.lastName || ''}` : 'David Paul'}</Text>
-              </View>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>PLAN TYPE</Text>
-                <Text style={styles.reviewValue}>Personal Access</Text>
-              </View>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>BILLING CYCLE</Text>
-                <Text style={styles.reviewValue}>{billingCycle === 'annual' ? 'Annual' : 'Monthly'}</Text>
-              </View>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>TRIAL ENDS ON</Text>
-                <Text style={[styles.reviewValue, { color: colors.forest, fontWeight: '700' }]}>{trialEndDateStr}</Text>
-              </View>
-
-              <View style={styles.reviewFooter}>
-                <View>
-                  <Text style={styles.reviewLabel}>DUE TODAY</Text>
-                  <Text style={styles.dueTodayPrice}>₹0</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.billedAfter}>Trial Activated Today</Text>
-                  <Text style={{ fontSize: 11, color: colors.textSoft, marginTop: 2 }}>
-                    Then ₹{planPrice}/{billingCycle === 'annual' ? 'yr' : 'mo'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.disclaimerCard}>
-            <Text style={styles.disclaimerText}>
-              Your first 2 months are completely free! If you do not subscribe after your trial ends on {trialEndDateStr}, your app access will be locked. By confirming, you authorize We Christian to begin your trial and securely save your payment method.
+            <Text style={{ color: '#1F3B3D', fontSize: 22, fontWeight: '800', letterSpacing: 1.5, textTransform: 'uppercase' }}>
+              Pricing
             </Text>
           </View>
-
-          <TouchableOpacity style={styles.primaryButton} onPress={handlePhonePePayment}>
-            <Text style={styles.primaryButtonText}>Pay ₹{planPrice} via PhonePe</Text>
-          </TouchableOpacity>
-        </View>
-      ) : currentStep === 5 ? (
-        <View style={styles.stepContainer}>
-          <View style={{ alignItems: 'center', paddingVertical: 10, paddingHorizontal: 10 }}>
-          <View style={styles.successIconWrapper}>
-            <View style={styles.successIconInner}>
-              <Check size={48} color="#fff" />
-            </View>
-          </View>
-          <Text style={styles.successTitle}>Payment Successful!</Text>
-          <Text style={styles.successSubtitle}>
-            Thank you for your generous heart. Your transaction has been verified securely.
-          </Text>
-
-          <View style={styles.receiptCard}>
-            <View style={styles.receiptCardHeader}>
-              <Text style={styles.receiptCardTitle}>TRANSACTION DETAILS</Text>
-            </View>
-            <View style={{ padding: 24 }}>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>TRANSACTION ID</Text>
-                <Text style={styles.receiptValue}>WC-8923-X91</Text>
-              </View>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>DATE</Text>
-                <Text style={styles.receiptValue}>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}</Text>
-              </View>
-              <View style={styles.reviewRow}>
-                <Text style={styles.reviewLabel}>AMOUNT PAID</Text>
-                <Text style={styles.receiptValue}>₹{planPrice.toFixed(2)}</Text>
+          <View style={{ flex: 1, justifyContent: 'center' }}>
+            <View style={{ backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1.5, borderColor: '#f59e0b', padding: 24, paddingVertical: 40, overflow: 'hidden' }}>
+            <View style={{ position: 'absolute', top: 0, right: 0, width: 130, height: 75 }}>
+              <Svg width="130" height="75" style={{ position: 'absolute', top: 0, right: 0 }}>
+                <Defs>
+                  <LinearGradient id="goldBadge" x1="0" y1="0" x2="1" y2="0">
+                    <Stop offset="0" stopColor="#f59e0b" stopOpacity="1" />
+                    <Stop offset="1" stopColor="#d97706" stopOpacity="1" />
+                  </LinearGradient>
+                </Defs>
+                <Path d="M 0 0 C 25 0, 20 45, 45 45 L 110 45 C 125 45, 130 60, 130 75 L 130 0 Z" fill="url(#goldBadge)" />
+              </Svg>
+              <View style={{ height: 45, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
+                <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Save 80% •</Text>
               </View>
             </View>
-            <View style={styles.receiptCardFooter}>
-              <CheckCircle size={16} color={colors.forest} style={{ marginRight: 6 }} />
-              <Text style={styles.receiptCardFooterText}>Payment verified & processed</Text>
-            </View>
-          </View>
-
-          <View style={styles.successActionsContainer}>
-            <TouchableOpacity style={styles.primaryActionBtn} onPress={() => setViewReceiptModalVisible(true)}>
-              <Text style={styles.primaryActionBtnText}>View Receipt</Text>
-            </TouchableOpacity>
             
-            <View style={styles.secondaryActionsRow}>
-              <TouchableOpacity style={styles.secondaryActionBtn} onPress={downloadReceipt}>
-                <Text style={styles.secondaryActionBtnText}>Download PDF</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.secondaryActionBtn} onPress={() => nextStep(1)}>
-                <Text style={styles.secondaryActionBtnText}>Done</Text>
-              </TouchableOpacity>
+            <Text style={{ color: '#f8fafc', fontSize: 22, fontWeight: '600', marginBottom: 20, marginTop: -8 }}>{activeChurch?.name || 'Church of GOD'}</Text>
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹999</Text>
+              <Text style={{ color: '#eab308', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹199</Text>
+              <View>
+                <Text style={{ color: '#eab308', fontSize: 14, fontWeight: '500' }}>/ year (INR)</Text>
+                <Text style={{ color: '#eab308', fontSize: 12, marginTop: 2 }}>₹199 billed yearly</Text>
+              </View>
             </View>
+
+            <Text style={{ color: '#cbd5e1', fontSize: 14, lineHeight: 22, marginBottom: 24 }}>
+              A comprehensive solution for spiritual growth, offering enhanced features to streamline your daily walk with God.
+            </Text>
+
+            <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 24, borderRadius: 1 }} />
+
+            <View style={{ flexDirection: 'row', marginBottom: 20 }}>
+              <View style={{ flex: 1 }}>
+                {['Bible', 'Sermons', 'Events', 'Songs', 'Bible plan', 'Online bible classes'].map((feat, idx) => (
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                    <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
+                      <Check size={12} color="#171e2e" strokeWidth={3} />
+                    </View>
+                    <Text style={{ color: '#f8fafc', fontSize: 13, fontWeight: '500' }} numberOfLines={1}>{feat}</Text>
+                  </View>
+                ))}
+              </View>
+              <View style={{ flex: 1, paddingLeft: 8 }}>
+                {['Prayer wall', 'YouTube live', 'Celebrations', 'Live celebrations', 'Expense', 'Donation'].map((feat, idx) => (
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
+                    <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#a3e635', alignItems: 'center', justifyContent: 'center', marginRight: 8 }}>
+                      <Check size={12} color="#171e2e" strokeWidth={3} />
+                    </View>
+                    <Text style={{ color: '#f8fafc', fontSize: 13, fontWeight: '500' }} numberOfLines={1}>{feat}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+              onPress={() => handleRazorpayPayment()}
+            >
+              <Crown size={20} color="#171e2e" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#171e2e', fontSize: 18, fontWeight: '700' }}>Upgrade now</Text>
+            </TouchableOpacity>
           </View>
         </View>
-        </View>
+      </View>
       ) : null}
 
       <Modal visible={viewReceiptModalVisible} animationType="slide" transparent>
@@ -602,15 +937,15 @@ export default function SubscriptionTab() {
               <Text style={styles.receiptChurchDetails}>{activeChurch?.address || '123 Faith Avenue, Blessing City'} • {activeChurch?.contactEmail || 'contact@church.org'}</Text>
             </View>
 
-            <Text style={styles.receiptTitle}>DONATION RECEIPT</Text>
+            <Text style={styles.receiptTitle}>SUBSCRIPTION RECEIPT</Text>
 
             <View style={styles.receiptInfoRow}>
-              <Text style={styles.receiptLabel}>MEMBER NAME</Text>
-              <Text style={styles.receiptValueTxt}>{user?.displayName || member?.name || "Member"}</Text>
+              <Text style={styles.receiptLabel}>ADMIN NAME</Text>
+              <Text style={styles.receiptValueTxt}>{user?.displayName || member?.name || "Admin"}</Text>
             </View>
             <View style={styles.receiptInfoRow}>
               <Text style={styles.receiptLabel}>TRANSACTION ID</Text>
-              <Text style={styles.receiptValueTxt}>WC-8923-X91</Text>
+              <Text style={styles.receiptValueTxt}>{receiptData.transactionId}</Text>
             </View>
             <View style={styles.receiptInfoRow}>
               <Text style={styles.receiptLabel}>DATE</Text>
@@ -631,6 +966,195 @@ export default function SubscriptionTab() {
             <TouchableOpacity style={styles.closeReceiptBtn} onPress={() => setViewReceiptModalVisible(false)}>
               <Text style={styles.closeReceiptBtnTxt}>Close Receipt</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {downloadSuccessModalVisible && (
+        <Modal transparent animationType="fade" visible={downloadSuccessModalVisible} onRequestClose={() => setDownloadSuccessModalVisible(false)}>
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', zIndex: 105 }]}>
+            <View style={{ backgroundColor: '#fff', width: '85%', borderRadius: 24, padding: 30, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 10 }}>
+              <View style={{ width: 80, height: 80, borderRadius: 40, backgroundColor: '#f0fdf4', alignItems: 'center', justifyContent: 'center', marginBottom: 20, borderWidth: 4, borderColor: '#dcfce7' }}>
+                <CheckCircle size={36} color="#16a34a" />
+              </View>
+              <Text style={{ fontSize: 22, fontWeight: '800', color: '#0f172a', marginBottom: 12, textAlign: 'center' }}>Success!</Text>
+              <Text style={{ fontSize: 15, color: '#475569', textAlign: 'center', marginBottom: 30, lineHeight: 22 }}>
+                Your receipt has been beautifully rendered and saved securely to your photo gallery.
+              </Text>
+              
+              <TouchableOpacity 
+                style={{ backgroundColor: '#16a34a', width: '100%', paddingVertical: 16, borderRadius: 16, alignItems: 'center' }}
+                onPress={() => setDownloadSuccessModalVisible(false)}
+              >
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700' }}>Great, thanks!</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Hidden Receipt View for Snapshot */}
+      <View style={{ position: 'absolute', top: -10000, left: 0, width: 600 }}>
+        <View collapsable={false} ref={receiptRef} style={{ width: 600, backgroundColor: '#ffffff', padding: 40 }}>
+          <View style={{ alignItems: 'center', marginBottom: 40, borderBottomWidth: 2, borderBottomColor: '#e2e8f0', paddingBottom: 20 }}>
+            {activeChurch?.theme?.logoUrl ? (
+              <Image source={{ uri: activeChurch.theme.logoUrl }} style={{ width: 80, height: 80, marginBottom: 10 }} resizeMode="contain" />
+            ) : (
+              <Image source={{ uri: 'https://cdn-icons-png.flaticon.com/512/8662/8662584.png' }} style={{ width: 80, height: 80, marginBottom: 10 }} resizeMode="contain" />
+            )}
+            <Text style={{ fontSize: 28, fontWeight: 'bold', color: '#1e293b', marginBottom: 5 }}>{activeChurch?.name || 'We Christian'}</Text>
+            <Text style={{ fontSize: 14, color: '#64748b' }}>{activeChurch?.address || 'City'} • {activeChurch?.contactEmail || 'contact'}</Text>
+          </View>
+          
+          <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#1e293b', marginBottom: 30, textAlign: 'center' }}>SUBSCRIPTION RECEIPT</Text>
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>ADMIN NAME</Text>
+            <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '500' }}>{receiptData.name}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>TRANSACTION ID</Text>
+            <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '500' }}>{receiptData.transactionId}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>DATE</Text>
+            <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '500' }}>{receiptData.date}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>SUBSCRIPTION PLAN</Text>
+            <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '500' }}>{activePlan?.name || billingCycle.toUpperCase()}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', paddingBottom: 10 }}>
+            <Text style={{ fontSize: 14, color: '#64748b', fontWeight: 'bold' }}>NEXT SUBSCRIPTION DATE</Text>
+            <Text style={{ fontSize: 16, color: '#1e293b', fontWeight: '500' }}>{receiptData.nextDateStr}</Text>
+          </View>
+          
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 30, paddingTop: 20, borderTopWidth: 2, borderTopColor: '#1e293b' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#1e293b' }}>Amount Paid</Text>
+            <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#d97706' }}>₹{planPrice.toFixed(2)}</Text>
+          </View>
+          
+          <View style={{ marginTop: 60, alignItems: 'center' }}>
+            <Text style={{ fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>Thank you for subscribing to We Christian Platform.</Text>
+            <Text style={{ fontSize: 14, color: '#94a3b8', textAlign: 'center' }}>May God bless you abundantly!</Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Plan Selection Modal */}
+      <Modal visible={planSelectModalVisible} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(31,59,61,0.35)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: '#F7F3E9', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Platform.OS === 'ios' ? 60 : 48, shadowColor: '#000', shadowOffset: { width: 0, height: -10 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 20 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <Text style={{ fontSize: 22, fontWeight: '700', color: '#1F3B3D', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}>Pay in advance</Text>
+              <TouchableOpacity onPress={() => setPlanSelectModalVisible(false)}>
+                <X size={24} color="#9A8F72" />
+              </TouchableOpacity>
+            </View>
+            <Text style={{ fontSize: 14.5, color: '#6B7A6C', lineHeight: 22, marginBottom: 20 }}>
+              Charge ₹{selectedAdvancePlan === 'annual' ? 108 : 10} now to move your renewal date forward by one {selectedAdvancePlan === 'monthly' ? 'month' : 'year'}.
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: 12, marginBottom: 20 }}>
+              <TouchableOpacity 
+                style={{ flex: 1, backgroundColor: selectedAdvancePlan === 'monthly' ? '#FFFFFF' : 'transparent', borderWidth: 1, borderColor: selectedAdvancePlan === 'monthly' ? '#C98A3E' : '#D9D0BC', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+                onPress={() => setSelectedAdvancePlan('monthly')}
+              >
+                <Text style={{ color: selectedAdvancePlan === 'monthly' ? '#C98A3E' : '#6B7A6C', fontSize: 14, fontWeight: '600' }}>Monthly</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={{ flex: 1, backgroundColor: selectedAdvancePlan === 'annual' ? '#FFFFFF' : 'transparent', borderWidth: 1, borderColor: selectedAdvancePlan === 'annual' ? '#C98A3E' : '#D9D0BC', borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}
+                onPress={() => setSelectedAdvancePlan('annual')}
+              >
+                <Text style={{ color: selectedAdvancePlan === 'annual' ? '#C98A3E' : '#6B7A6C', fontSize: 14, fontWeight: '600' }}>
+                  Annual <Text style={{ color: '#059669', fontSize: 12, fontWeight: 'bold' }}>(-10%)</Text>
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: '#E4DDC8', paddingTop: 16, marginBottom: 24 }}>
+              <Text style={{ fontSize: 11.5, color: '#9A8F72', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', textTransform: 'uppercase', letterSpacing: 1 }}>
+                New Renewal Date
+              </Text>
+              <Text style={{ fontSize: 14, color: '#C98A3E', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                {globalUser?.subscription?.validUntil ? new Date(((globalUser.subscription.validUntil as any).toDate ? (globalUser.subscription.validUntil as any).toDate() : new Date(globalUser.subscription.validUntil as any)).getTime() + (selectedAdvancePlan === 'annual' ? 365 : 30) * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+              </Text>
+            </View>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#1F3B3D', paddingVertical: 16, borderRadius: 14, alignItems: 'center' }}
+              onPress={() => {
+                setPlanSelectModalVisible(false);
+                handleRazorpayPayment(selectedAdvancePlan);
+              }}
+            >
+              <Text style={{ color: '#F7F3E9', fontSize: 15, fontWeight: '700' }}>Confirm & pay ₹{selectedAdvancePlan === 'annual' ? 108 : 10}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Invoice Modal */}
+      <Modal visible={!!selectedInvoice} transparent animationType="fade">
+        <View style={{ flex: 1, backgroundColor: 'rgba(31,59,61,0.5)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#F7F3E9', borderRadius: 20, padding: 0, overflow: 'hidden' }}>
+            <View style={{ padding: 24, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#E4DDC8', alignItems: 'center' }}>
+              {activeChurch?.theme?.logoUrl ? (
+                <Image source={{ uri: activeChurch.theme.logoUrl }} style={{ width: 64, height: 64, marginBottom: 16 }} resizeMode="contain" />
+              ) : (
+                <View style={{ width: 64, height: 64, backgroundColor: '#F1EADA', borderRadius: 12, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                  <Building size={32} color="#C98A3E" />
+                </View>
+              )}
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F3B3D', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' }}>{activeChurch?.name || 'Church Name'}</Text>
+              <Text style={{ fontSize: 13, color: '#9A8F72', marginTop: 4 }}>Subscription Receipt</Text>
+            </View>
+            
+            <View style={{ padding: 24 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Text style={{ fontSize: 13, color: '#9A8F72' }}>MEMBER NAME</Text>
+                <Text style={{ fontSize: 14, color: '#1F3B3D', fontWeight: '600' }}>{member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Text style={{ fontSize: 13, color: '#9A8F72' }}>PLAN</Text>
+                <Text style={{ fontSize: 14, color: '#1F3B3D', fontWeight: '600', textTransform: 'capitalize' }}>{selectedInvoice?.plan || 'Monthly'} Plan</Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Text style={{ fontSize: 13, color: '#9A8F72' }}>DATE</Text>
+                <Text style={{ fontSize: 14, color: '#1F3B3D', fontWeight: '600' }}>
+                  {selectedInvoice?.paidAt ? ((selectedInvoice.paidAt as any).toDate ? (selectedInvoice.paidAt as any).toDate() : ((selectedInvoice.paidAt as any).seconds ? new Date((selectedInvoice.paidAt as any).seconds * 1000) : new Date(selectedInvoice.paidAt as any))).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A'}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Text style={{ fontSize: 13, color: '#9A8F72' }}>TXN ID</Text>
+                <Text style={{ fontSize: 14, color: '#1F3B3D', fontWeight: '600' }}>{selectedInvoice?.id?.slice(0,12) || 'N/A'}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 }}>
+                <Text style={{ fontSize: 13, color: '#9A8F72' }}>STATUS</Text>
+                <Text style={{ fontSize: 14, color: selectedInvoice?.status === 'active' ? '#4F7A55' : (selectedInvoice?.status === 'cancelled' ? '#ef4444' : '#C98A3E'), fontWeight: '700' }}>{selectedInvoice?.status?.toUpperCase() || 'N/A'}</Text>
+              </View>
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12, paddingTop: 20, borderTopWidth: 1, borderStyle: 'dashed', borderTopColor: '#D9D0BC' }}>
+                <Text style={{ fontSize: 18, fontWeight: '700', color: '#1F3B3D' }}>Total Paid</Text>
+                <Text style={{ fontSize: 20, fontWeight: '700', color: '#1F3B3D' }}>₹{selectedInvoice?.amount || '0'}</Text>
+              </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', backgroundColor: '#F1EADA' }}>
+              <TouchableOpacity 
+                style={{ flex: 1, padding: 16, alignItems: 'center', borderRightWidth: 1, borderRightColor: '#E4DDC8', flexDirection: 'row', justifyContent: 'center' }}
+                onPress={() => downloadPdfReceipt(selectedInvoice)}
+              >
+                <Download size={16} color="#10b981" style={{ marginRight: 6 }} />
+                <Text style={{ color: '#10b981', fontSize: 15, fontWeight: '600' }}>Download</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={{ flex: 1, padding: 16, alignItems: 'center' }}
+                onPress={() => setSelectedInvoice(null)}
+              >
+                <Text style={{ color: '#1F3B3D', fontSize: 15, fontWeight: '600' }}>Close</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -690,8 +1214,6 @@ const styles = StyleSheet.create({
     width: 224,
     height: 224,
     borderRadius: 112,
-    borderWidth: 10,
-    borderColor: colors.rule,
     alignSelf: 'center',
     justifyContent: 'center',
     alignItems: 'center',
@@ -719,6 +1241,7 @@ const styles = StyleSheet.create({
     padding: 18,
     borderRadius: 12,
     marginBottom: 24,
+    marginHorizontal: 24,
   },
   cardText: {
     fontSize: 13,
@@ -733,7 +1256,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 15,
     borderRadius: 12,
-    width: '100%',
+    marginHorizontal: 24,
   },
   primaryButtonText: {
     color: colors.paper,
@@ -890,21 +1413,28 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   reviewCard: {
-    backgroundColor: colors.paperRaised,
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: colors.forest, // Highlight the card with a green border
-    borderRadius: 14,
+    borderColor: '#E2E8F0', // Cleaner border
+    borderRadius: 16,
     marginBottom: 24,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
   },
   trialBanner: {
-    backgroundColor: colors.forest,
-    paddingVertical: 10,
+    backgroundColor: '#F0FDF4', // Light green
+    paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#DCFCE7'
   },
   trialBannerText: {
-    color: colors.paper,
+    color: '#16A34A', // Dark green text
     fontSize: 13,
     fontWeight: '700',
     letterSpacing: 0.5,
@@ -915,41 +1445,40 @@ const styles = StyleSheet.create({
   reviewRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.rule,
-    paddingBottom: 8,
-    marginBottom: 16,
+    borderBottomColor: '#F1F5F9',
   },
   reviewLabel: {
-    fontSize: 9.5,
-    color: colors.textSoft,
-    fontWeight: '600',
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '700',
     letterSpacing: 0.5,
+    textTransform: 'uppercase'
   },
   reviewValue: {
-    fontSize: 13,
-    color: colors.ink,
-    fontWeight: '500',
+    fontSize: 14,
+    color: '#0F172A',
+    fontWeight: '600',
   },
   reviewFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     borderTopWidth: 1,
-    borderStyle: 'dashed',
-    borderTopColor: colors.ruleStrong,
-    paddingTop: 16,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 20,
     marginTop: 8,
   },
   dueTodayPrice: {
-    fontSize: 26,
-    color: colors.forest,
-    fontWeight: '600',
+    fontSize: 32,
+    color: '#16A34A',
+    fontWeight: '800',
   },
   billedAfter: {
-    fontSize: 12.5,
-    color: colors.textSoft,
-    fontStyle: 'italic',
+    fontSize: 13,
+    color: '#475569',
+    fontWeight: '500',
   },
   disclaimerCard: {
     backgroundColor: colors.forestSoft,
@@ -1035,3 +1564,5 @@ const styles = StyleSheet.create({
   closeReceiptBtn: { backgroundColor: colors.forest, paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
   closeReceiptBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '700' }
 });
+
+

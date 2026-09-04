@@ -32,7 +32,7 @@ import { Linking } from 'react-native';
 const { width } = Dimensions.get('window');
 
 export default function AdminSermonList() {
-  const { setActiveTab, setEditingData } = useContext(AdminTabContext);
+  const { setActiveTab, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('All');
@@ -57,7 +57,7 @@ export default function AdminSermonList() {
 
   const handleEdit = (sermon: Sermon) => {
     setEditingData(sermon);
-    setActiveTab(5); // Switch to New Sermon editor tab (index 5)
+    setTabByName?.('New Sermon'); // Switch to New Sermon editor tab
   };
 
   const handlePlay = (sermon: Sermon) => {
@@ -90,14 +90,24 @@ export default function AdminSermonList() {
     }
   };
 
+  // Parse all unique categories
+  const allCategories = sermons.flatMap(s => s.categories ? s.categories.split(';') : []);
+  const uniqueCategories = [...new Set(allCategories.filter(Boolean))];
+
   const stats = {
     published: sermons.filter(s => s.status === 'Published').length,
     drafts: sermons.filter(s => s.status === 'Draft').length,
-    series: [...new Set(sermons.map(s => s.series).filter((s): s is string => Boolean(s)))].length
+    categories: uniqueCategories.length
   };
 
-  const seriesList = ['All', ...new Set(sermons.map(s => s.series).filter((s): s is string => Boolean(s)))];
-  const filteredSermons = filter === 'All' ? sermons : sermons.filter(s => s.series === filter);
+  const categoryList = ['All', ...uniqueCategories];
+  const filteredSermons = sermons.filter(s => {
+    if (filter === 'All') return true;
+    if (filter === 'Published') return s.status === 'Published' || !s.status;
+    if (filter === 'Drafts') return s.status === 'Draft';
+    // Filter by specific category
+    return s.categories && s.categories.split(';').includes(filter);
+  });
 
   if (loading && sermons.length === 0) {
     return (
@@ -106,6 +116,53 @@ export default function AdminSermonList() {
       </View>
     );
   }
+
+  const renderSermonItem = (sermon: any, idx: number, isFeatured: boolean) => (
+    <View key={sermon.id} style={[styles.sermonItem, isFeatured && styles.featuredItem]}>
+      <TouchableOpacity 
+        style={[styles.siThumb, isFeatured && styles.featuredThumb]}
+        onPress={() => handlePlay(sermon)}
+      >
+        <Play size={idx === 0 ? 24 : 18} color="#fff" fill="#fff" />
+      </TouchableOpacity>
+      
+      <TouchableOpacity style={styles.siBody} onPress={() => handleEdit(sermon)}>
+        <Text style={[styles.siTitle, isFeatured && {fontSize: 14}]} numberOfLines={1}>{sermon.title}</Text>
+        {sermon.titleTelugu ? (
+          <Text style={styles.siTe} numberOfLines={1}>{sermon.titleTelugu}</Text>
+        ) : null}
+        <Text style={styles.siMeta}>{sermon.pastor} · {sermon.date} {sermon.duration ? `· ${sermon.duration}` : ''}</Text>
+        
+        <View style={styles.siFoot}>
+          {sermon.categories ? (
+            sermon.categories.split(';').map((cat: string) => (
+              <View key={cat} style={styles.badgeSeries}>
+                <Text style={styles.badgeSeriesTxt}>{cat}</Text>
+              </View>
+            ))
+          ) : null}
+          {sermon.youtubeId ? <View style={styles.badgeIcon}><Text style={styles.badgeIconTxt}>📺 YouTube</Text></View> : null}
+          {sermon.audioUrl ? <View style={styles.badgeIcon}><Text style={styles.badgeIconTxt}>🎙️ Audio</Text></View> : null}
+          <View style={[styles.badgeStatus, sermon.status === 'Draft' ? styles.statusDraftBg : styles.statusPubBg]}>
+            <Text style={[styles.badgeStatusTxt, sermon.status === 'Draft' ? styles.statusDraftTxt : styles.statusPubTxt]}>
+              {sermon.status || 'Published'}
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+
+      <View style={styles.actionsContainer}>
+        <TouchableOpacity style={styles.editAction} onPress={() => handleEdit(sermon)}>
+          <Edit2 size={16} color="#1a2d5a" />
+          <Text style={styles.editActionTxt}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.deleteAction} onPress={() => setSermonToDelete(sermon)}>
+          <Trash2 size={16} color="#ef4444" />
+          <Text style={styles.deleteActionTxt}>Del</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -122,10 +179,10 @@ export default function AdminSermonList() {
             <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
             <View>
               <Text style={styles.heroTitle}>Sermons</Text>
-              <Text style={[styles.heroSub, { marginTop: 2 }]}>{sermons.length} total · {stats.series} series</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]}>{sermons.length} total · {stats.categories} series</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(5); }}>
+          <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setTabByName?.('New Sermon'); }}>
             <Plus size={16} color="#1a2d5a" />
             <Text style={styles.newBtnTxt}>New</Text>
           </TouchableOpacity>
@@ -136,79 +193,54 @@ export default function AdminSermonList() {
         
         {/* ── Stats Bar ── */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <TouchableOpacity style={styles.statCard} onPress={() => setFilter('Published')}>
             <Text style={[styles.statNum, { color: '#2E6B4F' }]}>{stats.published}</Text>
             <Text style={styles.statLbl}>Published</Text>
-          </View>
-          <View style={styles.statCard}>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.statCard} onPress={() => setFilter('Drafts')}>
             <Text style={[styles.statNum, { color: '#C9A84C' }]}>{stats.drafts}</Text>
             <Text style={styles.statLbl}>Drafts</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Text style={[styles.statNum, { color: '#1a2d5a' }]}>{stats.series}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.statCard} onPress={() => setFilter('SeriesGroup')}>
+            <Text style={[styles.statNum, { color: '#1a2d5a' }]}>{stats.categories}</Text>
             <Text style={styles.statLbl}>Series</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* ── Filter Chips ── */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow} contentContainerStyle={{ paddingRight: 14 }}>
-          {seriesList.map(f => (
+          {categoryList.map(f => (
             <TouchableOpacity 
               key={f} 
               style={[styles.filterChip, filter === f && styles.filterChipActive]}
               onPress={() => setFilter(f)}
             >
               <Text style={[styles.filterChipTxt, filter === f && styles.filterChipTxtActive]}>
-                {f} ({f === 'All' ? sermons.length : sermons.filter(s => s.series === f).length})
+                {f} ({f === 'All' ? sermons.length : sermons.filter(s => s.categories && s.categories.split(';').includes(f)).length})
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        <Text style={styles.listLabel}>Latest Sermons</Text>
-
-        {filteredSermons.map((sermon, idx) => (
-          <View key={sermon.id} style={[styles.sermonItem, idx === 0 && filter === 'All' && styles.featuredItem]}>
-            <TouchableOpacity 
-              style={[styles.siThumb, idx === 0 && filter === 'All' && styles.featuredThumb]}
-              onPress={() => handlePlay(sermon)}
-            >
-              <Play size={idx === 0 ? 24 : 18} color="#fff" fill="#fff" />
-            </TouchableOpacity>
-            
-            <TouchableOpacity style={styles.siBody} onPress={() => handleEdit(sermon)}>
-              <Text style={[styles.siTitle, idx === 0 && filter === 'All' && {fontSize: 14}]} numberOfLines={1}>{sermon.title}</Text>
-              {sermon.titleTelugu ? (
-                <Text style={styles.siTe} numberOfLines={1}>{sermon.titleTelugu}</Text>
-              ) : null}
-              <Text style={styles.siMeta}>{sermon.pastor} · {sermon.date} {sermon.duration ? `· ${sermon.duration}` : ''}</Text>
-              
-              <View style={styles.siFoot}>
-                {sermon.series ? (
-                  <View style={styles.badgeSeries}><Text style={styles.badgeSeriesTxt}>{sermon.series}</Text></View>
-                ) : null}
-                {sermon.youtubeId ? <View style={styles.badgeIcon}><Text style={styles.badgeIconTxt}>📺 YouTube</Text></View> : null}
-                {sermon.audioUrl ? <View style={styles.badgeIcon}><Text style={styles.badgeIconTxt}>🎙️ Audio</Text></View> : null}
-                <View style={[styles.badgeStatus, sermon.status === 'Draft' ? styles.statusDraftBg : styles.statusPubBg]}>
-                  <Text style={[styles.badgeStatusTxt, sermon.status === 'Draft' ? styles.statusDraftTxt : styles.statusPubTxt]}>
-                    {sermon.status || 'Published'}
-                  </Text>
+        {filter === 'SeriesGroup' ? (
+          <View>
+            {uniqueCategories.map(cat => {
+              const catSermons = sermons.filter(s => s.categories && s.categories.split(';').includes(cat));
+              if (catSermons.length === 0) return null;
+              return (
+                <View key={cat} style={{ marginBottom: 12 }}>
+                  <Text style={styles.listLabel}>{cat}</Text>
+                  {catSermons.map((sermon, idx) => renderSermonItem(sermon, idx, false))}
                 </View>
-              </View>
-            </TouchableOpacity>
-
-            <View style={styles.actionsContainer}>
-              <TouchableOpacity style={styles.editAction} onPress={() => handleEdit(sermon)}>
-                <Edit2 size={16} color="#1a2d5a" />
-                <Text style={styles.editActionTxt}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.deleteAction} onPress={() => setSermonToDelete(sermon)}>
-                <Trash2 size={16} color="#ef4444" />
-                <Text style={styles.deleteActionTxt}>Del</Text>
-              </TouchableOpacity>
-            </View>
+              );
+            })}
           </View>
-        ))}
+        ) : (
+          <View>
+            <Text style={styles.listLabel}>Latest Sermons</Text>
+            {filteredSermons.map((sermon, idx) => renderSermonItem(sermon, idx, idx === 0 && filter === 'All'))}
+          </View>
+        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>

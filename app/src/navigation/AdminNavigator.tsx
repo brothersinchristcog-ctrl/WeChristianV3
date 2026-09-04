@@ -38,7 +38,8 @@ import {
   Sliders,
   ChevronLeft,
   Eye,
-  X
+  X,
+  Image as ImageIcon
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -66,7 +67,7 @@ import AdminChurchSettings from '../screens/admin/AdminChurchSettings';
 import AdminAttendance from '../screens/admin/AdminAttendance';
 import PastorEventDashboard from '../screens/admin/pastor_events/PastorEventDashboard';
 import SuperAdminDashboard from '../screens/admin/SuperAdminDashboard';
-import AdminSubscriptionScreen from '../screens/admin/AdminSubscriptionScreen';
+
 import AdminWeCelebrations from '../screens/admin/AdminWeCelebrations';
 import AdminWhatsAppInbox from '../screens/admin/AdminWhatsAppInbox';
 import AdminFinanceDashboard from '../screens/admin/AdminFinanceDashboard';
@@ -75,7 +76,9 @@ import DonationsDashboard from '../screens/admin/DonationsDashboard';
 import AdminDashboard from '../screens/admin/AdminDashboard';
 import AdminOnlineMeetings from '../screens/admin/AdminOnlineMeetings';
 import AdminOnlineMeetingEditor from '../screens/admin/AdminOnlineMeetingEditor';
-import { Shield, Video as VideoIcon } from 'lucide-react-native';
+import AdminSupportTeam from '../screens/admin/AdminSupportTeam';
+import AdminGalleryNavigator from '../screens/admin/gallery/AdminGalleryNavigator';
+import { Shield, Video as VideoIcon, Headset } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -100,7 +103,7 @@ const DotGridIcon = ({ color, size }: { color: string; size: number }) => {
 };
 
 export default function AdminNavigator({ navigation, route }: any) {
-  const { signOut, user, member, setViewMode } = useAuth();
+  const { signOut, user, member, setViewMode, isPlatformSuperAdmin } = useAuth();
   const { activeChurch, isImpersonating, impersonatedBranchName, stopImpersonation } = useChurch();
   const [activeTab, setActiveTab] = useState(0);
   const [tabHistory, setTabHistory] = useState<number[]>([]);
@@ -210,17 +213,19 @@ export default function AdminNavigator({ navigation, route }: any) {
     { name: 'Attendance', icon: ClipboardCheck, component: AdminAttendance },
     { name: 'Members', icon: Users, component: AdminMembers },
     { name: 'Celebrations', icon: Gift, component: AdminCelebrations },
+    { name: 'Gallery', icon: ImageIcon, component: AdminGalleryNavigator },
     ...(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') ? [{ name: 'WeCelebrations', icon: Sparkles, component: AdminWeCelebrations }] : []),
     ...(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') ? [{ name: 'WhatsApp', icon: MessageCircle, component: AdminWhatsAppInbox }] : []),
     { name: 'About Us', icon: Building2, component: AdminAboutUsEditor },
     { name: 'Contact Us', icon: PhoneCall, component: AdminContactUsEditor },
+    { name: 'Support Team', icon: Headset, component: AdminSupportTeam },
     { name: 'Church Settings', icon: Sliders, component: AdminChurchSettings },
     { name: 'Expense', icon: Wallet, component: AdminFinanceDashboard },
     { name: 'Donations', icon: HeartHandshake, component: DonationsDashboard },
-    { name: 'Subscription', icon: Crown, component: AdminSubscriptionScreen },
+
     { name: 'Online Meetings', icon: VideoIcon, component: AdminOnlineMeetings },
     { name: 'New Online Meeting', icon: VideoIcon, component: AdminOnlineMeetingEditor },
-    ...(member?.userType === 'super_admin' ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),
+    ...(isPlatformSuperAdmin ? [{ name: 'App Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];
 
   const ActiveComponent = tabs[activeTab].component as any;
@@ -262,11 +267,15 @@ export default function AdminNavigator({ navigation, route }: any) {
     inactiveIconColor = 'rgba(255,255,255,0.7)';
   }
 
+  const isSuperAdminTab = tabs[activeTab]?.name === 'App Admin';
+
   // We provide handleSetTab via setActiveTab so child components can push to history
   return (
     <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack, setTabByName, dashboardScrollY, setDashboardScrollY }}>
-      <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
-        <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : '#1a2d5a' }} />
+      <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : isSuperAdminTab ? '#0a0f1e' : '#f0f2f7' }]}>
+        {!isSuperAdminTab && (
+          <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : '#1a2d5a' }} />
+        )}
         
         {isImpersonating && (
           <TouchableOpacity 
@@ -322,7 +331,7 @@ export default function AdminNavigator({ navigation, route }: any) {
           </TouchableOpacity>
         )}
 
-        {activeTab !== 0 && (
+        {activeTab !== 0 && !isSuperAdminTab && (
           <View style={[styles.header, { backgroundColor: '#1a2d5a' }]}>
             <View style={styles.headerTop}>
               <View style={styles.headerText}>

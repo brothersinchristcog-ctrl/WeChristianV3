@@ -29,6 +29,7 @@ import {
 } from 'lucide-react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { findEventVideo } from '../services/YouTubeService';
+import { useChurch } from '../context/ChurchContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -72,27 +73,30 @@ function getEventStatus(event: any): 'upcoming' | 'live' | 'completed' {
 
 export default function EventDetailsScreen({ route, navigation }: any) {
   const { event } = route.params;
+  const { activeChurch } = useChurch();
 
   const status = getEventStatus(event);
   const manualYoutubeId = event.youtubeId;
+  
+  const churchYoutubeHandle = activeChurch?.socialLinks?.youtube || ''; // e.g. @MyChurch
 
   const [autoYoutubeId, setAutoYoutubeId] = useState<string | null>(null);
   const [videoSearching, setVideoSearching] = useState(false);
 
   useEffect(() => {
-    // Only auto-search YouTube if event is completed and no manual YouTube ID
-    if (status === 'completed' && !manualYoutubeId) {
+    // Only auto-search YouTube if event is completed, no manual ID, and we have a handle
+    if (status === 'completed' && !manualYoutubeId && churchYoutubeHandle) {
       setVideoSearching(true);
-      findEventVideo(event.date, event.title || event.name || '')
+      findEventVideo(event.date, event.title || event.name || '', churchYoutubeHandle)
         .then(id => setAutoYoutubeId(id))
         .finally(() => setVideoSearching(false));
     }
-  }, [event.id]);
+  }, [event.id, status, manualYoutubeId, churchYoutubeHandle]);
 
   const youtubeId = manualYoutubeId || autoYoutubeId;
   const liveUrl = event.liveUrl || event.youtubeId
     ? `https://www.youtube.com/watch?v=${manualYoutubeId}`
-    : 'https://www.youtube.com/@Brothersinchristfellowship/streams';
+    : churchYoutubeHandle ? `https://www.youtube.com/${churchYoutubeHandle}/streams` : '';
 
   const formatTime = (timeStr: string) => {
     if (!timeStr) return '--:--';
@@ -292,13 +296,13 @@ export default function EventDetailsScreen({ route, navigation }: any) {
                   onPress={() => Linking.openURL(
                     manualYoutubeId
                       ? `https://www.youtube.com/watch?v=${manualYoutubeId}`
-                      : 'https://www.youtube.com/@Brothersinchristfellowship/streams'
+                      : liveUrl || 'https://www.youtube.com'
                   )}
                 >
                   <Radio size={22} color="#fff" />
                   <View>
                     <Text style={styles.liveBtnText}>Watch Live Stream</Text>
-                    <Text style={styles.liveBtnSub}>@Brothersinchristfellowship</Text>
+                    {churchYoutubeHandle ? <Text style={styles.liveBtnSub}>{churchYoutubeHandle}</Text> : null}
                   </View>
                 </TouchableOpacity>
               </View>
@@ -324,12 +328,12 @@ export default function EventDetailsScreen({ route, navigation }: any) {
               ) : (
                 <TouchableOpacity
                   style={styles.youtubeChannelBtn}
-                  onPress={() => Linking.openURL('https://www.youtube.com/@Brothersinchristfellowship/streams')}
+                  onPress={() => Linking.openURL(liveUrl || 'https://www.youtube.com')}
                 >
                   <Play size={20} color="#fff" fill="#fff" />
                   <View>
                     <Text style={styles.youtubeChannelBtnText}>Watch Recording on YouTube</Text>
-                    <Text style={styles.youtubeChannelBtnSub}>@Brothersinchristfellowship</Text>
+                    {churchYoutubeHandle ? <Text style={styles.youtubeChannelBtnSub}>{churchYoutubeHandle}</Text> : null}
                   </View>
                 </TouchableOpacity>
               )
@@ -349,7 +353,7 @@ export default function EventDetailsScreen({ route, navigation }: any) {
               onPress={() => Linking.openURL(
                 manualYoutubeId
                   ? `https://www.youtube.com/watch?v=${manualYoutubeId}`
-                  : 'https://www.youtube.com/@Brothersinchristfellowship/streams'
+                  : liveUrl || 'https://www.youtube.com'
               )}
             >
               <Text style={styles.mainBtnText}>● JOIN LIVE STREAM · లైవ్‌లో చేరండి</Text>
