@@ -26,7 +26,7 @@ import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import { ChevronLeft, Building2, Palette, Phone, Mail, Globe, Check, Image as ImageIcon, ChevronDown, MapPin, Briefcase, Home } from 'lucide-react-native';
+import { ChevronLeft, Building2, Palette, Phone, Mail, Globe, Check, Image as ImageIcon, ChevronDown, MapPin, Briefcase, Home, AlertCircle } from 'lucide-react-native';
 import { State, City } from 'country-state-city';
 import ReferralService from '../../services/ReferralService';
 
@@ -75,6 +75,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
   const [secondaryColor, setSecondaryColor] = useState('#c0392b');
 
   const [otpModalVisible, setOtpModalVisible] = useState(false);
+  const [duplicateErrorVisible, setDuplicateErrorVisible] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [confirmation, setConfirmation] = useState<any>(null);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
@@ -159,17 +160,37 @@ export default function CreateChurchScreen({ navigation }: Props) {
 
     setLoading(true);
     try {
-      let cleanNum = form.contactPhone.replace(/[^0-9+]/g, '');
-      if (cleanNum.length === 10 && !cleanNum.startsWith('+')) {
-        cleanNum = `+91${cleanNum}`;
-      }
-      if (!cleanNum.startsWith('+') || cleanNum.length < 12) {
+      let digitsOnly = form.contactPhone.replace(/\D/g, '');
+      let last10Digits = digitsOnly.slice(-10);
+      
+      if (last10Digits.length < 10) {
         Alert.alert('Invalid Number', 'Please enter a valid 10-digit phone number.');
         setLoading(false);
         return;
       }
+      
+      let cleanNum = `+91${last10Digits}`;
 
+      // Pre-check for duplicate mobile number BEFORE sending OTP
+      // Check multiple common formats since older records might have been saved differently
+      const v1 = `+91${last10Digits}`;
+      const v2 = last10Digits;
+      const v3 = `0${last10Digits}`;
+      const v4 = form.contactPhone.trim();
+      
+      // Ensure unique values in the array to avoid Firestore errors
+      const variants = Array.from(new Set([v1, v2, v3, v4]));
 
+      const duplicateCheck = await firestore()
+        .collection('churches')
+        .where('contactPhone', 'in', variants)
+        .get();
+
+      if (!duplicateCheck.empty) {
+        setDuplicateErrorVisible(true);
+        setLoading(false);
+        return;
+      }
       const confirmation = await auth().signInWithPhoneNumber(cleanNum);
       setConfirmation(confirmation);
       setOtpModalVisible(true);
@@ -232,12 +253,16 @@ export default function CreateChurchScreen({ navigation }: Props) {
       const churchCode = generateChurchCode(form.name);
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 60);
+      
+      let digitsOnly = form.contactPhone.replace(/\D/g, '');
+      let last10Digits = digitsOnly.slice(-10);
+      let cleanNum = `+91${last10Digits}`;
 
       const churchData: any = {
         name: form.name.trim(),
         subdomain: churchCode.toLowerCase(),
         contactEmail: form.contactEmail.trim(),
-        contactPhone: form.contactPhone.trim(),
+        contactPhone: cleanNum,
         isParentOrganization: form.hasBranches,
         address: `${form.houseNo ? form.houseNo + ', ' : ''}${form.street ? form.street + ', ' : ''}${form.city ? form.city + ', ' : ''}${form.state ? form.state + ' - ' : ''}${form.pincode}`,
         tagline: form.tagline.trim(),
@@ -277,6 +302,25 @@ export default function CreateChurchScreen({ navigation }: Props) {
           name: referralDetails.name,
           code: referralDetails.code
         };
+      }
+
+      // Final check for duplicate mobile number
+      const v1 = `+91${last10Digits}`;
+      const v2 = last10Digits;
+      const v3 = `0${last10Digits}`;
+      const v4 = form.contactPhone.trim();
+      const variants = Array.from(new Set([v1, v2, v3, v4]));
+
+      const duplicateCheck = await firestore()
+        .collection('churches')
+        .where('contactPhone', 'in', variants)
+        .get();
+
+      if (!duplicateCheck.empty) {
+        setDuplicateErrorVisible(true);
+        setLoading(false);
+        setUploading(false);
+        return;
       }
 
       const docRef = await firestore().collection('churches').add(churchData);
@@ -681,6 +725,27 @@ export default function CreateChurchScreen({ navigation }: Props) {
                 )}
                 contentContainerStyle={{ padding: 16 }}
               />
+            </View>
+          </View>
+        </Modal>
+
+        {/* Duplicate Error Modal */}
+        <Modal visible={duplicateErrorVisible} animationType="fade" transparent={true}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{ backgroundColor: 'white', borderRadius: 20, padding: 24, width: '100%', maxWidth: 400, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 8 }}>
+              <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+                <AlertCircle size={32} color="#DC2626" />
+              </View>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#111827', marginBottom: 12, textAlign: 'center' }}>Account Already Exists</Text>
+              <Text style={{ fontSize: 15, color: '#4B5563', textAlign: 'center', lineHeight: 22, marginBottom: 24 }}>
+                The mobile number provided is already associated with an existing organization. If you need assistance accessing your account, please contact our support team.
+              </Text>
+              <TouchableOpacity
+                style={{ backgroundColor: '#1a2d5a', paddingVertical: 14, paddingHorizontal: 24, borderRadius: 12, width: '100%', alignItems: 'center' }}
+                onPress={() => setDuplicateErrorVisible(false)}
+              >
+                <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>Got it</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>

@@ -190,6 +190,26 @@ class ChurchService {
    */
   async createChurch(data: Omit<ChurchDetails, 'id'>): Promise<string> {
     try {
+      // Check for duplicate mobile number
+      if (data.contactPhone) {
+        const digitsOnly = data.contactPhone.replace(/\D/g, '');
+        const last10Digits = digitsOnly.slice(-10);
+        const v1 = `+91${last10Digits}`;
+        const v2 = last10Digits;
+        const v3 = `0${last10Digits}`;
+        const v4 = data.contactPhone.trim();
+        const variants = Array.from(new Set([v1, v2, v3, v4]));
+
+        const duplicateQuery = await firestore()
+          .collection('churches')
+          .where('contactPhone', 'in', variants)
+          .get();
+          
+        if (!duplicateQuery.empty) {
+          throw new Error('DUPLICATE_CHURCH_PHONE');
+        }
+      }
+
       const trialEndsAt = new Date();
       trialEndsAt.setDate(trialEndsAt.getDate() + 60);
 

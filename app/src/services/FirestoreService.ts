@@ -1179,26 +1179,31 @@ class FirestoreService {
         const snapshot = await query.orderBy('createdAt', 'desc').get();
         rawItems = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
       } else {
-        // Members see all approved requests
-        let approvedQuery = query.where('isAnswered', '==', true);
-        const approvedSnapshot = await approvedQuery.get();
-        let list = approvedSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-
-        // Plus member's own pending requests (so they see their request immediately after submitting)
+        // Members see their own requests AND public approved requests
         const userIdentifier = filters.contactId || filters.phone;
+        
+        let list: any[] = [];
+        
+        // 1. Fetch Public Approved Requests
+        let publicQuery = query.where('isPublic', '==', true).where('isAnswered', '==', true);
+        const publicSnapshot = await publicQuery.get();
+        const publicList = publicSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+        list.push(...publicList);
+        
+        // 2. Fetch User's Own Requests (Public or Private, Pending or Approved)
         if (userIdentifier) {
-          let pendingQuery = query.where('isAnswered', '==', false);
+          let ownQuery = query;
           if (filters.contactId) {
-            pendingQuery = pendingQuery.where('contactId', '==', filters.contactId);
+            ownQuery = ownQuery.where('contactId', '==', filters.contactId);
           } else {
-            pendingQuery = pendingQuery.where('phone', '==', filters.phone);
+            ownQuery = ownQuery.where('phone', '==', filters.phone);
           }
-          const pendingSnapshot = await pendingQuery.get();
-          const pendingList = pendingSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-
+          const ownSnapshot = await ownQuery.get();
+          const ownList = ownSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+          
           // Merge lists and prevent duplicates
           const seen = new Set(list.map((p: any) => p.id));
-          for (const p of pendingList) {
+          for (const p of ownList) {
             if (!seen.has(p.id)) {
               list.push(p);
             }
@@ -1259,6 +1264,7 @@ class FirestoreService {
         requestTe: textTeVal,
         authorId: authorIdVal,
         contactId: authorIdVal,
+        isPublic: data.isPublic ?? false,
         isAnswered: data.isAnswered ?? false,
         prayCount: data.prayCount ?? 0,
         createdAt: FieldValue.serverTimestamp()
@@ -1278,6 +1284,34 @@ class FirestoreService {
       });
       return true;
     } catch (e) {
+      throw e;
+    }
+  }
+
+  async closePrayerRequest(id: string) {
+    try {
+      const col = await this.getCollection('prayerRequests');
+      await col.doc(id).update({
+        isClosed: true,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+      return true;
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  async incrementPrayCount(requestId: string, uid: string, memberName: string) {
+    try {
+      const col = await this.getCollection('prayerRequests');
+      await col.doc(requestId).update({
+        prayCount: FieldValue.increment(1),
+        prayedBy: FieldValue.arrayUnion(uid),
+        prayedByNames: FieldValue.arrayUnion(memberName)
+      });
+      return true;
+    } catch (e) {
+      console.error('Error incrementing pray count:', e);
       throw e;
     }
   }

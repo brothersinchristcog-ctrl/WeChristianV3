@@ -20,7 +20,9 @@ import {
   CheckCircle, 
   MessageCircle, 
   CheckCircle2,
-  Trash2
+  Trash2,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -35,6 +37,8 @@ interface PrayerFormProps {
   categories: any[];
   isSubmitting: boolean;
   handleSubmit: () => void;
+  isPublic: boolean;
+  setIsPublic: (val: boolean) => void;
 }
 
 const PrayerForm = ({ 
@@ -44,7 +48,9 @@ const PrayerForm = ({
   setCategory, 
   categories, 
   isSubmitting, 
-  handleSubmit 
+  handleSubmit,
+  isPublic,
+  setIsPublic
 }: PrayerFormProps) => (
   <View style={styles.composeCard}>
     <View style={styles.composeHeader}>
@@ -83,8 +89,18 @@ const PrayerForm = ({
         onChangeText={setPrayerInput}
         blurOnSubmit={false}
       />
-      <View style={styles.composeFooter}>
-        <View style={{ flex: 1 }} />
+
+      <View style={[styles.composeFooter, { justifyContent: 'space-between' }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <Text style={{ fontSize: 13, fontWeight: '700', color: '#1e293b' }}>Public</Text>
+          <TouchableOpacity 
+            style={[styles.toggleSwitch, isPublic && styles.toggleSwitchActive]}
+            onPress={() => setIsPublic(!isPublic)}
+          >
+            <View style={[styles.toggleThumb, isPublic && styles.toggleThumbActive]} />
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity 
           style={[styles.submitBtn, isSubmitting && { opacity: 0.7 }]}
           onPress={handleSubmit}
@@ -99,12 +115,7 @@ const PrayerForm = ({
       </View>
     </View>
 
-    {/* Section Header for the Prayer Wall Feed */}
-    <View style={styles.wallSectionHeader}>
-      <View style={styles.wallHeaderLine} />
-      <Text style={styles.wallHeaderText}>COMMUNITY PRAYERS</Text>
-      <View style={styles.wallHeaderLine} />
-    </View>
+    {/* Section Header for the Prayer Wall Feed is handled dynamically via Tabs now */}
   </View>
 );
 
@@ -122,8 +133,11 @@ export default function PrayerWallScreen({ navigation }: any) {
   // Form State
   const [prayerInput, setPrayerInput] = useState('');
   const [category, setCategory] = useState('Pray for me');
+  const [isPublic, setIsPublic] = useState(false);
+  const [activeTab, setActiveTab] = useState<'my_requests' | 'public_requests'>('my_requests');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const categories = [
     { label: 'Pray for me', icon: '👤' },
@@ -134,10 +148,24 @@ export default function PrayerWallScreen({ navigation }: any) {
   ];
 
   const fetchPrayers = async (contactId?: string, isRefreshing = false) => {
-    // Only set loading to true if we really want a full-screen block, but we want a smooth transition so skip it here.
     try {
+      const uid = user?.uid;
+      const phone = user?.phoneNumber;
       const data = await FirestoreService.getPrayerRequests({ contactId });
       setPrayers(data);
+      // Restore prayedSet from Firestore prayedBy array
+      if (uid || phone) {
+        const alreadyPrayed = new Set<string>();
+        data.forEach((p: any) => {
+          if (
+            (uid && p.prayedBy?.includes(uid)) ||
+            (phone && p.prayedBy?.includes(phone))
+          ) {
+            alreadyPrayed.add(p.id);
+          }
+        });
+        setPrayedSet(alreadyPrayed);
+      }
     } catch (error) {
       console.error('Error fetching prayers:', error);
     } finally {
@@ -182,7 +210,8 @@ export default function PrayerWallScreen({ navigation }: any) {
         category: category,
         isAnonymous: false,
         uid: user?.uid || null,
-        type: 'public'
+        type: 'public',
+        isPublic: isPublic
       });
       
       setShowSuccess(true);
@@ -219,14 +248,7 @@ export default function PrayerWallScreen({ navigation }: any) {
     }
   };
 
-  const handlePray = (id: string, isOwner: boolean) => {
-    if (isOwner || prayedSet.has(id)) return;
-    
-    setPrayedSet(prev => new Set(prev).add(id));
-    setPrayers(prevPrayers => 
-      prevPrayers.map(p => p.id === id ? { ...p, prayCount: (p.prayCount || 0) + 1 } : p)
-    );
-  };
+
 
   const handleReplySubmit = async (caseId: string) => {
     const comment = replyInputs[caseId]?.trim();
@@ -267,112 +289,198 @@ export default function PrayerWallScreen({ navigation }: any) {
     );
   };
 
+  const handlePray = async (id: string) => {
+    if (prayedSet.has(id)) return;
+    const uid = user?.uid || user?.phoneNumber || 'anon';
+    const memberName = member?.name || user?.displayName || 'A Member';
+    // Optimistic update
+    setPrayedSet(prev => new Set([...prev, id]));
+    setPrayers(prev => prev.map(p =>
+      p.id === id
+        ? { ...p, prayCount: (p.prayCount || 0) + 1, prayedByNames: [...(p.prayedByNames || []), memberName] }
+        : p
+    ));
+    try {
+      await FirestoreService.incrementPrayCount(id, uid, memberName);
+    } catch (err) {
+      // Rollback on failure
+      setPrayedSet(prev => { const s = new Set(prev); s.delete(id); return s; });
+      setPrayers(prev => prev.map(p =>
+        p.id === id
+          ? { ...p, prayCount: Math.max(0, (p.prayCount || 0) - 1), prayedByNames: (p.prayedByNames || []).filter(n => n !== memberName) }
+          : p
+      ));
+      Alert.alert('Error', 'Could not record your prayer. Try again.');
+    }
+  };
+
   const renderPrayerItem = ({ item }: { item: PrayerRequest }) => {
     const isAnswered = item.isAnswered;
     const initial = item.name.charAt(0).toUpperCase();
-    const isOwner = !!(user?.phoneNumber && item.phone && user.phoneNumber === item.phone);
-    
+    const isOwner = !!(user?.phoneNumber && item.phone && user.phoneNumber === item.phone)
+      || !!(member?.id && (item.contactId === member.id || item.authorId === member.id));
+    const hasPrayed = prayedSet.has(item.id) || !!(user?.uid && item.prayedBy?.includes(user.uid))
+      || !!(user?.phoneNumber && item.prayedBy?.includes(user.phoneNumber));
+    const isPublicTab = activeTab === 'public_requests';
+    const isExpanded = expandedItems.has(item.id);
+    const prayedNames: string[] = Array.isArray(item.prayedByNames) ? item.prayedByNames : [];
+    const prayCount = item.prayCount || 0;
+
+    const toggleExpand = () => {
+      setExpandedItems(prev => {
+        const next = new Set(prev);
+        if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
+        return next;
+      });
+    };
+
+    // ── PUBLIC PRAYERS TAB ─────────────────────────────────
+    if (isPublicTab) {
+      return (
+        <View style={styles.prayerCard}>
+          {/* Header */}
+          <View style={styles.cardHeader}>
+            <View style={[styles.avatar, { backgroundColor: '#7c3aed' }]}>
+              <Text style={styles.avatarText}>{initial}</Text>
+            </View>
+            <View style={styles.headerInfo}>
+              <Text style={styles.name}>{item.name}</Text>
+              <Text style={styles.metaText}>
+                {getTimeAgo(item.createdAt)} · {item.category || 'General'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Prayer Text */}
+          <Text style={styles.prayerText}>{item.text}</Text>
+
+          {/* Button Row: Pray btn + Chevron */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 }}>
+            <TouchableOpacity
+              style={[styles.prayBtnSmall, hasPrayed && styles.prayBtnActive]}
+              onPress={() => handlePray(item.id)}
+              disabled={hasPrayed}
+              activeOpacity={0.8}
+            >
+              <CheckCircle2 size={14} color={hasPrayed ? '#4ade80' : '#fff'} />
+              <Text style={[styles.prayBtnText, hasPrayed && styles.prayBtnTextActive]}>
+                {hasPrayed ? 'Praying' : 'I Will Pray for You'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.chevronBtn}
+              onPress={toggleExpand}
+              activeOpacity={0.7}
+            >
+              {isExpanded
+                ? <ChevronUp size={18} color="#1a2d5a" />
+                : <ChevronDown size={18} color="#1a2d5a" />}
+            </TouchableOpacity>
+          </View>
+
+          {/* Dropdown: Members Praying List */}
+          {isExpanded && prayedNames.length > 0 && (
+            <View style={[styles.prayingNamesBox, { marginTop: 12 }]}>
+              <Text style={styles.prayingNamesHeader}>MEMBERS PRAYING FOR YOU:</Text>
+              {prayedNames.map((name, idx) => (
+                <View key={idx} style={styles.prayingNameRow}>
+                  <View style={styles.prayingNameDot} />
+                  <Text style={styles.prayingNameText}>{name}</Text>
+                </View>
+              ))}
+            </View>
+          )}
+          {isExpanded && prayedNames.length === 0 && (
+            <Text style={{ fontSize: 13, color: '#94a3b8', marginTop: 10, fontStyle: 'italic' }}>
+              No one has prayed yet. Be the first! 🙏
+            </Text>
+          )}
+        </View>
+      );
+    }
+
+    // ── MY REQUESTS TAB ────────────────────────────────────
     return (
-      <View style={[styles.prayerCard, isAnswered && styles.cardAnswered]}>
+      <View style={[styles.prayerCard, item.isAnswered && { borderLeftWidth: 4, borderLeftColor: '#16a34a' }]}>
+        {/* Header */}
         <View style={styles.cardHeader}>
-          <View style={[styles.avatar, { backgroundColor: isAnswered ? '#166534' : '#7c3aed' }]}>
+          <View style={[styles.avatar, { backgroundColor: item.isAnswered ? '#16a34a' : '#7c3aed' }]}>
             <Text style={styles.avatarText}>{initial}</Text>
           </View>
           <View style={styles.headerInfo}>
-            <View style={styles.nameRow}>
-              <Text style={[styles.name, isAnswered && styles.nameAnswered]}>
-                {item.name}
-                {isAnswered && <Text style={styles.answeredBadge}> ✨ Answered!</Text>}
-              </Text>
-            </View>
+            <Text style={styles.name}>{item.name}</Text>
             <Text style={styles.metaText}>
               {getTimeAgo(item.createdAt)} · {item.category || 'General'}
             </Text>
           </View>
-        </View>
-        
-        <View style={[styles.textContainer, isAnswered && styles.textContainerAnswered]}>
-          <Text style={[styles.prayerText, isAnswered && styles.prayerTextAnswered]}>
-            {item.text}
-          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            {item.isAnswered && (
+              <View style={{ backgroundColor: '#dcfce7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#16a34a' }}>✨ Answered</Text>
+              </View>
+            )}
+            {isOwner && (
+              <TouchableOpacity onPress={() => handleDelete(item.id)} hitSlop={{top:8,bottom:8,left:8,right:8}}>
+                <Trash2 size={18} color="#ef4444" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
-        {/* REPLIES SECTION */}
-        {item.replies && item.replies.length > 0 && (
-          <View style={styles.repliesContainer}>
-            <Text style={styles.repliesHeader}>Comments & Replies</Text>
-            {item.replies.map((reply: any) => (
-              <View key={reply.id} style={styles.replyCard}>
-                <View style={styles.replyHeader}>
-                  <Text style={styles.replyAuthor}>{reply.author}</Text>
-                  <Text style={styles.replyDate}>{new Date(reply.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Text>
+        {/* Prayer Text */}
+        <Text style={styles.prayerText}>{item.text}</Text>
+
+        {/* Admin Response */}
+        {item.isAnswered && item.replies && item.replies.length > 0 && (
+          <View style={{ marginTop: 12 }}>
+            {item.replies.map((reply: any, idx: number) => (
+              <View key={reply.id || idx} style={{
+                backgroundColor: '#f0fdf4',
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 8,
+                borderLeftWidth: 3,
+                borderLeftColor: '#16a34a'
+              }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#15803d' }}>
+                    🙏 {reply.author}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#86efac' }}>
+                    {new Date(reply.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  </Text>
                 </View>
-                <Text style={styles.replyBody}>{reply.body}</Text>
+                <Text style={{ fontSize: 14, color: '#166534', lineHeight: 22 }}>{reply.body}</Text>
               </View>
             ))}
           </View>
         )}
 
-        {isOwner && isAnswered && (
-          <View style={styles.addReplyContainer}>
+        {/* Comment Input — always visible for owner */}
+        {isOwner && (
+          <View style={[styles.addReplyContainer, { marginTop: 10 }]}>
             <TextInput
               style={styles.replyInput}
-              placeholder="Add a comment or thank you note..."
+              placeholder={item.isAnswered ? 'Write a thank you or comment...' : 'Awaiting Admin response...'}
               placeholderTextColor="#94a3b8"
               value={replyInputs[item.id] || ''}
               onChangeText={(text) => setReplyInputs(prev => ({ ...prev, [item.id]: text }))}
               multiline
+              editable={!!item.isAnswered}
             />
-            <TouchableOpacity 
-              style={[styles.replySubmitBtn, !replyInputs[item.id]?.trim() && styles.replySubmitBtnDisabled]}
+            <TouchableOpacity
+              style={[styles.replySubmitBtn, (!replyInputs[item.id]?.trim() || !item.isAnswered) && styles.replySubmitBtnDisabled]}
               onPress={() => handleReplySubmit(item.id)}
-              disabled={!replyInputs[item.id]?.trim() || submittingReplyId === item.id}
+              disabled={!replyInputs[item.id]?.trim() || !item.isAnswered || submittingReplyId === item.id}
             >
-              {submittingReplyId === item.id ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text style={styles.replySubmitText}>Post</Text>
-              )}
+              {submittingReplyId === item.id
+                ? <ActivityIndicator size="small" color="#fff" />
+                : <Text style={styles.replySubmitText}>Post</Text>
+              }
             </TouchableOpacity>
           </View>
         )}
-
-        <View style={styles.cardFooter}>
-          {isOwner ? (
-            isAnswered ? (
-              <View style={[styles.iprayedBtn, styles.iprayedBtnActive, { backgroundColor: '#dcfce7', borderColor: '#dcfce7' }]}>
-                <CheckCircle2 size={14} color="#16a34a" />
-                <Text style={[styles.iprayedText, { color: '#16a34a' }]}>Answered</Text>
-              </View>
-            ) : (
-              <View style={[styles.iprayedBtn, { backgroundColor: '#f1f5f9', opacity: 0.7 }]}>
-                <Text style={[styles.iprayedText, { color: '#94a3b8' }]}>My Request</Text>
-              </View>
-            )
-          ) : (
-            <TouchableOpacity 
-              style={[styles.iprayedBtn, (prayedSet.has(item.id) || isAnswered) && styles.iprayedBtnActive]}
-              onPress={() => handlePray(item.id, isOwner)}
-              disabled={prayedSet.has(item.id) || isAnswered}
-            >
-              <CheckCircle2 size={14} color={prayedSet.has(item.id) || isAnswered ? '#16a34a' : '#7c3aed'} />
-              <Text style={[styles.iprayedText, (prayedSet.has(item.id) || isAnswered) && styles.iprayedTextAnswered]}>
-                {prayedSet.has(item.id) || isAnswered ? `We Prayed (${item.prayCount})` : `I prayed (${item.prayCount})`}
-              </Text>
-            </TouchableOpacity>
-          )}
-
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 14, alignItems: 'center' }}>
-            {isOwner && (
-              <TouchableOpacity onPress={() => handleDelete(item.id)}>
-                <Trash2 size={20} color="#ef4444" />
-              </TouchableOpacity>
-            )}
-            <Text style={styles.footerDate}>
-              {new Date(item.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </Text>
-          </View>
-        </View>
       </View>
     );
   };
@@ -410,22 +518,46 @@ export default function PrayerWallScreen({ navigation }: any) {
       </LinearGradient>
 
       <FlatList
-        data={prayers}
+        data={activeTab === 'my_requests' 
+          ? prayers.filter(p => 
+              p.contactId === member?.id || p.authorId === member?.id
+            ) 
+          : prayers.filter(p => p.isPublic && p.isAnswered && !p.isClosed)}
         renderItem={renderPrayerItem}
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />}
         ListHeaderComponent={
-          <PrayerForm 
-            prayerInput={prayerInput}
-            setPrayerInput={setPrayerInput}
-            category={category}
-            setCategory={setCategory}
-            categories={categories}
-            isSubmitting={isSubmitting}
-            handleSubmit={handleSubmit}
-          />
+          <View>
+            <View style={[styles.tabsContainer, { marginTop: 20 }]}>
+              <TouchableOpacity 
+                style={[styles.tabBtn, activeTab === 'my_requests' && styles.tabBtnActive]}
+                onPress={() => setActiveTab('my_requests')}
+              >
+                <Text style={[styles.tabBtnText, activeTab === 'my_requests' && styles.tabBtnTextActive]}>My Requests</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.tabBtn, activeTab === 'public_requests' && styles.tabBtnActive]}
+                onPress={() => setActiveTab('public_requests')}
+              >
+                <Text style={[styles.tabBtnText, activeTab === 'public_requests' && styles.tabBtnTextActive]}>Public Prayers</Text>
+              </TouchableOpacity>
+            </View>
+            {activeTab === 'my_requests' && (
+              <PrayerForm 
+                prayerInput={prayerInput}
+                setPrayerInput={setPrayerInput}
+                category={category}
+                setCategory={setCategory}
+                categories={categories}
+                isSubmitting={isSubmitting}
+                handleSubmit={handleSubmit}
+                isPublic={isPublic}
+                setIsPublic={setIsPublic}
+              />
+            )}
+          </View>
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
@@ -544,6 +676,64 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.02,
     shadowRadius: 3,
   },
+  
+  toggleSwitch: {
+    width: 50,
+    height: 28,
+    backgroundColor: '#cbd5e1',
+    borderRadius: 15,
+    padding: 2,
+    justifyContent: 'center',
+  },
+  toggleSwitchActive: { backgroundColor: '#1a2d5a' },
+  toggleThumb: {
+    width: 24,
+    height: 24,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  toggleThumbActive: { transform: [{ translateX: 22 }] },
+
+  tabsContainer: {
+    flexDirection: 'row',
+    marginHorizontal: 20,
+    marginBottom: 10,
+    backgroundColor: '#e2e8f0',
+    borderRadius: 16,
+    padding: 6,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRadius: 12,
+  },
+  tabBtnActive: { 
+    backgroundColor: '#1a2d5a', 
+    shadowColor: '#1a2d5a', 
+    shadowOpacity: 0.2, 
+    shadowRadius: 5, 
+    elevation: 4 
+  },
+  tabBtnText: { fontSize: 14, fontWeight: '700', color: '#64748b' },
+  tabBtnTextActive: { color: '#fff', fontWeight: '800' },
+
+  quickReplyBtn: {
+    marginTop: 8,
+    alignSelf: 'flex-start',
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  quickReplyText: { fontSize: 13, fontWeight: '600', color: '#475569' },
+
   composeFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 15 },
   submitBtn: { 
     backgroundColor: '#1a2d5a', 
@@ -574,24 +764,66 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f1f5f9'
   },
-  cardAnswered: { borderColor: '#bbf7d0', borderWidth: 2 },
+  cardAnswered: { borderColor: '#e2e8f0' },
   cardHeader: { flexDirection: 'row', flexWrap: 'wrap', gap: 14, marginBottom: 15 },
   avatar: { width: 44, height: 44, borderRadius: 22, justifyContent: 'center', alignItems: 'center' },
   avatarText: { color: '#fff', fontWeight: '800', fontSize: 18 },
   headerInfo: { flex: 1 },
   nameRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   name: { fontSize: 15, fontWeight: '800', color: '#1e293b' },
-  nameAnswered: { color: '#166534' },
-  answeredBadge: { color: '#16a34a', fontWeight: '800', fontSize: 13 },
+  nameAnswered: { color: '#1e293b' },
+  answeredBadge: { color: '#059669', fontWeight: '700', fontSize: 12 },
   countBadge: { backgroundColor: '#f0fdf4', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
   countText: { fontSize: 11, color: '#16a34a', fontWeight: '700' },
-  countTextAnswered: { color: '#166534', backgroundColor: '#dcfce7' },
+  countTextAnswered: { color: '#059669', backgroundColor: '#f0fdf4' },
   metaText: { fontSize: 12, color: '#94a3b8', marginTop: 2 },
   
   textContainer: { backgroundColor: '#f8fafc', padding: 18, borderRadius: 18, marginBottom: 15, borderWidth: 1, borderColor: '#f1f5f9' },
-  textContainerAnswered: { backgroundColor: '#f0fdf4', borderColor: '#dcfce7' },
-  prayerText: { fontSize: 15, color: '#334155', lineHeight: 24, fontStyle: 'italic' },
-  prayerTextAnswered: { color: '#166534', fontWeight: '600' },
+  textContainerAnswered: { backgroundColor: '#f8fafc', borderLeftWidth: 3, borderLeftColor: '#10b981' },
+  prayerText: { fontSize: 15, color: '#1e293b', lineHeight: 24, marginTop: 10, marginBottom: 16 },
+  prayerTextAnswered: { color: '#334155', fontWeight: '500' },
+
+  // Action Row
+  actionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 },
+  prayBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderRadius: 14,
+    flex: 1,
+  },
+  prayBtnSmall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 12,
+  },
+  prayBtnActive: { backgroundColor: '#15803d', borderWidth: 2, borderColor: '#4ade80' },
+  prayBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  prayBtnTextActive: { color: '#bbf7d0' },
+  chevronBtn: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: '#e2e8f0'
+  },
+  chevronIcon: { fontSize: 16, color: '#1a2d5a', fontWeight: '700' },
+  ownerBadge: { flex: 1, backgroundColor: '#f8fafc', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' },
+  ownerBadgeText: { fontSize: 13, color: '#475569', fontWeight: '600' },
+
+  // Expanded section
+  expandedSection: { marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#f1f5f9' },
+  prayingNamesBox: { marginBottom: 12 },
+  prayingNamesHeader: { fontSize: 11, fontWeight: '800', color: '#94a3b8', letterSpacing: 1, marginBottom: 8 },
+  prayingNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
+  prayingNameDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#1a2d5a' },
+  prayingNameText: { fontSize: 14, color: '#1e293b', fontWeight: '500' },
 
   repliesContainer: { marginBottom: 15, marginLeft: 15, paddingLeft: 15, borderLeftWidth: 2, borderLeftColor: '#e2e8f0' },
   repliesHeader: { fontSize: 13, fontWeight: '800', color: '#1a2d5a', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 1 },
@@ -624,7 +856,7 @@ const styles = StyleSheet.create({
     maxHeight: 100
   },
   replySubmitBtn: {
-    backgroundColor: '#c13b2d',
+    backgroundColor: '#1a2d5a',
     paddingHorizontal: 15,
     height: 44,
     borderRadius: 12,
