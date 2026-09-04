@@ -130,10 +130,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (globalUser?.primaryChurchId) {
                   await require('../services/firebaseConfig').firestore()
                     .collection('churches').doc(globalUser.primaryChurchId)
-                    .collection('members').doc(userState.uid).update({
+                    .collection('members').doc(userState.uid).set({
                       fcmToken: token
-                  });
+                  }, { merge: true });
+
+                  // Explicitly subscribe to the topic now that we have permissions
+                  await require('../services/NotificationService').default.subscribeToChurchTopic(globalUser.primaryChurchId);
                 }
+
+                // Keep the token synced if Firebase rotates it
+                messaging().onTokenRefresh(async (newToken) => {
+                  console.log('🔄 [FCM] Token refreshed:', newToken);
+                  if (globalUser?.primaryChurchId) {
+                    await require('../services/firebaseConfig').firestore()
+                      .collection('churches').doc(globalUser.primaryChurchId)
+                      .collection('members').doc(userState.uid).set({
+                        fcmToken: newToken
+                      }, { merge: true });
+                    
+                    // Resubscribe to the topic just to be safe after a token rotation
+                    await require('../services/NotificationService').default.subscribeToChurchTopic(globalUser.primaryChurchId);
+                  }
+                });
               }
             } catch (err) {
               console.log('❌ [FCM] Error setting up notifications:', err);

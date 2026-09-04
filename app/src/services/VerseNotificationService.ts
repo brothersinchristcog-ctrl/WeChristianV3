@@ -175,7 +175,6 @@ class VerseNotificationService {
                 },
               },
               trigger: {
-                type: 'date',
                 date: scheduleDate.getTime(),
                 channelId: 'default'
               } as any,
@@ -261,10 +260,21 @@ class VerseNotificationService {
    */
   async getRecentVerses(pastDays: number, includeToday: boolean = true, forceRefresh: boolean = false): Promise<{ date: Date, verses: DailyVerse[] }[]> {
     try {
-      const metaDoc = await firestore().collection('daily_verses_meta').doc('metadata').get();
-      const metaExists = typeof metaDoc.exists === 'function' ? metaDoc.exists() : metaDoc.exists;
-      if (!metaExists) return [];
-      const totalVerses = metaDoc.data()?.totalVerses || 0;
+      let totalVerses = 0;
+      const metaCacheStr = await AsyncStorage.getItem('@wechristian_verses_meta');
+      if (metaCacheStr) {
+        totalVerses = parseInt(metaCacheStr, 10);
+      }
+      
+      if (totalVerses === 0 || forceRefresh) {
+        const metaDoc = await firestore().collection('daily_verses_meta').doc('metadata').get();
+        const metaExists = typeof metaDoc.exists === 'function' ? metaDoc.exists() : metaDoc.exists;
+        if (metaExists) {
+          totalVerses = metaDoc.data()?.totalVerses || 0;
+          await AsyncStorage.setItem('@wechristian_verses_meta', totalVerses.toString());
+        }
+      }
+      
       if (totalVerses === 0) return [];
 
       const today = new Date();
@@ -293,16 +303,25 @@ class VerseNotificationService {
         : Array.from(requiredIndices).filter(idx => !cache[idx]);
 
       if (missingIndices.length > 0) {
+        const batchPromises = [];
         for (let i = 0; i < missingIndices.length; i += 10) {
           const batch = missingIndices.slice(i, i + 10);
-          const snapshot = await firestore().collection('daily_verses').where('index', 'in', batch).get();
+          batchPromises.push(
+            firestore().collection('daily_verses').where('index', 'in', batch).get()
+          );
+        }
+        
+        const snapshots = await Promise.all(batchPromises);
+        
+        snapshots.forEach(snapshot => {
           snapshot.docs.forEach(doc => {
             const data = doc.data() as DailyVerse;
             if (data.index !== undefined) {
               cache[data.index] = { ...data, id: doc.id };
             }
           });
-        }
+        });
+
         await AsyncStorage.setItem(VERSES_CACHE_KEY, JSON.stringify(cache));
       }
 

@@ -162,7 +162,7 @@ export const notifyMembersV2 = onRequest(async (request, response) => {
  * ⏰ AUTOMATED DAILY PROMISE SCHEDULER
  * Scheduled to run every day at 07:00 AM IST (01:30 AM UTC)
  */
-export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
+export const automatedDailyPromise = onSchedule({ schedule: '0 7 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
   try {
     console.log('⏰ Running automatedDailyPromise scheduler for all churches...');
     const db = getDb();
@@ -197,11 +197,12 @@ export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZon
       const promise = promiseSnap.docs[0].data();
       
       // Fallbacks for content based on app schema
-      const content = promise.textEn || promise.text || promise.Promises__c || promise.Promise_text_telugu__c || 'Grace and Peace be multiplied to you today.';
+      const content = promise.verse || promise.textEn || promise.text || promise.Promises__c || promise.Promise_text_telugu__c || 'Grace and Peace be multiplied to you today.';
+      const title = promise.verseReferenceEn ? `📖 Daily Promise: ${promise.verseReferenceEn}` : '📖 Today\'s Promise · ఈ రోజు వాగ్దానం';
 
       // Push to broadcasts collection for this church
       await db.collection('churches').doc(churchId).collection('broadcasts').add({
-        title: '📖 Today\'s Promise · ఈ రోజు వాగ్దానం',
+        title: title,
         content: content,
         date: dateStr,
         type: 'announcement',
@@ -212,7 +213,7 @@ export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZon
       // Send push notification to the specific church topic
       const message = {
         notification: {
-          title: '📖 Daily Promise · ఈ రోజు వాగ్దానం',
+          title: title,
           body: stripHtml(content).slice(0, 100) + '...'
         },
         data: { type: 'general', churchId: churchId },

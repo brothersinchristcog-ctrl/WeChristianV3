@@ -73,7 +73,7 @@ const getDynamicGradient = (date: Date, period: string, periodIndex: number): re
 
 export default function VerseOfTheDayScreen() {
   const route = useRoute<any>();
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const [verseData, setVerseData] = useState<{ date: Date, verses: DailyVerse[] }[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,31 +92,78 @@ export default function VerseOfTheDayScreen() {
 
   const styles = getStyles(isDark, colors);
 
+  // --- Auto-scroll carousel logic ---
+  const todayCarouselRef = useRef<ScrollView>(null);
+  const currentIndexRef = useRef(0);
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (verseData.length > 0) {
+      const hour = new Date().getHours();
+      let initialIndex = 0;
+      if (hour >= 12 && hour < 17) initialIndex = 1; // Afternoon
+      else if (hour >= 17 && hour < 20) initialIndex = 2; // Evening
+      else if (hour >= 20) initialIndex = 3; // Night
+
+      currentIndexRef.current = initialIndex;
+
+      // Ensure layout is ready before initial scroll
+      setTimeout(() => {
+        todayCarouselRef.current?.scrollTo({ x: initialIndex * width, animated: false });
+      }, 200);
+
+      // Start auto-scroll
+      clearInterval(timerRef.current);
+      timerRef.current = setInterval(() => {
+        currentIndexRef.current = (currentIndexRef.current + 1) % 4;
+        todayCarouselRef.current?.scrollTo({ x: currentIndexRef.current * width, animated: true });
+      }, 8000); // 8 seconds
+    }
+    return () => clearInterval(timerRef.current);
+  }, [verseData.length]);
+
+  const handleScrollEnd = (e: any) => {
+    currentIndexRef.current = Math.round(e.nativeEvent.contentOffset.x / width);
+    
+    // Restart auto-scroll timer when user manually scrolls
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => {
+      currentIndexRef.current = (currentIndexRef.current + 1) % 4;
+      todayCarouselRef.current?.scrollTo({ x: currentIndexRef.current * width, animated: true });
+    }, 8000); // 8 seconds
+  };
+  // ----------------------------------
+
   useEffect(() => {
     const init = async () => {
-      // await AsyncStorage.removeItem('@wechristian_verses_cache');
-      
       if (verseId) {
         VerseNotificationService.markVerseAsShown(verseId);
       }
-      loadVerses(true);
+      
+      // Pass 1: Instantly load whatever we have in cache (this will at least have Today's verses)
+      await loadVerses(false);
+      
+      // Pass 2: Silently refresh the past 5 days in the background to ensure data is perfectly synced
+      loadVerses(true, true);
     };
     init();
   }, [verseId]);
 
-  const loadVerses = async (forceRefresh = false) => {
+  const loadVerses = async (forceRefresh = false, silent = false) => {
     if (forceRefresh) {
-      setRefreshing(true);
+      if (!silent) setRefreshing(true);
     } else {
-      setLoading(true);
+      if (!silent) setLoading(true);
     }
     
     // Fetch today + past 5 days = 6 days total
     const data = await VerseNotificationService.getRecentVerses(5, true, forceRefresh);
     setVerseData(data);
     
-    setLoading(false);
-    setRefreshing(false);
+    if (!silent) {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
   const handleDownload = async (verse: DailyVerse, period: string, theme: any, periodIndex: number, date: Date) => {
@@ -196,7 +243,13 @@ export default function VerseOfTheDayScreen() {
     return (
       <View style={[styles.fallbackContainer, { justifyContent: 'center', alignItems: 'center' }]}>
         <Text style={styles.errorText}>No verses available.</Text>
-        <TouchableOpacity style={styles.backBtnFallback} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backBtnFallback} onPress={() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate('Tabs');
+          }
+        }}>
           <Text style={styles.backBtnText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -209,7 +262,13 @@ export default function VerseOfTheDayScreen() {
         
         {/* TOP NAVBAR */}
         <View style={styles.navBar}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.iconBtn}>
+          <TouchableOpacity onPress={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('Tabs');
+            }
+          }} style={styles.iconBtn}>
             <ArrowLeft color={colors.text} size={28} />
           </TouchableOpacity>
           <Text style={styles.navTitle}>Daily Verses</Text>
@@ -257,6 +316,7 @@ export default function VerseOfTheDayScreen() {
 
                 {/* HORIZONTAL CAROUSEL FOR THE DAY */}
                 <ScrollView 
+                  ref={isToday ? todayCarouselRef : null}
                   horizontal 
                   pagingEnabled 
                   showsHorizontalScrollIndicator={false}
@@ -264,6 +324,7 @@ export default function VerseOfTheDayScreen() {
                   snapToInterval={width}
                   decelerationRate="fast"
                   style={styles.carousel}
+                  onMomentumScrollEnd={isToday ? handleScrollEnd : undefined}
                 >
                   {dayData.verses.map((verse, periodIndex) => {
                     const period = periods[periodIndex];
