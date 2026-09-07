@@ -338,10 +338,35 @@ export default function AdminMembers() {
                 if (!editMemberId) {
                   // Share functionality after OK for new members
                   const churchName = activeChurch?.name || 'WeChristian Church';
-                  const churchCode = activeChurch?.subdomain?.toUpperCase() || (activeChurch as any)?.churchCode || '';
+                  const churchCode = activeChurch?.subdomain?.toUpperCase() || (activeChurch as any)?.churchCode?.toUpperCase() || '';
+                  const memberPhone = newMemberForm.phone || '';
+                  const memberDigits = memberPhone.replace(/\D/g, '').slice(-10);
+                  const churchCodeParam = encodeURIComponent(churchCode);
+                  const churchInviteLink = `https://wechristian.app/invite?code=${churchCodeParam}`;
+                  const playStoreLink = `https://play.google.com/store/apps/details?id=com.wechristian.app&referrer=${churchCodeParam}`;
+
+                  const shareMsg = 
+`Greetings in Jesus' Name! 🙏✨
+
+Dear ${newMemberForm.name || 'Brother/Sister'},
+
+You are warmly invited to join our ${churchName} Mobile Application! ⛪
+
+Your church profile has already been registered for you, so you DO NOT need to sign up. Simply download the app and Sign In directly with your mobile number${memberDigits ? `: ${memberDigits}` : ''}.
+
+🏛️ Church Code: ${churchCode}
+
+🔗 Church Invitation Link:
+${churchInviteLink}
+
+📲 Download App from Google Play Store:
+${playStoreLink}
+
+May God bless you abundantly! ❤️`;
+
                   Share.share({
-                    message: `Hello ${newMemberForm.name},\n\nYou have been added to "${churchName}" on We Christian!\n\nChurch Code: *${churchCode}*\n\nDownload the app:\nhttps://play.google.com/store/apps/details?id=com.wechristian.app`,
-                    title: `Join ${churchName}`,
+                    message: shareMsg,
+                    title: `Church Invitation - ${churchName}`,
                   });
                 }
               }
@@ -799,7 +824,7 @@ export default function AdminMembers() {
         visible={inviteModalVisible}
         onClose={() => setInviteModalVisible(false)}
         churchName={activeChurch?.name || 'Our Church'}
-        churchCode={activeChurch?.subdomain?.toUpperCase() || ''}
+        churchCode={activeChurch?.subdomain?.toUpperCase() || (activeChurch as any)?.churchCode?.toUpperCase() || ''}
         churchId={activeChurch?.id || ''}
         onMembersAdded={() => fetchMembers(true)}
         existingMembers={members}

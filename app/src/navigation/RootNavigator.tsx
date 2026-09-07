@@ -119,6 +119,53 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
     const currentRoute = state.routes[state.index];
     const activeConfig = getTabConfig(currentRoute.name, useWeChristianDailyPromise);
 
+    const [publicPrayerCount, setPublicPrayerCount] = useState(0);
+    const [lastSeenPrayerCount, setLastSeenPrayerCount] = useState(0);
+    const pulseAnim = React.useRef(new Animated.Value(1)).current;
+
+    useEffect(() => {
+      AsyncStorage.getItem('@LastSeenPrayerCount').then((val) => {
+        if (val) {
+          setLastSeenPrayerCount(parseInt(val, 10));
+        }
+      });
+    }, []);
+
+    useEffect(() => {
+      if (!activeChurch?.id) return;
+      const unsubscribe = firestore()
+        .collection('churches')
+        .doc(activeChurch.id)
+        .collection('prayerRequests')
+        .where('isPublic', '==', true)
+        .where('isAnswered', '==', true)
+        .onSnapshot((snapshot) => {
+          if (snapshot) {
+            setPublicPrayerCount(snapshot.docs.length);
+          }
+        }, (error) => {
+          console.error("Prayer listener error", error);
+        });
+      return () => unsubscribe();
+    }, [activeChurch?.id]);
+
+    const unseenPrayers = Math.max(0, publicPrayerCount - lastSeenPrayerCount);
+    const showPrayerBadge = unseenPrayers > 0;
+
+    useEffect(() => {
+      if (showPrayerBadge) {
+        Animated.loop(
+          Animated.sequence([
+            Animated.timing(pulseAnim, { toValue: 1.5, duration: 1000, useNativeDriver: true }),
+            Animated.timing(pulseAnim, { toValue: 1, duration: 1000, useNativeDriver: true })
+          ])
+        ).start();
+      } else {
+        pulseAnim.stopAnimation();
+        pulseAnim.setValue(1);
+      }
+    }, [showPrayerBadge]);
+
     return (
       <View style={[styles.tabBarContainer, { backgroundColor: activeConfig.bg }]}>
         {state.routes.map((route: any, index: number) => {
@@ -128,14 +175,23 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
           const IconComponent = config.Icon;
 
           const onPress = () => {
+            if (config.key === 'Prayer' && showPrayerBadge) {
+              setLastSeenPrayerCount(publicPrayerCount);
+              AsyncStorage.setItem('@LastSeenPrayerCount', publicPrayerCount.toString());
+            }
+
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
               canPreventDefault: true,
             });
 
-            if (!isFocused && !event.defaultPrevented) {
-              navigation.navigate(route.name);
+            if (!event.defaultPrevented) {
+              if (config.key === 'Prayer' && showPrayerBadge) {
+                navigation.navigate(route.name, { tab: 'public_requests' });
+              } else if (!isFocused) {
+                navigation.navigate(route.name);
+              }
             }
           };
 
@@ -152,7 +208,14 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
             >
               {isFocused ? (
                 <View style={styles.activeCircle}>
-                  <IconComponent color={config.fg} size={20} strokeWidth={2.5} />
+                  <View>
+                    <IconComponent color={config.fg} size={20} strokeWidth={2.5} />
+                    {config.key === 'Prayer' && showPrayerBadge && (
+                      <View style={styles.badgeActive}>
+                        <Text style={styles.badgeText}>{unseenPrayers}</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text 
                     style={[styles.activeLabel, { color: config.fg }]}
                     numberOfLines={1}
@@ -163,7 +226,20 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
                 </View>
               ) : (
                 <View style={styles.inactiveWrapper}>
-                  <IconComponent color="rgba(255, 255, 255, 0.7)" size={22} strokeWidth={2} />
+                  <View>
+                    {config.key === 'Prayer' && showPrayerBadge && (
+                      <Animated.View style={[
+                        styles.pulseRing, 
+                        { transform: [{ scale: pulseAnim }], opacity: pulseAnim.interpolate({ inputRange: [1, 1.5], outputRange: [0.8, 0] }) }
+                      ]} />
+                    )}
+                    <IconComponent color="rgba(255, 255, 255, 0.7)" size={22} strokeWidth={2} />
+                    {config.key === 'Prayer' && showPrayerBadge && (
+                      <View style={styles.badgeInactive}>
+                        <Text style={styles.badgeText}>{unseenPrayers}</Text>
+                      </View>
+                    )}
+                  </View>
                   <Text 
                     style={styles.inactiveLabel}
                     numberOfLines={1}
@@ -651,12 +727,48 @@ const styles = StyleSheet.create({
   },
   inactiveLabel: {
     color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 9.5,
-    fontWeight: '600',
-    marginTop: 3,
-    letterSpacing: 0,
-    textAlign: 'center',
-    paddingHorizontal: 2,
+    fontSize: 11,
+    marginTop: 4,
+    opacity: 0.7,
+  },
+  pulseRing: {
+    position: 'absolute',
+    top: -4,
+    left: -4,
+    right: -4,
+    bottom: -4,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#ef4444',
+  },
+  badgeInactive: {
+    position: 'absolute',
+    top: -6,
+    right: -8,
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeActive: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 9,
+    fontWeight: 'bold',
   }
 });
 

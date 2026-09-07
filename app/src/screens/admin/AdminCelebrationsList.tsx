@@ -90,7 +90,9 @@ export default function AdminCelebrationsList({ category, activeTab, onSelectMem
               photoUrl: getValidPhotoUrl(d),
               dateStr,
               age,
-              phone: d.MobilePhone || d.Phone || '',
+              phone: d.MobilePhone || d.directPhone || d.Phone || '',
+              referencePhone: d.referencePhone || '',
+              isReferencePhone: d.isReferencePhone || false,
               rawMonth: month,
               rawDay: day,
               celebrationType: type // 'Birthday', 'Wedding Anniversary', 'Baptism Anniversary'

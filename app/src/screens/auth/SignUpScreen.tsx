@@ -149,7 +149,16 @@ export default function SignUpScreen({ navigation }: any) {
           <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
             <View style={styles.headerContainer}>
               <View style={styles.topRow}>
-                <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+                <TouchableOpacity 
+                  style={styles.backBtn} 
+                  onPress={() => {
+                    if (navigation.canGoBack()) {
+                      navigation.goBack();
+                    } else {
+                      navigation.navigate('Login');
+                    }
+                  }}
+                >
                   <ChevronLeft size={20} color="#6B7B9A" />
                 </TouchableOpacity>
                 <View style={styles.titleWrapper}>

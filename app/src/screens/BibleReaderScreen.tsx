@@ -184,7 +184,11 @@ export default function BibleReaderScreen({ route, navigation }: any) {
 
       // 2. Otherwise, use API (Primary for English, Fallback for Telugu)
       const bookId = BOOK_MAP[bookName] || 1;
-      const versions = lang === 'English' ? ['KJV', 'ASV'] : ['TELBSI', 'BSITEL', 'TEL'];
+      
+      const storedVersion = await AsyncStorage.getItem('@BibleEnglishVersion');
+      const prefEngVersion = storedVersion || 'KJV';
+      // Fallback chain: Primary selected version -> KJV -> ASV
+      const versions = lang === 'English' ? [prefEngVersion, 'KJV', 'ASV'] : ['TELBSI', 'BSITEL', 'TEL'];
       
       let data = null;
       let lastError = null;

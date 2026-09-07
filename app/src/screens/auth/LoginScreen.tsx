@@ -172,7 +172,7 @@ export default function LoginScreen({ navigation, route }: LoginScreenProps) {
         <View style={styles.landingBottom}>
           <View style={styles.actionRow}>
             <TouchableOpacity 
-              style={[styles.mainActionBtn, { flex: 1, marginRight: 8 }]}
+              style={[styles.mainActionBtn, { flex: 1 }]}
               onPress={() => {
                 setIsCreatingChurch(false);
                 setShowPhoneInput(true);
@@ -180,15 +180,6 @@ export default function LoginScreen({ navigation, route }: LoginScreenProps) {
             >
               <Text style={styles.mainActionBtnTxt}>Sign In</Text>
             </TouchableOpacity>
-
-            {activeChurch && (
-              <TouchableOpacity 
-                style={[styles.signUpBtn, { flex: 1, marginLeft: 8 }]}
-                onPress={() => navigation.navigate('SignUp')}
-              >
-                <Text style={styles.signUpBtnTxt}>Sign up</Text>
-              </TouchableOpacity>
-            )}
 
             {!activeChurch && (
               <TouchableOpacity 
@@ -226,7 +217,17 @@ export default function LoginScreen({ navigation, route }: LoginScreenProps) {
         <SafeAreaView style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingTop: Platform.OS === 'ios' ? 10 : 30, paddingBottom: 24, paddingHorizontal: 22, justifyContent: 'space-between' }}>
           <TouchableOpacity 
             style={styles.backBtn}
-            onPress={() => setShowPhoneInput(false)}
+            onPress={() => {
+              if (route.params?.fromJoinSuccess || route.params?.showPhoneInput) {
+                if (navigation.canGoBack()) {
+                  navigation.goBack();
+                } else {
+                  setShowPhoneInput(false);
+                }
+              } else {
+                setShowPhoneInput(false);
+              }
+            }}
           >
             <ChevronLeft size={20} color="#aac4e8" />
             <Text style={styles.backBtnTxt}>Back</Text>

@@ -119,7 +119,7 @@ const PrayerForm = ({
   </View>
 );
 
-export default function PrayerWallScreen({ navigation }: any) {
+export default function PrayerWallScreen({ navigation, route }: any) {
   const { user } = useAuth();
   const { isDark, toggleTheme, colors } = useTheme();
   const [member, setMember] = useState<AppMember | null>(null);
@@ -134,10 +134,16 @@ export default function PrayerWallScreen({ navigation }: any) {
   const [prayerInput, setPrayerInput] = useState('');
   const [category, setCategory] = useState('Pray for me');
   const [isPublic, setIsPublic] = useState(false);
-  const [activeTab, setActiveTab] = useState<'my_requests' | 'public_requests'>('my_requests');
+  const [activeTab, setActiveTab] = useState<'my_requests' | 'public_requests'>(route?.params?.tab || 'my_requests');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (route?.params?.tab) {
+      setActiveTab(route.params.tab);
+    }
+  }, [route?.params?.tab]);
 
   const categories = [
     { label: 'Pray for me', icon: '👤' },

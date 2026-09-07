@@ -173,8 +173,10 @@ export default function AdminWeCelebrations({ navigation }: any) {
   }
 
   const handleSendWhatsApp = async (localImageUri?: string) => {
-    if (!selectedMember?.phone) {
-      Alert.alert('Error', 'This member does not have a phone number on record.');
+    // Resolve the effective phone: direct phone first, then referencePhone (parent)
+    const effectivePhone = selectedMember?.phone || selectedMember?.referencePhone;
+    if (!effectivePhone) {
+      Alert.alert('Error', 'This member does not have a phone number on record. For kids, please ensure a parent reference number is assigned in the Household section.');
       return;
     }
 
@@ -223,7 +225,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
         WA_PHONE_NUMBER_ID = secrets.whatsappPhoneId;
       }
 
-      let formattedPhone = selectedMember.phone.replace(/\D/g, '');
+      let formattedPhone = effectivePhone.replace(/\D/g, '');
       if (formattedPhone.length === 10) {
         formattedPhone = `91${formattedPhone}`; 
       }

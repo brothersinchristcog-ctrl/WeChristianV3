@@ -1231,16 +1231,6 @@ class FirestoreService {
 
 
 
-  async getPastEvents(limit = 5): Promise<ScheduleEvent[]> {
-    try {
-      const col = await this.getCollection('events');
-      const today = new Date().toISOString().split('T')[0];
-      const snapshot = await col.where('date', '<', today).orderBy('date', 'desc').limit(limit).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as ScheduleEvent[];
-    } catch (error) {
-      return [];
-    }
-  }
 
   // --- 🙏 Prayer Wall ---
 
@@ -1618,7 +1608,37 @@ class FirestoreService {
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       const snapshot = await col.where('date', '==', todayStr).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ScheduleEvent));
+      let events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ScheduleEvent));
+      
+      // Filter out events that have already ended based on time
+      events = events.filter(ev => {
+        const timeToCompare = ev.endTime || ev.time;
+        if (timeToCompare) {
+           try {
+              let hour = 0, min = 0;
+              if (timeToCompare.includes('T')) {
+                 const t = new Date(timeToCompare);
+                 hour = t.getHours();
+                 min = t.getMinutes();
+              } else {
+                 const parts = timeToCompare.split(':');
+                 hour = parseInt(parts[0], 10);
+                 min = parseInt(parts[1], 10);
+              }
+              const nowHour = today.getHours();
+              const nowMin = today.getMinutes();
+              
+              if (hour < nowHour || (hour === nowHour && min < nowMin)) {
+                return false; // Event has ended
+              }
+           } catch (e) {
+              // Ignore parse errors
+           }
+        }
+        return true;
+      });
+      
+      return events;
     } catch (e) {
       console.error('Error fetching today events:', e);
       return [];
@@ -1630,10 +1650,106 @@ class FirestoreService {
       const col = await this.getCollection('events');
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const snapshot = await col.where('date', '>=', todayStr).orderBy('date', 'asc').limit(limit).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ScheduleEvent));
+      
+      // Fetch all events from today onwards
+      const snapshot = await col.where('date', '>=', todayStr).orderBy('date', 'asc').get();
+      
+      let events = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ScheduleEvent));
+      
+      // Filter out events from TODAY that have already ended based on time
+      events = events.filter(ev => {
+        if (ev.date === todayStr) {
+          // Compare end time or start time against current time
+          const timeToCompare = ev.endTime || ev.time;
+          if (timeToCompare) {
+             try {
+                // time format is "HH:mm" or "YYYY-MM-DDTHH:mm:ss.sssZ"
+                let hour = 0, min = 0;
+                if (timeToCompare.includes('T')) {
+                   const t = new Date(timeToCompare);
+                   hour = t.getHours();
+                   min = t.getMinutes();
+                } else {
+                   const parts = timeToCompare.split(':');
+                   hour = parseInt(parts[0], 10);
+                   min = parseInt(parts[1], 10);
+                }
+                const nowHour = today.getHours();
+                const nowMin = today.getMinutes();
+                
+                if (hour < nowHour || (hour === nowHour && min < nowMin)) {
+                  return false; // Event has ended
+                }
+             } catch (e) {
+                // Ignore parse errors
+             }
+          }
+        }
+        return true;
+      });
+      
+      return events.slice(0, limit);
     } catch (e) {
       console.error('Error fetching upcoming events:', e);
+      return [];
+    }
+  }
+
+  async getPastEvents(limit: number = 3): Promise<ScheduleEvent[]> {
+    try {
+      const col = await this.getCollection('events');
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      
+      // We need to fetch past dates AND today's events that have ended
+      // 1. Fetch strictly past dates
+      const snapshotPast = await col.where('date', '<', todayStr).orderBy('date', 'desc').limit(limit).get();
+      let pastEvents = snapshotPast.docs.map(doc => ({ id: doc.id, ...doc.data() } as ScheduleEvent));
+      
+      // 2. Fetch today's events to find ones that have ended
+      const snapshotToday = await col.where('date', '==', todayStr).get();
+      const todayEvents = snapshotToday.docs.map(doc => ({ id: doc.id, ...doc.data() } as ScheduleEvent));
+      
+      const endedTodayEvents = todayEvents.filter(ev => {
+          const timeToCompare = ev.endTime || ev.time;
+          if (timeToCompare) {
+             try {
+                let hour = 0, min = 0;
+                if (timeToCompare.includes('T')) {
+                   const t = new Date(timeToCompare);
+                   hour = t.getHours();
+                   min = t.getMinutes();
+                } else {
+                   const parts = timeToCompare.split(':');
+                   hour = parseInt(parts[0], 10);
+                   min = parseInt(parts[1], 10);
+                }
+                const nowHour = today.getHours();
+                const nowMin = today.getMinutes();
+                
+                if (hour < nowHour || (hour === nowHour && min < nowMin)) {
+                  return true; // Event has ended
+                }
+             } catch (e) {}
+          }
+          return false;
+      });
+      
+      const allPast = [...endedTodayEvents, ...pastEvents];
+      
+      // Sort the combined list by date/time descending
+      allPast.sort((a, b) => {
+         if (a.date !== b.date) {
+            return b.date.localeCompare(a.date);
+         }
+         const aTime = a.endTime || a.time || '00:00';
+         const bTime = b.endTime || b.time || '00:00';
+         return bTime.localeCompare(aTime);
+      });
+      
+      return allPast.slice(0, limit);
+    } catch (e) {
+      console.error('Error fetching past events:', e);
       return [];
     }
   }
@@ -1826,11 +1942,19 @@ class FirestoreService {
       const snapshot = await col.get();
       return snapshot.docs.map(doc => {
         const data = doc.data();
+        const directPhone = data.phone || data.mobile || '';
+        const refPhone = data.referencePhone || data.referenceNumber || '';
+        // For kids without a personal phone, use the parent reference phone as the effective contact
+        const effectivePhone = directPhone || refPhone;
         return {
           ...data,
           Id: doc.id,
           Name: data.name || (data.firstName ? data.firstName + ' ' + (data.lastName || '') : 'Unknown'),
-          Phone: data.phone || data.mobile,
+          Phone: effectivePhone,
+          // Preserve the raw phone fields for display/logic purposes
+          directPhone: directPhone,
+          referencePhone: refPhone,
+          isReferencePhone: !directPhone && !!refPhone, // true if phone is a parent reference
           Birthdate: normalizeDate(data.dob || data.birthdate || data.dateOfBirth || data.birthday), // always YYYY-MM-DD
           allBirthdates: [normalizeDate(data.dob), normalizeDate(data.birthdate), normalizeDate(data.dateOfBirth), normalizeDate(data.birthday)].filter(Boolean),
           Anniversary_Date__c: normalizeDate(data.marriageDate || data.anniversaryDate || data.anniversary), // always YYYY-MM-DD

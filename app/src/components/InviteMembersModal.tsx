@@ -123,8 +123,33 @@ export default function InviteMembersModal({ visible, onClose, churchName, churc
     setSelectedIds(new Set());
   };
 
-  const getInviteMessage = () => {
-    return `Join our church on We Christian\n\n${churchName} is using the We Christian app to stay connected.\n\nChurch Code: *${churchCode}*\n\nDownload the app:\nhttps://play.google.com/store/apps/details?id=com.wechristian.app`;
+  const getInviteMessage = (contactName?: string, contactPhone?: string) => {
+    const rawDigits = (contactPhone || '').replace(/\D/g, '');
+    const phoneDisplay = rawDigits.length >= 10 ? rawDigits.slice(-10) : contactPhone;
+    const phoneText = phoneDisplay ? `: ${phoneDisplay}` : '';
+    const nameGreeting = contactName && contactName.trim() ? contactName.trim() : 'Brother/Sister';
+
+    const churchCodeParam = encodeURIComponent(churchCode || '');
+    const churchInviteLink = `https://wechristian.app/invite?code=${churchCodeParam}`;
+    const playStoreLink = `https://play.google.com/store/apps/details?id=com.wechristian.app&referrer=${churchCodeParam}`;
+
+    return `Greetings in Jesus' Name! 🙏✨
+
+Dear ${nameGreeting},
+
+You are warmly invited to join our ${churchName} Mobile Application! ⛪
+
+Your church profile has already been registered for you, so you DO NOT need to sign up. Simply download the app and Sign In directly with your registered mobile number${phoneText}.
+
+🏛️ Church Code: ${churchCode || 'Provided by Church'}
+
+🔗 Church Invitation Link:
+${churchInviteLink}
+
+📲 Download App from Google Play Store:
+${playStoreLink}
+
+May God bless you abundantly! ❤️`;
   };
 
   const getSelectedPhoneNumbers = () => {
@@ -196,7 +221,14 @@ export default function InviteMembersModal({ visible, onClose, churchName, churc
     const isAvailable = await SMS.isAvailableAsync();
     if (isAvailable) {
       const numbers = getSelectedPhoneNumbers();
-      await SMS.sendSMSAsync(numbers, getInviteMessage());
+      // If single contact selected, personalize with their name and phone
+      let message = getInviteMessage();
+      if (selectedIds.size === 1) {
+        const firstId = Array.from(selectedIds)[0];
+        const contact = contacts.find(c => c.id === firstId);
+        message = getInviteMessage(contact?.name, contact?.phoneNumbers[0]?.number);
+      }
+      await SMS.sendSMSAsync(numbers, message);
       setSuccessMessage(`${selectedIds.size} member(s) have been successfully added to your church records.`);
     } else {
       Alert.alert('Error', 'SMS is not available on this device.');
@@ -219,22 +251,19 @@ export default function InviteMembersModal({ visible, onClose, churchName, churc
 
     await processSelectedContacts();
 
-    const message = encodeURIComponent(getInviteMessage());
-    let url = `whatsapp://send?text=${message}`;
-    
-    // If only one contact is selected, we can try to route directly to them
+    // If only one contact is selected, personalize with their name & number and open directly
     if (selectedIds.size === 1) {
-      const numbers = getSelectedPhoneNumbers();
-      if (numbers.length === 1) {
-        let cleanPhone = numbers[0].replace(/[^\d]/g, ''); // strip '+' and spaces
-        url = `whatsapp://send?phone=${cleanPhone}&text=${message}`;
+      const firstId = Array.from(selectedIds)[0];
+      const contact = contacts.find(c => c.id === firstId);
+      const rawNumber = contact?.phoneNumbers[0]?.number || '';
+      const message = encodeURIComponent(getInviteMessage(contact?.name, rawNumber));
+      
+      let cleanPhone = rawNumber.replace(/[^\d]/g, '');
+      if (cleanPhone.length === 10) {
+        cleanPhone = `91${cleanPhone}`;
       }
-    }
+      const url = cleanPhone ? `whatsapp://send?phone=${cleanPhone}&text=${message}` : `whatsapp://send?text=${message}`;
 
-    if (selectedIds.size > 1) {
-      setWhatsappUrl(url);
-      setShowWhatsAppWarning(true);
-    } else {
       Linking.openURL(url)
         .then(() => {
           setSuccessMessage(`${selectedIds.size} member(s) have been successfully added to your church records.`);
@@ -242,7 +271,14 @@ export default function InviteMembersModal({ visible, onClose, churchName, churc
         .catch(() => {
           Alert.alert('Error', 'WhatsApp is not installed or could not be opened on this device.');
         });
+      return;
     }
+
+    // Bulk selection
+    const message = encodeURIComponent(getInviteMessage());
+    const url = `whatsapp://send?text=${message}`;
+    setWhatsappUrl(url);
+    setShowWhatsAppWarning(true);
   };
 
   const renderItem = ({ item }: { item: ContactItem }) => {

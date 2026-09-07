@@ -46,6 +46,7 @@ const RELATION_OPTIONS = [
 ];
 
 const SPOUSE_RELATIONS = ['Husband', 'Wife'];
+const KID_RELATIONS = ['Son', 'Daughter', 'Grandson', 'Granddaughter', 'Nephew', 'Niece'];
 
 export default function MembersScreen({ navigation }: any) {
   const { member } = useAuth();
@@ -55,7 +56,7 @@ export default function MembersScreen({ navigation }: any) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
-  const [newMember, setNewMember] = useState({
+  const [newMember, setNewMember] = useState<any>({
     firstName: '',
     lastName: '',
     relation: 'Husband', // picklist
@@ -63,7 +64,9 @@ export default function MembersScreen({ navigation }: any) {
     dob: '',
     anniversaryDate: '',
     email: '',
-    phone: ''
+    phone: '',
+    referencePhone: '',
+    isKidMember: false
   });
   const [showSuccess, setShowSuccess] = useState(false);
   const [successMessage, setSuccessMessage] = useState('Family member added successfully.');
@@ -123,12 +126,30 @@ export default function MembersScreen({ navigation }: any) {
     fetchFamily();
   }, [member]);
 
+  // Compute available parent phones from the current household
+  const getParentPhones = () => {
+    const parentRelations = ['Father', 'Mother', 'Husband', 'Wife', 'Guardian'];
+    const parents = relatedContacts.filter((c: any) => {
+      const rel = (c.relation || c.Relation || '');
+      const phone = (c.phone || c.Phone || c.MobilePhone || '').replace(/\D/g, '');
+      return (parentRelations.includes(rel) || c.id === member?.id) && phone.length >= 10;
+    });
+    return parents.map((c: any) => ({
+      name: (`${c.FirstName || c.firstName || ''} ${c.LastName || c.lastName || ''}`.trim()) || c.Name || c.name || 'Parent',
+      relation: c.relation || c.Relation || 'Parent',
+      phone: (c.phone || c.Phone || c.MobilePhone || '').replace(/\D/g, '').slice(-10)
+    }));
+  };
+
   const handleAddMember = async () => {
     if (!newMember.firstName || !newMember.lastName) {
       Alert.alert('Validation', 'First name and Last name are required.');
       return;
     }
 
+    const isKid = KID_RELATIONS.includes(newMember.relation);
+
+    // For kids, phone is optional — skip duplicate check if phone is empty
     if (newMember.phone) {
       const digitsOnly = newMember.phone.replace(/\D/g, '');
       if (digitsOnly.length >= 10) {
@@ -147,6 +168,14 @@ export default function MembersScreen({ navigation }: any) {
         }
       }
     }
+
+    // For kids without a phone, auto-assign referencePhone from parent if available
+    if (isKid && !newMember.phone && !newMember.referencePhone) {
+      const parents = getParentPhones();
+      if (parents.length > 0) {
+        newMember.referencePhone = parents[0].phone;
+      }
+    }
     
     setSubmitting(true);
     try {
@@ -159,18 +188,27 @@ export default function MembersScreen({ navigation }: any) {
         member!.accountId = targetAccountId; // Update local state tentatively
       }
       
+      // Build the member data object, including referencePhone for kids
+      const isKid = KID_RELATIONS.includes(newMember.relation);
+      const memberData = {
+        ...newMember,
+        isKidMember: isKid,
+        // If kid has no phone, ensure phone is stored as empty string (not undefined)
+        phone: newMember.phone || ''
+      };
+
       if (editingMemberId) {
-        await FirestoreService.updateMemberProfile(churchId!, editingMemberId, newMember);
+        await FirestoreService.updateMemberProfile(churchId!, editingMemberId, memberData);
         setSuccessMessage('Family member updated successfully.');
       } else {
-        await FirestoreService.addFamilyMember(churchId!, targetAccountId, newMember);
+        await FirestoreService.addFamilyMember(churchId!, targetAccountId, memberData);
         setSuccessMessage('Family member added successfully.');
       }
       setShowSuccess(true);
       setShowAddModal(false);
       setEditingMemberId(null);
       setNewMember({
-        firstName: '', lastName: '', relation: 'Husband', gender: 'Male', dob: '', anniversaryDate: '', email: '', phone: ''
+        firstName: '', lastName: '', relation: 'Husband', gender: 'Male', dob: '', anniversaryDate: '', email: '', phone: '', referencePhone: '', isKidMember: false
       });
       fetchFamily();
     } catch (err: any) {
@@ -296,6 +334,7 @@ export default function MembersScreen({ navigation }: any) {
               const contactId = c.id || c.Id;
               const isCurrentUser = contactId === member.id;
               const contactPhone = c.Phone || c.MobilePhone || c.phone;
+              const contactRefPhone = c.referencePhone || c.referenceNumber || null;
               const contactEmail = c.Email || c.email;
               
               let contactDate = null;
@@ -357,10 +396,12 @@ export default function MembersScreen({ navigation }: any) {
                             lastName: c.LastName || c.lastName || c.name?.split(' ').slice(1).join(' ') || '',
                             email: contactEmail || '',
                             phone: contactPhone || '',
+                            referencePhone: c.referencePhone || c.referenceNumber || '',
                             relation: c.relation || c.Relation || 'Child',
                             gender: c.gender || c.Gender || 'Male',
                             dob: c.dob || '',
-                            anniversaryDate: c.anniversaryDate || c.AnniversaryDate || ''
+                            anniversaryDate: c.anniversaryDate || c.AnniversaryDate || '',
+                            isKidMember: KID_RELATIONS.includes(c.relation || c.Relation || '')
                           });
                           setShowAddModal(true);
                         }}
@@ -381,7 +422,7 @@ export default function MembersScreen({ navigation }: any) {
                   <View style={[styles.cardDivider, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]} />
 
                   <View style={styles.cardDetails}>
-                    {contactPhone && (
+                    {contactPhone ? (
                       <TouchableOpacity 
                         style={styles.detailRow} 
                         onPress={() => handleMakeCall(contactPhone)}
@@ -396,7 +437,22 @@ export default function MembersScreen({ navigation }: any) {
                           </Text>
                         </View>
                       </TouchableOpacity>
-                    )}
+                    ) : contactRefPhone ? (
+                      <TouchableOpacity 
+                        style={styles.detailRow} 
+                        onPress={() => handleMakeCall(contactRefPhone)}
+                      >
+                        <View style={[styles.iconBgPhone, { backgroundColor: '#fef3c7' }]}>
+                          <Phone size={14} color="#b45309" />
+                        </View>
+                        <View>
+                          <Text style={styles.detailLabel}>📞 Parent Reference</Text>
+                          <Text style={[styles.detailValue, { color: isDark ? '#fbbf24' : '#b45309' }]}>
+                            {contactRefPhone} (Parent Ref)
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ) : null}
 
                     {contactEmail && (
                       <TouchableOpacity 
@@ -540,16 +596,62 @@ export default function MembersScreen({ navigation }: any) {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Mobile Number</Text>
+                <Text style={styles.inputLabel}>
+                  Mobile Number{KID_RELATIONS.includes(newMember.relation) ? ' (Optional for kids)' : ''}
+                </Text>
                 <TextInput 
                   style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
-                  placeholder="e.g. 9988776655"
+                  placeholder={KID_RELATIONS.includes(newMember.relation) ? "Leave empty to use parent's number" : "e.g. 9988776655"}
                   placeholderTextColor="#94a3b8"
                   keyboardType="phone-pad"
                   value={newMember.phone}
                   onChangeText={(t) => setNewMember({...newMember, phone: t})}
                 />
               </View>
+
+              {/* Reference Phone — shown for kid relations when phone is empty */}
+              {KID_RELATIONS.includes(newMember.relation) && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Parent Reference Number</Text>
+                  {getParentPhones().length > 0 ? (
+                    <View>
+                      {getParentPhones().map((p, i) => (
+                        <TouchableOpacity
+                          key={i}
+                          style={[
+                            styles.input,
+                            { 
+                              flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6,
+                              borderColor: newMember.referencePhone === p.phone ? '#1a2d5a' : (isDark ? '#334155' : '#e2e8f0'),
+                              backgroundColor: newMember.referencePhone === p.phone ? (isDark ? '#1e3a5f' : '#EFF6FF') : (isDark ? '#0f172a' : '#fff')
+                            }
+                          ]}
+                          onPress={() => setNewMember({...newMember, referencePhone: p.phone})}
+                        >
+                          <Text style={{ color: isDark ? '#cbd5e1' : '#334155', fontSize: 14, fontWeight: '600' }}>
+                            {p.name} ({p.relation}) — {p.phone}
+                          </Text>
+                          {newMember.referencePhone === p.phone && (
+                            <Text style={{ color: '#1a2d5a', fontWeight: '800', fontSize: 12 }}>✓</Text>
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                      <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                        📞 Birthday wishes will be sent to this number
+                      </Text>
+                    </View>
+                  ) : (
+                    <TextInput 
+                      style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
+                      placeholder="Parent/Guardian mobile number"
+                      placeholderTextColor="#94a3b8"
+                      keyboardType="phone-pad"
+                      value={newMember.referencePhone}
+                      onChangeText={(t) => setNewMember({...newMember, referencePhone: t})}
+                    />
+                  )}
+                </View>
+              )}
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Email Address</Text>

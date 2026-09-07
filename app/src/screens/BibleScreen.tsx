@@ -10,6 +10,7 @@ import {
   Dimensions,
   TextInput
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ChevronLeft, Search, BookOpen, Globe } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
@@ -71,6 +72,20 @@ export default function BibleScreen({ navigation }: any) {
   const [testament, setTestament] = useState<'OT' | 'NT'>('NT');
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [englishVersion, setEnglishVersion] = useState('KJV');
+
+  const ENGLISH_VERSIONS = ['KJV', 'NKJV', 'ASV', 'WEB', 'YLT', 'BBE'];
+
+  useEffect(() => {
+    AsyncStorage.getItem('@BibleEnglishVersion').then(v => {
+      if (v) setEnglishVersion(v);
+    });
+  }, []);
+
+  const handleVersionSelect = (ver: string) => {
+    setEnglishVersion(ver);
+    AsyncStorage.setItem('@BibleEnglishVersion', ver);
+  };
 
   const books = lang === 'English' ? BIBLE_DATA.English[testament] : BIBLE_DATA.Telugu[testament];
 
@@ -325,6 +340,36 @@ export default function BibleScreen({ navigation }: any) {
           <Text style={[styles.toggleText, lang === 'Telugu' && styles.toggleTextActive]}>తెలుగు</Text>
         </TouchableOpacity>
       </View>
+
+      {/* English Version Selector */}
+      {lang === 'English' && !searchQuery && (
+        <View style={{ marginHorizontal: 20, marginBottom: 15 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {ENGLISH_VERSIONS.map(ver => (
+              <TouchableOpacity
+                key={ver}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  backgroundColor: englishVersion === ver ? '#1a2d5a' : (isDark ? '#1e293b' : '#e2e8f0'),
+                  borderWidth: 1,
+                  borderColor: englishVersion === ver ? '#1a2d5a' : (isDark ? '#334155' : '#cbd5e1')
+                }}
+                onPress={() => handleVersionSelect(ver)}
+              >
+                <Text style={{
+                  color: englishVersion === ver ? '#fff' : (isDark ? '#94a3b8' : '#475569'),
+                  fontWeight: englishVersion === ver ? '700' : '500',
+                  fontSize: 13
+                }}>
+                  {ver}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {/* Elegant Quick Jump Card */}
       {parsedRef && parsedRef.chapter && (

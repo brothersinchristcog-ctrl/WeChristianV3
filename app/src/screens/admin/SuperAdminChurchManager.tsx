@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Alert, SafeAreaView, Platform, Linking, TextInput } from 'react-native';
-import { X, Shield, Calendar, Smartphone, Globe, Music, BookOpen, Heart, MessageCircle, Mail, Phone, Edit2, MapPin } from 'lucide-react-native';
+import { X, Shield, Calendar, Smartphone, Globe, Music, BookOpen, Heart, MessageCircle, Mail, Phone, Edit2, MapPin, Users, Trash2, Download } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
+import { firestore } from '../../services/firebaseConfig';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { documentDirectory, copyAsync } from 'expo-file-system/legacy';
 
 interface Props {
   visible: boolean;
@@ -27,6 +31,9 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
     type: 'success' as 'success' | 'error'
   });
   const [availableTiers, setAvailableTiers] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'details' | 'members'>('details');
+  const [members, setMembers] = useState<any[]>([]);
+  const [loadingMembers, setLoadingMembers] = useState(false);
   const [editForm, setEditForm] = useState({
     visible: false,
     tier: '',
@@ -36,6 +43,15 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
     contactPhone: '',
     secondaryPhone: '',
   });
+  const [memberEditForm, setMemberEditForm] = useState({
+    visible: false,
+    id: '',
+    name: '',
+    phone: '',
+    email: '',
+    userType: 'member',
+  });
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
 
   const showCustomAlert = (title: string, message: string, type: 'success' | 'error' = 'success') => {
     setAlertConfig({ visible: true, title, message, type });
@@ -44,8 +60,174 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
   useEffect(() => {
     if (visible && churchId) {
       loadChurch();
+      setActiveTab('details'); // Reset tab when reopening
+      setMembers([]); // Clear members for new church
+      setMemberSearchQuery(''); // Reset search
     }
   }, [visible, churchId]);
+
+  useEffect(() => {
+    if (activeTab === 'members' && churchId && members.length === 0) {
+      loadMembers();
+    }
+  }, [activeTab, churchId]);
+
+  const loadMembers = async () => {
+    if (!churchId) return;
+    setLoadingMembers(true);
+    try {
+      const snap = await firestore().collection('churches').doc(churchId).collection('members').get();
+      const rawMembers = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      // Deduplicate members by phone or email, preferring the one with app installed
+      const uniqueMembersMap = new Map();
+      rawMembers.forEach((m: any) => {
+        const key = m.phone || m.email || (m.name + m.id); // fallback to unique key
+        
+        if (uniqueMembersMap.has(key)) {
+          const existing = uniqueMembersMap.get(key);
+          const existingIsInstalled = Boolean(existing.uid || existing.lastLogin || existing.lastAppOpened);
+          const currentIsInstalled = Boolean(m.uid || m.lastLogin || m.lastAppOpened);
+          
+          if (currentIsInstalled && !existingIsInstalled) {
+            uniqueMembersMap.set(key, m); // Replace with the installed one
+          }
+        } else {
+          uniqueMembersMap.set(key, m);
+        }
+      });
+
+      setMembers(Array.from(uniqueMembersMap.values()));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
+  const handleSaveMemberEdit = async () => {
+    if (!churchId || !memberEditForm.id) return;
+    setSaving(true);
+    try {
+      await firestore().collection('churches').doc(churchId).collection('members').doc(memberEditForm.id).update({
+        name: memberEditForm.name,
+        phone: memberEditForm.phone,
+        email: memberEditForm.email,
+        userType: memberEditForm.userType,
+      });
+      setMemberEditForm({ ...memberEditForm, visible: false });
+      loadMembers();
+      showCustomAlert('Success', 'Member updated successfully', 'success');
+    } catch (e) {
+      showCustomAlert('Error', 'Failed to update member', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteMember = (mId: string, mName: string) => {
+    Alert.alert(
+      "Delete Member",
+      `Are you sure you want to delete ${mName}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: async () => {
+            if (!churchId) return;
+            try {
+              await firestore().collection('churches').doc(churchId).collection('members').doc(mId).delete();
+              loadMembers();
+              showCustomAlert('Success', 'Member deleted successfully', 'success');
+            } catch (e) {
+              showCustomAlert('Error', 'Failed to delete member', 'error');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const generateMemberReport = async () => {
+    try {
+      const installedMembers = members.filter(m => Boolean(m.uid || m.lastLogin || m.lastAppOpened));
+      const notInstalledMembers = members.filter(m => !Boolean(m.uid || m.lastLogin || m.lastAppOpened));
+
+      const htmlContent = `
+        <html>
+          <head>
+            <style>
+              body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; }
+              h1 { color: #1e3a8a; text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 30px; }
+              h2 { color: #3b82f6; margin-top: 30px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+              th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+              th { background-color: #f3f4f6; font-weight: bold; color: #4b5563; }
+              tr:nth-child(even) { background-color: #f9fafb; }
+              .summary { display: flex; justify-content: space-around; background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 30px; font-weight: bold; }
+              .installed { color: #10b981; }
+              .not-installed { color: #ef4444; }
+            </style>
+          </head>
+          <body>
+            <h1>Church Members App Status Report</h1>
+            <div class="summary">
+              <div>Total Members: ${members.length}</div>
+              <div class="installed">Installed & Logged In: ${installedMembers.length}</div>
+              <div class="not-installed">Not Installed: ${notInstalledMembers.length}</div>
+            </div>
+
+            <h2>Installed & Logged In</h2>
+            <table>
+              <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Role</th>
+              </tr>
+              ${installedMembers.length > 0 ? installedMembers.map(m => `
+                <tr>
+                  <td>${m.name || 'Unknown'}</td>
+                  <td>${m.phone || m.email || 'N/A'}</td>
+                  <td>${m.userType || 'Member'}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="3" style="text-align:center;">No members in this category</td></tr>'}
+            </table>
+
+            <h2>Not Installed / Not Logged In</h2>
+            <table>
+              <tr>
+                <th>Name</th>
+                <th>Contact</th>
+                <th>Role</th>
+              </tr>
+              ${notInstalledMembers.length > 0 ? notInstalledMembers.map(m => `
+                <tr>
+                  <td>${m.name || 'Unknown'}</td>
+                  <td>${m.phone || m.email || 'N/A'}</td>
+                  <td>${m.userType || 'Member'}</td>
+                </tr>
+              `).join('') : '<tr><td colspan="3" style="text-align:center;">No members in this category</td></tr>'}
+            </table>
+          </body>
+        </html>
+      `;
+
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      
+      const fileUri = `${documentDirectory}Church_Members_Report_${church?.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'Church'}.pdf`;
+      await copyAsync({ from: uri, to: fileUri });
+      
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri);
+      } else {
+        showCustomAlert('Report Generated', 'Sharing is not available on this device.', 'error');
+      }
+    } catch (e) {
+      console.error(e);
+      showCustomAlert('Error', 'Failed to generate report', 'error');
+    }
+  };
 
   const loadChurch = async () => {
     if (!churchId) return;
@@ -269,9 +451,27 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
             <ActivityIndicator size="large" color="#FCD34D" />
           </View>
         ) : (
-          <ScrollView contentContainerStyle={styles.content}>
+          <View style={{ flex: 1 }}>
+            {/* Tabs */}
+            <View style={{ flexDirection: 'row', backgroundColor: '#101733', borderBottomWidth: 1, borderBottomColor: '#242e50' }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 16, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'details' ? '#3b82f6' : 'transparent' }}
+                onPress={() => setActiveTab('details')}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: activeTab === 'details' ? '#3b82f6' : '#94a1c4' }}>Details</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 16, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: activeTab === 'members' ? '#3b82f6' : 'transparent' }}
+                onPress={() => setActiveTab('members')}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: activeTab === 'members' ? '#3b82f6' : '#94a1c4' }}>Church Members</Text>
+              </TouchableOpacity>
+            </View>
 
-            {/* Info Card */}
+            {activeTab === 'details' ? (
+              <ScrollView contentContainerStyle={styles.content}>
+
+                {/* Info Card */}
             <View style={styles.card}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <Text style={[styles.sectionTitle, { marginTop: 0, marginBottom: 0 }]}>Church Details</Text>
@@ -588,6 +788,99 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
 
             <View style={{ height: 40 }} />
           </ScrollView>
+            ) : (
+              <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+                <View style={{ marginBottom: 16, flexDirection: 'row', gap: 12 }}>
+                  <TextInput
+                    style={{ flex: 1, backgroundColor: '#141b30', color: '#f4f6fb', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#3b4b72', fontSize: 14 }}
+                    placeholder="Search members by name, email, or phone..."
+                    placeholderTextColor="#94a1c4"
+                    value={memberSearchQuery}
+                    onChangeText={setMemberSearchQuery}
+                  />
+                  <TouchableOpacity 
+                    style={{ backgroundColor: '#3b82f6', padding: 12, borderRadius: 12, justifyContent: 'center', alignItems: 'center', width: 48 }}
+                    onPress={generateMemberReport}
+                  >
+                    <Download size={20} color="#fff" />
+                  </TouchableOpacity>
+                </View>
+                {loadingMembers ? (
+                  <View style={styles.loader}>
+                    <ActivityIndicator size="large" color="#FCD34D" />
+                  </View>
+                ) : (() => {
+                  const query = memberSearchQuery.toLowerCase();
+                  const filteredMembers = members.filter(m => 
+                    (m.name || '').toLowerCase().includes(query) ||
+                    (m.email || '').toLowerCase().includes(query) ||
+                    (m.phone || '').toLowerCase().includes(query)
+                  );
+                  
+                  if (filteredMembers.length === 0) {
+                    return (
+                      <View style={{ alignItems: 'center', padding: 40 }}>
+                        <Users size={48} color="#3b4b72" style={{ marginBottom: 16 }} />
+                        <Text style={{ fontSize: 16, color: '#94a1c4', fontWeight: '600' }}>
+                          {members.length === 0 ? "No members found for this church." : "No members match your search."}
+                        </Text>
+                      </View>
+                    );
+                  }
+                  
+                  return filteredMembers.map(m => {
+                    const isAppInstalled = Boolean(m.uid || m.lastLogin || m.lastAppOpened);
+                    const statusColor = isAppInstalled ? '#3b82f6' : '#94a1c4';
+                    const statusBg = isAppInstalled ? 'rgba(59, 130, 246, 0.15)' : 'rgba(148, 163, 184, 0.15)';
+                    const statusBorder = isAppInstalled ? 'rgba(59, 130, 246, 0.3)' : 'rgba(148, 163, 184, 0.3)';
+                    const statusText = isAppInstalled ? 'Installed & Logged In' : 'Not Installed / Not Logged In';
+
+                    return (
+                      <View key={m.id} style={[styles.card, { padding: 16, flexDirection: 'row', alignItems: 'center' }]}>
+                        <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(59, 130, 246, 0.1)', justifyContent: 'center', alignItems: 'center', marginRight: 16 }}>
+                          <Text style={{ fontSize: 18, fontWeight: '700', color: '#3b82f6' }}>{m.name?.charAt(0)?.toUpperCase() || '?'}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 15, fontWeight: '700', color: '#f4f6fb' }}>{m.name || 'Unknown'}</Text>
+                          <Text style={{ fontSize: 13, color: '#94a1c4', marginTop: 2 }}>{m.phone || m.email || 'No contact info'}</Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                            <View style={{ backgroundColor: 'rgba(52, 211, 153, 0.15)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(52, 211, 153, 0.3)' }}>
+                              <Text style={{ fontSize: 10, fontWeight: '700', color: '#34d399', textTransform: 'uppercase' }}>{m.userType || 'Member'}</Text>
+                            </View>
+                            <View style={{ backgroundColor: statusBg, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8, borderWidth: 1, borderColor: statusBorder }}>
+                              <Text style={{ fontSize: 10, fontWeight: '700', color: statusColor, textTransform: 'uppercase' }}>{statusText}</Text>
+                            </View>
+                          </View>
+                        </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <TouchableOpacity 
+                          onPress={() => setMemberEditForm({
+                            visible: true,
+                            id: m.id,
+                            name: m.name || '',
+                            phone: m.phone || '',
+                            email: m.email || '',
+                            userType: m.userType || 'member'
+                          })}
+                          style={{ padding: 6, backgroundColor: 'rgba(59, 130, 246, 0.1)', borderRadius: 8 }}
+                        >
+                          <Edit2 size={16} color="#3b82f6" />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          onPress={() => handleDeleteMember(m.id, m.name || 'Unknown')}
+                          style={{ padding: 6, backgroundColor: 'rgba(248, 113, 113, 0.1)', borderRadius: 8 }}
+                        >
+                          <Trash2 size={16} color="#f87171" />
+                        </TouchableOpacity>
+                        </View>
+                      </View>
+                    );
+                  });
+                })()}
+                <View style={{ height: 40 }} />
+              </ScrollView>
+            )}
+          </View>
         )}
         <DateTimePickerModal
           isVisible={isDatePickerVisible}
@@ -786,6 +1079,61 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                   <Text style={{ color: '#f8fafc', fontWeight: '600' }}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={handleSaveEdit} disabled={saving} style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#3b82f6', alignItems: 'center', opacity: saving ? 0.7 : 1 }}>
+                  {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: '#ffffff', fontWeight: '700' }}>Save</Text>}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Member Edit Modal */}
+        <Modal transparent visible={memberEditForm.visible} animationType="fade" onRequestClose={() => setMemberEditForm({ ...memberEditForm, visible: false })}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View style={{ width: '100%', maxWidth: 400, backgroundColor: '#1e293b', borderRadius: 24, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.3, shadowRadius: 20, elevation: 10, borderWidth: 1, borderColor: '#334155' }}>
+              <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#f8fafc', marginBottom: 16 }}>Edit Member Details</Text>
+              
+              <Text style={{ color: '#94a1c4', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 }}>Name</Text>
+              <TextInput
+                style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', fontSize: 14, marginBottom: 12 }}
+                value={memberEditForm.name}
+                onChangeText={(t: string) => setMemberEditForm({ ...memberEditForm, name: t })}
+                placeholder="Full Name"
+                placeholderTextColor="#64748b"
+              />
+
+              <Text style={{ color: '#94a1c4', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 }}>Role / Type</Text>
+              <TextInput
+                style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', fontSize: 14, marginBottom: 12 }}
+                value={memberEditForm.userType}
+                onChangeText={(t: string) => setMemberEditForm({ ...memberEditForm, userType: t })}
+                placeholder="e.g., Member, Admin"
+                placeholderTextColor="#64748b"
+              />
+              
+              <Text style={{ color: '#94a1c4', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 }}>Contact</Text>
+              <TextInput
+                style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', fontSize: 14, marginBottom: 12 }}
+                value={memberEditForm.phone}
+                onChangeText={(t: string) => setMemberEditForm({ ...memberEditForm, phone: t })}
+                placeholder="Phone Number"
+                placeholderTextColor="#64748b"
+                keyboardType="phone-pad"
+              />
+              <TextInput
+                style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', fontSize: 14, marginBottom: 20 }}
+                value={memberEditForm.email}
+                onChangeText={(t: string) => setMemberEditForm({ ...memberEditForm, email: t })}
+                placeholder="Email Address"
+                placeholderTextColor="#64748b"
+                keyboardType="email-address"
+                autoCapitalize="none"
+              />
+
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <TouchableOpacity onPress={() => setMemberEditForm({ ...memberEditForm, visible: false })} style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#334155', alignItems: 'center' }}>
+                  <Text style={{ color: '#f8fafc', fontWeight: '600' }}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={handleSaveMemberEdit} disabled={saving} style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#3b82f6', alignItems: 'center', opacity: saving ? 0.7 : 1 }}>
                   {saving ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: '#ffffff', fontWeight: '700' }}>Save</Text>}
                 </TouchableOpacity>
               </View>

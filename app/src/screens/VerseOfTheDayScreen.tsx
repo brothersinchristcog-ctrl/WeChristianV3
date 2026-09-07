@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, Share, ActivityIndicator, ScrollView, ImageBackground, Image, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform, Share, ActivityIndicator, ScrollView, ImageBackground, Image, RefreshControl, Alert, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -340,37 +340,54 @@ export default function VerseOfTheDayScreen() {
   }
 
   return (
-    <View style={styles.screenContainer}>
-      <SafeAreaView style={styles.safeArea}>
-        
-        {/* TOP NAVBAR */}
-        <View style={styles.navBar}>
-          <TouchableOpacity onPress={() => {
+    <View style={[styles.screenContainer, { backgroundColor: isDark ? '#0b1433' : '#f0f2f7' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+
+      {/* ── Page Header (matching Prayer Wall & Promise design) ── */}
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity 
+          style={styles.backBtn} 
+          onPress={() => {
             if (navigation.canGoBack()) {
               navigation.goBack();
             } else {
               navigation.navigate('Home');
             }
-          }} style={styles.iconBtn}>
-            <ArrowLeft color={colors.text} size={28} />
-          </TouchableOpacity>
-          <Text style={styles.navTitle}>Daily Verses</Text>
-          <TouchableOpacity onPress={() => setShowTelugu(!showTelugu)} style={styles.toggleBtn}>
-            <Repeat color={colors.text} size={16} />
-            <Text style={styles.toggleBtnText}>
-              {showTelugu ? 'English' : 'Telugu'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView 
-          showsVerticalScrollIndicator={false} 
-          style={styles.mainScroll}
-          contentContainerStyle={{ paddingBottom: 140 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={() => loadVerses(true)} tintColor={colors.primary} />
-          }
+          }} 
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
+          <ArrowLeft size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 16 }}>
+            <Text style={styles.headerTitle}>Daily Verses</Text>
+          </View>
+        </View>
+        
+        <TouchableOpacity 
+          onPress={() => setShowTelugu(!showTelugu)} 
+          style={styles.themeToggle}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Repeat size={13} color="#fff" style={{ marginRight: 5 }} />
+          <Text style={styles.themeToggleText}>{showTelugu ? 'English' : 'Telugu'}</Text>
+        </TouchableOpacity>
+      </LinearGradient>
+
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        style={styles.mainScroll}
+        contentContainerStyle={{ paddingBottom: 140 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => loadVerses(true)} tintColor="#1a2d5a" />
+        }
+      >
           {verseData.map((dayData, dayIndex) => {
             const isToday = dayIndex === 0;
             
@@ -444,7 +461,6 @@ export default function VerseOfTheDayScreen() {
             );
           })}
         </ScrollView>
-      </SafeAreaView>
       {renderHiddenCaptureView()}
       
       {/* Show an overlay spinner if capturing */}
@@ -635,38 +651,43 @@ const getStyles = (isDark: boolean, colors: any) => StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  navBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  header: {
+    backgroundColor: '#1a2d5a',
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 10 : 20,
-    paddingBottom: 16,
-    backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  navTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  iconBtn: {
-    padding: 8,
-  },
-  toggleBtn: {
+    paddingBottom: 22,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: isDark ? '#334155' : '#f1f5f9',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
+  },
+  backBtn: {
+    zIndex: 10,
+    padding: 6,
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  themeToggle: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
-    gap: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.25)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
   },
-  toggleBtnText: {
-    fontWeight: 'bold',
-    fontSize: 12,
-    color: colors.text,
+  themeToggleText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   mainScroll: {
     flex: 1,

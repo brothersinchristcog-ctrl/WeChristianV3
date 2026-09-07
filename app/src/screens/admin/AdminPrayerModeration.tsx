@@ -33,12 +33,17 @@ import {
   Send,
   MoreVertical,
   Megaphone,
-  ChevronLeft
+  ChevronLeft,
+  FileDown
 } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
 import { useAuth } from '../../context/AuthContext';
+import { useChurch } from '../../context/ChurchContext';
 import { AdminTabContext } from '../../context/AdminTabContext';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { documentDirectory, copyAsync } from 'expo-file-system/legacy';
 
 const { width } = Dimensions.get('window');
 
@@ -67,8 +72,11 @@ const FONTS = {
 
 export default function AdminPrayerModeration() {
   const { member } = useAuth();
+  const { activeChurch } = useChurch();
   const { setActiveTab } = React.useContext(AdminTabContext);
   const adminName = member?.name || 'Administrator';
+  const churchName = activeChurch?.name || 'Church';
+  const churchLogo = activeChurch?.theme?.logoUrl || null;
 
   const [prayers, setPrayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,6 +92,8 @@ export default function AdminPrayerModeration() {
   const [successModalData, setSuccessModalData] = useState<{ visible: boolean; title: string; sub: string }>({ visible: false, title: '', sub: '' });
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [closeConfirmId, setCloseConfirmId] = useState<string | null>(null);
+  const [showTopMenu, setShowTopMenu] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   const successAnim = React.useRef(new Animated.Value(0)).current;
 
   const triggerSuccess = (title: string, sub: string) => {
@@ -310,6 +320,105 @@ export default function AdminPrayerModeration() {
     }
   };
 
+  const [pdfFilter, setPdfFilter] = useState<'all' | 'pending' | 'answered'>('all');
+
+  const exportPrayersToPDF = async (filter: 'all' | 'pending' | 'answered' = pdfFilter) => {
+    try {
+      const today = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+      const logoHtml = churchLogo
+        ? `<img src="${churchLogo}" style="width:80px; height:80px; object-fit:contain; border-radius:10px; margin-bottom:8px;" />`
+        : `<div style="font-size:40px;">⛪</div>`;
+
+      let filteredPrayers = prayers;
+      let filterLabel = 'All Prayer Requests';
+      if (filter === 'pending') {
+        filteredPrayers = pendingPrayers;
+        filterLabel = 'Pending Prayer Requests';
+      } else if (filter === 'answered') {
+        filteredPrayers = answeredPrayers;
+        filterLabel = 'Processed Prayer Requests';
+      }
+
+      // Sort by latest first
+      filteredPrayers = [...filteredPrayers].sort((a, b) => {
+        const t1 = a.createdAt?.seconds || 0;
+        const t2 = b.createdAt?.seconds || 0;
+        return t2 - t1;
+      });
+
+      if (filteredPrayers.length === 0) {
+        Alert.alert('No Requests', 'No prayer requests found for this filter.');
+        return;
+      }
+
+      const htmlContent = `
+        <html>
+          <head>
+            <style>
+              body { font-family: Helvetica, sans-serif; padding: 24px; color: #333; }
+              .header { text-align: center; margin-bottom: 30px; padding-bottom: 16px; border-bottom: 2px solid #1a2d5a; }
+              h1 { color: #1a2d5a; font-size: 20px; margin: 6px 0 2px 0; }
+              .subtitle { color: #666; font-size: 12px; }
+              .filter-label { color: #1a2d5a; font-size: 11px; font-weight: bold; margin-top: 4px; }
+              .prayer-box { border-bottom: 1px solid #ddd; padding: 12px 0; margin-bottom: 6px; }
+              .row { display: flex; justify-content: space-between; align-items: center; }
+              .author { font-weight: bold; color: #b91c1c; font-size: 14px; }
+              .phone { color: #666; font-size: 11px; }
+              .date { color: #999; font-size: 11px; }
+              .text { margin-top: 6px; font-size: 13px; line-height: 1.6; color: #222; }
+              .status-approved { font-style: italic; font-size: 11px; color: #059669; margin-top: 4px; }
+              .status-pending { font-style: italic; font-size: 11px; color: #d97706; margin-top: 4px; }
+              .footer { text-align: center; font-size: 10px; color: #aaa; margin-top: 30px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              ${logoHtml}
+              <h1>${churchName}</h1>
+              <div class="subtitle">Generated on ${today}</div>
+              <div class="filter-label">${filterLabel} (${filteredPrayers.length})</div>
+            </div>
+            ${filteredPrayers.map(p => `
+              <div class="prayer-box">
+                <div class="row">
+                  <span class="author">${p.name || p.authorName || 'Member'}</span>
+                  <span class="date">${p.createdAt?.seconds ? new Date(p.createdAt.seconds * 1000).toLocaleDateString('en-IN') : ''}</span>
+                </div>
+                ${p.phone ? `<div class="phone">📱 ${p.phone}</div>` : ''}
+                <div class="text">${p.text || ''}</div>
+                ${p.isAnswered
+                  ? '<div class="status-approved">✓ Answered / Approved</div>'
+                  : '<div class="status-pending">⏳ Pending Review</div>'
+                }
+              </div>
+            `).join('')}
+            <div class="footer">${churchName} · ${today}</div>
+          </body>
+        </html>
+      `;
+      
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      
+      const safeName = churchName.replace(/[^a-zA-Z0-9]/g, '_');
+      const dateTag = new Date().toISOString().split('T')[0];
+      const filterTag = filter === 'all' ? 'All' : filter === 'pending' ? 'Pending' : 'Answered';
+      const fileName = `${safeName}_Prayers_${filterTag}_${dateTag}.pdf`;
+      const newPath = `${documentDirectory}${fileName}`;
+      await copyAsync({ from: uri, to: newPath });
+      
+      setShowDownloadModal(false);
+      
+      await Sharing.shareAsync(newPath, {
+        UTI: '.pdf',
+        mimeType: 'application/pdf',
+        dialogTitle: fileName,
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      Alert.alert('Error', 'Failed to generate PDF.');
+    }
+  };
+
   const pendingPrayers = prayers.filter(p => !p.isAnswered && !p.isClosed);
   const answeredPrayers = prayers.filter(p => p.isAnswered && !p.isClosed);
 
@@ -481,10 +590,11 @@ export default function AdminPrayerModeration() {
               <Text style={[styles.heroSub, { marginTop: 2 }]}>{pendingPrayers.length} new · {answeredPrayers.length} processed</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.newBtn} onPress={() => setShowCreateModal(true)}>
-            <Plus size={16} color="#1a2d5a" />
-            <Text style={styles.newBtnTxt}>New</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity style={{ padding: 8 }} onPress={() => setShowTopMenu(true)}>
+              <MoreVertical size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -493,7 +603,6 @@ export default function AdminPrayerModeration() {
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-
 
         {/* ── Stats Row ── */}
         <View style={styles.statsRow}>
@@ -754,6 +863,72 @@ export default function AdminPrayerModeration() {
           </View>
         </View>
       </Modal>
+      {/* ── Top Menu Modal ── */}
+      <Modal transparent visible={showTopMenu} animationType="fade" onRequestClose={() => setShowTopMenu(false)}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowTopMenu(false)}>
+          <View style={{ position: 'absolute', top: 90, right: 20, backgroundColor: '#fff', borderRadius: 12, padding: 8, elevation: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, width: 220 }}>
+            <TouchableOpacity 
+              style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', alignItems: 'center', gap: 10 }}
+              onPress={() => { setShowTopMenu(false); setShowCreateModal(true); }}
+            >
+              <Plus size={18} color={COLORS.ink} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: COLORS.ink }}>New Prayer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={{ padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}
+              onPress={() => { setShowTopMenu(false); setShowDownloadModal(true); }}
+            >
+              <FileDown size={18} color={COLORS.ink} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: COLORS.ink }}>Download Requests</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Download PDF Modal ── */}
+      <Modal transparent visible={showDownloadModal} animationType="slide" onRequestClose={() => setShowDownloadModal(false)}>
+        <View style={styles.createModalOverlay}>
+          <View style={[styles.createModalContent, { height: 'auto', paddingBottom: 40 }]}>
+            <View style={styles.createModalHeader}>
+              <Text style={styles.createModalTitle}>Download Report</Text>
+              <TouchableOpacity onPress={() => setShowDownloadModal(false)} style={styles.closeBtn}>
+                <XCircle size={24} color={COLORS.inkSoft} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ padding: 24 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: COLORS.ink, marginBottom: 12 }}>Select Filter</Text>
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
+                {(['all', 'pending', 'answered'] as const).map(f => (
+                  <TouchableOpacity
+                    key={f}
+                    onPress={() => setPdfFilter(f)}
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderRadius: 20,
+                      backgroundColor: pdfFilter === f ? COLORS.ink : COLORS.parchment,
+                      borderWidth: 1,
+                      borderColor: pdfFilter === f ? COLORS.ink : COLORS.rule,
+                    }}
+                  >
+                    <Text style={{ color: pdfFilter === f ? '#fff' : COLORS.inkSoft, fontWeight: '700', fontSize: 13 }}>
+                      {f === 'all' ? `All (${prayers.length})` : f === 'pending' ? `Pending (${pendingPrayers.length})` : `Answered (${answeredPrayers.length})`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity
+                onPress={() => exportPrayersToPDF(pdfFilter)}
+                style={{ backgroundColor: COLORS.goldDeep, borderRadius: 12, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              >
+                <FileDown size={20} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>Download Prayer Requests</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
