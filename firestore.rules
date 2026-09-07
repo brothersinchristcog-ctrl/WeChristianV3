@@ -237,8 +237,8 @@ service cloud.firestore {
       match /members/{memberId} {
         allow read: if isAuthenticated() && (isOwner(memberId) || isChurchAdmin());
         allow create: if isAuthenticated(); // Allow new member creation during signup
-        allow update: if isAuthenticated() && (isOwner(memberId) || isChurchAdmin());
-        allow delete: if isChurchAdmin();
+        allow update: if isAuthenticated() && (isOwner(memberId) || isChurchAdmin() || (request.auth.token.phone_number != null && resource.data.phone == request.auth.token.phone_number));
+        allow delete: if isChurchAdmin() || (isAuthenticated() && request.auth.token.phone_number != null && resource.data.phone == request.auth.token.phone_number);
       }
 
       // Member Subscriptions

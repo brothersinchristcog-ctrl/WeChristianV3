@@ -277,6 +277,26 @@ export default function AdminMembers() {
     try {
       setAddMemberLoading(true);
       
+      const isDuplicate = members.some(member => {
+        // If editing, ignore the current member
+        if (editMemberId && member.id === editMemberId) return false;
+        const mPhoneRaw = (member.phone || '').replace(/\D/g, '');
+        const mPhone10 = mPhoneRaw.slice(-10);
+        return mPhone10 === last10 && mPhone10.length === 10;
+      });
+
+      if (isDuplicate) {
+        setAlertConfig({
+          visible: true,
+          title: 'Duplicate Member',
+          message: 'A member with this phone number already exists in this church.',
+          type: 'warning',
+          buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+        });
+        setAddMemberLoading(false);
+        return;
+      }
+
       let res;
       if (editMemberId) {
         res = await FirestoreService.adminUpdateMember(activeChurch?.id || '', editMemberId, {
@@ -289,24 +309,6 @@ export default function AdminMembers() {
           anniversaryDate: newMemberForm.anniversaryDate,
         });
       } else {
-        const isDuplicate = members.some(member => {
-          const mPhoneRaw = (member.phone || '').replace(/\D/g, '');
-          const mPhone10 = mPhoneRaw.slice(-10);
-          return mPhone10 === last10 && mPhone10.length === 10;
-        });
-
-        if (isDuplicate) {
-          setAlertConfig({
-            visible: true,
-            title: 'Duplicate Member',
-            message: 'A member with this phone number already exists in this church.',
-            type: 'warning',
-            buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
-          });
-          setAddMemberLoading(false);
-          return;
-        }
-
         res = await FirestoreService.adminAddMember(activeChurch?.id || '', {
           name: newMemberForm.name,
           phone: formattedPhone,

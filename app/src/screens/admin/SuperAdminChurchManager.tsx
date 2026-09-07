@@ -153,12 +153,20 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
     const installedMembers = members.filter(m => Boolean(m.uid || m.lastLogin || m.lastAppOpened));
     const notInstalledMembers = members.filter(m => !Boolean(m.uid || m.lastLogin || m.lastAppOpened));
 
+    const logoHtml = church?.theme?.logoUrl 
+      ? `<img src="${church.theme.logoUrl}" alt="Church Logo" style="max-height: 80px; display: block; margin: 0 auto 10px auto; border-radius: 8px;" />` 
+      : '';
+    const churchNameHtml = church?.name 
+      ? `<h2 style="text-align: center; color: #4b5563; margin-top: 0; margin-bottom: 20px;">${church.name}</h2>` 
+      : '';
+
     return `
       <html>
         <head>
           <style>
             body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; }
-            h1 { color: #1e3a8a; text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 30px; }
+            .header-container { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 20px; margin-bottom: 30px; }
+            h1 { color: #1e3a8a; text-align: center; margin: 0 0 10px 0; }
             h2 { color: #3b82f6; margin-top: 30px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
             table { width: 100%; border-collapse: collapse; margin-top: 15px; }
             th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e5e7eb; }
@@ -170,7 +178,12 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
           </style>
         </head>
         <body>
-          <h1>Church Members App Status Report</h1>
+          <div class="header-container">
+            ${logoHtml}
+            <h1>Church Members App Status</h1>
+            ${churchNameHtml}
+          </div>
+          
           <div class="summary">
             <div>Total Members: ${members.length}</div>
             <div class="installed">Installed & Logged In: ${installedMembers.length}</div>

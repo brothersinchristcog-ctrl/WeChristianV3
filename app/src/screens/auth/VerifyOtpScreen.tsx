@@ -106,19 +106,19 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
         }
       }
 
+      let hasLinked = false;
       if (result?.user && contactId && !isSignUp) {
         setStatus('Linking church profile...');
         try {
           await FirestoreService.syncMember(activeChurchId || '', contactId, result.user.uid);
-
-          // Global users collection is no longer used.
+          hasLinked = true;
         } catch (syncError) {
           console.error('❌ Sync failed:', syncError);
         }
       }
 
       // After OTP confirmed: if user has no primaryChurchId yet
-      if (result?.user) {
+      if (result?.user && !hasLinked) {
         const globalUser = await FirestoreService.getGlobalUser(result.user.uid);
         
         if (!globalUser?.primaryChurchId) {
@@ -129,6 +129,12 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
           }
         }
         // If primaryChurchId exists, AuthContext will detect the signed-in user and navigate to Main automatically
+      }
+      
+      if (hasLinked) {
+        // Keep loading state active while AuthContext processes the login
+        setStatus('Loading dashboard...');
+        return; // Return here, finally block will run but that's okay.
       }
     } catch (error: any) {
       console.error('❌ Error:', error.code);
