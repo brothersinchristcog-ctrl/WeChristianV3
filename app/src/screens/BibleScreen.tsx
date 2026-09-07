@@ -74,7 +74,7 @@ export default function BibleScreen({ navigation }: any) {
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [englishVersion, setEnglishVersion] = useState('KJV');
 
-  const ENGLISH_VERSIONS = ['KJV', 'NKJV', 'ASV', 'WEB', 'YLT', 'BBE'];
+  const ENGLISH_VERSIONS = ['KJV', 'NKJV', 'ESV', 'NIRV', 'ASV', 'WEB', 'YLT', 'BBE'];
 
   useEffect(() => {
     AsyncStorage.getItem('@BibleEnglishVersion').then(v => {
