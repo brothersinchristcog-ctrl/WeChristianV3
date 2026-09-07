@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Alert, SafeAreaView, Platform, Linking, TextInput } from 'react-native';
-import { X, Shield, Calendar, Smartphone, Globe, Music, BookOpen, Heart, MessageCircle, Mail, Phone, Edit2, MapPin, Users, Trash2, Download } from 'lucide-react-native';
+import { X, Shield, Calendar, Smartphone, Globe, Music, BookOpen, Heart, MessageCircle, Mail, Phone, Edit2, MapPin, Users, Trash2, Download, Eye } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
 import { firestore } from '../../services/firebaseConfig';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
@@ -149,69 +149,82 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
     );
   };
 
+  const getMemberReportHTML = () => {
+    const installedMembers = members.filter(m => Boolean(m.uid || m.lastLogin || m.lastAppOpened));
+    const notInstalledMembers = members.filter(m => !Boolean(m.uid || m.lastLogin || m.lastAppOpened));
+
+    return `
+      <html>
+        <head>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; }
+            h1 { color: #1e3a8a; text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 30px; }
+            h2 { color: #3b82f6; margin-top: 30px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+            th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+            th { background-color: #f3f4f6; font-weight: bold; color: #4b5563; }
+            tr:nth-child(even) { background-color: #f9fafb; }
+            .summary { display: flex; justify-content: space-around; background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 30px; font-weight: bold; }
+            .installed { color: #10b981; }
+            .not-installed { color: #ef4444; }
+          </style>
+        </head>
+        <body>
+          <h1>Church Members App Status Report</h1>
+          <div class="summary">
+            <div>Total Members: ${members.length}</div>
+            <div class="installed">Installed & Logged In: ${installedMembers.length}</div>
+            <div class="not-installed">Not Installed: ${notInstalledMembers.length}</div>
+          </div>
+
+          <h2>Installed & Logged In</h2>
+          <table>
+            <tr>
+              <th>Name</th>
+              <th>Contact</th>
+              <th>Role</th>
+            </tr>
+            ${installedMembers.length > 0 ? installedMembers.map(m => `
+              <tr>
+                <td>${m.name || 'Unknown'}</td>
+                <td>${m.phone || m.email || 'N/A'}</td>
+                <td>${m.userType || 'Member'}</td>
+              </tr>
+            `).join('') : '<tr><td colspan="3" style="text-align:center;">No members in this category</td></tr>'}
+          </table>
+
+          <h2>Not Installed / Not Logged In</h2>
+          <table>
+            <tr>
+              <th>Name</th>
+              <th>Contact</th>
+              <th>Role</th>
+            </tr>
+            ${notInstalledMembers.length > 0 ? notInstalledMembers.map(m => `
+              <tr>
+                <td>${m.name || 'Unknown'}</td>
+                <td>${m.phone || m.email || 'N/A'}</td>
+                <td>${m.userType || 'Member'}</td>
+              </tr>
+            `).join('') : '<tr><td colspan="3" style="text-align:center;">No members in this category</td></tr>'}
+          </table>
+        </body>
+      </html>
+    `;
+  };
+
+  const previewMemberReport = async () => {
+    try {
+      await Print.printAsync({ html: getMemberReportHTML() });
+    } catch (e) {
+      console.error(e);
+      showCustomAlert('Error', 'Failed to preview report', 'error');
+    }
+  };
+
   const generateMemberReport = async () => {
     try {
-      const installedMembers = members.filter(m => Boolean(m.uid || m.lastLogin || m.lastAppOpened));
-      const notInstalledMembers = members.filter(m => !Boolean(m.uid || m.lastLogin || m.lastAppOpened));
-
-      const htmlContent = `
-        <html>
-          <head>
-            <style>
-              body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; padding: 40px; color: #333; }
-              h1 { color: #1e3a8a; text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 30px; }
-              h2 { color: #3b82f6; margin-top: 30px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
-              table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-              th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e5e7eb; }
-              th { background-color: #f3f4f6; font-weight: bold; color: #4b5563; }
-              tr:nth-child(even) { background-color: #f9fafb; }
-              .summary { display: flex; justify-content: space-around; background-color: #f3f4f6; padding: 20px; border-radius: 8px; margin-bottom: 30px; font-weight: bold; }
-              .installed { color: #10b981; }
-              .not-installed { color: #ef4444; }
-            </style>
-          </head>
-          <body>
-            <h1>Church Members App Status Report</h1>
-            <div class="summary">
-              <div>Total Members: ${members.length}</div>
-              <div class="installed">Installed & Logged In: ${installedMembers.length}</div>
-              <div class="not-installed">Not Installed: ${notInstalledMembers.length}</div>
-            </div>
-
-            <h2>Installed & Logged In</h2>
-            <table>
-              <tr>
-                <th>Name</th>
-                <th>Contact</th>
-                <th>Role</th>
-              </tr>
-              ${installedMembers.length > 0 ? installedMembers.map(m => `
-                <tr>
-                  <td>${m.name || 'Unknown'}</td>
-                  <td>${m.phone || m.email || 'N/A'}</td>
-                  <td>${m.userType || 'Member'}</td>
-                </tr>
-              `).join('') : '<tr><td colspan="3" style="text-align:center;">No members in this category</td></tr>'}
-            </table>
-
-            <h2>Not Installed / Not Logged In</h2>
-            <table>
-              <tr>
-                <th>Name</th>
-                <th>Contact</th>
-                <th>Role</th>
-              </tr>
-              ${notInstalledMembers.length > 0 ? notInstalledMembers.map(m => `
-                <tr>
-                  <td>${m.name || 'Unknown'}</td>
-                  <td>${m.phone || m.email || 'N/A'}</td>
-                  <td>${m.userType || 'Member'}</td>
-                </tr>
-              `).join('') : '<tr><td colspan="3" style="text-align:center;">No members in this category</td></tr>'}
-            </table>
-          </body>
-        </html>
-      `;
+      const htmlContent = getMemberReportHTML();
 
       const { uri } = await Print.printToFileAsync({ html: htmlContent });
       
@@ -798,12 +811,20 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                     value={memberSearchQuery}
                     onChangeText={setMemberSearchQuery}
                   />
-                  <TouchableOpacity 
-                    style={{ backgroundColor: '#3b82f6', padding: 12, borderRadius: 12, justifyContent: 'center', alignItems: 'center', width: 48 }}
-                    onPress={generateMemberReport}
-                  >
-                    <Download size={20} color="#fff" />
-                  </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <TouchableOpacity 
+                      style={{ backgroundColor: 'rgba(52, 211, 153, 0.15)', padding: 12, borderRadius: 12, justifyContent: 'center', alignItems: 'center', width: 48, borderWidth: 1, borderColor: 'rgba(52, 211, 153, 0.3)' }}
+                      onPress={previewMemberReport}
+                    >
+                      <Eye size={20} color="#34d399" />
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                      style={{ backgroundColor: '#3b82f6', padding: 12, borderRadius: 12, justifyContent: 'center', alignItems: 'center', width: 48 }}
+                      onPress={generateMemberReport}
+                    >
+                      <Download size={20} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
                 {loadingMembers ? (
                   <View style={styles.loader}>
