@@ -106,6 +106,7 @@ export interface WorshipSong {
   isDefault?: boolean;
   overridesMasterSongId?: string;
   isHidden?: boolean;
+  isChurchOwn?: boolean;
 }
 
 export interface ScheduleEvent {
@@ -1091,7 +1092,7 @@ class FirestoreService {
         const customSnap = results[0];
         const masterSnap = !disableMasterSongs ? results[1] : { docs: [] };
         
-        const customSongs = customSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data() } as WorshipSong));
+        const customSongs = customSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data(), isChurchOwn: true } as WorshipSong));
         const overriddenIds = new Set(customSongs.map((s: WorshipSong) => s.overridesMasterSongId).filter(Boolean));
         const masterSongs = masterSnap.docs
           .map((doc: any) => ({ id: doc.id, ...doc.data() } as WorshipSong))

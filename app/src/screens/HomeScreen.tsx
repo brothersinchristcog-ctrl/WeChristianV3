@@ -83,6 +83,127 @@ const YoutubeIcon = ({ size = 26, color = '#fff' }: { size?: number; color?: str
   </Svg>
 );
 
+const AnimatedCameraIcon = ({ size = 20, color = "#fff", scrollY, triggerY }: { size?: number, color?: string, scrollY?: Animated.Value, triggerY?: number }) => {
+  const bodyTranslateX = useRef(new Animated.Value(-50)).current;
+  const bodyTranslateY = useRef(new Animated.Value(-50)).current;
+  const bodyRotate = useRef(new Animated.Value(-90)).current;
+  const bodyOpacity = useRef(new Animated.Value(0)).current;
+
+  const lensTranslateX = useRef(new Animated.Value(50)).current;
+  const lensTranslateY = useRef(new Animated.Value(50)).current;
+  const lensRotate = useRef(new Animated.Value(90)).current;
+  const lensOpacity = useRef(new Animated.Value(0)).current;
+
+  const played = useRef(false);
+
+  useEffect(() => {
+    // Reset values
+    bodyTranslateX.setValue(-50);
+    bodyTranslateY.setValue(-50);
+    bodyRotate.setValue(-90);
+    bodyOpacity.setValue(0);
+
+    lensTranslateX.setValue(50);
+    lensTranslateY.setValue(50);
+    lensRotate.setValue(90);
+    lensOpacity.setValue(0);
+    played.current = false;
+
+    const playAnim = () => {
+      if (played.current) return;
+      played.current = true;
+      Animated.sequence([
+        Animated.delay(100),
+        Animated.parallel([
+          Animated.spring(bodyTranslateX, { toValue: 0, friction: 5, tension: 40, useNativeDriver: true }),
+          Animated.spring(bodyTranslateY, { toValue: 0, friction: 5, tension: 40, useNativeDriver: true }),
+          Animated.spring(bodyRotate, { toValue: 0, friction: 4, tension: 40, useNativeDriver: true }),
+          Animated.timing(bodyOpacity, { toValue: 1, duration: 500, easing: Easing.out(Easing.ease), useNativeDriver: true }),
+          
+          Animated.spring(lensTranslateX, { toValue: 0, friction: 5, tension: 40, useNativeDriver: true }),
+          Animated.spring(lensTranslateY, { toValue: 0, friction: 5, tension: 40, useNativeDriver: true }),
+          Animated.spring(lensRotate, { toValue: 0, friction: 4, tension: 40, useNativeDriver: true }),
+          Animated.timing(lensOpacity, { toValue: 1, duration: 500, easing: Easing.out(Easing.ease), useNativeDriver: true })
+        ])
+      ]).start();
+    };
+
+    let listenerId: string | undefined;
+
+    if (scrollY && triggerY !== undefined && triggerY > 0) {
+      const windowHeight = Dimensions.get('window').height;
+      // Account for the ScrollView's massive top padding (~280px)
+      const absoluteY = triggerY + 280;
+
+      listenerId = scrollY.addListener(({ value }) => {
+        // It enters the bottom of the screen when `value + windowHeight >= absoluteY + 50`
+        // It leaves the top of the screen when `value > absoluteY`
+        const isVisible = (value + windowHeight >= absoluteY + 100) && (value <= absoluteY + 50);
+
+        if (isVisible && !played.current) {
+          playAnim();
+        } else if (!isVisible && played.current) {
+          // Reset animation so it plays AGAIN next time it scrolls into view
+          played.current = false;
+          bodyTranslateX.setValue(-50);
+          bodyTranslateY.setValue(-50);
+          bodyRotate.setValue(-90);
+          bodyOpacity.setValue(0);
+          lensTranslateX.setValue(50);
+          lensTranslateY.setValue(50);
+          lensRotate.setValue(90);
+          lensOpacity.setValue(0);
+        }
+      });
+      
+    } else if (!scrollY) {
+      playAnim();
+    }
+
+    return () => {
+      if (scrollY && listenerId) {
+        scrollY.removeListener(listenerId);
+      }
+    };
+  }, [scrollY, triggerY]);
+
+  const bodySpin = bodyRotate.interpolate({
+    inputRange: [-90, 0],
+    outputRange: ['-90deg', '0deg']
+  });
+  
+  const lensSpin = lensRotate.interpolate({
+    inputRange: [0, 90],
+    outputRange: ['0deg', '90deg']
+  });
+
+  return (
+    <View style={{ width: size, height: size, justifyContent: 'center', alignItems: 'center' }}>
+      {/* Body Part */}
+      <Animated.View style={{ 
+        position: 'absolute', 
+        transform: [{ translateX: bodyTranslateX }, { translateY: bodyTranslateY }, { rotate: bodySpin }],
+        opacity: bodyOpacity 
+      }}>
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <Rect x="2" y="6" width="14" height="12" rx="2" />
+        </Svg>
+      </Animated.View>
+
+      {/* Lens Part */}
+      <Animated.View style={{ 
+        position: 'absolute', 
+        transform: [{ translateX: lensTranslateX }, { translateY: lensTranslateY }, { rotate: lensSpin }],
+        opacity: lensOpacity 
+      }}>
+        <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <Path d="m16 13 5.223 3.482a.5.5 0 0 0 .777-.416V7.87a.5.5 0 0 0-.752-.432L16 10.5" />
+        </Svg>
+      </Animated.View>
+    </View>
+  );
+};
+
 const { width, height } = Dimensions.get('window');
 
 // Utility to strip HTML tags
@@ -693,6 +814,8 @@ export default function HomeScreen() {
   const [isSharingCard, setIsSharingCard] = useState(false);
   
   // -- Sticky Header Animation --
+  const [onlineMeetingsY, setOnlineMeetingsY] = useState(0);
+
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerPadding = Platform.OS === 'ios' ? 60 : (StatusBar.currentHeight ? StatusBar.currentHeight + 15 : 40);
   const HEADER_SCROLL_DISTANCE = 85;
@@ -1626,7 +1749,36 @@ export default function HomeScreen() {
               }} 
             />
             <GridItem isDark={isDark} icon={<Users size={26} color="#fff" />} label="Members" color="#db2777" onPress={handleOpenMembers} />
-            <GridItem isDark={isDark} icon={<Video size={26} color="#fff" />} label="Online Meetings" color="#3B82F6" onPress={() => navigation.navigate('OnlineMeetings')} />
+          </View>
+
+          {/* ── Online Meetings Badge ── */}
+          <View 
+            style={{ marginTop: 15, marginBottom: 5, alignItems: 'center' }}
+            onLayout={(e) => setOnlineMeetingsY(e.nativeEvent.layout.y)}
+          >
+            <TouchableOpacity 
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#3B82F6',
+                paddingVertical: 12,
+                paddingHorizontal: 24,
+                borderRadius: 20,
+                elevation: 4,
+                shadowColor: '#3B82F6',
+                shadowOpacity: 0.3,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 3 },
+                gap: 10,
+                minWidth: 200
+              }}
+              onPress={() => navigation.navigate('OnlineMeetings')}
+              activeOpacity={0.8}
+            >
+              <AnimatedCameraIcon size={20} color="#fff" scrollY={scrollY} triggerY={onlineMeetingsY} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 }}>Online Meetings</Text>
+            </TouchableOpacity>
           </View>
 
           {/* ── Arched Navigation Section ── */}

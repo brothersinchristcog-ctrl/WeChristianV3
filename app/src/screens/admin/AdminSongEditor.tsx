@@ -56,7 +56,7 @@ export default function AdminSongEditor() {
   const { setActiveTab, setTabByName } = useContext(AdminTabContext);
 
   // Screen-level tab
-  const [screenTab, setScreenTab] = useState<'list' | 'theme'>('list');
+  const [screenTab, setScreenTab] = useState<'list' | 'theme' | 'churchOwn'>('list');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [showPostModal, setShowPostModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -80,7 +80,7 @@ export default function AdminSongEditor() {
   // ── MEMBER VIEW STATE ────────────────────────────
   const [memberSongs, setMemberSongs] = useState<WorshipSong[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
-  const [memberTab, setMemberTab] = useState<'browse' | 'theme'>('browse');
+  const [memberTab, setMemberTab] = useState<'browse' | 'theme' | 'churchOwn'>('browse');
   const [savedIds, setSavedIds] = useState<string[]>([]);
 
   // ── POSTED SONGS LIST ───────────────────────────
@@ -621,9 +621,13 @@ export default function AdminSongEditor() {
         <>
           <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
             <View style={styles.listHeaderRow}>
-              <Text style={styles.listHeaderTitle}>{screenTab === 'theme' ? 'Theme Songs' : 'All Worship Songs'}</Text>
+              <Text style={styles.listHeaderTitle}>{screenTab === 'theme' ? 'Theme Songs' : screenTab === 'churchOwn' ? 'Church Songs' : 'All Worship Songs'}</Text>
               <View style={styles.countBadge}>
-                <Text style={styles.countTxt}>{postedSongs.filter(s => screenTab !== 'theme' || (s.category || '').includes('Theme Songs')).length} Total</Text>
+                <Text style={styles.countTxt}>{postedSongs.filter(s => {
+                  if (screenTab === 'theme' && !(s.category || '').includes('Theme Songs')) return false;
+                  if (screenTab === 'churchOwn' && !s.isChurchOwn) return false;
+                  return true;
+                }).length} Total</Text>
               </View>
             </View>
             <View style={{ marginBottom: 16 }}>
@@ -661,6 +665,9 @@ export default function AdminSongEditor() {
               
               // Theme Songs Tab filter
               if (screenTab === 'theme' && !cats.includes('Theme Songs')) return false;
+              
+              // Church Own Songs Tab filter
+              if (screenTab === 'churchOwn' && !s.isChurchOwn) return false;
 
               // Category Ribbon filter
               if (selectedCategory !== 'All' && !cats.includes(selectedCategory)) return false;
@@ -725,6 +732,11 @@ export default function AdminSongEditor() {
           style={[styles.screenTab, screenTab === 'theme' && styles.screenTabActive]}
           onPress={() => { setScreenTab('theme'); setSelectedCategory('All'); }}>
           <Text style={[styles.screenTabTxt, screenTab === 'theme' && styles.screenTabTxtActive]}>Theme Songs</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.screenTab, screenTab === 'churchOwn' && styles.screenTabActive]}
+          onPress={() => { setScreenTab('churchOwn'); setSelectedCategory('All'); }}>
+          <Text style={[styles.screenTabTxt, screenTab === 'churchOwn' && styles.screenTabTxtActive]} numberOfLines={1}>Church Songs</Text>
         </TouchableOpacity>
       </View>
 
@@ -1005,9 +1017,9 @@ const styles = StyleSheet.create({
     gap: 4,
     elevation: 2, shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 5, borderWidth: 1, borderColor: 'rgba(26,45,90,0.05)'
   },
-  screenTab: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 10, gap: 6 },
+  screenTab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 10, gap: 6 },
   screenTabActive: { backgroundColor: '#1a2d5a' },
-  screenTabTxt: { fontSize: 13, fontWeight: '700', color: '#64748B' },
+  screenTabTxt: { fontSize: 11, fontWeight: '700', color: '#64748B', textAlign: 'center' },
   screenTabTxtActive: { color: '#fff' },
 
   scroll: { padding: 14 },

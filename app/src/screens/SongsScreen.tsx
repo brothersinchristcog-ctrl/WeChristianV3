@@ -59,7 +59,7 @@ export default function SongsScreen({ navigation, route }: any) {
   const { isDark, toggleTheme } = useTheme();
 
   // ── Tabs ──────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<'browse' | 'songbook' | 'theme'>('browse');
+  const [activeTab, setActiveTab] = useState<'browse' | 'songbook' | 'theme' | 'churchOwn'>('browse');
 
   // ── All Songs ─────────────────────────────────────
   const [songs, setSongs] = useState<WorshipSong[]>([]);
@@ -213,6 +213,15 @@ export default function SongsScreen({ navigation, route }: any) {
       (s.titleTe && s.titleTe.toLowerCase().includes(q));
   });
 
+  const churchOwnBaseList = songs.filter(s => s.isChurchOwn);
+  const filteredChurchOwn = churchOwnBaseList.map((s, idx) => ({ ...s, displayNumber: idx + 1 })).filter(s => {
+    const q = search.toLowerCase().trim();
+    if (!q) return true;
+    return s.displayNumber.toString() === q ||
+      s.title.toLowerCase().includes(q) ||
+      (s.titleTe && s.titleTe.toLowerCase().includes(q));
+  });
+
   // ── Song Card ─────────────────────────────────────
   const renderSongCard = ({ item, index }: { item: WorshipSong & { displayNumber?: number }; index: number }) => {
     const isSaved = savedIds.includes(item.id);
@@ -239,7 +248,7 @@ export default function SongsScreen({ navigation, route }: any) {
     );
   };
 
-  const activeList = activeTab === 'browse' ? filteredBrowse : activeTab === 'songbook' ? filteredSongbook : filteredTheme;
+  const activeList = activeTab === 'browse' ? filteredBrowse : activeTab === 'songbook' ? filteredSongbook : activeTab === 'theme' ? filteredTheme : filteredChurchOwn;
   const currentSongIndex = selectedSong ? activeList.findIndex(s => s.id === selectedSong.id) : -1;
   const totalSongs = activeList.length;
 
@@ -280,7 +289,12 @@ export default function SongsScreen({ navigation, route }: any) {
         <TouchableOpacity style={[styles.tab, activeTab === 'browse' && styles.tabActive]}
           onPress={() => { setActiveTab('browse'); setSearch(''); }}>
           <Music size={13} color={activeTab === 'browse' ? '#fff' : '#64748b'} />
-          <Text style={[styles.tabTxt, activeTab === 'browse' && styles.tabTxtActive]} numberOfLines={1}>Browse</Text>
+          <Text style={[styles.tabTxt, activeTab === 'browse' && styles.tabTxtActive]} numberOfLines={1}>All Songs</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tab, activeTab === 'churchOwn' && styles.tabActive]}
+          onPress={() => { setActiveTab('churchOwn'); setSearch(''); }}>
+          <Music size={13} color={activeTab === 'churchOwn' ? '#fff' : '#64748b'} />
+          <Text style={[styles.tabTxt, activeTab === 'churchOwn' && styles.tabTxtActive]} numberOfLines={1}>Church Songs</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'songbook' && styles.tabActive]}
           onPress={() => { setActiveTab('songbook'); setSearch(''); }}>
@@ -432,6 +446,40 @@ export default function SongsScreen({ navigation, route }: any) {
         )
       )}
 
+      {/* ── Church Own Songs List ── */}
+      {activeTab === 'churchOwn' && (
+        loading && !refreshing ? (
+          <View style={styles.loadingBox}>
+            <ActivityIndicator size="large" color="#1a2d5a" />
+          </View>
+        ) : (
+          <FlatList
+            style={{ flex: 1 }}
+            data={filteredChurchOwn}
+            keyExtractor={item => item.id}
+            renderItem={renderSongCard}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            initialNumToRender={15}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={true}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />}
+            ListHeaderComponent={
+              <Text style={styles.secLbl}>
+                CHURCH SONGS • {filteredChurchOwn.length} Songs
+              </Text>
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>No Church Songs</Text>
+                <Text style={styles.emptySub}>Your church has not posted any custom songs yet.</Text>
+              </View>
+            }
+          />
+        )
+      )}
+
       {/* ── Lyrics Modal ── */}
       <SongDetailModal
         visible={!!selectedSong}
@@ -471,9 +519,9 @@ const styles = StyleSheet.create({
 
   // Tabs
   tabBar: { flexDirection: 'row', backgroundColor: '#e2e8f0', marginHorizontal: 16, marginTop: 15, marginBottom: 0, borderRadius: 25, padding: 4 },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: 21, gap: 4, minWidth: 0 },
+  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 10, paddingHorizontal: 2, borderRadius: 21, gap: 2, minWidth: 0 },
   tabActive: { backgroundColor: '#1a2d5a' },
-  tabTxt: { fontSize: 11, fontWeight: '700', color: '#64748b', flexShrink: 1 },
+  tabTxt: { fontSize: 10, fontWeight: '700', color: '#64748b', flexShrink: 1, textAlign: 'center' },
   tabTxtActive: { color: '#fff' },
 
   // Category chips
