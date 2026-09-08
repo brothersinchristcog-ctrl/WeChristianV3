@@ -1749,37 +1749,42 @@ export default function HomeScreen() {
               }} 
             />
             <GridItem isDark={isDark} icon={<Users size={26} color="#fff" />} label="Members" color="#db2777" onPress={handleOpenMembers} />
+            {useWeChristianDailyPromise && (
+              <GridItem isDark={isDark} icon={<AnimatedCameraIcon size={26} color="#fff" />} label="Online Meetings" color="#3B82F6" onPress={() => navigation.navigate('OnlineMeetings')} />
+            )}
           </View>
 
           {/* ── Online Meetings Badge ── */}
-          <View 
-            style={{ marginTop: 15, marginBottom: 5, alignItems: 'center' }}
-            onLayout={(e) => setOnlineMeetingsY(e.nativeEvent.layout.y)}
-          >
-            <TouchableOpacity 
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#3B82F6',
-                paddingVertical: 12,
-                paddingHorizontal: 24,
-                borderRadius: 20,
-                elevation: 4,
-                shadowColor: '#3B82F6',
-                shadowOpacity: 0.3,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 3 },
-                gap: 10,
-                minWidth: 200
-              }}
-              onPress={() => navigation.navigate('OnlineMeetings')}
-              activeOpacity={0.8}
+          {!useWeChristianDailyPromise && (
+            <View 
+              style={{ marginTop: 15, marginBottom: 5, alignItems: 'center' }}
+              onLayout={(e) => setOnlineMeetingsY(e.nativeEvent.layout.y)}
             >
-              <AnimatedCameraIcon size={20} color="#fff" scrollY={scrollY} triggerY={onlineMeetingsY} />
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 }}>Online Meetings</Text>
-            </TouchableOpacity>
-          </View>
+              <TouchableOpacity 
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#3B82F6',
+                  paddingVertical: 12,
+                  paddingHorizontal: 24,
+                  borderRadius: 20,
+                  elevation: 4,
+                  shadowColor: '#3B82F6',
+                  shadowOpacity: 0.3,
+                  shadowRadius: 6,
+                  shadowOffset: { width: 0, height: 3 },
+                  gap: 10,
+                  minWidth: 200
+                }}
+                onPress={() => navigation.navigate('OnlineMeetings')}
+                activeOpacity={0.8}
+              >
+                <AnimatedCameraIcon size={20} color="#fff" scrollY={scrollY} triggerY={onlineMeetingsY} />
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 }}>Online Meetings</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* ── Arched Navigation Section ── */}
           <View style={{ marginTop: 0, marginBottom: 30, width: '100%', height: 160, alignItems: 'center' }}>
