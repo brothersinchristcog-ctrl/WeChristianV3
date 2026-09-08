@@ -364,6 +364,12 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
       ) : (
         <>
+          <ScrollView 
+            showsVerticalScrollIndicator={false} 
+            contentContainerStyle={styles.scrollContent}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />}
+            bounces={true}
+          >
           {/* ── Hero Section (Navy) ── */}
       <LinearGradient 
         colors={['#2b52a1', '#1a3673']}
@@ -451,11 +457,6 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
       </LinearGradient>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />}
-      >
         {/* Stats removed for accuracy */}
 
         {/* ── Account Section ── */}
@@ -595,7 +596,7 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>Sign out</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionTxt}>Version {Constants.expoConfig?.version || '1.0.1'}</Text>
+        <Text style={styles.versionTxt}>Version {Constants.expoConfig?.version || '1.0.2'}</Text>
       </ScrollView>
 
       {/* ── Edit Profile Modal (Using View for better reliability) ── */}

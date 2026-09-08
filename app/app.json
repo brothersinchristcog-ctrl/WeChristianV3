@@ -3,7 +3,7 @@
     "name": "We Christian",
     "slug": "we-christian",
     "scheme": "wechristian",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
