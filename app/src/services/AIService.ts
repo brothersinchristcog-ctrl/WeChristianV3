@@ -19,7 +19,7 @@ class AIService {
 
   public async generateSermon(params: SermonParams): Promise<string> {
     try {
-      const callable = this.fn.httpsCallable('generateSermonV4');
+      const callable = this.fn.httpsCallable('generateSermonV5');
       const response = await callable(params);
       const data = response.data as { success: boolean; text: string };
       if (data.success) return data.text;

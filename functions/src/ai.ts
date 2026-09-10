@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 
-export const generateSermonV4 = onCall({ enforceAppCheck: false, secrets: ['GROQ_API_KEY'] }, async (request) => {
+export const generateSermonV5 = onCall({ enforceAppCheck: false, secrets: ['GROQ_API_KEY'] }, async (request) => {
   try {
     const { topic, category, language, churchId } = request.data;
     if (!topic || !churchId) {
@@ -21,7 +21,7 @@ export const generateSermonV4 = onCall({ enforceAppCheck: false, secrets: ['GROQ
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'mixtral-8x7b-32768',
+        model: 'openai/gpt-oss-20b',
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -34,7 +34,7 @@ export const generateSermonV4 = onCall({ enforceAppCheck: false, secrets: ['GROQ
     const data = await response.json();
     return { success: true, text: data.choices[0]?.message?.content || '' };
   } catch (error: any) {
-    console.error('generateSermonV4 Error:', error);
+    console.error('generateSermonV5 Error:', error);
     throw new HttpsError('internal', error.message);
   }
 });
