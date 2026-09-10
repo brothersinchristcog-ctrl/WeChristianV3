@@ -18,7 +18,7 @@ export {
 } from './celebrations.js';
 
 export {
-  generateSermon,
+  generateSermonV2,
   generateContentImage
 } from './ai.js';
 

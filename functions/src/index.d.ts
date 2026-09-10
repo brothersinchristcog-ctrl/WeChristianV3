@@ -1,6 +1,6 @@
 import * as functionsCompat from 'firebase-functions/v1';
 export { weCelebrationDailySweepV3, weCelebrationWishCreatedTrigger, weCelebrationBatchedWishes, executeBatchedWishes, triggerMorningCelebrations } from './celebrations.js';
-export { generateSermon, generateContentImage } from './ai.js';
+export { generateSermonV2, generateContentImage } from './ai.js';
 /**
  * 📖 GET DAILY PROMISE
  */

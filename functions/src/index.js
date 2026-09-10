@@ -10,7 +10,7 @@ import { sendWhatsAppTemplateInternal } from './whatsapp.js';
 import { generateCelebrationImage } from './imageGenerator.js';
 import { randomUUID } from 'crypto';
 export { weCelebrationDailySweepV3, weCelebrationWishCreatedTrigger, weCelebrationBatchedWishes, executeBatchedWishes, triggerMorningCelebrations } from './celebrations.js';
-export { generateSermon, generateContentImage } from './ai.js';
+export { generateSermonV2, generateContentImage } from './ai.js';
 // Initialize Firebase Admin once at top level
 initializeApp();
 // TODO: When Salesforce integration becomes multi-tenant, remove this and loop over churches.

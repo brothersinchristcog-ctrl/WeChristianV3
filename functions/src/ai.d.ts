@@ -1,4 +1,4 @@
-export declare const generateSermon: import("firebase-functions/v2/https").CallableFunction<any, Promise<{
+export declare const generateSermonV2: import("firebase-functions/v2/https").CallableFunction<any, Promise<{
     success: boolean;
     text: any;
 }>, unknown>;
