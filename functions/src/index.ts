@@ -17,6 +17,11 @@ export {
   triggerMorningCelebrations
 } from './celebrations.js';
 
+export {
+  generateSermon,
+  generateContentImage
+} from './ai.js';
+
 // Initialize Firebase Admin once at top level
 initializeApp();
 

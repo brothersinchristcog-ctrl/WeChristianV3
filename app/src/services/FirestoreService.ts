@@ -2337,6 +2337,52 @@ class FirestoreService {
       return () => {};
     }
   }
+
+  // ─── AI Ministry Tools ────────────────────────────────────────────────────
+
+  async saveAISermon(data: {
+    category: string;
+    topic: string;
+    language: string;
+    generatedSermonText: string;
+    status: string;
+  }) {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return;
+      const db = firestore();
+      await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiSermons')
+        .add({ ...data, createdAt: FieldValue.serverTimestamp() });
+    } catch (e) {
+      console.error('saveAISermon error:', e);
+    }
+  }
+
+  async saveAIContent(data: {
+    contentType: string;
+    topic: string;
+    language: string;
+    designStyle: string;
+    prompt: string;
+    imageUrl: string;
+    status: string;
+  }) {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return;
+      const db = firestore();
+      await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiContent')
+        .add({ ...data, createdAt: FieldValue.serverTimestamp() });
+    } catch (e) {
+      console.error('saveAIContent error:', e);
+    }
+  }
 }
 
 export default new FirestoreService();

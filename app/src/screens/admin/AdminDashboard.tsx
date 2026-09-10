@@ -27,7 +27,8 @@ import {
   Smartphone,
   Moon,
   Video,
-  Headset
+  Headset,
+  Wand2
 } from 'lucide-react-native';
 import { useChurch } from '../../context/ChurchContext';
 import HexagonDate from '../../components/HexagonDate';
@@ -72,7 +73,7 @@ const CATEGORIES = [
     title: 'Content Management',
     icon: BookOpen,
     color: '#0F766E', // Teal
-    keywords: ['Promise', 'Sermon', 'Song']
+    keywords: ['Promise', 'Sermons', 'New Sermon', 'Song']
   },
   {
     title: 'Community & Members',
@@ -85,6 +86,12 @@ const CATEGORIES = [
     icon: Calendar,
     color: '#831843', // Deep Ruby/Berry for a festive, elegant look with high contrast
     keywords: ['Event', 'Celebration']
+  },
+  {
+    title: 'AI Ministry Tools',
+    icon: Wand2,
+    color: '#6D28D9', // Deep violet for AI
+    keywords: ['AI Sermon', 'AI Content']
   },
   {
     title: 'Communication',
@@ -115,7 +122,7 @@ const CATEGORIES = [
     icon: Headset,
     color: '#0284C7', // Sky blue for trust
     keywords: ['Support']
-  }
+  },
 ];
 
 const FULL_WIDTH_MODULES = ['Songs', 'Members', 'Subscription', 'WeCelebrations'];

@@ -39,6 +39,7 @@ import {
   ChevronLeft,
   Eye,
   X,
+  Wand2,
   Image as ImageIcon
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
@@ -79,6 +80,8 @@ import AdminOnlineMeetingEditor from '../screens/admin/AdminOnlineMeetingEditor'
 import AdminSupportTeam from '../screens/admin/AdminSupportTeam';
 import AdminGalleryNavigator from '../screens/admin/gallery/AdminGalleryNavigator';
 import { Shield, Video as VideoIcon, Headset } from 'lucide-react-native';
+import AISermonAssistant from '../screens/admin/AISermonAssistant';
+import AIContentCreator from '../screens/admin/AIContentCreator';
 
 const { width } = Dimensions.get('window');
 
@@ -225,6 +228,9 @@ export default function AdminNavigator({ navigation, route }: any) {
 
     { name: 'Online Meetings', icon: VideoIcon, component: AdminOnlineMeetings },
     { name: 'New Online Meeting', icon: VideoIcon, component: AdminOnlineMeetingEditor },
+    // ── AI Ministry Tools ──
+    { name: 'AI Sermon Assistant', icon: Sparkles, component: AISermonAssistant },
+    { name: 'AI Content Creator', icon: Wand2, component: AIContentCreator },
     ...(isPlatformSuperAdmin ? [{ name: 'App Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];
 

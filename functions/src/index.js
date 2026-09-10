@@ -10,6 +10,7 @@ import { sendWhatsAppTemplateInternal } from './whatsapp.js';
 import { generateCelebrationImage } from './imageGenerator.js';
 import { randomUUID } from 'crypto';
 export { weCelebrationDailySweepV3, weCelebrationWishCreatedTrigger, weCelebrationBatchedWishes, executeBatchedWishes, triggerMorningCelebrations } from './celebrations.js';
+export { generateSermon, generateContentImage } from './ai.js';
 // Initialize Firebase Admin once at top level
 initializeApp();
 // TODO: When Salesforce integration becomes multi-tenant, remove this and loop over churches.
@@ -1449,54 +1450,4 @@ export * from './notifications.js';
 export { createRazorpayOrderV4, razorpayWebhookV1, createRazorpayDonationOrderV6, verifyRazorpayDonationV6, verifyRazorpaySubscriptionV3 } from './razorpay.js';
 export * from './subscriptionCron.js';
 export * from './verseBackgrounds.js';
-// ── Church Duplicate Guard ────────────────────────────────────────────────────
-// Server-side safety net: if a duplicate church is created (same name or phone),
-// automatically delete it. This fires even if the client-side check is bypassed.
-export const onChurchCreate = functionsCompat.firestore
-    .document('churches/{churchId}')
-    .onCreate(async (snap, context) => {
-    const db = getDb();
-    const newChurch = snap.data();
-    const newId = context.params.churchId;
-    if (!newChurch)
-        return null;
-    const nameLower = (newChurch.nameLower || newChurch.name || '').toLowerCase().trim();
-    const phone = (newChurch.contactPhone || '').replace(/[^0-9+]/g, '');
-    const createdBy = newChurch.createdBy || '';
-    try {
-        const [byName, byPhone, byCreator] = await Promise.all([
-            // Check for same name
-            nameLower
-                ? db.collection('churches').where('nameLower', '==', nameLower).get()
-                : Promise.resolve({ docs: [] }),
-            // Check for same phone
-            phone
-                ? db.collection('churches').where('contactPhone', '==', phone).get()
-                : Promise.resolve({ docs: [] }),
-            // Check for same creator
-            createdBy
-                ? db.collection('churches').where('createdBy', '==', createdBy).get()
-                : Promise.resolve({ docs: [] }),
-        ]);
-        const isDuplicateName = byName.docs.some((d) => d.id !== newId);
-        const isDuplicatePhone = byPhone.docs.some((d) => d.id !== newId);
-        const isDuplicateCreator = byCreator.docs.some((d) => d.id !== newId);
-        if (isDuplicateName || isDuplicatePhone || isDuplicateCreator) {
-            let reason = 'Unknown reason';
-            if (isDuplicateCreator)
-                reason = 'Creator already has a church';
-            else if (isDuplicateName)
-                reason = `Duplicate name: ${newChurch.name}`;
-            else if (isDuplicatePhone)
-                reason = `Duplicate phone: ${phone}`;
-            console.warn(`[onChurchCreate] Duplicate detected for church ${newId}. Reason: ${reason}. Deleting...`);
-            await snap.ref.delete();
-            console.log(`[onChurchCreate] Duplicate church ${newId} deleted successfully.`);
-        }
-    }
-    catch (err) {
-        console.error('[onChurchCreate] Error during duplicate check:', err);
-    }
-    return null;
-});
 //# sourceMappingURL=index.js.map

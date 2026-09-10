@@ -389,7 +389,13 @@ export default function UpdatesScreen({ navigation, route }: any) {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => {
+          if (navigation.canGoBack()) {
+            navigation.goBack();
+          } else {
+            navigation.navigate(viewMode === 'admin' ? 'AdminRoot' : 'Tabs');
+          }
+        }} hitSlop={{top:10, bottom:10, left:10, right:10}}>
           <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
         
