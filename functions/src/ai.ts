@@ -7,21 +7,32 @@ export const generateSermon = onCall({ enforceAppCheck: false, secrets: ['GROQ_A
        throw new HttpsError('invalid-argument', 'Missing required fields');
     }
 
-    const Groq = (await import('groq-sdk')).default;
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
       throw new HttpsError('failed-precondition', 'GROQ_API_KEY is not configured');
     }
-    const groq = new Groq({ apiKey });
 
     const prompt = `Write a detailed, structured sermon in ${language || 'English'} about "${topic}" suitable for a ${category || 'spiritual'} gathering. Format it in Markdown with sections for Introduction, Key Bible Verses, Main Message, and Conclusion.`;
 
-    const chatCompletion = await groq.chat.completions.create({
-      messages: [{ role: 'user', content: prompt }],
-      model: 'llama3-70b-8192',
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.1-70b-versatile',
+        messages: [{ role: 'user', content: prompt }]
+      })
     });
 
-    return { success: true, text: chatCompletion.choices[0]?.message?.content || '' };
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Groq API Error: ${errText}`);
+    }
+
+    const data = await response.json();
+    return { success: true, text: data.choices[0]?.message?.content || '' };
   } catch (error: any) {
     console.error('generateSermon Error:', error);
     throw new HttpsError('internal', error.message);

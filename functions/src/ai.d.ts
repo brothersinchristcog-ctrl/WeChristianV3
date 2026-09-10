@@ -1,6 +1,6 @@
 export declare const generateSermon: import("firebase-functions/v2/https").CallableFunction<any, Promise<{
     success: boolean;
-    text: string;
+    text: any;
 }>, unknown>;
 export declare const generateContentImage: import("firebase-functions/v2/https").CallableFunction<any, Promise<{
     success: boolean;
