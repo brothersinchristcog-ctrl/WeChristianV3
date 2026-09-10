@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 
-export const generateSermonV2 = onCall({ enforceAppCheck: false, secrets: ['GROQ_API_KEY'] }, async (request) => {
+export const generateSermonV3 = onCall({ enforceAppCheck: false, secrets: ['GROQ_API_KEY'] }, async (request) => {
   try {
     const { topic, category, language, churchId } = request.data;
     if (!topic || !churchId) {
@@ -34,7 +34,7 @@ export const generateSermonV2 = onCall({ enforceAppCheck: false, secrets: ['GROQ
     const data = await response.json();
     return { success: true, text: data.choices[0]?.message?.content || '' };
   } catch (error: any) {
-    console.error('generateSermonV2 Error:', error);
+    console.error('generateSermonV3 Error:', error);
     throw new HttpsError('internal', error.message);
   }
 });
