@@ -14,8 +14,10 @@ import {
   TextInput,
   Modal
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Users, 
+  ArrowLeft,
   ChevronLeft,
   ChevronDown,
   Phone,
@@ -25,7 +27,8 @@ import {
   Plus,
   X,
   Calendar as CalendarIcon,
-  Edit3
+  Edit3,
+  Trash2
 } from 'lucide-react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useAuth } from '../context/AuthContext';
@@ -43,6 +46,7 @@ const RELATION_OPTIONS = [
 ];
 
 const SPOUSE_RELATIONS = ['Husband', 'Wife'];
+const KID_RELATIONS = ['Son', 'Daughter', 'Grandson', 'Granddaughter', 'Nephew', 'Niece'];
 
 export default function MembersScreen({ navigation }: any) {
   const { member } = useAuth();
@@ -52,7 +56,7 @@ export default function MembersScreen({ navigation }: any) {
   const [showAddModal, setShowAddModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
-  const [newMember, setNewMember] = useState({
+  const [newMember, setNewMember] = useState<any>({
     firstName: '',
     lastName: '',
     relation: 'Husband', // picklist
@@ -60,12 +64,21 @@ export default function MembersScreen({ navigation }: any) {
     dob: '',
     anniversaryDate: '',
     email: '',
-    phone: ''
+    phone: '',
+    referencePhone: '',
+    isKidMember: false
   });
   const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('Family member added successfully.');
   const [showRelationPicker, setShowRelationPicker] = useState(false);
   const [datePickerType, setDatePickerType] = useState<'birthdate' | 'anniversary' | null>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [memberToDelete, setMemberToDelete] = useState<{ id: string, name: string } | null>(null);
+  
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const fetchFamily = async () => {
     if (!member) {
@@ -113,10 +126,55 @@ export default function MembersScreen({ navigation }: any) {
     fetchFamily();
   }, [member]);
 
+  // Compute available parent phones from the current household
+  const getParentPhones = () => {
+    const parentRelations = ['Father', 'Mother', 'Husband', 'Wife', 'Guardian'];
+    const parents = relatedContacts.filter((c: any) => {
+      const rel = (c.relation || c.Relation || '');
+      const phone = (c.phone || c.Phone || c.MobilePhone || '').replace(/\D/g, '');
+      return (parentRelations.includes(rel) || c.id === member?.id) && phone.length >= 10;
+    });
+    return parents.map((c: any) => ({
+      name: (`${c.FirstName || c.firstName || ''} ${c.LastName || c.lastName || ''}`.trim()) || c.Name || c.name || 'Parent',
+      relation: c.relation || c.Relation || 'Parent',
+      phone: (c.phone || c.Phone || c.MobilePhone || '').replace(/\D/g, '').slice(-10)
+    }));
+  };
+
   const handleAddMember = async () => {
     if (!newMember.firstName || !newMember.lastName) {
       Alert.alert('Validation', 'First name and Last name are required.');
       return;
+    }
+
+    const isKid = KID_RELATIONS.includes(newMember.relation);
+
+    // For kids, phone is optional — skip duplicate check if phone is empty
+    if (newMember.phone) {
+      const digitsOnly = newMember.phone.replace(/\D/g, '');
+      if (digitsOnly.length >= 10) {
+        const last10 = digitsOnly.slice(-10);
+        // Instant client-side check against currently loaded household members
+        const isDuplicateLocal = relatedContacts.some(c => {
+          if (editingMemberId && (c.id === editingMemberId || c.Id === editingMemberId)) return false;
+          const cPhone = (c.phone || c.Phone || c.MobilePhone || '').replace(/\D/g, '');
+          return cPhone.length >= 10 && cPhone.slice(-10) === last10;
+        });
+
+        if (isDuplicateLocal) {
+          setErrorMessage('This mobile number is already registered. Duplicate members are not allowed.');
+          setShowErrorModal(true);
+          return;
+        }
+      }
+    }
+
+    // For kids without a phone, auto-assign referencePhone from parent if available
+    if (isKid && !newMember.phone && !newMember.referencePhone) {
+      const parents = getParentPhones();
+      if (parents.length > 0) {
+        newMember.referencePhone = parents[0].phone;
+      }
     }
     
     setSubmitting(true);
@@ -130,22 +188,63 @@ export default function MembersScreen({ navigation }: any) {
         member!.accountId = targetAccountId; // Update local state tentatively
       }
       
+      // Build the member data object, including referencePhone for kids
+      const isKid = KID_RELATIONS.includes(newMember.relation);
+      const memberData = {
+        ...newMember,
+        isKidMember: isKid,
+        // If kid has no phone, ensure phone is stored as empty string (not undefined)
+        phone: newMember.phone || ''
+      };
+
       if (editingMemberId) {
-        await FirestoreService.updateMemberProfile(churchId!, editingMemberId, newMember);
+        await FirestoreService.updateMemberProfile(churchId!, editingMemberId, memberData);
+        setSuccessMessage('Family member updated successfully.');
       } else {
-        await FirestoreService.addFamilyMember(churchId!, targetAccountId, newMember);
+        await FirestoreService.addFamilyMember(churchId!, targetAccountId, memberData);
+        setSuccessMessage('Family member added successfully.');
       }
       setShowSuccess(true);
       setShowAddModal(false);
       setEditingMemberId(null);
       setNewMember({
-        firstName: '', lastName: '', relation: 'Husband', gender: 'Male', dob: '', anniversaryDate: '', email: '', phone: ''
+        firstName: '', lastName: '', relation: 'Husband', gender: 'Male', dob: '', anniversaryDate: '', email: '', phone: '', referencePhone: '', isKidMember: false
       });
       fetchFamily();
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to add family member.');
+      if (err.message === 'DUPLICATE_MEMBER') {
+        setErrorMessage('This mobile number is already registered. Duplicate members are not allowed.');
+        setShowErrorModal(true);
+      } else {
+        Alert.alert('Error', err.message || 'Failed to add family member.');
+      }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteMember = (memberId: string, memberName: string) => {
+    setMemberToDelete({ id: memberId, name: memberName });
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteMember = async () => {
+    if (!memberToDelete) return;
+    try {
+      setLoading(true);
+      setShowDeleteConfirm(false);
+      const churchId = member?.churchId || await FirestoreService.getChurchId();
+      if (churchId) {
+        await FirestoreService.deleteMemberPermanent(churchId, memberToDelete.id);
+        setSuccessMessage('Family member deleted successfully.');
+        setShowSuccess(true);
+        fetchFamily();
+      }
+    } catch (err: any) {
+      Alert.alert('Error', 'Failed to delete member.');
+      setLoading(false);
+    } finally {
+      setMemberToDelete(null);
     }
   };
 
@@ -175,23 +274,35 @@ export default function MembersScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
 
       {/* ── Page Header (Navy) ── */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft size={24} color="#FCD34D" />
-            <Text style={styles.backBtnTxt}>Back</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.headerContent}>
-          <View style={styles.iconCircle}>
-            <Users size={32} color="#FCD34D" />
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+          <View style={styles.headerCenter} pointerEvents="box-none">
+            <Text style={styles.headerTitle}>Household Directory</Text>
           </View>
-          <Text style={styles.headerTitle}>Household Directory</Text>
-          <Text style={styles.headerSubTe}>కుటుంబ సభ్యుల వివరాలు</Text>
         </View>
 
-      </View>
+        {member && !loading ? (
+          <TouchableOpacity 
+            style={styles.headerAddBtn}
+            onPress={() => {
+              setEditingMemberId(null);
+              setNewMember({ firstName: '', lastName: '', relation: 'Husband', gender: 'Male', dob: '', anniversaryDate: '', email: '', phone: '' });
+              setShowAddModal(true);
+            }}
+          >
+            <Plus size={20} color="#1a2d5a" />
+          </TouchableOpacity>
+        ) : <View style={{ width: 32 }} />}
+      </LinearGradient>
 
       {/* ── Main Body ── */}
       {loading ? (
@@ -223,6 +334,7 @@ export default function MembersScreen({ navigation }: any) {
               const contactId = c.id || c.Id;
               const isCurrentUser = contactId === member.id;
               const contactPhone = c.Phone || c.MobilePhone || c.phone;
+              const contactRefPhone = c.referencePhone || c.referenceNumber || null;
               const contactEmail = c.Email || c.email;
               
               let contactDate = null;
@@ -274,31 +386,43 @@ export default function MembersScreen({ navigation }: any) {
                       </View>
                     </View>
 
-                    <TouchableOpacity 
-                      style={{ padding: 8 }}
-                      onPress={() => {
-                        setEditingMemberId(contactId);
-                        setNewMember({
-                          firstName: c.FirstName || c.firstName || c.name?.split(' ')[0] || '',
-                          lastName: c.LastName || c.lastName || c.name?.split(' ').slice(1).join(' ') || '',
-                          email: contactEmail || '',
-                          phone: contactPhone || '',
-                          relation: c.relation || c.Relation || 'Child',
-                          gender: c.gender || c.Gender || 'Male',
-                          dob: c.dob || '',
-                          anniversaryDate: c.anniversaryDate || c.AnniversaryDate || ''
-                        });
-                        setShowAddModal(true);
-                      }}
-                    >
-                      <Edit3 size={20} color={isDark ? '#cbd5e1' : '#64748b'} />
-                    </TouchableOpacity>
+                    <View style={{ flexDirection: 'row' }}>
+                      <TouchableOpacity 
+                        style={{ padding: 8 }}
+                        onPress={() => {
+                          setEditingMemberId(contactId);
+                          setNewMember({
+                            firstName: c.FirstName || c.firstName || c.name?.split(' ')[0] || '',
+                            lastName: c.LastName || c.lastName || c.name?.split(' ').slice(1).join(' ') || '',
+                            email: contactEmail || '',
+                            phone: contactPhone || '',
+                            referencePhone: c.referencePhone || c.referenceNumber || '',
+                            relation: c.relation || c.Relation || 'Child',
+                            gender: c.gender || c.Gender || 'Male',
+                            dob: c.dob || '',
+                            anniversaryDate: c.anniversaryDate || c.AnniversaryDate || '',
+                            isKidMember: KID_RELATIONS.includes(c.relation || c.Relation || '')
+                          });
+                          setShowAddModal(true);
+                        }}
+                      >
+                        <Edit3 size={20} color={isDark ? '#cbd5e1' : '#64748b'} />
+                      </TouchableOpacity>
+                      {!isCurrentUser && (
+                        <TouchableOpacity 
+                          style={{ padding: 8, marginLeft: 4 }}
+                          onPress={() => handleDeleteMember(contactId, contactName)}
+                        >
+                          <Trash2 size={20} color="#ef4444" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
 
                   <View style={[styles.cardDivider, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]} />
 
                   <View style={styles.cardDetails}>
-                    {contactPhone && (
+                    {contactPhone ? (
                       <TouchableOpacity 
                         style={styles.detailRow} 
                         onPress={() => handleMakeCall(contactPhone)}
@@ -313,7 +437,22 @@ export default function MembersScreen({ navigation }: any) {
                           </Text>
                         </View>
                       </TouchableOpacity>
-                    )}
+                    ) : contactRefPhone ? (
+                      <TouchableOpacity 
+                        style={styles.detailRow} 
+                        onPress={() => handleMakeCall(contactRefPhone)}
+                      >
+                        <View style={[styles.iconBgPhone, { backgroundColor: '#fef3c7' }]}>
+                          <Phone size={14} color="#b45309" />
+                        </View>
+                        <View>
+                          <Text style={styles.detailLabel}>📞 Parent Reference</Text>
+                          <Text style={[styles.detailValue, { color: isDark ? '#fbbf24' : '#b45309' }]}>
+                            {contactRefPhone} (Parent Ref)
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    ) : null}
 
                     {contactEmail && (
                       <TouchableOpacity 
@@ -356,20 +495,6 @@ export default function MembersScreen({ navigation }: any) {
         </ScrollView>
       )}
 
-      {/* ── Global FAB ── */}
-      {member && !loading && (
-        <TouchableOpacity 
-          style={styles.addBtnFloating} 
-          onPress={() => {
-            setEditingMemberId(null);
-            setNewMember({ firstName: '', lastName: '', relation: 'Husband', gender: 'Male', dob: '', anniversaryDate: '', email: '', phone: '' });
-            setShowAddModal(true);
-          }}
-        >
-          <Plus size={28} color="#1a2d5a" />
-        </TouchableOpacity>
-      )}
-
       {/* ── Success Modal ── */}
       {showSuccess && (
         <View style={styles.modalOverlayCen}>
@@ -378,13 +503,60 @@ export default function MembersScreen({ navigation }: any) {
               <UserCheck size={36} color="#15803D" />
             </View>
             <Text style={[styles.successTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>Success!</Text>
-            <Text style={styles.successSub}>Family member added successfully.</Text>
+            <Text style={styles.successSub}>{successMessage}</Text>
             <TouchableOpacity 
               style={styles.successBtn} 
               onPress={() => setShowSuccess(false)}
             >
               <Text style={styles.successBtnTxt}>Done</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* ── Error Modal ── */}
+      {showErrorModal && (
+        <View style={styles.modalOverlayCen}>
+          <View style={[styles.successModal, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
+            <View style={[styles.successIconCircle, { backgroundColor: '#fee2e2' }]}>
+              <X size={36} color="#ef4444" />
+            </View>
+            <Text style={[styles.successTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>Duplicate Member</Text>
+            <Text style={styles.successSub}>{errorMessage}</Text>
+            <TouchableOpacity 
+              style={[styles.successBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]} 
+              onPress={() => setShowErrorModal(false)}
+            >
+              <Text style={[styles.successBtnTxt, { color: isDark ? '#fff' : '#334155' }]}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* ── Delete Confirmation Modal ── */}
+      {showDeleteConfirm && memberToDelete && (
+        <View style={styles.modalOverlayCen}>
+          <View style={[styles.successModal, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
+            <View style={[styles.successIconCircle, { backgroundColor: '#fee2e2' }]}>
+              <Trash2 size={36} color="#ef4444" />
+            </View>
+            <Text style={[styles.successTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>Delete Member?</Text>
+            <Text style={styles.successSub}>Are you sure you want to permanently delete {memberToDelete.name} from this household?</Text>
+            
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <TouchableOpacity 
+                style={[styles.successBtn, { flex: 1, width: 'auto', paddingHorizontal: 0, backgroundColor: isDark ? '#334155' : '#f1f5f9' }]} 
+                onPress={() => setShowDeleteConfirm(false)}
+              >
+                <Text style={[styles.successBtnTxt, { color: isDark ? '#fff' : '#334155' }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.successBtn, { flex: 1, width: 'auto', paddingHorizontal: 0, backgroundColor: '#ef4444' }]} 
+                onPress={confirmDeleteMember}
+              >
+                <Text style={[styles.successBtnTxt, { color: '#fff' }]}>Delete</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       )}
@@ -424,16 +596,62 @@ export default function MembersScreen({ navigation }: any) {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Mobile Number</Text>
+                <Text style={styles.inputLabel}>
+                  Mobile Number{KID_RELATIONS.includes(newMember.relation) ? ' (Optional for kids)' : ''}
+                </Text>
                 <TextInput 
                   style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
-                  placeholder="e.g. 9988776655"
+                  placeholder={KID_RELATIONS.includes(newMember.relation) ? "Leave empty to use parent's number" : "e.g. 9988776655"}
                   placeholderTextColor="#94a3b8"
                   keyboardType="phone-pad"
                   value={newMember.phone}
                   onChangeText={(t) => setNewMember({...newMember, phone: t})}
                 />
               </View>
+
+              {/* Reference Phone — shown for kid relations when phone is empty */}
+              {KID_RELATIONS.includes(newMember.relation) && (
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Parent Reference Number</Text>
+                  {getParentPhones().length > 0 ? (
+                    <View>
+                      {getParentPhones().map((p, i) => (
+                        <TouchableOpacity
+                          key={i}
+                          style={[
+                            styles.input,
+                            { 
+                              flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6,
+                              borderColor: newMember.referencePhone === p.phone ? '#1a2d5a' : (isDark ? '#334155' : '#e2e8f0'),
+                              backgroundColor: newMember.referencePhone === p.phone ? (isDark ? '#1e3a5f' : '#EFF6FF') : (isDark ? '#0f172a' : '#fff')
+                            }
+                          ]}
+                          onPress={() => setNewMember({...newMember, referencePhone: p.phone})}
+                        >
+                          <Text style={{ color: isDark ? '#cbd5e1' : '#334155', fontSize: 14, fontWeight: '600' }}>
+                            {p.name} ({p.relation}) — {p.phone}
+                          </Text>
+                          {newMember.referencePhone === p.phone && (
+                            <Text style={{ color: '#1a2d5a', fontWeight: '800', fontSize: 12 }}>✓</Text>
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                      <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                        📞 Birthday wishes will be sent to this number
+                      </Text>
+                    </View>
+                  ) : (
+                    <TextInput 
+                      style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
+                      placeholder="Parent/Guardian mobile number"
+                      placeholderTextColor="#94a3b8"
+                      keyboardType="phone-pad"
+                      value={newMember.referencePhone}
+                      onChangeText={(t) => setNewMember({...newMember, referencePhone: t})}
+                    />
+                  )}
+                </View>
+              )}
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Email Address</Text>
@@ -595,21 +813,34 @@ export default function MembersScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { 
-    backgroundColor: '#1a2d5a', 
-    paddingTop: Platform.OS === 'ios' ? 50 : 20, 
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
+    paddingHorizontal: 20,
     paddingBottom: 30,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  headerTop: { flexDirection: 'row', paddingHorizontal: 20, alignItems: 'center' },
-  backBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  backBtnTxt: { color: '#FCD34D', fontSize: 16, fontWeight: '700', marginLeft: 4 },
-  
-  headerContent: { alignItems: 'center', marginTop: 10 },
-  iconCircle: { width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(252,211,77,0.15)', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#fff' },
-  headerSubTe: { fontSize: 14, color: '#FCD34D', fontWeight: '500', marginTop: 2 },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 28 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8, marginBottom: 4 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  headerAddBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FCD34D',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 }
+  },
 
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   loadingText: { fontSize: 14, fontWeight: '600', marginTop: 12 },
@@ -702,7 +933,9 @@ const styles = StyleSheet.create({
     top: 0, bottom: 0, left: 0, right: 0,
     backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
+    zIndex: 9999,
+    elevation: 9999
   },
   successModal: { backgroundColor: '#fff', borderRadius: 24, padding: 30, width: '80%', alignItems: 'center' },
   successIconCircle: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#dcfce7', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },

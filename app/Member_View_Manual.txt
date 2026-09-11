@@ -1,0 +1,179 @@
+MEMBER VIEW MANUAL
+==================
+
+1. The Home Screen
+------------------
+The Home Screen is the primary landing page after logging into the application. It provides a quick overview of daily content, events, sermons, and live celebrations.
+
+- Header Section: Shows the app logo, a greeting with the user's name, a notification bell icon (with a badge for unread notifications), and a profile avatar. Tapping the bell opens Notifications, and tapping the avatar opens the Profile menu.
+- Promise of the Day: Displays a daily Bible verse with a background image. You can use the Share button to send it via other apps, or the Save button to add it to your personal archive. Tapping the card opens the full Promise Screen.
+- Quick Actions Menu: A row of icons to quickly navigate to Give, Bible, Events, Notes, Updates, and Members screens.
+- Live Celebration Banner: Only appears when a live stream is active. It shows a pulsing red "LIVE" badge, the service title, and a "Join Now" button that takes you to the video player.
+- Latest Sermons: A horizontal list of recent sermon video cards showing a thumbnail, title, preacher name, and date. Click any card to watch the video.
+- Upcoming Events: A list of upcoming events with date, title, time, and location. Click an event to view its details.
+- Bottom Navigation Bar: Use the icons here to switch between Home, Sermons, Prayer, and Profile screens.
+
+2. The Promise Screen
+---------------------
+This is a dedicated screen for the Daily Promise, allowing members to reflect on it and view their archived promises.
+
+- App Bar: Shows a "Daily Promise" title, a Back button to return Home, and an Archive icon to view all past saved promises.
+- Main Display: Shows a large inspirational background image, today's date, the verse text, and the scripture reference.
+- Action Buttons: Includes a Share button for sending to others, a Save/Favorite button to store it in your personal collection, and a Copy button to copy the text to your clipboard.
+- Reflection Text (Optional): A short paragraph explaining or reflecting on the verse.
+
+3. The Prayer Screen (Prayer Wall)
+----------------------------------
+A community screen where members can submit prayer requests, view others' requests, and interact by indicating they are praying.
+
+- App Bar: Switch between the "All Prayers" tab (community requests) and the "My Prayers" tab (your own requests).
+- Add Prayer Button: Tap this button to open the "New Prayer Request" modal, where you can enter a title, description, and optionally submit it anonymously.
+- Prayer Feed: A scrollable list of prayer cards showing the user's name (or anonymous), timestamp, status (Active/Answered), and the prayer text.
+- "I'm Praying" Button: Click the praying hands icon on any request to increment its prayer count and show support.
+- Options Menu: Tap the three dots to report inappropriate content or edit/delete your own requests.
+
+4. The Sermon Screen
+--------------------
+A multimedia library containing past video and audio sermons, categorized and searchable.
+
+- App Bar: Contains a Search icon to find sermons by title, preacher, or keyword.
+- Featured Sermon: A large thumbnail at the top displaying the most recent or highlighted sermon. Tap it to start watching.
+- Filter Categories: Scroll horizontally through chips like "All", "Series", or "Audio Only" to filter the list below.
+- Sermon List: Cards showing the sermon thumbnail, duration, title, preacher name, and date.
+- Options Menu: Tap the three dots on a card to share, download audio, or save for later.
+- Video Player: Tapping a sermon opens the media player with standard controls (play/pause, fullscreen) and shows related sermons underneath.
+
+5. The Profile Screen
+---------------------
+The personal hub for managing your account, settings, and app security.
+
+- Hero Section: Displays your profile avatar, greeting, name, and a badge showing the year you became a member.
+- Stats Row: A quick glance at your Village/City, chosen Language, and your Role (e.g., Member or Admin).
+- Account Section:
+  - Admin Dashboard: (Only visible if you are an Admin) Takes you to the church management side.
+  - My Profile: Opens a detailed form to edit your name, photo, email, birthday, baptism date, anniversary, and full address.
+  - Giving History: View your personal donation records.
+  - Church Subscription: (Only visible for Admins/Pastors) Manage church billing.
+- Settings Section:
+  - Notifications: Manage what alerts you receive (e.g., Daily Promise, New Sermon, Event Reminders, Prayer).
+  - Language: Select your preferred app language (e.g., English, Telugu).
+  - Dark Mode: Toggle between Light and Dark themes.
+- Security Section:
+  - Biometric Lock: Toggle Fingerprint or Face ID on/off for secure app access (if supported by your device).
+- Support Section:
+  - Sign Out: Securely exit your account.
+  - App Version: Displayed at the very bottom.
+
+6. The Give Screen
+------------------
+A secure and simple portal for members to submit tithes, offerings, and donations to the church.
+
+- Header: Displays "Giving" as the title and a Back button to return to the Home screen.
+- Giving History Link: A button at the top right (often a clock or list icon) that takes you to a detailed record of your past donations.
+- Amount Input: A large, clear number pad or input field to enter the donation amount. Quick-select buttons (e.g., $10, $50, $100) are often provided below the input.
+- Fund Selection: A dropdown menu where you can choose which fund your donation goes to (e.g., General Tithe, Building Fund, Missions).
+- Recurring Option: A toggle switch to make this a recurring donation (Weekly, Monthly) instead of a one-time gift.
+- Payment Method: A section to select your saved card, add a new debit/credit card, or use mobile payment options like Apple Pay or Google Pay.
+- Give Button: A prominent button at the bottom to securely process the transaction. You'll receive a confirmation receipt upon success.
+
+7. The Bible Screen
+-------------------
+A fully featured digital Bible reader, allowing members to study scripture anywhere.
+
+- Top Navigation: Allows you to quickly select the Book, Chapter, and Verse you want to read. It also features a Translation selector (e.g., KJV, NIV) if multiple versions are supported.
+- Reading Area: The main scrollable text area containing the scripture.
+- Highlighting & Bookmarking: When you long-press a verse, a menu pops up allowing you to highlight it in various colors, bookmark it, or add a personal note to that specific verse.
+- Audio Bible Option: A play button at the top or bottom that will narrate the current chapter out loud.
+- Search Icon: Allows you to search the entire Bible for specific keywords or phrases.
+- Reading Plans: A tab or button that takes you to curated Bible reading plans or daily devotionals.
+
+8. The Events Screen
+--------------------
+A comprehensive calendar view of everything happening at the church.
+
+- Calendar View: A monthly or weekly calendar grid at the top. Days with events have a small dot indicator. Tap a specific day to filter the list below.
+- Event List: Scroll through upcoming events. Each card shows the date, time, event title, and location.
+- Filter Options: Buttons to filter events by category (e.g., Youth, Worship, Volunteers) to find exactly what you're looking for.
+- Event Details: Clicking on an event opens a full-page description.
+  - RSVP/Register Button: If an event requires attendance tracking, you can click this to register yourself or your family.
+  - Add to Calendar: A button that syncs the event to your phone's native calendar app.
+  - Location/Map: Shows the address and provides a link to open directions in Google Maps or Apple Maps.
+
+9. The Notes Screen
+-------------------
+A personal digital notebook for members to take notes during sermons or personal study.
+
+- Notes List: Displays all your past notes sorted by date. Each entry shows the title, the date it was created, and a preview of the text.
+- Search Bar: Quickly find a specific note by searching for words you typed.
+- Create Note Button: A large "+" button at the bottom right to start a new note.
+- Note Editor: When you create or click a note, it opens a full-screen text editor.
+  - Title Field: Type a title for your note (e.g., "Sunday Sermon - Faith").
+  - Formatting Tools: Basic text formatting like bold, italic, or bullet points to organize your thoughts.
+  - Auto-Save: Notes automatically save to your account as you type, so you never lose your progress.
+  - Share/Export: A button to email the note to yourself or share it with a friend.
+
+10. The Updates Screen
+----------------------
+A centralized newsfeed for church announcements, newsletters, and urgent updates.
+
+- Feed View: A scrollable timeline of announcements posted by church admins.
+- Announcement Cards: Each post contains a bold title, the date posted, and the message content. Posts can also include images or links to external websites.
+- Push Notification History: Any urgent alerts or notifications previously sent to your phone are logged here so you don't miss them.
+- Interaction: Depending on the settings, you might see options to "Like" an update or leave a comment to engage with the church community.
+
+11. The Members Screen
+----------------------
+A secure directory for church members to connect and find each other.
+
+- Member Directory: A searchable and scrollable list of all registered church members who have opted into the public directory.
+- Search Bar: Quickly find a specific member by typing their first or last name.
+- Member Cards: Each entry displays the member's profile picture and name.
+- Member Details: Tapping a member's card opens their public profile, showing contact information (like email or phone number) if they have chosen to share it.
+- Direct Messaging/Contact: Depending on church settings, buttons may be available to quickly call, email, or send an in-app message to the member directly from their profile.
+
+12. The YouTube Live / Celebrations Screen
+------------------------------------------
+A dedicated area for participating in real-time church services and broadcasts.
+
+- Video Player: A prominent live stream viewer at the top, typically powered by YouTube Live integration.
+- Live Chat: A scrolling chat box below the video where members can interact, say "Amen," and fellowship during the service.
+- Chat Input: A text field at the bottom to type and send messages in real-time.
+- Viewer Count: An indicator showing how many people are currently watching the broadcast.
+- Fullscreen Toggle: A button to expand the video to fill your entire device screen.
+
+13. The Songs Screen
+--------------------
+A digital hymnal and worship music library for the congregation.
+
+- Search & Filter: Easily find specific songs by title, lyrics, or category (e.g., Hymns, Contemporary).
+- Song List: A scrollable list of all available worship songs.
+- Lyrics View: Clicking a song opens the full lyrics formatted for easy reading and singing along.
+- Media Player (Optional): If audio tracks or chord charts are attached, buttons to play the track or view the sheet music will be present.
+- Favorites: A heart icon to save your favorite songs for quick access later.
+
+14. The Online Meetings Screen
+------------------------------
+A portal for joining smaller group sessions, Bible studies, and virtual church meetings.
+
+- Meeting List: Displays upcoming virtual meetings with their title, date, time, and the host's name.
+- Meeting Details: Tap a meeting to see the full description, agenda, or associated Zoom/Google Meet link.
+- Join Button: A direct button to launch into the video conference call from within the app or by opening the respective meeting app.
+- RSVP/Reminders: Options to confirm your attendance and set a local calendar reminder for the meeting.
+
+15. The About Us Screen
+-----------------------
+A comprehensive information page detailing the church's identity and mission.
+
+- Church Logo & Banner: High-quality imagery representing the church.
+- Vision & Mission Statement: Text explaining the core values and goals of the congregation.
+- Leadership/Pastors: A section highlighting the lead pastor and key staff members, often with their photos and short bios.
+- Service Times: A clear schedule of when weekly services are held.
+- Location: The physical address of the church, complete with an embedded map for easy navigation.
+
+16. The Contact Us Screen
+-------------------------
+A direct line of communication between members and church administration.
+
+- Contact Information: Lists the official church phone number, email address, and office hours.
+- Contact Form: A simple form allowing users to select a subject (e.g., General Inquiry, Prayer Request, Technical Support), write a message, and send it directly to the admin team.
+- Social Links: Icons linking to the church's official Facebook, Instagram, Twitter, and YouTube pages.

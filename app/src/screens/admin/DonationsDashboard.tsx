@@ -39,6 +39,8 @@ import * as FileSystem from 'expo-file-system';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import FirestoreService, { ChurchDonation } from '../../services/FirestoreService';
 import { useAuth } from '../../context/AuthContext';
+import { useChurch } from '../../context/ChurchContext';
+import { formatDateDisplay } from '../../utils/DateUtils';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { LinearGradient } from 'expo-linear-gradient';
 import firestore from '@react-native-firebase/firestore';
@@ -51,6 +53,8 @@ type SubTab = 'dashboard' | 'donations';
 export default function AdminDonationDashboard() {
   const { setActiveTab } = useContext(AdminTabContext);
   const { member } = useAuth();
+  const { activeChurch } = useChurch();
+  // churchProfile now sourced from activeChurch
   const [donations, setDonations] = useState<ChurchDonation[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -61,7 +65,7 @@ export default function AdminDonationDashboard() {
   const [selectedCategoryView, setSelectedCategoryView] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [churchProfile, setChurchProfile] = useState<any>(null);
+  // churchProfile removed - using activeChurch from context instead
 
   const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
   const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
@@ -89,6 +93,11 @@ export default function AdminDonationDashboard() {
   const invoiceRef = React.useRef<any>(null);
   const categoryInvoiceRef = React.useRef<any>(null);
 
+  // Pending Donations Review State
+  const [showPendingReviewModal, setShowPendingReviewModal] = useState(false);
+  const [selectedPendingDonation, setSelectedPendingDonation] = useState<any>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+
   // Add Donation Modal State
   const [showAddDonationModal, setShowAddDonationModal] = useState(false);
   const [addDonCategory, setAddDonCategory] = useState('Tithes');
@@ -106,6 +115,10 @@ export default function AdminDonationDashboard() {
   // Success Card State
   const [showSuccessCard, setShowSuccessCard] = useState(false);
 
+  // Members Autocomplete State
+  const [churchMembers, setChurchMembers] = useState<any[]>([]);
+  const [showDonorDropdown, setShowDonorDropdown] = useState(false);
+
   const displayToast = (msg: string) => {
     setToastMessage(msg);
     setShowToast(true);
@@ -119,7 +132,6 @@ export default function AdminDonationDashboard() {
         const cDoc = await firestore().collection('churches').doc(churchId).get();
         const docData: any = typeof cDoc.data === 'function' ? cDoc.data() : cDoc.data;
         if (docData) {
-          setChurchProfile(docData);
           if (docData.customDonationCategories && Array.isArray(docData.customDonationCategories)) {
             setCategories(prev => Array.from(new Set([...prev, ...docData.customDonationCategories])));
           }
@@ -128,6 +140,9 @@ export default function AdminDonationDashboard() {
 
       const donData = await FirestoreService.getDonations(500);
       setDonations(donData);
+      
+      const memData = await FirestoreService.getAllMembers();
+      setChurchMembers(memData);
       
       const usedCategories = donData.map(e => e.category).filter(Boolean);
       setCategories(prev => Array.from(new Set([...prev, ...usedCategories])));
@@ -153,6 +168,7 @@ export default function AdminDonationDashboard() {
     setDonationDate(new Date().toISOString().split('T')[0]);
     setDonationPaymentMethod('Cash');
     setDonationNotes('');
+    setShowCategoryDropdown(false);
     setShowAddDonationModal(true);
   };
 
@@ -230,6 +246,34 @@ export default function AdminDonationDashboard() {
     ]);
   };
 
+  const handleApprovePendingDonation = async (id: string) => {
+    setReviewLoading(true);
+    try {
+      await FirestoreService.saveDonation({ id, status: 'Success' });
+      displayToast("Donation approved successfully");
+      setShowPendingReviewModal(false);
+      fetchData();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to approve donation');
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleRejectPendingDonation = async (id: string) => {
+    setReviewLoading(true);
+    try {
+      await FirestoreService.saveDonation({ id, status: 'Rejected' });
+      displayToast("Donation rejected");
+      setShowPendingReviewModal(false);
+      fetchData();
+    } catch (e) {
+      Alert.alert('Error', 'Failed to reject donation');
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
   const getSequentialDonationNumber = (donId?: string) => {
     if (!donId) return String(donations.length + 1).padStart(7, '0');
     const index = donations.findIndex(d => d.id === donId);
@@ -238,16 +282,18 @@ export default function AdminDonationDashboard() {
   };
 
   const generateInvoiceHtml = (don: ChurchDonation) => {
-      const cName = churchProfile?.name || "We Christian Church";
-      const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
-      const receiptNo = `${churchCode}-DON-${getSequentialDonationNumber(don.id)}`;
-      const cAddress = churchProfile?.address || churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "";
-      const cPhone = churchProfile?.phone || "";
-      const logoUrl = churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto || null;
+      const cName = activeChurch?.name || "We Christian Church";
+      const churchCode = (activeChurch?.name || 'WEC').substring(0, 3).toUpperCase();
+      const invDate = new Date().toISOString().split('T')[0];
+      const cAddress = activeChurch?.address || (activeChurch as any)?.mailingCity ? `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}` : "";
+      const cPhone = (activeChurch as any)?.phone || "";
+      const logoUrl = activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto || null;
       
       const logoHtml = logoUrl 
          ? `<img src="${logoUrl}" style="width: 80px; height: 80px; border-radius: 40px; object-fit: cover; margin-bottom: 15px; border: 3px solid #c9973f; padding: 2px;" />` 
          : `<div style="width: 80px; height: 80px; border-radius: 40px; background-color: #c9973f; color: #141d33; font-size: 36px; font-weight: bold; line-height: 80px; text-align: center; margin: 0 auto 15px auto;">${cName.charAt(0).toUpperCase()}</div>`;
+
+      const receiptNo = don.receiptNo || 'RCPT-' + (don.id || Date.now().toString()).substring(0, 8).toUpperCase();
 
       return `
         <html>
@@ -286,7 +332,7 @@ export default function AdminDonationDashboard() {
               </div>
               <div class="meta">
                 <div class="meta-box"><div class="label">RECEIPT NO</div><div class="value">${receiptNo}</div></div>
-                <div class="meta-box"><div class="label">DONATION DATE</div><div class="value">${don.date}</div></div>
+                <div class="meta-box"><div class="label">DONATION DATE</div><div class="value">${formatDateDisplay(don.date)}</div></div>
                 <div class="meta-box"><div class="label">RECEIVED FROM</div><div class="value">${don.donorName}</div></div>
                 <div class="meta-box"><div class="label">DONOR PHONE</div><div class="value">${don.donorPhone || 'N/A'}</div></div>
               </div>
@@ -375,7 +421,7 @@ export default function AdminDonationDashboard() {
     try {
       if (invoiceRef.current) {
         const uri = await invoiceRef.current.capture();
-        const { status } = await MediaLibrary.requestPermissionsAsync();
+        const { status } = await MediaLibrary.requestPermissionsAsync(true);
         if (status === 'granted') {
           await MediaLibrary.saveToLibraryAsync(uri);
           Alert.alert('Success', 'Receipt saved to photos');
@@ -401,12 +447,12 @@ export default function AdminDonationDashboard() {
   };
 
   const generateCategoryInvoiceHtml = (category: string, dons: ChurchDonation[]) => {
-      const cName = churchProfile?.name || "We Christian Church";
-      const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
+      const cName = activeChurch?.name || "We Christian Church";
+      const churchCode = ((activeChurch?.name || 'WEC')).substring(0, 3).toUpperCase();
       const reportNo = `${churchCode}-REP-${Date.now().toString().slice(-6)}`;
-      const cAddress = churchProfile?.address || churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "";
-      const cPhone = churchProfile?.phone || "";
-      const logoUrl = churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto || null;
+      const cAddress = activeChurch?.address || (activeChurch as any)?.mailingCity ? `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}` : "";
+      const cPhone = (activeChurch as any)?.phone || "";
+      const logoUrl = activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto || null;
       
       const logoHtml = logoUrl 
          ? `<img src="${logoUrl}" style="width: 80px; height: 80px; border-radius: 40px; object-fit: cover; margin-bottom: 15px; border: 3px solid #c9973f; padding: 2px;" />` 
@@ -459,7 +505,7 @@ export default function AdminDonationDashboard() {
               </div>
               <div class="meta">
                 <div class="meta-box"><div class="label">REPORT NO</div><div class="value">${reportNo}</div></div>
-                <div class="meta-box"><div class="label">GENERATION DATE</div><div class="value">${new Date().toISOString().split('T')[0]}</div></div>
+                <div class="meta-box"><div class="label">GENERATION DATE</div><div class="value">${formatDateDisplay(new Date().toISOString().split('T')[0])}</div></div>
                 <div class="meta-box"><div class="label">CATEGORY</div><div class="value">${category}</div></div>
                 <div class="meta-box"><div class="label">TOTAL ITEMS</div><div class="value">${dons.length} donations</div></div>
               </div>
@@ -536,7 +582,7 @@ export default function AdminDonationDashboard() {
     try {
       if (categoryInvoiceRef.current) {
         const uri = await categoryInvoiceRef.current.capture();
-        const { status } = await MediaLibrary.requestPermissionsAsync();
+        const { status } = await MediaLibrary.requestPermissionsAsync(true);
         if (status === 'granted') {
           await MediaLibrary.saveToLibraryAsync(uri);
           Alert.alert('Success', 'Report saved to photos');
@@ -735,13 +781,13 @@ export default function AdminDonationDashboard() {
             </TouchableOpacity>
             <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
             <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={[styles.heroTitle, currentSubTab === 'dashboard' && { color: '#FCD34D' }]} numberOfLines={1}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 4 }}>
+                <Text style={[styles.heroTitle, currentSubTab === 'dashboard' && { color: '#FCD34D' }, { flex: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
                   {currentSubTab === 'dashboard' ? 'Dashboard' : 
                    (selectedCategoryView ? 'Donations' : 'Donations')}
                 </Text>
                 <TouchableOpacity 
-                  style={{ backgroundColor: '#c9973f', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginLeft: 14 }}
+                  style={{ backgroundColor: '#c9973f', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, marginLeft: 10, flexShrink: 0 }}
                   onPress={openAddDonation}
                 >
                   <Text style={{ color: '#141d33', fontSize: 11, fontWeight: '700' }}>+ New Donation</Text>
@@ -885,7 +931,10 @@ export default function AdminDonationDashboard() {
                               {don.donorName || `${don.category} Donation`}
                             </Text>
                             <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginBottom: 8 }}>
-                              {don.date} • {don.paymentMethod || 'Cash'}
+                              {formatDateDisplay(don.date)} • {don.paymentMethod || 'Cash'}
+                              {(don as any).status?.toLowerCase().includes('pending') ? (
+                                <Text style={{ color: '#d97706', fontWeight: 'bold' }}> • Pending</Text>
+                              ) : null}
                             </Text>
                           </View>
                         </View>
@@ -895,6 +944,17 @@ export default function AdminDonationDashboard() {
                             ₹{don.amount?.toLocaleString('en-IN') || 0}
                           </Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            { (don as any).status?.toLowerCase().includes('pending') ? (
+                              <TouchableOpacity 
+                                onPress={() => {
+                                  setSelectedPendingDonation(don);
+                                  setShowPendingReviewModal(true);
+                                }}
+                                style={{ padding: 8, backgroundColor: '#fef3c7', borderRadius: 8, marginRight: 8 }}
+                              >
+                                <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#d97706' }}>Review</Text>
+                              </TouchableOpacity>
+                            ) : null}
                             <TouchableOpacity 
                               onPress={() => {
                                 setSelectedDonationForInvoice(don);
@@ -1079,15 +1139,74 @@ export default function AdminDonationDashboard() {
               
               <Text style={styles.helperText}>Record a new donation entry.</Text>
 
-              <View style={styles.inputGroup}>
+              <View style={[styles.inputGroup, { zIndex: 10 }]}>
                 <Text style={styles.label}>Donor Name</Text>
-                <TextInput 
-                  style={styles.input}
-                  placeholder="Enter donor name"
-                  placeholderTextColor="#a89f92"
-                  value={donationDonorName}
-                  onChangeText={setDonationDonorName}
-                />
+                <View style={{ zIndex: 10 }}>
+                  <TextInput 
+                    style={styles.input}
+                    placeholder="Search or enter donor name"
+                    placeholderTextColor="#a89f92"
+                    value={donationDonorName}
+                    onChangeText={(txt) => {
+                      setDonationDonorName(txt);
+                      setShowDonorDropdown(txt.length > 0);
+                    }}
+                    onFocus={() => {
+                      if (donationDonorName.length > 0) setShowDonorDropdown(true);
+                    }}
+                  />
+                  {showDonorDropdown && (
+                    <View style={{ 
+                      position: 'absolute', top: 52, left: 0, right: 0, 
+                      backgroundColor: '#fff', 
+                      borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8, 
+                      maxHeight: 180, zIndex: 1000, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 10
+                    }}>
+                      <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                        {churchMembers
+                          .filter(m => {
+                            const fn = (m.firstName || '') + ' ' + (m.lastName || '');
+                            const nameMatch = fn.toLowerCase().includes(donationDonorName.toLowerCase());
+                            const phoneMatch = m.phone?.includes(donationDonorName) || m.phoneNumber?.includes(donationDonorName);
+                            return nameMatch || phoneMatch;
+                          })
+                          .slice(0, 15)
+                          .map((m, idx) => {
+                            const fullName = ((m.firstName || '') + ' ' + (m.lastName || '')).trim() || 'Unknown Member';
+                            const phoneNum = m.phone || m.phoneNumber || '';
+                            return (
+                              <TouchableOpacity
+                                key={m.id || idx}
+                                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#f4efe6' }}
+                                onPress={() => {
+                                  setDonationDonorName(fullName);
+                                  if (phoneNum) setDonationDonorPhone(phoneNum);
+                                  setShowDonorDropdown(false);
+                                }}
+                              >
+                                <Text style={{ fontFamily: FONTS.sans, fontSize: 14, fontWeight: '600', color: '#1b2a4a' }}>{fullName}</Text>
+                                {phoneNum ? <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54', marginTop: 2 }}>{phoneNum}</Text> : null}
+                              </TouchableOpacity>
+                            )
+                          })
+                        }
+                        {churchMembers.filter(m => {
+                            const fn = (m.firstName || '') + ' ' + (m.lastName || '');
+                            const nameMatch = fn.toLowerCase().includes(donationDonorName.toLowerCase());
+                            const phoneMatch = m.phone?.includes(donationDonorName) || m.phoneNumber?.includes(donationDonorName);
+                            return nameMatch || phoneMatch;
+                          }).length === 0 && (
+                          <View style={{ padding: 12 }}>
+                            <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', fontStyle: 'italic' }}>No matching members. Proceed to add manually.</Text>
+                          </View>
+                        )}
+                        <TouchableOpacity style={{ padding: 12, alignItems: 'center', borderTopWidth: 1, borderTopColor: '#f4efe6' }} onPress={() => setShowDonorDropdown(false)}>
+                          <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#a89f92', fontWeight: '600' }}>Close Suggestions</Text>
+                        </TouchableOpacity>
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
               </View>
 
               <View style={styles.inputGroup}>
@@ -1151,7 +1270,7 @@ export default function AdminDonationDashboard() {
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.label}>Date</Text>
                   <TouchableOpacity style={styles.input} onPress={() => setShowAddDonationDatePicker(true)}>
-                    <Text style={{ fontFamily: FONTS.sans, fontSize: 14, color: '#241f1a' }}>{donationDate}</Text>
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 14, color: '#241f1a' }}>{formatDateDisplay(donationDate)}</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
@@ -1221,26 +1340,26 @@ export default function AdminDonationDashboard() {
                 <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, borderTopWidth: 6, borderTopColor: '#c9973f' }}>
                   
                   <View style={{ alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f4efe6', paddingBottom: 20 }}>
-                    {churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto ? (
-                      <Image source={{ uri: churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12, borderWidth: 2, borderColor: '#c9973f' }} />
+                    {activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto ? (
+                      <Image source={{ uri: activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12, borderWidth: 2, borderColor: '#c9973f' }} />
                     ) : (
                       <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#c9973f', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
                         <Text style={{ fontFamily: FONTS.serif, fontSize: 22, color: '#141d33', fontWeight: '700' }}>
-                          {(churchProfile?.name || member?.churchId || 'W').charAt(0).toUpperCase()}
+                          {(activeChurch?.name || 'W').charAt(0).toUpperCase()}
                         </Text>
                       </View>
                     )}
                     <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#1b2a4a', fontWeight: '700', textAlign: 'center' }}>
-                      {churchProfile?.name || member?.churchId || "We Christian Church"}
+                      {activeChurch?.name || "We Christian Church"}
                     </Text>
-                    {churchProfile?.address || churchProfile?.mailingCity ? (
+                    {activeChurch?.address || (activeChurch as any)?.mailingCity ? (
                       <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 4, textAlign: 'center' }}>
-                        {churchProfile?.address || `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}`}
+                        {activeChurch?.address || `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}`}
                       </Text>
                     ) : null}
-                    {churchProfile?.phone ? (
+                    {(activeChurch as any)?.phone ? (
                       <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 2, textAlign: 'center' }}>
-                        Phone: {churchProfile.phone}
+                        Phone: {(activeChurch as any).phone}
                       </Text>
                     ) : null}
                   </View>
@@ -1249,11 +1368,11 @@ export default function AdminDonationDashboard() {
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 }}>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>RECEIPT NO</Text>
-                        <Text style={styles.invValue}>{(churchProfile?.name || 'WEC').substring(0, 3).toUpperCase()}-DON-{getSequentialDonationNumber(selectedDonationForInvoice.id)}</Text>
+                        <Text style={styles.invValue}>{((activeChurch?.name || 'WEC')).substring(0, 3).toUpperCase()}-DON-{getSequentialDonationNumber(selectedDonationForInvoice.id)}</Text>
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>DATE</Text>
-                        <Text style={styles.invValue}>{selectedDonationForInvoice.date}</Text>
+                        <Text style={styles.invValue}>{formatDateDisplay(selectedDonationForInvoice.date)}</Text>
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>RECEIVED FROM</Text>
@@ -1373,10 +1492,10 @@ export default function AdminDonationDashboard() {
             {reportDateFilter === 'Custom Range' && (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 15 }}>
                 <TouchableOpacity style={{ flex: 1, padding: 10, borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8 }} onPress={() => setShowReportStartPicker(true)}>
-                  <Text style={{ fontSize: 12, color: '#645d54' }}>From: {reportCustomStartDate ? reportCustomStartDate.toISOString().split('T')[0] : 'Select'}</Text>
+                  <Text style={{ fontSize: 12, color: '#645d54' }}>From: {reportCustomStartDate ? formatDateDisplay(reportCustomStartDate.toISOString().split('T')[0]) : 'Select'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={{ flex: 1, padding: 10, borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8 }} onPress={() => setShowReportEndPicker(true)}>
-                  <Text style={{ fontSize: 12, color: '#645d54' }}>To: {reportCustomEndDate ? reportCustomEndDate.toISOString().split('T')[0] : 'Select'}</Text>
+                  <Text style={{ fontSize: 12, color: '#645d54' }}>To: {reportCustomEndDate ? formatDateDisplay(reportCustomEndDate.toISOString().split('T')[0]) : 'Select'}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={{ padding: 10, backgroundColor: '#1b2a4a', borderRadius: 8, justifyContent: 'center' }} onPress={() => {
                     const catDons = donations.filter(e => e.category === selectedCategoryView);
@@ -1438,7 +1557,7 @@ export default function AdminDonationDashboard() {
                     </View>
                     <View style={{ flex: 1 }}>
                       <Text style={{ fontFamily: FONTS.sans, fontSize: 14, fontWeight: '700', color: '#1b2a4a' }}>{don.donorName}</Text>
-                      <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54', marginTop: 2 }}>{don.date} • {don.paymentMethod || 'N/A'}</Text>
+                      <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54', marginTop: 2 }}>{formatDateDisplay(don.date)} • {don.paymentMethod || 'N/A'}</Text>
                     </View>
                     <Text style={{ fontFamily: FONTS.sans, fontSize: 14, fontWeight: '700', color: '#1b2a4a' }}>₹{don.amount.toLocaleString('en-IN')}</Text>
                   </TouchableOpacity>
@@ -1482,21 +1601,21 @@ export default function AdminDonationDashboard() {
                 <View style={{ backgroundColor: '#ffffff', borderRadius: 12, padding: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, borderTopWidth: 6, borderTopColor: '#c9973f' }}>
                   
                   <View style={{ alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: '#f4efe6', paddingBottom: 20 }}>
-                    {churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto ? (
-                      <Image source={{ uri: churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12, borderWidth: 2, borderColor: '#c9973f' }} />
+                    {activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto ? (
+                      <Image source={{ uri: activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12, borderWidth: 2, borderColor: '#c9973f' }} />
                     ) : (
                       <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: '#c9973f', justifyContent: 'center', alignItems: 'center', marginBottom: 10 }}>
                         <Text style={{ fontFamily: FONTS.serif, fontSize: 22, color: '#141d33', fontWeight: '700' }}>
-                          {(churchProfile?.name || member?.churchId || 'W').charAt(0).toUpperCase()}
+                          {(activeChurch?.name || 'W').charAt(0).toUpperCase()}
                         </Text>
                       </View>
                     )}
                     <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#1b2a4a', fontWeight: '700', textAlign: 'center' }}>
-                      {churchProfile?.name || member?.churchId || "We Christian Church"}
+                      {activeChurch?.name || "We Christian Church"}
                     </Text>
-                    {churchProfile?.address || churchProfile?.mailingCity ? (
+                    {activeChurch?.address || (activeChurch as any)?.mailingCity ? (
                       <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 4, textAlign: 'center' }}>
-                        {churchProfile?.address || `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}`}
+                        {activeChurch?.address || `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}`}
                       </Text>
                     ) : null}
                   </View>
@@ -1505,11 +1624,11 @@ export default function AdminDonationDashboard() {
                     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 }}>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>REPORT NO</Text>
-                        <Text style={styles.invValue}>{(churchProfile?.name || 'WEC').substring(0, 3).toUpperCase()}-REP-{Date.now().toString().slice(-6)}</Text>
+                        <Text style={styles.invValue}>{((activeChurch?.name || 'WEC')).substring(0, 3).toUpperCase()}-REP-{Date.now().toString().slice(-6)}</Text>
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>DATE RANGE</Text>
-                        <Text style={styles.invValue}>{reportDateFilter === 'Custom Range' && reportCustomStartDate && reportCustomEndDate ? `${reportCustomStartDate.toISOString().split('T')[0]} to ${reportCustomEndDate.toISOString().split('T')[0]}` : reportDateFilter === 'All Time' ? 'All Time' : reportDateFilter}</Text>
+                        <Text style={styles.invValue}>{reportDateFilter === 'Custom Range' && reportCustomStartDate && reportCustomEndDate ? `${formatDateDisplay(reportCustomStartDate.toISOString().split('T')[0])} to ${formatDateDisplay(reportCustomEndDate.toISOString().split('T')[0])}` : reportDateFilter === 'All Time' ? 'All Time' : reportDateFilter}</Text>
                       </View>
                       <View style={{ width: '45%' }}>
                         <Text style={styles.invLabel}>CATEGORY</Text>
@@ -1616,6 +1735,69 @@ export default function AdminDonationDashboard() {
         </View>
       )}
 
+      {/* ── Pending Donation Review Modal ── */}
+      <Modal visible={showPendingReviewModal} transparent animationType="slide">
+        <View style={styles.modalOverlayFull}>
+          <View style={styles.addExpModal}>
+            <View style={styles.addExpHeader}>
+              <Text style={styles.addExpTitle}>Review Pending Donation</Text>
+              <TouchableOpacity style={styles.addExpClose} onPress={() => setShowPendingReviewModal(false)}>
+                <X size={20} color="#645d54" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.addExpBody} showsVerticalScrollIndicator={false}>
+              
+              {selectedPendingDonation && (
+                <View>
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={styles.label}>Donor Name</Text>
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 16, color: '#1b2a4a' }}>{selectedPendingDonation.donorName || 'Member'}</Text>
+                  </View>
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={styles.label}>Amount</Text>
+                    <Text style={{ fontFamily: FONTS.mono, fontSize: 24, fontWeight: '700', color: '#1b2a4a' }}>₹{selectedPendingDonation.amount}</Text>
+                  </View>
+                  <View style={{ marginBottom: 20 }}>
+                    <Text style={styles.label}>Category</Text>
+                    <Text style={{ fontFamily: FONTS.sans, fontSize: 16, color: '#1b2a4a' }}>{selectedPendingDonation.category}</Text>
+                  </View>
+
+                  <Text style={styles.label}>Payment Screenshot</Text>
+                  {selectedPendingDonation.receiptUrl ? (
+                    <View style={{ width: '100%', height: 300, backgroundColor: '#e2e8f0', borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
+                      <Image source={{ uri: selectedPendingDonation.receiptUrl }} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
+                    </View>
+                  ) : (
+                    <View style={{ width: '100%', padding: 20, backgroundColor: '#fef2f2', borderRadius: 12, marginBottom: 20 }}>
+                      <Text style={{ color: '#dc2626', textAlign: 'center' }}>No receipt image found.</Text>
+                    </View>
+                  )}
+
+                  <View style={{ flexDirection: 'row', gap: 10, marginTop: 10, marginBottom: 40 }}>
+                    <TouchableOpacity 
+                      style={[styles.saveBtn, { flex: 1, backgroundColor: '#dc2626' }, reviewLoading && { opacity: 0.7 }]} 
+                      onPress={() => handleRejectPendingDonation(selectedPendingDonation.id)}
+                      disabled={reviewLoading}
+                    >
+                      {reviewLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnTxt}>Reject</Text>}
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity 
+                      style={[styles.saveBtn, { flex: 2, backgroundColor: '#16a34a' }, reviewLoading && { opacity: 0.7 }]} 
+                      onPress={() => handleApprovePendingDonation(selectedPendingDonation.id)}
+                      disabled={reviewLoading}
+                    >
+                      {reviewLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.saveBtnTxt}>Approve Verification</Text>}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+              
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -1660,7 +1842,7 @@ const styles = StyleSheet.create({
   // Quick Actions
   quickActions: { flexDirection: 'column', gap: 10, marginBottom: 35 },
   qaBtn: {
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12,
+    flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: 12,
     backgroundColor: '#ffffff',
     borderWidth: 1, borderColor: '#e5ddd0',
     borderRadius: 14,
@@ -1677,7 +1859,7 @@ const styles = StyleSheet.create({
   // Buttons & Chips
   btnSecondary: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#c9973f', borderRadius: 14, paddingVertical: 16, alignItems: 'center', justifyContent: 'center', marginTop: 10, marginBottom: 20, shadowColor: '#c9973f', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 2 },
   btnSecondaryTxt: { fontFamily: FONTS.sans, fontSize: 14, fontWeight: '700', color: '#c9973f' },
-  chipMini: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', backgroundColor: '#e7ebf3', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, gap: 4 },
+  chipMini: { flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', backgroundColor: '#e7ebf3', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, gap: 4 },
   chipMiniTxt: { fontFamily: FONTS.sans, fontSize: 11, fontWeight: '700', color: '#1a2d5a' },
   
   // Filter Row
@@ -1732,7 +1914,7 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 20 },
   label: { fontFamily: FONTS.sans, fontSize: 12, fontWeight: '700', color: '#645d54', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, fontSize: 14, fontFamily: FONTS.sans, color: '#241f1a' },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: 15 },
+  row: { flexDirection: 'column', gap: 15 },
   pmBtn: { backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0', borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14 },
   pmBtnActive: { backgroundColor: '#1b2a4a', borderColor: '#1b2a4a' },
   pmBtnTxt: { fontFamily: FONTS.sans, fontSize: 13, fontWeight: '600', color: '#645d54' },

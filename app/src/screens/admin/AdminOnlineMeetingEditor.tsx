@@ -71,83 +71,113 @@ export default function AdminOnlineMeetingEditor() {
     }
   }, [showSuccess]);
 
-  useEffect(() => {
-    GoogleSignin.configure({
-      scopes: ['https://www.googleapis.com/auth/calendar.events'],
-      webClientId: '962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com',
-      offlineAccess: true,
-      forceCodeForRefreshToken: false,
-    });
-  }, []);
+
+
 
   const generateMeetLinkWithToken = async (accessToken: string) => {
-    try {
-      setGeneratingMeet(true);
-      
-      const eventPayload = {
-        summary: form.title || 'Online Bible Class',
-        description: form.description || 'Virtual gathering',
-        start: { dateTime: form.startTime.toISOString() },
-        end: { dateTime: form.endTime.toISOString() },
-        conferenceData: {
-          createRequest: {
-            requestId: Math.random().toString(36).substring(7),
-            conferenceSolutionKey: { type: 'hangoutsMeet' }
-          }
-        }
-      };
+    const res = await fetch('https://meet.googleapis.com/v2/spaces', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        config: { accessType: 'OPEN' }
+      })
+    });
 
-      const res = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(eventPayload)
-      });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || 'Failed to create Meet space');
+    }
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText || 'Failed to create Calendar Event');
-      }
-
-      const data = await res.json();
-      const meetLink = data.conferenceData?.entryPoints?.find((e: any) => e.entryPointType === 'video')?.uri;
-      
-      if (meetLink) {
-        setForm(prev => ({ ...prev, meetingLink: meetLink }));
-        setSuccessMsg({ title: 'Link Generated!', sub: 'Google Meet link successfully created.' });
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 2500);
-      } else {
-        throw new Error("No meeting URI returned from Calendar.");
-      }
-    } catch (e: any) {
-      setErrorMsg(e.message || "Failed to generate link");
-      setShowError(true);
-    } finally {
-      setGeneratingMeet(false);
+    const data = await res.json();
+    const meetLink = data.meetingUri;
+    
+    if (meetLink) {
+      setForm(prev => ({ ...prev, meetingLink: meetLink }));
+      setSuccessMsg({ title: 'Link Generated!', sub: 'Google Meet link successfully created.' });
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2500);
+    } else {
+      throw new Error("No meeting URI returned from Meet API.");
     }
   };
 
   const handleGenerateMeetLink = async () => {
     setGeneratingMeet(true);
     try {
+      GoogleSignin.configure({
+        scopes: ['https://www.googleapis.com/auth/meetings.space.created'],
+        offlineAccess: false,
+        webClientId: '962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com',
+      });
       await GoogleSignin.hasPlayServices();
-      await GoogleSignin.signIn();
-      const tokens = await GoogleSignin.getTokens();
-      if (tokens.accessToken) {
-        await generateMeetLinkWithToken(tokens.accessToken);
-      } else {
-        throw new Error("No access token received from Google.");
+
+      let accessToken: string | null = null;
+      try {
+        await GoogleSignin.hasPlayServices();
+        try {
+          await GoogleSignin.signInSilently();
+          const tokens = await GoogleSignin.getTokens();
+          accessToken = tokens.accessToken;
+        } catch (silentError) {
+          // If silent fails, force sign out just to clear any corrupted state
+          await GoogleSignin.signOut().catch(() => {});
+          
+          // Interactive sign-in
+          await GoogleSignin.signIn();
+          const tokens = await GoogleSignin.getTokens();
+          accessToken = tokens.accessToken;
+        }
+      } catch (authError: any) {
+        if (authError?.message?.includes('getTokens requires a user to be signed in')) {
+          // Sometimes native state gets out of sync on Android
+          await GoogleSignin.signOut().catch(() => {});
+          throw new Error('Google Sign-In state was interrupted. Please try clicking Generate Link again.');
+        }
+        throw authError; // Pass other errors to the outer catch
       }
+
+      if (!accessToken) {
+        throw new Error('No access token received from Google.');
+      }
+
+      await generateMeetLinkWithToken(accessToken);
+
     } catch (error: any) {
+      if (error?.message?.includes('SIGN_IN_CANCELLED')) {
+        // User cancelled the sign-in flow, stop gracefully
+        setGeneratingMeet(false);
+        return;
+      }
+      
+      if (error?.message?.includes('UNAUTHENTICATED') || error?.message?.includes('401') || error?.message?.includes('invalid authentication credentials')) {
+        // The token was revoked from Google Account settings or expired
+        await GoogleSignin.signOut().catch(() => {});
+        setErrorMsg('Session expired or access revoked. Please click Generate Link again to reconnect.');
+        setShowError(true);
+        setGeneratingMeet(false);
+        return;
+      }
+
+      if (error?.message?.includes('403') || error?.message?.includes('PERMISSION_DENIED') || error?.message?.includes('insufficient')) {
+        setErrorMsg('Permission denied. Please ensure you check the box to allow Meet space creation during sign-in.');
+        setShowError(true);
+        // Force sign out so they can try again and check the box
+        await GoogleSignin.signOut().catch(() => {});
+        setGeneratingMeet(false);
+        return;
+      }
+
       console.error(error);
-      setErrorMsg(error.message || "Google Sign-In failed.");
+      setErrorMsg(error.message || 'Google Sign-In failed.');
       setShowError(true);
+    } finally {
       setGeneratingMeet(false);
     }
   };
+
 
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -400,7 +430,7 @@ export default function AdminOnlineMeetingEditor() {
           <TouchableOpacity style={styles.inputWrapper} onPress={() => setShowDatePicker(true)}>
             <CalendarIcon size={18} color="#9CA3AF" style={styles.inputIcon} />
             <Text style={[styles.input, { color: '#111827', marginTop: 0, lineHeight: 50, textAlignVertical: 'center' }]}>
-              {form.date.toLocaleDateString()}
+              {`${String(form.date.getDate()).padStart(2, '0')}/${String(form.date.getMonth() + 1).padStart(2, '0')}/${form.date.getFullYear()}`}
             </Text>
           </TouchableOpacity>
 

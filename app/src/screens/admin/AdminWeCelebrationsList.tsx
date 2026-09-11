@@ -84,7 +84,9 @@ export default function AdminWeCelebrationsList({ category, activeTab, onSelectM
               photoUrl: getValidPhotoUrl(d),
               dateStr,
               age,
-              phone: d.MobilePhone || d.Phone || '',
+              phone: d.MobilePhone || d.directPhone || d.Phone || '',
+              referencePhone: d.referencePhone || '',
+              isReferencePhone: d.isReferencePhone || false,
               rawMonth: month,
               rawDay: day,
               celebrationType: type

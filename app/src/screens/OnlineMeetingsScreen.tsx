@@ -13,8 +13,10 @@ import {
   Linking,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Video, 
+  ArrowLeft,
   ChevronLeft,
   Calendar,
   Clock,
@@ -233,15 +235,22 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor={BRAND} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft size={22} color="#fff" />
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Online Bible Classes</Text>
-        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-          <Text style={styles.themeToggleText}>{isDark ? '🌙' : '☀️'}</Text>
-        </TouchableOpacity>
-      </View>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+          <View style={styles.headerCenter} pointerEvents="box-none">
+            <Text style={styles.headerTitle}>Online Bible Classes</Text>
+          </View>
+        </View>
+      </LinearGradient>
 
       {/* Tab bar — pill style */}
       <View style={[styles.tabBar, { backgroundColor: cardBg, borderColor: border }]}>
@@ -295,31 +304,19 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
 
   header: {
-    backgroundColor: BRAND,
     paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    paddingBottom: 30,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.2 },
-  themeToggle: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  themeToggleText: { fontSize: 14 },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 28 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8, marginBottom: 4 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
 
   // Tab bar — pill style like screenshot
   tabBar: {

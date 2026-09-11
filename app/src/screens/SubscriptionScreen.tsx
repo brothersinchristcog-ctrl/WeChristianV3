@@ -4,25 +4,22 @@ import { ChevronLeft } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import SubscriptionTab from '../components/SubscriptionTab';
 
-export default function SubscriptionScreen({ navigation }: any) {
+import { useAuth } from '../context/AuthContext';
+
+export default function SubscriptionScreen({ navigation, route }: any) {
   const { isDark } = useTheme();
+  const { signOut } = useAuth();
+  
+  const isExpired = route?.params?.isExpired;
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+    <View style={[styles.container, { backgroundColor: '#F7F3E9' }]}>
+      <StatusBar barStyle="dark-content" />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerTop}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft size={24} color="#FCD34D" />
-            <Text style={styles.backBtnTxt}>Back</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Header Removed */}
 
       {/* Main Content */}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, paddingTop: Platform.OS === 'ios' ? 60 : 40 }}>
         <SubscriptionTab />
       </View>
     </View>
@@ -32,13 +29,11 @@ export default function SubscriptionScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { 
-    backgroundColor: '#1a2d5a', 
-    paddingTop: Platform.OS === 'ios' ? 50 : 20, 
-    paddingBottom: 10,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    backgroundColor: 'transparent', 
+    paddingTop: Platform.OS === 'ios' ? 60 : 40, 
+    paddingBottom: 16,
   },
-  headerTop: { flexDirection: 'row', paddingHorizontal: 20, alignItems: 'center' },
+  headerTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', height: 44, width: '100%' },
   backBtn: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-  backBtnTxt: { color: '#FCD34D', fontSize: 16, fontWeight: '700', marginLeft: 4 },
+  backBtnTxt: { color: '#1F3B3D', fontSize: 16, fontWeight: '700', marginLeft: 4 },
 });

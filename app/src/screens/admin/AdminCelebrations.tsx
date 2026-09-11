@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Linking, Platform } from 'react-native';
 import Share from 'react-native-share';
+import * as Clipboard from 'expo-clipboard';
+import * as MediaLibrary from 'expo-media-library';
+import * as Sharing from 'expo-sharing';
 import { Gift, Heart, PlusCircle, ChevronLeft } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
@@ -168,47 +171,148 @@ export default function AdminCelebrations({ navigation }: any) {
   }
 
   const handleSendWhatsApp = async (localImageUri?: string) => {
-    if (!selectedMember?.phone) {
-      Alert.alert('Error', 'This member does not have a phone number on record.');
+    // Resolve the effective phone: direct phone first, then referencePhone (parent)
+    const effectivePhone = selectedMember?.phone || selectedMember?.referencePhone;
+    if (!effectivePhone) {
+      Alert.alert('Error', 'This member does not have a phone number on record. For kids, please ensure a parent reference number is assigned in the Household section.');
       return;
     }
     
     setIsSending(true);
     try {
-      let formattedPhone = selectedMember.phone.replace(/\D/g, '');
+      let formattedPhone = effectivePhone.replace(/\D/g, '');
       if (formattedPhone.length === 10) {
         formattedPhone = `91${formattedPhone}`; 
       }
 
-      let text = `Praise the Lord!\n\n${greetingMessage || ""}`;
+      let msg = greetingMessage;
+      if (!msg && selectedMember?.name) {
+        const name = selectedMember.name.split(' ')[0];
+        const cat = selectedMember?.celebrationType || 'Birthday';
+        if (cat === 'Wedding Anniversary') {
+          msg = `Dear ${name}, wishing you a joyful Wedding Anniversary! May God continue to bless your marriage with love, peace, and happiness.`;
+        } else if (cat === 'Baptism Anniversary') {
+          msg = `Dear ${name}, happy Baptism Anniversary! May you continue to grow in faith and walk in God's grace.`;
+        } else {
+          msg = `Dear ${name}, wishing you a joy-filled birthday surrounded by God's love and grace. May this new year of life be your best yet!`;
+        }
+      }
+
+      let text = `Praise the Lord!\n\n${msg || ""}`;
       if (selectedVerse?.text) {
          text += `\n\n"${selectedVerse.text}"\n— ${selectedVerse.ref}`;
       }
-      
       text += `\n\nWith Love ❤️\n${activeChurch?.name || 'Your Church'}`;
-      
+
+      // Always copy full message text to clipboard as guaranteed backup
+      try {
+        await Clipboard.setStringAsync(text);
+      } catch (clipErr) {
+        console.log('Clipboard copy failed:', clipErr);
+      }
+
+      const memberCleanName = (selectedMember.name || 'Member').replace(/[^a-zA-Z0-9]/g, '_');
+
+      // ── Scenario A: Card Image is Available ──
       if (localImageUri) {
+        // 1. Save high-res card to gallery so admin always has it preserved
+        try {
+          MediaLibrary.saveToLibraryAsync(localImageUri).catch((e: any) => console.log('Non-blocking media save:', e));
+        } catch (e) {
+          console.log('Non-blocking media save error:', e);
+        }
+
+        let fileUri = localImageUri;
+        if (!fileUri.startsWith('file://') && !fileUri.startsWith('content://') && !fileUri.startsWith('data:')) {
+          fileUri = `file://${fileUri}`;
+        }
+
+        let targetSocial = Share.Social.WHATSAPP;
+        if (Platform.OS === 'android') {
+          try {
+            const waInstalled = await Share.isPackageInstalled('com.whatsapp');
+            const wabInstalled = await Share.isPackageInstalled('com.whatsapp.w4b');
+            if (!waInstalled?.isInstalled && wabInstalled?.isInstalled) {
+              targetSocial = Share.Social.WHATSAPPBUSINESS;
+            }
+          } catch (pkgErr) {
+            console.log('Error checking WA package:', pkgErr);
+          }
+        }
+
+        // Attempt 1: Native Share with WhatsApp pre-selected (Social.WHATSAPP)
+        // Passes both url (the greeting card) and message (text caption)
         try {
           await Share.shareSingle({
-            title: 'Share Celebration Card',
+            title: `${selectedMember.name}'s Celebration Card`,
             message: text,
-            url: localImageUri,
-            social: Share.Social.WHATSAPP,
-            whatsAppNumber: formattedPhone
+            url: fileUri,
+            type: 'image/png',
+            social: targetSocial,
+            filename: `Celebration_${memberCleanName}`,
           } as any);
+
           setViewMode('confirm');
-        } catch (err: any) {
-          console.log('Share error or cancelled:', err);
-          // If cancelled, it might throw, just continue
+          return;
+        } catch (shareSingleErr: any) {
+          console.log('shareSingle failed, trying Share.open with image + caption:', shareSingleErr);
         }
-      } else {
-        const url = `whatsapp://send?phone=${formattedPhone}&text=${encodeURIComponent(text)}`;
-        const canOpen = await Linking.canOpenURL(url);
-        if (canOpen) {
-            await Linking.openURL(url);
+
+        // Attempt 2: Native system chooser with image card + message caption
+        // When user taps WhatsApp in chooser, WhatsApp receives the image AND puts text in caption
+        try {
+          await Share.open({
+            title: `${selectedMember.name}'s Celebration Card`,
+            message: text,
+            url: fileUri,
+            type: 'image/png',
+            filename: `Celebration_${memberCleanName}`,
+          });
+          setViewMode('confirm');
+          return;
+        } catch (shareOpenErr: any) {
+          console.log('Share.open was dismissed or failed, attempting expo-sharing fallback:', shareOpenErr);
+        }
+
+        // Attempt 3: Expo Sharing with the image card
+        try {
+          const isSharingAvailable = await Sharing.isAvailableAsync();
+          if (isSharingAvailable) {
+            await Sharing.shareAsync(fileUri, {
+              dialogTitle: `Share ${selectedMember.name}'s Celebration Card`,
+              mimeType: 'image/png',
+              UTI: 'public.png',
+            });
             setViewMode('confirm');
-        } else {
-            Alert.alert('Error', 'WhatsApp is not installed on your device.');
+            return;
+          }
+        } catch (expoShareErr: any) {
+          console.log('Expo sharing failed:', expoShareErr);
+        }
+      }
+
+      // ── Scenario B: Direct Contact Deeplink ──
+      // Use https://wa.me/ or https://api.whatsapp.com/ which WhatsApp natively supports
+      // to guarantee the prepared text is never empty
+      const encodedText = encodeURIComponent(text);
+      const waMeUrl = `https://wa.me/${formattedPhone}?text=${encodedText}`;
+      const apiWaUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedText}`;
+      const schemeUrl = `whatsapp://send?phone=${formattedPhone}&text=${encodedText}`;
+
+      try {
+        await Linking.openURL(waMeUrl);
+        setViewMode('confirm');
+      } catch (waMeErr) {
+        try {
+          await Linking.openURL(apiWaUrl);
+          setViewMode('confirm');
+        } catch (apiErr) {
+          try {
+            await Linking.openURL(schemeUrl);
+            setViewMode('confirm');
+          } catch (schemeErr) {
+            Alert.alert('Error', 'WhatsApp is not installed or could not be opened on your device.');
+          }
         }
       }
     } catch (error: any) {
@@ -275,8 +379,16 @@ export default function AdminCelebrations({ navigation }: any) {
             // Reset personalization state when starting a new wish
             setSelectedThemeId(null);
             setSelectedVerse(null);
-            setGreetingMessage('');
-            setTitleOverlay((selectedMember?.celebrationType || 'Birthday'));
+            const name = (selectedMember?.name || '').split(' ')[0];
+            const cat = selectedMember?.celebrationType || 'Birthday';
+            let defaultMsg = `Dear ${name}, wishing you a joy-filled birthday surrounded by God's love and grace. May this new year of life be your best yet!`;
+            if (cat === 'Wedding Anniversary') {
+              defaultMsg = `Dear ${name}, wishing you a joyful Wedding Anniversary! May God continue to bless your marriage with love, peace, and happiness.`;
+            } else if (cat === 'Baptism Anniversary') {
+              defaultMsg = `Dear ${name}, happy Baptism Anniversary! May you continue to grow in faith and walk in God's grace.`;
+            }
+            setGreetingMessage(defaultMsg);
+            setTitleOverlay(cat);
             setNameOverlay(selectedMember?.name || '');
             setViewMode('personalize');
           }}
@@ -370,12 +482,12 @@ export default function AdminCelebrations({ navigation }: any) {
         />
       );
     case 'preview': {
-      // Find full theme object (default to royal if not found)
-      let themeObj = THEMES.find(t => t.id === selectedThemeId);
+      // Find full theme object (default to royalblue if not found)
+      let themeObj = THEMES.find(t => t.id === selectedThemeId || (t.id === 'royalblue' && selectedThemeId === 'royal') || (t.id === 'royal' && selectedThemeId === 'royalblue'));
       if (!themeObj && selectedThemeId?.startsWith('custom_')) {
         themeObj = activeChurch?.customThemes?.find((t: any) => t.id === selectedThemeId);
       }
-      if (!themeObj) themeObj = { id: 'royal', title: 'Royal Blue', color: '#1E2A63', c: ['#5A6BC4', '#1E2A63'] } as any;
+      if (!themeObj) themeObj = { id: 'royalblue', title: 'Royal Blue', color: '#1E2A63', c: ['#5A6BC4', '#1E2A63'] } as any;
 
       if (layout === 'photo' && photoUri) {
         themeObj = { ...themeObj, imageUrl: photoUri } as any;
@@ -400,11 +512,11 @@ export default function AdminCelebrations({ navigation }: any) {
       );
     }
     case 'whatsapp': {
-      let themeObj = THEMES.find(t => t.id === selectedThemeId);
+      let themeObj = THEMES.find(t => t.id === selectedThemeId || (t.id === 'royalblue' && selectedThemeId === 'royal') || (t.id === 'royal' && selectedThemeId === 'royalblue'));
       if (!themeObj && selectedThemeId?.startsWith('custom_')) {
         themeObj = activeChurch?.customThemes?.find((t: any) => t.id === selectedThemeId);
       }
-      if (!themeObj) themeObj = { id: 'royal', title: 'Royal Blue', color: '#1E2A63', c: ['#5A6BC4', '#1E2A63'] } as any;
+      if (!themeObj) themeObj = { id: 'royalblue', title: 'Royal Blue', color: '#1E2A63', c: ['#5A6BC4', '#1E2A63'] } as any;
       if (layout === 'photo' && photoUri) {
         themeObj = { ...themeObj, imageUrl: photoUri } as any;
       }
@@ -531,7 +643,8 @@ export default function AdminCelebrations({ navigation }: any) {
 const THEMES = [
   { id: 'floral', title: 'Floral Celebration', c: ['#E7C767', '#BE9A3A'] },
   { id: 'golden', title: 'Golden Blessings', c: ['#F3D98B', '#B4842A'] },
-  { id: 'royal', title: 'Royal Blue', c: ['#5A6BC4', '#1E2A63'] },
+  { id: 'royalblue', title: 'Royal Blue', color: '#1E2A63', c: ['#5A6BC4', '#1E2A63'] },
+  { id: 'royal', title: 'Royal Blue', color: '#1E2A63', c: ['#5A6BC4', '#1E2A63'] },
   { id: 'worship', title: 'Church Worship', c: ['#8A6FBF', '#3D2C6B'] },
   { id: 'white', title: 'Elegant White', c: ['#FDFBF6', '#E4DAC2'] },
   { id: 'balloons', title: 'Balloons', c: ['#F09A9A', '#E7C767'] },

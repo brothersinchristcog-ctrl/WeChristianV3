@@ -43,9 +43,9 @@ const FONTS = {
 };
 
 export default function AdminEventList() {
-  const { setActiveTab, setEditingData } = useContext(AdminTabContext);
+  const { setActiveTab, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [events, setEvents] = useState<any[]>([]);
-  const [filterType, setFilterType] = useState<'Upcoming' | 'Past'>('Upcoming');
+  const [filterType, setFilterType] = useState<'Upcoming' | 'Past' | 'Published'>('Upcoming');
   const [loading, setLoading] = useState(true);
   const [eventToDelete, setEventToDelete] = useState<any>(null);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
@@ -95,6 +95,7 @@ export default function AdminEventList() {
       const timePart = sfTime.split('.')[0]; // Get HH:mm:ss
       const [hours, minutes] = timePart.split(':');
       let h = parseInt(hours, 10);
+      if (isNaN(h)) return 'Time TBD'; // Fallback for corrupted data
       const ampm = h >= 12 ? 'PM' : 'AM';
       h = h % 12;
       h = h ? h : 12;
@@ -106,7 +107,8 @@ export default function AdminEventList() {
 
   const handleEdit = (event: any) => {
     setEditingData(event);
-    setActiveTab(9); // Switch to Event Editor tab
+    if (setTabByName) setTabByName('New Event');
+    else setActiveTab(10); // fallback
   };
 
   const confirmDeleteEvent = async (deleteMode?: 'single' | 'future') => {
@@ -156,7 +158,7 @@ export default function AdminEventList() {
                 <Text style={[styles.heroSub, { marginTop: 2 }]}>{events.length} total · {upcomingCount} upcoming</Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); setActiveTab(9); }}>
+            <TouchableOpacity style={styles.newBtn} onPress={() => { setEditingData(null); if (setTabByName) setTabByName('New Event'); else setActiveTab(10); }}>
               <Plus size={16} color="#1a2d5a" />
               <Text style={styles.newBtnTxt}>New</Text>
             </TouchableOpacity>
@@ -165,7 +167,7 @@ export default function AdminEventList() {
 
         {/* ── Stats Row ── */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <TouchableOpacity style={[styles.statCard, filterType === 'Published' && styles.activeStatCard]} onPress={() => setFilterType('Published')}>
             <Text style={[styles.statNum, { color: '#15803D' }]}>
               {events.filter(e => 
                 !e.status || 
@@ -174,7 +176,7 @@ export default function AdminEventList() {
               ).length}
             </Text>
             <Text style={styles.statLbl}>Published</Text>
-          </View>
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.statCard, filterType === 'Upcoming' && styles.activeStatCard]} onPress={() => setFilterType('Upcoming')}>
             <Text style={[styles.statNum, { color: '#c0392b' }]}>{upcomingCount}</Text>
             <Text style={styles.statLbl}>Upcoming</Text>
@@ -185,13 +187,18 @@ export default function AdminEventList() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.listLabel}>{filterType === 'Upcoming' ? 'Upcoming events' : 'Past events'}</Text>
+        <Text style={styles.listLabel}>{filterType === 'Upcoming' ? 'Upcoming events' : filterType === 'Published' ? 'Published events' : 'Past events'}</Text>
 
         {events
-          .filter(e => filterType === 'Upcoming' ? e.date >= today : e.date < today)
-          .sort((a, b) => filterType === 'Upcoming' 
-             ? new Date(a.date).getTime() - new Date(b.date).getTime() 
-             : new Date(b.date).getTime() - new Date(a.date).getTime()
+          .filter(e => {
+            if (filterType === 'Published') {
+              return !e.status || e.status.toLowerCase().includes('pub') || e.status.toLowerCase().includes('act');
+            }
+            return filterType === 'Upcoming' ? e.date >= today : e.date < today;
+          })
+          .sort((a, b) => filterType === 'Past' 
+             ? new Date(b.date).getTime() - new Date(a.date).getTime()
+             : new Date(a.date).getTime() - new Date(b.date).getTime()
           )
           .map((event, idx) => (
           <View key={event.id} style={[styles.eventItem, idx === 0 && styles.featuredItem]}>
@@ -203,22 +210,22 @@ export default function AdminEventList() {
               )}
             </TouchableOpacity>
             <View style={styles.eiBody}>
-              <Text style={styles.eiTitle} numberOfLines={1}>{event.name || 'No Title'}</Text>
-              <Text style={styles.eiTe} numberOfLines={1}>{event.titleTe || ''}</Text>
+              <Text style={[styles.eiTitle, { flexShrink: 1 }]} numberOfLines={1}>{event.name || 'No Title'}</Text>
+              <Text style={[styles.eiTe, { flexShrink: 1 }]} numberOfLines={1}>{event.titleTe || ''}</Text>
               <View style={styles.eiMetaRow}>
                 <Calendar size={11} color="#c0392b" />
                 <Text style={[styles.eiMetaTxt, { color: '#c0392b', fontWeight: '700' }]}>{formatDate(event.date)}</Text>
               </View>
               <View style={styles.eiMetaRow}>
                 <Clock size={11} color="#6B7280" />
-                <Text style={styles.eiMetaTxt} numberOfLines={1}>
+                <Text style={[styles.eiMetaTxt, { flexShrink: 1 }]} numberOfLines={1}>
                   {formatDisplayTime(event.startTime)}
                   {event.endTime ? ` — ${formatDisplayTime(event.endTime)}` : ''}
                 </Text>
               </View>
               <View style={styles.eiMetaRow}>
                 <MapPin size={11} color="#6B7280" />
-                <Text style={styles.eiMetaTxt} numberOfLines={1}>{event.venueEn || event.location || 'No Venue'}</Text>
+                <Text style={[styles.eiMetaTxt, { flexShrink: 1 }]} numberOfLines={1}>{event.venueEn || event.location || 'No Venue'}</Text>
               </View>
               <View style={styles.eiFoot}>
                 <View style={[event.status?.toLowerCase().includes('dra') ? styles.badgeDraft : styles.badgePub, { flexShrink: 1 }]}>

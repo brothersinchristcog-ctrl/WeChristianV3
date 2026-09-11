@@ -15,6 +15,8 @@ import { Info, Save, ChevronLeft, RefreshCw, Edit2, Eye, Target } from 'lucide-r
 import firestore from '@react-native-firebase/firestore';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import firestoreService from '../../services/FirestoreService';
+import { useChurch } from '../../context/ChurchContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface AboutUsData {
   churchName: string;
@@ -35,6 +37,8 @@ const DEFAULT_ABOUT: AboutUsData = {
 
 export default function AdminAboutUsEditor() {
   const { goBack } = useContext(AdminTabContext);
+  const { activeChurch } = useChurch();
+  const insets = useSafeAreaInsets();
 
   const [data, setData] = useState<AboutUsData>(DEFAULT_ABOUT);
   const [draft, setDraft] = useState<AboutUsData>(DEFAULT_ABOUT);
@@ -50,14 +54,25 @@ export default function AdminAboutUsEditor() {
       if (doc.exists()) {
         const d = doc.data() as AboutUsData;
         const fetched: AboutUsData = {
-          churchName: d.churchName || DEFAULT_ABOUT.churchName,
-          churchSubtitle: d.churchSubtitle || DEFAULT_ABOUT.churchSubtitle,
-          description: d.description || DEFAULT_ABOUT.description,
-          mission: d.mission || DEFAULT_ABOUT.mission,
-          vision: d.vision || DEFAULT_ABOUT.vision,
+          churchName: d.churchName || activeChurch?.name || '',
+          churchSubtitle: d.churchSubtitle || '',
+          description: d.description || activeChurch?.aboutUs || '',
+          mission: d.mission || '',
+          vision: d.vision || '',
         };
         setData(fetched);
         setDraft(fetched);
+      } else {
+        const fallback: AboutUsData = {
+          churchName: activeChurch?.name || '',
+          churchSubtitle: '',
+          description: activeChurch?.aboutUs || '',
+          mission: '',
+          vision: '',
+        };
+        setData(fallback);
+        setDraft(fallback);
+        setIsEditing(true); // Automatically open in edit mode if empty
       }
       // If doc doesn't exist yet, silently use defaults
     } catch (err) {
@@ -106,8 +121,8 @@ export default function AdminAboutUsEditor() {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.container}>
 
-                {/* ── Fixed Header ── */}
-                <View style={styles.header}>
+        {/* ── Fixed Header ── */}
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
           <TouchableOpacity onPress={goBack} style={styles.backBtn}>
             <ChevronLeft size={22} color="#fff" />
             <Text style={styles.backBtnTxt}>Back</Text>

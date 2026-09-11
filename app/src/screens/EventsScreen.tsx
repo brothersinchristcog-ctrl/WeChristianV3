@@ -13,8 +13,9 @@ import {
   Alert,
   Image
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
-  ChevronLeft, 
+  ArrowLeft, 
   MapPin, 
   CalendarCheck,
   Calendar,
@@ -187,18 +188,24 @@ export default function EventsScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* ── Page Header ── */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
         
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Events Archive</Text>
-          <Text style={styles.headerSub}>కార్యక్రమాల జాబితా</Text>
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
+            <Text style={styles.headerTitle}>Events Archive</Text>
+          </View>
         </View>
-        <View style={{ width: 60 }} />
-      </View>
+
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       {/* Tabs */}
       <View style={styles.tabContainer}>
@@ -262,31 +269,33 @@ const styles = StyleSheet.create({
   // Header
   header: {
     backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 25,
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
     paddingBottom: 25,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5, minWidth: 60 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  backBtn: { zIndex: 10, padding: 5 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
   headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
 
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    gap: 10,
-    elevation: 2,
+    marginTop: 15,
+    marginHorizontal: 16,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    borderRadius: 30,
+    gap: 4,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
     marginBottom: 5,
   },
   tabBtn: {

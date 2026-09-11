@@ -35,8 +35,11 @@ import {
 import { AdminTabContext } from '../../context/AdminTabContext';
 import FirestoreService, { ChurchExpense, ChurchInvoice } from '../../services/FirestoreService';
 import { useAuth } from '../../context/AuthContext';
+import { useChurch } from '../../context/ChurchContext';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import * as DocumentPicker from 'expo-document-picker';
+import { FontAwesome5, Ionicons } from '@expo/vector-icons';
+import { formatDateDisplay } from '../../utils/DateUtils';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
@@ -45,15 +48,25 @@ import * as FileSystem from 'expo-file-system';
 import firestore from '@react-native-firebase/firestore';
 import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
 type FilterPeriod = 'Today' | 'Week' | 'Month' | 'Year' | 'Custom Range';
 type SubTab = 'dashboard' | 'expenses' | 'invoices' | 'editor';
 
+const EXPENSE_GROUPS: Record<string, string[]> = {
+  'General': ['Water', 'Snacks', 'Tea', 'Flowers', 'Sound System', 'Décor', 'Transport', 'Printing', 'Electricity', 'Stationery', 'Cleaning Supplies', 'Musical Instruments', 'Honorarium'],
+  'Vegetables': ['Tomato', 'Onion', 'Potato', 'Carrot', 'Cabbage', 'Chilli', 'Garlic', 'Ginger', 'Beans', 'Brinjal', 'Lemon', 'Coriander'],
+  'Groceries': ['Rice', 'Sugar', 'Salt', 'Cooking Oil', 'Dal', 'Spices', 'Wheat/Atta', 'Milk', 'Tea Powder', 'Coffee Powder']
+};
+
 export default function AdminFinanceDashboard({ navigation, routeParams }: any) {
+  const insets = useSafeAreaInsets();
   const { setActiveTab } = useContext(AdminTabContext);
   const { member } = useAuth();
+  const { activeChurch } = useChurch();
+  // churchProfile is now sourced from activeChurch (ChurchContext)
   const [expenses, setExpenses] = useState<ChurchExpense[]>([]);
   const [invoices, setInvoices] = useState<ChurchInvoice[]>([]);
 
@@ -71,7 +84,7 @@ export default function AdminFinanceDashboard({ navigation, routeParams }: any) 
   const [isMultiCatSelecting, setIsMultiCatSelecting] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [churchProfile, setChurchProfile] = useState<any>(null);
+  // churchProfile replaced by activeChurch
 
   const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
   const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
@@ -93,11 +106,6 @@ export default function AdminFinanceDashboard({ navigation, routeParams }: any) 
   const [newCategoryName, setNewCategoryName] = useState('');
 
   // Add Expense Modal State
-  const EXPENSE_GROUPS = {
-    'General': ['Water', 'Snacks', 'Tea', 'Flowers', 'Sound System', 'Décor', 'Transport', 'Printing', 'Electricity', 'Stationery', 'Cleaning Supplies', 'Musical Instruments', 'Honorarium'],
-    'Vegetables': ['Tomato', 'Onion', 'Potato', 'Carrot', 'Cabbage', 'Chilli', 'Garlic', 'Ginger', 'Beans', 'Brinjal', 'Lemon', 'Coriander'],
-    'Groceries': ['Rice', 'Sugar', 'Salt', 'Cooking Oil', 'Dal', 'Spices', 'Wheat/Atta', 'Milk', 'Tea Powder', 'Coffee Powder']
-  };
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [addExpCategory, setAddExpCategory] = useState('Sunday Service');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -155,9 +163,26 @@ export default function AdminFinanceDashboard({ navigation, routeParams }: any) 
         const cDoc = await firestore().collection('churches').doc(churchId).get();
         const docData: any = typeof cDoc.data === 'function' ? cDoc.data() : cDoc.data;
         if (docData) {
-          setChurchProfile(docData);
-          if (docData.customExpenseItems) {
-            setCustomExpenseItems(docData.customExpenseItems);
+          if (docData.customExpenseItems && typeof docData.customExpenseItems === 'object') {
+            const sanitized: Record<string, string[]> = {};
+            for (const [grp, arr] of Object.entries(docData.customExpenseItems)) {
+              if (Array.isArray(arr)) {
+                const defaultItems = EXPENSE_GROUPS[grp] || [];
+                const defaultLower = new Set(defaultItems.map(i => i.trim().toLowerCase()));
+                const seen = new Set<string>();
+                sanitized[grp] = arr.filter((item: any) => {
+                  if (typeof item !== 'string') return false;
+                  const trimmed = item.trim();
+                  const lower = trimmed.toLowerCase();
+                  if (!trimmed || defaultLower.has(lower) || seen.has(lower)) {
+                    return false;
+                  }
+                  seen.add(lower);
+                  return true;
+                });
+              }
+            }
+            setCustomExpenseItems(sanitized);
           }
           if (docData.customCategories && Array.isArray(docData.customCategories)) {
             setCategories(prev => Array.from(new Set([...prev, ...docData.customCategories])));
@@ -257,7 +282,7 @@ const openAddExpense = () => {
       t.push(exp.title || 'General');
       li[exp.title || 'General'] = { qty: '1', price: String(exp.amount) };
     }
-    setSelectedTypes(t);
+    setSelectedTypes(Array.from(new Set(t)));
     setLineItems(li);
     
     setExpenseDate(exp.date);
@@ -271,7 +296,7 @@ const openAddExpense = () => {
 
   const handleDownloadImage = async () => {
     try {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== 'granted') {
         Alert.alert('Permission Denied', 'Please grant permission to save photos to your gallery.');
         return;
@@ -291,11 +316,11 @@ const openAddExpense = () => {
 
   const generateInvoiceHtml = () => {
     const invDate = new Date().toISOString().split('T')[0];
-    const cName = churchProfile?.name || member?.churchId || "We Christian Finance";
+    const cName = activeChurch?.name || "We Christian Finance";
     const userName = member?.name || (member?.firstName ? `${member.firstName} ${member.lastName || ''}`.trim() : 'Admin');
-    const cAddress = churchProfile?.address || churchProfile?.mailingCity ? `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}` : "";
-    const cPhone = churchProfile?.phone || "";
-    const logoUrl = churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto || null;
+    const cAddress = activeChurch?.address || (activeChurch as any)?.mailingCity ? `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}` : "";
+    const cPhone = (activeChurch as any)?.phone || "";
+    const logoUrl = activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto || null;
     
     const filteredExp = expenses.filter(e => selectedInvoiceExpenses.includes(e.id || ''));
     const totalAmt = filteredExp.reduce((sum, e) => sum + e.amount, 0);
@@ -381,8 +406,8 @@ const openAddExpense = () => {
               </div>
             </div>
             <div class="meta">
-              <div class="meta-box"><div class="label">INVOICE NO</div><div class="value">${selectedInvoiceForApproval?.id || ('INV-' + (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase() + '-' + String(invoices.length + 1).padStart(7, '0'))}</div></div>
-              <div class="meta-box"><div class="label">INVOICE DATE</div><div class="value">${invDate}</div></div>
+              <div class="meta-box"><div class="label">INVOICE NO</div><div class="value">${selectedInvoiceForApproval?.id || ('INV-' + (activeChurch?.name || 'WEC').substring(0, 3).toUpperCase() + '-' + String(invoices.length + 1).padStart(7, '0'))}</div></div>
+              <div class="meta-box"><div class="label">INVOICE DATE</div><div class="value">${formatDateDisplay(invDate)}</div></div>
               <div class="meta-box"><div class="label">CATEGORY</div><div class="value">${invoiceCategory}</div></div>
               <div class="meta-box"><div class="label">PREPARED BY</div><div class="value">${selectedInvoiceForApproval?.preparedBy || userName}</div></div>
               <div class="meta-box"><div class="label">REPORTED BY</div><div class="value">${(selectedInvoiceForApproval?.reportedByNames && selectedInvoiceForApproval.reportedByNames.length > 0) ? selectedInvoiceForApproval.reportedByNames.join(', ') : (selectedInvoiceForApproval?.reportedByName || userName)}</div></div>
@@ -421,7 +446,7 @@ const openAddExpense = () => {
       delete newLineItems[type];
       setLineItems(newLineItems);
     } else {
-      setSelectedTypes([...selectedTypes, type]);
+      setSelectedTypes(Array.from(new Set([...selectedTypes, type])));
       setLineItems({...lineItems, [type]: { qty: '1', price: '0' }});
     }
   };
@@ -451,7 +476,7 @@ const openAddExpense = () => {
       return;
     }
     const totalAmt = expenses.filter(e => selectedInvoiceExpenses.includes(e.id!)).reduce((sum, e) => sum + e.amount, 0);
-    const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
+    const churchCode = (activeChurch?.name || 'WEC').substring(0, 3).toUpperCase();
     const uniqueId = String(invoices.length + 1).padStart(7, '0');
     const newInvId = `INV-${churchCode}-${uniqueId}`;
     const invData: Partial<ChurchInvoice> = {
@@ -481,7 +506,7 @@ const openAddExpense = () => {
               content: `${member?.name || 'A user'} has submitted a new expense invoice (${newInvId}) for your approval.`,
               type: 'invoice',
               id: newInvId,
-              targetChurchId: churchProfile?.id || '',
+              targetChurchId: activeChurch?.id || '',
               targetPhone: approver.phone,
               date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
             });
@@ -516,7 +541,7 @@ const openAddExpense = () => {
             content: `Your expense invoice (${selectedInvoiceForApproval.id}) was ${actionType === 'Approve' ? 'Approved' : (actionType === 'Reject' ? 'Rejected' : 'marked for Changes Requested')} by ${member?.name || 'an Admin'}.`,
             type: 'invoice',
             id: selectedInvoiceForApproval.id,
-            targetChurchId: churchProfile?.id || '',
+            targetChurchId: activeChurch?.id || '',
             targetPhone: selectedInvoiceForApproval.submitterPhone,
             date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
           });
@@ -574,7 +599,7 @@ const openAddExpense = () => {
 
       let newExpId = editExpenseId;
       if (!editExpenseId) {
-        const churchCode = (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase();
+        const churchCode = (activeChurch?.name || 'WEC').substring(0, 3).toUpperCase();
         const uniqueId = String(expenses.length + 1).padStart(6, '0');
         newExpId = `Exp-${churchCode}-${uniqueId}`;
       }
@@ -741,7 +766,7 @@ const openAddExpense = () => {
       <StatusBar barStyle="light-content" />
       
       {/* ── Hero Section ── */}
-      <View style={styles.hero}>
+      <View style={[styles.hero, { paddingTop: Math.max(insets.top, 10) }]}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
             <TouchableOpacity 
@@ -763,13 +788,13 @@ const openAddExpense = () => {
             </TouchableOpacity>
             <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
             <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Text style={[styles.heroTitle, currentSubTab === 'dashboard' && { color: '#FCD34D' }]} numberOfLines={1}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingRight: 4 }}>
+                <Text style={[styles.heroTitle, currentSubTab === 'dashboard' && { color: '#FCD34D' }, { flex: 1 }]} numberOfLines={1} adjustsFontSizeToFit>
                   {currentSubTab === 'dashboard' ? 'Dashboard' : 
                    currentSubTab === 'expenses' ? (selectedCategoryView ? 'Expenses' : 'Expenses') : 'Invoices'}
                 </Text>
                 <TouchableOpacity 
-                  style={{ backgroundColor: '#c9973f', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20, marginLeft: 14 }}
+                  style={{ backgroundColor: '#c9973f', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, marginLeft: 10, flexShrink: 0 }}
                   onPress={openAddExpense}
                 >
                   <Text style={{ color: '#141d33', fontSize: 11, fontWeight: '700' }}>+ New Expense</Text>
@@ -784,27 +809,31 @@ const openAddExpense = () => {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.mainScroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.mainScroll, { paddingBottom: 110 + insets.bottom }]} showsVerticalScrollIndicator={false}>
         
         {/* ================= DASHBOARD ================= */}
         {currentSubTab === 'dashboard' && (
           <View>
             <View style={styles.summaryGrid}>
-              <View style={styles.sumCard}>
-                <Text style={styles.sumLabel}>Today</Text>
-                <Text style={styles.sumValue}>₹{stats.today.toLocaleString('en-IN')}</Text>
+              <View style={styles.summaryRow}>
+                <View style={styles.sumCard}>
+                  <Text style={styles.sumLabel}>Today</Text>
+                  <Text style={styles.sumValue} numberOfLines={1} adjustsFontSizeToFit>₹{stats.today.toLocaleString('en-IN')}</Text>
+                </View>
+                <View style={styles.sumCard}>
+                  <Text style={styles.sumLabel}>This Week</Text>
+                  <Text style={styles.sumValue} numberOfLines={1} adjustsFontSizeToFit>₹{stats.thisWeek.toLocaleString('en-IN')}</Text>
+                </View>
               </View>
-              <View style={styles.sumCard}>
-                <Text style={styles.sumLabel}>This Week</Text>
-                <Text style={styles.sumValue}>₹{stats.thisWeek.toLocaleString('en-IN')}</Text>
-              </View>
-              <View style={styles.sumCard}>
-                <Text style={styles.sumLabel}>This Month</Text>
-                <Text style={styles.sumValue}>₹{stats.thisMonth.toLocaleString('en-IN')}</Text>
-              </View>
-              <View style={styles.sumCard}>
-                <Text style={styles.sumLabel}>This Year</Text>
-                <Text style={styles.sumValue}>₹{stats.thisYear.toLocaleString('en-IN')}</Text>
+              <View style={styles.summaryRow}>
+                <View style={styles.sumCard}>
+                  <Text style={styles.sumLabel}>This Month</Text>
+                  <Text style={styles.sumValue} numberOfLines={1} adjustsFontSizeToFit>₹{stats.thisMonth.toLocaleString('en-IN')}</Text>
+                </View>
+                <View style={styles.sumCard}>
+                  <Text style={styles.sumLabel}>This Year</Text>
+                  <Text style={styles.sumValue} numberOfLines={1} adjustsFontSizeToFit>₹{stats.thisYear.toLocaleString('en-IN')}</Text>
+                </View>
               </View>
             </View>
 
@@ -856,7 +885,7 @@ const openAddExpense = () => {
                     <View style={styles.catBody}>
                       <View>
                         <Text style={styles.catName}>{group.title}</Text>
-                        <Text style={styles.catMeta}>{group.items.length} items • {group.date}</Text>
+                        <Text style={styles.catMeta}>{group.items.length} items • {formatDateDisplay(group.date)}</Text>
                       </View>
                       <Text style={styles.catAmt}>₹{group.total.toLocaleString('en-IN')}</Text>
                     </View>
@@ -969,10 +998,10 @@ const openAddExpense = () => {
                                   ? exp.lineItems[0].type + (exp.lineItems.length > 1 ? ` (+${exp.lineItems.length - 1} more)` : '')
                                   : exp.title || `${exp.category} Expense`}
                             </Text>
-                            <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginBottom: 8 }}>
-                              {exp.date} • {exp.paymentMethod || 'Cash'} {exp.lineItems && exp.lineItems.length > 0 ? `• ${exp.lineItems.length} items` : ''}
+                            <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54', marginTop: 2 }}>
+                              {formatDateDisplay(exp.date)} • {exp.paymentMethod || 'Cash'} {exp.lineItems && exp.lineItems.length > 0 ? `• ${exp.lineItems.length} items` : ''}
                             </Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
                               <View style={{ backgroundColor: exp.status === 'Pending' ? '#fef3c7' : '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
                                 <Text style={{ fontSize: 11, color: exp.status === 'Pending' ? '#b45309' : '#15803d', fontWeight: '700' }}>
                                   {exp.status || 'Paid'}
@@ -1082,7 +1111,7 @@ const openAddExpense = () => {
                       onPress={() => setShowCustomStartPicker(true)}
                     >
                       <Text style={[styles.customRangeInputTxt, !customStartDate && { color: '#a89f92' }]} numberOfLines={1} adjustsFontSizeToFit>
-                        {customStartDate ? customStartDate.toLocaleDateString('en-GB').replace(/\//g, '-') : 'Select'}
+                        {customStartDate ? formatDateDisplay(getLocalDateStr(customStartDate)) : 'Select'}
                       </Text>
                       <Calendar size={14} color="#1b2a4a" />
                     </TouchableOpacity>
@@ -1094,7 +1123,7 @@ const openAddExpense = () => {
                       onPress={() => setShowCustomEndPicker(true)}
                     >
                       <Text style={[styles.customRangeInputTxt, !customEndDate && { color: '#a89f92' }]} numberOfLines={1} adjustsFontSizeToFit>
-                        {customEndDate ? customEndDate.toLocaleDateString('en-GB').replace(/\//g, '-') : 'Select'}
+                        {customEndDate ? formatDateDisplay(getLocalDateStr(customEndDate)) : 'Select'}
                       </Text>
                       <Calendar size={14} color="#1b2a4a" />
                     </TouchableOpacity>
@@ -1291,7 +1320,7 @@ const openAddExpense = () => {
                   <View style={styles.catBody}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.catName, { fontFamily: FONTS.serif, fontWeight: '700' }]}>{inv.id}</Text>
-                      <Text style={styles.catMeta}>{inv.category} • {inv.date}</Text>
+                      <Text style={styles.catMeta}>{inv.category} • {formatDateDisplay(inv.date)}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={[styles.catAmt, { fontSize: 14 }]}>₹{(inv.amount || 0).toLocaleString('en-IN')}</Text>
@@ -1320,11 +1349,11 @@ const openAddExpense = () => {
           </View>
         )}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 90 + insets.bottom }} />
       </ScrollView>
 
       {/* ── Bottom Nav ── */}
-      <View style={styles.tabbar}>
+      <View style={[styles.tabbar, { bottom: Math.max(insets.bottom, 14) + (Platform.OS === 'ios' ? 14 : 10) }]}>
         <TouchableOpacity 
           style={styles.tabBtn} 
           onPress={() => setCurrentSubTab('dashboard')}
@@ -1352,7 +1381,7 @@ const openAddExpense = () => {
 
       {/* Toast */}
       {showToast && (
-        <View style={styles.toastContainer}>
+        <View style={[styles.toastContainer, { bottom: 100 + insets.bottom }]}>
           <View style={styles.toast}>
             <Text style={styles.toastText}>{toastMessage}</Text>
           </View>
@@ -1456,16 +1485,25 @@ const openAddExpense = () => {
               <Text style={[styles.catModalLabel, { marginTop: showCategoryDropdown ? 10 : 0 }]}>SELECT EXPENSE TYPES</Text>
               
               {Object.entries(EXPENSE_GROUPS).map(([groupName, items]) => {
-                const combinedItems = [...items, ...(customExpenseItems[groupName] || [])];
+                const seen = new Set<string>();
+                const combinedItems: string[] = [];
+                [...items, ...(customExpenseItems[groupName] || [])].forEach(rawType => {
+                  const t = typeof rawType === 'string' ? rawType.trim() : '';
+                  if (t && !seen.has(t.toLowerCase())) {
+                    seen.add(t.toLowerCase());
+                    combinedItems.push(t);
+                  }
+                });
+
                 return (
                   <View key={groupName} style={{ marginBottom: 15 }}>
                     <Text style={{ fontSize: 11, fontWeight: '700', color: '#c9973f', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 1 }}>{groupName}</Text>
                     <View style={styles.expChipsGrid}>
-                      {combinedItems.map(type => {
+                      {combinedItems.map((type, typeIdx) => {
                         const isSelected = selectedTypes.includes(type);
                         return (
                           <TouchableOpacity 
-                            key={type} 
+                            key={`${groupName}-${type}-${typeIdx}`} 
                             style={[styles.expChip, isSelected && styles.expChipActive]}
                             onPress={() => toggleExpenseType(type)}
                           >
@@ -1485,16 +1523,29 @@ const openAddExpense = () => {
                           />
                           <TouchableOpacity 
                             onPress={async () => {
-                              if (!newItemName.trim()) {
+                              const name = newItemName.trim();
+                              if (!name) {
                                 setAddingItemToGroup(null);
                                 return;
                               }
-                              const name = newItemName.trim();
+
+                              const currentItems = [...(EXPENSE_GROUPS[groupName] || []), ...(customExpenseItems[groupName] || [])];
+                              const existing = currentItems.find(i => i.trim().toLowerCase() === name.toLowerCase());
+
+                              if (existing) {
+                                if (!selectedTypes.includes(existing)) {
+                                  setSelectedTypes(prev => [...prev, existing]);
+                                }
+                                setAddingItemToGroup(null);
+                                setNewItemName('');
+                                return;
+                              }
+
                               setCustomExpenseItems(prev => ({
                                 ...prev,
                                 [groupName]: [...(prev[groupName] || []), name]
                               }));
-                              setSelectedTypes(prev => [...prev, name]);
+                              setSelectedTypes(prev => Array.from(new Set([...prev, name])));
                               setAddingItemToGroup(null);
                               setNewItemName('');
                               
@@ -1537,12 +1588,12 @@ const openAddExpense = () => {
               {/* Line Items */}
               {selectedTypes.length > 0 && (
                 <View style={{ marginTop: 10, gap: 12 }}>
-                  {selectedTypes.map(type => {
+                  {Array.from(new Set(selectedTypes)).map((type, idx) => {
                     const item = lineItems[type] || { qty: '1', price: '0' };
                     const q = parseFloat(item.qty) || 0;
                     const p = parseFloat(item.price) || 0;
                     return (
-                      <View key={type} style={styles.lineItemCard}>
+                      <View key={`line-item-${type}-${idx}`} style={styles.lineItemCard}>
                         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                           <Text style={styles.lineItemTitle}>{type}</Text>
                           <TouchableOpacity onPress={() => toggleExpenseType(type)}>
@@ -1588,7 +1639,7 @@ const openAddExpense = () => {
                 onPress={() => setShowDatePicker(true)}
               >
                 <Text style={{ flex: 1, fontSize: 15, fontFamily: FONTS.sans, color: '#241f1a' }}>
-                  {expenseDate.split('-').reverse().join('-')}
+                  {formatDateDisplay(expenseDate)}
                 </Text>
                 <Calendar size={18} color="#241f1a" />
               </TouchableOpacity>
@@ -1792,7 +1843,7 @@ const openAddExpense = () => {
                           {exp.vendorName || exp.title || 'Unknown Vendor'}
                         </Text>
                         <Text style={{ fontFamily: FONTS.sans, fontSize: 12, color: '#645d54', marginTop: 2 }}>
-                          {exp.date} • {exp.paymentMethod || 'N/A'}
+                          {formatDateDisplay(exp.date)} • {exp.paymentMethod || 'N/A'}
                         </Text>
                       </View>
                       
@@ -1837,26 +1888,26 @@ const openAddExpense = () => {
                 <View style={styles.invoiceCard}>
                   {/* Header */}
                 <View style={{ alignItems: 'center', marginBottom: 20 }}>
-                  {churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto ? (
-                    <Image source={{ uri: churchProfile?.theme?.logoUrl || churchProfile?.logoUrl || churchProfile?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12 }} />
+                  {activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto ? (
+                    <Image source={{ uri: activeChurch?.theme?.logoUrl || (activeChurch as any)?.logoUrl || (activeChurch as any)?.profilePhoto }} style={{ width: 60, height: 60, borderRadius: 30, marginBottom: 12 }} />
                   ) : (
                     <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: '#c9973f', justifyContent: 'center', alignItems: 'center', marginBottom: 8 }}>
                       <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#141d33', fontWeight: '700' }}>
-                        {(churchProfile?.name || member?.churchId || 'W').charAt(0).toUpperCase()}
+                        {(activeChurch?.name || 'W').charAt(0).toUpperCase()}
                       </Text>
                     </View>
                   )}
                   <Text style={{ fontFamily: FONTS.serif, fontSize: 18, color: '#1b2a4a', fontWeight: '700', textAlign: 'center', paddingHorizontal: 20 }}>
-                    {churchProfile?.name || member?.churchId || "We Christian Finance"}
+                    {activeChurch?.name || "We Christian Finance"}
                   </Text>
-                  {churchProfile?.address || churchProfile?.mailingCity ? (
+                  {activeChurch?.address || (activeChurch as any)?.mailingCity ? (
                     <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 4, textAlign: 'center', paddingHorizontal: 20 }}>
-                      {churchProfile?.address || `${churchProfile.mailingCity}, ${churchProfile.mailingState || ''}`}
+                      {activeChurch?.address || `${(activeChurch as any).mailingCity}, ${(activeChurch as any).mailingState || ''}`}
                     </Text>
                   ) : null}
-                  {churchProfile?.phone ? (
+                  {(activeChurch as any)?.phone ? (
                     <Text style={{ fontFamily: FONTS.sans, fontSize: 13, color: '#645d54', marginTop: 2, textAlign: 'center' }}>
-                      Phone: {churchProfile.phone}
+                      Phone: {(activeChurch as any).phone}
                     </Text>
                   ) : null}
                   <View style={{ height: 1, backgroundColor: '#c9973f', width: '100%', marginTop: 15 }} />
@@ -1866,11 +1917,11 @@ const openAddExpense = () => {
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 15, marginBottom: 20 }}>
                   <View style={{ width: '45%' }}>
                     <Text style={styles.invLabel}>INVOICE NO</Text>
-                    <Text style={styles.invValue}>{selectedInvoiceForApproval?.id || ('INV-' + (churchProfile?.name || 'WEC').substring(0, 3).toUpperCase() + '-' + String(invoices.length + 1).padStart(7, '0'))}</Text>
+                    <Text style={styles.invValue}>{selectedInvoiceForApproval?.id || ('INV-' + (activeChurch?.name || 'WEC').substring(0, 3).toUpperCase() + '-' + String(invoices.length + 1).padStart(7, '0'))}</Text>
                   </View>
                   <View style={{ width: '45%' }}>
                     <Text style={styles.invLabel}>INVOICE DATE</Text>
-                    <Text style={styles.invValue}>{new Date().toISOString().split('T')[0]}</Text>
+                    <Text style={styles.invValue}>{formatDateDisplay(new Date().toISOString().split('T')[0])}</Text>
                   </View>
                   <View style={{ width: '45%' }}>
                     <Text style={styles.invLabel}>CATEGORY</Text>
@@ -2112,7 +2163,7 @@ const openAddExpense = () => {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#e5ddd0', paddingBottom: 16, marginBottom: 16 }}>
                     <View>
                       <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 4 }}>Date</Text>
-                      <Text style={{ fontFamily: FONTS.mono, fontSize: 14, color: '#241f1a' }}>{selectedExpenseForView.date}</Text>
+                      <Text style={{ fontFamily: FONTS.mono, fontSize: 14, color: '#241f1a' }}>{formatDateDisplay(selectedExpenseForView.date)}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
                       <Text style={{ fontSize: 11, color: '#645d54', textTransform: 'uppercase', marginBottom: 4 }}>Amount</Text>
@@ -2197,9 +2248,10 @@ const styles = StyleSheet.create({
   mainScroll: { padding: 18, paddingBottom: 120, minHeight: 520 },
   
   // Dashboard
-  summaryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 2, justifyContent: 'space-between' },
+  summaryGrid: { flexDirection: 'column', gap: 12, marginTop: 2 },
+  summaryRow: { flexDirection: 'row', gap: 12 },
   sumCard: {
-    width: '48%',
+    flex: 1,
     backgroundColor: '#ffffff',
     borderRadius: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderBottomLeftRadius: 4, borderBottomRightRadius: 4,
     paddingVertical: 16, paddingHorizontal: 14,
@@ -2214,7 +2266,7 @@ const styles = StyleSheet.create({
   
   quickActions: { flexDirection: 'column', gap: 10 },
   qaBtn: {
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12,
+    flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: 12,
     backgroundColor: '#ffffff',
     borderWidth: 1, borderColor: '#e5ddd0',
     borderRadius: 14,
@@ -2298,7 +2350,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10, paddingHorizontal: 8,
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'
   },
-  customRangeInputTxt: { fontFamily: FONTS.mono, fontSize: 13, color: '#1b2a4a', fontWeight: '600' },
+  customRangeInputTxt: { flex: 1, marginRight: 4, fontFamily: FONTS.mono, fontSize: 13, color: '#1b2a4a', fontWeight: '600' },
   customRangeApplyBtn: {
     backgroundColor: '#1b2a4a', borderRadius: 8,
     paddingVertical: 11, paddingHorizontal: 16,
@@ -2307,7 +2359,7 @@ const styles = StyleSheet.create({
   customRangeApplyTxt: { fontFamily: FONTS.sans, fontSize: 13, fontWeight: '700', color: '#ffffff' },
 
   searchBar: {
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 9,
+    flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: 9,
     backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0',
     borderRadius: 13, paddingVertical: 11, paddingHorizontal: 14, marginBottom: 18,
     shadowColor: '#1b2a4a', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.1, shadowRadius: 20, elevation: 2
@@ -2469,7 +2521,7 @@ const styles = StyleSheet.create({
   addBtn: {
     backgroundColor: '#1b2a4a',
     borderRadius: 8, paddingVertical: 8, paddingHorizontal: 12,
-    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6
+    flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', gap: 6
   },
   addBtnTxt: {
     fontFamily: FONTS.sans, fontSize: 13, fontWeight: '600', color: '#ffffff'
@@ -2500,9 +2552,7 @@ const styles = StyleSheet.create({
     borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14,
     fontSize: 14, fontFamily: FONTS.sans, color: '#241f1a'
   },
-  row: {
-    flexDirection: 'row', flexWrap: 'wrap', gap: 15
-  },
+  row: { flexDirection: 'column', gap: 15 },
   pmBtn: {
     backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e5ddd0',
     borderRadius: 8, paddingVertical: 10, paddingHorizontal: 14

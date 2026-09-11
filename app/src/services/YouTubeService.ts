@@ -2,29 +2,30 @@
 // Automatically finds the recording of a past church event from YouTube
 
 const YOUTUBE_API_KEY = 'AIzaSyBKLbyuINc04XXgrUPyoSCZYtKdBbv-6ic';
-const CHANNEL_HANDLE = '@Brothersinchristfellowship';
 
-// Cache channelId so we don't fetch it every time
-let cachedChannelId: string | null = null;
+// Cache channelId per handle so we don't fetch it every time
+const channelIdCache: Record<string, string> = {};
 
 /**
  * Resolves the YouTube channel ID from the channel handle.
  * Result is cached in memory for the app session.
  */
-async function getChannelId(): Promise<string | null> {
-  if (cachedChannelId) return cachedChannelId;
+async function getChannelId(channelHandle: string): Promise<string | null> {
+  if (!channelHandle) return null;
+  if (channelIdCache[channelHandle]) return channelIdCache[channelHandle];
 
   try {
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(CHANNEL_HANDLE)}&type=channel&key=${YOUTUBE_API_KEY}`;
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(channelHandle)}&type=channel&key=${YOUTUBE_API_KEY}`;
     const response = await fetch(url);
     const data = await response.json();
 
     if (data.items && data.items.length > 0) {
-      cachedChannelId = data.items[0].id.channelId;
-      console.log('✅ [YouTubeService] Channel ID resolved:', cachedChannelId);
-      return cachedChannelId;
+      const id = data.items[0].id.channelId;
+      channelIdCache[channelHandle] = id;
+      console.log('✅ [YouTubeService] Channel ID resolved:', id);
+      return id;
     }
-    console.warn('⚠️ [YouTubeService] Could not resolve channel ID from handle.');
+    console.warn('⚠️ [YouTubeService] Could not resolve channel ID from handle:', channelHandle);
     return null;
   } catch (error) {
     console.error('❌ [YouTubeService] getChannelId error:', error);
@@ -40,14 +41,17 @@ async function getChannelId(): Promise<string | null> {
  *
  * @param eventDate - The date of the event in 'YYYY-MM-DD' format
  * @param eventTitle - The title of the event, used as a keyword fallback
+ * @param channelHandle - The YouTube handle (e.g. '@MyChurch')
  * @returns The 11-character YouTube video ID, or null if not found
  */
 export async function findEventVideo(
   eventDate: string,
-  eventTitle: string
+  eventTitle: string,
+  channelHandle?: string
 ): Promise<string | null> {
   try {
-    const channelId = await getChannelId();
+    if (!channelHandle) return null;
+    const channelId = await getChannelId(channelHandle);
     if (!channelId) return null;
 
     // 1. Robust UTC Date Parsing (avoids device timezone offset shifts)

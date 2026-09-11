@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 // Removed SafeAreaView as padding is handled by the header
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ChevronLeft, Calendar, Award, CheckCircle, Circle, BookOpen, Clock, Heart } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowLeft, ChevronLeft, Calendar, Award, CheckCircle, Circle, BookOpen, Clock, Heart } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import FirestoreService from '../services/FirestoreService';
@@ -228,22 +229,26 @@ export default function BiblePlansScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Premium Navy Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Bible Reading Plans</Text>
-          <Text style={styles.headerSub}>బైబిల్ పఠన ప్రణాళికలు</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, paddingBottom: 10 }}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+            <ArrowLeft size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { marginLeft: 32 }]} numberOfLines={1}>Bible Reading Plans</Text>
         </View>
+
         <TouchableOpacity 
-          style={styles.langToggle} 
+          style={[styles.langToggle, { marginBottom: 10 }]} 
           onPress={() => setLang(lang === 'English' ? 'Telugu' : 'English')}
         >
           <Text style={styles.langToggleTxt}>{lang === 'English' ? 'తెలుగు' : 'English'}</Text>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Selector Tabs */}
@@ -352,7 +357,7 @@ export default function BiblePlansScreen({ navigation }: any) {
                   }}
                 >
                   <View style={styles.dayHeaderRow}>
-                    <Text style={[styles.dayLabel, { color: activePlan.color }]}>
+                    <Text style={styles.dayLabel}>
                       {lang === 'English' ? `DAY ${item.day}` : `రోజు ${item.day}`}
                     </Text>
                     <Text style={styles.readPrompt}>
@@ -421,21 +426,18 @@ export default function BiblePlansScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 30,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800', flexShrink: 1, marginRight: 10 },
   
   langToggle: {
     backgroundColor: 'rgba(0,0,0,0.3)',
@@ -555,8 +557,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4
   },
-  dayLabel: { fontSize: 11, fontWeight: '900' },
-  readPrompt: { fontSize: 9, color: '#94a3b8', fontWeight: '800' },
+  dayLabel: { fontSize: 13, color: '#94a3b8', fontWeight: '900', letterSpacing: 0.5 },
+  readPrompt: { fontSize: 10, color: '#94a3b8', fontWeight: '800' },
   dayScripture: { fontSize: 14, fontWeight: '700' },
   completedText: { textDecorationLine: 'line-through', opacity: 0.6 },
   

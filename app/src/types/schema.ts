@@ -52,17 +52,22 @@ export interface ChurchEvent {
 export interface PrayerRequest {
   id: string;
   uid?: string;
+  contactId?: string;
+  authorId?: string;
   name: string;
   phone?: string;
   text: string;
   textTe?: string;
   type?: 'public' | 'private';
+  isPublic?: boolean;
   category: string;
   status?: 'pending' | 'approved';
   prayCount: number;
   prayedBy?: string[]; // List of UIDs
+  prayedByNames?: string[]; // List of names
   response?: string; // Pastor's response
   isAnswered: boolean;
+  isClosed?: boolean;
   isAnonymous?: boolean;
   testimony?: string;
   createdAt: any;

@@ -13,9 +13,10 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
-  ChevronLeft, 
+  ArrowLeft, 
   Play, 
   Mic,
   ChevronDown,
@@ -145,7 +146,7 @@ export default function SermonsScreen({ navigation }: any) {
           {item.title}{item.titleTelugu ? ` · ${item.titleTelugu}` : ''}
         </Text>
         <Text style={[styles.scMeta, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-          {item.pastor || 'Brother Y. Rajesh'} · {item.date || 'N/A'}{item.duration && item.duration !== 'N/A' ? ` · ${item.duration}` : ''}
+          {item.pastor || 'Pastor'} · {item.date || 'N/A'}{item.duration && item.duration !== 'N/A' ? ` · ${item.duration}` : ''}
         </Text>
         {item.scripture ? (
           <View style={styles.scriptureTag}>
@@ -193,19 +194,25 @@ export default function SermonsScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Sermons</Text>
-          <Text style={styles.headerSub}>{sermons.length} sermons</Text>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
+            <Text style={styles.headerTitle}>Sermons</Text>
+            <Text style={styles.headerSub}>Watch & Listen</Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-          <Text style={styles.themeToggleText}>{isDark ? '🌙' : '☀️'}</Text>
-        </TouchableOpacity>
-      </View>
+        
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       {/* Category Filter Pills */}
       <View style={styles.filterSection}>
@@ -229,7 +236,7 @@ export default function SermonsScreen({ navigation }: any) {
       {/* Sermons Grouped by Category */}
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 140 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />}
       >
         {sections.length === 0 ? (
@@ -264,19 +271,18 @@ const styles = StyleSheet.create({
   loadingText: { color: '#fbbf24', marginTop: 15, fontWeight: '600' },
 
   header: {
-    backgroundColor: '#1a2d5a',
+    backgroundColor: '#17357a',
     paddingTop: Platform.OS === 'ios' ? 60 : 45,
     paddingHorizontal: 20,
     paddingBottom: 20,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
+  backBtn: { zIndex: 10, padding: 5 },
   headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
   headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
   themeToggle: {

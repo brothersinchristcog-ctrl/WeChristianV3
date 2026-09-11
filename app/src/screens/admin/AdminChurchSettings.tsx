@@ -40,7 +40,9 @@ export default function AdminChurchSettings({ navigation }: any) {
   const [uploadingImage, setUploadingImage] = useState<'logo' | 'banner' | null>(null);
 
   const [form, setForm] = useState<Partial<ChurchDetails>>({});
-  const [secrets, setSecrets] = useState<{ phonePeMerchantId?: string; phonePeSaltKey?: string; phonePeSaltIndex?: string; whatsappAccessToken?: string; whatsappPhoneId?: string; useWeChristianWhatsApp?: boolean }>({});
+  const [linkCode, setLinkCode] = useState('');
+  const [linking, setLinking] = useState(false);
+  const [secrets, setSecrets] = useState<{ razorpayKeyId?: string; razorpayKeySecret?: string; whatsappAccessToken?: string; whatsappPhoneId?: string; useWeChristianWhatsApp?: boolean }>({});
   const [activeTab, setActiveTab] = useState<'info' | 'branding' | 'giving' | 'integrations'>('info');
   const [isEditing, setIsEditing] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{
@@ -169,6 +171,47 @@ export default function AdminChurchSettings({ navigation }: any) {
     }
   };
 
+  const handleLinkParent = async () => {
+    if (!churchId) return;
+    if (!linkCode.trim()) {
+      setAlertConfig({ visible: true, title: 'Required', message: 'Please enter a Church Code.', type: 'error' });
+      return;
+    }
+    setLinking(true);
+    try {
+      const parent = await ChurchService.getChurchBySubdomain(linkCode.trim().toLowerCase());
+      if (!parent) {
+        setAlertConfig({ visible: true, title: 'Not Found', message: 'No church found with that code.', type: 'error' });
+        setLinking(false);
+        return;
+      }
+      if (!parent.isParentOrganization) {
+        setAlertConfig({ visible: true, title: 'Invalid Parent', message: 'This church is not configured as a Main Branch. They must enable multiple branches in their settings.', type: 'error' });
+        setLinking(false);
+        return;
+      }
+      if (parent.id === churchId) {
+        setAlertConfig({ visible: true, title: 'Invalid Code', message: 'You cannot link a church to itself.', type: 'error' });
+        setLinking(false);
+        return;
+      }
+      
+      await ChurchService.updateChurch(churchId, { parentChurchId: parent.id });
+      
+      setForm(prev => ({ ...prev, parentChurchId: parent.id }));
+      const updated = await ChurchService.getChurchDetails(churchId);
+      if (updated) setActiveChurch(updated);
+      
+      setAlertConfig({ visible: true, title: 'Success', message: `Successfully linked to ${parent.name}!`, type: 'success' });
+      setLinkCode('');
+    } catch (e) {
+      console.error(e);
+      setAlertConfig({ visible: true, title: 'Error', message: 'Failed to link church.', type: 'error' });
+    } finally {
+      setLinking(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -193,15 +236,15 @@ export default function AdminChurchSettings({ navigation }: any) {
         {/* ── Hero Section ── */}
         <View style={styles.hero}>
           <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1, paddingRight: 12 }}>
               <TouchableOpacity onPress={goBack} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                 <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
                 <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
               </TouchableOpacity>
               <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-              <View>
+              <View style={{ flexShrink: 1 }}>
                 <Text style={styles.heroTitle}>Settings</Text>
-                <Text style={[styles.heroSub, { marginTop: 2 }]}>Church info, branding & APIs</Text>
+                <Text style={[styles.heroSub, { marginTop: 2 }]} numberOfLines={1} adjustsFontSizeToFit>Church info, branding & APIs</Text>
               </View>
             </View>
             {isEditing ? (
@@ -231,21 +274,21 @@ export default function AdminChurchSettings({ navigation }: any) {
             onPress={() => setActiveTab('info')}
           >
             <Building2 size={18} color={activeTab === 'info' ? primaryColor : '#64748b'} />
-            <Text style={[styles.tabTxt, activeTab === 'info' && { color: primaryColor, fontWeight: '700' }]}>Info</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.tabTxt, activeTab === 'info' && { color: primaryColor, fontWeight: '700' }]}>Info</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'branding' && { borderBottomColor: primaryColor }]}
             onPress={() => setActiveTab('branding')}
           >
             <Palette size={18} color={activeTab === 'branding' ? primaryColor : '#64748b'} />
-            <Text style={[styles.tabTxt, activeTab === 'branding' && { color: primaryColor, fontWeight: '700' }]}>Brand</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.tabTxt, activeTab === 'branding' && { color: primaryColor, fontWeight: '700' }]}>Brand</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'giving' && { borderBottomColor: primaryColor }]}
-            onPress={() => setAlertConfig({ visible: true, title: 'Giving Details', message: 'Option Available Soon\n\nWe are currently working on integrating this feature. Please check back later!', type: 'info' })}
+            onPress={() => setActiveTab('giving')}
           >
             <DollarSign size={18} color={activeTab === 'giving' ? primaryColor : '#64748b'} />
-            <Text style={[styles.tabTxt, activeTab === 'giving' && { color: primaryColor, fontWeight: '700' }]}>Giving</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.tabTxt, activeTab === 'giving' && { color: primaryColor, fontWeight: '700' }]}>Giving</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === 'integrations' && { borderBottomColor: primaryColor }]}
@@ -263,7 +306,7 @@ export default function AdminChurchSettings({ navigation }: any) {
             }}
           >
             <Plug size={18} color={activeTab === 'integrations' ? primaryColor : '#64748b'} />
-            <Text style={[styles.tabTxt, activeTab === 'integrations' && { color: primaryColor, fontWeight: '700' }]}>WhatsApp</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit style={[styles.tabTxt, activeTab === 'integrations' && { color: primaryColor, fontWeight: '700' }]}>WhatsApp</Text>
           </TouchableOpacity>
         </View>
 
@@ -334,19 +377,69 @@ export default function AdminChurchSettings({ navigation }: any) {
 
               <View style={[styles.inputRow, !isEditing && styles.inputDisabled]}>
                 <Link size={16} color="#64748b" />
-                <TextInput style={styles.inputFlex} placeholder="Website URL" value={form.socialLinks?.website} onChangeText={v => updateField('socialLinks', 'website', v)} editable={isEditing} />
+                <TextInput style={styles.inputFlex} placeholder="Website URL" placeholderTextColor="#94a3b8" value={form.socialLinks?.website} onChangeText={v => updateField('socialLinks', 'website', v)} editable={isEditing} />
               </View>
               <View style={[styles.inputRow, !isEditing && styles.inputDisabled]}>
                 <Text style={styles.socialPrefix}>YouTube</Text>
-                <TextInput style={styles.inputFlex} placeholder="Channel or Live URL" value={form.socialLinks?.youtube} onChangeText={v => updateField('socialLinks', 'youtube', v)} editable={isEditing} />
+                <TextInput style={styles.inputFlex} placeholder="Channel or Live URL" placeholderTextColor="#94a3b8" value={form.socialLinks?.youtube} onChangeText={v => updateField('socialLinks', 'youtube', v)} editable={isEditing} />
               </View>
               <View style={[styles.inputRow, !isEditing && styles.inputDisabled]}>
                 <Text style={styles.socialPrefix}>Facebook</Text>
-                <TextInput style={styles.inputFlex} placeholder="Page URL" value={form.socialLinks?.facebook} onChangeText={v => updateField('socialLinks', 'facebook', v)} editable={isEditing} />
+                <TextInput style={styles.inputFlex} placeholder="Page URL" placeholderTextColor="#94a3b8" value={form.socialLinks?.facebook} onChangeText={v => updateField('socialLinks', 'facebook', v)} editable={isEditing} />
               </View>
               <View style={[styles.inputRow, !isEditing && styles.inputDisabled]}>
                 <Text style={styles.socialPrefix}>Instagram</Text>
-                <TextInput style={styles.inputFlex} placeholder="Profile URL" value={form.socialLinks?.instagram} onChangeText={v => updateField('socialLinks', 'instagram', v)} editable={isEditing} />
+                <TextInput style={styles.inputFlex} placeholder="Profile URL" placeholderTextColor="#94a3b8" value={form.socialLinks?.instagram} onChangeText={v => updateField('socialLinks', 'instagram', v)} editable={isEditing} />
+              </View>
+
+              <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Daily Promise Settings</Text>
+              <View style={[styles.switchRow, !isEditing && styles.inputDisabled]}>
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={styles.switchLabel}>Use WeChristian Daily Promise</Text>
+                  <Text style={styles.switchHint}>
+                    When enabled (YES), displays WeChristian 4 Daily Verses (Morning, Afternoon, Evening, Night) as an auto-scrolling carousel inside Today's Promise. Turn off (NO) to use your church's custom Promise and Thumbnails.
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  activeOpacity={isEditing ? 0.7 : 1}
+                  onPress={() => {
+                    if (isEditing) {
+                      setForm(prev => ({ ...prev, useWeChristianDailyPromise: prev.useWeChristianDailyPromise === false }));
+                    }
+                  }}
+                  style={{ alignItems: 'center', justifyContent: 'center', gap: 6, minWidth: 56 }}
+                >
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 3,
+                      borderRadius: 12,
+                      backgroundColor: form.useWeChristianDailyPromise !== false ? '#dcfce7' : '#fee2e2',
+                      borderWidth: 1,
+                      borderColor: form.useWeChristianDailyPromise !== false ? '#86efac' : '#fca5a5',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 12,
+                        fontWeight: '900',
+                        color: form.useWeChristianDailyPromise !== false ? '#15803d' : '#b91c1c',
+                        letterSpacing: 0.5,
+                      }}
+                    >
+                      {form.useWeChristianDailyPromise !== false ? 'YES' : 'NO'}
+                    </Text>
+                  </View>
+                  <Switch
+                    value={form.useWeChristianDailyPromise !== false}
+                    onValueChange={v => {
+                      setForm(prev => ({ ...prev, useWeChristianDailyPromise: v }));
+                    }}
+                    disabled={!isEditing}
+                    trackColor={{ false: '#cbd5e1', true: primaryColor }}
+                    thumbColor={Platform.OS === 'android' ? '#ffffff' : undefined}
+                  />
+                </TouchableOpacity>
               </View>
 
               {member?.userType === 'super_admin' && (
@@ -366,6 +459,53 @@ export default function AdminChurchSettings({ navigation }: any) {
                       disabled={!isEditing}
                       trackColor={{ false: '#cbd5e1', true: primaryColor }}
                     />
+                  </View>
+                </>
+              )}
+
+              {/* Branch Management - Link to Parent */}
+              {member?.userType === 'super_admin' && !form.isParentOrganization && !form.parentChurchId && (
+                <>
+                  <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Branch Management</Text>
+                  <View style={{ backgroundColor: '#f8fafc', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '600', color: '#1e293b', marginBottom: 4 }}>Link to Parent Church</Text>
+                    <Text style={{ fontSize: 12, color: '#64748b', marginBottom: 12, lineHeight: 18 }}>If this church is a branch of a larger organization, enter the Main Branch's Church Code below to link your accounts.</Text>
+                    
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                      <TextInput 
+                        style={[styles.input, { flex: 1, marginBottom: 0, marginRight: 12, backgroundColor: '#ffffff' }]} 
+                        placeholder="Enter Church Code" 
+                        placeholderTextColor="#94a3b8"
+                        autoCapitalize="characters"
+                        value={linkCode}
+                        onChangeText={setLinkCode}
+                      />
+                      <TouchableOpacity 
+                        style={{ backgroundColor: primaryColor, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}
+                        onPress={handleLinkParent}
+                        disabled={linking}
+                      >
+                        {linking ? (
+                          <ActivityIndicator size="small" color="#ffffff" />
+                        ) : (
+                          <Text style={{ color: '#ffffff', fontWeight: '600', fontSize: 14 }}>Link Branch</Text>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </>
+              )}
+
+              {/* Connected Parent Info */}
+              {form.parentChurchId && (
+                <>
+                  <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Branch Management</Text>
+                  <View style={{ backgroundColor: '#f0fdf4', padding: 16, borderRadius: 12, borderWidth: 1, borderColor: '#bbf7d0', flexDirection: 'row', alignItems: 'center' }}>
+                    <Link size={20} color="#16a34a" style={{ marginRight: 12 }} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#166534', marginBottom: 2 }}>Connected to Main Branch</Text>
+                      <Text style={{ fontSize: 12, color: '#15803d' }}>This church is successfully linked as a child branch.</Text>
+                    </View>
                   </View>
                 </>
               )}
@@ -425,19 +565,27 @@ export default function AdminChurchSettings({ navigation }: any) {
             <View>
               {!isEditing && <Text style={styles.viewModeHint}>Tap 'Edit' in the top right to make changes.</Text>}
 
-              <Text style={styles.sectionLabel}>PhonePe Payment Gateway Config (Secrets)</Text>
-              <Text style={{ fontSize: 11, color: '#64748b', marginBottom: 12 }}>
-                These values are stored securely and never exposed to members. Used for automated web checkout.
-              </Text>
+              <View style={[styles.switchRow, { marginBottom: 20 }]}>
+                <View style={{ flex: 1, paddingRight: 12 }}>
+                  <Text style={styles.switchLabel}>Enable Giving / Tithe</Text>
+                  <Text style={styles.switchHint}>If enabled, members will be able to make donations securely using Razorpay in the app.</Text>
+                </View>
+                <Switch
+                  value={form.features?.hasGiving}
+                  onValueChange={v => updateField('features', 'hasGiving', v)}
+                  trackColor={{ false: '#cbd5e1', true: '#10b981' }}
+                  thumbColor={form.features?.hasGiving ? '#fff' : '#f8fafc'}
+                  disabled={!isEditing}
+                />
+              </View>
 
-              <Text style={styles.label}>Merchant ID</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeMerchantId} onChangeText={v => updateSecret('phonePeMerchantId', v)} placeholder="e.g. M1234567890" placeholderTextColor="#64748b" editable={isEditing} />
+              <Text style={[styles.sectionLabel, { marginTop: 12 }]}>Razorpay Gateway Configuration</Text>
 
-              <Text style={styles.label}>Salt Key</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeSaltKey} onChangeText={v => updateSecret('phonePeSaltKey', v)} placeholder="e.g. 099eb0cd-02cf-4e2a-8aca-3e6c6aff0399" placeholderTextColor="#64748b" secureTextEntry={!isEditing} editable={isEditing} />
+              <Text style={styles.label}>Key ID</Text>
+              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.razorpayKeyId} onChangeText={v => updateSecret('razorpayKeyId', v)} placeholder="e.g. rzp_live_XXXXX" placeholderTextColor="#64748b" editable={isEditing} />
 
-              <Text style={styles.label}>Salt Index</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeSaltIndex} onChangeText={v => updateSecret('phonePeSaltIndex', v)} placeholder="e.g. 1" placeholderTextColor="#64748b" keyboardType="numeric" editable={isEditing} />
+              <Text style={styles.label}>Key Secret</Text>
+              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.razorpayKeySecret} onChangeText={v => updateSecret('razorpayKeySecret', v)} placeholder="e.g. 099eb0cd-02cf-4e2a-8aca-3e6c6aff0399" placeholderTextColor="#64748b" editable={isEditing} secureTextEntry={!isEditing} />
 
               <Text style={[styles.sectionLabel, { marginTop: 12 }]}>Primary UPI & Mobile Payments</Text>
 
@@ -475,17 +623,6 @@ export default function AdminChurchSettings({ navigation }: any) {
                   <TextInput style={[styles.input, !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 30 }]} value={upi.phonepeNumber} onChangeText={v => updateUpi(i, 'phonepeNumber', v)} placeholder="Optional" placeholderTextColor="#64748b" keyboardType="phone-pad" editable={isEditing} />
                 </View>
               ))}
-
-              <Text style={[styles.sectionLabel, { marginTop: 24 }]}>PhonePe Gateway Configuration</Text>
-
-              <Text style={styles.label}>Merchant ID</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeMerchantId} onChangeText={v => updateSecret('phonePeMerchantId', v)} placeholder="e.g. PGTESTPAYUAT" placeholderTextColor="#64748b" editable={isEditing} />
-
-              <Text style={styles.label}>Salt Key</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeSaltKey} onChangeText={v => updateSecret('phonePeSaltKey', v)} placeholder="e.g. 099eb0cd-02cf-4e2a-8aca-3e6c6aff0399" placeholderTextColor="#64748b" editable={isEditing} secureTextEntry={!isEditing} />
-
-              <Text style={styles.label}>Salt Index</Text>
-              <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={secrets.phonePeSaltIndex} onChangeText={v => updateSecret('phonePeSaltIndex', v)} placeholder="1" placeholderTextColor="#64748b" editable={isEditing} keyboardType="numeric" />
 
               <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Primary Bank Transfer Details</Text>
 
@@ -589,14 +726,6 @@ export default function AdminChurchSettings({ navigation }: any) {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-      
-      <CustomAlert
-        visible={alertConfig.visible}
-        title={alertConfig.title}
-        message={alertConfig.message}
-        type={alertConfig.type}
-        onClose={() => setAlertConfig(prev => ({ ...prev, visible: false }))}
-      />
     </View>
   );
 }
@@ -629,7 +758,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 4
+    elevation: 4,
+    flexShrink: 0
   },
   saveBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
   
@@ -645,7 +775,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
-    elevation: 4
+    elevation: 4,
+    flexShrink: 0
   },
   editBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
 
@@ -656,8 +787,8 @@ const styles = StyleSheet.create({
     shadowColor: '#1a2d5a', shadowOpacity: 0.05, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4, zIndex: 10
   },
   tab: {
-    flex: 1, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8,
-    paddingVertical: 16, borderBottomWidth: 3, borderBottomColor: 'transparent',
+    flex: 1, flexDirection: 'row', flexWrap: 'nowrap', alignItems: 'center', justifyContent: 'center', gap: 4,
+    paddingVertical: 16, borderBottomWidth: 3, borderBottomColor: 'transparent', paddingHorizontal: 2,
   },
   tabTxt: { fontSize: 13, color: '#64748b', fontWeight: '700' },
 

@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ActivityIndicator, Alert, ScrollView, Platform
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChevronLeft, CalendarCheck, Check, X, Clock, Lock } from 'lucide-react-native';
 import FirestoreService from '../services/FirestoreService';
 import { useAuth } from '../context/AuthContext';
@@ -23,6 +23,7 @@ const COLORS = {
 export default function AttendanceScreen({ navigation }: any) {
   const { member, user } = useAuth();
   const { activeChurch } = useChurch();
+  const insets = useSafeAreaInsets();
 
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState<any>(null);
@@ -50,10 +51,11 @@ export default function AttendanceScreen({ navigation }: any) {
         if (memberId) {
           const existing: any = await FirestoreService.getMemberAttendanceResponse(activeReq.id, memberId);
           if (existing) {
-            // Pre-fill the form with previous response but DON'T show banner yet
+            // Pre-fill the form and show banner since they already responded
             setResponse(existing.response);
-            setReason(existing.reason || '');
+            if (existing.reason) setReason(existing.reason);
             setPreviousResponse(existing.response);
+            setShowBanner(true);
           }
         }
       }
@@ -127,10 +129,10 @@ export default function AttendanceScreen({ navigation }: any) {
   }
 
   return (
-    <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: COLORS.bg }]}>
+    <View style={[styles.container, { backgroundColor: COLORS.bg }]}>
 
       {/* ── Header ── */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 50 : 25) }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <ChevronLeft size={22} color="#fff" />
           <Text style={styles.backTxt}>Back</Text>
@@ -281,7 +283,7 @@ export default function AttendanceScreen({ navigation }: any) {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -294,15 +296,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+    paddingBottom: 25,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     elevation: 8,
     shadowColor: COLORS.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8,
   },
   backBtn: { flexDirection: 'row', alignItems: 'center', width: 70 },
   backTxt: { color: '#fff', fontSize: 15, fontWeight: '600', marginLeft: 2 },
-  headerTitle: { color: COLORS.gold, fontSize: 18, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
+  headerTitle: { color: COLORS.gold, fontSize: 20, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' },
 
   content: { padding: 16 },
 
