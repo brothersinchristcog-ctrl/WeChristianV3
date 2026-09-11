@@ -390,9 +390,14 @@ export default function UpdatesScreen({ navigation, route }: any) {
         style={styles.header}
       >
         <TouchableOpacity style={styles.backBtn} onPress={() => {
-          if (navigation.canGoBack()) {
-            navigation.goBack();
-          } else {
+          try {
+            const state = navigation.getState();
+            if (state && state.routes && state.routes.length > 1) {
+              navigation.goBack();
+            } else {
+              navigation.navigate(viewMode === 'admin' ? 'AdminRoot' : 'Tabs');
+            }
+          } catch (e) {
             navigation.navigate(viewMode === 'admin' ? 'AdminRoot' : 'Tabs');
           }
         }} hitSlop={{top:10, bottom:10, left:10, right:10}}>
@@ -440,8 +445,16 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     navigation.navigate('Songs', { songId: update.relatedId });
                   } else if (update.type === 'promise') {
                     if (viewMode === 'admin') {
-                      if (navigation.canGoBack()) navigation.goBack();
-                      else navigation.navigate('AdminRoot');
+                      try {
+                        const state = navigation.getState();
+                        if (state && state.routes && state.routes.length > 1) {
+                          navigation.goBack();
+                        } else {
+                          navigation.navigate('AdminRoot');
+                        }
+                      } catch (e) {
+                        navigation.navigate('AdminRoot');
+                      }
                     } else {
                       navigation.navigate('Tabs', { screen: 'Promise' });
                     }

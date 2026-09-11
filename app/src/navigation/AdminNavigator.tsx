@@ -82,6 +82,7 @@ import AdminGalleryNavigator from '../screens/admin/gallery/AdminGalleryNavigato
 import { Shield, Video as VideoIcon, Headset } from 'lucide-react-native';
 import AISermonAssistant from '../screens/admin/AISermonAssistant';
 import AIContentCreator from '../screens/admin/AIContentCreator';
+import ChurchService from '../services/ChurchService';
 
 const { width } = Dimensions.get('window');
 
@@ -143,6 +144,19 @@ export default function AdminNavigator({ navigation, route }: any) {
           message: 'WhatsApp Integration is not enabled for your church. Please contact the We Christian team to activate this feature. Once enabled, you will be able to use WhatsApp Integration from the We Celebration module and Church Settings.',
           type: 'info'
         });
+        return;
+      }
+      
+      const premiumTabs = [
+        'Promises', 'New Promise', 'Schedule', 'Promise Calendar', 'Add Promise',
+        'Sermons', 'New Sermon', 'Songs', 'Events', 'New Event', 'Pastor Event',
+        'Prayers', 'Celebrations', 'Gallery', 'Expense', 'Donations', 
+        'Online Meetings', 'New Online Meeting', 'AI Sermon Assistant', 'AI Content Creator',
+        'WeCelebrations', 'WhatsApp'
+      ];
+      
+      if (premiumTabs.includes(tabName) && ChurchService.isSubscriptionExpired(activeChurch)) {
+        navigation.navigate('Subscription');
         return;
       }
       
@@ -274,13 +288,14 @@ export default function AdminNavigator({ navigation, route }: any) {
   }
 
   const isSuperAdminTab = tabs[activeTab]?.name === 'App Admin';
+  const isAiTab = tabs[activeTab]?.name === 'AI Content Creator' || tabs[activeTab]?.name === 'AI Sermon Assistant';
 
   // We provide handleSetTab via setActiveTab so child components can push to history
   return (
     <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack, setTabByName, dashboardScrollY, setDashboardScrollY }}>
       <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : isSuperAdminTab ? '#0a0f1e' : '#f0f2f7' }]}>
         {!isSuperAdminTab && (
-          <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : '#1a2d5a' }} />
+          <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : isAiTab ? '#3A2A6B' : '#1a2d5a' }} />
         )}
         
         {isImpersonating && (
@@ -337,7 +352,7 @@ export default function AdminNavigator({ navigation, route }: any) {
           </TouchableOpacity>
         )}
 
-        {activeTab !== 0 && !isSuperAdminTab && (
+        {activeTab !== 0 && !isSuperAdminTab && !isAiTab && (
           <View style={[styles.header, { backgroundColor: '#1a2d5a' }]}>
             <View style={styles.headerTop}>
               <View style={styles.headerText}>

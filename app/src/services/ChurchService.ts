@@ -362,7 +362,6 @@ class ChurchService {
       if (currentExpiry < new Date()) {
         currentExpiry = new Date();
       }
-      
       currentExpiry.setFullYear(currentExpiry.getFullYear() + years);
       
       await firestore().collection('churches').doc(churchId).update({
@@ -373,6 +372,36 @@ class ChurchService {
       console.error('Error extending subscription:', error);
       throw error;
     }
+  }
+
+  /**
+   * Check if a church's subscription is dynamically expired
+   */
+  isSubscriptionExpired(church: ChurchDetails | null | undefined): boolean {
+    if (!church) return false;
+    
+    // 1. If manually deactivated or marked expired
+    if (church.isActive === false || church.subscription?.status === 'expired') {
+      return true;
+    }
+
+    // 2. Check dynamic validity date
+    if (church.subscription?.validUntil) {
+      const validUntil = new Date(church.subscription.validUntil).getTime();
+      if (validUntil < Date.now()) {
+        return true;
+      }
+    }
+
+    // 3. Check trial expiration
+    if (church.subscription?.status === 'trialing' && church.subscription?.trialEndsAt) {
+      const trialEndsAt = new Date(church.subscription.trialEndsAt).getTime();
+      if (trialEndsAt < Date.now()) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
 

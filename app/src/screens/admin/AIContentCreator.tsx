@@ -11,10 +11,10 @@ import {
   Modal,
   Platform,
   Dimensions,
-  StatusBar,
   Animated,
   Image,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ChevronLeft,
@@ -35,57 +35,81 @@ import {
   AlertCircle,
   Globe,
   Sparkles,
+  BookOpen,
+  Check
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { useChurch } from '../../context/ChurchContext';
 import AIService from '../../services/AIService';
 import FirestoreService from '../../services/FirestoreService';
-
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 const { width } = Dimensions.get('window');
+
+const formatDate = (date: Date) => {
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[date.getMonth()]} ${String(date.getDate()).padStart(2, '0')}, ${date.getFullYear()}`;
+};
+
+const formatTime = (date: Date) => {
+  let h = date.getHours();
+  const m = String(date.getMinutes()).padStart(2, '0');
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  h = h ? h : 12;
+  return `${h}:${m} ${ampm}`;
+};
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
+const SANS = Platform.OS === 'ios' ? 'System' : 'sans-serif';
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 const CONTENT_TYPES = [
-  { key: 'Sermon Thumbnail', emoji: '🎤' },
-  { key: 'Event Poster',     emoji: '📅' },
-  { key: 'Birthday Wish',    emoji: '🎂' },
-  { key: 'Scripture Card',   emoji: '📖' },
-  { key: 'Announcement',     emoji: '📢' },
-  { key: 'Prayer Card',      emoji: '🙏' },
+  { key: 'Daily Promise Card', icon: Sparkles },
+  { key: 'Bible Verse Card', icon: BookOpen },
+  { key: 'Sermon Thumbnail', icon: ImageIcon },
+  { key: 'Event Banner', icon: CalendarIcon },
+  { key: 'Birthday Card', icon: CheckCircle2 },
+  { key: 'Wedding Anniversary', icon: CheckCircle2 },
+  { key: 'Baptism Anniversary', icon: CheckCircle2 },
+  { key: 'Announcement', icon: CheckSquare },
+  { key: 'Prayer Meeting', icon: User },
+  { key: 'Bible Study', icon: BookOpen },
+  { key: 'Youth Meeting', icon: User },
+  { key: 'Sunday Service', icon: CalendarIcon },
+  { key: 'Special Event', icon: Sparkles },
+  { key: 'Church Anniversary', icon: CheckCircle2 },
+  { key: 'Other', icon: CheckCircle2 }
 ];
 
 const DESIGN_STYLES = [
-  'Modern Minimal',
-  'Classic Church',
-  'Vibrant & Bold',
-  'Elegant Dark',
-  'Watercolor Soft',
-  'Gold & Royal',
+  'Modern', 'Professional', 'Minimal', 'Cinematic', 'Elegant', 'Church', 'Youth', 'Traditional'
 ];
 
-const ORIENTATIONS = ['Portrait', 'Landscape', 'Square'] as const;
+const ORIENTATIONS = ['Landscape', 'Portrait', 'Square'] as const;
 
-const LANGUAGES = ['English', 'Telugu', 'Hindi', 'Tamil'];
+const LANGUAGES = ['English', 'Telugu', 'Hindi', 'Tamil', 'Kannada'];
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function AIContentCreator() {
-  const { setTabByName } = useContext(AdminTabContext);
+  const { setTabByName, activeTab } = useContext(AdminTabContext);
   const { activeChurch } = useChurch();
 
   // Form state
   const [contentType, setContentType]       = useState('Sermon Thumbnail');
   const [topic, setTopic]                   = useState('');
   const [speaker, setSpeaker]               = useState('');
-  const [date, setDate]                     = useState('');
-  const [style, setStyle]                   = useState('Modern Minimal');
-  const [orientation, setOrientation]       = useState<typeof ORIENTATIONS[number]>('Square');
+  const [location, setLocation]             = useState('');
+  const [selectedDate, setSelectedDate]     = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime]     = useState<Date | null>(null);
+  
+  const [style, setStyle]                   = useState('Modern');
+  const [orientation, setOrientation]       = useState<typeof ORIENTATIONS[number]>('Landscape');
   const [language, setLanguage]             = useState('English');
   const [advancedPrompt, setAdvancedPrompt] = useState('');
   const [showAdvanced, setShowAdvanced]     = useState(false);
 
-  // Picker visibility
-  const [showStylePicker, setShowStylePicker]  = useState(false);
-  const [showLangPicker, setShowLangPicker]    = useState(false);
+  // Date/Time pickers
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [isTimePickerVisible, setTimePickerVisibility] = useState(false);
 
   // Output state
   const [generating, setGenerating]     = useState(false);
@@ -95,42 +119,24 @@ export default function AIContentCreator() {
   const [errorMsg, setErrorMsg]         = useState('');
   const [saved, setSaved]               = useState(false);
 
-  // Animation
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-
-  const startPulse = () => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.04, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-      ])
-    ).start();
-  };
-  const stopPulse = () => { pulseAnim.stopAnimation(); pulseAnim.setValue(1); };
-
   // ── Handlers ────────────────────────────────────────────────────────────────
   const buildPrompt = () => {
     const parts: string[] = [];
     parts.push(`Create a stunning, professional church social media graphic for a ${contentType}.`);
-    if (topic) parts.push(`Topic: "${topic}".`);
+    if (topic) parts.push(`Topic/Title: "${topic}".`);
     if (speaker) parts.push(`Speaker: ${speaker}.`);
-    if (date) parts.push(`Date: ${date}.`);
+    if (selectedDate) parts.push(`Date: ${formatDate(selectedDate)}.`);
+    if (selectedTime) parts.push(`Time: ${formatTime(selectedTime)}.`);
+    if (location) parts.push(`Location: ${location}.`);
     parts.push(`Design style: ${style}. Language: ${language}. Orientation: ${orientation}.`);
-    parts.push('Include a cross symbol. Text should be clearly readable. Church branding, divine aesthetic, inspiring.');
     if (advancedPrompt) parts.push(`Additional details: ${advancedPrompt}`);
     return parts.join(' ');
   };
 
   const handleGenerate = async () => {
-    if (!topic.trim()) {
-      Alert.alert('Topic Required', 'Please enter a topic or message for the image.');
-      return;
-    }
-
     setGenerating(true);
     setShowResult(false);
     setSaved(false);
-    startPulse();
 
     try {
       const churchId = await FirestoreService.getChurchId();
@@ -156,551 +162,313 @@ export default function AIContentCreator() {
       setShowError(true);
     } finally {
       setGenerating(false);
-      stopPulse();
     }
   };
 
-  const handleDownload = async () => {
-    try {
-      const MediaLibrary = require('expo-media-library');
-      const FileSystem = require('expo-file-system');
-      const perm = await MediaLibrary.requestPermissionsAsync();
-      if (!perm.granted) { Alert.alert('Permission needed', 'Please grant media library access.'); return; }
-      const localUri = FileSystem.cacheDirectory + `ai_image_${Date.now()}.jpg`;
-      await FileSystem.downloadAsync(imageUrl, localUri);
-      await MediaLibrary.saveToLibraryAsync(localUri);
-      Alert.alert('Saved!', 'Image saved to your gallery.');
-    } catch (_) {
-      Alert.alert('Download', 'Please long-press the image to save it manually.');
-    }
-  };
-
-  const handleUseImage = () => {
-    Alert.alert('Use Image', 'This image URL has been copied. You can now paste it in any sermon, event, or broadcast field.', [{ text: 'OK' }]);
+  const resetForm = () => {
+    setTopic('');
+    setSpeaker('');
+    setLocation('');
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setShowResult(false);
   };
 
   // ── JSX ─────────────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
-
-      {/* ── HERO HEADER ── */}
-      <LinearGradient colors={['#1a2d5a', '#92400e']} style={styles.hero}>
-        <TouchableOpacity
-          onPress={() => setTabByName?.('Dashboard')}
-          style={styles.backBtn}
-          activeOpacity={0.7}
-        >
-          <ChevronLeft size={20} color="#fff" />
-          <Text style={styles.backTxt}>Back</Text>
-        </TouchableOpacity>
-
-        <View style={styles.heroCenter}>
-          <View style={styles.freeBadge}>
-            <Text style={styles.freeBadgeTxt}>✦ FREE</Text>
-          </View>
-          <View style={styles.heroIconWrap}>
-            <Wand2 size={26} color="#fbbf24" strokeWidth={2} />
-          </View>
-          <Text style={styles.heroTitle}>AI Content Creator</Text>
-          <Text style={styles.heroSub}>Create stunning church visuals with AI</Text>
-        </View>
-
-        <View style={styles.heroDot1} />
-        <View style={styles.heroDot2} />
-      </LinearGradient>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-      >
-
-        {/* ── CONTENT TYPE PICKER ── */}
-        <View style={styles.card}>
-          <View style={styles.cardHd}>
-            <View style={styles.cardHdIconWrap}>
-              <LayoutTemplate size={14} color="#1a2d5a" strokeWidth={2.5} />
-            </View>
-            <Text style={styles.cardHdTxt}>CONTENT TYPE</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.chipRow}>
-              {CONTENT_TYPES.map(ct => {
-                const selected = contentType === ct.key;
-                return (
-                  <TouchableOpacity
-                    key={ct.key}
-                    style={[styles.chip, selected && styles.chipSelected]}
-                    onPress={() => setContentType(ct.key)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.chipEmoji}>{ct.emoji}</Text>
-                    <Text style={[styles.chipTxt, selected && styles.chipTxtSelected]}>{ct.key}</Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </ScrollView>
-        </View>
-
-        {/* ── DETAILS ── */}
-        <View style={styles.card}>
-          <View style={styles.cardHd}>
-            <View style={styles.cardHdIconWrap}>
-              <AlignLeft size={14} color="#1a2d5a" strokeWidth={2.5} />
-            </View>
-            <Text style={styles.cardHdTxt}>CONTENT DETAILS</Text>
-          </View>
-
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Topic / Message <Text style={{ color: '#c0392b' }}>*</Text></Text>
-            <TextInput
-              style={styles.input}
-              value={topic}
-              onChangeText={setTopic}
-              placeholder="e.g. Faith Over Fear"
-              placeholderTextColor="#9ca3af"
-            />
-          </View>
-
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Speaker / Pastor Name</Text>
-            <View style={styles.inputWithIcon}>
-              <User size={14} color="#6b7280" style={{ marginRight: 8 }} />
-              <TextInput
-                style={styles.inputInner}
-                value={speaker}
-                onChangeText={setSpeaker}
-                placeholder="e.g. Pastor Samuel"
-                placeholderTextColor="#9ca3af"
-              />
-            </View>
-          </View>
-
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Date (Optional)</Text>
-            <View style={styles.inputWithIcon}>
-              <CalendarIcon size={14} color="#6b7280" style={{ marginRight: 8 }} />
-              <TextInput
-                style={styles.inputInner}
-                value={date}
-                onChangeText={setDate}
-                placeholder="e.g. Sep 15, 2026"
-                placeholderTextColor="#9ca3af"
-              />
+      {/* ── HEADER ── */}
+      <View style={styles.appHeader}>
+        <View style={styles.headerRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
+            <TouchableOpacity onPress={() => setTabByName?.('Dashboard')} style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 0 }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { marginHorizontal: 12, opacity: 0.4, flexShrink: 0 }]}>|</Text>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={[styles.headerTitle, { flexShrink: 1 }]} numberOfLines={1}>AI Content Creator</Text>
             </View>
           </View>
         </View>
+      </View>
 
-        {/* ── STYLE & ORIENTATION ── */}
-        <View style={styles.card}>
-          <View style={styles.cardHd}>
-            <View style={styles.cardHdIconWrap}>
-              <Sparkles size={14} color="#1a2d5a" strokeWidth={2.5} />
-            </View>
-            <Text style={styles.cardHdTxt}>DESIGN OPTIONS</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        
+        <View style={styles.lede}>
+          <View style={styles.eyebrow}>
+            <Sparkles size={13} color="#E3A83B" />
+            <Text style={styles.eyebrowTxt}>AI Content Creator</Text>
           </View>
-
-          <View style={styles.twoColRow}>
-            {/* Style picker */}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fLabel}>Design Style</Text>
-              <TouchableOpacity style={styles.selectBox} onPress={() => setShowStylePicker(true)} activeOpacity={0.8}>
-                <Text style={styles.selectTxt} numberOfLines={1}>{style}</Text>
-                <ChevronDown size={15} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-            {/* Language */}
-            <View style={{ flex: 1 }}>
-              <Text style={styles.fLabel}>Language</Text>
-              <TouchableOpacity style={styles.selectBox} onPress={() => setShowLangPicker(true)} activeOpacity={0.8}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Globe size={13} color="#1a2d5a" />
-                  <Text style={styles.selectTxt}>{language}</Text>
-                </View>
-                <ChevronDown size={15} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Orientation */}
-          <View style={[styles.fGroup, { marginTop: 14 }]}>
-            <Text style={styles.fLabel}>Orientation</Text>
-            <View style={styles.segmentRow}>
-              {ORIENTATIONS.map(opt => (
-                <TouchableOpacity
-                  key={opt}
-                  style={[styles.segBtn, orientation === opt && styles.segBtnActive]}
-                  onPress={() => setOrientation(opt)}
-                  activeOpacity={0.8}
-                >
-                  <Text style={[styles.segTxt, orientation === opt && styles.segTxtActive]}>{opt}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          {/* Advanced Prompt */}
-          <TouchableOpacity
-            style={styles.advancedToggle}
-            onPress={() => setShowAdvanced(v => !v)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.advancedToggleTxt}>Advanced Prompt</Text>
-            {showAdvanced ? <ChevronUp size={14} color="#1a2d5a" /> : <ChevronDown size={14} color="#1a2d5a" />}
-          </TouchableOpacity>
-          {showAdvanced && (
-            <TextInput
-              style={[styles.input, styles.textarea]}
-              value={advancedPrompt}
-              onChangeText={setAdvancedPrompt}
-              placeholder="Customize the AI prompt… e.g. add a dove flying over a mountain"
-              placeholderTextColor="#9ca3af"
-              multiline
-            />
-          )}
+          <Text style={styles.h1}>Create church visuals in minutes</Text>
+          <Text style={styles.p}>Pick a content type, fill in a few details, and get a ready-to-post thumbnail or card — no prompt writing needed.</Text>
         </View>
 
-        {/* ── GENERATE BUTTON ── */}
-        <Animated.View style={{ transform: [{ scale: generating ? pulseAnim : 1 }] }}>
-          <TouchableOpacity
-            onPress={handleGenerate}
-            disabled={generating}
-            activeOpacity={0.88}
-            style={styles.generateBtn}
-          >
-            <LinearGradient
-              colors={generating ? ['#374151', '#374151'] : ['#c0392b', '#1a2d5a']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.generateBtnInner}
-            >
-              {generating ? (
-                <>
-                  <ActivityIndicator color="#fff" size="small" />
-                  <Text style={styles.generateTxt}>Generating Image…</Text>
-                </>
-              ) : (
-                <>
-                  <Wand2 size={18} color="#fbbf24" />
-                  <Text style={styles.generateTxt}>Generate Image</Text>
-                  <Sparkles size={14} color="rgba(255,255,255,0.6)" />
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* ── IMAGE PREVIEW CARD ── */}
-        {showResult && imageUrl ? (
-          <View style={[styles.card, { borderTopColor: '#92400e' }]}>
-            <View style={styles.resultHd}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <CheckCircle2 size={15} color="#15803d" />
-                <Text style={styles.resultHdTxt}>Generated Image</Text>
-              </View>
-              <TouchableOpacity style={styles.regenBtn} onPress={handleGenerate}>
-                <RefreshCw size={12} color="#1a2d5a" />
-                <Text style={styles.regenTxt}>Regenerate</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Image preview */}
-            <View style={styles.imagePreviewWrap}>
-              <Image source={{ uri: imageUrl }} style={styles.previewImage} resizeMode="cover" />
-              <LinearGradient
-                colors={['transparent', 'rgba(0,0,0,0.1)']}
-                style={StyleSheet.absoluteFillObject}
-              />
-            </View>
-
-            {/* Action buttons */}
-            <View style={styles.imageActions}>
-              <TouchableOpacity style={styles.imageActionBtn} onPress={handleDownload} activeOpacity={0.8}>
-                <Download size={16} color="#1a2d5a" />
-                <Text style={styles.imageActionTxt}>Download</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.imageActionBtn, styles.imageActionBtnPrimary]} onPress={handleUseImage} activeOpacity={0.8}>
-                <CheckSquare size={16} color="#fff" />
-                <Text style={[styles.imageActionTxt, { color: '#fff' }]}>Use Image</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.imageActionBtn, { borderColor: '#f59e0b20', backgroundColor: '#fffbeb' }]} onPress={handleGenerate} activeOpacity={0.8}>
-                <RefreshCw size={16} color="#d97706" />
-                <Text style={[styles.imageActionTxt, { color: '#d97706' }]}>New</Text>
-              </TouchableOpacity>
-            </View>
-
-            {saved && (
-              <View style={styles.savedBadge}>
-                <CheckCircle2 size={12} color="#15803d" />
-                <Text style={styles.savedTxt}>Saved to church library</Text>
-              </View>
-            )}
-          </View>
-        ) : null}
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
-
-      {/* ── STYLE PICKER MODAL ── */}
-      <Modal visible={showStylePicker} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.pickerCard}>
-            <View style={styles.pickerHdRow}>
-              <Text style={styles.pickerHdTxt}>Design Style</Text>
-              <TouchableOpacity onPress={() => setShowStylePicker(false)}>
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-            {DESIGN_STYLES.map(s => (
-              <TouchableOpacity
-                key={s}
-                style={[styles.pickerItem, style === s && styles.pickerItemActive]}
-                onPress={() => { setStyle(s); setShowStylePicker(false); }}
+        <View style={styles.sectionLabel}>
+          <View style={styles.stepNum}><Text style={styles.stepNumTxt}>1</Text></View>
+          <Text style={styles.sectionLabelTxt}>Choose content type</Text>
+        </View>
+        
+        <View style={styles.tileGrid}>
+          {CONTENT_TYPES.map(ct => {
+            const Icon = ct.icon;
+            const selected = contentType === ct.key;
+            return (
+              <TouchableOpacity 
+                key={ct.key} 
+                style={[styles.tile, selected && styles.tileSelected]}
+                onPress={() => setContentType(ct.key)}
+                activeOpacity={0.8}
               >
-                <Text style={[styles.pickerItemTxt, style === s && styles.pickerItemTxtActive]}>{s}</Text>
-                {style === s && <CheckCircle2 size={16} color="#fff" />}
+                {selected && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{x:0, y:0}} end={{x:1, y:1}} style={StyleSheet.absoluteFillObject} />}
+                <Icon size={16} color={selected ? '#fff' : '#5B3FA6'} style={{ zIndex: 1 }} />
+                <Text style={[styles.tileLabel, selected && { color: '#fff' }]}>{ct.key}</Text>
+                {selected && (
+                  <View style={styles.checkWrap}>
+                    <Check size={9} color="#5B3FA6" strokeWidth={3} />
+                  </View>
+                )}
               </TouchableOpacity>
-            ))}
-          </View>
+            )
+          })}
         </View>
-      </Modal>
 
-      {/* ── LANGUAGE PICKER MODAL ── */}
-      <Modal visible={showLangPicker} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.pickerCard}>
-            <View style={styles.pickerHdRow}>
-              <Text style={styles.pickerHdTxt}>Select Language</Text>
-              <TouchableOpacity onPress={() => setShowLangPicker(false)}>
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-            {LANGUAGES.map(lang => (
-              <TouchableOpacity
-                key={lang}
-                style={[styles.pickerItem, language === lang && styles.pickerItemActive]}
-                onPress={() => { setLanguage(lang); setShowLangPicker(false); }}
-              >
-                <Text style={[styles.pickerItemTxt, language === lang && styles.pickerItemTxtActive]}>{lang}</Text>
-                {language === lang && <CheckCircle2 size={16} color="#fff" />}
-              </TouchableOpacity>
-            ))}
-          </View>
+        <View style={styles.sectionLabel}>
+          <View style={styles.stepNum}><Text style={styles.stepNumTxt}>2</Text></View>
+          <Text style={styles.sectionLabelTxt}>Add the details</Text>
         </View>
-      </Modal>
+        
+        <Text style={styles.fieldLabel}>Topic / Title</Text>
+        <TextInput style={styles.input} value={topic} onChangeText={setTopic} placeholder="e.g. Walking by Faith, Not by Sight" placeholderTextColor="#9ca3af" />
 
-      {/* ── ERROR MODAL ── */}
-      <Modal visible={showError} transparent animationType="fade">
-        <View style={[styles.modalOverlay, { justifyContent: 'center' }]}>
-          <View style={styles.alertCard}>
-            <View style={styles.alertIconBox}>
-              <AlertCircle size={40} color="#c0392b" />
-            </View>
-            <Text style={styles.alertTitle}>Generation Failed</Text>
-            <Text style={styles.alertSub}>{errorMsg}</Text>
-            <TouchableOpacity
-              style={[styles.alertBtn, { backgroundColor: '#c0392b' }]}
-              onPress={() => setShowError(false)}
-            >
-              <Text style={styles.alertBtnTxt}>Try Again</Text>
+        <View style={styles.row2}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.fieldLabel}>Date</Text>
+            <TouchableOpacity style={styles.inputBox} onPress={() => setDatePickerVisibility(true)}>
+              <Text style={{ color: selectedDate ? '#211A2E' : '#9ca3af' }}>{selectedDate ? formatDate(selectedDate) : 'Select Date'}</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.fieldLabel}>Time</Text>
+            <TouchableOpacity style={styles.inputBox} onPress={() => setTimePickerVisibility(true)}>
+              <Text style={{ color: selectedTime ? '#211A2E' : '#9ca3af' }}>{selectedTime ? formatTime(selectedTime) : 'Select Time'}</Text>
             </TouchableOpacity>
           </View>
         </View>
-      </Modal>
+
+        <Text style={styles.fieldLabel}>Speaker (optional)</Text>
+        <TextInput style={styles.input} value={speaker} onChangeText={setSpeaker} placeholder="Pastor John Miller" placeholderTextColor="#9ca3af" />
+        
+        <Text style={styles.fieldLabel}>Location (optional)</Text>
+        <TextInput style={styles.input} value={location} onChangeText={setLocation} placeholder="Main Sanctuary" placeholderTextColor="#9ca3af" />
+
+        <Text style={styles.fieldLabel}>Language</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
+          {LANGUAGES.map(l => (
+            <TouchableOpacity key={l} style={[styles.pill, language === l && styles.pillSelected]} onPress={() => setLanguage(l)}>
+              {language === l && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{x:0, y:0}} end={{x:1, y:1}} style={StyleSheet.absoluteFillObject} />}
+              <Text style={[styles.pillTxt, language === l && { color: '#fff' }]}>{l}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <Text style={styles.fieldLabel}>Design style</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
+          {DESIGN_STYLES.map(s => (
+            <TouchableOpacity key={s} style={[styles.pill, style === s && styles.pillSelected]} onPress={() => setStyle(s)}>
+               {style === s && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{x:0, y:0}} end={{x:1, y:1}} style={StyleSheet.absoluteFillObject} />}
+              <Text style={[styles.pillTxt, style === s && { color: '#fff' }]}>{s}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <Text style={styles.fieldLabel}>Orientation</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
+          {ORIENTATIONS.map(o => (
+            <TouchableOpacity key={o} style={[styles.pill, orientation === o && styles.pillSelected]} onPress={() => setOrientation(o)}>
+               {orientation === o && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{x:0, y:0}} end={{x:1, y:1}} style={StyleSheet.absoluteFillObject} />}
+              <Text style={[styles.pillTxt, orientation === o && { color: '#fff' }]}>{o}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <View style={styles.advancedWrap}>
+          <TouchableOpacity style={styles.advancedSummary} onPress={() => setShowAdvanced(!showAdvanced)}>
+            <ChevronDown size={14} color="#5B3FA6" style={{ transform: [{ rotate: showAdvanced ? '180deg' : '0deg' }] }} />
+            <Text style={styles.advancedSummaryTxt}>Advanced prompt (optional)</Text>
+          </TouchableOpacity>
+          {showAdvanced && (
+            <View style={styles.advancedBody}>
+              <TextInput 
+                style={[styles.input, styles.textarea]} 
+                value={advancedPrompt} 
+                onChangeText={setAdvancedPrompt} 
+                placeholder="Leave blank to auto-generate from your selections above." 
+                placeholderTextColor="#9ca3af" 
+                multiline 
+              />
+            </View>
+          )}
+        </View>
+
+        <View style={{ marginTop: 18 }}>
+          <TouchableOpacity onPress={handleGenerate} disabled={generating} activeOpacity={0.88} style={styles.btnPrimary}>
+            <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{x:0, y:0}} end={{x:1, y:1}} style={styles.btnGradient} />
+            <Wand2 size={15} color="#fff" style={{ zIndex: 1 }} />
+            <Text style={styles.btnPrimaryTxt}>Generate</Text>
+          </TouchableOpacity>
+          {generating && <Text style={styles.generatingTxt}>Generating your visual…</Text>}
+        </View>
+
+        {showResult && imageUrl ? (
+          <View style={styles.outputPanel}>
+            <View style={styles.thumbPreview}>
+               <Image source={{ uri: imageUrl }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+            </View>
+            <View style={styles.btnRow}>
+              <TouchableOpacity style={styles.btnGhost} onPress={handleGenerate}>
+                <RefreshCw size={15} color="#211A2E" />
+                <Text style={styles.btnGhostTxt}>Redo</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnGhost}>
+                <ImageIcon size={15} color="#211A2E" />
+                <Text style={styles.btnGhostTxt}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnGhost}>
+                <Download size={15} color="#211A2E" />
+                <Text style={styles.btnGhostTxt}>Save</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.btnRow}>
+              <TouchableOpacity style={styles.btnGhost} onPress={() => Alert.alert('Added to Church Content')}>
+                <CheckSquare size={15} color="#211A2E" />
+                <Text style={styles.btnGhostTxt}>Use in Content</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnPrimarySmall} onPress={resetForm}>
+                <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{x:0, y:0}} end={{x:1, y:1}} style={styles.btnGradient} />
+                <Wand2 size={15} color="#fff" style={{ zIndex: 1 }} />
+                <Text style={styles.btnPrimaryTxt}>New</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+        
+        <Text style={styles.caption}>Prototype — connect to your real Firebase Storage & Firestore before shipping.</Text>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        onConfirm={(date) => { setSelectedDate(date); setDatePickerVisibility(false); }}
+        onCancel={() => setDatePickerVisibility(false)}
+      />
+      <DateTimePickerModal
+        isVisible={isTimePickerVisible}
+        mode="time"
+        onConfirm={(time) => { setSelectedTime(time); setTimePickerVisibility(false); }}
+        onCancel={() => setTimePickerVisibility(false)}
+      />
     </View>
   );
 }
 
 // ─── Styles ─────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#EDE8DC' },
-  scroll: { padding: 14, paddingBottom: 80 },
+  container: { flex: 1, backgroundColor: '#EDE7DC' },
+  scroll: { padding: 16, paddingBottom: 80 },
 
-  // Hero
-  hero: {
-    paddingTop: Platform.OS === 'ios' ? 56 : 44,
-    paddingBottom: 28,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    overflow: 'hidden',
-    marginBottom: 14,
+  // Header
+  appHeader: {
+    paddingTop: 30,
+    paddingBottom: 36,
+    paddingHorizontal: 18,
+    backgroundColor: '#3A2A6B',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginBottom: 12 },
-  backTxt: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  heroCenter: { alignItems: 'center' },
-  freeBadge: { backgroundColor: '#15803d', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 50, marginBottom: 10, alignSelf: 'center' },
-  freeBadgeTxt: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  heroIconWrap: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: 'rgba(251,191,36,0.15)',
-    borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
-    justifyContent: 'center', alignItems: 'center', marginBottom: 12,
-  },
-  heroTitle: { color: '#fff', fontSize: 26, fontWeight: '800', letterSpacing: -0.5, fontFamily: SERIF },
-  heroSub: { color: '#fde68a', fontSize: 13, marginTop: 4 },
-  heroDot1: { position: 'absolute', width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(251,191,36,0.07)', top: -20, right: -15 },
-  heroDot2: { position: 'absolute', width: 70, height: 70, borderRadius: 35, backgroundColor: 'rgba(192,57,43,0.08)', bottom: 5, left: -10 },
+  headerRow: { flexDirection: 'row', alignItems: 'center' },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '600', fontFamily: SERIF },
 
-  // Cards
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(26,45,90,0.08)',
-    borderTopWidth: 3,
-    borderTopColor: '#1a2d5a',
-    shadowColor: '#1a2d5a',
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  cardHd: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginBottom: 16, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(26,45,90,0.07)',
-  },
-  cardHdIconWrap: {
-    width: 28, height: 28, borderRadius: 8,
-    backgroundColor: 'rgba(26,45,90,0.08)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  cardHdTxt: { fontSize: 11, fontWeight: '800', color: '#1a2d5a', letterSpacing: 0.8 },
+  // Typography
+  lede: { marginBottom: 16 },
+  eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  eyebrowTxt: { fontSize: 12, color: '#5B5468' },
+  h1: { fontSize: 19, fontWeight: '600', fontFamily: SERIF, color: '#211A2E', lineHeight: 24 },
+  p: { fontSize: 12.5, color: '#5B5468', marginTop: 5, lineHeight: 18 },
 
-  // Chips
-  chipRow: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 14, paddingVertical: 9,
-    borderRadius: 50, borderWidth: 1.5, borderColor: '#e5e7eb',
-    backgroundColor: '#f9fafb',
+  sectionLabel: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    marginTop: 18, marginBottom: 9,
   },
-  chipSelected: { borderColor: '#1a2d5a', backgroundColor: '#1a2d5a' },
-  chipEmoji: { fontSize: 14 },
-  chipTxt: { fontSize: 12, fontWeight: '600', color: '#374151' },
-  chipTxtSelected: { color: '#fff' },
+  sectionLabelTxt: { fontSize: 12, fontWeight: '700', color: '#211A2E' },
+  stepNum: {
+    width: 17, height: 17, borderRadius: 8.5, backgroundColor: '#5B3FA6',
+    justifyContent: 'center', alignItems: 'center', overflow: 'hidden'
+  },
+  stepNumTxt: { color: '#fff', fontSize: 10, fontWeight: '700', zIndex: 1 },
 
-  // Form
-  fGroup: { marginBottom: 14 },
-  fLabel: { fontSize: 12, fontWeight: '700', color: '#1a2d5a', marginBottom: 7 },
+  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tile: {
+    width: (width - 40) / 2,
+    borderWidth: 1.4, borderColor: '#E7E0D6', borderRadius: 12, padding: 11,
+    backgroundColor: '#fff', flexDirection: 'column', gap: 7, overflow: 'hidden'
+  },
+  tileSelected: { borderColor: 'transparent', shadowColor: '#5B3FA6', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  tileLabel: { fontSize: 12, fontWeight: '600', color: '#211A2E', zIndex: 1 },
+  checkWrap: {
+    position: 'absolute', top: 8, right: 8, width: 15, height: 15, borderRadius: 7.5,
+    backgroundColor: 'rgba(255,255,255,0.95)', justifyContent: 'center', alignItems: 'center', zIndex: 1
+  },
+
+  fieldLabel: { fontSize: 11.5, fontWeight: '600', color: '#5B5468', marginTop: 14, marginBottom: 7 },
   input: {
-    backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#e5e7eb',
-    borderRadius: 10, padding: 12, fontSize: 13, color: '#1a2d5a',
+    backgroundColor: '#fff', borderWidth: 1.4, borderColor: '#E7E0D6',
+    borderRadius: 10, paddingVertical: 11, paddingHorizontal: 12, fontSize: 14, color: '#211A2E', fontFamily: SANS,
   },
-  textarea: { minHeight: 80, textAlignVertical: 'top' },
-  inputWithIcon: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#e5e7eb',
-    borderRadius: 10, paddingHorizontal: 12, height: 46,
+  inputBox: {
+    backgroundColor: '#fff', borderWidth: 1.4, borderColor: '#E7E0D6',
+    borderRadius: 10, paddingVertical: 11, paddingHorizontal: 12,
   },
-  inputInner: { flex: 1, fontSize: 13, color: '#1a2d5a' },
-  selectBox: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#e5e7eb',
-    borderRadius: 10, paddingHorizontal: 12, height: 46,
-  },
-  selectTxt: { fontSize: 13, color: '#1a2d5a', fontWeight: '600', flex: 1 },
+  row2: { flexDirection: 'row', gap: 10, marginTop: 12 },
 
-  // Two-col row
-  twoColRow: { flexDirection: 'row', gap: 10 },
+  pillScroll: { flexDirection: 'row', overflow: 'visible', paddingBottom: 4 },
+  pill: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1.4, borderColor: '#E7E0D6',
+    backgroundColor: '#fff', marginRight: 7, overflow: 'hidden'
+  },
+  pillSelected: { borderColor: 'transparent' },
+  pillTxt: { fontSize: 12.5, color: '#211A2E', zIndex: 1 },
 
-  // Segment
-  segmentRow: { flexDirection: 'row', gap: 8 },
-  segBtn: {
-    flex: 1, alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 10, borderRadius: 10,
-    borderWidth: 1.5, borderColor: '#e5e7eb', backgroundColor: '#f9fafb',
-  },
-  segBtnActive: { borderColor: '#1a2d5a', backgroundColor: '#1a2d5a' },
-  segTxt: { fontSize: 12, fontWeight: '600', color: '#6b7280' },
-  segTxtActive: { color: '#fff' },
+  advancedWrap: { marginTop: 16 },
+  advancedSummary: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  advancedSummaryTxt: { fontSize: 12.5, fontWeight: '600', color: '#5B3FA6' },
+  advancedBody: { marginTop: 8 },
+  textarea: { minHeight: 64, textAlignVertical: 'top' },
 
-  // Advanced prompt toggle
-  advancedToggle: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 10, marginTop: 4,
-    borderTopWidth: 1, borderTopColor: 'rgba(26,45,90,0.07)',
+  btnPrimary: {
+    borderRadius: 12, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13,
+    shadowColor: '#5B3FA6', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5,
   },
-  advancedToggleTxt: { fontSize: 12, fontWeight: '700', color: '#1a2d5a' },
+  btnPrimarySmall: {
+    flex: 1, borderRadius: 12, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 10
+  },
+  btnGradient: { ...StyleSheet.absoluteFillObject },
+  btnPrimaryTxt: { color: '#fff', fontSize: 13.5, fontWeight: '700', fontFamily: SANS, zIndex: 1 },
+  generatingTxt: { textAlign: 'center', fontSize: 12.5, color: '#5B5468', marginTop: 10 },
 
-  // Generate button
-  generateBtn: {
-    marginBottom: 12, borderRadius: 16, overflow: 'hidden',
-    shadowColor: '#c0392b', shadowOpacity: 0.3, shadowRadius: 14,
-    shadowOffset: { width: 0, height: 6 }, elevation: 8,
+  outputPanel: { marginTop: 14 },
+  thumbPreview: {
+    borderRadius: 14, overflow: 'hidden', borderWidth: 1, borderColor: '#E7E0D6',
+    aspectRatio: 16/10, backgroundColor: '#5B3FA6',
+    justifyContent: 'center', alignItems: 'center', padding: 20, marginBottom: 14,
   },
-  generateBtnInner: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10, paddingVertical: 17,
+  btnRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  btnGhost: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#fff', borderWidth: 1.4, borderColor: '#E7E0D6', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 10
   },
-  generateTxt: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  btnGhostTxt: { color: '#211A2E', fontSize: 12.5, fontWeight: '700', fontFamily: SANS },
 
-  // Result
-  resultHd: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14,
-  },
-  resultHdTxt: { fontSize: 13, fontWeight: '800', color: '#1a2d5a' },
-  regenBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
-    backgroundColor: 'rgba(26,45,90,0.07)',
-  },
-  regenTxt: { fontSize: 11, fontWeight: '700', color: '#1a2d5a' },
-
-  imagePreviewWrap: {
-    width: '100%',
-    aspectRatio: 1,
-    borderRadius: 14,
-    overflow: 'hidden',
-    backgroundColor: '#f0f2f7',
-    marginBottom: 12,
-  },
-  previewImage: { width: '100%', height: '100%' },
-  imageActions: { flexDirection: 'row', gap: 8 },
-  imageActionBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 12, borderRadius: 12,
-    borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.15)',
-    backgroundColor: 'rgba(26,45,90,0.04)',
-  },
-  imageActionBtnPrimary: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
-  imageActionTxt: { fontSize: 12, fontWeight: '700', color: '#1a2d5a' },
-
-  savedBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#f0fdf4', borderRadius: 8, padding: 8, marginTop: 8,
-  },
-  savedTxt: { fontSize: 11, color: '#15803d', fontWeight: '600' },
-
-  // Modals
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  pickerCard: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 36 },
-  pickerHdRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  pickerHdTxt: { fontSize: 16, fontWeight: '800', color: '#1a2d5a' },
-  pickerItem: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 14, borderRadius: 10, marginBottom: 6,
-  },
-  pickerItemActive: { backgroundColor: '#1a2d5a' },
-  pickerItemTxt: { fontSize: 14, color: '#374151', fontWeight: '500' },
-  pickerItemTxtActive: { color: '#fff', fontWeight: '700' },
-
-  alertCard: {
-    backgroundColor: '#fff', width: '85%', alignSelf: 'center',
-    borderRadius: 24, padding: 28, alignItems: 'center',
-    marginTop: 'auto', marginBottom: 'auto',
-  },
-  alertIconBox: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: '#fef2f2', justifyContent: 'center', alignItems: 'center', marginBottom: 18,
-  },
-  alertTitle: { fontSize: 20, fontWeight: '800', color: '#1a2d5a', marginBottom: 8 },
-  alertSub: { fontSize: 13, color: '#6b7280', textAlign: 'center', marginBottom: 22 },
-  alertBtn: { width: '100%', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  alertBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  caption: { textAlign: 'center', fontSize: 11, color: '#8A8298', marginTop: 14 }
 });

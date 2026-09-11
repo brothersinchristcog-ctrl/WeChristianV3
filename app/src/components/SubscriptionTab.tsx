@@ -45,6 +45,7 @@ import { useChurch } from '../context/ChurchContext';
 import firestoreService, { SubscriptionPlan, GlobalUser } from '../services/FirestoreService';
 import { firestore, functions } from '../services/firebaseConfig';
 import { useNavigation } from '@react-navigation/native';
+import ChurchService from '../services/ChurchService';
 
 const { width } = Dimensions.get('window');
 
@@ -571,9 +572,20 @@ export default function SubscriptionTab({ member }: { member?: any }) {
         <View style={[styles.stepContainer, { justifyContent: 'center', alignItems: 'center' }]}>
           <Text style={styles.title}>Loading...</Text>
         </View>
-      ) : ((activeChurch?.subscription?.status === 'active' || isPaymentSuccessful) && !planSelectModalVisible) ? (
+      ) : ((!ChurchService.isSubscriptionExpired(activeChurch) || isPaymentSuccessful) && !planSelectModalVisible) ? (
         <View style={[{ minHeight: 600, paddingTop: 24 }]}>
-          <TouchableOpacity style={{ alignSelf: 'flex-start', marginBottom: 16, padding: 8, marginLeft: 20 }} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={{ alignSelf: 'flex-start', marginBottom: 16, padding: 8, marginLeft: 20 }} onPress={() => {
+            try {
+              const state = navigation.getState();
+              if (state && state.routes && state.routes.length > 1) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('Tabs'); // Will be intercepted by AdminRoot if needed
+              }
+            } catch (e) {
+              navigation.navigate('Tabs');
+            }
+          }}>
             <ArrowLeft size={24} color={'#1F3B3D'} />
           </TouchableOpacity>
           <View style={{ backgroundColor: '#171e2e', borderRadius: 20, padding: 20, paddingBottom: 16, marginBottom: 24, marginHorizontal: 28, alignItems: 'center' }}>
@@ -614,7 +626,9 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                 <Path d="M 0 0 C 25 0, 20 45, 45 45 L 110 45 C 125 45, 130 60, 130 75 L 130 0 Z" fill="url(#greenBadge)" />
               </Svg>
               <View style={{ height: 45, justifyContent: 'center', alignItems: 'flex-end', paddingRight: 16 }}>
-                <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>Active Plan</Text>
+                <Text style={{ color: '#171e2e', fontWeight: '800', fontSize: 13 }}>
+                  {!ChurchService.isSubscriptionExpired(activeChurch) ? 'Active Plan' : 'Expired Plan'}
+                </Text>
               </View>
             </View>
             <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 16, marginTop: 4, width: '70%' }} numberOfLines={2} adjustsFontSizeToFit>{activeChurch?.name || 'Church of GOD'}</Text>
@@ -659,11 +673,21 @@ export default function SubscriptionTab({ member }: { member?: any }) {
 
             <TouchableOpacity 
               onPress={() => setSelectedInvoice(subscriptionHistory[0] || { id: receiptTxnId || 'temp_active', plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' })}
-              style={{ backgroundColor: '#10b981', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+              style={{ backgroundColor: '#10b981', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginBottom: 12 }}
             >
               <Crown size={20} color="#f8fafc" style={{ marginRight: 8 }} />
               <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700' }}>Current Plan Details</Text>
             </TouchableOpacity>
+            
+            {ChurchService.isSubscriptionExpired(activeChurch) && (
+              <TouchableOpacity 
+                onPress={() => setPlanSelectModalVisible(true)}
+                style={{ backgroundColor: '#ef4444', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+              >
+                <CreditCard size={20} color="#f8fafc" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700' }}>Renew Now</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 

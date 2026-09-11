@@ -7,7 +7,8 @@ import { ActivityIndicator, View, Text, StyleSheet, Alert, Platform, TouchableOp
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Lock } from 'lucide-react-native';
+import { Lock, AlertCircle, Crown, ShieldAlert, Sparkles } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ChurchProvider, useChurch } from '../context/ChurchContext';
@@ -16,6 +17,7 @@ import Theme from '../theme/Theme';
 import AdminNavigator from './AdminNavigator'; 
 import NotificationService from '../services/NotificationService';
 import SecurityService from '../services/SecurityService';
+import ChurchService from '../services/ChurchService';
 import * as Notifications from 'expo-notifications';
 import VerseOfTheDayScreen from '../screens/VerseOfTheDayScreen';
 import VerseNotificationService from '../services/VerseNotificationService';
@@ -256,6 +258,158 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
     );
   }
 
+const LockedFeatureScreen = ({ navigation }: any) => {
+  const { member } = useAuth();
+  const isAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER');
+  const [pulseAnim] = React.useState(new Animated.Value(1));
+
+  React.useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 1500, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1500, useNativeDriver: true })
+      ])
+    ).start();
+  }, []);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: '#0f172a' }}>
+      <LinearGradient colors={['#1e1b4b', '#0f172a']} style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+        {/* Background glow effect */}
+        <Animated.View style={{
+          position: 'absolute',
+          width: 300,
+          height: 300,
+          borderRadius: 150,
+          backgroundColor: 'rgba(225, 29, 72, 0.1)',
+          transform: [{ scale: pulseAnim }],
+          top: '30%'
+        }} />
+
+        <View style={{
+          backgroundColor: 'rgba(30, 41, 59, 0.85)',
+          borderRadius: 32,
+          padding: 32,
+          paddingTop: 48,
+          alignItems: 'center',
+          width: '100%',
+          maxWidth: 380,
+          borderWidth: 1,
+          borderColor: 'rgba(225, 29, 72, 0.4)',
+          shadowColor: '#e11d48',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.3,
+          shadowRadius: 20,
+          elevation: 10,
+        }}>
+          {/* Floating Icon */}
+          <View style={{
+            position: 'absolute',
+            top: -40,
+            width: 80,
+            height: 80,
+            borderRadius: 40,
+            backgroundColor: '#0f172a',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderWidth: 2,
+            borderColor: '#e11d48',
+            shadowColor: '#e11d48',
+            shadowOffset: { width: 0, height: 0 },
+            shadowOpacity: 0.8,
+            shadowRadius: 15,
+            elevation: 8,
+          }}>
+            <Lock size={36} color="#fb7185" />
+          </View>
+
+          <Text style={{
+            color: '#f8fafc',
+            fontSize: 28,
+            fontWeight: '800',
+            marginBottom: 12,
+            textAlign: 'center',
+            letterSpacing: -0.5
+          }}>
+            Subscription Expired
+          </Text>
+
+          <Text style={{
+            color: '#94a3b8',
+            fontSize: 16,
+            textAlign: 'center',
+            marginBottom: 40,
+            lineHeight: 24,
+            fontWeight: '500',
+            paddingHorizontal: 4
+          }}>
+            {isAdmin 
+              ? 'Your church\'s premium access has ended. Renew today to unlock Sermons, Daily Verses, Live Celebrations, and more!'
+              : 'Your church\'s premium access has ended. Please reach out to your pastor or admin to restore these features.'}
+          </Text>
+
+          {isAdmin ? (
+            <TouchableOpacity 
+              activeOpacity={0.8}
+              style={{ width: '100%', marginBottom: 16 }}
+              onPress={() => navigation.navigate('Subscription')}
+            >
+              <LinearGradient 
+                colors={['#10b981', '#059669']} 
+                start={{x:0, y:0}} end={{x:1, y:1}}
+                style={{
+                  paddingVertical: 18,
+                  borderRadius: 20,
+                  alignItems: 'center',
+                  flexDirection: 'row',
+                  justifyContent: 'center'
+                }}
+              >
+                <Crown size={22} color="#ffffff" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '800', letterSpacing: 0.5 }}>Renew Subscription</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          ) : (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: 'rgba(148, 163, 184, 0.1)',
+              padding: 16,
+              borderRadius: 16,
+              marginBottom: 32,
+              width: '100%'
+            }}>
+              <AlertCircle size={20} color="#94a3b8" style={{ marginRight: 12 }} />
+              <Text style={{ color: '#94a3b8', fontSize: 13, flex: 1, lineHeight: 18 }}>
+                Only the church administrator can renew the subscription.
+              </Text>
+            </View>
+          )}
+
+          <TouchableOpacity 
+            activeOpacity={0.6}
+            style={{ paddingVertical: 12, paddingHorizontal: 24 }}
+            onPress={() => {
+              try {
+                const state = navigation.getState();
+                if (state && state.routes && state.routes.length > 1) {
+                  navigation.goBack();
+                } else {
+                  navigation.navigate(isAdmin ? 'AdminRoot' : 'Tabs');
+                }
+              } catch (e) {
+                navigation.navigate(isAdmin ? 'AdminRoot' : 'Tabs');
+              }
+            }}
+          >
+            <Text style={{ color: '#64748b', fontSize: 16, fontWeight: '700' }}>{isAdmin ? 'Maybe Later' : 'Go Back to Home'}</Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+    </View>
+  );
+};
+
 function TabNavigator() {
   const { user, signOut, member, viewMode, setViewMode } = useAuth();
   const { activeChurch } = useChurch();
@@ -297,6 +451,12 @@ function TabNavigator() {
           { text: 'Sign In', onPress: () => signOut() }
         ]
       );
+      return;
+    }
+
+    if (ChurchService.isSubscriptionExpired(activeChurch)) {
+      e.preventDefault();
+      navigation.navigate('LockedFeature');
       return;
     }
   };
@@ -580,34 +740,11 @@ function Navigation() {
   }
 
   // ── Church Expiration Logic ──
-  const isChurchExpired = activeChurch?.isActive === false || activeChurch?.subscription?.status === 'expired';
+  const isChurchExpired = ChurchService.isSubscriptionExpired(activeChurch);
 
-  if (isChurchExpired && user && !user.isAnonymous) {
-    if (isAdmin) {
-      // Force admin to the Subscription screen
-      return (
-        <Stack.Navigator screenOptions={{ headerShown: false, animation: 'none' }}>
-          <Stack.Screen name="Subscription" component={SubscriptionScreen} initialParams={{ isExpired: true }} />
-        </Stack.Navigator>
-      );
-    } else {
-      // Block members completely
-      return (
-        <View style={lockStyles.container}>
-          <View style={lockStyles.card}>
-            <View style={lockStyles.iconContainer}>
-              <Lock size={40} color="#e74c3c" />
-            </View>
-            <Text style={lockStyles.title}>Subscription Expired</Text>
-            <Text style={lockStyles.subtitle}>Your church subscription has expired. Please reach out to your church admin/pastor.</Text>
-            <TouchableOpacity style={lockStyles.button} onPress={signOut}>
-              <Text style={lockStyles.buttonText}>Sign Out</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
-  }
+  const renderPremium = (Component: any) => {
+    return isChurchExpired ? LockedFeatureScreen : Component;
+  };
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, animation: 'none' }}>
@@ -615,49 +752,52 @@ function Navigation() {
         showAdminView ? (
           <>
             <Stack.Screen name="AdminRoot" component={AdminNavigator} />
-            <Stack.Screen name="EventDetail" component={PastorEventDetail} />
-            <Stack.Screen name="CreateEvent" component={CreatePastorEvent} />
-            <Stack.Screen name="RoutePlanner" component={PastorEventRoutePlanner} />
-            <Stack.Screen name="EventMap" component={PastorEventMap} />
-            <Stack.Screen name="Updates" component={UpdatesScreen} />
-            <Stack.Screen name="Celebration" component={CelebrationScreen} />
+            <Stack.Screen name="Subscription" component={SubscriptionScreen} />
+            <Stack.Screen name="LockedFeature" component={LockedFeatureScreen} />
+            <Stack.Screen name="EventDetail" component={renderPremium(PastorEventDetail)} />
+            <Stack.Screen name="CreateEvent" component={renderPremium(CreatePastorEvent)} />
+            <Stack.Screen name="RoutePlanner" component={renderPremium(PastorEventRoutePlanner)} />
+            <Stack.Screen name="EventMap" component={renderPremium(PastorEventMap)} />
+            <Stack.Screen name="Updates" component={renderPremium(UpdatesScreen)} />
+            <Stack.Screen name="Celebration" component={renderPremium(CelebrationScreen)} />
             {/* Added for Push Notification Support in Admin View */}
-            <Stack.Screen name="Sermons" component={SermonsScreen} />
-            <Stack.Screen name="Events" component={EventsScreen} />
-            <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
-            <Stack.Screen name="LiveCelebrationsChat" component={LiveCelebrationsChat} />
-            <Stack.Screen name="VerseOfTheDay" component={VerseOfTheDayScreen} />
+            <Stack.Screen name="Sermons" component={renderPremium(SermonsScreen)} />
+            <Stack.Screen name="Events" component={renderPremium(EventsScreen)} />
+            <Stack.Screen name="AttendanceScreen" component={renderPremium(AttendanceScreen)} />
+            <Stack.Screen name="LiveCelebrationsChat" component={renderPremium(LiveCelebrationsChat)} />
+            <Stack.Screen name="VerseOfTheDay" component={renderPremium(VerseOfTheDayScreen)} />
           </>
         ) : onboardingComplete ? (
           <>
             <Stack.Screen name="Tabs" component={TabNavigator} />
-            <Stack.Screen name="Celebration" component={CelebrationScreen} />
-            <Stack.Screen name="AttendanceScreen" component={AttendanceScreen} />
-            <Stack.Screen name="DailyVideo" component={DailyVideoScreen} />
-            <Stack.Screen name="SermonVideo" component={SermonVideoScreen} />
-            <Stack.Screen name="Events" component={EventsScreen} />
-            <Stack.Screen name="Give" component={GivingScreen} />
-            <Stack.Screen name="GivingHistory" component={GivingHistoryScreen} />
-            <Stack.Screen name="Sermons" component={SermonsScreen} />
-            <Stack.Screen name="Songs" component={SongsScreen} />
-            <Stack.Screen name="EventDetails" component={EventDetailsScreen} />
-            <Stack.Screen name="Updates" component={UpdatesScreen} />
-            <Stack.Screen name="PrayerWall" component={PrayerWallScreen} />
-            <Stack.Screen name="Bible" component={BibleScreen} />
-            <Stack.Screen name="BibleChapters" component={BibleChaptersScreen} />
-            <Stack.Screen name="BibleReader" component={BibleReaderScreen} />
-            <Stack.Screen name="BiblePlans" component={BiblePlansScreen} />
-            <Stack.Screen name="BibleSearch" component={BibleSearchScreen} />
-            <Stack.Screen name="MemberNotes" component={MemberNotesScreen} />
-            <Stack.Screen name="Members" component={MembersScreen} />
+            <Stack.Screen name="LockedFeature" component={LockedFeatureScreen} />
+            <Stack.Screen name="Celebration" component={renderPremium(CelebrationScreen)} />
+            <Stack.Screen name="AttendanceScreen" component={renderPremium(AttendanceScreen)} />
+            <Stack.Screen name="DailyVideo" component={renderPremium(DailyVideoScreen)} />
+            <Stack.Screen name="SermonVideo" component={renderPremium(SermonVideoScreen)} />
+            <Stack.Screen name="Events" component={renderPremium(EventsScreen)} />
+            <Stack.Screen name="Give" component={renderPremium(GivingScreen)} />
+            <Stack.Screen name="GivingHistory" component={renderPremium(GivingHistoryScreen)} />
+            <Stack.Screen name="Sermons" component={renderPremium(SermonsScreen)} />
+            <Stack.Screen name="Songs" component={renderPremium(SongsScreen)} />
+            <Stack.Screen name="EventDetails" component={renderPremium(EventDetailsScreen)} />
+            <Stack.Screen name="Updates" component={renderPremium(UpdatesScreen)} />
+            <Stack.Screen name="PrayerWall" component={renderPremium(PrayerWallScreen)} />
+            <Stack.Screen name="Bible" component={renderPremium(BibleScreen)} />
+            <Stack.Screen name="BibleChapters" component={renderPremium(BibleChaptersScreen)} />
+            <Stack.Screen name="BibleReader" component={renderPremium(BibleReaderScreen)} />
+            <Stack.Screen name="BiblePlans" component={renderPremium(BiblePlansScreen)} />
+            <Stack.Screen name="BibleSearch" component={renderPremium(BibleSearchScreen)} />
+            <Stack.Screen name="MemberNotes" component={renderPremium(MemberNotesScreen)} />
+            <Stack.Screen name="Members" component={renderPremium(MembersScreen)} />
             <Stack.Screen name="AboutUs" component={AboutUsScreen} />
             <Stack.Screen name="ContactUs" component={ContactUsScreen} />
             <Stack.Screen name="Subscription" component={SubscriptionScreen} />
-            <Stack.Screen name="OnlineMeetings" component={OnlineMeetingsScreen} />
-            <Stack.Screen name="OnlineMeetingDetail" component={OnlineMeetingDetailScreen} />
-            <Stack.Screen name="LiveCelebrationsChat" component={LiveCelebrationsChat} />
-            <Stack.Screen name="Gallery" component={MemberGalleryNavigator} />
-            <Stack.Screen name="VerseOfTheDay" component={VerseOfTheDayScreen} />
+            <Stack.Screen name="OnlineMeetings" component={renderPremium(OnlineMeetingsScreen)} />
+            <Stack.Screen name="OnlineMeetingDetail" component={renderPremium(OnlineMeetingDetailScreen)} />
+            <Stack.Screen name="LiveCelebrationsChat" component={renderPremium(LiveCelebrationsChat)} />
+            <Stack.Screen name="Gallery" component={renderPremium(MemberGalleryNavigator)} />
+            <Stack.Screen name="VerseOfTheDay" component={renderPremium(VerseOfTheDayScreen)} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />

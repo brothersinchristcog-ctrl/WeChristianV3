@@ -1,4 +1,4 @@
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext, useRef, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -11,29 +11,36 @@ import {
   Modal,
   Platform,
   Dimensions,
-  StatusBar,
   Animated,
   Share,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ChevronLeft,
-  Sparkles,
-  BookOpen,
-  Globe,
-  Clock,
-  RefreshCw,
-  Layers,
-  Languages,
-  BookMarked,
-  Image as ImageIcon,
-  Copy,
-  Share2,
+  Wand2,
   ChevronDown,
+  Image as ImageIcon,
+  CheckSquare,
+  RefreshCw,
+  Save,
   CheckCircle2,
   AlertCircle,
-  X,
-  Zap,
+  Globe,
+  Sparkles,
+  BookOpen,
+  Check,
+  AlignLeft,
+  ListPlus,
+  Minimize,
+  Maximize,
+  Mic,
+  MessageCircle,
+  BookMarked,
+  Gift, Heart, HeartHandshake, Droplets, CloudRain, Users, Building2, Utensils, GraduationCap, Briefcase, Sunrise, AlertTriangle, HeartOff, TrendingDown, TrendingUp, MoreHorizontal, Smile, Wind, ShieldAlert, Star, Anchor, Lightbulb, LifeBuoy, Crown, Hourglass, Mountain, Shield, Lock, Compass, Home, User, Baby, Link, Flag, Leaf,
+  HeartPulse,
+  Copy
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { useChurch } from '../../context/ChurchContext';
@@ -42,99 +49,357 @@ import FirestoreService from '../../services/FirestoreService';
 
 const { width } = Dimensions.get('window');
 const SERIF = Platform.OS === 'ios' ? 'Georgia' : 'serif';
+const SANS = Platform.OS === 'ios' ? 'System' : 'sans-serif';
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 const LIFE_EVENTS = [
-  { key: 'Baptism',          emoji: '🙏' },
-  { key: 'Wedding',          emoji: '💍' },
-  { key: 'Funeral',          emoji: '🕊️' },
-  { key: 'Baby Dedication',  emoji: '👶' },
-  { key: 'Ordination',       emoji: '✝️' },
+  { name: 'Birthday - పుట్టినరోజు', icon: Gift },
+  { name: 'Wedding - వివాహం', icon: Heart },
+  { name: 'Wedding Anniversary - వివాహ వార్షికోత్సవం', icon: HeartHandshake },
+  { name: 'Baptism - బాప్తిస్మం', icon: Droplets },
+  { name: 'Sick / Healing - అనారోగ్యం / స్వస్థత', icon: HeartPulse },
+  { name: 'Funeral / Death - మరణం', icon: CloudRain },
+  { name: 'Family Function - కుటుంబ వేడుక', icon: Users },
+  { name: 'Church Anniversary - సంఘ వార్షికోత్సవం', icon: Building2 },
+  { name: 'Thanksgiving - కృతజ్ఞతా కూడిక', icon: Utensils },
+  { name: 'Graduation - పట్టభద్రోత్సవం', icon: GraduationCap },
+  { name: 'Retirement - పదవీ విరమణ', icon: Briefcase },
+  { name: 'New Beginning - నూతన ప్రారంభం', icon: Sunrise },
+  { name: 'Crisis - సంక్షోభం', icon: AlertTriangle },
+  { name: 'Loss - నష్టం', icon: HeartOff },
+  { name: 'Failure - వైఫల్యం', icon: TrendingDown },
+  { name: 'Success - విజయం', icon: TrendingUp },
+  { name: 'Other - ఇతర', icon: MoreHorizontal }
 ];
-
 const SPIRITUAL_TOPICS = [
-  { key: 'Evangelism',   emoji: '📢' },
-  { key: 'Healing',      emoji: '❤️‍🩹' },
-  { key: 'Faith',        emoji: '⚓' },
-  { key: 'Prayer',       emoji: '🙌' },
-  { key: 'Worship',      emoji: '🎵' },
-  { key: 'Repentance',   emoji: '🔄' },
-  { key: 'Grace',        emoji: '✨' },
-  { key: 'Salvation',    emoji: '🕊️' },
+  { name: 'Joy - ఆనందం', icon: Smile },
+  { name: 'Peace - సమాధానం', icon: Wind },
+  { name: 'Fear - భయం', icon: ShieldAlert },
+  { name: 'Faith - విశ్వాసం', icon: Star },
+  { name: 'Hope - నిరీక్షణ', icon: Anchor },
+  { name: 'Love - ప్రేమ', icon: Heart },
+  { name: 'Wisdom - జ్ఞానం', icon: Lightbulb },
+  { name: 'Prayer - ప్రార్థన', icon: Sparkles },
+  { name: 'Healing - స్వస్థత', icon: HeartPulse },
+  { name: 'Grace - కృప', icon: Gift },
+  { name: 'Forgiveness - క్షమాపణ', icon: HeartHandshake },
+  { name: 'Salvation - రక్షణ', icon: LifeBuoy },
+  { name: 'Obedience - విధేయత', icon: CheckCircle2 },
+  { name: 'Holiness - పరిశుద్ధత', icon: Crown },
+  { name: 'Patience - సహనం', icon: Hourglass },
+  { name: 'Strength - బలం', icon: Mountain },
+  { name: 'Courage - ధైర్యం', icon: Shield },
+  { name: 'Trust - నమ్మకం', icon: Lock },
+  { name: 'Purpose - ఉద్దేశ్యం', icon: Compass },
+  { name: 'Family - కుటుంబం', icon: Home },
+  { name: 'Father - తండ్రి', icon: User },
+  { name: 'Mother - తల్లి', icon: User },
+  { name: 'Children - పిల్లలు', icon: Baby },
+  { name: 'Friends - స్నేహితులు', icon: Users },
+  { name: 'Relationships - సంబంధాలు', icon: Link },
+  { name: 'Care - శ్రద్ధ', icon: Heart },
+  { name: 'Leadership - నాయకత్వం', icon: Flag },
+  { name: 'Life - జీవితం', icon: Leaf },
+  { name: 'Other - ఇతర', icon: MoreHorizontal }
+];
+const AUDIENCES = ['Congregation', 'Youth', 'Children', 'Families', 'Men', 'Women', 'Seniors', 'Leaders'];
+const DURATIONS = ['10 min', '20 min', '30 min', '45 min', '60 min'];
+const LANGUAGES = ['English', 'Telugu', 'Hindi', 'Tamil', 'Kannada'];
+
+const PREP_MESSAGES = [
+  'Connecting to AI Sermon Assistant...',
+  'Searching Scriptures & Bible references...',
+  'Structuring sermon points & insights...',
+  'Adding pastoral applications & prayer...',
+  'Finalizing Telugu sermon...',
 ];
 
-const LANGUAGES = ['English', 'Telugu', 'Hindi', 'Tamil', 'Kannada'];
+// ─── Sermon Parsing & Highlighting Utilities ──────────────────────────────────
+interface ParsedBlock {
+  type: 'title' | 'section_header' | 'point_header' | 'bible_ref' | 'takeaway' | 'quote' | 'bullet' | 'paragraph';
+  sectionKey?: string;
+  badge?: string;
+  pointNum?: string;
+  title?: string;
+  text?: string;
+}
+
+function parseSermonBlocks(rawText: string): ParsedBlock[] {
+  if (!rawText) return [];
+  // Normalize unicode non-breaking spaces and line endings
+  const text = rawText
+    .replace(/[\uFEFF\u200B\u200E\u200F\u00a0\u202f]/g, ' ')
+    .replace(/\r\n/g, '\n');
+  const lines = text.split('\n');
+  const blocks: ParsedBlock[] = [];
+  let buffer: string[] = [];
+
+  const flushBuffer = () => {
+    if (buffer.length === 0) return;
+    const content = buffer.join('\n').trim();
+    buffer = [];
+    if (!content) return;
+
+    // Check if whole buffer is a takeaway
+    if (/^(?:\*|\*\*)*(?:practical\s*takeaway|takeaway|ఆచరణాత్మక|ఆచరణ|గమనిక|insight)[\:\*]/i.test(content)) {
+      blocks.push({
+        type: 'takeaway',
+        text: content.replace(/^(?:\*|\*\*)*(?:practical\s*takeaway|takeaway|ఆచరణాత్మక|ఆచరణ)[\:\*]\s*/i, '').trim(),
+      });
+      return;
+    }
+
+    // Check if scripture quote (starts with quote or inside quotes)
+    if (/^["'“]/.test(content)) {
+      blocks.push({ type: 'quote', text: content });
+      return;
+    }
+
+    blocks.push({ type: 'paragraph', text: content });
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
+    const line = rawLine.trim();
+
+    // Skip horizontal rules or markdown table dividers
+    if (!line || /^[-—_]{3,}$/.test(line) || /^\|?[-:\s|]+\|?$/.test(line)) {
+      flushBuffer();
+      continue;
+    }
+
+    // Skip markdown table header row if any slipped through
+    if (/^\|.*English Ref.*\|/i.test(line)) {
+      flushBuffer();
+      continue;
+    }
+
+    // 1. Title (# Sermon: ...)
+    if (/^#\s+/i.test(line)) {
+      flushBuffer();
+      const title = line.replace(/^#\s*(?:sermon:?\s*)?/i, '').replace(/[*_#]/g, '').trim();
+      blocks.push({ type: 'title', text: title });
+      continue;
+    }
+
+    // 2. Major Section Headers (## 1. Introduction, etc.)
+    if (/^##\s+/i.test(line)) {
+      flushBuffer();
+      const rawTitle = line.replace(/^##\s*/i, '').trim();
+      let sectionKey = 'general';
+      let badge = 'SECTION';
+
+      if (/intro|పరిచయం/i.test(rawTitle)) {
+        sectionKey = 'intro';
+        badge = '1. INTRODUCTION • పరిచయం';
+      } else if (/scripture|verse|వాక్య/i.test(rawTitle)) {
+        sectionKey = 'scriptures';
+        badge = '2. KEY SCRIPTURES • ముఖ్యమైన వాక్యములు';
+      } else if (/message|main|సందేశం/i.test(rawTitle)) {
+        sectionKey = 'message';
+        badge = '3. MAIN MESSAGE • ప్రధాన సందేశం';
+      } else if (/application|ఆచరణ|ప్రాయోగిక/i.test(rawTitle)) {
+        sectionKey = 'application';
+        badge = '4. PRACTICAL TAKEAWAYS • ఆచరణ';
+      } else if (/prayer|conclusion|ముగింపు|ప్రార్థన/i.test(rawTitle)) {
+        sectionKey = 'prayer';
+        badge = '5. CLOSING PRAYER • ముగింపు ప్రార్థన';
+      }
+
+      const cleanTitle = rawTitle.replace(/^\d+[\.\:\)]\s*/, '').replace(/[*_#]/g, '').trim();
+      blocks.push({
+        type: 'section_header',
+        sectionKey,
+        badge,
+        title: cleanTitle || rawTitle,
+      });
+      continue;
+    }
+
+    // 3. Point Subheaders (### Point 1: ... or ### 1. ...)
+    if (/^###\s+/i.test(line)) {
+      flushBuffer();
+      const raw = line.replace(/^###\s*/i, '').trim();
+      const match = raw.match(/^(?:point\s*(\d+)|(\d+))[\:\.\-]?\s*(.*)/i);
+      const pointNum = match ? (match[1] || match[2]) : null;
+      const pointTitle = match && match[3] ? match[3].replace(/[*_#]/g, '').trim() : raw.replace(/[*_#]/g, '').trim();
+
+      blocks.push({
+        type: 'point_header',
+        pointNum: pointNum || '•',
+        title: pointTitle,
+      });
+      continue;
+    }
+
+    // 4. Bible Book & Chapters Reference
+    // Matches: • **Psalm 139:13-14 – కీర్తనలు 139:13-14** or | **Genesis 2:24...
+    const isScriptureRef = (
+      /^[|•\-\*]?\s*\*\*([^*]+)\*\*/.test(line) &&
+      /(\d+[\:\.]\d+|కీర్తన|యోహాను|రోమీయులకు|ఆదికాండము|మత్తయి|లూకా|మార్కు|కొరింథీ|సామెతలు|యెషయా|సంఖ్యా|ద్వితీయో|Jeremiah|Matthew|Mark|Luke|John|Romans|Corinthians|Psalms?|Genesis|Exodus|Proverbs|Isaiah|Philippians|Numbers)/i.test(line)
+    );
+
+    if (isScriptureRef) {
+      flushBuffer();
+      const refText = line
+        .replace(/^[|•\-\*]\s*/, '')
+        .replace(/\|.*$/, '')
+        .replace(/^\*\*|\*\*$/g, '')
+        .trim();
+      blocks.push({
+        type: 'bible_ref',
+        text: refText,
+      });
+      continue;
+    }
+
+    // 5. Practical Takeaway callout line
+    if (/^(?:\*|\*\*)*(?:practical\s*takeaway|takeaway|ఆచరణాత్మక|ఆచరణ|గమనిక|insight)[\:\*]/i.test(line)) {
+      flushBuffer();
+      blocks.push({
+        type: 'takeaway',
+        text: line.replace(/^(?:\*|\*\*)*(?:practical\s*takeaway|takeaway|ఆచరణాత్మక|ఆచరణ)[\:\*]\s*/i, '').trim(),
+      });
+      continue;
+    }
+
+    // 6. Bullet item (e.g. in Practical Application)
+    if (/^[•\-\*]\s+/.test(line)) {
+      flushBuffer();
+      blocks.push({
+        type: 'bullet',
+        text: line.replace(/^[•\-\*]\s+/, '').trim(),
+      });
+      continue;
+    }
+
+    // 7. Scripture Quote line
+    if (/^["'“]/.test(line)) {
+      flushBuffer();
+      blocks.push({
+        type: 'quote',
+        text: line,
+      });
+      continue;
+    }
+
+    // Regular line -> add to paragraph buffer
+    buffer.push(line);
+  }
+
+  flushBuffer();
+  return blocks;
+}
+
+function renderInlineFormatted(text: string, baseStyle: any) {
+  if (!text) return null;
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return (
+    <Text style={baseStyle}>
+      {parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return (
+            <Text key={index} style={{ fontWeight: '700', color: '#1E1B4B' }}>
+              {part.slice(2, -2)}
+            </Text>
+          );
+        }
+        return part;
+      })}
+    </Text>
+  );
+}
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function AISermonAssistant() {
-  const { setTabByName } = useContext(AdminTabContext);
+  const { setTabByName, activeTab, setEditingData } = useContext(AdminTabContext);
   const { activeChurch } = useChurch();
 
   // Form state
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [topic, setTopic]                         = useState('');
-  const [language, setLanguage]                   = useState('English');
-  const [length, setLength]                       = useState<'Short' | 'Medium' | 'Long'>('Medium');
-  const [showLangPicker, setShowLangPicker]       = useState(false);
+  const [currentCategory, setCurrentCategory] = useState<'life' | 'topic'>('life');
+  const [selectedSituation, setSelectedSituation] = useState(''); // No default selection
+
+  const [topic, setTopic] = useState('');
+  const [audience, setAudience] = useState('Congregation');
+  const [language, setLanguage] = useState('English');
+  const [duration, setDuration] = useState('30 min');
 
   // Output state
-  const [generating, setGenerating]       = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [prepStep, setPrepStep] = useState(0);
+  const [modifierLoading, setModifierLoading] = useState<string | null>(null);
   const [generatedText, setGeneratedText] = useState('');
-  const [showResult, setShowResult]       = useState(false);
-  const [showSuccess, setShowSuccess]     = useState(false);
-  const [showError, setShowError]         = useState(false);
-  const [errorMsg, setErrorMsg]           = useState('');
+  const [showResult, setShowResult] = useState(false);
+  const [showError, setShowError] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const [showCopySuccess, setShowCopySuccess] = useState(false);
 
-  // Animation
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  // Section scroll navigation
+  const sermonScrollRef = useRef<ScrollView>(null);
+  const sectionOffsets = useRef<{ [key: string]: number }>({});
 
-  const startPulse = () => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, { toValue: 1.04, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
-      ])
-    ).start();
+  useEffect(() => {
+    sectionOffsets.current = {};
+  }, [generatedText]);
+
+  const scrollToSection = (key: string) => {
+    const y = sectionOffsets.current[key];
+    if (y !== undefined && sermonScrollRef.current) {
+      sermonScrollRef.current.scrollTo({ y: Math.max(0, y - 8), animated: true });
+    }
   };
 
-  const stopPulse = () => {
-    pulseAnim.stopAnimation();
-    pulseAnim.setValue(1);
-  };
+  useEffect(() => {
+    let timer: any;
+    if (generating) {
+      setPrepStep(0);
+      timer = setInterval(() => {
+        setPrepStep(prev => (prev < PREP_MESSAGES.length - 1 ? prev + 1 : prev));
+      }, 2200);
+    } else {
+      setPrepStep(0);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [generating]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
-  const handleGenerate = async () => {
-    if (!topic.trim()) {
-      Alert.alert('Topic Required', 'Please enter a sermon topic before generating.');
-      return;
+  const handleGenerate = async (modifier?: string | any, modifierLabel?: string) => {
+    const isModifierString = typeof modifier === 'string';
+    if (isModifierString) {
+      setModifierLoading(modifierLabel || modifier);
+    } else {
+      setGenerating(true);
+      setShowResult(false);
     }
-    if (!selectedCategory) {
-      Alert.alert('Category Required', 'Please select a sermon category.');
-      return;
-    }
-
-    setGenerating(true);
-    setShowResult(false);
-    startPulse();
 
     try {
-      const churchId = await FirestoreService.getChurchId();
-      const lengthMap = { Short: '15 minutes', Medium: '30 minutes', Long: '45 minutes' };
-      const topicFull = `${topic} (Category: ${selectedCategory}, Length: ${lengthMap[length]})`;
+      console.log('[Sermon] Step 1: getting churchId...');
+      const churchId = activeChurch?.id || (await FirestoreService.getChurchId());
+      console.log('[Sermon] Step 2: churchId =', churchId);
+      let topicFull = `${topic || selectedSituation} (Category: ${currentCategory}, Audience: ${audience}, Length: ${duration})`;
+
+      if (isModifierString && generatedText) {
+        topicFull = `[MODIFIER INSTRUCTION: ${modifier}] Please rewrite the following sermon based on the instruction.\n\nORIGINAL SERMON:\n${generatedText}`;
+      }
+
+      console.log('[Sermon] Step 3: calling AIService.generateSermon...');
       const text = await AIService.generateSermon({
         topic: topicFull,
-        category: selectedCategory,
+        category: currentCategory,
         language,
         churchId: churchId!,
       });
+      console.log('[Sermon] Step 4: got text length =', text?.length);
       setGeneratedText(text);
       setShowResult(true);
 
-      // Save to Firestore
+      // Save to Firestore (non-blocking)
       try {
-        await FirestoreService.saveAISermon({
-          category: selectedCategory,
-          topic,
+        await (FirestoreService as any).saveAISermon?.({
+          category: currentCategory,
+          topic: topic || selectedSituation,
           language,
           generatedSermonText: text,
           status: 'generated',
@@ -142,431 +407,864 @@ export default function AISermonAssistant() {
       } catch (_) { /* non-blocking */ }
 
     } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to generate sermon. Please try again.');
+      const msg = err.message || 'Failed to generate sermon. Please try again.';
+      console.error('[Sermon] FAILED:', msg);
+      Alert.alert('Error', msg);
+      setErrorMsg(msg);
       setShowError(true);
     } finally {
       setGenerating(false);
-      stopPulse();
-    }
-  };
-
-  const handleCopy = async () => {
-    try {
-      const Clipboard = require('@react-native-clipboard/clipboard').default;
-      Clipboard.setString(generatedText);
-      Alert.alert('Copied!', 'Sermon text copied to clipboard.');
-    } catch (_) {
-      Alert.alert('Copy', 'Please select and copy the text manually.');
+      setModifierLoading(null);
     }
   };
 
   const handleShare = async () => {
-    await Share.share({ message: generatedText, title: `AI Sermon: ${topic}` });
+    await Share.share({ message: generatedText, title: `AI Sermon: ${topic || selectedSituation}` });
   };
 
-  const handleCreateThumbnail = () => {
-    setTabByName?.('AI Content Creator');
+  const handleCopy = async () => {
+    await Clipboard.setStringAsync(generatedText);
+    setShowCopySuccess(true);
+    setTimeout(() => setShowCopySuccess(false), 2500);
   };
 
-  // ── Render helpers ─────────────────────────────────────────────────────────
-  const renderChip = (label: string, emoji: string) => {
-    const selected = selectedCategory === label;
+  const renderFormattedSermon = (rawText: string) => {
+    if (!rawText) return null;
+    const blocks = parseSermonBlocks(rawText);
+
     return (
-      <TouchableOpacity
-        key={label}
-        onPress={() => setSelectedCategory(selected ? '' : label)}
-        style={[styles.chip, selected && styles.chipSelected]}
-        activeOpacity={0.75}
-      >
-        <Text style={styles.chipEmoji}>{emoji}</Text>
-        <Text style={[styles.chipTxt, selected && styles.chipTxtSelected]}>{label}</Text>
-      </TouchableOpacity>
+      <View style={styles.sermonContainer}>
+        {blocks.map((block, idx) => {
+          switch (block.type) {
+            case 'title':
+              return (
+                <View key={`title-${idx}`} style={styles.sermonTitleCard}>
+                  <View style={styles.sermonTitleBadge}>
+                    <Sparkles size={12} color="#B45309" />
+                    <Text style={styles.sermonTitleBadgeTxt}>AI SERMON OUTLINE</Text>
+                  </View>
+                  <Text style={styles.sermonTitleTxt}>{block.text}</Text>
+                </View>
+              );
+
+            case 'section_header': {
+              const isIntro = block.sectionKey === 'intro';
+              const isScriptures = block.sectionKey === 'scriptures';
+              const isMessage = block.sectionKey === 'message';
+              const isApplication = block.sectionKey === 'application';
+              const isPrayer = block.sectionKey === 'prayer';
+
+              return (
+                <View
+                  key={`sec-${idx}`}
+                  onLayout={(e) => {
+                    if (block.sectionKey) {
+                      sectionOffsets.current[block.sectionKey] = e.nativeEvent.layout.y;
+                    }
+                  }}
+                  style={[
+                    styles.sectionHeaderBox,
+                    isIntro && styles.sectionIntroBox,
+                    isScriptures && styles.sectionScripturesBox,
+                    isMessage && styles.sectionMessageBox,
+                    isApplication && styles.sectionApplicationBox,
+                    isPrayer && styles.sectionPrayerBox,
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.sectionBadge,
+                      isIntro && styles.sectionIntroBadge,
+                      isScriptures && styles.sectionScripturesBadge,
+                      isMessage && styles.sectionMessageBadge,
+                      isApplication && styles.sectionApplicationBadge,
+                      isPrayer && styles.sectionPrayerBadge,
+                    ]}
+                  >
+                    {isIntro && <AlignLeft size={13} color="#4338CA" />}
+                    {isScriptures && <BookMarked size={13} color="#6D28D9" />}
+                    {isMessage && <Mic size={13} color="#5B3FA6" />}
+                    {isApplication && <Lightbulb size={13} color="#B45309" />}
+                    {isPrayer && <Heart size={13} color="#059669" />}
+                    <Text
+                      style={[
+                        styles.sectionBadgeTxt,
+                        isIntro && { color: '#4338CA' },
+                        isScriptures && { color: '#6D28D9' },
+                        isMessage && { color: '#5B3FA6' },
+                        isApplication && { color: '#B45309' },
+                        isPrayer && { color: '#059669' },
+                      ]}
+                    >
+                      {block.badge || 'SECTION'}
+                    </Text>
+                  </View>
+                  <Text style={styles.sectionHeaderTitle}>{block.title}</Text>
+                </View>
+              );
+            }
+
+            case 'point_header':
+              return (
+                <View key={`point-${idx}`} style={styles.pointHeaderCard}>
+                  <View style={styles.pointNumberPill}>
+                    <Text style={styles.pointNumberTxt}>Point {block.pointNum}</Text>
+                  </View>
+                  <Text style={styles.pointHeaderTxt}>{block.title}</Text>
+                </View>
+              );
+
+            case 'bible_ref':
+              return (
+                <View key={`ref-${idx}`} style={styles.bibleRefCard}>
+                  <View style={styles.bibleRefTopRow}>
+                    <View style={styles.bibleRefIconBox}>
+                      <BookOpen size={13} color="#5B3FA6" />
+                    </View>
+                    <View style={styles.bibleRefBadgePill}>
+                      <Text style={styles.bibleRefBadgeTxt}>BIBLE BOOK & CHAPTER • వాక్య ఆధారం</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.bibleRefTxt}>{block.text}</Text>
+                </View>
+              );
+
+            case 'takeaway':
+              return (
+                <View
+                  key={`takeaway-${idx}`}
+                  onLayout={(e) => {
+                    if (!sectionOffsets.current['application']) {
+                      sectionOffsets.current['application'] = e.nativeEvent.layout.y;
+                    }
+                  }}
+                  style={styles.takeawayCard}
+                >
+                  <View style={styles.takeawayHeaderRow}>
+                    <Lightbulb size={15} color="#B45309" />
+                    <View style={styles.takeawayBadgePill}>
+                      <Text style={styles.takeawayBadgeTxt}>PRACTICAL TAKEAWAY • ఆచరణాత్మక సత్యం</Text>
+                    </View>
+                  </View>
+                  {renderInlineFormatted(block.text || '', styles.takeawayTxt)}
+                </View>
+              );
+
+            case 'quote':
+              return (
+                <View key={`quote-${idx}`} style={styles.scriptureQuoteCard}>
+                  <Text style={styles.scriptureQuoteTxt}>{block.text}</Text>
+                </View>
+              );
+
+            case 'bullet':
+              return (
+                <View key={`bullet-${idx}`} style={styles.bulletRow}>
+                  <Text style={styles.bulletDot}>•</Text>
+                  <View style={{ flex: 1 }}>
+                    {renderInlineFormatted(block.text || '', styles.bulletTxt)}
+                  </View>
+                </View>
+              );
+
+            case 'paragraph':
+            default:
+              return (
+                <View key={`p-${idx}`} style={styles.paragraphContainer}>
+                  {renderInlineFormatted(block.text || '', styles.sermonParagraphTxt)}
+                </View>
+              );
+          }
+        })}
+      </View>
     );
   };
+
+  const situationsList = currentCategory === 'life' ? LIFE_EVENTS : SPIRITUAL_TOPICS;
 
   // ── JSX ─────────────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
-
-      {/* ── HERO HEADER ── */}
-      <LinearGradient colors={['#1a2d5a', '#2d1b69']} style={styles.hero}>
-        <TouchableOpacity
-          onPress={() => setTabByName?.('Dashboard')}
-          style={styles.backBtn}
-          activeOpacity={0.7}
-        >
-          <ChevronLeft size={20} color="#fff" />
-          <Text style={styles.backTxt}>Back</Text>
-        </TouchableOpacity>
-
-        <View style={styles.heroCenter}>
-          <View style={styles.heroIconWrap}>
-            <Sparkles size={26} color="#fbbf24" strokeWidth={2} />
-          </View>
-          <Text style={styles.heroTitle}>AI Sermon Assistant</Text>
-          <Text style={styles.heroSub}>Generate Spirit-filled sermons in seconds</Text>
-        </View>
-
-        {/* Decorative dots */}
-        <View style={styles.heroDot1} />
-        <View style={styles.heroDot2} />
-      </LinearGradient>
-
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scroll}
-        keyboardShouldPersistTaps="handled"
-      >
-
-        {/* ── CATEGORY SECTION ── */}
-        <View style={styles.card}>
-          <View style={styles.cardHd}>
-            <View style={styles.cardHdIconWrap}>
-              <BookOpen size={14} color="#1a2d5a" strokeWidth={2.5} />
-            </View>
-            <Text style={styles.cardHdTxt}>SERMON CATEGORY</Text>
-          </View>
-          <Text style={styles.sectionSubLabel}>LIFE EVENTS</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-            <View style={styles.chipRow}>
-              {LIFE_EVENTS.map(e => renderChip(e.key, e.emoji))}
-            </View>
-          </ScrollView>
-
-          <Text style={styles.sectionSubLabel}>SPIRITUAL TOPICS</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={styles.chipRow}>
-              {SPIRITUAL_TOPICS.map(e => renderChip(e.key, e.emoji))}
-            </View>
-          </ScrollView>
-        </View>
-
-        {/* ── SERMON DETAILS ── */}
-        <View style={styles.card}>
-          <View style={styles.cardHd}>
-            <View style={styles.cardHdIconWrap}>
-              <BookMarked size={14} color="#1a2d5a" strokeWidth={2.5} />
-            </View>
-            <Text style={styles.cardHdTxt}>SERMON DETAILS</Text>
-          </View>
-
-          {/* Topic */}
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Topic <Text style={{ color: '#c0392b' }}>*</Text></Text>
-            <TextInput
-              style={styles.input}
-              value={topic}
-              onChangeText={setTopic}
-              placeholder="e.g. Faith in times of trial"
-              placeholderTextColor="#9ca3af"
-            />
-          </View>
-
-          {/* Language Picker */}
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Language</Text>
-            <TouchableOpacity style={styles.selectBox} onPress={() => setShowLangPicker(true)} activeOpacity={0.8}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Globe size={14} color="#1a2d5a" />
-                <Text style={styles.selectTxt}>{language}</Text>
-              </View>
-              <ChevronDown size={16} color="#6b7280" />
+      {/* ── HEADER ── */}
+      <View style={styles.appHeader}>
+        <View style={styles.headerRow}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
+            <TouchableOpacity onPress={() => setTabByName?.('Dashboard')} style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 0 }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>
-          </View>
-
-          {/* Sermon Length */}
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Sermon Length</Text>
-            <View style={styles.segmentRow}>
-              {(['Short', 'Medium', 'Long'] as const).map(opt => (
-                <TouchableOpacity
-                  key={opt}
-                  style={[styles.segBtn, length === opt && styles.segBtnActive]}
-                  onPress={() => setLength(opt)}
-                  activeOpacity={0.8}
-                >
-                  <Clock size={12} color={length === opt ? '#fff' : '#6b7280'} />
-                  <Text style={[styles.segTxt, length === opt && styles.segTxtActive]}>
-                    {opt} {opt === 'Short' ? '· 15 min' : opt === 'Medium' ? '· 30 min' : '· 45 min'}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <Text style={[styles.headerTitle, { marginHorizontal: 12, opacity: 0.4, flexShrink: 0 }]}>|</Text>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={[styles.headerTitle, { flexShrink: 1 }]} numberOfLines={1}>Sermon Assistant</Text>
             </View>
           </View>
         </View>
+      </View>
 
-        {/* ── GENERATE BUTTON ── */}
-        <Animated.View style={{ transform: [{ scale: generating ? pulseAnim : 1 }] }}>
-          <TouchableOpacity
-            onPress={handleGenerate}
-            disabled={generating}
-            activeOpacity={0.88}
-            style={styles.generateBtn}
-          >
-            <LinearGradient
-              colors={generating ? ['#374151', '#374151'] : ['#1a2d5a', '#c0392b']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.generateBtnInner}
-            >
-              {generating ? (
-                <>
-                  <ActivityIndicator color="#fff" size="small" />
-                  <Text style={styles.generateTxt}>Generating Sermon…</Text>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={18} color="#fbbf24" />
-                  <Text style={styles.generateTxt}>Generate Sermon</Text>
-                </>
-              )}
-            </LinearGradient>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+
+        <View style={styles.lede}>
+          <View style={styles.eyebrow}>
+            <Sparkles size={13} color="#E3A83B" />
+            <Text style={styles.eyebrowTxt}>AI Sermon Assistant</Text>
+          </View>
+          <Text style={styles.h1}>Prepare a Bible-based sermon</Text>
+          <Text style={styles.p}>Start from a life event or a spiritual topic. Scripture stays clearly separate from AI explanation and application.</Text>
+        </View>
+
+        <View style={styles.sectionLabel}>
+          <View style={styles.stepNum}><Text style={styles.stepNumTxt}>1</Text></View>
+          <Text style={styles.sectionLabelTxt}>Choose a starting point</Text>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.pillScroll, { marginBottom: 11 }]}>
+          <TouchableOpacity style={[styles.pill, currentCategory === 'life' && styles.pillSelected]} onPress={() => { setCurrentCategory('life'); setSelectedSituation(''); }}>
+            {currentCategory === 'life' && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />}
+            <Text style={[styles.pillTxt, currentCategory === 'life' && { color: '#fff' }]}>Life Events / Situations</Text>
           </TouchableOpacity>
-        </Animated.View>
+          <TouchableOpacity style={[styles.pill, currentCategory === 'topic' && styles.pillSelected]} onPress={() => { setCurrentCategory('topic'); setSelectedSituation(''); }}>
+            {currentCategory === 'topic' && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />}
+            <Text style={[styles.pillTxt, currentCategory === 'topic' && { color: '#fff' }]}>Spiritual / Biblical Topics</Text>
+          </TouchableOpacity>
+        </ScrollView>
 
-        {/* ── RESULT CARD ── */}
-        {showResult && (
-          <View style={[styles.card, { borderTopColor: '#2d1b69' }]}>
-            {/* Header */}
-            <View style={styles.resultHd}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <CheckCircle2 size={16} color="#15803d" />
-                <Text style={styles.resultHdTxt}>Generated Sermon</Text>
-              </View>
-              <View style={{ flexDirection: 'row', gap: 8 }}>
-                <TouchableOpacity style={styles.resultActionBtn} onPress={handleGenerate}>
-                  <RefreshCw size={13} color="#1a2d5a" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.resultActionBtn} onPress={handleCopy}>
-                  <Copy size={13} color="#1a2d5a" />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.resultActionBtn} onPress={handleShare}>
-                  <Share2 size={13} color="#1a2d5a" />
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Sermon Text */}
-            <ScrollView style={styles.sermonTextBox} nestedScrollEnabled>
-              <Text style={styles.sermonText}>{generatedText}</Text>
-            </ScrollView>
-
-            {/* Action Grid */}
-            <View style={styles.actionGrid}>
-              <TouchableOpacity style={styles.actionGridBtn} onPress={handleGenerate}>
-                <RefreshCw size={15} color="#1a2d5a" />
-                <Text style={styles.actionGridTxt}>Regenerate</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionGridBtn} onPress={handleShare}>
-                <Share2 size={15} color="#1a2d5a" />
-                <Text style={styles.actionGridTxt}>Share</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.actionGridBtn} onPress={handleCopy}>
-                <Copy size={15} color="#1a2d5a" />
-                <Text style={styles.actionGridTxt}>Copy</Text>
-              </TouchableOpacity>
+        <View style={styles.tileGrid}>
+          {situationsList.map(sit => {
+            const selected = selectedSituation === sit.name;
+            const IconComp = sit.icon;
+            return (
               <TouchableOpacity
-                style={[styles.actionGridBtn, { borderColor: '#7c3aed20', backgroundColor: '#faf5ff' }]}
-                onPress={handleCreateThumbnail}
+                key={sit.name}
+                style={[styles.tile, selected && styles.tileSelected]}
+                onPress={() => setSelectedSituation(sit.name)}
+                activeOpacity={0.8}
               >
-                <ImageIcon size={15} color="#7c3aed" />
-                <Text style={[styles.actionGridTxt, { color: '#7c3aed' }]}>Thumbnail</Text>
+                {selected && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />}
+                <IconComp size={16} color={selected ? '#fff' : '#5B3FA6'} style={{ zIndex: 1 }} />
+                <Text style={[styles.tileLabel, selected && { color: '#fff' }]}>{sit.name}</Text>
+                {selected && (
+                  <View style={styles.checkWrap}>
+                    <Check size={9} color="#5B3FA6" strokeWidth={3} />
+                  </View>
+                )}
               </TouchableOpacity>
+            )
+          })}
+        </View>
+
+        <View style={styles.sectionLabel}>
+          <View style={styles.stepNum}><Text style={styles.stepNumTxt}>2</Text></View>
+          <Text style={styles.sectionLabelTxt}>Add context</Text>
+        </View>
+
+        <Text style={styles.fieldLabel}>Additional topic / focus (optional)</Text>
+        <TextInput style={styles.input} value={topic} onChangeText={setTopic} placeholder="e.g. Love and Commitment" placeholderTextColor="#9ca3af" />
+
+        <Text style={styles.fieldLabel}>Audience</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
+          {AUDIENCES.map(a => (
+            <TouchableOpacity key={a} style={[styles.pill, audience === a && styles.pillSelected]} onPress={() => setAudience(a)}>
+              {audience === a && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />}
+              <Text style={[styles.pillTxt, audience === a && { color: '#fff' }]}>{a}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <Text style={styles.fieldLabel}>Language</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
+          {LANGUAGES.map(l => (
+            <TouchableOpacity key={l} style={[styles.pill, language === l && styles.pillSelected]} onPress={() => setLanguage(l)}>
+              {language === l && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />}
+              <Text style={[styles.pillTxt, language === l && { color: '#fff' }]}>{l}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <Text style={styles.fieldLabel}>Duration</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.pillScroll}>
+          {DURATIONS.map(d => (
+            <TouchableOpacity key={d} style={[styles.pill, duration === d && styles.pillSelected]} onPress={() => setDuration(d)}>
+              {duration === d && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />}
+              <Text style={[styles.pillTxt, duration === d && { color: '#fff' }]}>{d}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        <View style={{ marginTop: 18 }}>
+          <TouchableOpacity onPress={handleGenerate} disabled={generating || !!modifierLoading} activeOpacity={0.88} style={styles.btnPrimary}>
+            <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.btnGradient} />
+            {generating ? <ActivityIndicator size="small" color="#fff" style={{ zIndex: 1 }} /> : <Wand2 size={15} color="#fff" style={{ zIndex: 1 }} />}
+            <Text style={styles.btnPrimaryTxt}>{generating ? 'Preparing Sermon...' : 'Generate Sermon'}</Text>
+          </TouchableOpacity>
+        </View>
+
+        {generating && (
+          <View style={styles.prepCard}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <ActivityIndicator size="small" color="#5B3FA6" />
+              <Text style={styles.prepStepTxt}>{PREP_MESSAGES[prepStep]}</Text>
             </View>
+            <Text style={styles.prepSubTxt}>AI is generating biblical sermon in {language} (~10-12s)</Text>
           </View>
         )}
 
+        {showResult && (
+          <View style={styles.outputPanel}>
+            <View style={styles.sermonDoc}>
+              {/* Quick Jump Bar */}
+              <View style={styles.navBarWrapper}>
+                <Text style={styles.navBarLabel}>QUICK JUMP TO SECTION</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.navBarScroll}>
+                  <TouchableOpacity onPress={() => scrollToSection('intro')} style={[styles.navPill, { borderColor: '#C7D2FE' }]}>
+                    <AlignLeft size={12} color="#4338CA" />
+                    <Text style={[styles.navPillTxt, { color: '#4338CA' }]}>Introduction</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => scrollToSection('scriptures')} style={[styles.navPill, { borderColor: '#DDD6FE' }]}>
+                    <BookMarked size={12} color="#6D28D9" />
+                    <Text style={[styles.navPillTxt, { color: '#6D28D9' }]}>Key Scriptures</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => scrollToSection('message')} style={[styles.navPill, { borderColor: '#D8B4FE' }]}>
+                    <Mic size={12} color="#5B3FA6" />
+                    <Text style={[styles.navPillTxt, { color: '#5B3FA6' }]}>Main Message</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => scrollToSection('application')} style={[styles.navPill, { borderColor: '#FDE68A' }]}>
+                    <Lightbulb size={12} color="#B45309" />
+                    <Text style={[styles.navPillTxt, { color: '#B45309' }]}>Takeaways</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => scrollToSection('prayer')} style={[styles.navPill, { borderColor: '#A7F3D0' }]}>
+                    <Heart size={12} color="#059669" />
+                    <Text style={[styles.navPillTxt, { color: '#059669' }]}>Closing Prayer</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              </View>
+
+              <ScrollView ref={sermonScrollRef} style={{ maxHeight: 480 }} nestedScrollEnabled showsVerticalScrollIndicator={true}>
+                {renderFormattedSermon(generatedText)}
+              </ScrollView>
+              <Text style={styles.fineprint}>Scripture references shown are placeholders for this prototype — the live build pulls verses from your existing Bible data source, never from the AI.</Text>
+            </View>
+
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+              {([
+                { label: 'Regenerate', icon: RefreshCw, modifier: null },
+                { label: 'Expand Intro', icon: AlignLeft, modifier: 'Please expand the introduction to be more detailed and engaging.' },
+                { label: 'More Verses', icon: BookMarked, modifier: 'Please include more relevant Bible verses and scriptures throughout.' },
+                { label: 'Add Point', icon: ListPlus, modifier: 'Please add one additional major point to the sermon outline.' },
+                { label: 'Simplify', icon: Minimize, modifier: 'Please simplify the language so it is easier for a general audience to understand.' },
+                { label: 'More Detail', icon: Maximize, modifier: 'Please expand on all points with more detail, stories, and depth.' },
+                { label: 'Preaching Style', icon: Mic, modifier: 'Please rewrite this in a more passionate and engaging preaching style.' },
+                { label: 'Telugu', icon: Globe, modifier: 'Please translate the entire sermon to Telugu.' },
+              ] as const).map(({ label, icon: Icon, modifier }) => {
+                const isActive = modifierLoading === label;
+                const anyBusy = generating || !!modifierLoading;
+                return (
+                  <TouchableOpacity
+                    key={label}
+                    style={[styles.chipBtn, isActive && styles.chipBtnActive, anyBusy && !isActive && { opacity: 0.45 }]}
+                    disabled={anyBusy}
+                    onPress={() => modifier === null ? handleGenerate() : handleGenerate(modifier, label)}
+                  >
+                    {isActive
+                      ? <ActivityIndicator size="small" color="#5B3FA6" />
+                      : <Icon size={12} color={isActive ? '#5B3FA6' : '#5B5468'} />}
+                    <Text style={[styles.chipBtnTxt, isActive && { color: '#5B3FA6', fontWeight: '700' }]}>
+                      {isActive ? 'Working…' : label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            <View style={styles.btnRow}>
+              <TouchableOpacity style={styles.btnGhost} onPress={handleCopy}>
+                <Copy size={15} color="#211A2E" />
+                <Text style={styles.btnGhostTxt}>Copy</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={[styles.btnGhost, { borderColor: '#25D366' }]} onPress={handleShare}>
+                <MessageCircle size={15} color="#25D366" />
+                <Text style={[styles.btnGhostTxt, { color: '#25D366' }]}>WhatsApp</Text>
+              </TouchableOpacity>
+            </View>
+
+            {showCopySuccess && (
+              <Animated.View style={styles.copySuccessCard}>
+                <CheckCircle2 size={16} color="#fff" />
+                <Text style={styles.copySuccessTxt}>Sermon copied to clipboard!</Text>
+              </Animated.View>
+            )}
+          </View>
+        )}
+
+        <Text style={styles.caption}>Verses shown are placeholders — the live build pulls from your existing Bible source, never the AI.</Text>
         <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* ── LANGUAGE PICKER MODAL ── */}
-      <Modal visible={showLangPicker} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.pickerCard}>
-            <View style={styles.pickerHdRow}>
-              <Text style={styles.pickerHdTxt}>Select Language</Text>
-              <TouchableOpacity onPress={() => setShowLangPicker(false)}>
-                <X size={20} color="#6b7280" />
-              </TouchableOpacity>
-            </View>
-            {LANGUAGES.map(lang => (
-              <TouchableOpacity
-                key={lang}
-                style={[styles.pickerItem, language === lang && styles.pickerItemActive]}
-                onPress={() => { setLanguage(lang); setShowLangPicker(false); }}
-              >
-                <Text style={[styles.pickerItemTxt, language === lang && styles.pickerItemTxtActive]}>
-                  {lang}
-                </Text>
-                {language === lang && <CheckCircle2 size={16} color="#fff" />}
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-      </Modal>
-
-      {/* ── ERROR MODAL ── */}
-      <Modal visible={showError} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
-          <View style={styles.alertCard}>
-            <View style={styles.alertIconBox}>
-              <AlertCircle size={40} color="#c0392b" />
-            </View>
-            <Text style={styles.alertTitle}>Generation Failed</Text>
-            <Text style={styles.alertSub}>{errorMsg}</Text>
-            <TouchableOpacity
-              style={[styles.alertBtn, { backgroundColor: '#c0392b' }]}
-              onPress={() => setShowError(false)}
-            >
-              <Text style={styles.alertBtnTxt}>Try Again</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
 
 // ─── Styles ─────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#EDE8DC' },
-  scroll: { padding: 14, paddingBottom: 80 },
+  container: { flex: 1, backgroundColor: '#EDE7DC' },
+  scroll: { padding: 16, paddingBottom: 80 },
 
-  // Hero
-  hero: {
-    paddingTop: Platform.OS === 'ios' ? 56 : 44,
-    paddingBottom: 28,
+  // Header
+  appHeader: {
+    paddingTop: 30,
+    paddingBottom: 36,
+    paddingHorizontal: 18,
+    backgroundColor: '#3A2A6B',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  headerRow: { flexDirection: 'row', alignItems: 'center' },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '600', fontFamily: SERIF },
+
+  // Typography
+  lede: { marginBottom: 16 },
+  eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
+  eyebrowTxt: { fontSize: 12, color: '#5B5468' },
+  h1: { fontSize: 19, fontWeight: '600', fontFamily: SERIF, color: '#211A2E', lineHeight: 24 },
+  p: { fontSize: 12.5, color: '#5B5468', marginTop: 5, lineHeight: 18 },
+
+  sectionLabel: {
+    flexDirection: 'row', alignItems: 'center', gap: 7,
+    marginTop: 18, marginBottom: 9,
+  },
+  sectionLabelTxt: { fontSize: 12, fontWeight: '700', color: '#211A2E' },
+  stepNum: {
+    width: 17, height: 17, borderRadius: 8.5, backgroundColor: '#5B3FA6',
+    justifyContent: 'center', alignItems: 'center', overflow: 'hidden'
+  },
+  stepNumTxt: { color: '#fff', fontSize: 10, fontWeight: '700', zIndex: 1 },
+
+  tileGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  tile: {
+    width: (width - 40) / 2,
+    borderWidth: 1.4, borderColor: '#E7E0D6', borderRadius: 12, padding: 11,
+    backgroundColor: '#fff', flexDirection: 'column', gap: 7, overflow: 'hidden'
+  },
+  tileSelected: { borderColor: 'transparent', shadowColor: '#5B3FA6', shadowOpacity: 0.3, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  tileLabel: { fontSize: 12, fontWeight: '600', color: '#211A2E', zIndex: 1 },
+  checkWrap: {
+    position: 'absolute', top: 8, right: 8, width: 15, height: 15, borderRadius: 7.5,
+    backgroundColor: 'rgba(255,255,255,0.95)', justifyContent: 'center', alignItems: 'center', zIndex: 1
+  },
+
+  fieldLabel: { fontSize: 11.5, fontWeight: '600', color: '#5B5468', marginTop: 14, marginBottom: 7 },
+
+  copySuccessCard: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    backgroundColor: '#10B981',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    overflow: 'hidden',
-    marginBottom: 14,
-  },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', marginBottom: 16 },
-  backTxt: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  heroCenter: { alignItems: 'center' },
-  heroIconWrap: {
-    width: 56, height: 56, borderRadius: 28,
-    backgroundColor: 'rgba(251,191,36,0.15)',
-    borderWidth: 1, borderColor: 'rgba(251,191,36,0.3)',
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: 12,
-  },
-  heroTitle: { color: '#fff', fontSize: 26, fontWeight: '800', letterSpacing: -0.5, fontFamily: SERIF },
-  heroSub: { color: '#aac4e8', fontSize: 13, marginTop: 4, textAlign: 'center' },
-  heroDot1: { position: 'absolute', width: 120, height: 120, borderRadius: 60, backgroundColor: 'rgba(251,191,36,0.06)', top: -30, right: -20 },
-  heroDot2: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: 'rgba(192,57,43,0.08)', bottom: 10, left: -20 },
-
-  // Cards
-  card: {
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(26,45,90,0.08)',
-    borderTopWidth: 3,
-    borderTopColor: '#1a2d5a',
-    shadowColor: '#1a2d5a',
-    shadowOpacity: 0.07,
-    shadowRadius: 10,
+    borderRadius: 30,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  cardHd: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginBottom: 16, paddingBottom: 12,
-    borderBottomWidth: 1, borderBottomColor: 'rgba(26,45,90,0.07)',
+  copySuccessTxt: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
+    marginLeft: 8,
   },
-  cardHdIconWrap: {
-    width: 28, height: 28, borderRadius: 8,
-    backgroundColor: 'rgba(26,45,90,0.08)',
-    justifyContent: 'center', alignItems: 'center',
-  },
-  cardHdTxt: { fontSize: 11, fontWeight: '800', color: '#1a2d5a', letterSpacing: 0.8 },
 
-  // Section labels
-  sectionSubLabel: { fontSize: 10, fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 },
-
-  // Chips
-  chipRow: { flexDirection: 'row', gap: 8, paddingBottom: 4 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 14, paddingVertical: 9,
-    borderRadius: 50, borderWidth: 1.5, borderColor: '#e5e7eb',
-    backgroundColor: '#f9fafb',
-  },
-  chipSelected: { borderColor: '#1a2d5a', backgroundColor: '#1a2d5a' },
-  chipEmoji: { fontSize: 14 },
-  chipTxt: { fontSize: 12, fontWeight: '600', color: '#374151' },
-  chipTxtSelected: { color: '#fff' },
-
-  // Form
-  fGroup: { marginBottom: 16 },
-  fLabel: { fontSize: 12, fontWeight: '700', color: '#1a2d5a', marginBottom: 7 },
   input: {
-    backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#e5e7eb',
-    borderRadius: 10, padding: 12, fontSize: 13, color: '#1a2d5a',
+    backgroundColor: '#fff', borderWidth: 1.4, borderColor: '#E7E0D6',
+    borderRadius: 10, paddingVertical: 11, paddingHorizontal: 12, fontSize: 14, color: '#211A2E', fontFamily: SANS,
   },
-  selectBox: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#fdfdfd', borderWidth: 1, borderColor: '#e5e7eb',
-    borderRadius: 10, paddingHorizontal: 12, height: 46,
+
+  pillScroll: { flexDirection: 'row', overflow: 'visible', paddingBottom: 4 },
+  pill: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, borderWidth: 1.4, borderColor: '#E7E0D6',
+    backgroundColor: '#fff', marginRight: 7, overflow: 'hidden'
   },
-  selectTxt: { fontSize: 13, color: '#1a2d5a', fontWeight: '600' },
+  pillSelected: { borderColor: 'transparent' },
+  pillTxt: { fontSize: 12.5, color: '#211A2E', zIndex: 1 },
 
-  // Segment
-  segmentRow: { flexDirection: 'row', gap: 8 },
-  segBtn: {
-    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5,
-    paddingVertical: 10, borderRadius: 10, borderWidth: 1.5, borderColor: '#e5e7eb',
-    backgroundColor: '#f9fafb',
+  btnPrimary: {
+    borderRadius: 12, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 13,
+    shadowColor: '#5B3FA6', shadowOpacity: 0.4, shadowRadius: 10, shadowOffset: { width: 0, height: 5 }, elevation: 5,
   },
-  segBtnActive: { borderColor: '#1a2d5a', backgroundColor: '#1a2d5a' },
-  segTxt: { fontSize: 11, fontWeight: '600', color: '#6b7280' },
-  segTxtActive: { color: '#fff' },
-
-  // Generate button
-  generateBtn: { marginBottom: 12, borderRadius: 16, overflow: 'hidden', shadowColor: '#1a2d5a', shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
-  generateBtnInner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingVertical: 17 },
-  generateTxt: { color: '#fff', fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
-
-  // Result card
-  resultHd: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  resultHdTxt: { fontSize: 13, fontWeight: '800', color: '#1a2d5a' },
-  resultActionBtn: {
-    width: 30, height: 30, borderRadius: 8,
-    backgroundColor: 'rgba(26,45,90,0.07)',
-    justifyContent: 'center', alignItems: 'center',
+  btnPrimarySmall: {
+    flex: 1, borderRadius: 12, overflow: 'hidden', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 10
   },
-  sermonTextBox: { maxHeight: 280, backgroundColor: '#f9f6f0', borderRadius: 10, padding: 14, marginBottom: 14 },
-  sermonText: { fontSize: 13, color: '#374151', lineHeight: 22, fontFamily: SERIF },
+  btnGradient: { ...StyleSheet.absoluteFillObject },
+  btnPrimaryTxt: { color: '#fff', fontSize: 13.5, fontWeight: '700', fontFamily: SANS, zIndex: 1 },
+  generatingTxt: { textAlign: 'center', fontSize: 12.5, color: '#5B5468', marginTop: 10 },
 
-  // Action grid
-  actionGrid: { flexDirection: 'row', gap: 8 },
-  actionGridBtn: {
-    flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6,
-    paddingVertical: 12, borderRadius: 12,
-    borderWidth: 1, borderColor: 'rgba(26,45,90,0.12)',
-    backgroundColor: 'rgba(26,45,90,0.04)',
+  outputPanel: { marginTop: 14 },
+  sermonDoc: {
+    borderWidth: 1, borderColor: '#E7E0D6', borderRadius: 14, padding: 16, backgroundColor: '#fff', marginTop: 14
   },
-  actionGridTxt: { fontSize: 10, fontWeight: '700', color: '#1a2d5a' },
+  sermonText: { fontSize: 13, color: '#3A3448', lineHeight: 22, fontFamily: SERIF },
+  fineprint: { fontSize: 10.5, color: '#5B5468', marginTop: 12, lineHeight: 16 },
 
-  // Modals
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
-  pickerCard: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 36 },
-  pickerHdRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  pickerHdTxt: { fontSize: 16, fontWeight: '800', color: '#1a2d5a' },
-  pickerItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 14, borderRadius: 10, marginBottom: 6 },
-  pickerItemActive: { backgroundColor: '#1a2d5a' },
-  pickerItemTxt: { fontSize: 14, color: '#374151', fontWeight: '500' },
-  pickerItemTxtActive: { color: '#fff', fontWeight: '700' },
+  // ── Formatted Sermon Highlight Styles ─────────────────────────────────────
+  sermonContainer: {
+    paddingBottom: 8,
+  },
+  sermonTitleCard: {
+    backgroundColor: '#FAF5FF',
+    borderWidth: 1.5,
+    borderColor: '#DDD6FE',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    shadowColor: '#5B3FA6',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  sermonTitleBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#FEF3C7',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  sermonTitleBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#92400E',
+    letterSpacing: 0.6,
+  },
+  sermonTitleTxt: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#2E1065',
+    lineHeight: 24,
+    fontFamily: SERIF,
+  },
 
-  alertCard: { backgroundColor: '#fff', width: '85%', alignSelf: 'center', marginTop: 'auto', marginBottom: 'auto', borderRadius: 24, padding: 28, alignItems: 'center' },
-  alertIconBox: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#fef2f2', justifyContent: 'center', alignItems: 'center', marginBottom: 18 },
-  alertTitle: { fontSize: 20, fontWeight: '800', color: '#1a2d5a', marginBottom: 8 },
-  alertSub: { fontSize: 13, color: '#6b7280', textAlign: 'center', marginBottom: 22 },
-  alertBtn: { width: '100%', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
-  alertBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  // Section Headers
+  sectionHeaderBox: {
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginTop: 18,
+    marginBottom: 10,
+    borderLeftWidth: 4.5,
+  },
+  sectionIntroBox: {
+    backgroundColor: '#EEF2FF',
+    borderLeftColor: '#4338CA',
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  sectionScripturesBox: {
+    backgroundColor: '#F5F3FF',
+    borderLeftColor: '#6D28D9',
+    borderWidth: 1,
+    borderColor: '#EDE9FE',
+  },
+  sectionMessageBox: {
+    backgroundColor: '#FAF5FF',
+    borderLeftColor: '#5B3FA6',
+    borderWidth: 1,
+    borderColor: '#F3E8FF',
+  },
+  sectionApplicationBox: {
+    backgroundColor: '#FFFBEB',
+    borderLeftColor: '#D97706',
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
+  },
+  sectionPrayerBox: {
+    backgroundColor: '#ECFDF5',
+    borderLeftColor: '#059669',
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
+  },
+
+  sectionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 6,
+    marginBottom: 6,
+  },
+  sectionIntroBadge: {
+    backgroundColor: '#E0E7FF',
+  },
+  sectionScripturesBadge: {
+    backgroundColor: '#EDE9FE',
+  },
+  sectionMessageBadge: {
+    backgroundColor: '#F3E8FF',
+  },
+  sectionApplicationBadge: {
+    backgroundColor: '#FEF3C7',
+  },
+  sectionPrayerBadge: {
+    backgroundColor: '#D1FAE5',
+  },
+  sectionBadgeTxt: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  sectionHeaderTitle: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: '#1F2937',
+    lineHeight: 22,
+  },
+
+  // Point Headers (Main Message Points)
+  pointHeaderCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F8F6FD',
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 11,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  pointNumberPill: {
+    backgroundColor: '#5B3FA6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  pointNumberTxt: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  pointHeaderTxt: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#2E1065',
+    flex: 1,
+    lineHeight: 20,
+  },
+
+  // Bible Book & Chapters Reference
+  bibleRefCard: {
+    backgroundColor: '#F5F0FF',
+    borderWidth: 1.5,
+    borderColor: '#DDD6FE',
+    borderRadius: 10,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  bibleRefTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  bibleRefIconBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#EDE9FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bibleRefBadgePill: {
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  bibleRefBadgeTxt: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#6D28D9',
+    letterSpacing: 0.4,
+  },
+  bibleRefTxt: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#3B0764',
+    lineHeight: 20,
+  },
+
+  // Practical Takeaway Highlight Box
+  takeawayCard: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 10,
+    marginBottom: 10,
+    shadowColor: '#F59E0B',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 1,
+  },
+  takeawayHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  takeawayBadgePill: {
+    backgroundColor: '#FDE68A',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 5,
+  },
+  takeawayBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#92400E',
+    letterSpacing: 0.4,
+  },
+  takeawayTxt: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#78350F',
+    lineHeight: 21,
+  },
+
+  // Scripture Quote Card
+  scriptureQuoteCard: {
+    backgroundColor: '#FAF7FD',
+    borderLeftWidth: 3.5,
+    borderLeftColor: '#8B5FBF',
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginVertical: 4,
+  },
+  scriptureQuoteTxt: {
+    fontSize: 13.5,
+    fontStyle: 'italic',
+    color: '#374151',
+    lineHeight: 22,
+    fontFamily: SERIF,
+  },
+
+  // Bullet Items
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 6,
+    marginVertical: 3,
+  },
+  bulletDot: {
+    fontSize: 16,
+    color: '#5B3FA6',
+    lineHeight: 21,
+  },
+  bulletTxt: {
+    fontSize: 13.5,
+    color: '#374151',
+    lineHeight: 22,
+  },
+
+  // Normal Paragraphs
+  paragraphContainer: {
+    marginVertical: 4,
+  },
+  sermonParagraphTxt: {
+    fontSize: 13.5,
+    color: '#374151',
+    lineHeight: 22,
+  },
+
+  // Quick Navigation Bar
+  navBarWrapper: {
+    marginBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EBE4',
+    paddingBottom: 10,
+  },
+  navBarLabel: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#8A8298',
+    letterSpacing: 0.6,
+    marginBottom: 6,
+  },
+  navBarScroll: {
+    flexDirection: 'row',
+    overflow: 'visible',
+  },
+  navPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: '#fff',
+    borderWidth: 1.2,
+    borderRadius: 999,
+    marginRight: 6,
+  },
+  navPillTxt: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+
+  chipScroll: { flexDirection: 'row', overflow: 'visible', marginTop: 14, paddingBottom: 8, marginBottom: 8 },
+  chipBtn: {
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 9, borderWidth: 1.4, borderColor: '#E7E0D6',
+    backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', gap: 5, marginRight: 7
+  },
+  chipBtnActive: {
+    borderColor: '#5B3FA6', backgroundColor: '#F4F0FF',
+  },
+  chipBtnTxt: { fontSize: 11.5, color: '#5B5468' },
+
+  btnRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
+  btnGhost: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#fff', borderWidth: 1.4, borderColor: '#E7E0D6', borderRadius: 12, paddingVertical: 12, paddingHorizontal: 10
+  },
+  btnGhostTxt: { color: '#211A2E', fontSize: 12.5, fontWeight: '700', fontFamily: SANS },
+
+  caption: { textAlign: 'center', fontSize: 11, color: '#8A8298', marginTop: 14 },
+
+  prepCard: {
+    backgroundColor: '#fff',
+    borderWidth: 1.4,
+    borderColor: '#E7E0D6',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 12,
+    alignItems: 'center',
+    gap: 4,
+    shadowColor: '#5B3FA6',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  prepStepTxt: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#3A2A6B',
+  },
+  prepSubTxt: {
+    fontSize: 11,
+    color: '#8A8298',
+    marginTop: 2,
+  },
 });
