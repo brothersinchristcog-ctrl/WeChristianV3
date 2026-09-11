@@ -2346,18 +2346,112 @@ class FirestoreService {
     language: string;
     generatedSermonText: string;
     status: string;
+    title?: string;
+    bibleRef?: string;
   }) {
     try {
       const churchId = await this.getChurchId();
       if (!churchId) return;
       const db = firestore();
+
+      let title = data.title;
+      let bibleRef = data.bibleRef;
+      if (!title && data.generatedSermonText) {
+        const titleMatch = data.generatedSermonText.match(/^#\s*(?:Sermon:\s*)?(.*)$/m);
+        if (titleMatch) title = titleMatch[1].replace(/[*_#]/g, '').trim();
+      }
+      if (!bibleRef && data.generatedSermonText) {
+        const refMatch = data.generatedSermonText.match(/^[|•\-\*]?\s*\*\*([^*]+)\*\*/m);
+        if (refMatch) bibleRef = refMatch[1].replace(/\|.*$/, '').trim();
+      }
+
       await db
         .collection('churches')
         .doc(churchId)
         .collection('aiSermons')
-        .add({ ...data, createdAt: FieldValue.serverTimestamp() });
+        .add({
+          ...data,
+          title: title || data.topic || 'Sermon',
+          bibleRef: bibleRef || '',
+          createdAt: FieldValue.serverTimestamp(),
+        });
     } catch (e) {
       console.error('saveAISermon error:', e);
+    }
+  }
+
+  async getAISermons(churchIdParam?: string): Promise<any[]> {
+    try {
+      const churchId = churchIdParam || await this.getChurchId();
+      if (!churchId) return [];
+      const db = firestore();
+
+      try {
+        const snapshot = await db
+          .collection('churches')
+          .doc(churchId)
+          .collection('aiSermons')
+          .orderBy('createdAt', 'desc')
+          .get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (orderErr) {
+        // Fallback without orderBy if index is still building or missing
+        const snapshot = await db
+          .collection('churches')
+          .doc(churchId)
+          .collection('aiSermons')
+          .get();
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return docs.sort((a: any, b: any) => {
+          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+          return tB - tA;
+        });
+      }
+    } catch (e) {
+      console.error('getAISermons error:', e);
+      return [];
+    }
+  }
+
+  async updateAISermon(
+    sermonId: string,
+    data: Partial<{ generatedSermonText: string; topic: string; title: string; bibleRef: string; language: string }>,
+    churchIdParam?: string
+  ): Promise<void> {
+    try {
+      const churchId = churchIdParam || await this.getChurchId();
+      if (!churchId || !sermonId) return;
+      const db = firestore();
+      await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiSermons')
+        .doc(sermonId)
+        .update({
+          ...data,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+    } catch (e) {
+      console.error('updateAISermon error:', e);
+      throw e;
+    }
+  }
+
+  async deleteAISermon(sermonId: string, churchIdParam?: string): Promise<void> {
+    try {
+      const churchId = churchIdParam || await this.getChurchId();
+      if (!churchId || !sermonId) return;
+      const db = firestore();
+      await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiSermons')
+        .doc(sermonId)
+        .delete();
+    } catch (e) {
+      console.error('deleteAISermon error:', e);
+      throw e;
     }
   }
 

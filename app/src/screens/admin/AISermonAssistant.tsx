@@ -40,8 +40,18 @@ import {
   BookMarked,
   Gift, Heart, HeartHandshake, Droplets, CloudRain, Users, Building2, Utensils, GraduationCap, Briefcase, Sunrise, AlertTriangle, HeartOff, TrendingDown, TrendingUp, MoreHorizontal, Smile, Wind, ShieldAlert, Star, Anchor, Lightbulb, LifeBuoy, Crown, Hourglass, Mountain, Shield, Lock, Compass, Home, User, Baby, Link, Flag, Leaf,
   HeartPulse,
-  Copy
+  Copy,
+  History,
+  Eye,
+  Edit3,
+  Trash2,
+  Download,
+  Calendar,
+  Search,
+  X
 } from 'lucide-react-native';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { useChurch } from '../../context/ChurchContext';
 import AIService from '../../services/AIService';
@@ -316,8 +326,18 @@ export default function AISermonAssistant() {
   const { activeChurch } = useChurch();
 
   // Form state
-  const [currentCategory, setCurrentCategory] = useState<'life' | 'topic'>('life');
+  const [currentCategory, setCurrentCategory] = useState<'life' | 'topic' | 'history'>('life');
   const [selectedSituation, setSelectedSituation] = useState(''); // No default selection
+
+  // History state
+  const [savedSermons, setSavedSermons] = useState<any[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historySearch, setHistorySearch] = useState('');
+  const [selectedHistorySermon, setSelectedHistorySermon] = useState<any | null>(null);
+  const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingSermon, setEditingSermon] = useState<{ id: string; title: string; topic: string; generatedSermonText: string } | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const [topic, setTopic] = useState('');
   const [audience, setAudience] = useState('Congregation');
@@ -341,6 +361,10 @@ export default function AISermonAssistant() {
   useEffect(() => {
     sectionOffsets.current = {};
   }, [generatedText]);
+
+  useEffect(() => {
+    loadSermonHistory();
+  }, [activeChurch?.id]);
 
   const scrollToSection = (key: string) => {
     const y = sectionOffsets.current[key];
@@ -404,6 +428,7 @@ export default function AISermonAssistant() {
           generatedSermonText: text,
           status: 'generated',
         });
+        loadSermonHistory();
       } catch (_) { /* non-blocking */ }
 
     } catch (err: any) {
@@ -426,6 +451,157 @@ export default function AISermonAssistant() {
     await Clipboard.setStringAsync(generatedText);
     setShowCopySuccess(true);
     setTimeout(() => setShowCopySuccess(false), 2500);
+  };
+
+  // ── History Handlers ────────────────────────────────────────────────────────
+  const loadSermonHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const churchId = activeChurch?.id;
+      const list = await (FirestoreService as any).getAISermons?.(churchId) || [];
+      setSavedSermons(list);
+    } catch (e) {
+      console.error('loadSermonHistory error:', e);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const formatSermonDate = (createdAt: any): string => {
+    if (!createdAt) return 'Recent';
+    try {
+      let date: Date;
+      if (createdAt.toDate && typeof createdAt.toDate === 'function') {
+        date = createdAt.toDate();
+      } else if (createdAt.seconds) {
+        date = new Date(createdAt.seconds * 1000);
+      } else if (typeof createdAt === 'string' || typeof createdAt === 'number') {
+        date = new Date(createdAt);
+      } else {
+        date = new Date();
+      }
+      return date.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return 'Recent';
+    }
+  };
+
+  const handleViewSermon = (sermon: any) => {
+    setSelectedHistorySermon(sermon);
+    setViewModalVisible(true);
+  };
+
+  const handleOpenEdit = (sermon: any) => {
+    const title = sermon.title || sermon.topic || sermon.generatedSermonText?.match(/^#\s*(?:Sermon:\s*)?(.*)$/m)?.[1]?.replace(/[*_#]/g, '').trim() || 'Sermon';
+    setEditingSermon({
+      id: sermon.id,
+      title,
+      topic: sermon.topic || '',
+      generatedSermonText: sermon.generatedSermonText || '',
+    });
+    setEditModalVisible(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingSermon) return;
+    try {
+      setSavingEdit(true);
+      let bibleRef = editingSermon.generatedSermonText.match(/^[|•\-\*]?\s*\*\*([^\*]+)\*\*/m)?.[1]?.replace(/\|.*$/, '').trim() || '';
+
+      await (FirestoreService as any).updateAISermon?.(
+        editingSermon.id,
+        {
+          title: editingSermon.title,
+          generatedSermonText: editingSermon.generatedSermonText,
+          bibleRef: bibleRef,
+        },
+        activeChurch?.id
+      );
+
+      setSavedSermons(prev => prev.map(s => s.id === editingSermon.id ? {
+        ...s,
+        title: editingSermon.title,
+        generatedSermonText: editingSermon.generatedSermonText,
+        bibleRef: bibleRef || s.bibleRef,
+      } : s));
+
+      if (selectedHistorySermon?.id === editingSermon.id) {
+        setSelectedHistorySermon((prev: any) => ({
+          ...prev,
+          title: editingSermon.title,
+          generatedSermonText: editingSermon.generatedSermonText,
+          bibleRef: bibleRef || prev.bibleRef,
+        }));
+      }
+
+      setEditModalVisible(false);
+      Alert.alert('Success', 'Sermon updated successfully!');
+    } catch (err: any) {
+      Alert.alert('Error', 'Failed to save sermon changes.');
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const handleDeleteSermon = (sermon: any) => {
+    const title = sermon.title || sermon.topic || 'this sermon';
+    Alert.alert(
+      'Delete Sermon',
+      `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await (FirestoreService as any).deleteAISermon?.(sermon.id, activeChurch?.id);
+              setSavedSermons(prev => prev.filter(s => s.id !== sermon.id));
+              if (viewModalVisible && selectedHistorySermon?.id === sermon.id) {
+                setViewModalVisible(false);
+              }
+              Alert.alert('Deleted', 'Sermon removed from history.');
+            } catch (e) {
+              Alert.alert('Error', 'Failed to delete sermon.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDownloadSermon = async (sermon: any) => {
+    try {
+      const title = (sermon.title || sermon.topic || 'Sermon')
+        .replace(/[^a-zA-Z0-9\s\u0C00-\u0C7F_-]/g, '')
+        .trim();
+      const fileName = `${title.replace(/\s+/g, '_')}_${Date.now()}.txt`;
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+
+      const fileContent = `========================================\n${sermon.title || sermon.topic || 'AI SERMON'}\n========================================\nDate: ${formatSermonDate(sermon.createdAt)}\nLanguage: ${sermon.language || 'Telugu'}\nCategory: ${sermon.category || 'General'}\nBible Reference: ${sermon.bibleRef || 'N/A'}\n\n${sermon.generatedSermonText || ''}\n`;
+
+      await FileSystem.writeAsStringAsync(fileUri, fileContent, { encoding: FileSystem.EncodingType.UTF8 });
+
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (isAvailable) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: 'text/plain',
+          dialogTitle: `Download ${title}`,
+          UTI: 'public.plain-text',
+        });
+      } else {
+        Alert.alert('Downloaded', `Sermon saved to: ${fileName}`);
+      }
+    } catch (err) {
+      console.error('Download error:', err);
+      Alert.alert('Error', 'Failed to download sermon. Please try again.');
+    }
   };
 
   const renderFormattedSermon = (rawText: string) => {
@@ -582,6 +758,15 @@ export default function AISermonAssistant() {
 
   const situationsList = currentCategory === 'life' ? LIFE_EVENTS : SPIRITUAL_TOPICS;
 
+  const filteredSermons = savedSermons.filter(s => {
+    if (!historySearch.trim()) return true;
+    const query = historySearch.toLowerCase();
+    const title = (s.title || s.topic || '').toLowerCase();
+    const ref = (s.bibleRef || '').toLowerCase();
+    const text = (s.generatedSermonText || '').toLowerCase();
+    return title.includes(query) || ref.includes(query) || text.includes(query);
+  });
+
   // ── JSX ─────────────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
@@ -608,16 +793,24 @@ export default function AISermonAssistant() {
             <Sparkles size={13} color="#E3A83B" />
             <Text style={styles.eyebrowTxt}>AI Sermon Assistant</Text>
           </View>
-          <Text style={styles.h1}>Prepare a Bible-based sermon</Text>
-          <Text style={styles.p}>Start from a life event or a spiritual topic. Scripture stays clearly separate from AI explanation and application.</Text>
+          <Text style={styles.h1}>
+            {currentCategory === 'history' ? 'Saved Sermon Library' : 'Prepare a Bible-based sermon'}
+          </Text>
+          <Text style={styles.p}>
+            {currentCategory === 'history'
+              ? 'Access, view, edit, and download previously generated sermons for your church.'
+              : 'Start from a life event or a spiritual topic. Scripture stays clearly separate from AI explanation and application.'}
+          </Text>
         </View>
 
         <View style={styles.sectionLabel}>
-          <View style={styles.stepNum}><Text style={styles.stepNumTxt}>1</Text></View>
-          <Text style={styles.sectionLabelTxt}>Choose a starting point</Text>
+          <View style={styles.stepNum}><Text style={styles.stepNumTxt}>{currentCategory === 'history' ? '★' : '1'}</Text></View>
+          <Text style={styles.sectionLabelTxt}>
+            {currentCategory === 'history' ? 'Sermon Library' : 'Choose a starting point'}
+          </Text>
         </View>
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.pillScroll, { marginBottom: 11 }]}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={[styles.pillScroll, { marginBottom: 14 }]}>
           <TouchableOpacity style={[styles.pill, currentCategory === 'life' && styles.pillSelected]} onPress={() => { setCurrentCategory('life'); setSelectedSituation(''); }}>
             {currentCategory === 'life' && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />}
             <Text style={[styles.pillTxt, currentCategory === 'life' && { color: '#fff' }]}>Life Events / Situations</Text>
@@ -626,9 +819,148 @@ export default function AISermonAssistant() {
             {currentCategory === 'topic' && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />}
             <Text style={[styles.pillTxt, currentCategory === 'topic' && { color: '#fff' }]}>Spiritual / Biblical Topics</Text>
           </TouchableOpacity>
+          <TouchableOpacity style={[styles.pill, currentCategory === 'history' && styles.pillSelected]} onPress={() => { setCurrentCategory('history'); loadSermonHistory(); }}>
+            {currentCategory === 'history' && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, zIndex: 1 }}>
+              <History size={13} color={currentCategory === 'history' ? '#fff' : '#5B3FA6'} />
+              <Text style={[styles.pillTxt, currentCategory === 'history' && { color: '#fff' }]}>Sermon History</Text>
+            </View>
+          </TouchableOpacity>
         </ScrollView>
 
-        <View style={styles.tileGrid}>
+        {currentCategory === 'history' ? (
+          <View style={styles.historyContainer}>
+            {/* Search Bar & Refresh */}
+            <View style={styles.historySearchRow}>
+              <View style={styles.historySearchBox}>
+                <Search size={15} color="#8A8298" style={{ marginRight: 6 }} />
+                <TextInput
+                  placeholder="Search saved sermons by title or scripture..."
+                  placeholderTextColor="#8A8298"
+                  value={historySearch}
+                  onChangeText={setHistorySearch}
+                  style={styles.historySearchInput}
+                />
+                {historySearch ? (
+                  <TouchableOpacity onPress={() => setHistorySearch('')}>
+                    <X size={15} color="#8A8298" />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+              <TouchableOpacity
+                onPress={loadSermonHistory}
+                disabled={loadingHistory}
+                style={styles.historyRefreshBtn}
+              >
+                {loadingHistory ? (
+                  <ActivityIndicator size="small" color="#5B3FA6" />
+                ) : (
+                  <RefreshCw size={15} color="#5B3FA6" />
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* List or Empty State */}
+            {loadingHistory && savedSermons.length === 0 ? (
+              <View style={styles.historyLoadingWrap}>
+                <ActivityIndicator size="large" color="#5B3FA6" />
+                <Text style={styles.historyLoadingTxt}>Loading sermon history...</Text>
+              </View>
+            ) : filteredSermons.length === 0 ? (
+              <View style={styles.historyEmptyCard}>
+                <View style={styles.historyEmptyIconCircle}>
+                  <BookOpen size={28} color="#5B3FA6" />
+                </View>
+                <Text style={styles.historyEmptyTitle}>
+                  {historySearch ? 'No matching sermons found' : 'No saved sermons yet'}
+                </Text>
+                <Text style={styles.historyEmptySubtitle}>
+                  {historySearch
+                    ? 'Try searching with different keywords.'
+                    : 'Sermons you generate will automatically be saved here for reading, editing, and offline download.'}
+                </Text>
+                {!historySearch && (
+                  <TouchableOpacity
+                    style={styles.historyEmptyBtn}
+                    onPress={() => { setCurrentCategory('life'); setSelectedSituation(''); }}
+                  >
+                    <Wand2 size={14} color="#fff" />
+                    <Text style={styles.historyEmptyBtnTxt}>Generate a Sermon</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              <View style={{ gap: 12 }}>
+                {filteredSermons.map(sermon => {
+                  const title = sermon.title || sermon.topic || sermon.generatedSermonText?.match(/^#\s*(?:Sermon:\s*)?(.*)$/m)?.[1]?.replace(/[*_#]/g, '').trim() || 'Sermon';
+                  const bibleRef = sermon.bibleRef || sermon.generatedSermonText?.match(/^[|•\-\*]?\s*\*\*([^\*]+)\*\*/m)?.[1]?.replace(/\|.*$/, '').trim() || '';
+
+                  return (
+                    <View key={sermon.id} style={styles.historyCard}>
+                      {/* Top Badges */}
+                      <View style={styles.historyTopRow}>
+                        <View style={styles.historyCategoryBadge}>
+                          <Text style={styles.historyCategoryBadgeTxt}>
+                            {sermon.category === 'life' ? 'Life Event' : sermon.category === 'topic' ? 'Spiritual Topic' : 'Sermon'}
+                          </Text>
+                        </View>
+                        {sermon.language ? (
+                          <View style={styles.historyLangBadge}>
+                            <Globe size={11} color="#5B3FA6" />
+                            <Text style={styles.historyLangBadgeTxt}>{sermon.language}</Text>
+                          </View>
+                        ) : null}
+                        <View style={{ flex: 1 }} />
+                        <View style={styles.historyDateRow}>
+                          <Calendar size={11} color="#8A8298" />
+                          <Text style={styles.historyDateTxt}>{formatSermonDate(sermon.createdAt)}</Text>
+                        </View>
+                      </View>
+
+                      {/* Title */}
+                      <Text style={styles.historyTitleTxt}>{title}</Text>
+
+                      {/* Bible Reference */}
+                      {bibleRef ? (
+                        <View style={styles.historyRefRow}>
+                          <BookOpen size={12} color="#5B3FA6" />
+                          <Text style={styles.historyRefTxt} numberOfLines={1}>
+                            {bibleRef}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {/* Actions */}
+                      <View style={styles.historyActionRow}>
+                        <TouchableOpacity style={styles.historyBtnView} onPress={() => handleViewSermon(sermon)}>
+                          <Eye size={13} color="#5B3FA6" />
+                          <Text style={styles.historyBtnViewTxt}>View</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.historyBtnEdit} onPress={() => handleOpenEdit(sermon)}>
+                          <Edit3 size={13} color="#B45309" />
+                          <Text style={styles.historyBtnEditTxt}>Edit</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.historyBtnDownload} onPress={() => handleDownloadSermon(sermon)}>
+                          <Download size={13} color="#059669" />
+                          <Text style={styles.historyBtnDownloadTxt}>Download</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.historyBtnDelete} onPress={() => handleDeleteSermon(sermon)}>
+                          <Trash2 size={13} color="#DC2626" />
+                          <Text style={styles.historyBtnDeleteTxt}>Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        ) : (
+          <>
+            <View style={styles.tileGrid}>
           {situationsList.map(sit => {
             const selected = selectedSituation === sit.name;
             const IconComp = sit.icon;
@@ -714,7 +1046,14 @@ export default function AISermonAssistant() {
               {/* Quick Jump Bar */}
               <View style={styles.navBarWrapper}>
                 <Text style={styles.navBarLabel}>QUICK JUMP TO SECTION</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.navBarScroll}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  overScrollMode="never"
+                  bounces={false}
+                  style={styles.navBarScroll}
+                  contentContainerStyle={{ paddingHorizontal: 2 }}
+                >
                   <TouchableOpacity onPress={() => scrollToSection('intro')} style={[styles.navPill, { borderColor: '#C7D2FE' }]}>
                     <AlignLeft size={12} color="#4338CA" />
                     <Text style={[styles.navPillTxt, { color: '#4338CA' }]}>Introduction</Text>
@@ -796,9 +1135,157 @@ export default function AISermonAssistant() {
           </View>
         )}
 
-        <Text style={styles.caption}>Verses shown are placeholders — the live build pulls from your existing Bible source, never the AI.</Text>
+            <Text style={styles.caption}>Verses shown are placeholders — the live build pulls from your existing Bible source, never the AI.</Text>
+          </>
+        )}
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* ── VIEW SERMON MODAL ── */}
+      <Modal visible={viewModalVisible} animationType="slide" transparent onRequestClose={() => setViewModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1, marginRight: 10 }}>
+                <Text style={styles.modalHeaderTitle} numberOfLines={1}>
+                  {selectedHistorySermon?.title || selectedHistorySermon?.topic || 'Sermon Details'}
+                </Text>
+                <Text style={styles.modalHeaderSub} numberOfLines={1}>
+                  {selectedHistorySermon?.bibleRef ? `${selectedHistorySermon.bibleRef} • ` : ''}{formatSermonDate(selectedHistorySermon?.createdAt)}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setViewModalVisible(false)} style={styles.modalCloseBtn}>
+                <X size={18} color="#211A2E" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={true}>
+              {selectedHistorySermon ? renderFormattedSermon(selectedHistorySermon.generatedSermonText) : null}
+              <View style={{ height: 30 }} />
+            </ScrollView>
+
+            <View style={styles.modalBottomBar}>
+              <TouchableOpacity
+                style={styles.modalActionBtn}
+                onPress={async () => {
+                  if (selectedHistorySermon?.generatedSermonText) {
+                    await Clipboard.setStringAsync(selectedHistorySermon.generatedSermonText);
+                    Alert.alert('Copied', 'Sermon copied to clipboard!');
+                  }
+                }}
+              >
+                <Copy size={14} color="#5B3FA6" />
+                <Text style={[styles.modalActionBtnTxt, { color: '#5B3FA6' }]}>Copy</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalActionBtn}
+                onPress={async () => {
+                  if (selectedHistorySermon?.generatedSermonText) {
+                    await Share.share({
+                      message: selectedHistorySermon.generatedSermonText,
+                      title: selectedHistorySermon.title || selectedHistorySermon.topic || 'Sermon',
+                    });
+                  }
+                }}
+              >
+                <MessageCircle size={14} color="#25D366" />
+                <Text style={[styles.modalActionBtnTxt, { color: '#25D366' }]}>Share</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalActionBtn}
+                onPress={() => {
+                  if (selectedHistorySermon) {
+                    handleDownloadSermon(selectedHistorySermon);
+                  }
+                }}
+              >
+                <Download size={14} color="#059669" />
+                <Text style={[styles.modalActionBtnTxt, { color: '#059669' }]}>Download</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.modalActionBtn}
+                onPress={() => {
+                  if (selectedHistorySermon) {
+                    setViewModalVisible(false);
+                    handleOpenEdit(selectedHistorySermon);
+                  }
+                }}
+              >
+                <Edit3 size={14} color="#B45309" />
+                <Text style={[styles.modalActionBtnTxt, { color: '#B45309' }]}>Edit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── EDIT SERMON MODAL ── */}
+      <Modal visible={editModalVisible} animationType="slide" transparent onRequestClose={() => setEditModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.modalHeaderTitle}>Edit Saved Sermon</Text>
+                <Text style={styles.modalHeaderSub}>Modify the title or content of this sermon</Text>
+              </View>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)} style={styles.modalCloseBtn}>
+                <X size={18} color="#211A2E" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={true} keyboardShouldPersistTaps="handled">
+              <Text style={styles.editInputLabel}>Sermon Title</Text>
+              <TextInput
+                style={styles.editTitleInput}
+                value={editingSermon?.title || ''}
+                onChangeText={(t) => setEditingSermon(prev => prev ? { ...prev, title: t } : null)}
+                placeholder="Enter sermon title..."
+                placeholderTextColor="#8A8298"
+              />
+
+              <Text style={styles.editInputLabel}>Sermon Content</Text>
+              <TextInput
+                style={styles.editContentInput}
+                value={editingSermon?.generatedSermonText || ''}
+                onChangeText={(t) => setEditingSermon(prev => prev ? { ...prev, generatedSermonText: t } : null)}
+                placeholder="Enter sermon text..."
+                placeholderTextColor="#8A8298"
+                multiline
+                textAlignVertical="top"
+              />
+              <View style={{ height: 20 }} />
+            </ScrollView>
+
+            <View style={styles.editModalBottomBar}>
+              <TouchableOpacity
+                style={styles.editCancelBtn}
+                onPress={() => setEditModalVisible(false)}
+                disabled={savingEdit}
+              >
+                <Text style={styles.editCancelBtnTxt}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.editSaveBtn}
+                onPress={handleSaveEdit}
+                disabled={savingEdit}
+              >
+                {savingEdit ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Save size={15} color="#fff" />
+                    <Text style={styles.editSaveBtnTxt}>Save Changes</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -902,7 +1389,8 @@ const styles = StyleSheet.create({
 
   outputPanel: { marginTop: 14 },
   sermonDoc: {
-    borderWidth: 1, borderColor: '#E7E0D6', borderRadius: 14, padding: 16, backgroundColor: '#fff', marginTop: 14
+    borderWidth: 1, borderColor: '#E7E0D6', borderRadius: 14, padding: 16, backgroundColor: '#fff', marginTop: 14,
+    overflow: 'hidden',
   },
   sermonText: { fontSize: 13, color: '#3A3448', lineHeight: 22, fontFamily: SERIF },
   fineprint: { fontSize: 10.5, color: '#5B5468', marginTop: 12, lineHeight: 16 },
@@ -1195,6 +1683,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F0EBE4',
     paddingBottom: 10,
+    overflow: 'hidden',
   },
   navBarLabel: {
     fontSize: 10,
@@ -1205,7 +1694,7 @@ const styles = StyleSheet.create({
   },
   navBarScroll: {
     flexDirection: 'row',
-    overflow: 'visible',
+    overflow: 'hidden',
   },
   navPill: {
     flexDirection: 'row',
@@ -1266,5 +1755,400 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#8A8298',
     marginTop: 2,
+  },
+
+  // ── Sermon History Styles ──────────────────────────────────────────────────
+  historyContainer: {
+    marginTop: 6,
+  },
+  historySearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+  },
+  historySearchBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderWidth: 1.4,
+    borderColor: '#E7E0D6',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 7,
+  },
+  historySearchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#211A2E',
+    fontFamily: SANS,
+  },
+  historyRefreshBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderWidth: 1.4,
+    borderColor: '#E7E0D6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  historyLoadingWrap: {
+    paddingVertical: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  historyLoadingTxt: {
+    fontSize: 13,
+    color: '#5B5468',
+    fontWeight: '600',
+  },
+  historyEmptyCard: {
+    backgroundColor: '#fff',
+    borderWidth: 1.4,
+    borderColor: '#E7E0D6',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    gap: 8,
+  },
+  historyEmptyIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#F5F0FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  historyEmptyTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#211A2E',
+    textAlign: 'center',
+  },
+  historyEmptySubtitle: {
+    fontSize: 12.5,
+    color: '#5B5468',
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 10,
+  },
+  historyEmptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: '#5B3FA6',
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  historyEmptyBtnTxt: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // History Card
+  historyCard: {
+    backgroundColor: '#fff',
+    borderWidth: 1.4,
+    borderColor: '#E7E0D6',
+    borderRadius: 14,
+    padding: 15,
+    shadowColor: '#5B3FA6',
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    gap: 8,
+  },
+  historyTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  historyCategoryBadge: {
+    backgroundColor: '#F4F0FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  historyCategoryBadgeTxt: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#5B3FA6',
+  },
+  historyLangBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#FAF5FF',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+  },
+  historyLangBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#5B3FA6',
+  },
+  historyDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  historyDateTxt: {
+    fontSize: 11,
+    color: '#8A8298',
+  },
+  historyTitleTxt: {
+    fontSize: 15.5,
+    fontWeight: '800',
+    color: '#211A2E',
+    lineHeight: 22,
+    fontFamily: SERIF,
+  },
+  historyRefRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FAF7FD',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: '#5B3FA6',
+    alignSelf: 'flex-start',
+  },
+  historyRefTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5B3FA6',
+    fontFamily: SANS,
+  },
+  historyActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F2EDE6',
+  },
+  historyBtnView: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 7,
+    backgroundColor: '#FAF5FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    borderRadius: 8,
+  },
+  historyBtnViewTxt: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#5B3FA6',
+  },
+  historyBtnEdit: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 7,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 8,
+  },
+  historyBtnEditTxt: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#B45309',
+  },
+  historyBtnDownload: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 7,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 8,
+  },
+  historyBtnDownloadTxt: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  historyBtnDelete: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingVertical: 7,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+  },
+  historyBtnDeleteTxt: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+
+  // ── Modals ────────────────────────────────────────────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    maxHeight: '90%',
+    paddingBottom: Platform.OS === 'ios' ? 24 : 14,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EBE4',
+  },
+  modalHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#211A2E',
+    fontFamily: SERIF,
+  },
+  modalHeaderSub: {
+    fontSize: 11.5,
+    color: '#8A8298',
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F0EA',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalScroll: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+  },
+  modalBottomBar: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F0EBE4',
+  },
+  modalActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1.2,
+    borderColor: '#E7E0D6',
+    backgroundColor: '#fff',
+  },
+  modalActionBtnTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // Edit Modal Inputs
+  editInputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#3A2A6B',
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  editTitleInput: {
+    backgroundColor: '#FDFBF9',
+    borderWidth: 1.4,
+    borderColor: '#E7E0D6',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#211A2E',
+  },
+  editContentInput: {
+    backgroundColor: '#FDFBF9',
+    borderWidth: 1.4,
+    borderColor: '#E7E0D6',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 13,
+    lineHeight: 20,
+    color: '#211A2E',
+    minHeight: 280,
+    fontFamily: SANS,
+  },
+  editModalBottomBar: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F0EBE4',
+  },
+  editCancelBtn: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.4,
+    borderColor: '#E7E0D6',
+    backgroundColor: '#fff',
+  },
+  editCancelBtnTxt: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#5B5468',
+  },
+  editSaveBtn: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#5B3FA6',
+  },
+  editSaveBtnTxt: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
   },
 });
