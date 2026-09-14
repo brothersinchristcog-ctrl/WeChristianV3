@@ -34,7 +34,11 @@ import {
   Trash2,
   RefreshCw,
   Palette,
-  Check
+  Check,
+  Clock,
+  Send,
+  FileText,
+  ArrowRight
 } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -345,7 +349,6 @@ export default function AdminPromiseEditor() {
   const [loading, setLoading] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [selectedBook, setSelectedBook] = useState<number | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   const [selectedVerse, setSelectedVerse] = useState<number | null>(null);
@@ -424,6 +427,7 @@ export default function AdminPromiseEditor() {
         theme: savedTheme,
         imageUrl: editingData.imageUrl || ''
       });
+      setLastSavedStatus(editingData.status || 'Scheduled');
       setBgImageUrl(editingData.imageUrl || '');
     } else {
       setColorMode('solid');
@@ -479,6 +483,7 @@ export default function AdminPromiseEditor() {
     : { x: 0, y: 1 };
 
   const [showSuccess, setShowSuccess] = useState(false);
+  const [lastSavedStatus, setLastSavedStatus] = useState<'Published' | 'Scheduled' | 'Draft'>('Published');
   const [showError, setShowError] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const viewShotRef = useRef(null);
@@ -632,13 +637,21 @@ export default function AdminPromiseEditor() {
     }
   };
 
-  const handleSave = async (statusOverride?: string) => {
-    const finalStatus = statusOverride || form.status;
+  const handleSave = async (statusOverride?: 'Published' | 'Scheduled' | 'Draft') => {
+    const finalStatus: 'Published' | 'Scheduled' | 'Draft' = statusOverride || (form.status as 'Published' | 'Scheduled' | 'Draft') || 'Published';
     
     if (!form.date) return AppAlert.alert('Error', 'Please select a promise date.', undefined, 'error');
     if (!form.enVerse?.trim() && !form.teVerse?.trim()) return AppAlert.alert('Error', 'Please enter the verse.', undefined, 'error');
 
-    setSavingActionText(finalStatus === 'Published' ? 'Saving & Publishing Daily Promise…' : 'Saving Promise Draft…');
+    let actionLabel = 'Saving Daily Promise…';
+    if (finalStatus === 'Published') {
+      actionLabel = 'Saving & Publishing Daily Promise…';
+    } else if (finalStatus === 'Scheduled') {
+      actionLabel = `Scheduling Promise for ${formatDateDisplay(form.date)}…`;
+    } else {
+      actionLabel = 'Saving Promise Draft…';
+    }
+    setSavingActionText(actionLabel);
     setLoading(true);
     try {
       let finalImageUrl = form.imageUrl || bgImageUrl;
@@ -698,6 +711,7 @@ export default function AdminPromiseEditor() {
       }
 
       setForm(prev => ({ ...prev, status: finalStatus, imageUrl: finalImageUrl }));
+      setLastSavedStatus(finalStatus);
       setShowSuccess(true);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to save to database.');
@@ -1500,38 +1514,200 @@ export default function AdminPromiseEditor() {
           </View>
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Publish status</Text>
-            <TouchableOpacity style={styles.input} onPress={() => setShowStatusPicker(true)}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={styles.statusDropdownTxt}>{currentStatusLabel}</Text>
-                <ChevronDown size={14} color="#374151" />
-              </View>
-            </TouchableOpacity>
+            <View style={styles.statusSelectorContainer}>
+              {/* Option 1: Publish Now */}
+              <TouchableOpacity
+                style={[
+                  styles.statusOptionCard,
+                  form.status === 'Published' && styles.statusOptionCardPublished
+                ]}
+                onPress={() => setForm({ ...form, status: 'Published' })}
+                activeOpacity={0.8}
+              >
+                <View style={[
+                  styles.statusOptionIconBox,
+                  form.status === 'Published' ? styles.statusOptionIconBoxPublished : {}
+                ]}>
+                  <Send size={15} color={form.status === 'Published' ? '#fff' : '#059669'} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={[
+                      styles.statusOptionTitle,
+                      form.status === 'Published' && styles.statusOptionTitlePublished
+                    ]}>
+                      Publish Now
+                    </Text>
+                    {form.status === 'Published' && (
+                      <View style={styles.activeDotGreen} />
+                    )}
+                  </View>
+                  <Text style={styles.statusOptionSub}>Live immediately on Member Home View</Text>
+                </View>
+                <View style={[
+                  styles.statusRadioCircle,
+                  form.status === 'Published' && styles.statusRadioCirclePublished
+                ]}>
+                  {form.status === 'Published' && <Check size={12} color="#fff" strokeWidth={3} />}
+                </View>
+              </TouchableOpacity>
+
+              {/* Option 2: Scheduled */}
+              <TouchableOpacity
+                style={[
+                  styles.statusOptionCard,
+                  form.status === 'Scheduled' && styles.statusOptionCardScheduled
+                ]}
+                onPress={() => setForm({ ...form, status: 'Scheduled' })}
+                activeOpacity={0.8}
+              >
+                <View style={[
+                  styles.statusOptionIconBox,
+                  form.status === 'Scheduled' ? styles.statusOptionIconBoxScheduled : {}
+                ]}>
+                  <Clock size={15} color={form.status === 'Scheduled' ? '#fff' : '#D97706'} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={[
+                      styles.statusOptionTitle,
+                      form.status === 'Scheduled' && styles.statusOptionTitleScheduled
+                    ]}>
+                      Scheduled
+                    </Text>
+                    {form.status === 'Scheduled' && (
+                      <View style={styles.activeDotAmber} />
+                    )}
+                  </View>
+                  <Text style={styles.statusOptionSub}>
+                    Auto-publishes on {formatDateDisplay(form.date)}
+                  </Text>
+                </View>
+                <View style={[
+                  styles.statusRadioCircle,
+                  form.status === 'Scheduled' && styles.statusRadioCircleScheduled
+                ]}>
+                  {form.status === 'Scheduled' && <Check size={12} color="#fff" strokeWidth={3} />}
+                </View>
+              </TouchableOpacity>
+
+              {/* Option 3: Draft */}
+              <TouchableOpacity
+                style={[
+                  styles.statusOptionCard,
+                  form.status === 'Draft' && styles.statusOptionCardDraft
+                ]}
+                onPress={() => setForm({ ...form, status: 'Draft' })}
+                activeOpacity={0.8}
+              >
+                <View style={[
+                  styles.statusOptionIconBox,
+                  form.status === 'Draft' ? styles.statusOptionIconBoxDraft : {}
+                ]}>
+                  <FileText size={15} color={form.status === 'Draft' ? '#fff' : '#475569'} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={[
+                      styles.statusOptionTitle,
+                      form.status === 'Draft' && styles.statusOptionTitleDraft
+                    ]}>
+                      Save as Draft
+                    </Text>
+                    {form.status === 'Draft' && (
+                      <View style={styles.activeDotSlate} />
+                    )}
+                  </View>
+                  <Text style={styles.statusOptionSub}>Saved privately, hidden from members</Text>
+                </View>
+                <View style={[
+                  styles.statusRadioCircle,
+                  form.status === 'Draft' && styles.statusRadioCircleDraft
+                ]}>
+                  {form.status === 'Draft' && <Check size={12} color="#fff" strokeWidth={3} />}
+                </View>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
         <View style={styles.footerBtnRow}>
-          <TouchableOpacity 
-            style={styles.btnDraft} 
-            onPress={() => handleSave('Draft')}
-            disabled={loading}
-          >
-            <Save size={15} color="#1a2d5a" />
-            <Text style={styles.btnDraftTxt}>Save as Draft</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.btnSave, loading && { opacity: 0.85 }]} 
-            onPress={() => handleSave('Published')}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Save size={15} color="#fff" />
-            )}
-            <Text style={styles.btnSaveTxt}>
-              {loading ? 'Publishing…' : 'Save & Publish'}
-            </Text>
-          </TouchableOpacity>
+          {form.status === 'Published' ? (
+            <>
+              <TouchableOpacity 
+                style={styles.btnDraft} 
+                onPress={() => handleSave('Draft')}
+                disabled={loading}
+              >
+                <FileText size={15} color="#1a2d5a" />
+                <Text style={styles.btnDraftTxt}>Save as Draft</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.btnSave, { backgroundColor: '#15803D' }, loading && { opacity: 0.85 }]} 
+                onPress={() => handleSave('Published')}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Send size={15} color="#fff" />
+                )}
+                <Text style={styles.btnSaveTxt}>
+                  {loading ? 'Publishing…' : 'Save & Publish Now'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : form.status === 'Scheduled' ? (
+            <>
+              <TouchableOpacity 
+                style={styles.btnDraft} 
+                onPress={() => handleSave('Draft')}
+                disabled={loading}
+              >
+                <FileText size={15} color="#1a2d5a" />
+                <Text style={styles.btnDraftTxt}>Save as Draft</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.btnSave, { backgroundColor: '#1a2d5a' }, loading && { opacity: 0.85 }]} 
+                onPress={() => handleSave('Scheduled')}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Clock size={15} color="#fff" />
+                )}
+                <Text style={styles.btnSaveTxt}>
+                  {loading ? 'Scheduling…' : 'Save & Schedule'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity 
+                style={styles.btnDraft} 
+                onPress={() => handleSave('Published')}
+                disabled={loading}
+              >
+                <Send size={15} color="#15803D" />
+                <Text style={[styles.btnDraftTxt, { color: '#15803D' }]}>Publish Now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.btnSave, { backgroundColor: '#475569' }, loading && { opacity: 0.85 }]} 
+                onPress={() => handleSave('Draft')}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Save size={15} color="#fff" />
+                )}
+                <Text style={styles.btnSaveTxt}>
+                  {loading ? 'Saving…' : 'Save as Draft'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
 
         <TouchableOpacity style={styles.btnBack} onPress={() => setTabByName?.('Promises')} disabled={loading}>
@@ -1541,11 +1717,24 @@ export default function AdminPromiseEditor() {
         <View style={{ height: 60 }} />
       </ScrollView>
 
-      <TouchableOpacity style={styles.fab} onPress={() => handleSave('Published')} disabled={loading}>
+      <TouchableOpacity 
+        style={[
+          styles.fab,
+          form.status === 'Published' && { backgroundColor: '#15803D' },
+          form.status === 'Scheduled' && { backgroundColor: '#1a2d5a' },
+          form.status === 'Draft' && { backgroundColor: '#475569' }
+        ]} 
+        onPress={() => handleSave(form.status as 'Published' | 'Scheduled' | 'Draft')} 
+        disabled={loading}
+      >
         {loading ? (
           <ActivityIndicator size="small" color="#fff" />
+        ) : form.status === 'Published' ? (
+          <Send size={22} color="#fff" />
+        ) : form.status === 'Scheduled' ? (
+          <Clock size={22} color="#fff" />
         ) : (
-          <Save size={24} color="#fff" />
+          <Save size={22} color="#fff" />
         )}
       </TouchableOpacity>
 
@@ -1611,26 +1800,6 @@ export default function AdminPromiseEditor() {
         </View>
       </Modal>
 
-      <Modal visible={showStatusPicker} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.statusMenu}>
-            <View style={styles.statusMenuHd}><Text style={styles.statusMenuTitle}>Select Publish Status</Text></View>
-            {STATUS_OPTIONS.map(opt => (
-              <TouchableOpacity 
-                key={opt.value} 
-                style={[styles.statusItem, form.status === opt.value && styles.statusItemActive]} 
-                onPress={() => { setForm({...form, status: opt.value}); setShowStatusPicker(false); }}
-              >
-                <Text style={[styles.statusItemTxt, form.status === opt.value && styles.statusItemTxtActive]}>{opt.label}</Text>
-              </TouchableOpacity>
-            ))}
-            <TouchableOpacity style={styles.statusCancel} onPress={() => setShowStatusPicker(false)}>
-              <Text style={styles.statusCancelTxt}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
       {/* Saving / Publishing Full-Screen Loading State */}
       <Modal visible={loading} transparent animationType="fade">
         <View style={styles.modalOverlay}>
@@ -1642,23 +1811,167 @@ export default function AdminPromiseEditor() {
         </View>
       </Modal>
 
+      {/* Redesigned Celebratory Success Modal */}
       <Modal visible={showSuccess} transparent animationType="fade">
         <View style={styles.modalOverlay}>
-          <View style={styles.successCard}>
-            <View style={styles.successIconBox}>
-              <CheckCircle2 size={50} color="#15803D" strokeWidth={3} />
+          <View style={styles.successModalCard}>
+            {/* Top Decorative Accent Bar */}
+            <LinearGradient
+              colors={
+                lastSavedStatus === 'Published'
+                  ? ['#059669', '#10B981', '#34D399']
+                  : lastSavedStatus === 'Scheduled'
+                  ? ['#1E3A8A', '#2563EB', '#F59E0B']
+                  : ['#475569', '#64748B', '#94A3B8']
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.successTopAccentBar}
+            />
+
+            <View style={styles.successModalBody}>
+              {/* Close Button */}
+              <TouchableOpacity 
+                style={styles.successCloseBtn} 
+                onPress={() => setShowSuccess(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={16} color="#64748B" />
+              </TouchableOpacity>
+
+              {/* Layered Multi-Ring Glowing Icon Badge */}
+              <View style={[
+                styles.successIconOuterRing,
+                lastSavedStatus === 'Published' && styles.outerRingPublished,
+                lastSavedStatus === 'Scheduled' && styles.outerRingScheduled,
+                lastSavedStatus === 'Draft' && styles.outerRingDraft,
+              ]}>
+                <View style={[
+                  styles.successIconMidRing,
+                  lastSavedStatus === 'Published' && styles.midRingPublished,
+                  lastSavedStatus === 'Scheduled' && styles.midRingScheduled,
+                  lastSavedStatus === 'Draft' && styles.midRingDraft,
+                ]}>
+                  <LinearGradient
+                    colors={
+                      lastSavedStatus === 'Published'
+                        ? ['#10B981', '#059669']
+                        : lastSavedStatus === 'Scheduled'
+                        ? ['#F59E0B', '#D97706']
+                        : ['#64748B', '#475569']
+                    }
+                    style={styles.successIconCenter}
+                  >
+                    {lastSavedStatus === 'Published' ? (
+                      <CheckCircle2 size={26} color="#FFFFFF" strokeWidth={2.8} />
+                    ) : lastSavedStatus === 'Scheduled' ? (
+                      <Clock size={24} color="#FFFFFF" strokeWidth={2.6} />
+                    ) : (
+                      <FileText size={24} color="#FFFFFF" strokeWidth={2.6} />
+                    )}
+                  </LinearGradient>
+                </View>
+              </View>
+
+              {/* Status Pill Badge */}
+              <View style={[
+                styles.successStatusPill,
+                lastSavedStatus === 'Published' && styles.statusPillPublished,
+                lastSavedStatus === 'Scheduled' && styles.statusPillScheduled,
+                lastSavedStatus === 'Draft' && styles.statusPillDraft,
+              ]}>
+                <View style={[
+                  styles.statusPillDot,
+                  lastSavedStatus === 'Published' && { backgroundColor: '#059669' },
+                  lastSavedStatus === 'Scheduled' && { backgroundColor: '#D97706' },
+                  lastSavedStatus === 'Draft' && { backgroundColor: '#64748B' },
+                ]} />
+                <Text style={[
+                  styles.statusPillTxt,
+                  lastSavedStatus === 'Published' && { color: '#065F46' },
+                  lastSavedStatus === 'Scheduled' && { color: '#92400E' },
+                  lastSavedStatus === 'Draft' && { color: '#334155' },
+                ]}>
+                  {lastSavedStatus === 'Published' 
+                    ? 'LIVE ON MEMBER APP' 
+                    : lastSavedStatus === 'Scheduled'
+                    ? `SCHEDULED • ${formatDateDisplay(form.date)}`
+                    : 'SAVED AS PRIVATE DRAFT'}
+                </Text>
+              </View>
+
+              {/* Headline & Description */}
+              <Text style={styles.successHeading}>
+                {lastSavedStatus === 'Published'
+                  ? 'Promise Published! 🎉'
+                  : lastSavedStatus === 'Scheduled'
+                  ? 'Promise Scheduled! ⏰'
+                  : 'Draft Saved! 💾'}
+              </Text>
+
+              <Text style={styles.successDescription}>
+                {lastSavedStatus === 'Published'
+                  ? 'Your Daily Promise is live and visible immediately to church members on the Home Screen.'
+                  : lastSavedStatus === 'Scheduled'
+                  ? `Your Daily Promise is scheduled and will automatically go live on ${formatDateDisplay(form.date)} at 12:00 AM.`
+                  : 'Your Daily Promise draft is safely saved. It remains private and hidden from members until published.'}
+              </Text>
+
+              {/* Summary Details Card */}
+              <View style={styles.successDetailsCard}>
+                <View style={styles.successDetailRow}>
+                  <BookOpen size={14} color="#1a2d5a" />
+                  <Text style={styles.successDetailLabel}>Verse:</Text>
+                  <Text style={styles.successDetailVal} numberOfLines={1}>
+                    {form.enRef || form.teRef || 'Daily Promise'}
+                  </Text>
+                </View>
+                <View style={styles.successDetailRow}>
+                  <CalendarIcon size={14} color="#1a2d5a" />
+                  <Text style={styles.successDetailLabel}>Date:</Text>
+                  <Text style={styles.successDetailVal}>{formatDateDisplay(form.date)}</Text>
+                </View>
+                {!!form.pastor?.trim() && (
+                  <View style={styles.successDetailRow}>
+                    <User size={14} color="#1a2d5a" />
+                    <Text style={styles.successDetailLabel}>Pastor:</Text>
+                    <Text style={styles.successDetailVal} numberOfLines={1}>{form.pastor}</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Primary Button */}
+              <TouchableOpacity 
+                style={styles.successPrimaryBtnWrap} 
+                onPress={closeSuccess} 
+                activeOpacity={0.88}
+              >
+                <LinearGradient
+                  colors={
+                    lastSavedStatus === 'Published'
+                      ? ['#059669', '#10B981']
+                      : lastSavedStatus === 'Scheduled'
+                      ? ['#1a2d5a', '#2b4c8a']
+                      : ['#334155', '#475569']
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.successPrimaryBtnGrad}
+                >
+                  <Text style={styles.successPrimaryBtnTxt}>View Promises List</Text>
+                  <ArrowRight size={16} color="#FFFFFF" strokeWidth={2.5} />
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* Secondary Button */}
+              <TouchableOpacity 
+                style={styles.successSecondaryBtn} 
+                onPress={() => setShowSuccess(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.successSecondaryBtnTxt}>Stay & Keep Editing</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.successTitle}>
-              {form.status === 'Published' ? 'Promise Saved & Published! 🎉' : 'Promise Draft Saved! 💾'}
-            </Text>
-            <Text style={styles.successSub}>
-              {form.status === 'Published'
-                ? 'Your Daily Promise has been published successfully and is now live on the Member Home View.'
-                : 'Your Daily Promise draft has been saved successfully.'}
-            </Text>
-            <TouchableOpacity style={styles.successBtn} onPress={closeSuccess}>
-              <Text style={styles.successBtnTxt}>Done</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -1716,23 +2029,320 @@ const styles = StyleSheet.create({
     fontWeight: '500'
   },
 
-  statusMenu: { backgroundColor: '#fff', width: '100%', position: 'absolute', bottom: 0, borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingBottom: 30 },
-  statusMenuHd: { padding: 20, borderBottomWidth: 0.5, borderBottomColor: '#e5e7eb' },
-  statusMenuTitle: { fontSize: 14, fontWeight: '700', color: '#1a2d5a', textAlign: 'center' },
-  statusItem: { padding: 20, borderBottomWidth: 0.5, borderBottomColor: '#f3f4f6' },
-  statusItemActive: { backgroundColor: '#1a2d5a' },
-  statusItemTxt: { fontSize: 13, color: '#374151', textAlign: 'center' },
-  statusItemTxtActive: { color: '#fff', fontWeight: '700' },
-  statusCancel: { padding: 15, alignItems: 'center' },
-  statusCancelTxt: { color: '#c0392b', fontWeight: '700' },
+  // ─── Publish Status 3-Card Selector ───────────────────────────────────────
+  statusSelectorContainer: {
+    gap: 8,
+    marginTop: 4,
+  },
+  statusOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#FAFAF9',
+    borderWidth: 1.5,
+    borderColor: '#E2DDD5',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  statusOptionCardPublished: {
+    borderColor: '#10B981',
+    backgroundColor: '#F0FDF4',
+  },
+  statusOptionCardScheduled: {
+    borderColor: '#F59E0B',
+    backgroundColor: '#FFFBEB',
+  },
+  statusOptionCardDraft: {
+    borderColor: '#64748B',
+    backgroundColor: '#F8FAFC',
+  },
+  statusOptionIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusOptionIconBoxPublished: {
+    backgroundColor: '#059669',
+  },
+  statusOptionIconBoxScheduled: {
+    backgroundColor: '#D97706',
+  },
+  statusOptionIconBoxDraft: {
+    backgroundColor: '#475569',
+  },
+  statusOptionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  statusOptionTitlePublished: {
+    color: '#065F46',
+  },
+  statusOptionTitleScheduled: {
+    color: '#92400E',
+  },
+  statusOptionTitleDraft: {
+    color: '#1E293B',
+  },
+  statusOptionTitleActive: {
+    color: '#1a2d5a',
+  },
+  statusOptionSub: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  activeDotGreen: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#10B981',
+  },
+  activeDotAmber: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#F59E0B',
+  },
+  activeDotSlate: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#64748B',
+  },
+  statusRadioCircle: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusRadioCirclePublished: {
+    borderColor: '#10B981',
+    backgroundColor: '#10B981',
+  },
+  statusRadioCircleScheduled: {
+    borderColor: '#D97706',
+    backgroundColor: '#D97706',
+  },
+  statusRadioCircleDraft: {
+    borderColor: '#475569',
+    backgroundColor: '#475569',
+  },
 
-  // ─── Success / Error Modals ───────────────────────────────────────────────
-  successCard: { backgroundColor: '#fff', width: '80%', borderRadius: 24, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 15 },
-  successIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  successTitle: { fontSize: 22, fontWeight: '800', color: '#1a2d5a', marginBottom: 10 },
-  successSub: { fontSize: 13, color: '#6B7280', textAlign: 'center', lineHeight: 20, marginBottom: 25 },
-  successBtn: { backgroundColor: '#1a2d5a', width: '100%', paddingVertical: 15, borderRadius: 12, alignItems: 'center' },
-  successBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  // ─── Saving Loader Modal ──────────────────────────────────────────────────
+  savingCard: {
+    backgroundColor: '#fff',
+    width: '82%',
+    maxWidth: 340,
+    borderRadius: 20,
+    padding: 26,
+    alignItems: 'center',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 15,
+  },
+  savingTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  savingSub: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+
+  // ─── Celebratory Success Modal ────────────────────────────────────────────
+  successModalCard: {
+    backgroundColor: '#FFFFFF',
+    width: '88%',
+    maxWidth: 380,
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.8)',
+    elevation: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+  },
+  successTopAccentBar: {
+    height: 6,
+    width: '100%',
+  },
+  successModalBody: {
+    paddingHorizontal: 22,
+    paddingTop: 20,
+    paddingBottom: 22,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  successCloseBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  successIconOuterRing: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  outerRingPublished: { backgroundColor: '#ECFDF5' },
+  outerRingScheduled: { backgroundColor: '#FFFBEB' },
+  outerRingDraft: { backgroundColor: '#F1F5F9' },
+  successIconMidRing: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  midRingPublished: { backgroundColor: '#D1FAE5' },
+  midRingScheduled: { backgroundColor: '#FEF3C7' },
+  midRingDraft: { backgroundColor: '#E2E8F0' },
+  successIconCenter: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 6,
+  },
+  successStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 4.5,
+    marginTop: 14,
+    borderWidth: 1,
+  },
+  statusPillPublished: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  statusPillScheduled: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  statusPillDraft: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#CBD5E1',
+  },
+  statusPillDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  statusPillTxt: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  successHeading: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginTop: 12,
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  successDescription: {
+    fontSize: 12.5,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 6,
+    marginBottom: 16,
+  },
+  successDetailsCard: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 18,
+    gap: 8,
+  },
+  successDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  successDetailLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  successDetailVal: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  successPrimaryBtnWrap: {
+    width: '100%',
+    borderRadius: 12,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  successPrimaryBtnGrad: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+  },
+  successPrimaryBtnTxt: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  successSecondaryBtn: {
+    marginTop: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  successSecondaryBtnTxt: {
+    color: '#64748B',
+    fontSize: 12.5,
+    fontWeight: '600',
+  },
 
   errorCard: { backgroundColor: '#fff', width: '80%', borderRadius: 24, padding: 30, alignItems: 'center', elevation: 20, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 15 },
   errorIconBox: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#FEF2F2', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
@@ -2169,35 +2779,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     letterSpacing: 0.5,
-  },
-  savingCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '82%',
-    maxWidth: 340,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  savingTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#1a2d5a',
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  savingSub: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#6B7280',
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 18,
   },
   colorPickerHeader: {
     flexDirection: 'row',

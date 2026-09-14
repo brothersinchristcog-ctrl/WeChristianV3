@@ -66,6 +66,9 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'Online Meetings': require('../../../assets/admin_cards/online_meetings.jpg'),
   'New Online Meeting': require('../../../assets/admin_cards/new_online_meeting.png'),
   'App Admin': require('../../../assets/admin_cards/app_admin.png'),
+  'AI Sermon Assistant': require('../../../assets/admin_cards/ai_sermon.jpg'),
+  'AI Sermon': require('../../../assets/admin_cards/ai_sermon.jpg'),
+  'AI Content Creator': require('../../../assets/admin_cards/ai_content.jpg'),
 };
 
 const CATEGORIES = [
@@ -310,7 +313,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                               overflow: CARD_BACKGROUNDS[tab.name] ? 'hidden' : 'visible',
                               padding: CARD_BACKGROUNDS[tab.name] ? 0 : 14,
                               backgroundColor: tab.name === 'Subscription' ? '#F2EAE0' : (tab.name === 'Church Settings' ? 'rgb(202, 221, 236)' : (tab.name === 'Members' ? 'rgb(244, 224, 217)' : (tab.name === 'Promises' ? '#000000' : '#ffffff'))),
-                              minHeight: isFullWidth ? 160 : 100,
+                              minHeight: isFullWidth ? 160 : (CARD_BACKGROUNDS[tab.name] ? 122 : 108),
                             }
                           ]}
                           onPress={() => setActiveTab(tab.index)}
@@ -381,21 +384,29 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                           ) : (
                             <View style={[
                               styles.moduleColumn, 
-                              CARD_BACKGROUNDS[tab.name] && { padding: 14, justifyContent: 'flex-end' }
+                              CARD_BACKGROUNDS[tab.name] && { padding: 12, paddingBottom: 10, justifyContent: 'flex-end' }
                             ]}>
                               {!CARD_BACKGROUNDS[tab.name] && (
-                                <View style={[styles.moduleIconWrapper, { backgroundColor: `${category.color}15` }]}>
+                                <View style={[styles.moduleIconWrapper, { backgroundColor: `${category.color}15`, marginBottom: 6 }]}>
                                   <tab.icon size={22} color={category.color} strokeWidth={2.5} />
                                 </View>
                               )}
                               <Text 
                                 style={[
                                   styles.moduleTitle,
-                                  CARD_BACKGROUNDS[tab.name] && { color: '#ffffff', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }
+                                  CARD_BACKGROUNDS[tab.name] && { color: '#ffffff', textShadowColor: 'rgba(0,0,0,0.85)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }
                                 ]} 
                                 numberOfLines={2}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.8}
                               >
-                                {tab.name === 'About Us' ? 'About\u00A0Us' : tab.name}
+                                {tab.name === 'About Us' 
+                                  ? 'About\u00A0Us' 
+                                  : (tab.name === 'AI Sermon Assistant' || tab.name === 'AI Sermon') 
+                                  ? 'AI Sermon\nAssistant' 
+                                  : tab.name === 'AI Content Creator' 
+                                  ? 'AI Content\nCreator' 
+                                  : tab.name}
                               </Text>
                             </View>
                           )}
