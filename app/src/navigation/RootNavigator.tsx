@@ -58,6 +58,7 @@ import PastorEventDetail from '../screens/admin/pastor_events/PastorEventDetail'
 import CreatePastorEvent from '../screens/admin/pastor_events/CreatePastorEvent';
 import PastorEventRoutePlanner from '../screens/admin/pastor_events/PastorEventRoutePlanner';
 import PastorEventMap from '../screens/admin/pastor_events/PastorEventMap';
+import AIAssistantModal from '../screens/admin/pastor_events/AIAssistantModal';
 import OnlineMeetingsScreen from '../screens/OnlineMeetingsScreen';
 import OnlineMeetingDetailScreen from '../screens/OnlineMeetingDetailScreen';
 import MemberGalleryNavigator from '../screens/gallery/MemberGalleryNavigator';
@@ -758,6 +759,7 @@ function Navigation() {
             <Stack.Screen name="CreateEvent" component={renderPremium(CreatePastorEvent)} />
             <Stack.Screen name="RoutePlanner" component={renderPremium(PastorEventRoutePlanner)} />
             <Stack.Screen name="EventMap" component={renderPremium(PastorEventMap)} />
+            <Stack.Screen name="AIAssistant" component={renderPremium(AIAssistantModal)} options={{ presentation: 'modal' }} />
             <Stack.Screen name="Updates" component={renderPremium(UpdatesScreen)} />
             <Stack.Screen name="Celebration" component={renderPremium(CelebrationScreen)} />
             {/* Added for Push Notification Support in Admin View */}

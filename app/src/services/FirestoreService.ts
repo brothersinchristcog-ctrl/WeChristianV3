@@ -1559,14 +1559,23 @@ class FirestoreService {
     }
   }
 
-  async getDailyPromise(): Promise<DailyPromise | null> {
+  async getDailyPromise(forceFresh: boolean = false): Promise<DailyPromise | null> {
     try {
       const col = await this.getCollection('promises');
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const snapshot = await col
-        .where('date', '==', todayStr)
-        .get();
+      
+      let snapshot;
+      if (forceFresh) {
+        try {
+          snapshot = await col.where('date', '==', todayStr).get({ source: 'server' });
+        } catch (_) {
+          snapshot = await col.where('date', '==', todayStr).get();
+        }
+      } else {
+        snapshot = await col.where('date', '==', todayStr).get();
+      }
+
       if (!snapshot.empty) {
         let promises = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DailyPromise));
         
@@ -1575,18 +1584,66 @@ class FirestoreService {
         
         if (promises.length > 0) {
           promises.sort((a: any, b: any) => {
-            const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
-            const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
-            return tB - tA;
+            // 1. Published status takes priority over Scheduled
+            if (a.status === 'Published' && b.status !== 'Published') return -1;
+            if (b.status === 'Published' && a.status !== 'Published') return 1;
+
+            // 2. Latest updated or created timestamp takes priority
+            const getTime = (doc: any) => {
+              const u = doc.updatedAt?.toMillis ? doc.updatedAt.toMillis() : (doc.updatedAt?.seconds ? doc.updatedAt.seconds * 1000 : 0);
+              const c = doc.createdAt?.toMillis ? doc.createdAt.toMillis() : (doc.createdAt?.seconds ? doc.createdAt.seconds * 1000 : 0);
+              return Math.max(u, c);
+            };
+            return getTime(b) - getTime(a);
           });
-          const withImage = promises.find(p => p.imageUrl && p.imageUrl.trim().length > 0);
-          return withImage || promises[0];
+
+          return promises[0];
         }
       }
       return null;
     } catch (e) {
       console.warn('Error fetching daily promise:', e);
       return null;
+    }
+  }
+
+  async listenDailyPromise(callback: (promise: DailyPromise | null) => void): Promise<() => void> {
+    try {
+      const col = await this.getCollection('promises');
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+      return col.where('date', '==', todayStr).onSnapshot(
+        snapshot => {
+          if (!snapshot || snapshot.empty) {
+            callback(null);
+            return;
+          }
+          let promises = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DailyPromise));
+          promises = promises.filter(p => p.status === 'Published' || p.status === 'Scheduled');
+          if (promises.length > 0) {
+            promises.sort((a: any, b: any) => {
+              if (a.status === 'Published' && b.status !== 'Published') return -1;
+              if (b.status === 'Published' && a.status !== 'Published') return 1;
+              const getTime = (doc: any) => {
+                const u = doc.updatedAt?.toMillis ? doc.updatedAt.toMillis() : (doc.updatedAt?.seconds ? doc.updatedAt.seconds * 1000 : 0);
+                const c = doc.createdAt?.toMillis ? doc.createdAt.toMillis() : (doc.createdAt?.seconds ? doc.createdAt.seconds * 1000 : 0);
+                return Math.max(u, c);
+              };
+              return getTime(b) - getTime(a);
+            });
+            callback(promises[0]);
+          } else {
+            callback(null);
+          }
+        },
+        err => {
+          console.warn('[FirestoreService] listenDailyPromise error:', err);
+        }
+      );
+    } catch (e) {
+      console.warn('Failed to listen to daily promise:', e);
+      return () => {};
     }
   }
 
@@ -2383,7 +2440,7 @@ class FirestoreService {
   async getAISermons(churchIdParam?: string): Promise<any[]> {
     try {
       const churchId = churchIdParam || await this.getChurchId();
-      if (!churchId) return [];
+      if (!churchId) throw new Error('Church ID not found. Please select an active church.');
       const db = firestore();
 
       try {
@@ -2410,7 +2467,7 @@ class FirestoreService {
       }
     } catch (e) {
       console.error('getAISermons error:', e);
-      return [];
+      throw e;
     }
   }
 
@@ -2460,6 +2517,17 @@ class FirestoreService {
     topic: string;
     language: string;
     designStyle: string;
+    orientation?: string;
+    speaker?: string;
+    location?: string;
+    dateText?: string;
+    timeText?: string;
+    header?: string;
+    contactNumber?: string;
+    socialMedia?: string;
+    bibleVerse?: string;
+    verseReference?: string;
+    color?: string;
     prompt: string;
     imageUrl: string;
     status: string;
@@ -2475,6 +2543,45 @@ class FirestoreService {
         .add({ ...data, createdAt: FieldValue.serverTimestamp() });
     } catch (e) {
       console.error('saveAIContent error:', e);
+    }
+  }
+
+  async getAIContent(churchIdParam?: string): Promise<any[]> {
+    try {
+      const churchId = churchIdParam || await this.getChurchId();
+      if (!churchId) return [];
+      const db = firestore();
+      const snapshot = await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiContent')
+        .get();
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return docs.sort((a: any, b: any) => {
+        const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+        const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+        return tB - tA;
+      });
+    } catch (e) {
+      console.error('getAIContent error:', e);
+      return [];
+    }
+  }
+
+  async deleteAIContent(contentId: string, churchIdParam?: string): Promise<void> {
+    try {
+      const churchId = churchIdParam || await this.getChurchId();
+      if (!churchId || !contentId) return;
+      const db = firestore();
+      await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiContent')
+        .doc(contentId)
+        .delete();
+    } catch (e) {
+      console.error('deleteAIContent error:', e);
+      throw e;
     }
   }
 }

@@ -332,6 +332,7 @@ export default function AISermonAssistant() {
   // History state
   const [savedSermons, setSavedSermons] = useState<any[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [historySearch, setHistorySearch] = useState('');
   const [selectedHistorySermon, setSelectedHistorySermon] = useState<any | null>(null);
   const [viewModalVisible, setViewModalVisible] = useState(false);
@@ -457,11 +458,16 @@ export default function AISermonAssistant() {
   const loadSermonHistory = async () => {
     try {
       setLoadingHistory(true);
-      const churchId = activeChurch?.id;
-      const list = await (FirestoreService as any).getAISermons?.(churchId) || [];
-      setSavedSermons(list);
-    } catch (e) {
+      setHistoryError(null);
+      const churchId = activeChurch?.id || await FirestoreService.getChurchId();
+      if (!churchId) {
+        throw new Error('Church profile not loaded yet. Please ensure your church is selected.');
+      }
+      const list = await (FirestoreService as any).getAISermons?.(churchId);
+      setSavedSermons(list || []);
+    } catch (e: any) {
       console.error('loadSermonHistory error:', e);
+      setHistoryError(e?.message || 'Failed to load sermon history. Please try again.');
     } finally {
       setLoadingHistory(false);
     }
@@ -821,8 +827,12 @@ export default function AISermonAssistant() {
           </TouchableOpacity>
           <TouchableOpacity style={[styles.pill, currentCategory === 'history' && styles.pillSelected]} onPress={() => { setCurrentCategory('history'); loadSermonHistory(); }}>
             {currentCategory === 'history' && <LinearGradient colors={['#5B3FA6', '#8B5FBF', '#E3A83B']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFillObject} />}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, zIndex: 1 }}>
-              <History size={13} color={currentCategory === 'history' ? '#fff' : '#5B3FA6'} />
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, zIndex: 1 }}>
+              {loadingHistory && currentCategory === 'history' ? (
+                <ActivityIndicator size={12} color="#fff" />
+              ) : (
+                <History size={13} color={currentCategory === 'history' ? '#fff' : '#5B3FA6'} />
+              )}
               <Text style={[styles.pillTxt, currentCategory === 'history' && { color: '#fff' }]}>Sermon History</Text>
             </View>
           </TouchableOpacity>
@@ -860,11 +870,27 @@ export default function AISermonAssistant() {
               </TouchableOpacity>
             </View>
 
-            {/* List or Empty State */}
-            {loadingHistory && savedSermons.length === 0 ? (
+            {/* List, Loading, Error, or Empty State */}
+            {loadingHistory ? (
               <View style={styles.historyLoadingWrap}>
                 <ActivityIndicator size="large" color="#5B3FA6" />
                 <Text style={styles.historyLoadingTxt}>Loading sermon history...</Text>
+                <Text style={styles.historyLoadingSubTxt}>Fetching your church's saved sermons...</Text>
+              </View>
+            ) : historyError ? (
+              <View style={styles.historyErrorCard}>
+                <View style={styles.historyErrorIconCircle}>
+                  <AlertCircle size={28} color="#DC2626" />
+                </View>
+                <Text style={styles.historyErrorTitle}>Unable to Load Sermons</Text>
+                <Text style={styles.historyErrorSubtitle}>{historyError}</Text>
+                <TouchableOpacity
+                  style={styles.historyRetryBtn}
+                  onPress={loadSermonHistory}
+                >
+                  <RefreshCw size={14} color="#fff" />
+                  <Text style={styles.historyRetryBtnTxt}>Try Again</Text>
+                </TouchableOpacity>
               </View>
             ) : filteredSermons.length === 0 ? (
               <View style={styles.historyEmptyCard}>
@@ -872,12 +898,12 @@ export default function AISermonAssistant() {
                   <BookOpen size={28} color="#5B3FA6" />
                 </View>
                 <Text style={styles.historyEmptyTitle}>
-                  {historySearch ? 'No matching sermons found' : 'No saved sermons yet'}
+                  {historySearch ? 'No matching sermons found' : 'No Sermons Found.'}
                 </Text>
                 <Text style={styles.historyEmptySubtitle}>
                   {historySearch
                     ? 'Try searching with different keywords.'
-                    : 'Sermons you generate will automatically be saved here for reading, editing, and offline download.'}
+                    : 'No saved sermons were found for this church. Sermons you generate will automatically be saved here for reading, editing, and offline download.'}
                 </Text>
                 {!historySearch && (
                   <TouchableOpacity
@@ -1801,9 +1827,63 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   historyLoadingTxt: {
+    fontSize: 14,
+    color: '#3A2A6B',
+    fontWeight: '700',
+  },
+  historyLoadingSubTxt: {
+    fontSize: 12,
+    color: '#8A8298',
+    fontWeight: '400',
+    marginTop: -4,
+  },
+  historyErrorCard: {
+    backgroundColor: '#FFF5F5',
+    borderWidth: 1.4,
+    borderColor: '#FECACA',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    gap: 8,
+  },
+  historyErrorIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  historyErrorTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#991B1B',
+    textAlign: 'center',
+  },
+  historyErrorSubtitle: {
+    fontSize: 12.5,
+    color: '#B91C1C',
+    textAlign: 'center',
+    lineHeight: 18,
+    paddingHorizontal: 10,
+  },
+  historyRetryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: '#DC2626',
+    paddingHorizontal: 18,
+    paddingVertical: 11,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  historyRetryBtnTxt: {
+    color: '#fff',
     fontSize: 13,
-    color: '#5B5468',
-    fontWeight: '600',
+    fontWeight: '700',
   },
   historyEmptyCard: {
     backgroundColor: '#fff',

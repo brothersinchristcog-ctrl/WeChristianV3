@@ -13,7 +13,8 @@ export const generateSermonV9 = onCall({ enforceAppCheck: false, secrets: ['GROQ
         const systemPrompt = `You are an expert biblical theologian and experienced pastor with deep knowledge of the entire Holy Bible. You write sermons that are:
 - BIBLICALLY ACCURATE: Every Bible reference must be a real verse that genuinely exists. Never invent or approximate verses. Double-check every reference before writing it.
 - CORRECTLY NAMED: Use exact, correct Bible book names. Examples: "1 Corinthians" not "Corinthians", "Philippians" not "Phillipians", "Ecclesiastes" not "Ecclesiasticus".
-- FORMAT: Always write references as BookName Chapter:Verse (e.g., John 3:16, Romans 8:28, Psalm 23:1).
+- BILINGUAL BIBLE BOOK NAMES: When writing in Telugu or when the language is Telugu, always show Bible book names in BOTH Telugu and English side by side. Examples: "యోహాను (John) 3:16", "కీర్తనలు (Psalms) 23:1", "రోమీయులకు (Romans) 8:28", "ఆదికాండము (Genesis) 1:1", "యిర్మీయా (Jeremiah) 1:5", "ఎఫెసీయులకు (Ephesians) 2:10", "ఫిలిప్పీయులకు (Philippians) 4:13", "1 కొరింథీయులకు (1 Corinthians) 13:4".
+- FORMAT: Always write references as BookName Chapter:Verse. For Telugu sermons use: తెలుగుపేరు (English) Chapter:Verse.
 - NON-REPETITIVE: Each section must introduce new content. Never repeat a verse, point, or explanation already used in a prior section.
 - WELL-STRUCTURED: Each of the 5 sections must be clearly distinct in purpose and content.
 - PRACTICAL: Ground theological points in real-life application for modern Christian believers.`;
@@ -57,13 +58,13 @@ Write one closing paragraph summarizing the heart of the sermon. Then write a sh
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'llama-3.1-8b-instant',
+                model: 'openai/gpt-oss-20b',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt }
                 ],
                 temperature: 0.65,
-                max_tokens: 2500
+                max_tokens: 1800
             })
         });
         if (!response.ok) {
@@ -78,20 +79,66 @@ Write one closing paragraph summarizing the heart of the sermon. Then write a sh
         throw new HttpsError('internal', error.message);
     }
 });
-export const generateContentImage = onCall({ enforceAppCheck: false }, async (request) => {
+export const generateContentImage = onCall({ enforceAppCheck: false, secrets: ['HUGGINGFACE_API_KEY'] }, async (request) => {
     try {
-        const { prompt, churchId } = request.data;
+        const { prompt, churchId, orientation, style, contentType } = request.data;
         if (!prompt || !churchId) {
             throw new HttpsError('invalid-argument', 'Missing prompt or churchId');
         }
-        // Call Pollinations.ai
-        const encodedPrompt = encodeURIComponent(prompt);
-        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
-        const response = await fetch(imageUrl);
-        if (!response.ok) {
-            throw new Error(`Failed to generate image: ${response.statusText}`);
+        const hfKey = process.env.HUGGINGFACE_API_KEY;
+        let buffer = null;
+        let providerUsed = 'huggingface';
+        // Map dimensions based on orientation
+        let width = 1024;
+        let height = 1024;
+        if (orientation === 'Landscape') {
+            width = 1024;
+            height = 576;
         }
-        const buffer = await response.arrayBuffer();
+        else if (orientation === 'Portrait') {
+            width = 576;
+            height = 1024;
+        }
+        // Enhance prompt for clean church visual output
+        const enhancedPrompt = `${prompt}, ${style || 'Modern'} Christian graphic design, clean composition, professional lighting, photorealistic, 4k, no watermark, high quality`;
+        // 1. Try Hugging Face Inference API (SD3 Medium)
+        if (hfKey) {
+            try {
+                console.log('Calling Hugging Face Inference API with SD3 Medium...');
+                const hfRes = await fetch('https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-3-medium-diffusers', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${hfKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        inputs: enhancedPrompt
+                    })
+                });
+                if (hfRes.ok) {
+                    buffer = await hfRes.arrayBuffer();
+                    console.log(`Hugging Face generation succeeded (${buffer.byteLength} bytes)`);
+                }
+                else {
+                    const errText = await hfRes.text();
+                    console.warn(`Hugging Face API returned ${hfRes.status}: ${errText.slice(0, 200)}`);
+                }
+            }
+            catch (hfErr) {
+                console.warn('Hugging Face fetch error:', hfErr);
+            }
+        }
+        // 2. Fallback to clean, watermark-free high-res sacred photography
+        if (!buffer || buffer.byteLength === 0) {
+            providerUsed = 'sacred_visuals';
+            console.log('Using high-res church visual fallback...');
+            const fallbackUrl = 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1280&q=85';
+            const response = await fetch(fallbackUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch visual: ${response.statusText}`);
+            }
+            buffer = await response.arrayBuffer();
+        }
         const { getStorage } = await import('firebase-admin/storage');
         const { randomUUID } = await import('crypto');
         const fileName = `churches/${churchId}/ai_content/img_${Date.now()}_${randomUUID()}.jpg`;
@@ -102,7 +149,7 @@ export const generateContentImage = onCall({ enforceAppCheck: false }, async (re
             metadata: { metadata: { firebaseStorageDownloadTokens: downloadToken } }
         });
         const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${file.bucket.name}/o/${encodeURIComponent(file.name)}?alt=media&token=${downloadToken}`;
-        return { success: true, imageUrl: publicUrl };
+        return { success: true, imageUrl: publicUrl, provider: providerUsed };
     }
     catch (error) {
         console.error('generateContentImage Error:', error);

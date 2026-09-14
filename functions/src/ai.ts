@@ -86,22 +86,69 @@ Write one closing paragraph summarizing the heart of the sermon. Then write a sh
   }
 });
 
-export const generateContentImage = onCall({ enforceAppCheck: false }, async (request) => {
+export const generateContentImage = onCall({ enforceAppCheck: false, secrets: ['HUGGINGFACE_API_KEY'] }, async (request) => {
   try {
-    const { prompt, churchId } = request.data;
+    const { prompt, churchId, orientation, style, contentType } = request.data;
     if (!prompt || !churchId) {
       throw new HttpsError('invalid-argument', 'Missing prompt or churchId');
     }
 
-    // Call Pollinations.ai
-    const encodedPrompt = encodeURIComponent(prompt);
-    const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&nologo=true`;
-    
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to generate image: ${response.statusText}`);
+    const hfKey = process.env.HUGGINGFACE_API_KEY;
+    let buffer: ArrayBuffer | null = null;
+    let providerUsed = 'huggingface';
+
+    // Map dimensions based on orientation
+    let width = 1024;
+    let height = 1024;
+    if (orientation === 'Landscape') {
+      width = 1024;
+      height = 576;
+    } else if (orientation === 'Portrait') {
+      width = 576;
+      height = 1024;
     }
-    const buffer = await response.arrayBuffer();
+
+    // Enhance prompt for clean church visual output
+    const enhancedPrompt = `${prompt}, ${style || 'Modern'} Christian graphic design, clean composition, professional lighting, photorealistic, 4k, no watermark, high quality`;
+
+    // 1. Try Hugging Face Inference API (SD3 Medium)
+    if (hfKey) {
+      try {
+        console.log('Calling Hugging Face Inference API with SD3 Medium...');
+        const hfRes = await fetch('https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-3-medium-diffusers', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${hfKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            inputs: enhancedPrompt
+          })
+        });
+
+        if (hfRes.ok) {
+          buffer = await hfRes.arrayBuffer();
+          console.log(`Hugging Face generation succeeded (${buffer.byteLength} bytes)`);
+        } else {
+          const errText = await hfRes.text();
+          console.warn(`Hugging Face API returned ${hfRes.status}: ${errText.slice(0, 200)}`);
+        }
+      } catch (hfErr) {
+        console.warn('Hugging Face fetch error:', hfErr);
+      }
+    }
+
+    // 2. Fallback to clean, watermark-free high-res sacred photography
+    if (!buffer || buffer.byteLength === 0) {
+      providerUsed = 'sacred_visuals';
+      console.log('Using high-res church visual fallback...');
+      const fallbackUrl = 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1280&q=85';
+      const response = await fetch(fallbackUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch visual: ${response.statusText}`);
+      }
+      buffer = await response.arrayBuffer();
+    }
 
     const { getStorage } = await import('firebase-admin/storage');
     const { randomUUID } = await import('crypto');
@@ -117,7 +164,7 @@ export const generateContentImage = onCall({ enforceAppCheck: false }, async (re
 
     const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${file.bucket.name}/o/${encodeURIComponent(file.name)}?alt=media&token=${downloadToken}`;
 
-    return { success: true, imageUrl: publicUrl };
+    return { success: true, imageUrl: publicUrl, provider: providerUsed };
   } catch (error: any) {
     console.error('generateContentImage Error:', error);
     throw new HttpsError('internal', error.message);

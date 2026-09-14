@@ -691,6 +691,17 @@ export default function HomeScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
+      // Always re-fetch the latest server daily promise on screen focus to ensure zero stale cache
+      FirestoreService.getDailyPromise(true).then((fresh) => {
+        if (fresh) {
+          cachedPromise = fresh;
+          setPromise(fresh);
+          AsyncStorage.setItem('@cached_daily_promise', JSON.stringify(fresh));
+          cachedPromiseThumbnail = fresh.imageUrl || null;
+          setPromiseThumbnail(fresh.imageUrl || null);
+        }
+      }).catch(() => {});
+
       if (liveCelebrations.length === 0 || !activeChurch?.id) return;
 
       const todayStr = new Date().toISOString().split('T')[0];
@@ -971,6 +982,34 @@ export default function HomeScreen() {
         }
       });
     return () => unsubscribe();
+  }, [activeChurch?.id]);
+
+  // Real-time listener for Today's Daily Promise so updates reflect immediately
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    FirestoreService.listenDailyPromise((freshPromise) => {
+      if (freshPromise) {
+        cachedPromise = freshPromise;
+        setPromise(freshPromise);
+        AsyncStorage.setItem('@cached_daily_promise', JSON.stringify(freshPromise));
+        cachedPromiseThumbnail = freshPromise.imageUrl || null;
+        setPromiseThumbnail(freshPromise.imageUrl || null);
+      } else {
+        cachedPromise = null;
+        setPromise(null);
+        AsyncStorage.removeItem('@cached_daily_promise');
+        cachedPromiseThumbnail = null;
+        setPromiseThumbnail(null);
+      }
+    }).then(unsub => {
+      unsubscribe = unsub;
+    }).catch(err => {
+      console.warn('[HomeScreen] listenDailyPromise error:', err);
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [activeChurch?.id]);
 
   // Check for Celebrations

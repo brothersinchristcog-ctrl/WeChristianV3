@@ -5,5 +5,6 @@ export declare const generateSermonV9: import("firebase-functions/v2/https").Cal
 export declare const generateContentImage: import("firebase-functions/v2/https").CallableFunction<any, Promise<{
     success: boolean;
     imageUrl: string;
+    provider: string;
 }>, unknown>;
 //# sourceMappingURL=ai.d.ts.map
