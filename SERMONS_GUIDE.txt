@@ -1,0 +1,331 @@
+================================================================================
+             WECHRISTIAN - SERMONS & NEW SERMON CREATION GUIDE
+================================================================================
+
+TABLE OF CONTENTS:
+1. Overview & Architecture
+2. Part 1: The "Sermons" Tab (Dashboard & List View)
+3. Part 2: Step-by-Step: How to Create a New Sermon
+4. Part 3: Sermon Media (YouTube Video & Audio)
+5. Part 4: Categories, Series & Filtering System
+6. Part 5: Push Notifications & Live Member App Sync
+7. Part 6: How Members View & Watch Sermons
+8. Bonus: AI Sermon Assistant Integration
+
+================================================================================
+1. OVERVIEW & ARCHITECTURE
+================================================================================
+The Sermons feature in WeChristian enables church administrators and pastors
+to upload, organize, publish, and broadcast video and audio messages to their
+entire congregation.
+
+When a sermon is created and published:
+- It appears instantly in the Member App under the "Sermons" section.
+- It is categorized automatically into ministry series (e.g., Sunday Service,
+  Bible Study, Youth Meeting, Special Messages).
+- Members can stream YouTube video sermons or listen to MP3 sermon audio.
+- An automatic Push Notification broadcast is sent to all church members' phones.
+- Sermons can be saved as private 'Drafts' while being prepared and published
+  only when ready.
+
+================================================================================
+2. PART 1: THE "SERMONS" TAB (DASHBOARD & LIST VIEW)
+================================================================================
+
+[ ACCESSING THE SERMONS DASHBOARD ]
+1. Log in to the Admin Dashboard.
+2. Select the "Sermons" tab from the admin navigation menu.
+
+[ TOP HERO HEADER BAR ]
+* "< Back" Button:
+  - Returns you to the main Admin Dashboard view.
+* "Sermons" Title:
+  - Header showing total count of sermons and active series.
+  - Subtitle: e.g., "18 total · 5 series".
+* "+ New" Button (Top-Right):
+  - Opens the "New Sermon" form with fresh, empty input fields ready for a new
+    entry.
+
+[ THREE CLICKABLE STAT FILTER CARDS ]
+At the top of the Sermons list are three quick-filter summary cards:
+
+1. "Published" Card (Forest Green):
+   - Displays the total number of live sermons currently visible to members.
+   - CLICK ACTION: Instantly filters the list to show only published sermons.
+
+2. "Drafts" Card (Gold / Ochre):
+   - Displays the number of private, unreleased draft sermons.
+   - CLICK ACTION: Instantly filters the list to display all drafts so you can
+     edit or publish them.
+
+3. "Series" Card (Royal Navy):
+   - Displays the count of distinct sermon categories/series in your church.
+   - CLICK ACTION: Automatically organizes the list into grouped sections under
+     each Series Name.
+
+[ HORIZONTAL CATEGORY FILTER CHIPS ]
+Below the stats bar is a scrollable row of category pills:
+* "All (Count)"
+* "Sunday Service (Count)"
+* "Bible Study (Count)"
+* "Youth Meeting (Count)"
+* "Special Messages (Count)"
+* "Women's Fasting Prayer (Count)"
+* "Testimonies (Count)"
+- Tapping any chip filters the list in real-time.
+
+[ INDIVIDUAL SERMON LIST CARDS ]
+Each sermon card contains:
+* Play Thumbnail Button (Left):
+  - Tapping this button plays the sermon video directly (via YouTube) or audio
+    stream.
+* Sermon Titles:
+  - English Title (bold).
+  - Native Telugu Title (if provided).
+* Metadata Line:
+  - Pastor Name · Sermon Date (YYYY-MM-DD) · Duration (e.g., "Pastor John ·
+    2026-09-14 · 45 min").
+* Tag Badges:
+  - Series / Category pill badges.
+  - "📺 YouTube" badge if linked to video.
+  - "🎙️ Audio" badge if MP3 audio is attached.
+  - Status Pill: Green "Published" or Gold "Draft".
+* Action Buttons (Right):
+  - "Edit" (Navy): Loads all sermon details into the Editor.
+  - "Del" (Red): Opens the secure delete confirmation modal.
+
+[ DELETE CONFIRMATION & NOTIFICATION ]
+- Tapping "Del" triggers a safety confirmation modal:
+  "Delete Sermon? Are you sure you want to delete '[Title]'? This action
+   cannot be undone."
+- Clicking "Delete" permanently removes the sermon and displays a confirmation
+  toast.
+
+================================================================================
+3. PART 2: STEP-BY-STEP: HOW TO CREATE A NEW SERMON
+================================================================================
+
+To create a new sermon, tap "+ New" from the Sermons list or navigate to the
+"New Sermon" tab in the Admin menu.
+
+Follow these steps to fill out the form:
+
+--------------------------------------------------------------------------------
+STEP 1: ENTER SERMON INFO
+--------------------------------------------------------------------------------
+1. Title — English * (Mandatory):
+   - Enter the main sermon title in English.
+   - Example: "Walking in Faith Through Trials" or "The Power of Persistent Prayer"
+
+2. Title — Telugu (Optional):
+   - Enter the title in native Telugu font.
+   - Example: "శ్రమలలో విశ్వాస ప్రయాణం"
+
+3. Pastor Name * (Mandatory):
+   - Enter the name of the pastor or guest speaker who preached the sermon.
+   - Example: "Pastor Daniel Raju" or "Evangelist John Wesley"
+
+4. Sermon Date (Mandatory):
+   - By default, it is set to today's date.
+   - Tap the calendar input to open the interactive Date Picker modal.
+   - Select the exact date the sermon was preached or scheduled.
+
+5. Duration (Optional):
+   - Enter approximate sermon length.
+   - Examples: "42 min", "1 hr 10 min", "55 mins"
+
+6. Scripture Reference (Optional):
+   - Enter the primary biblical passage for the message.
+   - Examples: "James 1:2-4", "Romans 8:28", "Isaiah 40:29-31"
+
+--------------------------------------------------------------------------------
+STEP 2: SELECT SERMON CATEGORIES (CHIPS)
+--------------------------------------------------------------------------------
+Select one or more categories that describe the message. Members will see the
+sermon organized under these categories in their app:
+
+Available categories:
+- [ ] Sunday Service          (ఆదివారపు ఆరాధన)
+- [ ] Bible Study             (బైబిల్ అధ్యయనం)
+- [ ] Youth Meeting           (యవ్వనస్థుల కూడిక)
+- [ ] Women's Fasting Prayer  (స్త్రీల ఉపవాస ప్రార్థన)
+- [ ] Second Saturday Prayer  (రెండవ శనివారపు ప్రార్థన)
+- [ ] All-Night Prayer        (రాత్రంతా ప్రార్థన)
+- [ ] Revival Meeting         (ఉజ్జీవ కూడికలు)
+- [ ] Special Messages        (ప్రత్యేక వర్తమానాలు)
+- [ ] Shorts                  (చిన్న వీడియోలు / రీల్స్)
+- [ ] Testimonies             (సాక్ష్యాలు)
+
+* Note: You can tap multiple categories. A selected badge shows a golden
+  checkmark icon.
+
+--------------------------------------------------------------------------------
+STEP 3: ATTACH MEDIA & DETAILS
+--------------------------------------------------------------------------------
+1. YouTube Video URL (Recommended):
+   - Paste the complete YouTube link or 11-character video ID.
+   - Supported formats:
+     * https://www.youtube.com/watch?v=dQw4w9WgXcQ
+     * https://youtu.be/dQw4w9WgXcQ
+     * https://www.youtube.com/shorts/dQw4w9WgXcQ
+     * https://www.youtube.com/live/dQw4w9WgXcQ
+     * Plain 11-character ID: "dQw4w9WgXcQ"
+   - Benefit: Automatic YouTube thumbnail detection and built-in full-screen
+     streaming inside the Member App!
+
+2. Custom Thumbnail (Optional):
+   - Upload a custom 16:9 graphic if you do not want to use the default YouTube
+     thumbnail (auto-fetched from YouTube by default).
+
+4. Description / Sermon Notes (Optional):
+   - Enter a brief summary, sermon outline, key takeaways, or prayer points.
+   - This will be displayed directly underneath the video in the member app.
+
+--------------------------------------------------------------------------------
+STEP 4: CONFIGURE PUSH NOTIFICATIONS
+--------------------------------------------------------------------------------
+Under the "Push Notification" section:
+* Toggle "Notify members when published":
+  - When enabled (Green Switch), a broadcast push notification is sent to all
+    congregants' smartphones as soon as the sermon is published.
+* Live Lock-Screen Notification Preview:
+  - The editor shows an exact live preview of the lock-screen notification:
+    Header: [Church Emblem] Your Church · Now
+    Title:  New Sermon 🎙️
+    Body:   [Sermon Title] · [Pastor Name] · Watch now
+
+--------------------------------------------------------------------------------
+STEP 5: CHOOSE PUBLISH STATUS
+--------------------------------------------------------------------------------
+Tap the "Publish Status" dropdown to select one of three states:
+
+1. "Publish now — visible to all members":
+   - The sermon goes live immediately in the Member App.
+   - Push notification is queued and delivered.
+
+2. "Draft — not visible to members yet":
+   - The sermon is safely stored in the database.
+   - Hidden from members until you choose to publish it later.
+
+3. "Schedule for a specific date & time":
+   - Queued for publication on the specified sermon date.
+
+--------------------------------------------------------------------------------
+STEP 6: SAVE & PUBLISH
+--------------------------------------------------------------------------------
+At the bottom of the screen, you have two primary buttons plus a floating save button:
+
+* "Save as Draft" (Button with File icon):
+  - Saves all entered details as a private draft without notifying members.
+
+* "Publish" (Emerald Green Button with Checkmark):
+  - Saves all details, publishes the sermon live to the church, and triggers the
+    push notification.
+
+* Floating Save Button (FAB at bottom-right):
+  - Convenient floating button to publish with one tap from anywhere on the screen.
+
+--------------------------------------------------------------------------------
+STEP 7: SUCCESS CONFIRMATION
+--------------------------------------------------------------------------------
+Upon saving:
+- A celebratory "Success!" modal appears with a green checkmark:
+  "Your sermon metadata has been saved successfully."
+- Tap "Done" to automatically return to the Sermons List, where your new sermon
+  is displayed at the top!
+
+================================================================================
+4. PART 3: SERMON MEDIA & YOUTUBE STREAMING
+================================================================================
+
+1. YOUTUBE VIDEO STREAMING:
+   - When a YouTube link is supplied, the app's integrated YouTube iframe player
+     loads the video inside the app.
+   - Supports HD playback, forward/rewind, pause/play, and fullscreen mode.
+   - Members never have to leave the church app to watch Sunday messages.
+
+2. EMBEDDED SHARING:
+   - In the video player screen, members have a "Share" button.
+   - Clicking "Share" generates a ready-to-share message for WhatsApp and SMS:
+     "Watch this powerful teaching: '[Title]' - https://youtu.be/[ID]"
+
+3. PLAYLIST / NEXT SERMONS CAROUSEL:
+   - Below the active video player, members can see upcoming and recent sermons
+     in the playlist to continue listening seamlessly.
+
+================================================================================
+5. PART 4: CATEGORIES, SERIES & FILTERING SYSTEM
+================================================================================
+
+Why Categories Matter:
+- A typical church has distinct types of services during the week:
+  * Sunday Morning & Evening Services
+  * Mid-week Bible Studies
+  * Youth Fellowships
+  * Women's Fasting Prayers & All-Night Vigils
+- By assigning categories in the editor:
+  1. The Admin can view stats per series.
+  2. The Admin can group sermons by series using the "Series" stat card.
+  3. Members can browse by category chips in their app with distinctive colors:
+     - Bible Study: Deep Navy (#1a2d5a)
+     - Sunday Service: Ocean Blue (#0369a1)
+     - Youth Meeting: Forest Green (#15803d)
+     - Women's Fasting Prayer: Berry Pink (#be185d)
+     - All-Night Prayer: Royal Blue (#1d4ed8)
+     - Revival Meeting: Amber Bronze (#b45309)
+     - Special Messages: Crimson Red (#c0392b)
+
+================================================================================
+6. PART 5: PUSH NOTIFICATIONS & LIVE MEMBER APP SYNC
+================================================================================
+
+When you click "Publish":
+1. The sermon document is written to `churches/{churchId}/sermons`.
+2. The broadcast record is created in `churches/{churchId}/broadcasts`:
+   - Title: "🎧 New Sermon: [Title]"
+   - Content: "New sermon '[Title]' by [Pastor Name] is now available. Watch/listen now!"
+   - Type: 'sermon'
+   - Timestamp: Server timestamp
+3. Any member with the app installed receives the push notification in real time.
+4. Tapping the notification takes the member directly to the sermon!
+
+================================================================================
+7. PART 6: HOW MEMBERS VIEW & WATCH SERMONS
+================================================================================
+
+In the WeChristian Member App:
+1. Members tap "Sermons" from the main navigation or home screen shortcut.
+2. They see:
+   - Category filter pills at the top.
+   - Collapsible/expandable category accordion sections.
+   - Video thumbnail, title, speaker name, duration, and date.
+3. Tapping a sermon opens `SermonVideoScreen`:
+   - Full 16:9 YouTube video playback.
+   - Interactive share button for WhatsApp.
+   - Sermon notes and description.
+   - Up-next sermons list.
+
+================================================================================
+8. BONUS: AI SERMON ASSISTANT INTEGRATION
+================================================================================
+
+Need sermon inspiration or an outline before preaching?
+WeChristian includes a built-in "AI Sermon Assistant" in the Admin menu!
+
+Features:
+- Select from Life Events:
+  * Birthday, Wedding, Baptism, Healing, Funeral, Family Function, etc.
+- Select from Spiritual Topics:
+  * Joy, Peace, Faith, Hope, Love, Wisdom, Prayer, Holiness, Grace, etc.
+- Choose Language: English or Telugu (తెలుగు).
+- Generates:
+  * Complete biblical sermon titles
+  * Scripture readings & verse references
+  * 3-Point homiletical sermon outlines with illustrations
+  * Application and closing prayers
+- You can copy the generated sermon directly into the Sermon Description
+  field in the Sermon Editor!
+
+================================================================================
+                               END OF GUIDE
+================================================================================

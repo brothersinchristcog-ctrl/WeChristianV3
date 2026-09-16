@@ -74,6 +74,13 @@ export default function AdminEventList() {
   const formatDate = (sfDate: string) => {
     if (!sfDate) return '';
     try {
+      const datePart = sfDate.split('T')[0];
+      if (datePart.includes('-')) {
+        const parts = datePart.split('-');
+        if (parts[0].length === 4) {
+          return `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+      }
       const d = new Date(sfDate);
       if (isNaN(d.getTime())) return sfDate;
       const day = d.getDate().toString().padStart(2, '0');

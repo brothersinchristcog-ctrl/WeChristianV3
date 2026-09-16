@@ -11,7 +11,8 @@ import {
   StatusBar,
   Dimensions,
   Alert,
-  Modal
+  Modal,
+  Image
 } from 'react-native';
 import { 
   Search, 
@@ -31,6 +32,13 @@ import { Linking } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
+const extractYoutubeId = (url: string) => {
+  if (!url || typeof url !== 'string') return '';
+  const cleanUrl = url.trim();
+  const match = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]+)/);
+  return match ? match[1] : cleanUrl;
+};
+
 export default function AdminSermonList() {
   const { setActiveTab, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [sermons, setSermons] = useState<Sermon[]>([]);
@@ -39,6 +47,8 @@ export default function AdminSermonList() {
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const [sermonToDelete, setSermonToDelete] = useState<Sermon | null>(null);
 
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+
   useEffect(() => {
     fetchSermons();
   }, []);
@@ -46,8 +56,12 @@ export default function AdminSermonList() {
   const fetchSermons = async () => {
     setLoading(true);
     try {
-      const data = await FirestoreService.getSermons(50);
+      const [data, cats] = await Promise.all([
+        FirestoreService.getSermons(50),
+        FirestoreService.getSermonCategories().catch(() => [])
+      ]);
       setSermons(data);
+      if (Array.isArray(cats)) setCustomCategories(cats);
     } catch (err) {
       console.error(err);
     } finally {
@@ -91,11 +105,15 @@ export default function AdminSermonList() {
   };
 
   // Parse all unique categories
-  const allCategories = sermons.flatMap(s => s.categories ? s.categories.split(';') : []);
+  const allCategories = [
+    ...sermons.flatMap(s => s.categories ? s.categories.split(';') : []),
+    ...customCategories
+  ];
   const uniqueCategories = [...new Set(allCategories.filter(Boolean))];
 
   const stats = {
-    published: sermons.filter(s => s.status === 'Published').length,
+    published: sermons.filter(s => s.status === 'Published' || !s.status).length,
+    scheduled: sermons.filter(s => s.status === 'Scheduled').length,
     drafts: sermons.filter(s => s.status === 'Draft').length,
     categories: uniqueCategories.length
   };
@@ -104,6 +122,7 @@ export default function AdminSermonList() {
   const filteredSermons = sermons.filter(s => {
     if (filter === 'All') return true;
     if (filter === 'Published') return s.status === 'Published' || !s.status;
+    if (filter === 'Scheduled') return s.status === 'Scheduled';
     if (filter === 'Drafts') return s.status === 'Draft';
     // Filter by specific category
     return s.categories && s.categories.split(';').includes(filter);
@@ -117,14 +136,27 @@ export default function AdminSermonList() {
     );
   }
 
-  const renderSermonItem = (sermon: any, idx: number, isFeatured: boolean) => (
-    <View key={sermon.id} style={[styles.sermonItem, isFeatured && styles.featuredItem]}>
-      <TouchableOpacity 
-        style={[styles.siThumb, isFeatured && styles.featuredThumb]}
-        onPress={() => handlePlay(sermon)}
-      >
-        <Play size={idx === 0 ? 24 : 18} color="#fff" fill="#fff" />
-      </TouchableOpacity>
+  const renderSermonItem = (sermon: any, idx: number, isFeatured: boolean) => {
+    const cleanYId = extractYoutubeId(sermon.youtubeId || '');
+    const thumbUri = sermon.thumbnailUrl || sermon.imageUrl || (cleanYId && cleanYId.length === 11 ? `https://img.youtube.com/vi/${cleanYId}/hqdefault.jpg` : null);
+
+    return (
+      <View key={sermon.id} style={[styles.sermonItem, isFeatured && styles.featuredItem]}>
+        <TouchableOpacity 
+          style={[styles.siThumb, isFeatured && styles.featuredThumb, { overflow: 'hidden' }]}
+          onPress={() => handlePlay(sermon)}
+        >
+          {thumbUri ? (
+            <>
+              <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+              <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'center', alignItems: 'center' }}>
+                <Play size={idx === 0 ? 20 : 14} color="#fff" fill="#fff" />
+              </View>
+            </>
+          ) : (
+            <Play size={idx === 0 ? 24 : 18} color="#fff" fill="#fff" />
+          )}
+        </TouchableOpacity>
       
       <TouchableOpacity style={styles.siBody} onPress={() => handleEdit(sermon)}>
         <Text style={[styles.siTitle, isFeatured && {fontSize: 14}]} numberOfLines={1}>{sermon.title}</Text>
@@ -143,8 +175,22 @@ export default function AdminSermonList() {
           ) : null}
           {sermon.youtubeId ? <View style={styles.badgeIcon}><Text style={styles.badgeIconTxt}>📺 YouTube</Text></View> : null}
           {sermon.audioUrl ? <View style={styles.badgeIcon}><Text style={styles.badgeIconTxt}>🎙️ Audio</Text></View> : null}
-          <View style={[styles.badgeStatus, sermon.status === 'Draft' ? styles.statusDraftBg : styles.statusPubBg]}>
-            <Text style={[styles.badgeStatusTxt, sermon.status === 'Draft' ? styles.statusDraftTxt : styles.statusPubTxt]}>
+          <View style={[
+            styles.badgeStatus, 
+            sermon.status === 'Draft' 
+              ? styles.statusDraftBg 
+              : sermon.status === 'Scheduled' 
+              ? styles.statusSchedBg 
+              : styles.statusPubBg
+          ]}>
+            <Text style={[
+              styles.badgeStatusTxt, 
+              sermon.status === 'Draft' 
+                ? styles.statusDraftTxt 
+                : sermon.status === 'Scheduled' 
+                ? styles.statusSchedTxt 
+                : styles.statusPubTxt
+            ]}>
               {sermon.status || 'Published'}
             </Text>
           </View>
@@ -163,6 +209,7 @@ export default function AdminSermonList() {
       </View>
     </View>
   );
+};
 
   return (
     <View style={styles.container}>
@@ -193,15 +240,21 @@ export default function AdminSermonList() {
         
         {/* ── Stats Bar ── */}
         <View style={styles.statsRow}>
-          <TouchableOpacity style={styles.statCard} onPress={() => setFilter('Published')}>
+          <TouchableOpacity style={styles.statCard} onPress={() => setFilter(filter === 'Published' ? 'All' : 'Published')}>
             <Text style={[styles.statNum, { color: '#2E6B4F' }]}>{stats.published}</Text>
             <Text style={styles.statLbl}>Published</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.statCard} onPress={() => setFilter('Drafts')}>
-            <Text style={[styles.statNum, { color: '#C9A84C' }]}>{stats.drafts}</Text>
+          {stats.scheduled > 0 && (
+            <TouchableOpacity style={styles.statCard} onPress={() => setFilter(filter === 'Scheduled' ? 'All' : 'Scheduled')}>
+              <Text style={[styles.statNum, { color: '#D97706' }]}>{stats.scheduled}</Text>
+              <Text style={styles.statLbl}>Scheduled</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.statCard} onPress={() => setFilter(filter === 'Drafts' ? 'All' : 'Drafts')}>
+            <Text style={[styles.statNum, { color: '#64748B' }]}>{stats.drafts}</Text>
             <Text style={styles.statLbl}>Drafts</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.statCard} onPress={() => setFilter('SeriesGroup')}>
+          <TouchableOpacity style={styles.statCard} onPress={() => setFilter(filter === 'SeriesGroup' ? 'All' : 'SeriesGroup')}>
             <Text style={[styles.statNum, { color: '#1a2d5a' }]}>{stats.categories}</Text>
             <Text style={styles.statLbl}>Series</Text>
           </TouchableOpacity>
@@ -404,8 +457,10 @@ const styles = StyleSheet.create({
   badgeStatus: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 1 },
   statusPubBg: { backgroundColor: '#EDF7F1', borderColor: '#A3D9B8' },
   statusPubTxt: { color: '#2E7D52' },
-  statusDraftBg: { backgroundColor: '#FEFBF0', borderColor: '#F5DFA0' },
-  statusDraftTxt: { color: '#B76E00' },
+  statusSchedBg: { backgroundColor: '#FFFBEB', borderColor: '#FDE68A' },
+  statusSchedTxt: { color: '#B45309' },
+  statusDraftBg: { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' },
+  statusDraftTxt: { color: '#475569' },
   badgeStatusTxt: { fontSize: 9, fontWeight: '800' },
   
   actionsContainer: { borderLeftWidth: 1, borderLeftColor: 'rgba(26,45,90,0.08)' },

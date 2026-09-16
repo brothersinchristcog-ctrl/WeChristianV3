@@ -143,6 +143,8 @@ export interface Sermon {
   series?: string;
   categories?: string;
   audioUrl?: string;
+  thumbnailUrl?: string;
+  imageUrl?: string;
 }
 
 export interface ChurchExpense {
@@ -1043,10 +1045,130 @@ class FirestoreService {
   async getSermons(limit = 50): Promise<Sermon[]> {
     try {
       const col = await this.getCollection('sermons');
-      const snapshot = await col.orderBy('createdAt', 'desc').limit(limit).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Sermon[];
+      let snapshot;
+      try {
+        snapshot = await col.orderBy('createdAt', 'desc').limit(limit).get();
+        if (!snapshot || snapshot.empty) {
+          snapshot = await col.limit(limit).get();
+        }
+      } catch (err) {
+        snapshot = await col.limit(limit).get();
+      }
+      const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Sermon[];
+      return list.sort((a: any, b: any) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        if (dateA && dateB && dateA !== dateB) {
+          return dateB.localeCompare(dateA);
+        }
+        const getTime = (doc: any) => {
+          const u = doc.updatedAt?.toMillis ? doc.updatedAt.toMillis() : (doc.updatedAt?.seconds ? doc.updatedAt.seconds * 1000 : 0);
+          const c = doc.createdAt?.toMillis ? doc.createdAt.toMillis() : (doc.createdAt?.seconds ? doc.createdAt.seconds * 1000 : 0);
+          return Math.max(u, c);
+        };
+        return getTime(b) - getTime(a);
+      });
     } catch (error) {
+      console.error('Error in getSermons:', error);
       return [];
+    }
+  }
+
+  async getLatestSermon(): Promise<Sermon | null> {
+    try {
+      const col = await this.getCollection('sermons');
+      let snapshot;
+      try {
+        snapshot = await col.orderBy('createdAt', 'desc').limit(20).get();
+        if (!snapshot || snapshot.empty) {
+          snapshot = await col.limit(20).get();
+        }
+      } catch (err) {
+        snapshot = await col.limit(20).get();
+      }
+
+      if (!snapshot || snapshot.empty) return null;
+
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+      const sermons = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sermon));
+      const visible = sermons.filter(s => {
+        if (s.status === 'Draft') return false;
+        if (s.status === 'Scheduled' && s.date && s.date > todayStr) return false;
+        return true;
+      });
+
+      if (visible.length === 0) return null;
+
+      visible.sort((a: any, b: any) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        if (dateA && dateB && dateA !== dateB) {
+          return dateB.localeCompare(dateA);
+        }
+        const getTime = (doc: any) => {
+          const u = doc.updatedAt?.toMillis ? doc.updatedAt.toMillis() : (doc.updatedAt?.seconds ? doc.updatedAt.seconds * 1000 : 0);
+          const c = doc.createdAt?.toMillis ? doc.createdAt.toMillis() : (doc.createdAt?.seconds ? doc.createdAt.seconds * 1000 : 0);
+          return Math.max(u, c);
+        };
+        return getTime(b) - getTime(a);
+      });
+
+      return visible[0];
+    } catch (e) {
+      console.error('Error fetching latest sermon:', e);
+      return null;
+    }
+  }
+
+  async listenLatestSermon(callback: (sermon: Sermon | null) => void): Promise<() => void> {
+    try {
+      const col = await this.getCollection('sermons');
+      return col.limit(20).onSnapshot(
+        snapshot => {
+          if (!snapshot || snapshot.empty) {
+            callback(null);
+            return;
+          }
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+          const sermons = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sermon));
+          const visible = sermons.filter(s => {
+            if (s.status === 'Draft') return false;
+            if (s.status === 'Scheduled' && s.date && s.date > todayStr) return false;
+            return true;
+          });
+
+          if (visible.length === 0) {
+            callback(null);
+            return;
+          }
+
+          visible.sort((a: any, b: any) => {
+            const dateA = a.date || '';
+            const dateB = b.date || '';
+            if (dateA && dateB && dateA !== dateB) {
+              return dateB.localeCompare(dateA);
+            }
+            const getTime = (doc: any) => {
+              const u = doc.updatedAt?.toMillis ? doc.updatedAt.toMillis() : (doc.updatedAt?.seconds ? doc.updatedAt.seconds * 1000 : 0);
+              const c = doc.createdAt?.toMillis ? doc.createdAt.toMillis() : (doc.createdAt?.seconds ? doc.createdAt.seconds * 1000 : 0);
+              return Math.max(u, c);
+            };
+            return getTime(b) - getTime(a);
+          });
+
+          callback(visible[0]);
+        },
+        err => {
+          console.warn('[FirestoreService] listenLatestSermon error:', err);
+        }
+      );
+    } catch (e) {
+      console.warn('Failed to listen to latest sermon:', e);
+      return () => {};
     }
   }
 
@@ -1136,10 +1258,18 @@ class FirestoreService {
       const col = await this.getCollection('sermons');
       const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
       if (cleanData.id) {
-        await col.doc(cleanData.id as string).set({ ...cleanData, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        const updatePayload: any = { ...cleanData, updatedAt: FieldValue.serverTimestamp() };
+        if (!cleanData.createdAt) {
+          updatePayload.createdAt = FieldValue.serverTimestamp();
+        }
+        await col.doc(cleanData.id as string).set(updatePayload, { merge: true });
         return cleanData.id;
       } else {
-        const docRef = await col.add({ ...cleanData, createdAt: FieldValue.serverTimestamp() });
+        const docRef = await col.add({
+          ...cleanData,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp()
+        });
         return docRef.id;
       }
     } catch (e) {
@@ -1153,6 +1283,84 @@ class FirestoreService {
       await col.doc(id).delete();
       return true;
     } catch (e) {
+      throw e;
+    }
+  }
+
+  // --- 🎙️ Sermon Categories ---
+  async getSermonCategories(): Promise<string[]> {
+    const defaults = [
+      'Bible Study',
+      "Women's Fasting Prayer",
+      'Second Saturday Prayer',
+      'Sunday Service',
+      'All-Night Prayer',
+      'Youth Meeting',
+      'Revival Meeting',
+      'Special Messages',
+      'Shorts',
+      'Testimonies',
+    ];
+    try {
+      const churchId = await this.getChurchId();
+      const customCats: string[] = [];
+      if (churchId) {
+        const churchDoc = await firestore().collection('churches').doc(churchId).get();
+        const data = churchDoc.data();
+        if (Array.isArray(data?.sermonCategories)) {
+          data.sermonCategories.forEach((c: any) => {
+            if (typeof c === 'string' && c.trim() && !customCats.includes(c.trim())) {
+              customCats.push(c.trim());
+            }
+          });
+        }
+      }
+
+      // Also harvest any categories from existing sermons so none are ever missed
+      const sermons = await this.getSermons(100);
+      sermons.forEach((s: any) => {
+        if (typeof s.categories === 'string') {
+          s.categories.split(';').forEach((c: string) => {
+            const t = c.trim();
+            if (t && !defaults.includes(t) && !customCats.includes(t)) {
+              customCats.push(t);
+            }
+          });
+        } else if (Array.isArray(s.categories)) {
+          s.categories.forEach((c: any) => {
+            const t = typeof c === 'string' ? c.trim() : '';
+            if (t && !defaults.includes(t) && !customCats.includes(t)) {
+              customCats.push(t);
+            }
+          });
+        }
+      });
+
+      const combined = [...defaults];
+      customCats.forEach(c => {
+        if (!combined.includes(c)) combined.push(c);
+      });
+      return combined;
+    } catch (e) {
+      console.error('Error fetching sermon categories:', e);
+      return defaults;
+    }
+  }
+
+  async addSermonCategory(categoryName: string): Promise<string[]> {
+    const trimmed = (categoryName || '').trim();
+    if (!trimmed) throw new Error('Category name cannot be empty');
+    try {
+      const churchId = await this.getChurchId();
+      if (churchId) {
+        await firestore().collection('churches').doc(churchId).set({
+          sermonCategories: FieldValue.arrayUnion(trimmed),
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+      return await this.getSermonCategories();
+    } catch (e) {
+      console.error('Error adding sermon category:', e);
       throw e;
     }
   }

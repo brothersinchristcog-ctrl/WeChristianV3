@@ -12,6 +12,7 @@ import {
   SectionList,
   Dimensions,
   Platform,
+  Image
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,6 +29,13 @@ import { useTheme } from '../context/ThemeContext';
 import FirestoreService, { Sermon } from '../services/FirestoreService';
 
 const { width } = Dimensions.get('window');
+
+const extractYoutubeId = (url: string) => {
+  if (!url || typeof url !== 'string') return '';
+  const cleanUrl = url.trim();
+  const match = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]+)/);
+  return match ? match[1] : cleanUrl;
+};
 
 const ALL_CATEGORIES = [
   'All',
@@ -58,9 +66,19 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Uncategorized':            '#64748b',
 };
 
+const DYNAMIC_PALETTE = ['#1a2d5a', '#be185d', '#7c3aed', '#0369a1', '#1d4ed8', '#15803d', '#b45309', '#c0392b', '#047857', '#0f766e', '#4338ca'];
+
+const getCategoryColor = (cat: string) => {
+  if (CATEGORY_COLORS[cat]) return CATEGORY_COLORS[cat];
+  let hash = 0;
+  for (let i = 0; i < cat.length; i++) hash = cat.charCodeAt(i) + ((hash << 5) - hash);
+  return DYNAMIC_PALETTE[Math.abs(hash) % DYNAMIC_PALETTE.length];
+};
+
 export default function SermonsScreen({ navigation }: any) {
   const { isDark, toggleTheme, colors } = useTheme();
   const [activeCategory, setActiveCategory] = useState('All');
+  const [categoryList, setCategoryList] = useState<string[]>(ALL_CATEGORIES);
   const [sermons, setSermons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -68,8 +86,48 @@ export default function SermonsScreen({ navigation }: any) {
 
   const fetchSermons = async () => {
     try {
-      const data = await FirestoreService.getSermons(64);
-      setSermons(data);
+      const [data, serverCats] = await Promise.all([
+        FirestoreService.getSermons(64),
+        FirestoreService.getSermonCategories().catch(() => [])
+      ]);
+      
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const visibleSermons = (data || []).filter((s: any) => {
+        if (s.status === 'Draft') return false;
+        if (s.status === 'Scheduled' && s.date && s.date > todayStr) return false;
+        return true;
+      });
+      setSermons(visibleSermons);
+
+      // Extract categories from loaded sermons
+      const sermonCats: string[] = [];
+      visibleSermons.forEach((s: any) => {
+        if (typeof s.categories === 'string' && s.categories.trim()) {
+          s.categories.split(';').forEach((c: string) => {
+            const trimmed = c.trim();
+            if (trimmed && !sermonCats.includes(trimmed)) sermonCats.push(trimmed);
+          });
+        } else if (Array.isArray(s.categories)) {
+          s.categories.forEach((c: string) => {
+            const trimmed = typeof c === 'string' ? c.trim() : '';
+            if (trimmed && !sermonCats.includes(trimmed)) sermonCats.push(trimmed);
+          });
+        }
+      });
+
+      const merged = ['All'];
+      const addCat = (c: string) => {
+        if (c && c !== 'All' && c !== 'Uncategorized' && !merged.includes(c)) {
+          merged.push(c);
+        }
+      };
+      ALL_CATEGORIES.forEach(addCat);
+      serverCats.forEach(addCat);
+      sermonCats.forEach(addCat);
+      merged.push('Uncategorized');
+
+      setCategoryList(merged);
     } catch (error) {
       console.error('Error fetching sermons:', error);
     } finally {
@@ -123,24 +181,31 @@ export default function SermonsScreen({ navigation }: any) {
     });
 
     // Sort categories in defined order
-    return ALL_CATEGORIES.filter(c => c !== 'All' && grouped[c]?.length > 0)
+    return categoryList.filter(c => c !== 'All' && grouped[c]?.length > 0)
       .map(cat => ({ title: cat, data: grouped[cat] }));
   };
 
   const sections = buildSections();
 
-  const renderSermonItem = (item: any) => (
-    <TouchableOpacity 
-      style={[styles.sermonCard, { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#f1f5f9' }]}
-      onPress={() => navigation.navigate('SermonVideo', { 
-        sermonData: item
-      })}
-    >
-      <View style={[styles.scThumb, { backgroundColor: isDark ? '#0f172a' : '#0f172a' }]}>
-        <View style={styles.playOverlay}>
-          <Play size={16} color="#fff" fill="#c0392b" />
+  const renderSermonItem = (item: any) => {
+    const cleanYId = extractYoutubeId(item.youtubeId || '');
+    const thumbUri = item.thumbnailUrl || item.imageUrl || (cleanYId && cleanYId.length === 11 ? `https://img.youtube.com/vi/${cleanYId}/hqdefault.jpg` : null);
+
+    return (
+      <TouchableOpacity 
+        style={[styles.sermonCard, { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#f1f5f9' }]}
+        onPress={() => navigation.navigate('SermonVideo', { 
+          sermonData: item
+        })}
+      >
+        <View style={[styles.scThumb, { backgroundColor: isDark ? '#0f172a' : '#0f172a', overflow: 'hidden' }]}>
+          {thumbUri ? (
+            <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+          ) : null}
+          <View style={styles.playOverlay}>
+            <Play size={16} color="#fff" fill="#c0392b" />
+          </View>
         </View>
-      </View>
       <View style={styles.scInfo}>
         <Text style={[styles.scTitle, { color: isDark ? '#f1f5f9' : '#1e293b' }]} numberOfLines={2}>
           {item.title}{item.titleTelugu ? ` · ${item.titleTelugu}` : ''}
@@ -157,10 +222,11 @@ export default function SermonsScreen({ navigation }: any) {
       </View>
     </TouchableOpacity>
   );
+};
 
   const renderSectionHeader = (title: string) => {
     const isCollapsed = collapsedSections[title];
-    const color = CATEGORY_COLORS[title] || '#1a2d5a';
+    const color = getCategoryColor(title);
     const count = sections.find(s => s.title === title)?.data.length || 0;
     return (
       <TouchableOpacity
@@ -217,13 +283,13 @@ export default function SermonsScreen({ navigation }: any) {
       {/* Category Filter Pills */}
       <View style={styles.filterSection}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-          {ALL_CATEGORIES.map(cat => (
+          {categoryList.map(cat => (
             <TouchableOpacity 
               key={cat} 
               style={[
                 styles.pill,
                 { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#e2e8f0' },
-                activeCategory === cat && { backgroundColor: CATEGORY_COLORS[cat] || '#1a2d5a', borderColor: CATEGORY_COLORS[cat] || '#1a2d5a' }
+                activeCategory === cat && { backgroundColor: getCategoryColor(cat), borderColor: getCategoryColor(cat) }
               ]}
               onPress={() => setActiveCategory(cat)}
             >

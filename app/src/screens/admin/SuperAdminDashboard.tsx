@@ -8,7 +8,7 @@ import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import FirestoreService from '../../services/FirestoreService';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Shield, X, Image as ImageIcon, Search, Mail, Phone, Settings, Check, UploadCloud, ChevronLeft, Save, FileText, Music, Pencil, MapPin, AlertCircle, Trash2 } from 'lucide-react-native';
+import { Plus, Shield, X, Image as ImageIcon, Search, Mail, Phone, Settings, Check, UploadCloud, ChevronLeft, Save, FileText, Music, Pencil, MapPin, AlertCircle, Trash2, User } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -72,7 +72,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   // Delete Modal
-  const [deleteTarget, setDeleteTarget] = useState<{type: 'single' | 'bulk' | 'church', id?: string} | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{type: 'single' | 'bulk' | 'church', id?: string, name?: string} | null>(null);
   
   // Manager Modal
   const [managerVisible, setManagerVisible] = useState(false);
@@ -418,7 +418,9 @@ export default function SuperAdminDashboard({ navigation }: any) {
   const filteredChurches = churches.filter(c => 
     (c.name || '').toLowerCase().includes(query) || 
     (c.subdomain || '').toLowerCase().includes(query) ||
-    (c.address || '').toLowerCase().includes(query)
+    (c.address || '').toLowerCase().includes(query) ||
+    (c.pastorName || '').toLowerCase().includes(query) ||
+    (c.adminName || '').toLowerCase().includes(query)
   );
 
   const masterSongsWithIndex = masterSongs.map((s, index) => ({ ...s, absoluteIndex: index }));
@@ -596,7 +598,17 @@ export default function SuperAdminDashboard({ navigation }: any) {
                     </View>
                     <View style={styles.churchInfo}>
                       <Text style={styles.churchName}>{item.name}</Text>
-                      <Text style={styles.churchDomain}>Code: {item.subdomain || 'N/A'}</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 2 }}>
+                        <Text style={styles.churchDomain}>Code: {item.subdomain || 'N/A'}</Text>
+                        {(item.pastorName || item.adminName) ? (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1b2340', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: '#2d3b66' }}>
+                            <User size={10} color="#D9A05B" style={{ marginRight: 4 }} />
+                            <Text style={{ fontSize: 11, color: '#D9A05B', fontWeight: '700' }} numberOfLines={1}>
+                              {item.pastorName || item.adminName}
+                            </Text>
+                          </View>
+                        ) : null}
+                      </View>
                       {item.address ? (
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, paddingRight: 10 }}>
                           <MapPin size={10} color="#94a1c4" style={{ marginRight: 4 }} />
@@ -607,55 +619,59 @@ export default function SuperAdminDashboard({ navigation }: any) {
                   </View>
                   
                   <View style={styles.cardBottom}>
-                    <View style={styles.membersCountRow}>
-                      <View style={[styles.statusDot, { backgroundColor: computedStatus === 'active' ? '#2fd480' : computedStatus === 'trialing' ? '#3b82f6' : '#f4556b' }]} />
-                      <Text style={styles.membersCount}>{item.memberCount || 0} Active Member{(item.memberCount || 0) !== 1 ? 's' : ''}</Text>
-                    </View>
-                    {(() => {
-                      let computedValidUntil = item.subscription?.validUntil;
-                      if (!computedValidUntil && computedStatus === 'trialing' && (item as any).createdAt) {
-                        const createdDate = (item as any).createdAt?.toDate ? (item as any).createdAt.toDate() : (item as any).createdAt?.seconds ? new Date((item as any).createdAt.seconds * 1000) : new Date((item as any).createdAt);
-                        if (!isNaN(createdDate.getTime())) {
-                          const trialEnd = new Date(createdDate);
-                          trialEnd.setDate(trialEnd.getDate() + 60);
-                          computedValidUntil = trialEnd.toISOString();
+                    <View style={styles.cardMetaWrap}>
+                      <View style={styles.membersCountRow}>
+                        <View style={[styles.statusDot, { backgroundColor: computedStatus === 'active' ? '#2fd480' : computedStatus === 'trialing' ? '#3b82f6' : '#f4556b' }]} />
+                        <Text style={styles.membersCount}>{item.memberCount || 0} Active Member{(item.memberCount || 0) !== 1 ? 's' : ''}</Text>
+                      </View>
+                      {(() => {
+                        let computedValidUntil = item.subscription?.validUntil;
+                        if (!computedValidUntil && computedStatus === 'trialing' && (item as any).createdAt) {
+                          const createdDate = (item as any).createdAt?.toDate ? (item as any).createdAt.toDate() : (item as any).createdAt?.seconds ? new Date((item as any).createdAt.seconds * 1000) : new Date((item as any).createdAt);
+                          if (!isNaN(createdDate.getTime())) {
+                            const trialEnd = new Date(createdDate);
+                            trialEnd.setDate(trialEnd.getDate() + 60);
+                            computedValidUntil = trialEnd.toISOString();
+                          }
                         }
-                      }
-                      
-                      if (computedValidUntil) {
-                        const isExpired = new Date(computedValidUntil).getTime() < Date.now();
-                        return (
-                          <View style={styles.expiryRow}>
-                            {isExpired ? (
-                              <Text style={[styles.expiryText, { color: '#f4556b', fontWeight: '800' }]}>
-                                {computedStatus === 'trialing' ? 'Trial Expired' : 'Subscription Expired'}
-                              </Text>
-                            ) : (
-                              <Text style={styles.expiryText}>
-                                {computedStatus === 'trialing' ? 'Trial Ends: ' : 'Expires: '}
-                                {new Date(computedValidUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                {computedStatus === 'trialing' ? ` (${Math.max(0, Math.ceil((new Date(computedValidUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} days)` : ''}
-                              </Text>
-                            )}
-                          </View>
-                        );
-                      }
-                      
-                      if (computedStatus && computedStatus !== 'active' && computedStatus !== 'trialing') {
-                        return (
-                          <View style={styles.expiryRow}>
-                            <Text style={[styles.expiryText, { color: '#f4556b', fontWeight: '800' }]}>Subscription Expired</Text>
-                          </View>
-                        );
-                      }
-                      
-                      return null;
-                    })()}
+                        
+                        if (computedValidUntil) {
+                          const isExpired = new Date(computedValidUntil).getTime() < Date.now();
+                          return (
+                            <View style={styles.expiryRow}>
+                              {isExpired ? (
+                                <Text style={[styles.expiryText, { color: '#f4556b', fontWeight: '800' }]}>
+                                  {computedStatus === 'trialing' ? 'Trial Expired' : 'Subscription Expired'}
+                                </Text>
+                              ) : (
+                                <Text style={styles.expiryText}>
+                                  {computedStatus === 'trialing' ? 'Trial: ' : 'Expires: '}
+                                  {new Date(computedValidUntil).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                  {computedStatus === 'trialing' ? ` (${Math.max(0, Math.ceil((new Date(computedValidUntil).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))}d)` : ''}
+                                </Text>
+                              )}
+                            </View>
+                          );
+                        }
+                        
+                        if (computedStatus && computedStatus !== 'active' && computedStatus !== 'trialing') {
+                          return (
+                            <View style={styles.expiryRow}>
+                              <Text style={[styles.expiryText, { color: '#f4556b', fontWeight: '800' }]}>Subscription Expired</Text>
+                            </View>
+                          );
+                        }
+                        
+                        return null;
+                      })()}
+                    </View>
                     
                     {/* Delete Church Button */}
                     <TouchableOpacity 
-                      onPress={(e) => { e.stopPropagation(); setDeleteTarget({ type: 'church', id: item.id }); }} 
-                      style={{ padding: 8, backgroundColor: 'rgba(244,85,107,.12)', borderRadius: 8, marginLeft: 'auto' }}
+                      onPress={(e) => { e?.stopPropagation?.(); setDeleteTarget({ type: 'church', id: item.id, name: item.name }); }} 
+                      style={styles.churchDeleteBtn}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      activeOpacity={0.7}
                     >
                       <Trash2 size={16} color="#f4556b" />
                     </TouchableOpacity>
@@ -942,7 +958,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
             <Text style={{ fontSize: 24, fontWeight: 'bold', color: '#f8fafc', marginBottom: 12, textAlign: 'center' }}>Are you sure?</Text>
             <Text style={{ fontSize: 15, color: '#94a3b8', textAlign: 'center', marginBottom: 32, lineHeight: 22 }}>
               {deleteTarget?.type === 'bulk' ? 'This will delete ALL selected songs.' : 
-               deleteTarget?.type === 'church' ? 'This will permanently delete this church. This cannot be undone.' :
+               deleteTarget?.type === 'church' ? (deleteTarget.name ? `This will permanently delete "${deleteTarget.name}". This cannot be undone.` : 'This will permanently delete this church. This cannot be undone.') :
                'This will permanently delete this song.'}
             </Text>
             <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
@@ -1100,12 +1116,36 @@ const styles = StyleSheet.create({
   
   cardBottom: { 
     flexDirection: 'row', 
-    justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTopWidth: 1, borderTopColor: '#242e50' },
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    paddingTop: 12, 
+    borderTopWidth: 1, 
+    borderTopColor: '#242e50',
+    gap: 8,
+  },
+  cardMetaWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingRight: 4,
+  },
   membersCountRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   statusDot: { width: 7, height: 7, borderRadius: 3.5 },
   membersCount: { fontSize: 13, color: '#94a1c4', fontWeight: '600' },
   expiryRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#242e50', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
   expiryText: { fontSize: 11, color: '#f0b429', fontWeight: '700' },
+  churchDeleteBtn: {
+    padding: 8,
+    backgroundColor: 'rgba(244,85,107,.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(244,85,107,.25)',
+    borderRadius: 8,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   btnManage: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 9, gap: 6 },
   btnManageText: { color: '#1a1200', fontSize: 13, fontWeight: '700' },
   

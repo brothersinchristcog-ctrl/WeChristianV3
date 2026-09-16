@@ -356,6 +356,7 @@ export default function AdminPromiseEditor() {
   const [isGeneratingThumbnail, setIsGeneratingThumbnail] = useState(false);
   const [selectionModalType, setSelectionModalType] = useState<'book' | 'chapter' | 'verse' | null>(null);
   const [bgImageUrl, setBgImageUrl] = useState('');
+  const [isCustomUploaded, setIsCustomUploaded] = useState(false);
   
   const [form, setForm] = useState({
     date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
@@ -429,6 +430,7 @@ export default function AdminPromiseEditor() {
       });
       setLastSavedStatus(editingData.status || 'Scheduled');
       setBgImageUrl(editingData.imageUrl || '');
+      setIsCustomUploaded(!!editingData.imageUrl);
     } else {
       setColorMode('solid');
       setSelectedSolidColor('#1E3A8A');
@@ -453,6 +455,7 @@ export default function AdminPromiseEditor() {
         imageUrl: ''
       });
       setBgImageUrl('');
+      setIsCustomUploaded(false);
     }
   }, [editingData]);
 
@@ -580,6 +583,7 @@ export default function AdminPromiseEditor() {
       });
 
       if (visualUrl) {
+        setIsCustomUploaded(false);
         setBgImageUrl(visualUrl);
         setForm(prev => ({ ...prev, imageUrl: visualUrl }));
         AppAlert.alert('Success 🎉', 'New background loaded! Scripture and date are automatically placed.', undefined, 'success');
@@ -625,9 +629,10 @@ export default function AdminPromiseEditor() {
       if (!result.canceled && result.assets && result.assets[0]?.uri) {
         setIsUploadingImage(true);
         const cloudUrl = await uploadImageToCloud(result.assets[0].uri);
+        setIsCustomUploaded(true);
         setBgImageUrl(cloudUrl);
         setForm(prev => ({ ...prev, imageUrl: cloudUrl }));
-        AppAlert.alert('Success', 'Background image loaded! The scripture and date are automatically placed.', undefined, 'success');
+        AppAlert.alert('Success', 'Custom image uploaded successfully! Displayed exactly as uploaded without any text overlay.', undefined, 'success');
       }
     } catch (err) {
       console.error('Upload Error:', err);
@@ -656,8 +661,9 @@ export default function AdminPromiseEditor() {
     try {
       let finalImageUrl = form.imageUrl || bgImageUrl;
       
-      // If live composite view is active, capture it so the saved promise has the complete branded graphic
-      if ((bgImageUrl || form.imageUrl) && viewShotRef.current) {
+      // If live composite view is active (AI generated mode), capture it so the saved promise has the complete branded graphic.
+      // For custom uploaded images, skip ViewShot capture completely to preserve the exact uploaded image without any overlay.
+      if (!isCustomUploaded && (bgImageUrl || form.imageUrl) && viewShotRef.current) {
         try {
           const capturedUri = await captureRef(viewShotRef, { format: 'jpg', quality: 0.95 });
           if (capturedUri) {
@@ -903,148 +909,162 @@ export default function AdminPromiseEditor() {
 
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>
-              Devotional Thumbnail <Text style={styles.fHint}>(Synchronized live with selected verse & date)</Text>
+              {isCustomUploaded ? 'Custom Thumbnail ' : 'Devotional Thumbnail '}
+              <Text style={styles.fHint}>
+                {isCustomUploaded ? '(Displayed exactly as uploaded — no overlays)' : '(Synchronized live with selected verse & date)'}
+              </Text>
             </Text>
 
             {(bgImageUrl || form.imageUrl) ? (
               <View style={{ marginTop: 6 }}>
-                {/* 16:9 LANDSCAPE VIEWSHOT COMPOSITE */}
-                <ViewShot
-                  ref={viewShotRef}
-                  options={{ format: 'jpg', quality: 1.0 }}
-                  style={[styles.promiseThumbnailFrame, { borderColor: activePrimaryColor }]}
-                >
-                  {/* 1. Message-Related Background Image */}
-                  <Image
-                    source={{ uri: bgImageUrl || form.imageUrl }}
-                    style={StyleSheet.absoluteFillObject}
-                    resizeMode="cover"
-                  />
+                {isCustomUploaded ? (
+                  /* ── UPLOADED CUSTOM IMAGE: Displayed exactly as it is, without any duplicate, overlay, or unwanted text ── */
+                  <View style={[styles.promiseThumbnailFrame, { borderColor: '#1E3A8A', overflow: 'hidden' }]}>
+                    <Image
+                      source={{ uri: form.imageUrl || bgImageUrl }}
+                      style={StyleSheet.absoluteFillObject}
+                      resizeMode="cover"
+                    />
+                  </View>
+                ) : (
+                  /* ── 16:9 LANDSCAPE VIEWSHOT COMPOSITE FOR AI DEVOTIONAL TEMPLATES ── */
+                  <ViewShot
+                    ref={viewShotRef}
+                    options={{ format: 'jpg', quality: 1.0 }}
+                    style={[styles.promiseThumbnailFrame, { borderColor: activePrimaryColor }]}
+                  >
+                    {/* 1. Message-Related Background Image */}
+                    <Image
+                      source={{ uri: bgImageUrl || form.imageUrl }}
+                      style={StyleSheet.absoluteFillObject}
+                      resizeMode="cover"
+                    />
 
-                  {/* 2. Professional Dynamic Vignette Gradient */}
-                  <LinearGradient
-                    colors={thumbnailVignetteColors}
-                    start={thumbnailGradientStart}
-                    end={thumbnailGradientEnd}
-                    style={StyleSheet.absoluteFillObject}
-                  />
+                    {/* 2. Professional Dynamic Vignette Gradient */}
+                    <LinearGradient
+                      colors={thumbnailVignetteColors}
+                      start={thumbnailGradientStart}
+                      end={thumbnailGradientEnd}
+                      style={StyleSheet.absoluteFillObject}
+                    />
 
-                  {/* 3. Devotional Altar Content Layout */}
-                  <View style={styles.promiseMainLayout}>
-                    {/* Top Header Bar */}
-                    <View style={styles.promiseTopBar}>
-                      <View style={styles.promiseLogoRow}>
-                        {activeChurch?.theme?.logoUrl ? (
-                          <Image source={{ uri: activeChurch.theme.logoUrl }} style={styles.promiseChurchLogo} resizeMode="contain" />
-                        ) : (
-                          <View style={[styles.promiseLogoFallback, { backgroundColor: activePrimaryColor }]}>
-                            <Text style={styles.promiseChurchLogoCross}>✝</Text>
+                    {/* 3. Devotional Altar Content Layout */}
+                    <View style={styles.promiseMainLayout}>
+                      {/* Top Header Bar */}
+                      <View style={styles.promiseTopBar}>
+                        <View style={styles.promiseLogoRow}>
+                          {activeChurch?.theme?.logoUrl ? (
+                            <Image source={{ uri: activeChurch.theme.logoUrl }} style={styles.promiseChurchLogo} resizeMode="contain" />
+                          ) : (
+                            <View style={[styles.promiseLogoFallback, { backgroundColor: activePrimaryColor }]}>
+                              <Text style={styles.promiseChurchLogoCross}>✝</Text>
+                            </View>
+                          )}
+                          <View>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <Text style={{ fontSize: 9 }}>🕊</Text>
+                              <Text style={styles.promiseChurchName}>
+                                {(activeChurch?.name || 'WE CHRISTIAN').toUpperCase()}
+                              </Text>
+                            </View>
+                            <Text style={styles.promiseSubHeaderTxt}>నేటి దైవిక వాగ్దానం</Text>
                           </View>
-                        )}
-                        <View>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                            <Text style={{ fontSize: 9 }}>🕊</Text>
-                            <Text style={styles.promiseChurchName}>
-                              {(activeChurch?.name || 'WE CHRISTIAN').toUpperCase()}
+                        </View>
+
+                        {/* Dynamic Date Badge (Pulls from selected promise date) */}
+                        <View style={[styles.promiseDatePill, { borderColor: `${activePrimaryColor}AA`, backgroundColor: hexToRgba(activePrimaryColor, 0.28) }]}>
+                          <CalendarIcon size={8} color={activeSecondaryColor} />
+                          <Text style={styles.promiseDateTxt}>
+                            {getPromiseDateDisplay(form.date, true)}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Center Devotional Card */}
+                      <View style={[styles.promiseCenterCard, { borderColor: `${activeSecondaryColor}66` }]}>
+                        {/* Ribbon Pill */}
+                        <View style={[styles.promiseRibbonPill, { backgroundColor: activeSecondaryColor }]}>
+                          <Sparkles size={8} color={getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF'} />
+                          <Text style={[styles.promiseRibbonTxt, { color: getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF' }]}>✨ నేటి దేవుని వాగ్దానం ✨</Text>
+                        </View>
+
+                        {/* Scripture Presentation: Automatically pulled from selected Bible verse */}
+                        <View style={styles.promiseQuoteContainer}>
+                          {/* Telugu Scripture Line */}
+                          <View style={styles.promiseQuoteLineWrap}>
+                            <Text
+                              style={styles.promiseQuoteTelugu}
+                              numberOfLines={2}
+                              adjustsFontSizeToFit={true}
+                              minimumFontScale={0.8}
+                            >
+                              “{cleanVerse(form.teVerse || 'దీర్ఘాయువు చేత అతనిని తృప్తిపరచెదను')}.”{' '}
+                              {form.teRef ? (
+                                <Text style={[styles.promiseQuoteTeluguRef, { color: activeSecondaryColor }]}>
+                                  {cleanRef(form.teRef)}
+                                </Text>
+                              ) : null}
                             </Text>
                           </View>
-                          <Text style={styles.promiseSubHeaderTxt}>నేటి దైవిక వాగ్దానం</Text>
+
+                          {/* Dynamic Divider with Cross */}
+                          <View style={styles.promiseDividerRow}>
+                            <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
+                            <Text style={[styles.promiseDividerCross, { color: activeSecondaryColor }]}>✝</Text>
+                            <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
+                          </View>
+
+                          {/* English Scripture Line */}
+                          <View style={styles.promiseQuoteLineWrap}>
+                            <Text
+                              style={styles.promiseQuoteEnglish}
+                              numberOfLines={2}
+                              adjustsFontSizeToFit={true}
+                              minimumFontScale={0.8}
+                            >
+                              “{cleanVerse(form.enVerse || 'I will satisfy him with long life')}.”{' '}
+                              {form.enRef ? (
+                                <Text style={styles.promiseQuoteEnglishRef}>
+                                  {cleanRef(form.enRef)}
+                                </Text>
+                              ) : null}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Tagline / Devotional Note */}
+                        <View style={styles.promiseTagRow}>
+                          <Text style={{ fontSize: 7 }}>🌿</Text>
+                          <Text style={styles.promiseTagTxt} numberOfLines={1} adjustsFontSizeToFit={true} minimumFontScale={0.85}>
+                            {form.teNote || form.enNote || 'దీర్ఘాయువునిచ్చు దేవుని వాగ్దానం'}
+                          </Text>
+                          <Text style={{ fontSize: 7 }}>🌿</Text>
                         </View>
                       </View>
 
-                      {/* Dynamic Date Badge (Pulls from selected promise date) */}
-                      <View style={[styles.promiseDatePill, { borderColor: `${activePrimaryColor}AA`, backgroundColor: hexToRgba(activePrimaryColor, 0.28) }]}>
-                        <CalendarIcon size={8} color={activeSecondaryColor} />
-                        <Text style={styles.promiseDateTxt}>
-                          {getPromiseDateDisplay(form.date, true)}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Center Devotional Card */}
-                    <View style={[styles.promiseCenterCard, { borderColor: `${activeSecondaryColor}66` }]}>
-                      {/* Ribbon Pill */}
-                      <View style={[styles.promiseRibbonPill, { backgroundColor: activeSecondaryColor }]}>
-                        <Sparkles size={8} color={getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF'} />
-                        <Text style={[styles.promiseRibbonTxt, { color: getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF' }]}>✨ నేటి దేవుని వాగ్దానం ✨</Text>
-                      </View>
-
-                      {/* Scripture Presentation: Automatically pulled from selected Bible verse */}
-                      <View style={styles.promiseQuoteContainer}>
-                        {/* Telugu Scripture Line */}
-                        <View style={styles.promiseQuoteLineWrap}>
-                          <Text
-                            style={styles.promiseQuoteTelugu}
-                            numberOfLines={2}
-                            adjustsFontSizeToFit={true}
-                            minimumFontScale={0.8}
-                          >
-                            “{cleanVerse(form.teVerse || 'దీర్ఘాయువు చేత అతనిని తృప్తిపరచెదను')}.”{' '}
-                            {form.teRef ? (
-                              <Text style={[styles.promiseQuoteTeluguRef, { color: activeSecondaryColor }]}>
-                                {cleanRef(form.teRef)}
-                              </Text>
-                            ) : null}
+                      {/* Bottom Footer Bar */}
+                      <View style={styles.promiseBottomBar}>
+                        <View style={[styles.promisePhonePill, { backgroundColor: activePrimaryColor }]}>
+                          <Phone size={8} color="#fff" />
+                          <Text style={styles.promisePhoneTxt}>
+                            {`మరిన్ని వివరాలకు : ${activeChurch?.contactPhone || '8000504070'}`}
                           </Text>
                         </View>
-
-                        {/* Dynamic Divider with Cross */}
-                        <View style={styles.promiseDividerRow}>
-                          <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
-                          <Text style={[styles.promiseDividerCross, { color: activeSecondaryColor }]}>✝</Text>
-                          <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
-                        </View>
-
-                        {/* English Scripture Line */}
-                        <View style={styles.promiseQuoteLineWrap}>
-                          <Text
-                            style={styles.promiseQuoteEnglish}
-                            numberOfLines={2}
-                            adjustsFontSizeToFit={true}
-                            minimumFontScale={0.8}
-                          >
-                            “{cleanVerse(form.enVerse || 'I will satisfy him with long life')}.”{' '}
-                            {form.enRef ? (
-                              <Text style={styles.promiseQuoteEnglishRef}>
-                                {cleanRef(form.enRef)}
-                              </Text>
-                            ) : null}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Tagline / Devotional Note */}
-                      <View style={styles.promiseTagRow}>
-                        <Text style={{ fontSize: 7 }}>🌿</Text>
-                        <Text style={styles.promiseTagTxt} numberOfLines={1} adjustsFontSizeToFit={true} minimumFontScale={0.85}>
-                          {form.teNote || form.enNote || 'దీర్ఘాయువునిచ్చు దేవుని వాగ్దానం'}
-                        </Text>
-                        <Text style={{ fontSize: 7 }}>🌿</Text>
-                      </View>
-                    </View>
-
-                    {/* Bottom Footer Bar */}
-                    <View style={styles.promiseBottomBar}>
-                      <View style={[styles.promisePhonePill, { backgroundColor: activePrimaryColor }]}>
-                        <Phone size={8} color="#fff" />
-                        <Text style={styles.promisePhoneTxt}>
-                          {`మరిన్ని వివరాలకు : ${activeChurch?.contactPhone || '8000504070'}`}
+                        <Text style={[styles.promiseWelcomeScript, { color: activeSecondaryColor }]}>
+                          దీవించబడుదురు గాక
                         </Text>
                       </View>
-                      <Text style={[styles.promiseWelcomeScript, { color: activeSecondaryColor }]}>
-                        దీవించబడుదురు గాక
-                      </Text>
-                    </View>
 
-                    {/* Live Loading Overlay while generating thumbnail */}
-                    {isGeneratingThumbnail && (
-                      <View style={styles.thumbnailGeneratingOverlay}>
-                        <ActivityIndicator size="large" color="#FFFFFF" />
-                        <Text style={styles.thumbnailGeneratingTxt}>Generating New Background…</Text>
-                      </View>
-                    )}
-                  </View>
-                </ViewShot>
+                      {/* Live Loading Overlay while generating thumbnail */}
+                      {isGeneratingThumbnail && (
+                        <View style={styles.thumbnailGeneratingOverlay}>
+                          <ActivityIndicator size="large" color="#FFFFFF" />
+                          <Text style={styles.thumbnailGeneratingTxt}>Generating New Background…</Text>
+                        </View>
+                      )}
+                    </View>
+                  </ViewShot>
+                )}
 
                 {/* Thumbnail Action Controls */}
                 <View style={styles.thumbActionContainer}>
@@ -1067,7 +1087,7 @@ export default function AdminPromiseEditor() {
                         adjustsFontSizeToFit={true} 
                         minimumFontScale={0.85}
                       >
-                        {isGeneratingThumbnail ? 'Generating…' : 'Re-Generate'}
+                        {isGeneratingThumbnail ? 'Generating…' : (isCustomUploaded ? 'Generate with AI' : 'Re-Generate')}
                       </Text>
                     </TouchableOpacity>
 
@@ -1084,7 +1104,7 @@ export default function AdminPromiseEditor() {
                         adjustsFontSizeToFit={true} 
                         minimumFontScale={0.85}
                       >
-                        Change Background
+                        {isCustomUploaded ? 'AI Background' : 'Change Background'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -1108,7 +1128,7 @@ export default function AdminPromiseEditor() {
                         adjustsFontSizeToFit={true} 
                         minimumFontScale={0.85}
                       >
-                        {isUploadingImage ? 'Uploading…' : 'Upload Image'}
+                        {isUploadingImage ? 'Uploading…' : (isCustomUploaded ? 'Replace Image' : 'Upload Image')}
                       </Text>
                     </TouchableOpacity>
 
@@ -1117,6 +1137,7 @@ export default function AdminPromiseEditor() {
                       onPress={() => {
                         setBgImageUrl('');
                         setForm(prev => ({ ...prev, imageUrl: '' }));
+                        setIsCustomUploaded(false);
                       }}
                       disabled={isGeneratingThumbnail}
                       activeOpacity={0.7}

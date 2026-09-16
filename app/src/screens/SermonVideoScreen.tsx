@@ -61,7 +61,8 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           youtubeId: p.youtubeId,
           date: p.date,
           duration: p.duration || '',
-          pastor: p.pastor || 'Pastor'
+          pastor: p.pastor || 'Pastor',
+          thumbnailUrl: p.thumbnailUrl || p.imageUrl || '',
         }));
       setVideos(data);
       
@@ -206,7 +207,7 @@ export default function SermonVideoScreen({ navigation, route }: any) {
               >
                 <View style={styles.thumbBox}>
                   <Image 
-                    source={{ uri: `https://img.youtube.com/vi/${extractYoutubeId(video.youtubeId)}/mqdefault.jpg` }} 
+                    source={{ uri: video.thumbnailUrl || `https://img.youtube.com/vi/${extractYoutubeId(video.youtubeId)}/mqdefault.jpg` }} 
                     style={styles.thumb} 
                   />
                   <View style={styles.playIcon}><Play size={10} color="#fff" fill="#fff" /></View>

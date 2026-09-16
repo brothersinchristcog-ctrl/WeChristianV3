@@ -10,7 +10,7 @@ import {
   RefreshControl,
   StatusBar
 } from 'react-native';
-import { AlertCircle, Plus, Check, ChevronLeft } from 'lucide-react-native';
+import { AlertCircle, Plus, Check, ChevronLeft, Filter, X } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 
 import FirestoreService, { DailyPromise } from '../../services/FirestoreService';
@@ -40,6 +40,7 @@ export default function AdminPromiseList() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [missingDates, setMissingDates] = useState<number[]>([]);
+  const [activeFilter, setActiveFilter] = useState<'all' | 'published' | 'draft' | 'missing'>('all');
   
   const todayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
 
@@ -95,6 +96,14 @@ export default function AdminPromiseList() {
     missing: missingDates.length
   };
 
+  const publishedPromises = promises
+    .filter(p => p.status === 'Published')
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
+  const draftPromises = promises
+    .filter(p => p.status === 'Draft')
+    .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+
   if (loading && promises.length === 0) {
     return (
       <View style={styles.loadingContainer}>
@@ -108,7 +117,7 @@ export default function AdminPromiseList() {
     return html.replace(/<[^>]*>?/gm, '').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
   };
 
-  const renderCard = (item: DailyPromise, type: 'today' | 'upcoming' | 'past') => {
+  const renderCard = (item: DailyPromise, type: 'today' | 'upcoming' | 'past' | 'filtered') => {
     const isMissingTe = !item.verseTelugu;
     const isMissingLink = !item.youtubeId;
 
@@ -129,7 +138,26 @@ export default function AdminPromiseList() {
     return (
       <View key={item.id} style={styles.verseCard}>
         <View style={styles.vcBand}>
-          <Text style={styles.vcDate}>{displayDate}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 }}>
+            <Text style={styles.vcDate}>{displayDate}</Text>
+            {!!item.status && (
+              <View style={[
+                styles.statusBadgePill,
+                item.status === 'Published' && styles.statusBadgePublished,
+                item.status === 'Draft' && styles.statusBadgeDraft,
+                item.status === 'Scheduled' && styles.statusBadgeScheduled,
+              ]}>
+                <Text style={[
+                  styles.statusBadgeTxt,
+                  item.status === 'Published' && { color: '#065F46' },
+                  item.status === 'Draft' && { color: '#92400E' },
+                  item.status === 'Scheduled' && { color: '#1E3A8A' },
+                ]}>
+                  {item.status}
+                </Text>
+              </View>
+            )}
+          </View>
           <View style={styles.seal}>
             {type === 'upcoming' ? <Plus size={14} color={colors.ink} /> : <Check size={14} color={colors.ink} strokeWidth={3} />}
           </View>
@@ -220,95 +248,249 @@ export default function AdminPromiseList() {
 
         <View style={styles.content}>
           <View style={styles.stats}>
-            <View style={styles.statBox}>
+            {/* 1. Published Card */}
+            <TouchableOpacity 
+              style={[
+                styles.statBox, 
+                activeFilter === 'published' && styles.statBoxActivePublished
+              ]}
+              onPress={() => setActiveFilter(prev => prev === 'published' ? 'all' : 'published')}
+              activeOpacity={0.75}
+            >
               <View style={[styles.statNotch, { backgroundColor: colors.moss }]} />
               <Text style={[styles.num, { color: colors.moss }]}>{stats.published}</Text>
-              <Text style={styles.statLabel}>Published</Text>
-            </View>
-            <View style={styles.statBox}>
+              <View style={styles.statLabelRow}>
+                <Text style={[styles.statLabel, activeFilter === 'published' && { color: colors.moss }]}>Published</Text>
+                {activeFilter === 'published' && (
+                  <View style={[styles.activeIndicatorDot, { backgroundColor: colors.moss }]} />
+                )}
+              </View>
+              <Text style={styles.statHintTxt}>
+                {activeFilter === 'published' ? 'Active ✓' : 'Tap to view'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* 2. Drafts Card */}
+            <TouchableOpacity 
+              style={[
+                styles.statBox, 
+                activeFilter === 'draft' && styles.statBoxActiveDraft
+              ]}
+              onPress={() => setActiveFilter(prev => prev === 'draft' ? 'all' : 'draft')}
+              activeOpacity={0.75}
+            >
               <View style={[styles.statNotch, { backgroundColor: colors.gold }]} />
               <Text style={[styles.num, { color: colors.goldDeep }]}>{stats.draft}</Text>
-              <Text style={styles.statLabel}>Drafts</Text>
-            </View>
-            <View style={styles.statBox}>
+              <View style={styles.statLabelRow}>
+                <Text style={[styles.statLabel, activeFilter === 'draft' && { color: colors.goldDeep }]}>Drafts</Text>
+                {activeFilter === 'draft' && (
+                  <View style={[styles.activeIndicatorDot, { backgroundColor: colors.goldDeep }]} />
+                )}
+              </View>
+              <Text style={styles.statHintTxt}>
+                {activeFilter === 'draft' ? 'Active ✓' : 'Tap to view'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* 3. Missing Card */}
+            <TouchableOpacity 
+              style={[
+                styles.statBox, 
+                activeFilter === 'missing' && styles.statBoxActiveMissing
+              ]}
+              onPress={() => setActiveFilter(prev => prev === 'missing' ? 'all' : 'missing')}
+              activeOpacity={0.75}
+            >
               <View style={[styles.statNotch, { backgroundColor: colors.clay }]} />
               <Text style={[styles.num, { color: colors.clay }]}>{stats.missing}</Text>
-              <Text style={styles.statLabel}>Missing</Text>
-            </View>
+              <View style={styles.statLabelRow}>
+                <Text style={[styles.statLabel, activeFilter === 'missing' && { color: colors.clay }]}>Missing</Text>
+                {activeFilter === 'missing' && (
+                  <View style={[styles.activeIndicatorDot, { backgroundColor: colors.clay }]} />
+                )}
+              </View>
+              <Text style={styles.statHintTxt}>
+                {activeFilter === 'missing' ? 'Active ✓' : 'Tap to view'}
+              </Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.alert}>
-            <AlertCircle size={20} color={colors.clay} style={{ marginTop: 2 }} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.alertTitle}>{missingDates.length} days are still empty.</Text>
-              <Text style={styles.alertText}>Nothing is scheduled for the dates below. Fill them in before the queue catches up.</Text>
-            </View>
-          </View>
-
-          <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>Today</Text>
-            <View style={styles.sectionTitleLine} />
-          </View>
-          {todayPromise ? renderCard(todayPromise, 'today') : (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>Nothing is scheduled for <Text style={styles.dateTag}>{displayDateFullStr}</Text> yet.</Text>
-              <TouchableOpacity style={styles.ghostBtn} onPress={() => { setEditingData({ date: todayStr }); setTabByName?.('New Promise'); }}>
-                <Text style={styles.ghostBtnTxt}>+ Schedule today's promise</Text>
+          {/* Active Filter Indicator Bar */}
+          {activeFilter !== 'all' && (
+            <View style={styles.filterBanner}>
+              <View style={styles.filterBannerLeft}>
+                <Filter size={14} color={
+                  activeFilter === 'published' ? colors.moss :
+                  activeFilter === 'draft' ? colors.goldDeep :
+                  colors.clay
+                } />
+                <Text style={styles.filterBannerTxt}>
+                  Showing <Text style={{ fontWeight: '800', color: 
+                    activeFilter === 'published' ? colors.moss :
+                    activeFilter === 'draft' ? colors.goldDeep :
+                    colors.clay
+                  }}>
+                    {activeFilter === 'published' ? `Published Promises (${publishedPromises.length})` :
+                     activeFilter === 'draft' ? `Draft Promises (${draftPromises.length})` :
+                     `Missing Dates (${missingDates.length})`}
+                  </Text>
+                </Text>
+              </View>
+              <TouchableOpacity style={styles.clearFilterBtn} onPress={() => setActiveFilter('all')} activeOpacity={0.7}>
+                <X size={12} color="#475569" />
+                <Text style={styles.clearFilterBtnTxt}>Show All</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>Upcoming</Text>
-            <View style={styles.sectionTitleLine} />
-          </View>
-          {upcoming.length > 0 ? (
-            upcoming.slice(0, 10).map(item => renderCard(item, 'upcoming'))
-          ) : (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyText}>No promises scheduled ahead. Add a few days now to stay ahead of the queue.</Text>
+          {/* Filtered View: Published */}
+          {activeFilter === 'published' && (
+            <View>
+              {publishedPromises.length > 0 ? (
+                publishedPromises.map(item => renderCard(item, 'filtered'))
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>No published promises found.</Text>
+                  <TouchableOpacity style={styles.ghostBtn} onPress={() => { setEditingData(null); setTabByName?.('New Promise'); }}>
+                    <Text style={styles.ghostBtnTxt}>+ Create Promise</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           )}
 
-          <View style={styles.missingHead}>
-            <Text style={styles.missingTitle}>Missing dates ({missingDates.length})</Text>
-            <TouchableOpacity style={styles.fillAll} onPress={() => {
-              if (missingDates.length > 0) {
-                const now = new Date();
-                const dStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(missingDates[0]).padStart(2, '0')}`;
-                setEditingData({ date: dStr });
-                setTabByName?.('New Promise');
-              }
-            }}>
-              <Text style={styles.fillAllTxt}>Fill all</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.missingGrid}>
-            {missingDates.slice(0, 6).map(d => {
-              const monthStr = monthNamesShort[(new Date()).getMonth()];
-              return (
-                <TouchableOpacity key={d} style={styles.missingCell} onPress={() => { 
-                  const now = new Date();
-                  const dStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                  setEditingData({ date: dStr }); 
-                  setTabByName?.('New Promise'); 
-                }}>
-                  <View style={styles.missingMonth}><Text style={styles.missingMonthTxt}>{monthStr}</Text></View>
-                  <Text style={styles.missingDay}>{d}</Text>
-                  <View style={styles.missingDash} />
-                  <Text style={styles.missingAdd}>+ Add</Text>
+          {/* Filtered View: Drafts */}
+          {activeFilter === 'draft' && (
+            <View>
+              {draftPromises.length > 0 ? (
+                draftPromises.map(item => renderCard(item, 'filtered'))
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>No draft promises found. All promises are published or scheduled.</Text>
+                  <TouchableOpacity style={styles.ghostBtn} onPress={() => { setEditingData(null); setTabByName?.('New Promise'); }}>
+                    <Text style={styles.ghostBtnTxt}>+ Create Draft</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Filtered View: Missing */}
+          {activeFilter === 'missing' && (
+            <View>
+              <View style={styles.alert}>
+                <AlertCircle size={20} color={colors.clay} style={{ marginTop: 2 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.alertTitle}>{missingDates.length} days need daily promises this month.</Text>
+                  <Text style={styles.alertText}>Tap any date below to open the promise editor and schedule it immediately.</Text>
+                </View>
+              </View>
+
+              <View style={styles.missingHead}>
+                <Text style={styles.missingTitle}>All Missing Dates ({missingDates.length})</Text>
+                {missingDates.length > 0 && (
+                  <TouchableOpacity style={styles.fillAll} onPress={() => {
+                    const now = new Date();
+                    const dStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(missingDates[0]).padStart(2, '0')}`;
+                    setEditingData({ date: dStr });
+                    setTabByName?.('New Promise');
+                  }}>
+                    <Text style={styles.fillAllTxt}>+ Fill First ({missingDates[0]})</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View style={styles.missingGrid}>
+                {missingDates.map(d => {
+                  const monthStr = monthNamesShort[(new Date()).getMonth()];
+                  return (
+                    <TouchableOpacity key={d} style={styles.missingCell} onPress={() => { 
+                      const now = new Date();
+                      const dStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                      setEditingData({ date: dStr }); 
+                      setTabByName?.('New Promise'); 
+                    }}>
+                      <View style={styles.missingMonth}><Text style={styles.missingMonthTxt}>{monthStr}</Text></View>
+                      <Text style={styles.missingDay}>{d}</Text>
+                      <View style={styles.missingDash} />
+                      <Text style={styles.missingAdd}>+ Add</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          {/* Default / Standard View: All */}
+          {activeFilter === 'all' && (
+            <>
+              {missingDates.length > 0 && (
+                <View style={styles.alert}>
+                  <AlertCircle size={20} color={colors.clay} style={{ marginTop: 2 }} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.alertTitle}>{missingDates.length} days are still empty.</Text>
+                    <Text style={styles.alertText}>Nothing is scheduled for the dates below. Fill them in before the queue catches up.</Text>
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.sectionTitleRow}>
+                <Text style={styles.sectionTitle}>Today</Text>
+                <View style={styles.sectionTitleLine} />
+              </View>
+              {todayPromise ? renderCard(todayPromise, 'today') : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>Nothing is scheduled for <Text style={styles.dateTag}>{displayDateFullStr}</Text> yet.</Text>
+                  <TouchableOpacity style={styles.ghostBtn} onPress={() => { setEditingData({ date: todayStr }); setTabByName?.('New Promise'); }}>
+                    <Text style={styles.ghostBtnTxt}>+ Schedule today's promise</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              <View style={styles.sectionTitleRow}>
+                <Text style={styles.sectionTitle}>Upcoming</Text>
+                <View style={styles.sectionTitleLine} />
+              </View>
+              {upcoming.length > 0 ? (
+                upcoming.slice(0, 10).map(item => renderCard(item, 'upcoming'))
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>No promises scheduled ahead. Add a few days now to stay ahead of the queue.</Text>
+                </View>
+              )}
+
+              <View style={styles.missingHead}>
+                <Text style={styles.missingTitle}>Missing dates ({missingDates.length})</Text>
+                <TouchableOpacity style={styles.fillAll} onPress={() => setActiveFilter('missing')}>
+                  <Text style={styles.fillAllTxt}>View all ({missingDates.length}) →</Text>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
+              </View>
+              <View style={styles.missingGrid}>
+                {missingDates.slice(0, 6).map(d => {
+                  const monthStr = monthNamesShort[(new Date()).getMonth()];
+                  return (
+                    <TouchableOpacity key={d} style={styles.missingCell} onPress={() => { 
+                      const now = new Date();
+                      const dStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                      setEditingData({ date: dStr }); 
+                      setTabByName?.('New Promise'); 
+                    }}>
+                      <View style={styles.missingMonth}><Text style={styles.missingMonthTxt}>{monthStr}</Text></View>
+                      <Text style={styles.missingDay}>{d}</Text>
+                      <View style={styles.missingDash} />
+                      <Text style={styles.missingAdd}>+ Add</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
 
-          <View style={styles.sectionTitleRow}>
-            <Text style={styles.sectionTitle}>Past Promises</Text>
-            <View style={styles.sectionTitleLine} />
-          </View>
-          {past.slice(0, 2).map(item => renderCard(item, 'past'))}
-
-
+              <View style={styles.sectionTitleRow}>
+                <Text style={styles.sectionTitle}>Past Promises</Text>
+                <View style={styles.sectionTitleLine} />
+              </View>
+              {past.slice(0, 5).map(item => renderCard(item, 'past'))}
+            </>
+          )}
 
           <Text style={styles.footerBranding}>Church Admin · Daily Promise Manager</Text>
           <View style={{ height: 100 }} />
@@ -348,10 +530,84 @@ const styles = StyleSheet.create({
 
   // Stats
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 20, marginTop: 16 },
-  statBox: { flex: 1, backgroundColor: colors.paper, borderRadius: 16, paddingVertical: 22, alignItems: 'center', elevation: 4, shadowColor: colors.ink, shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, borderWidth: 1, borderColor: 'rgba(21,28,51,0.06)', position: 'relative' },
+  statBox: { flex: 1, backgroundColor: colors.paper, borderRadius: 16, paddingVertical: 18, alignItems: 'center', elevation: 4, shadowColor: colors.ink, shadowOpacity: 0.08, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, borderWidth: 1.5, borderColor: 'rgba(21,28,51,0.06)', position: 'relative' },
+  statBoxActivePublished: {
+    borderColor: colors.moss,
+    borderWidth: 2,
+    backgroundColor: '#F0FDF4',
+    elevation: 6,
+    shadowColor: colors.moss,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  statBoxActiveDraft: {
+    borderColor: colors.goldDeep,
+    borderWidth: 2,
+    backgroundColor: '#FFFBEB',
+    elevation: 6,
+    shadowColor: colors.goldDeep,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  statBoxActiveMissing: {
+    borderColor: colors.clay,
+    borderWidth: 2,
+    backgroundColor: '#FEF2F2',
+    elevation: 6,
+    shadowColor: colors.clay,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
   statNotch: { position: 'absolute', top: -1, width: 32, height: 4, borderBottomLeftRadius: 4, borderBottomRightRadius: 4 },
-  num: { fontFamily: serifFont, fontSize: 32, fontWeight: '700', marginBottom: 6 },
+  num: { fontFamily: serifFont, fontSize: 30, fontWeight: '700', marginBottom: 4 },
+  statLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   statLabel: { fontSize: 11, textTransform: 'uppercase', letterSpacing: 1.2, color: colors.inkSoft, fontWeight: '700' },
+  activeIndicatorDot: { width: 6, height: 6, borderRadius: 3 },
+  statHintTxt: { fontSize: 9, color: '#94A3B8', fontWeight: '600', marginTop: 4, letterSpacing: 0.3 },
+
+  // Filter Banner
+  filterBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: 'rgba(26, 45, 90, 0.12)',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  filterBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  filterBannerTxt: {
+    fontSize: 12.5,
+    color: '#334155',
+    fontWeight: '500',
+  },
+  clearFilterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  clearFilterBtnTxt: {
+    fontSize: 11,
+    color: '#475569',
+    fontWeight: '700',
+  },
 
   // Alert
   alert: { backgroundColor: colors.clayBg, borderColor: colors.clayLine, borderWidth: 1, borderLeftWidth: 3, borderLeftColor: colors.clay, borderRadius: 12, padding: 14, flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 26, alignItems: 'flex-start' },
@@ -388,6 +644,26 @@ const styles = StyleSheet.create({
   vcBand: { backgroundColor: colors.ink, paddingHorizontal: 14, paddingVertical: 10, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   vcDate: { fontFamily: serifFont, fontSize: 13, fontWeight: '600', color: '#fff' },
   seal: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.goldBright, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: 'rgba(255,255,255,0.25)', elevation: 3 },
+  statusBadgePill: {
+    borderRadius: 6,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+  },
+  statusBadgePublished: {
+    backgroundColor: '#D1FAE5',
+  },
+  statusBadgeDraft: {
+    backgroundColor: '#FEF3C7',
+  },
+  statusBadgeScheduled: {
+    backgroundColor: '#DBEAFE',
+  },
+  statusBadgeTxt: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
   vcBody: { paddingHorizontal: 14, paddingTop: 14, paddingBottom: 10 },
   vcRef: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 10 },
   tag: { backgroundColor: colors.parchment, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 100, borderWidth: 1, borderColor: colors.rule },

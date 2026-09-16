@@ -26,7 +26,7 @@ import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import { ChevronLeft, Building2, Palette, Phone, Mail, Globe, Check, Image as ImageIcon, ChevronDown, MapPin, Briefcase, Home, AlertCircle } from 'lucide-react-native';
+import { ChevronLeft, Building2, Palette, Phone, Mail, Globe, Check, Image as ImageIcon, ChevronDown, MapPin, Briefcase, Home, AlertCircle, User } from 'lucide-react-native';
 import { State, City } from 'country-state-city';
 import ReferralService from '../../services/ReferralService';
 
@@ -57,6 +57,7 @@ export default function CreateChurchScreen({ navigation }: Props) {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: '',
+    pastorName: '',
     contactEmail: '',
     contactPhone: '',
     houseNo: '',
@@ -147,6 +148,10 @@ export default function CreateChurchScreen({ navigation }: Props) {
   const requestOtp = async () => {
     if (!form.name.trim()) {
       Alert.alert('Required', 'Please enter your church name.');
+      return;
+    }
+    if (!form.pastorName.trim()) {
+      Alert.alert('Required', 'Please enter the Pastor / Admin name.');
       return;
     }
     if (!form.contactEmail.trim()) {
@@ -269,8 +274,11 @@ export default function CreateChurchScreen({ navigation }: Props) {
       let last10Digits = digitsOnly.slice(-10);
       let cleanNum = `+91${last10Digits}`;
 
+      const pastorOrAdminName = form.pastorName.trim();
       const churchData: any = {
         name: form.name.trim(),
+        pastorName: pastorOrAdminName,
+        adminName: pastorOrAdminName,
         subdomain: churchCode.toLowerCase(),
         contactEmail: form.contactEmail.trim(),
         contactPhone: cleanNum,
@@ -339,22 +347,27 @@ export default function CreateChurchScreen({ navigation }: Props) {
 
       if (currentUser) {
         // Global users collection is no longer used. We rely on the nested members collection to find the user's primary church.
+        const adminDisplayName = pastorOrAdminName || member?.name || currentUser.displayName || 'Admin';
 
         // Create Admin member profile nested in this new church
         await firestore().collection('churches').doc(docRef.id).collection('members').doc(currentUser.uid).set({
           id: currentUser.uid,
-          name: member?.name || currentUser.displayName || 'Admin',
-          phone: member?.phone || currentUser.phoneNumber || '',
+          name: adminDisplayName,
+          phone: member?.phone || currentUser.phoneNumber || cleanNum,
           userType: 'Admin',
           joinDate: new Date().toISOString()
         });
+
+        if (currentUser.updateProfile) {
+          currentUser.updateProfile({ displayName: adminDisplayName }).catch(() => {});
+        }
 
         // Force update AuthContext so it doesn't get stuck on old cached data
         const updatedMember = {
           ...(member || {}),
           id: currentUser.uid,
-          name: member?.name || currentUser.displayName || 'Admin',
-          phone: member?.phone || currentUser.phoneNumber || '',
+          name: adminDisplayName,
+          phone: member?.phone || currentUser.phoneNumber || cleanNum,
           churchId: docRef.id,
           primaryChurchId: docRef.id,
           userType: 'Admin'
@@ -456,6 +469,18 @@ export default function CreateChurchScreen({ navigation }: Props) {
                 value={form.name}
                 onChangeText={v => updateForm('name', v)}
               />
+
+              <Text style={styles.fieldLabel}>Pastor / Admin Name <Text style={styles.asterisk}>*</Text></Text>
+              <View style={styles.inputRow}>
+                <User size={16} color="#64748b" />
+                <TextInput
+                  style={styles.inputFlex}
+                  placeholder="e.g. Pastor John Doe"
+                  placeholderTextColor="#64748b"
+                  value={form.pastorName}
+                  onChangeText={v => updateForm('pastorName', v)}
+                />
+              </View>
 
               <Text style={styles.fieldLabel}>Tagline / Motto</Text>
               <TextInput

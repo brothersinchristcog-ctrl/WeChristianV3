@@ -313,7 +313,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                               overflow: CARD_BACKGROUNDS[tab.name] ? 'hidden' : 'visible',
                               padding: CARD_BACKGROUNDS[tab.name] ? 0 : 14,
                               backgroundColor: tab.name === 'Subscription' ? '#F2EAE0' : (tab.name === 'Church Settings' ? 'rgb(202, 221, 236)' : (tab.name === 'Members' ? 'rgb(244, 224, 217)' : (tab.name === 'Promises' ? '#000000' : '#ffffff'))),
-                              minHeight: isFullWidth ? 160 : (CARD_BACKGROUNDS[tab.name] ? 122 : 108),
+                              minHeight: isFullWidth ? 160 : 100,
                             }
                           ]}
                           onPress={() => setActiveTab(tab.index)}
@@ -384,10 +384,10 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                           ) : (
                             <View style={[
                               styles.moduleColumn, 
-                              CARD_BACKGROUNDS[tab.name] && { padding: 12, paddingBottom: 10, justifyContent: 'flex-end' }
+                              CARD_BACKGROUNDS[tab.name] && { padding: 14, justifyContent: 'flex-end' }
                             ]}>
                               {!CARD_BACKGROUNDS[tab.name] && (
-                                <View style={[styles.moduleIconWrapper, { backgroundColor: `${category.color}15`, marginBottom: 6 }]}>
+                                <View style={[styles.moduleIconWrapper, { backgroundColor: `${category.color}15` }]}>
                                   <tab.icon size={22} color={category.color} strokeWidth={2.5} />
                                 </View>
                               )}

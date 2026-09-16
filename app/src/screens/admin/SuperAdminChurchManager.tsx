@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView, Switch, ActivityIndicator, Alert, SafeAreaView, Platform, Linking, TextInput } from 'react-native';
-import { X, Shield, Calendar, Smartphone, Globe, Music, BookOpen, Heart, MessageCircle, Mail, Phone, Edit2, MapPin, Users, Trash2, Download, Eye } from 'lucide-react-native';
+import { X, Shield, Calendar, Smartphone, Globe, Music, BookOpen, Heart, MessageCircle, Mail, Phone, Edit2, MapPin, Users, Trash2, Download, Eye, User } from 'lucide-react-native';
 import auth from '@react-native-firebase/auth';
 import { firestore } from '../../services/firebaseConfig';
 import ChurchService, { ChurchDetails } from '../../services/ChurchService';
@@ -38,6 +38,7 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
     visible: false,
     tier: '',
     customTier: '',
+    pastorName: '',
     contactEmail: '',
     secondaryEmail: '',
     contactPhone: '',
@@ -271,6 +272,7 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
       visible: true,
       tier: (church.subscription as any)?.tier || church.subscriptionTier || '',
       customTier: '',
+      pastorName: church.pastorName || (church as any).adminName || '',
       contactEmail: church.contactEmail || '',
       secondaryEmail: (church as any).secondaryEmail || '',
       contactPhone: church.contactPhone || '',
@@ -283,7 +285,10 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
     setSaving(true);
     try {
       const finalTier = editForm.customTier.trim() !== '' ? editForm.customTier.trim().toLowerCase() : editForm.tier;
+      const pastorOrAdminName = editForm.pastorName.trim();
       await ChurchService.updateChurchSettings(church.id, { 
+        pastorName: pastorOrAdminName,
+        adminName: pastorOrAdminName,
         contactEmail: editForm.contactEmail,
         secondaryEmail: editForm.secondaryEmail,
         contactPhone: editForm.contactPhone,
@@ -512,6 +517,17 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                 <View style={styles.cardTextContainer}>
                   <Text style={styles.cardLabel}>Church Code</Text>
                   <Text style={styles.cardValue}>{church.subdomain || 'N/A'}</Text>
+                </View>
+              </View>
+              <View style={styles.divider} />
+
+              <View style={styles.cardRow}>
+                <User size={20} color="#94a3b8" />
+                <View style={styles.cardTextContainer}>
+                  <Text style={styles.cardLabel}>Pastor / Admin Name</Text>
+                  <Text style={[styles.cardValue, { color: '#f0b429', fontWeight: '700' }]}>
+                    {church.pastorName || (church as any).adminName || 'Not specified'}
+                  </Text>
                 </View>
               </View>
               <View style={styles.divider} />
@@ -1065,6 +1081,16 @@ export default function SuperAdminChurchManager({ visible, onClose, churchId, on
                   placeholder="Or enter custom tier..."
                   placeholderTextColor="#64748b"
                   autoCapitalize="none"
+                />
+
+                <Text style={{ color: '#94a1c4', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 }}>Pastor / Admin Details</Text>
+                
+                <TextInput
+                  style={{ backgroundColor: '#0f172a', color: '#f8fafc', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#334155', fontSize: 14, marginBottom: 16 }}
+                  value={editForm.pastorName}
+                  onChangeText={(t: string) => setEditForm({ ...editForm, pastorName: t })}
+                  placeholder="Pastor / Admin Name"
+                  placeholderTextColor="#64748b"
                 />
 
                 <Text style={{ color: '#94a1c4', fontSize: 12, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 }}>Contact Details</Text>

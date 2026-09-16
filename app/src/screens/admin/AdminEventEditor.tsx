@@ -23,7 +23,6 @@ import {
   Calendar,
   Clock,
   MapPin,
-  Users,
   Image as ImageIcon,
   Bell,
   Eye,
@@ -33,7 +32,10 @@ import {
   Info,
   CheckCircle2,
   ArrowLeft,
-  CalendarDays
+  CalendarDays,
+  AlertCircle,
+  Trash2,
+  X
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { AppAlert } from '../../components/CustomAlert';
@@ -113,6 +115,8 @@ export default function AdminEventEditor() {
 
   const [bannerColor, setBannerColor] = useState('#c0392b');
   const [bannerUrl, setBannerUrl] = useState('');
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const [notifyOnPublish, setNotifyOnPublish] = useState(true);
   const [reminder1Day, setReminder1Day] = useState(true);
   const [reminder1Hour, setReminder1Hour] = useState(false);
@@ -239,10 +243,12 @@ export default function AdminEventEditor() {
         try {
           const cloudUrl = await uploadImageToCloud(localUri);
           setBannerUrl(cloudUrl);
+          setImageLoadError(false);
           AppAlert.alert('Success · విజయం', 'Banner uploaded to cloud successfully! all members will be able to see it.', undefined, 'success');
         } catch (err) {
           console.error('Cloud upload error:', err);
           setBannerUrl(localUri);
+          setImageLoadError(false);
           AppAlert.alert('Upload Failed · అప్‌లోడ్ విఫలమైంది', 'Failed to upload banner to the cloud. You can still save it or manually paste a public web link in the text box.', undefined, 'error');
         } finally {
           setIsUploadingBanner(false);
@@ -256,6 +262,11 @@ export default function AdminEventEditor() {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSave = async (status: 'Published' | 'Draft') => {
+    if (!titleEn || !titleEn.trim()) {
+      AppAlert.alert('Required Field · అవసరమైన వివరాలు', 'Please enter an event title in English.\nదయచేసి కార్యక్రమం పేరును నమోదు చేయండి.', undefined, 'error');
+      return;
+    }
+
     const executeSave = async (updateMode?: 'single' | 'future') => {
       setPublishStatus(status);
       setLoading(true);
@@ -263,11 +274,21 @@ export default function AdminEventEditor() {
       const cleanDate = (date || '').trim();
       const cleanEndDate = (endDate || '').trim();
 
-      const [d, m, y] = cleanDate.split('-');
-      const sfDate = `${y}-${m}-${d}`;
+      let sfDate = cleanDate;
+      if (cleanDate.includes('-')) {
+        const parts = cleanDate.split('-');
+        if (parts[0].length === 2) {
+          sfDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+      }
 
-      const [ed, em, ey] = cleanEndDate.split('-');
-      const sfEndDate = `${ey}-${em}-${ed}`;
+      let sfEndDate = cleanEndDate;
+      if (cleanEndDate.includes('-')) {
+        const parts = cleanEndDate.split('-');
+        if (parts[0].length === 2) {
+          sfEndDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+        }
+      }
 
     const formatToSFTime = (timeStr: string) => {
       if (!timeStr) return null;
@@ -396,6 +417,8 @@ export default function AdminEventEditor() {
     setTitleEn(''); setTitleTe(''); setDescEn(''); setDescTe('');
     setVenueEn(''); setVenueTe(''); setAddress('');
     setBannerUrl('');
+    setImageLoadError(false);
+    setImageLoading(false);
     const d = new Date();
     const ds = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
     setDate(ds); setEndDate(ds);
@@ -612,88 +635,88 @@ export default function AdminEventEditor() {
           </View>
         </View>
 
-        <View style={[styles.section, styles.secAmber]}>
-          <View style={styles.secHd}>
-            <View style={styles.secHdPill}>
-              <Users size={13} color="#fff" />
-            </View>
-            <Text style={styles.secHdTXT}>RSVP & Audience</Text>
-          </View>
-
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Enable RSVP from members</Text>
-            <Switch value={rsvpEnabled} onValueChange={setRsvpEnabled} trackColor={{ true: '#1a2d5a' }} />
-          </View>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Show RSVP count publicly</Text>
-            <Switch value={rsvpPublic} onValueChange={setRsvpPublic} trackColor={{ true: '#1a2d5a' }} />
-          </View>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Cap attendance (set max)</Text>
-            <Switch value={capAttendance} onValueChange={setCapAttendance} trackColor={{ true: '#1a2d5a' }} />
-          </View>
-
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Audience</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-              {(metadata?.audiences?.length > 0 ? metadata.audiences : [
-                { label: 'All members', value: 'All members' },
-                { label: 'Youth', value: 'Youth' },
-                { label: 'Women', value: 'Women' },
-                { label: 'Men', value: 'Men' },
-                { label: 'Leaders', value: 'Leaders' }
-              ]).map((a: any) => (
-                <TouchableOpacity key={a.value} style={[styles.chip, audience === a.value && styles.chipActive]} onPress={() => setAudience(a.value)}>
-                  <Text style={[styles.chipTxt, audience === a.value && styles.chipTxtActive]}>{a.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
 
         <View style={[styles.section, styles.secPurple]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
               <ImageIcon size={13} color="#fff" />
             </View>
-            <Text style={styles.secHdTXT}>Event Banner</Text>
+            <Text style={styles.secHdTXT}>Event Banner & Poster</Text>
           </View>
 
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Upload Banner Image</Text>
-            {isUploadingBanner ? (
-              <View style={styles.btnUploadThumb}>
-                <ActivityIndicator size="small" color="#7C3AED" />
-                <Text style={styles.btnUploadThumbTxt}>Uploading...</Text>
-              </View>
-            ) : bannerUrl ? (
-              <View style={styles.thumbnailPreviewContainer}>
-                <Image source={{ uri: bannerUrl }} style={styles.thumbnailImg} resizeMode="cover" />
-                <TouchableOpacity style={styles.removeThumbnailBtn} onPress={() => setBannerUrl('')}>
-                  <Text style={styles.btnChangeThumbTxt}>Remove Image</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity style={styles.btnUploadThumb} onPress={pickImage}>
-                <ImageIcon size={24} color="#7C3AED" style={{ marginBottom: 8 }} />
-                <Text style={styles.btnUploadThumbTxt}>Pick from Gallery / Files</Text>
-                <Text style={styles.fHint}>Select a high-quality banner</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Or Paste Image URL</Text>
-            <TextInput style={styles.input} value={bannerUrl} onChangeText={setBannerUrl} placeholder="https://example.com/image.jpg" />
-          </View>
-
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Fallback Banner Color</Text>
-            <View style={styles.themeRow}>
-              {['#c0392b', '#1a2d5a', '#15803D', '#7C3AED', '#D97706', '#dc2626'].map(c => (
-                <TouchableOpacity key={c} style={[styles.themeChip, { backgroundColor: c }, bannerColor === c && styles.themeActive]} onPress={() => setBannerColor(c)} />
-              ))}
+          {isUploadingBanner ? (
+            <View style={styles.btnUploadThumb}>
+              <ActivityIndicator size="small" color="#7C3AED" />
+              <Text style={styles.btnUploadThumbTxt}>Uploading poster to cloud...</Text>
             </View>
+          ) : bannerUrl && bannerUrl.trim().length > 0 ? (
+            <View style={styles.fGroup}>
+              <View style={styles.bannerPreviewCard}>
+                <Image 
+                  source={{ uri: bannerUrl.trim() }} 
+                  style={styles.bannerPreviewImg} 
+                  resizeMode="cover" 
+                  onLoadStart={() => { setImageLoading(true); setImageLoadError(false); }}
+                  onLoadEnd={() => setImageLoading(false)}
+                  onError={() => { setImageLoading(false); setImageLoadError(true); }}
+                />
+                {imageLoading && (
+                  <View style={styles.imageLoadingOverlay}>
+                    <ActivityIndicator size="large" color="#7C3AED" />
+                  </View>
+                )}
+                {imageLoadError && (
+                  <View style={styles.imageErrorOverlay}>
+                    <AlertCircle size={28} color="#DC2626" style={{ marginBottom: 6 }} />
+                    <Text style={styles.imageErrorTxt}>Unable to load image preview</Text>
+                    <Text style={styles.imageErrorSub}>Please verify this is a direct, public image link (jpg, png, webp).</Text>
+                  </View>
+                )}
+                <View style={styles.bannerOverlayBar}>
+                  <TouchableOpacity style={styles.bannerBtnEdit} onPress={pickImage}>
+                    <ImageIcon size={14} color="#fff" />
+                    <Text style={styles.bannerBtnTxt}>Change</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.bannerBtnDelete} onPress={() => { setBannerUrl(''); setImageLoadError(false); }}>
+                    <Trash2 size={14} color="#fff" />
+                    <Text style={styles.bannerBtnTxt}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.btnUploadThumb} onPress={pickImage}>
+              <ImageIcon size={32} color="#7C3AED" style={{ marginBottom: 10 }} />
+              <Text style={styles.btnUploadThumbTxt}>Upload Poster from Gallery</Text>
+              <Text style={styles.fHint}>Recommended aspect ratio: 16:9 widescreen</Text>
+            </TouchableOpacity>
+          )}
+
+          <View style={[styles.fGroup, { marginTop: 14 }]}>
+            <Text style={styles.fLabel}>Or Paste Image URL</Text>
+            <View style={styles.urlInputWrap}>
+              <TextInput 
+                style={[styles.input, { flex: 1, paddingRight: bannerUrl ? 36 : 12 }]} 
+                value={bannerUrl} 
+                onChangeText={(val) => {
+                  setBannerUrl(val.trim());
+                  setImageLoadError(false);
+                }} 
+                placeholder="https://example.com/poster.jpg" 
+                placeholderTextColor="#9CA3AF"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {bannerUrl.length > 0 && (
+                <TouchableOpacity 
+                  style={styles.urlClearBtn} 
+                  onPress={() => { setBannerUrl(''); setImageLoadError(false); }}
+                >
+                  <X size={16} color="#9CA3AF" />
+                </TouchableOpacity>
+              )}
+            </View>
+            <Text style={styles.fHint}>Supports JPG, PNG, WEBP, and direct cloud image URLs.</Text>
           </View>
         </View>
 
@@ -917,10 +940,6 @@ const styles = StyleSheet.create({
   chipTxt: { fontSize: 12, color: '#475569', fontWeight: '600' },
   chipTxtActive: { color: '#fff' },
 
-  themeRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6, gap: 10, paddingVertical: 4 },
-  themeChip: { width: 38, height: 38, borderRadius: 19, borderWidth: 2.5, borderColor: 'transparent' },
-  themeActive: { borderColor: '#C9A84C', transform: [{ scale: 1.1 }] },
-
   btnUploadThumb: {
     backgroundColor: '#FAFAF9',
     borderRadius: 14,
@@ -931,10 +950,87 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   btnUploadThumbTxt: { color: '#4B5563', fontSize: 14, fontWeight: '700' },
-  thumbnailPreviewContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 15 },
-  thumbnailImg: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', borderWidth: 1, borderColor: '#D9D3C7' },
-  removeThumbnailBtn: { backgroundColor: '#FEE2E2', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' },
-  btnChangeThumbTxt: { color: '#991B1B', fontSize: 13, fontWeight: '700' },
+  bannerPreviewCard: {
+    width: '100%',
+    height: 190,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#0F172A',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    marginBottom: 8,
+  },
+  bannerPreviewImg: {
+    width: '100%',
+    height: '100%',
+  },
+  imageLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageErrorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  imageErrorTxt: {
+    color: '#DC2626',
+    fontWeight: '700',
+    fontSize: 14,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  imageErrorSub: {
+    color: '#991B1B',
+    fontSize: 11,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  bannerOverlayBar: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  bannerBtnEdit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(26,45,90,0.88)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  bannerBtnDelete: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(220,38,38,0.88)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  bannerBtnTxt: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  urlInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  urlClearBtn: {
+    position: 'absolute',
+    right: 12,
+    padding: 6,
+  },
 
   footerBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
   btnSave: {

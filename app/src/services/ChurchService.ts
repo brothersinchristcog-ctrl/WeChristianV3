@@ -12,6 +12,8 @@ export interface ChurchTheme {
 export interface ChurchDetails {
   id: string;
   name: string;
+  pastorName?: string;
+  adminName?: string;
   churchCode: string;
   isActive?: boolean;
   createdBy?: string;

@@ -83,6 +83,13 @@ const YoutubeIcon = ({ size = 26, color = '#fff' }: { size?: number; color?: str
   </Svg>
 );
 
+const extractYoutubeId = (url: string) => {
+  if (!url || typeof url !== 'string') return '';
+  const cleanUrl = url.trim();
+  const match = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]+)/);
+  return match ? match[1] : cleanUrl;
+};
+
 const AnimatedCameraIcon = ({ size = 20, color = "#fff", scrollY, triggerY }: { size?: number, color?: string, scrollY?: Animated.Value, triggerY?: number }) => {
   const bodyTranslateX = useRef(new Animated.Value(-50)).current;
   const bodyTranslateY = useRef(new Animated.Value(-50)).current;
@@ -702,6 +709,14 @@ export default function HomeScreen() {
         }
       }).catch(() => {});
 
+      // Always re-fetch the latest published sermon on screen focus to ensure zero stale cache
+      FirestoreService.getLatestSermon().then((fresh) => {
+        if (fresh) {
+          cachedLatestSermon = fresh;
+          setLatestSermon(fresh);
+        }
+      }).catch(() => {});
+
       if (liveCelebrations.length === 0 || !activeChurch?.id) return;
 
       const todayStr = new Date().toISOString().split('T')[0];
@@ -937,9 +952,9 @@ export default function HomeScreen() {
       }).catch(() => {});
 
       // 6. Fetch Latest Sermon non-blocking
-      FirestoreService.getSermons(1).then((s: any) => {
-        if (s?.length > 0) {
-          cachedLatestSermon = s[0];
+      FirestoreService.getLatestSermon().then((s: any) => {
+        if (s) {
+          cachedLatestSermon = s;
           setLatestSermon(cachedLatestSermon);
         }
       }).catch(() => {});
@@ -956,7 +971,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchData();
-  }, [user]);
+  }, [user, activeChurch?.id]);
 
   useEffect(() => {
     if (authMember) {
@@ -1005,6 +1020,25 @@ export default function HomeScreen() {
       unsubscribe = unsub;
     }).catch(err => {
       console.warn('[HomeScreen] listenDailyPromise error:', err);
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [activeChurch?.id]);
+
+  // Real-time listener for Latest Sermon so updates reflect immediately
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    FirestoreService.listenLatestSermon((freshSermon) => {
+      if (freshSermon) {
+        cachedLatestSermon = freshSermon;
+        setLatestSermon(freshSermon);
+      }
+    }).then(unsub => {
+      unsubscribe = unsub;
+    }).catch(err => {
+      console.warn('[HomeScreen] listenLatestSermon error:', err);
     });
 
     return () => {
@@ -1962,17 +1996,31 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.sermonCard}>
-            <TouchableOpacity style={styles.scBody} onPress={() => navigation.navigate('SermonVideo', { sermonData: latestSermon })}>
+            <TouchableOpacity style={styles.scBody} onPress={() => latestSermon ? navigation.navigate('SermonVideo', { sermonData: latestSermon }) : navigation.navigate('Sermons')}>
               <View style={styles.scThumb}>
+                {(() => {
+                  const yId = extractYoutubeId(latestSermon?.youtubeId || '');
+                  const thumbUri = latestSermon?.thumbnailUrl || latestSermon?.imageUrl || (yId && yId.length === 11 ? `https://img.youtube.com/vi/${yId}/hqdefault.jpg` : null);
+                  return thumbUri ? (
+                    <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFillObject} resizeMode="cover" />
+                  ) : null;
+                })()}
                 <View style={styles.playIconOverlay}>
                    <Play size={20} color="#fff" fill="#c0392b" />
                 </View>
               </View>
               <View style={styles.scInfo}>
                 <Text style={styles.scTitle} numberOfLines={1}>
-                  {latestSermon?.title}
+                  {latestSermon?.title || 'Explore Sermons'}
                 </Text>
-                <Text style={styles.scMeta} numberOfLines={1}>{latestSermon?.pastor || 'Pastor'} • {latestSermon?.date ? formatDateDisplay(latestSermon.date) : 'Apr 13'} • {latestSermon?.duration || '42 min'}</Text>
+                {latestSermon?.titleTelugu ? (
+                  <Text style={styles.scTitleTe} numberOfLines={1}>{latestSermon.titleTelugu}</Text>
+                ) : null}
+                <Text style={styles.scMeta} numberOfLines={1}>
+                  {latestSermon?.pastor || 'Pastor'}
+                  {latestSermon?.date ? ` • ${formatDateDisplay(latestSermon.date)}` : ''}
+                  {latestSermon?.duration ? ` • ${latestSermon.duration}` : ''}
+                </Text>
               </View>
               <View style={styles.playBtnCircle}>
                 <Play size={18} color="#1a2d5a" />
