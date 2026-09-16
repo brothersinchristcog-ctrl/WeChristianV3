@@ -179,10 +179,10 @@ const formatTimeRange = (start: Date | null, end: Date | null, isTelugu: boolean
 
   if (isTelugu) {
     if (s.periodTelugu === e.periodTelugu) {
-      // Same period: e.g. "సాయంత్రం 5:00 - 7:00" (never repeat period twice!)
+      // Same period: e.g. "సాయంత్రం 5:00 - 7:00" or "రాత్రి 8:00 - 10:00"
       return `${s.periodTelugu} ${s.hour}:${s.minute} - ${e.hour}:${e.minute}`;
     }
-    // Different periods: e.g. "సాయంత్రం 7:00 - రాత్రి 11:30"
+    // Different periods: e.g. "సాయంత్రం 6:30 - రాత్రి 8:30"
     return `${s.periodTelugu} ${s.hour}:${s.minute} - ${e.periodTelugu} ${e.hour}:${e.minute}`;
   } else {
     if (s.ampm === e.ampm) {
@@ -2353,8 +2353,14 @@ export default function AIContentCreator() {
 
                 // Date & Time calculations
                 const timeLen = timeDisplay.length;
-                const timeFontSize = timeLen > 24 ? 5.5 : 6.2;
+                const isTimeVeryLong = timeLen > 22;
+                const timeFontSize = isTimeVeryLong ? 4.1 : timeLen > 16 ? 4.8 : 5.8;
                 const timeLineHeight = Math.round(timeFontSize * 1.25);
+
+                const dateLen = dateDisplay.length;
+                const isDateLong = dateLen > 18;
+                const dateFontSize = isDateLong ? 4.9 : 5.8;
+                const dateLineHeight = Math.round(dateFontSize * 1.25);
 
                 // Speaker calculations
                 const speakerLen = speaker ? speaker.length : 0;
@@ -2645,19 +2651,26 @@ export default function AIContentCreator() {
                             {(dateDisplay || timeDisplay) ? (
                               <View style={styles.thumbMetaRow}>
                                 {dateDisplay ? (
-                                  <View style={styles.thumbMetaCard}>
+                                  <View style={[styles.thumbMetaCard, timeDisplay ? { flex: 0.82 } : { flex: 1 }]}>
                                     <View style={[styles.thumbMetaIconCircle, { backgroundColor: activePrimaryColor }]}>
                                       <CalendarIcon size={8} color="#fff" />
                                     </View>
                                     <View style={styles.thumbMetaTextWrap}>
                                       <Text style={styles.thumbMetaLabel}>{isTelugu ? 'తేదీ :' : 'Date :'}</Text>
-                                      <Text style={styles.thumbMetaValue} numberOfLines={1}>{dateDisplay}</Text>
+                                      <Text
+                                        style={[styles.thumbMetaValue, { fontSize: dateFontSize, lineHeight: dateLineHeight }]}
+                                        numberOfLines={1}
+                                        adjustsFontSizeToFit
+                                        minimumFontScale={0.75}
+                                      >
+                                        {dateDisplay}
+                                      </Text>
                                     </View>
                                   </View>
                                 ) : null}
 
                                 {timeDisplay ? (
-                                  <View style={styles.thumbMetaCard}>
+                                  <View style={[styles.thumbMetaCard, dateDisplay ? { flex: 1.18 } : { flex: 1 }]}>
                                     <View style={[styles.thumbMetaIconCircle, { backgroundColor: activePrimaryColor }]}>
                                       <Clock size={8} color="#fff" />
                                     </View>
@@ -2666,6 +2679,8 @@ export default function AIContentCreator() {
                                       <Text
                                         style={[styles.thumbMetaValue, { fontSize: timeFontSize, lineHeight: timeLineHeight }]}
                                         numberOfLines={1}
+                                        adjustsFontSizeToFit
+                                        minimumFontScale={0.7}
                                       >
                                         {timeDisplay}
                                       </Text>
@@ -2832,9 +2847,6 @@ export default function AIContentCreator() {
                   </TouchableOpacity>
                 </View>
               </View>
-
-              {/* Live Color & Theme Tuning directly below thumbnail */}
-              {renderColorPickerSection()}
             </View>
           ) : null}
 
@@ -3580,16 +3592,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 4,
+    gap: 3.5,
     width: '100%',
   },
   thumbMetaCard: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 2.5,
     backgroundColor: 'rgba(255,255,255,0.94)',
-    paddingHorizontal: 4,
+    paddingHorizontal: 3.5,
     paddingVertical: 2,
     borderRadius: 4,
   },
