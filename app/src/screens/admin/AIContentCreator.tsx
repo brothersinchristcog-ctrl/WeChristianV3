@@ -1624,10 +1624,10 @@ export default function AIContentCreator() {
         >
           <View style={styles.colorPickerTitleRow}>
             <Palette size={15} color="#1a2d5a" />
-            <Text style={styles.colorPickerTitle}>Thumbnail Color & Theme</Text>
+            <Text style={styles.colorPickerTitle} numberOfLines={1} ellipsizeMode="tail">Thumbnail Color & Theme</Text>
           </View>
 
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <View style={styles.colorActiveIndicator}>
               <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: activePrimaryColor, borderWidth: 1, borderColor: '#D1D5DB' }} />
               {isGradientMode ? (
@@ -1636,7 +1636,7 @@ export default function AIContentCreator() {
                   <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: activeSecondaryColor, borderWidth: 1, borderColor: '#D1D5DB' }} />
                 </>
               ) : null}
-              <Text style={styles.colorActiveIndicatorTxt}>
+              <Text style={styles.colorActiveIndicatorTxt} numberOfLines={1}>
                 {isGradientMode ? 'Gradient' : activePrimaryColor}
               </Text>
             </View>
@@ -2435,22 +2435,22 @@ export default function AIContentCreator() {
                               <Image source={{ uri: churchLogoUrl }} style={styles.promiseChurchLogo} resizeMode="contain" />
                             ) : (
                               <View style={[styles.promiseLogoFallback, { backgroundColor: activePrimaryColor }]}>
-                                <Text style={styles.thumbChurchLogoCross}>✝</Text>
+                                <Text style={styles.thumbChurchLogoCross} allowFontScaling={false}>✝</Text>
                               </View>
                             )}
-                            <View>
+                            <View style={{ flexShrink: 1 }}>
                               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <Text style={{ fontSize: 9 }}>🕊</Text>
-                                <Text style={styles.promiseChurchName}>{churchName}</Text>
+                                <Text style={{ fontSize: 8.5 }} allowFontScaling={false}>🕊</Text>
+                                <Text style={styles.promiseChurchName} numberOfLines={1} allowFontScaling={false}>{churchName}</Text>
                               </View>
-                              <Text style={styles.promiseSubHeaderTxt}>{isTelugu ? 'నేటి దైవిక వాగ్దానం' : "TODAY'S SCRIPTURE PROMISE"}</Text>
+                              <Text style={styles.promiseSubHeaderTxt} numberOfLines={1} allowFontScaling={false}>{isTelugu ? 'నేటి దైవిక వాగ్దానం' : "TODAY'S SCRIPTURE PROMISE"}</Text>
                             </View>
                           </View>
 
                           {/* Date Badge */}
                           <View style={[styles.promiseDatePill, { borderColor: `${activeSecondaryColor}88`, backgroundColor: hexToRgba(activePrimaryColor, 0.28) }]}>
-                            <CalendarIcon size={8} color={activeSecondaryColor} />
-                            <Text style={styles.promiseDateTxt}>{promiseDateDisplay}</Text>
+                            <CalendarIcon size={7} color={activeSecondaryColor} />
+                            <Text style={styles.promiseDateTxt} numberOfLines={1} allowFontScaling={false}>{promiseDateDisplay}</Text>
                           </View>
                         </View>
 
@@ -2458,8 +2458,8 @@ export default function AIContentCreator() {
                         <View style={[styles.promiseCenterCard, { borderColor: `${activeSecondaryColor}77` }]}>
                           {/* Promise Ribbon Pill */}
                           <View style={[styles.promiseRibbonPill, { backgroundColor: activeSecondaryColor }]}>
-                            <Sparkles size={8} color={getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF'} />
-                            <Text style={[styles.promiseRibbonTxt, { color: getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF' }]}>
+                            <Sparkles size={7} color={getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF'} />
+                            <Text style={[styles.promiseRibbonTxt, { color: getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF' }]} allowFontScaling={false} numberOfLines={1}>
                               {isTelugu ? '✨ నేటి దేవుని వాగ్దానం ✨' : '✨ TODAY’S DAILY PROMISE ✨'}
                             </Text>
                           </View>
@@ -2472,17 +2472,18 @@ export default function AIContentCreator() {
                                 style={styles.promiseQuoteTelugu}
                                 numberOfLines={2}
                                 adjustsFontSizeToFit={true}
-                                minimumFontScale={0.8}
+                                minimumFontScale={0.75}
+                                allowFontScaling={false}
                               >
                                 “{cleanVerse(teluguText)}.”{' '}
-                                <Text style={[styles.promiseQuoteTeluguRef, { color: activeSecondaryColor }]}>{cleanRef(teluguRef)}</Text>
+                                <Text style={[styles.promiseQuoteTeluguRef, { color: activeSecondaryColor }]} allowFontScaling={false}>{cleanRef(teluguRef)}</Text>
                               </Text>
                             </View>
 
                             {/* Subtle Decorative Golden Divider */}
                             <View style={styles.promiseDividerRow}>
                               <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
-                              <Text style={[styles.promiseDividerCross, { color: activeSecondaryColor }]}>✝</Text>
+                              <Text style={[styles.promiseDividerCross, { color: activeSecondaryColor }]} allowFontScaling={false}>✝</Text>
                               <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
                             </View>
 
@@ -2492,10 +2493,11 @@ export default function AIContentCreator() {
                                 style={styles.promiseQuoteEnglish}
                                 numberOfLines={2}
                                 adjustsFontSizeToFit={true}
-                                minimumFontScale={0.8}
+                                minimumFontScale={0.75}
+                                allowFontScaling={false}
                               >
                                 “{cleanVerse(englishText)}.”{' '}
-                                <Text style={[styles.promiseQuoteEnglishRef, { color: activeSecondaryColor }]}>{cleanRef(englishRef)}</Text>
+                                <Text style={[styles.promiseQuoteEnglishRef, { color: activeSecondaryColor }]} allowFontScaling={false}>{cleanRef(englishRef)}</Text>
                               </Text>
                             </View>
                           </View>
@@ -2503,11 +2505,11 @@ export default function AIContentCreator() {
                           {/* Devotional Tagline / Blessing */}
                           {effectiveTagline ? (
                             <View style={styles.promiseTagRow}>
-                              <Text style={styles.thumbLeaf}>🌿</Text>
-                              <Text style={styles.promiseTagTxt} numberOfLines={1} adjustsFontSizeToFit={true} minimumFontScale={0.85}>
+                              <Text style={styles.thumbLeaf} allowFontScaling={false}>🌿</Text>
+                              <Text style={styles.promiseTagTxt} numberOfLines={1} adjustsFontSizeToFit={true} minimumFontScale={0.8} allowFontScaling={false}>
                                 {effectiveTagline}
                               </Text>
-                              <Text style={styles.thumbLeaf}>🌿</Text>
+                              <Text style={styles.thumbLeaf} allowFontScaling={false}>🌿</Text>
                             </View>
                           ) : null}
                         </View>
@@ -2515,12 +2517,12 @@ export default function AIContentCreator() {
                         {/* Bottom Footer: Phone on left, Blessing on right */}
                         <View style={styles.promiseBottomBar}>
                           <View style={[styles.thumbPhonePill, { backgroundColor: activePrimaryColor }]}>
-                            <Phone size={8} color="#fff" />
-                            <Text style={styles.thumbPhoneTxt}>
+                            <Phone size={7} color="#fff" />
+                            <Text style={styles.thumbPhoneTxt} numberOfLines={1} allowFontScaling={false}>
                               {isTelugu ? `మరిన్ని వివరాలకు : ${churchPhone}` : `for more information : ${churchPhone}`}
                             </Text>
                           </View>
-                          <Text style={[styles.thumbWelcomeScript, { color: activeSecondaryColor }]}>
+                          <Text style={[styles.thumbWelcomeScript, { color: activeSecondaryColor }]} numberOfLines={1} allowFontScaling={false}>
                             {isTelugu ? 'దీవించబడుదురు గాక' : 'Be Blessed & Victorious'}
                           </Text>
                         </View>
@@ -2557,16 +2559,17 @@ export default function AIContentCreator() {
                                 { fontSize: verseFontSize, lineHeight: verseLineHeight }
                               ]}
                               numberOfLines={verseMaxLines}
+                              allowFontScaling={false}
                             >
                               “{effectiveVerseText}”
                             </Text>
-                            <Text style={[styles.scriptureRefBadge, { color: activeSecondaryColor }]}>
+                            <Text style={[styles.scriptureRefBadge, { color: activeSecondaryColor }]} allowFontScaling={false}>
                               {effectiveVerseRef}
                             </Text>
                           </View>
 
                           {/* Bottom Left Sub-text */}
-                          <Text style={styles.thumbLeftFooterTxt}>
+                          <Text style={styles.thumbLeftFooterTxt} allowFontScaling={false}>
                             {isTelugu
                               ? 'రండి   |   ఆరాధించండి   |   పొందుకోండి   |   దీవించబడండి'
                               : 'COME   |   WORSHIP   |   RECEIVE   |   BE BLESSED'}
@@ -2579,10 +2582,11 @@ export default function AIContentCreator() {
                           {/* Church Header */}
                           <View style={styles.thumbHeaderBlock}>
                             <View style={styles.thumbChurchHeaderRow}>
-                              <Text style={[styles.thumbDoveIcon, { color: activeSecondaryColor }]}>🕊</Text>
+                              <Text style={[styles.thumbDoveIcon, { color: activeSecondaryColor }]} allowFontScaling={false}>🕊</Text>
                               <Text
                                 style={[styles.thumbChurchNameCaps, { fontSize: churchNameFontSize }]}
                                 numberOfLines={1}
+                                allowFontScaling={false}
                               >
                                 {churchName}
                               </Text>
@@ -2603,23 +2607,25 @@ export default function AIContentCreator() {
                               numberOfLines={themeMaxLines}
                               adjustsFontSizeToFit={true}
                               minimumFontScale={0.75}
+                              allowFontScaling={false}
                             >
                               {effectiveTheme}
                             </Text>
                             {effectiveTagline ? (
                               <View style={[styles.thumbTagPillWrap, { marginTop: isDenseLayout ? 1.5 : 2 }]}>
-                                <Text style={styles.thumbLeaf}>🌿</Text>
+                                <Text style={styles.thumbLeaf} allowFontScaling={false}>🌿</Text>
                                 <View style={[styles.thumbTagPill, { paddingVertical: tagLen > 25 ? 0.5 : 1 }]}>
                                   <Text
                                     style={[styles.thumbTagPillTxt, { fontSize: tagFontSize }]}
                                     numberOfLines={1}
                                     adjustsFontSizeToFit={true}
                                     minimumFontScale={0.8}
+                                    allowFontScaling={false}
                                   >
                                     {effectiveTagline}
                                   </Text>
                                 </View>
-                                <Text style={styles.thumbLeaf}>🌿</Text>
+                                <Text style={styles.thumbLeaf} allowFontScaling={false}>🌿</Text>
                               </View>
                             ) : null}
                           </View>
@@ -2631,6 +2637,7 @@ export default function AIContentCreator() {
                               <Text
                                 style={[styles.thumbSpeakerBadgeTxt, { fontSize: speakerFontSize }]}
                                 numberOfLines={1}
+                                allowFontScaling={false}
                               >
                                 {(() => {
                                   const s = speaker.trim();
@@ -2656,12 +2663,13 @@ export default function AIContentCreator() {
                                       <CalendarIcon size={8} color="#fff" />
                                     </View>
                                     <View style={styles.thumbMetaTextWrap}>
-                                      <Text style={styles.thumbMetaLabel}>{isTelugu ? 'తేదీ :' : 'Date :'}</Text>
+                                      <Text style={styles.thumbMetaLabel} allowFontScaling={false}>{isTelugu ? 'తేదీ :' : 'Date :'}</Text>
                                       <Text
                                         style={[styles.thumbMetaValue, { fontSize: dateFontSize, lineHeight: dateLineHeight }]}
                                         numberOfLines={1}
                                         adjustsFontSizeToFit
                                         minimumFontScale={0.75}
+                                        allowFontScaling={false}
                                       >
                                         {dateDisplay}
                                       </Text>
@@ -2675,12 +2683,13 @@ export default function AIContentCreator() {
                                       <Clock size={8} color="#fff" />
                                     </View>
                                     <View style={styles.thumbMetaTextWrap}>
-                                      <Text style={styles.thumbMetaLabel}>{isTelugu ? 'సమయం :' : 'Time :'}</Text>
+                                      <Text style={styles.thumbMetaLabel} allowFontScaling={false}>{isTelugu ? 'సమయం :' : 'Time :'}</Text>
                                       <Text
                                         style={[styles.thumbMetaValue, { fontSize: timeFontSize, lineHeight: timeLineHeight }]}
                                         numberOfLines={1}
                                         adjustsFontSizeToFit
                                         minimumFontScale={0.7}
+                                        allowFontScaling={false}
                                       >
                                         {timeDisplay}
                                       </Text>
@@ -2702,8 +2711,9 @@ export default function AIContentCreator() {
                                       { fontSize: locFontSize, lineHeight: locLineHeight }
                                     ]}
                                     numberOfLines={locMaxLines}
+                                    allowFontScaling={false}
                                   >
-                                    <Text style={styles.thumbMetaLabel}>{isTelugu ? 'స్థలం: ' : 'Location: '}</Text>
+                                    <Text style={styles.thumbMetaLabel} allowFontScaling={false}>{isTelugu ? 'స్థలం: ' : 'Location: '}</Text>
                                     {effectiveLocation}
                                   </Text>
                                 </View>
@@ -2715,11 +2725,11 @@ export default function AIContentCreator() {
                           <View style={styles.thumbBottomBarRow}>
                             <View style={[styles.thumbPhonePill, { backgroundColor: activePrimaryColor }]}>
                               <Phone size={8} color="#fff" />
-                              <Text style={styles.thumbPhoneTxt}>
+                              <Text style={styles.thumbPhoneTxt} allowFontScaling={false}>
                                 {isTelugu ? `మరిన్ని వివరాలకు : ${churchPhone}` : `for more information : ${churchPhone}`}
                               </Text>
                             </View>
-                            <Text style={[styles.thumbWelcomeScript, { color: activeSecondaryColor }]}>
+                            <Text style={[styles.thumbWelcomeScript, { color: activeSecondaryColor }]} allowFontScaling={false}>
                               {isTelugu ? 'అందరికీ ఆహ్వానం' : 'All are Welcome'}
                             </Text>
                           </View>
@@ -3721,88 +3731,93 @@ const styles = StyleSheet.create({
   promiseLogoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
+    flex: 1,
+    marginRight: 6,
   },
   promiseChurchLogo: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 1.2,
     borderColor: 'rgba(255,255,255,0.9)',
     backgroundColor: '#fff',
   },
   promiseLogoFallback: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
     borderColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
   },
   promiseChurchName: {
     color: '#FFFFFF',
-    fontSize: 9.2,
+    fontSize: 8.5,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
     fontFamily: SERIF,
   },
   promiseSubHeaderTxt: {
     color: '#FDE68A',
-    fontSize: 6.2,
+    fontSize: 6.0,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   promiseDatePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3.5,
+    gap: 3,
     backgroundColor: 'rgba(245, 158, 11, 0.18)',
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.65)',
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 999,
+    flexShrink: 0,
   },
   promiseDateTxt: {
     color: '#FFFFFF',
-    fontSize: 7.5,
+    fontSize: 7.0,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   promiseCenterCard: {
     flex: 1,
     marginHorizontal: 4,
-    marginVertical: 4,
-    backgroundColor: 'rgba(15, 8, 26, 0.70)',
-    borderRadius: 10,
-    borderWidth: 1.2,
+    marginVertical: 2,
+    backgroundColor: 'rgba(15, 8, 26, 0.72)',
+    borderRadius: 8,
+    borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.55)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    justifyContent: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    justifyContent: 'space-between',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   promiseRibbonPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3.5,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 1.5,
     borderRadius: 999,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   promiseRibbonTxt: {
     color: '#211A2E',
-    fontSize: 6.8,
+    fontSize: 6.2,
     fontWeight: '900',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   promiseQuoteContainer: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 2,
+    flexShrink: 1,
   },
   promiseQuoteLineWrap: {
     width: '100%',
@@ -3810,17 +3825,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   promiseQuoteTelugu: {
-    fontSize: 12.0,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#FFFFFF',
     textAlign: 'center',
-    lineHeight: 16.5,
+    lineHeight: 14.5,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   promiseQuoteTeluguRef: {
-    fontSize: 9.8,
+    fontSize: 8.8,
     fontWeight: '800',
     color: '#F59E0B',
   },
@@ -3828,9 +3843,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    width: '60%',
-    marginVertical: 3,
+    gap: 5,
+    width: '50%',
+    marginVertical: 1.5,
   },
   promiseDividerLine: {
     flex: 1,
@@ -3838,23 +3853,23 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   promiseDividerCross: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#F59E0B',
   },
   promiseQuoteEnglish: {
-    fontSize: 9.2,
+    fontSize: 8.0,
     fontStyle: 'italic',
     fontWeight: '700',
     color: '#FEF3C7',
     textAlign: 'center',
-    lineHeight: 13.0,
+    lineHeight: 11.5,
     fontFamily: SERIF,
     textShadowColor: 'rgba(0, 0, 0, 0.7)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   promiseQuoteEnglishRef: {
-    fontSize: 8.5,
+    fontSize: 7.5,
     fontWeight: '800',
     color: '#FCD34D',
   },
@@ -3875,14 +3890,14 @@ const styles = StyleSheet.create({
   promiseTagRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 3,
+    gap: 3,
+    marginTop: 1,
   },
   promiseTagTxt: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 6.5,
+    color: 'rgba(255,255,255,0.88)',
+    fontSize: 6.0,
     fontWeight: '700',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   promiseBottomBar: {
     flexDirection: 'row',
@@ -4087,11 +4102,14 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   colorPickerTitleRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
+    marginRight: 6,
   },
   colorPickerTitle: {
+    flex: 1,
     fontSize: 11.5,
     fontWeight: '800',
     color: '#1a2d5a',

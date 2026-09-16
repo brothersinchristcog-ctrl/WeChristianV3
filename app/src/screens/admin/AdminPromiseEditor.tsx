@@ -815,40 +815,53 @@ export default function AdminPromiseEditor() {
             
             <View style={{ flexDirection: 'column', gap: 10 }}>
               <TouchableOpacity 
-                style={[styles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]} 
+                style={[styles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 46, paddingVertical: 10, paddingHorizontal: 12 }]} 
                 onPress={() => setSelectionModalType('book')}
+                activeOpacity={0.7}
               >
-                <Text style={{ color: selectedBook !== null ? '#1a2d5a' : '#94A3B8', flex: 1 }} numberOfLines={1}>
+                <Text style={{ color: selectedBook !== null ? '#1a2d5a' : '#94A3B8', flex: 1, fontSize: 13, fontWeight: '600' }} numberOfLines={1} ellipsizeMode="tail">
                   {selectedBook !== null ? `${ENGLISH_NAMES[selectedBook]} - ${TELUGU_NAMES[selectedBook]}` : 'Select Book'}
                 </Text>
-                <ChevronDown size={16} color="#94A3B8" />
+                <ChevronDown size={16} color="#94A3B8" style={{ marginLeft: 6 }} />
               </TouchableOpacity>
               
-              <View style={{ flexDirection: 'row', gap: 10 }}>
+              <View style={{ flexDirection: 'row', gap: 10, alignItems: 'stretch' }}>
                 <TouchableOpacity 
-                  style={[styles.input, { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]} 
+                  style={[styles.input, { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 46, paddingVertical: 10, paddingHorizontal: 10 }]} 
                   onPress={() => {
                     if (selectedBook === null) return AppAlert.alert('Info', 'Please select a Book first');
                     setSelectionModalType('chapter');
                   }}
+                  activeOpacity={0.7}
                 >
-                  <Text style={{ color: selectedChapter !== null ? '#1a2d5a' : '#94A3B8' }}>
+                  <Text 
+                    style={{ color: selectedChapter !== null ? '#1a2d5a' : '#94A3B8', fontSize: 12.5, fontWeight: '600', flex: 1, marginRight: 4 }}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.8}
+                  >
                     {selectedChapter !== null ? `Chapter ${selectedChapter}` : 'Select Chapter'}
                   </Text>
-                  <ChevronDown size={16} color="#94A3B8" />
+                  <ChevronDown size={15} color="#94A3B8" />
                 </TouchableOpacity>
 
                 <TouchableOpacity 
-                  style={[styles.input, { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]} 
+                  style={[styles.input, { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 46, paddingVertical: 10, paddingHorizontal: 10 }]} 
                   onPress={() => {
                     if (selectedChapter === null) return AppAlert.alert('Info', 'Please select a Chapter first');
                     setSelectionModalType('verse');
                   }}
+                  activeOpacity={0.7}
                 >
-                  <Text style={{ color: selectedVerse !== null ? '#1a2d5a' : '#94A3B8' }}>
+                  <Text 
+                    style={{ color: selectedVerse !== null ? '#1a2d5a' : '#94A3B8', fontSize: 12.5, fontWeight: '600', flex: 1, marginRight: 4 }}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.8}
+                  >
                     {selectedVerse !== null ? `Verse ${selectedVerse}` : 'Select Verse'}
                   </Text>
-                  <ChevronDown size={16} color="#94A3B8" />
+                  <ChevronDown size={15} color="#94A3B8" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -957,24 +970,24 @@ export default function AdminPromiseEditor() {
                             <Image source={{ uri: activeChurch.theme.logoUrl }} style={styles.promiseChurchLogo} resizeMode="contain" />
                           ) : (
                             <View style={[styles.promiseLogoFallback, { backgroundColor: activePrimaryColor }]}>
-                              <Text style={styles.promiseChurchLogoCross}>✝</Text>
+                              <Text style={styles.promiseChurchLogoCross} allowFontScaling={false}>✝</Text>
                             </View>
                           )}
-                          <View>
+                          <View style={{ flexShrink: 1 }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                              <Text style={{ fontSize: 9 }}>🕊</Text>
-                              <Text style={styles.promiseChurchName}>
+                              <Text style={{ fontSize: 8.5 }} allowFontScaling={false}>🕊</Text>
+                              <Text style={styles.promiseChurchName} numberOfLines={1} allowFontScaling={false}>
                                 {(activeChurch?.name || 'WE CHRISTIAN').toUpperCase()}
                               </Text>
                             </View>
-                            <Text style={styles.promiseSubHeaderTxt}>నేటి దైవిక వాగ్దానం</Text>
+                            <Text style={styles.promiseSubHeaderTxt} numberOfLines={1} allowFontScaling={false}>నేటి దైవిక వాగ్దానం</Text>
                           </View>
                         </View>
 
                         {/* Dynamic Date Badge (Pulls from selected promise date) */}
                         <View style={[styles.promiseDatePill, { borderColor: `${activePrimaryColor}AA`, backgroundColor: hexToRgba(activePrimaryColor, 0.28) }]}>
-                          <CalendarIcon size={8} color={activeSecondaryColor} />
-                          <Text style={styles.promiseDateTxt}>
+                          <CalendarIcon size={7} color={activeSecondaryColor} />
+                          <Text style={styles.promiseDateTxt} numberOfLines={1} allowFontScaling={false}>
                             {getPromiseDateDisplay(form.date, true)}
                           </Text>
                         </View>
@@ -984,8 +997,10 @@ export default function AdminPromiseEditor() {
                       <View style={[styles.promiseCenterCard, { borderColor: `${activeSecondaryColor}66` }]}>
                         {/* Ribbon Pill */}
                         <View style={[styles.promiseRibbonPill, { backgroundColor: activeSecondaryColor }]}>
-                          <Sparkles size={8} color={getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF'} />
-                          <Text style={[styles.promiseRibbonTxt, { color: getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF' }]}>✨ నేటి దేవుని వాగ్దానం ✨</Text>
+                          <Sparkles size={7} color={getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF'} />
+                          <Text style={[styles.promiseRibbonTxt, { color: getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF' }]} allowFontScaling={false} numberOfLines={1}>
+                            ✨ నేటి దేవుని వాగ్దానం ✨
+                          </Text>
                         </View>
 
                         {/* Scripture Presentation: Automatically pulled from selected Bible verse */}
@@ -996,11 +1011,12 @@ export default function AdminPromiseEditor() {
                               style={styles.promiseQuoteTelugu}
                               numberOfLines={2}
                               adjustsFontSizeToFit={true}
-                              minimumFontScale={0.8}
+                              minimumFontScale={0.75}
+                              allowFontScaling={false}
                             >
                               “{cleanVerse(form.teVerse || 'దీర్ఘాయువు చేత అతనిని తృప్తిపరచెదను')}.”{' '}
                               {form.teRef ? (
-                                <Text style={[styles.promiseQuoteTeluguRef, { color: activeSecondaryColor }]}>
+                                <Text style={[styles.promiseQuoteTeluguRef, { color: activeSecondaryColor }]} allowFontScaling={false}>
                                   {cleanRef(form.teRef)}
                                 </Text>
                               ) : null}
@@ -1010,7 +1026,7 @@ export default function AdminPromiseEditor() {
                           {/* Dynamic Divider with Cross */}
                           <View style={styles.promiseDividerRow}>
                             <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
-                            <Text style={[styles.promiseDividerCross, { color: activeSecondaryColor }]}>✝</Text>
+                            <Text style={[styles.promiseDividerCross, { color: activeSecondaryColor }]} allowFontScaling={false}>✝</Text>
                             <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
                           </View>
 
@@ -1020,11 +1036,12 @@ export default function AdminPromiseEditor() {
                               style={styles.promiseQuoteEnglish}
                               numberOfLines={2}
                               adjustsFontSizeToFit={true}
-                              minimumFontScale={0.8}
+                              minimumFontScale={0.75}
+                              allowFontScaling={false}
                             >
                               “{cleanVerse(form.enVerse || 'I will satisfy him with long life')}.”{' '}
                               {form.enRef ? (
-                                <Text style={styles.promiseQuoteEnglishRef}>
+                                <Text style={styles.promiseQuoteEnglishRef} allowFontScaling={false}>
                                   {cleanRef(form.enRef)}
                                 </Text>
                               ) : null}
@@ -1034,23 +1051,23 @@ export default function AdminPromiseEditor() {
 
                         {/* Tagline / Devotional Note */}
                         <View style={styles.promiseTagRow}>
-                          <Text style={{ fontSize: 7 }}>🌿</Text>
-                          <Text style={styles.promiseTagTxt} numberOfLines={1} adjustsFontSizeToFit={true} minimumFontScale={0.85}>
+                          <Text style={{ fontSize: 6.5 }} allowFontScaling={false}>🌿</Text>
+                          <Text style={styles.promiseTagTxt} numberOfLines={1} adjustsFontSizeToFit={true} minimumFontScale={0.8} allowFontScaling={false}>
                             {form.teNote || form.enNote || 'దీర్ఘాయువునిచ్చు దేవుని వాగ్దానం'}
                           </Text>
-                          <Text style={{ fontSize: 7 }}>🌿</Text>
+                          <Text style={{ fontSize: 6.5 }} allowFontScaling={false}>🌿</Text>
                         </View>
                       </View>
 
                       {/* Bottom Footer Bar */}
                       <View style={styles.promiseBottomBar}>
                         <View style={[styles.promisePhonePill, { backgroundColor: activePrimaryColor }]}>
-                          <Phone size={8} color="#fff" />
-                          <Text style={styles.promisePhoneTxt}>
+                          <Phone size={7} color="#fff" />
+                          <Text style={styles.promisePhoneTxt} numberOfLines={1} allowFontScaling={false}>
                             {`మరిన్ని వివరాలకు : ${activeChurch?.contactPhone || '8000504070'}`}
                           </Text>
                         </View>
-                        <Text style={[styles.promiseWelcomeScript, { color: activeSecondaryColor }]}>
+                        <Text style={[styles.promiseWelcomeScript, { color: activeSecondaryColor }]} numberOfLines={1} allowFontScaling={false}>
                           దీవించబడుదురు గాక
                         </Text>
                       </View>
@@ -1193,10 +1210,10 @@ export default function AdminPromiseEditor() {
               >
                 <View style={styles.colorPickerTitleRow}>
                   <Palette size={15} color="#1a2d5a" />
-                  <Text style={styles.colorPickerTitle}>Thumbnail Color & Theme</Text>
+                  <Text style={styles.colorPickerTitle} numberOfLines={1} ellipsizeMode="tail">Thumbnail Color & Theme</Text>
                 </View>
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                   <View style={styles.colorActiveIndicator}>
                     <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: activePrimaryColor, borderWidth: 1, borderColor: '#D1D5DB' }} />
                     {(colorMode === 'gradient' || (colorMode === 'custom' && customType === 'gradient')) ? (
@@ -1205,7 +1222,7 @@ export default function AdminPromiseEditor() {
                         <View style={{ width: 14, height: 14, borderRadius: 7, backgroundColor: activeSecondaryColor, borderWidth: 1, borderColor: '#D1D5DB' }} />
                       </>
                     ) : null}
-                    <Text style={styles.colorActiveIndicatorTxt}>
+                    <Text style={styles.colorActiveIndicatorTxt} numberOfLines={1}>
                       {(colorMode === 'gradient' || (colorMode === 'custom' && customType === 'gradient')) ? 'Gradient' : activePrimaryColor}
                     </Text>
                   </View>
@@ -2449,7 +2466,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'space-between',
     paddingHorizontal: 8,
-    paddingVertical: 7,
+    paddingVertical: 5,
     zIndex: 10,
   },
   promiseTopBar: {
@@ -2462,93 +2479,98 @@ const styles = StyleSheet.create({
   promiseLogoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 5,
+    flex: 1,
+    marginRight: 6,
   },
   promiseChurchLogo: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     borderWidth: 1.2,
     borderColor: 'rgba(255,255,255,0.9)',
     backgroundColor: '#fff',
   },
   promiseLogoFallback: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 1.2,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
     borderColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
   },
   promiseChurchLogoCross: {
     color: '#fff',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '900',
   },
   promiseChurchName: {
     color: '#FFFFFF',
-    fontSize: 9.2,
+    fontSize: 8.5,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
     fontFamily: SERIF,
   },
   promiseSubHeaderTxt: {
     color: '#FDE68A',
-    fontSize: 6.2,
+    fontSize: 6.0,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
   promiseDatePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3.5,
+    gap: 3,
     backgroundColor: 'rgba(245, 158, 11, 0.18)',
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.65)',
-    paddingHorizontal: 7,
-    paddingVertical: 2.5,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     borderRadius: 999,
+    flexShrink: 0,
   },
   promiseDateTxt: {
     color: '#FFFFFF',
-    fontSize: 7.5,
+    fontSize: 7.0,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   promiseCenterCard: {
     flex: 1,
     marginHorizontal: 4,
-    marginVertical: 4,
-    backgroundColor: 'rgba(15, 8, 26, 0.70)',
-    borderRadius: 10,
-    borderWidth: 1.2,
+    marginVertical: 2,
+    backgroundColor: 'rgba(15, 8, 26, 0.72)',
+    borderRadius: 8,
+    borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.55)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    justifyContent: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    justifyContent: 'space-between',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   promiseRibbonPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3.5,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 1.5,
     borderRadius: 999,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   promiseRibbonTxt: {
     color: '#211A2E',
-    fontSize: 6.8,
+    fontSize: 6.2,
     fontWeight: '900',
-    letterSpacing: 0.8,
+    letterSpacing: 0.6,
   },
   promiseQuoteContainer: {
     width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 2,
+    flexShrink: 1,
   },
   promiseQuoteLineWrap: {
     width: '100%',
@@ -2556,17 +2578,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   promiseQuoteTelugu: {
-    fontSize: 12.0,
+    fontSize: 10.5,
     fontWeight: '800',
     color: '#FFFFFF',
     textAlign: 'center',
-    lineHeight: 16.5,
+    lineHeight: 14.5,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   promiseQuoteTeluguRef: {
-    fontSize: 9.8,
+    fontSize: 8.8,
     fontWeight: '800',
     color: '#F59E0B',
   },
@@ -2574,9 +2596,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    width: '60%',
-    marginVertical: 3,
+    gap: 5,
+    width: '50%',
+    marginVertical: 1.5,
   },
   promiseDividerLine: {
     flex: 1,
@@ -2584,37 +2606,37 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   promiseDividerCross: {
-    fontSize: 8,
+    fontSize: 7,
     color: '#F59E0B',
   },
   promiseQuoteEnglish: {
-    fontSize: 9.2,
+    fontSize: 8.0,
     fontStyle: 'italic',
     fontWeight: '700',
     color: '#FEF3C7',
     textAlign: 'center',
-    lineHeight: 13.0,
+    lineHeight: 11.5,
     fontFamily: SERIF,
     textShadowColor: 'rgba(0, 0, 0, 0.7)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   promiseQuoteEnglishRef: {
-    fontSize: 8.5,
+    fontSize: 7.5,
     fontWeight: '800',
     color: '#FCD34D',
   },
   promiseTagRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginTop: 3,
+    gap: 3,
+    marginTop: 1,
   },
   promiseTagTxt: {
-    color: 'rgba(255,255,255,0.85)',
-    fontSize: 6.5,
+    color: 'rgba(255,255,255,0.88)',
+    fontSize: 6.0,
     fontWeight: '700',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   promiseBottomBar: {
     flexDirection: 'row',
@@ -2626,20 +2648,20 @@ const styles = StyleSheet.create({
   promisePhonePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
+    gap: 2.5,
     paddingHorizontal: 5,
-    paddingVertical: 1.8,
+    paddingVertical: 1.5,
     borderRadius: 999,
     borderWidth: 0.8,
     borderColor: 'rgba(255,255,255,0.4)',
   },
   promisePhoneTxt: {
     color: '#fff',
-    fontSize: 6.8,
+    fontSize: 6.2,
     fontWeight: '700',
   },
   promiseWelcomeScript: {
-    fontSize: 9.5,
+    fontSize: 8.5,
     fontStyle: 'italic',
     fontWeight: '700',
     color: '#F59E0B',
@@ -2808,11 +2830,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   colorPickerTitleRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
+    marginRight: 6,
   },
   colorPickerTitle: {
+    flex: 1,
     fontSize: 11.5,
     fontWeight: '800',
     color: '#1a2d5a',
