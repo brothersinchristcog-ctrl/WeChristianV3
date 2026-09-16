@@ -44,6 +44,7 @@ import ReferralService from '../services/ReferralService';
 import { useChurch } from '../context/ChurchContext';
 import SecurityService from '../services/SecurityService';
 import * as ImagePicker from 'expo-image-picker';
+import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import { Lock } from 'lucide-react-native';
 import storage from '@react-native-firebase/storage';
@@ -596,7 +597,9 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>Sign out</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionTxt}>Version {Constants.expoConfig?.version || '1.0.2'}</Text>
+        <Text style={styles.versionTxt}>
+          Version {Application.nativeApplicationVersion || Constants.expoConfig?.version || '1.0.3'}
+        </Text>
       </ScrollView>
 
       {/* ── Edit Profile Modal (Using View for better reliability) ── */}
