@@ -9,6 +9,14 @@ export interface ChurchTheme {
   bannerUrl?: string;
 }
 
+export interface ServiceTiming {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  note?: string;
+}
+
 export interface ChurchDetails {
   id: string;
   name: string;
@@ -78,6 +86,9 @@ export interface ChurchDetails {
   // Multi-branch
   isParentOrganization?: boolean;
   parentChurchId?: string;
+
+  // Service Timings
+  serviceTimings?: ServiceTiming[];
 }
 
 class ChurchService {

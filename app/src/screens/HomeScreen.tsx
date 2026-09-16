@@ -55,7 +55,8 @@ import {
   Info,
   Video,
   Download,
-  Image as LucideImage
+  Image as LucideImage,
+  Clock
 } from 'lucide-react-native';
 import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
@@ -832,6 +833,7 @@ export default function HomeScreen() {
   
   // WeChristian Daily Promise 4-verse Carousel State
   const useWeChristianDailyPromise = activeChurch?.useWeChristianDailyPromise !== false;
+  const hasServiceTimings = !!(activeChurch?.serviceTimings && activeChurch.serviceTimings.length > 0);
   const [todayFourVerses, setTodayFourVerses] = useState<DailyVerse[]>(cachedTodayFourVerses);
   const verseAutoScrollTimer = useRef<any>(null);
   const captureVerseRef = useRef<ViewShot>(null);
@@ -1096,9 +1098,9 @@ export default function HomeScreen() {
   const restartVerseTimer = (startIndex: number) => {
     if (!useWeChristianDailyPromise || todayFourVerses.length === 0) return;
     clearInterval(verseAutoScrollTimer.current);
+    const count = todayFourVerses.length + (hasServiceTimings ? 1 : 0);
     verseAutoScrollTimer.current = setInterval(() => {
       setCarouselSlide(prev => {
-        const count = todayFourVerses.length;
         const next = (prev + 1) % count;
         carouselScrollRef.current?.scrollTo({ x: next * (width - 32), animated: true });
         return next;
@@ -1123,7 +1125,7 @@ export default function HomeScreen() {
     }).catch(() => {});
   }, [activeChurch?.id]);
 
-  // Carousel auto-slide logic (supports 4 verses when ON, or church promise & thumbnail when OFF)
+  // Carousel auto-slide logic (supports 4 verses when ON, or church promise & thumbnail when OFF, plus service timings)
   useEffect(() => {
     if (useWeChristianDailyPromise) {
       if (todayFourVerses.length === 0) return;
@@ -1142,12 +1144,12 @@ export default function HomeScreen() {
         carouselScrollRef.current?.scrollTo({ x: initialIndex * (width - 32), animated: false });
       }, 300);
 
-      // Start auto-scroll for 4 verses
+      // Start auto-scroll for 4 verses + service timings
+      const totalOnSlides = todayFourVerses.length + (hasServiceTimings ? 1 : 0);
       clearInterval(verseAutoScrollTimer.current);
       verseAutoScrollTimer.current = setInterval(() => {
         setCarouselSlide(prev => {
-          const count = todayFourVerses.length;
-          const next = (prev + 1) % count;
+          const next = (prev + 1) % totalOnSlides;
           carouselScrollRef.current?.scrollTo({ x: next * (width - 32), animated: true });
           return next;
         });
@@ -1156,21 +1158,22 @@ export default function HomeScreen() {
       return () => clearInterval(verseAutoScrollTimer.current);
     } else {
       clearInterval(verseAutoScrollTimer.current);
-      if (!promiseThumbnail) {
+      const totalOffSlides = 1 + (promiseThumbnail ? 1 : 0) + (hasServiceTimings ? 1 : 0);
+      if (totalOffSlides <= 1) {
         setCarouselSlide(0);
         return;
       }
       setCarouselSlide(0);
       const interval = setInterval(() => {
         setCarouselSlide(prev => {
-          const next = prev === 0 ? 1 : 0;
+          const next = (prev + 1) % totalOffSlides;
           carouselScrollRef.current?.scrollTo({ x: next * (width - 32), animated: true });
           return next;
         });
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [useWeChristianDailyPromise, todayFourVerses.length, promiseThumbnail]);
+  }, [useWeChristianDailyPromise, todayFourVerses.length, promiseThumbnail, hasServiceTimings]);
 
   const goToSlide = (idx: number) => {
     setCarouselSlide(idx);
@@ -1336,6 +1339,76 @@ export default function HomeScreen() {
     } catch (e) {
       return dateStr;
     }
+  };
+
+  const parseServiceDisplay = (name: string, explicitNote?: string) => {
+    if (explicitNote && explicitNote.trim()) {
+      return { title: name.trim(), note: explicitNote.trim() };
+    }
+    const match = (name || '').match(/^(.*?)\s*(\(.*?\))\s*$/);
+    if (match) {
+      return { title: match[1].trim(), note: match[2].trim() };
+    }
+    return { title: (name || '').trim(), note: null };
+  };
+
+  const renderServiceTimingsSlide = () => {
+    const timings = activeChurch?.serviceTimings || [];
+    if (timings.length === 0) return null;
+
+    return (
+      <View key="service-timings-slide" style={styles.phSlide}>
+        <LinearGradient
+          colors={['#102861', '#09163a']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.phInner, styles.serviceSlideCleanInner]}
+        >
+          {/* Subtle background curved accent ring on top right */}
+          <View style={{ position: 'absolute', top: -50, right: -50, width: 190, height: 190, borderRadius: 95, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' }} />
+
+          {/* Centered Header */}
+          <Text style={styles.serviceSlideCleanTitle}>OUR SERVICE TIMINGS</Text>
+          <View style={styles.serviceSlideCleanBar} />
+
+          {/* Service Items List */}
+          <ScrollView
+            style={styles.serviceSlideCleanScroll}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            {timings.map((service, idx) => {
+              if (!service.name && !service.startTime && !service.endTime) return null;
+              const { title, note } = parseServiceDisplay(service.name, service.note);
+              const timeDisplay = (service.startTime || service.endTime)
+                ? `${service.startTime || ''}${service.startTime && service.endTime ? ' - ' : ''}${service.endTime || ''}`
+                : '';
+
+              return (
+                <View key={service.id || idx} style={styles.serviceSlideCleanRow}>
+                  <View style={styles.serviceSlideCleanLeft}>
+                    <Text style={styles.serviceSlideCleanName} numberOfLines={2}>
+                      {title || `Service #${idx + 1}`}
+                    </Text>
+                    {note ? (
+                      <Text style={styles.serviceSlideCleanNote}>
+                        {note}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  {timeDisplay ? (
+                    <Text style={styles.serviceSlideCleanTime}>
+                      {timeDisplay}
+                    </Text>
+                  ) : null}
+                </View>
+              );
+            })}
+          </ScrollView>
+        </LinearGradient>
+      </View>
+    );
   };
 
   if (loading && !refreshing) {
@@ -1527,7 +1600,9 @@ export default function HomeScreen() {
               showsHorizontalScrollIndicator={false}
               scrollEventThrottle={16}
               onMomentumScrollEnd={(e) => {
-                const maxSlides = useWeChristianDailyPromise ? (todayFourVerses.length || 4) : (promiseThumbnail ? 2 : 1);
+                const maxSlides = useWeChristianDailyPromise
+                  ? (todayFourVerses.length || 4) + (hasServiceTimings ? 1 : 0)
+                  : 1 + (promiseThumbnail ? 1 : 0) + (hasServiceTimings ? 1 : 0);
                 const slide = Math.min(Math.max(0, Math.round(e.nativeEvent.contentOffset.x / (width - 32))), maxSlides - 1);
                 setCarouselSlide(slide);
                 if (useWeChristianDailyPromise) {
@@ -1537,98 +1612,99 @@ export default function HomeScreen() {
               style={{ borderRadius: 20 }}
             >
               {useWeChristianDailyPromise ? (
-                // ── When Toggle is ON: 4 Daily Verses Auto-Scrolling Carousel ──
-                todayFourVerses.length > 0 ? (
-                  todayFourVerses.map((verse, idx) => {
-                    const period = VERSE_PERIODS[idx] || 'Daily';
-                    const theme = VERSE_THEMES[period] || VERSE_THEMES.Morning;
-                    const Icon = theme.Icon;
-                    const dynamicColors = getDynamicGradient(new Date(), period, idx);
+                // ── When Toggle is ON: 4 Daily Verses Auto-Scrolling Carousel (+ Service Timings Slide) ──
+                <>
+                  {todayFourVerses.length > 0 ? (
+                    todayFourVerses.map((verse, idx) => {
+                      const period = VERSE_PERIODS[idx] || 'Daily';
+                      const theme = VERSE_THEMES[period] || VERSE_THEMES.Morning;
+                      const Icon = theme.Icon;
+                      const dynamicColors = getDynamicGradient(new Date(), period, idx);
 
-                    const cardContent = (
-                      <View style={styles.vdCardInner}>
-                        {/* Header with Period Badge */}
-                        <View style={styles.vdCardHeader}>
-                          <View style={[styles.vdIconCircle, { backgroundColor: theme.color }]}>
-                            <Icon color="#fff" size={24} />
-                          </View>
-                          <View style={styles.vdTitleWrapper}>
-                            <Text style={[styles.vdPeriodText, { color: theme.color }]}>
-                              GOOD {period.toUpperCase()}
-                            </Text>
-                          </View>
-                        </View>
-
-                        {/* Main Verse Block with Vertical Line & Quotes */}
-                        <View style={styles.vdVerseBlock}>
-                          <View style={[styles.vdVerticalLine, { backgroundColor: theme.color }]} />
-                          <View style={styles.vdVerseTextContainer}>
-                            <Text style={[styles.vdQuoteMark, { color: theme.color }]}>“</Text>
-
-                            {verse.verseTe ? (
-                              <Text style={styles.vdVerseTe} numberOfLines={5}>
-                                {stripHtml(verse.verseTe)}
+                      const cardContent = (
+                        <View style={styles.vdCardInner}>
+                          {/* Header with Period Badge */}
+                          <View style={styles.vdCardHeader}>
+                            <View style={[styles.vdIconCircle, { backgroundColor: theme.color }]}>
+                              <Icon color="#fff" size={24} />
+                            </View>
+                            <View style={styles.vdTitleWrapper}>
+                              <Text style={[styles.vdPeriodText, { color: theme.color }]}>
+                                GOOD {period.toUpperCase()}
                               </Text>
-                            ) : null}
+                            </View>
+                          </View>
 
-                            <Text style={[styles.vdVerseEn, !verse.verseTe && { fontSize: 17, lineHeight: 26 }]} numberOfLines={5}>
-                              {stripHtml(verse.verseEn)}
-                            </Text>
+                          {/* Main Verse Block with Vertical Line & Quotes */}
+                          <View style={styles.vdVerseBlock}>
+                            <View style={[styles.vdVerticalLine, { backgroundColor: theme.color }]} />
+                            <View style={styles.vdVerseTextContainer}>
+                              <Text style={[styles.vdQuoteMark, { color: theme.color }]}>“</Text>
 
-                            <Text style={[styles.vdQuoteMarkBottom, { color: theme.color }]}>”</Text>
+                              {verse.verseTe ? (
+                                <Text style={styles.vdVerseTe} numberOfLines={5}>
+                                  {stripHtml(verse.verseTe)}
+                                </Text>
+                              ) : null}
+
+                              <Text style={[styles.vdVerseEn, !verse.verseTe && { fontSize: 17, lineHeight: 26 }]} numberOfLines={5}>
+                                {stripHtml(verse.verseEn)}
+                              </Text>
+
+                              <Text style={[styles.vdQuoteMarkBottom, { color: theme.color }]}>”</Text>
+                            </View>
+                          </View>
+
+                          {/* Centered Reference */}
+                          <Text style={[styles.vdReferenceText, { color: theme.color }]}>
+                            {verse.referenceTe ? `${verse.referenceTe}   —   ${verse.referenceEn}` : verse.referenceEn}
+                          </Text>
+
+                          {/* Action Buttons */}
+                          <View style={styles.vdActions}>
+                            <TouchableOpacity 
+                              style={styles.vdShareBtn} 
+                              onPress={() => handleShareDailyVerse(verse, period)}
+                              activeOpacity={0.75}
+                            >
+                              <Share2 size={16} color="#fff" />
+                              <Text style={styles.vdBtnTxt}>Share</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity 
+                              style={styles.vdSaveBtn} 
+                              onPress={() => handleSaveDailyVerseCard(verse, period)}
+                              activeOpacity={0.75}
+                            >
+                              <Download size={16} color="#fff" />
+                              <Text style={styles.vdBtnTxt}>Save Card</Text>
+                            </TouchableOpacity>
                           </View>
                         </View>
+                      );
 
-                        {/* Centered Reference */}
-                        <Text style={[styles.vdReferenceText, { color: theme.color }]}>
-                          {verse.referenceTe ? `${verse.referenceTe}   —   ${verse.referenceEn}` : verse.referenceEn}
-                        </Text>
-
-                        {/* Action Buttons */}
-                        <View style={styles.vdActions}>
-                          <TouchableOpacity 
-                            style={styles.vdShareBtn} 
-                            onPress={() => handleShareDailyVerse(verse, period)}
-                            activeOpacity={0.75}
-                          >
-                            <Share2 size={16} color="#fff" />
-                            <Text style={styles.vdBtnTxt}>Share</Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity 
-                            style={styles.vdSaveBtn} 
-                            onPress={() => handleSaveDailyVerseCard(verse, period)}
-                            activeOpacity={0.75}
-                          >
-                            <Download size={16} color="#fff" />
-                            <Text style={styles.vdBtnTxt}>Save Card</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    );
-
-                    return (
-                      <TouchableOpacity
-                        key={verse.id || idx}
-                        activeOpacity={0.9}
-                        style={styles.vdSlide}
-                        onPress={() => navigation.navigate('VerseOfTheDay', { verseId: verse.id, period })}
-                      >
-                        <View style={styles.vdCardContainer}>
-                          {verse.backgroundUrl ? (
-                            <ImageBackground
-                              source={{ uri: verse.backgroundUrl }}
-                              style={styles.vdCardBg}
-                              imageStyle={{ borderRadius: 20 }}
-                              resizeMode="cover"
-                            >
+                      return (
+                        <TouchableOpacity
+                          key={verse.id || idx}
+                          activeOpacity={0.9}
+                          style={styles.vdSlide}
+                          onPress={() => navigation.navigate('VerseOfTheDay', { verseId: verse.id, period })}
+                        >
+                          <View style={styles.vdCardContainer}>
+                            {verse.backgroundUrl ? (
+                              <ImageBackground
+                                source={{ uri: verse.backgroundUrl }}
+                                style={styles.vdCardBg}
+                                imageStyle={{ borderRadius: 20 }}
+                                resizeMode="cover"
+                              >
+                                <LinearGradient
+                                  colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.85)']}
+                                  style={StyleSheet.absoluteFillObject}
+                                />
+                                {cardContent}
+                              </ImageBackground>
+                            ) : (
                               <LinearGradient
-                                colors={['rgba(0,0,0,0.25)', 'rgba(0,0,0,0.85)']}
-                                style={StyleSheet.absoluteFillObject}
-                              />
-                              {cardContent}
-                            </ImageBackground>
-                          ) : (
-                            <LinearGradient
                               colors={dynamicColors}
                               start={{ x: 0, y: 0 }}
                               end={{ x: 1, y: 1 }}
@@ -1659,8 +1735,12 @@ export default function HomeScreen() {
                       </LinearGradient>
                     </View>
                   </View>
-                )
-              ) : (
+                )}
+
+                {/* Slide: Church Service Timings */}
+                {hasServiceTimings && renderServiceTimingsSlide()}
+              </>
+            ) : (
                 // ── When Toggle is OFF: Church's Own Custom Promise & Thumbnail ──
                 <>
                   {/* Slide 1 — Promise Text */}
@@ -1730,32 +1810,31 @@ export default function HomeScreen() {
                       </LinearGradient>
                     </View>
                   )}
+
+                  {/* Slide 3 — Church Service Timings Slide */}
+                  {hasServiceTimings && renderServiceTimingsSlide()}
                 </>
               )}
             </ScrollView>
 
-            {/* Dot Indicators */}
-            {useWeChristianDailyPromise ? (
-              todayFourVerses.length > 1 && (
+            {/* Dot Indicators (Dynamically adapts to verse count, thumbnail, and service timings) */}
+            {(() => {
+              const totalDots = useWeChristianDailyPromise
+                ? (todayFourVerses.length > 0 ? todayFourVerses.length : 4) + (hasServiceTimings ? 1 : 0)
+                : 1 + (promiseThumbnail ? 1 : 0) + (hasServiceTimings ? 1 : 0);
+
+              if (totalDots <= 1) return null;
+
+              return (
                 <View style={styles.dotRow}>
-                  {todayFourVerses.map((_, i) => (
+                  {Array.from({ length: totalDots }).map((_, i) => (
                     <TouchableOpacity key={i} onPress={() => goToSlide(i)} style={styles.dotHit}>
                       <View style={[styles.dot, carouselSlide === i && styles.dotActive]} />
                     </TouchableOpacity>
                   ))}
                 </View>
-              )
-            ) : (
-              promiseThumbnail && (
-                <View style={styles.dotRow}>
-                  {[0, 1].map(i => (
-                    <TouchableOpacity key={i} onPress={() => goToSlide(i)} style={styles.dotHit}>
-                      <View style={[styles.dot, carouselSlide === i && styles.dotActive]} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )
-            )}
+              );
+            })()}
           </View>
 
           <Text style={[styles.secLbl, isDark && { color: '#e2e8f0' }]}>QUICK ACCESS</Text>
@@ -2342,6 +2421,69 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
     backgroundColor: '#FCD34D',
+  },
+
+  // ── Clean "Our Service Timings" Carousel Slide Styles (No Yellow, Matches Image) ──
+  serviceSlideCleanInner: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 20,
+    justifyContent: 'flex-start',
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  serviceSlideCleanTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 1.2,
+    textAlign: 'center',
+  },
+  serviceSlideCleanBar: {
+    width: 30,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: '#93C5FD',
+    alignSelf: 'center',
+    marginTop: 5,
+    marginBottom: 14,
+  },
+  serviceSlideCleanScroll: {
+    flex: 1,
+  },
+  serviceSlideCleanRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    gap: 12,
+  },
+  serviceSlideCleanLeft: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  serviceSlideCleanName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.2,
+    lineHeight: 18,
+  },
+  serviceSlideCleanNote: {
+    fontSize: 10.5,
+    fontWeight: '400',
+    color: '#93C5FD',
+    marginTop: 2,
+    lineHeight: 14,
+  },
+  serviceSlideCleanTime: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#E2E8F0',
+    textAlign: 'right',
+    letterSpacing: 0.2,
+    paddingTop: 1,
   },
   phLabel: {
     color: '#FCD34D',

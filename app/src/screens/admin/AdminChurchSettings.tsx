@@ -17,9 +17,10 @@ import {
   Switch
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Save, Palette, Image as ImageIcon, Link, DollarSign, Building2, Plus, Trash2, Plug, Info, Edit2 } from 'lucide-react-native';
+import { ChevronLeft, Save, Palette, Image as ImageIcon, Link, DollarSign, Building2, Plus, Trash2, Plug, Info, Edit2, Clock } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import ChurchService, { ChurchDetails } from '../../services/ChurchService';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import ChurchService, { ChurchDetails, ServiceTiming } from '../../services/ChurchService';
 import { useChurch } from '../../context/ChurchContext';
 import { useAuth } from '../../context/AuthContext';
 import { AdminTabContext } from '../../context/AdminTabContext';
@@ -83,6 +84,51 @@ export default function AdminChurchSettings({ navigation }: any) {
       }
       return newForm;
     });
+  };
+
+  const [timePickerConfig, setTimePickerConfig] = useState<{
+    visible: boolean;
+    index: number;
+    field: 'startTime' | 'endTime';
+  }>({ visible: false, index: -1, field: 'startTime' });
+
+  const addServiceTiming = () => {
+    const timings = form.serviceTimings || [];
+    setForm(prev => ({
+      ...prev,
+      serviceTimings: [
+        ...timings,
+        { id: Date.now().toString(), name: '', startTime: '', endTime: '', note: '' }
+      ]
+    }));
+  };
+
+  const updateServiceTiming = (index: number, key: keyof ServiceTiming, value: string) => {
+    const timings = [...(form.serviceTimings || [])];
+    timings[index] = { ...timings[index], [key]: value };
+    setForm(prev => ({ ...prev, serviceTimings: timings }));
+  };
+
+  const removeServiceTiming = (index: number) => {
+    const timings = [...(form.serviceTimings || [])];
+    timings.splice(index, 1);
+    setForm(prev => ({ ...prev, serviceTimings: timings }));
+  };
+
+  const formatPickerTime = (date: Date) => {
+    const h24 = date.getHours();
+    const m = String(date.getMinutes()).padStart(2, '0');
+    const ampm = h24 >= 12 ? 'PM' : 'AM';
+    let h12 = h24 % 12;
+    h12 = h12 ? h12 : 12;
+    return `${h12}:${m} ${ampm}`;
+  };
+
+  const handleTimeConfirm = (date: Date) => {
+    if (timePickerConfig.index >= 0) {
+      updateServiceTiming(timePickerConfig.index, timePickerConfig.field, formatPickerTime(date));
+    }
+    setTimePickerConfig(prev => ({ ...prev, visible: false }));
   };
 
   const addUpi = () => {
@@ -391,6 +437,152 @@ export default function AdminChurchSettings({ navigation }: any) {
                 <Text style={styles.socialPrefix}>Instagram</Text>
                 <TextInput style={styles.inputFlex} placeholder="Profile URL" placeholderTextColor="#94a3b8" value={form.socialLinks?.instagram} onChangeText={v => updateField('socialLinks', 'instagram', v)} editable={isEditing} />
               </View>
+
+              {/* ── SERVICE TIMINGS SECTION ── */}
+              <View style={[styles.sectionHeaderRow, { marginTop: 24 }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Clock size={18} color={primaryColor} />
+                  <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>Service Timings</Text>
+                </View>
+                {isEditing && (
+                  <TouchableOpacity onPress={addServiceTiming} style={styles.addBtn}>
+                    <Plus size={16} color="#1a2d5a" />
+                    <Text style={styles.addBtnTxt}>Add Service</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {(!form.serviceTimings || form.serviceTimings.length === 0) ? (
+                <View style={[styles.cardItem, { alignItems: 'center', paddingVertical: 24, backgroundColor: '#F9FAFB' }]}>
+                  <Clock size={32} color="#9CA3AF" style={{ marginBottom: 8 }} />
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#4B5563', marginBottom: 4 }}>No Service Timings Configured</Text>
+                  <Text style={{ fontSize: 12, color: '#6B7280', textAlign: 'center', lineHeight: 18 }}>
+                    {isEditing ? "Tap 'Add Service' above to configure worship services for your congregation." : "Tap 'Edit' in the top right to add service schedules."}
+                  </Text>
+                  {isEditing && (
+                    <TouchableOpacity onPress={addServiceTiming} style={[styles.addBtn, { marginTop: 14 }]}>
+                      <Plus size={16} color="#1a2d5a" />
+                      <Text style={styles.addBtnTxt}>Add First Service</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ) : (
+                form.serviceTimings.map((service, i) => (
+                  <View key={service.id || i} style={[styles.cardItem, !isEditing && styles.inputDisabled]}>
+                    <View style={styles.cardHeader}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Clock size={16} color={primaryColor} />
+                        <Text style={styles.cardTitle}>
+                          {service.name.trim() ? service.name : `Service #${i + 1}`}
+                        </Text>
+                      </View>
+                      {isEditing && (
+                        <TouchableOpacity onPress={() => removeServiceTiming(i)} style={{ padding: 4 }}>
+                          <Trash2 size={16} color="#ef4444" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {/* Service Name Input */}
+                    <Text style={styles.label}>Service Name</Text>
+                    <TextInput
+                      style={[styles.input, !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 32, marginBottom: 8 }]}
+                      value={service.name}
+                      onChangeText={v => updateServiceTiming(i, 'name', v)}
+                      placeholder="e.g. Sunday Service / Special Meeting"
+                      placeholderTextColor="#64748b"
+                      editable={isEditing}
+                    />
+
+                    {/* Schedule Note Input (Optional) */}
+                    {(isEditing || service.note) && (
+                      <>
+                        <Text style={styles.label}>Schedule Note / Subtext (Optional)</Text>
+                        <TextInput
+                          style={[
+                            styles.input,
+                            !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0, height: 30, marginBottom: 8, color: '#64748b' }
+                          ]}
+                          value={service.note || ''}
+                          onChangeText={v => updateServiceTiming(i, 'note', v)}
+                          placeholder="e.g. (2nd Saturday in every month)"
+                          placeholderTextColor="#94a3b8"
+                          editable={isEditing}
+                        />
+                      </>
+                    )}
+
+                    {/* Start Time & End Time Row */}
+                    <View style={{ flexDirection: 'row', gap: 12 }}>
+                      {/* Start Time */}
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.label}>Start Time</Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.inputRow,
+                            { marginBottom: 0, paddingHorizontal: 12, paddingVertical: 10 },
+                            !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0 }
+                          ]}
+                          onPress={() => {
+                            if (isEditing) {
+                              setTimePickerConfig({ visible: true, index: i, field: 'startTime' });
+                            }
+                          }}
+                          disabled={!isEditing}
+                        >
+                          <Clock size={15} color={isEditing ? primaryColor : '#64748b'} />
+                          <Text
+                            style={[
+                              styles.inputFlex,
+                              { color: service.startTime ? '#1a2d5a' : '#94a3b8' }
+                            ]}
+                          >
+                            {service.startTime || 'Select Start Time'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {/* End Time */}
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.label}>End Time</Text>
+                        <TouchableOpacity
+                          style={[
+                            styles.inputRow,
+                            { marginBottom: 0, paddingHorizontal: 12, paddingVertical: 10 },
+                            !isEditing && { backgroundColor: 'transparent', borderColor: 'transparent', paddingHorizontal: 0 }
+                          ]}
+                          onPress={() => {
+                            if (isEditing) {
+                              setTimePickerConfig({ visible: true, index: i, field: 'endTime' });
+                            }
+                          }}
+                          disabled={!isEditing}
+                        >
+                          <Clock size={15} color={isEditing ? primaryColor : '#64748b'} />
+                          <Text
+                            style={[
+                              styles.inputFlex,
+                              { color: service.endTime ? '#1a2d5a' : '#94a3b8' }
+                            ]}
+                          >
+                            {service.endTime || 'Select End Time'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Formatted Preview in View Mode */}
+                    {!isEditing && (service.startTime || service.endTime) && (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6, backgroundColor: '#EFF6FF', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 }}>
+                        <Clock size={13} color="#2563EB" />
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#1E40AF' }}>
+                          {service.startTime} {service.endTime ? `– ${service.endTime}` : ''}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                ))
+              )}
 
               <Text style={[styles.sectionLabel, { marginTop: 24 }]}>Daily Promise Settings</Text>
               <View style={[styles.switchRow, !isEditing && styles.inputDisabled]}>
@@ -725,6 +917,13 @@ export default function AdminChurchSettings({ navigation }: any) {
           <View style={{ height: 40 }} />
           </ScrollView>
         </KeyboardAvoidingView>
+
+        <DateTimePickerModal
+          isVisible={timePickerConfig.visible}
+          mode="time"
+          onConfirm={handleTimeConfirm}
+          onCancel={() => setTimePickerConfig(prev => ({ ...prev, visible: false }))}
+        />
       </SafeAreaView>
     </View>
   );
