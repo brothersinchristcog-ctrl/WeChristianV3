@@ -61,6 +61,9 @@ import {
 import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
 import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Clipboard from 'expo-clipboard';
+import RNShare from 'react-native-share';
 
 import firestore from '@react-native-firebase/firestore';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -837,6 +840,7 @@ export default function HomeScreen() {
   const [todayFourVerses, setTodayFourVerses] = useState<DailyVerse[]>(cachedTodayFourVerses);
   const verseAutoScrollTimer = useRef<any>(null);
   const captureVerseRef = useRef<ViewShot>(null);
+  const capturePromiseRef = useRef<ViewShot>(null);
   const [captureVerseConfig, setCaptureVerseConfig] = useState<{ verse: DailyVerse; period: string; theme: any } | null>(null);
   const [isSavingCard, setIsSavingCard] = useState(false);
   const [isSharingCard, setIsSharingCard] = useState(false);
@@ -1273,13 +1277,110 @@ export default function HomeScreen() {
 
   const handleSharePromise = async () => {
     if (!promise) return;
+    setIsSharingCard(true);
+
     try {
-      const verseEn = stripHtml(promise.verse);
-      const verseTe = stripHtml(promise.verseTelugu);
-      const message = `Today's Promise · ఈ రోజు వాగ్దానం\n\n"${verseEn}"\n— ${promise.verseReferenceEn || 'Scripture'}\n\n"${verseTe}"\n— ${promise.verseReferenceTe || 'వాగ్దానం'}\n\nWatch Devotional: https://youtu.be/${promise.youtubeId}\n\nBrothers in Christ Fellowship 🙏`;
+      const verseEn = stripHtml(promise.verse || '');
+      const verseTe = stripHtml(promise.verseTelugu || '');
+      const churchName = (isImpersonating && impersonatedBranchName)
+        ? impersonatedBranchName
+        : (activeChurch?.name || member?.churchName || authMember?.churchName || '');
+
+      const cleanYId = promise.youtubeId ? extractYoutubeId(promise.youtubeId) : '';
+      const watchText = cleanYId ? `\n\nWatch Devotional: https://youtu.be/${cleanYId}` : '';
+      const churchText = churchName ? `\n\n${churchName} 🙏` : ' 🙏';
+
+      const message = `Today's Promise · ఈ రోజు వాగ్దానం\n\n"${verseEn}"\n— ${promise.verseReferenceEn || promise.verseReference || 'Scripture'}${verseTe ? `\n\n"${verseTe}"\n— ${promise.verseReferenceTe || 'వాగ్దానం'}` : ''}${watchText}${churchText}`;
+
+      // Always copy full message text to clipboard as guaranteed backup
+      try {
+        await Clipboard.setStringAsync(message);
+      } catch (_) {}
+
+      // Candidate image: uploaded promise thumbnail / imageUrl / YouTube thumbnail
+      const targetImageUrl = promise.imageUrl || promiseThumbnail || (cleanYId ? `https://img.youtube.com/vi/${cleanYId}/hqdefault.jpg` : null);
+
+      let localFileUri: string | null = null;
+      let mimeType = 'image/jpeg';
+
+      if (targetImageUrl) {
+        try {
+          if (targetImageUrl.startsWith('file://') || targetImageUrl.startsWith('content://') || targetImageUrl.startsWith('data:')) {
+            localFileUri = targetImageUrl;
+          } else {
+            const isPng = targetImageUrl.toLowerCase().includes('.png');
+            mimeType = isPng ? 'image/png' : 'image/jpeg';
+            const ext = isPng ? 'png' : 'jpg';
+            const destination = `${FileSystem.cacheDirectory}todays_promise_share.${ext}`;
+            const downloadRes = await FileSystem.downloadAsync(targetImageUrl, destination);
+            localFileUri = downloadRes.uri;
+          }
+        } catch (dlErr) {
+          console.warn('Could not download promise thumbnail, trying capture fallback:', dlErr);
+        }
+      }
+
+      // If no remote thumbnail or download failed, capture Today's Promise card via ViewShot
+      if (!localFileUri && capturePromiseRef.current?.capture) {
+        try {
+          const capturedUri = await capturePromiseRef.current.capture();
+          localFileUri = capturedUri;
+          mimeType = 'image/png';
+        } catch (capErr) {
+          console.warn('ViewShot promise card capture failed:', capErr);
+        }
+      }
+
+      // Clear loading indicator before presenting share sheet to avoid overlay freezes
+      setIsSharingCard(false);
+
+      if (localFileUri) {
+        let fileUri = localFileUri;
+        if (!fileUri.startsWith('file://') && !fileUri.startsWith('content://') && !fileUri.startsWith('data:')) {
+          fileUri = `file://${fileUri}`;
+        }
+
+        // Attempt 1: Native Share with image and caption attached (react-native-share)
+        try {
+          await RNShare.open({
+            title: `Today's Promise · ${churchName || 'Daily Promise'}`,
+            message,
+            url: fileUri,
+            type: mimeType,
+            subject: `Today's Promise · ${churchName || 'Daily Promise'}`,
+          });
+          return;
+        } catch (shareOpenErr: any) {
+          const errMsg = shareOpenErr?.message || String(shareOpenErr);
+          if (errMsg.includes('User did not share') || errMsg.includes('dismiss') || errMsg.includes('cancel') || shareOpenErr?.code === 'CANCELLED') {
+            // User cancelled the share dialog
+            return;
+          }
+          console.warn('RNShare.open failed, trying expo-sharing fallback:', shareOpenErr);
+        }
+
+        // Attempt 2: expo-sharing fallback with the image file
+        try {
+          const isSharingAvailable = await Sharing.isAvailableAsync();
+          if (isSharingAvailable) {
+            await Sharing.shareAsync(fileUri, {
+              dialogTitle: `Today's Promise · ${churchName || 'Daily Promise'}`,
+              mimeType,
+              UTI: mimeType === 'image/png' ? 'public.png' : 'public.jpeg',
+            });
+            return;
+          }
+        } catch (expoShareErr: any) {
+          console.warn('Expo sharing failed:', expoShareErr);
+        }
+      }
+
+      // Attempt 3: Built-in text sharing fallback
       await Share.share({ message });
     } catch (error) {
-      console.error('Error sharing:', error);
+      console.error('Error sharing promise:', error);
+    } finally {
+      setIsSharingCard(false);
     }
   };
 
@@ -1807,6 +1908,12 @@ export default function HomeScreen() {
                           style={[styles.phThumbnailImg, { flex: 1 }]}
                           resizeMode="contain"
                         />
+                        <View style={[styles.phActions, { paddingHorizontal: 16, paddingBottom: 14 }]}>
+                          <TouchableOpacity style={styles.phShareBtn} onPress={handleSharePromise}>
+                            <Share2 size={18} color="#fff" />
+                            <Text style={styles.phBtnTxt}>Share</Text>
+                          </TouchableOpacity>
+                        </View>
                       </LinearGradient>
                     </View>
                   )}
@@ -2221,6 +2328,64 @@ export default function HomeScreen() {
                   {activeChurch?.name ? (
                     <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 8, fontWeight: '700', letterSpacing: 0.5 }}>
                       {activeChurch.name}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            </View>
+          </ViewShot>
+        </View>
+      )}
+
+      {/* Hidden capture view for Today's Promise fallback card */}
+      {promise && (
+        <View style={{ position: 'absolute', top: -10000, left: -10000 }}>
+          <ViewShot ref={capturePromiseRef} options={{ format: 'png', quality: 1 }}>
+            <View style={{ width, minHeight: width * 1.35, backgroundColor: '#0a1945' }} collapsable={false}>
+              <LinearGradient
+                colors={['#17357a', '#0a1945']}
+                style={StyleSheet.absoluteFillObject}
+              />
+              {/* Decorative circles */}
+              <View style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: 90, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.15)' }} />
+              <View style={{ position: 'absolute', top: -10, right: -10, width: 120, height: 120, borderRadius: 60, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.1)' }} />
+              <View style={{ position: 'absolute', bottom: -50, left: -20, width: 160, height: 160, borderRadius: 80, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.1)' }} />
+
+              <View style={{ flex: 1, padding: 26, justifyContent: 'space-between' }}>
+                <View>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#fbbf24', letterSpacing: 1.5 }}>
+                    TODAY'S PROMISE · ఈ రోజు వాగ్దానం
+                  </Text>
+                  <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: '600', marginTop: 4 }}>
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                  </Text>
+                </View>
+
+                <View style={{ marginVertical: 20 }}>
+                  <Text style={{ color: '#ffffff', fontSize: 19, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', fontStyle: 'italic', lineHeight: 28 }}>
+                    "{stripHtml(promise.verse || '')}"
+                  </Text>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#fbbf24', marginTop: 6, textAlign: 'right' }}>
+                    — {promise.verseReferenceEn || promise.verseReference || 'Scripture'}
+                  </Text>
+
+                  {promise.verseTelugu ? (
+                    <>
+                      <View style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.15)', marginVertical: 14 }} />
+                      <Text style={{ color: '#ffffff', fontSize: 18, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', lineHeight: 28 }}>
+                        "{stripHtml(promise.verseTelugu)}"
+                      </Text>
+                      <Text style={{ fontSize: 14, fontWeight: '700', color: '#fbbf24', marginTop: 6, textAlign: 'right' }}>
+                        — {promise.verseReferenceTe || 'వాగ్దానం'}
+                      </Text>
+                    </>
+                  ) : null}
+                </View>
+
+                <View style={{ alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)', paddingTop: 16 }}>
+                  {((isImpersonating && impersonatedBranchName) ? impersonatedBranchName : (activeChurch?.name || member?.churchName || authMember?.churchName)) ? (
+                    <Text style={{ fontSize: 15, color: '#ffffff', fontWeight: '800', letterSpacing: 0.5 }}>
+                      {(isImpersonating && impersonatedBranchName) ? impersonatedBranchName : (activeChurch?.name || member?.churchName || authMember?.churchName)} 🙏
                     </Text>
                   ) : null}
                 </View>
