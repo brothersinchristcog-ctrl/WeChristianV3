@@ -260,8 +260,9 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
   }
 
 const LockedFeatureScreen = ({ navigation }: any) => {
-  const { member } = useAuth();
+  const { member, viewMode } = useAuth();
   const isAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER');
+  const showAdminView = isAdmin && viewMode === 'admin';
   const [pulseAnim] = React.useState(new Animated.Value(1));
 
   React.useEffect(() => {
@@ -396,14 +397,14 @@ const LockedFeatureScreen = ({ navigation }: any) => {
                 if (state && state.routes && state.routes.length > 1) {
                   navigation.goBack();
                 } else {
-                  navigation.navigate(isAdmin ? 'AdminRoot' : 'Tabs');
+                  navigation.navigate(showAdminView ? 'AdminRoot' : 'Tabs');
                 }
               } catch (e) {
-                navigation.navigate(isAdmin ? 'AdminRoot' : 'Tabs');
+                navigation.navigate(showAdminView ? 'AdminRoot' : 'Tabs');
               }
             }}
           >
-            <Text style={{ color: '#64748b', fontSize: 16, fontWeight: '700' }}>{isAdmin ? 'Maybe Later' : 'Go Back to Home'}</Text>
+            <Text style={{ color: '#64748b', fontSize: 16, fontWeight: '700' }}>{showAdminView ? 'Maybe Later' : 'Go Back to Home'}</Text>
           </TouchableOpacity>
         </View>
       </LinearGradient>
@@ -748,7 +749,7 @@ function Navigation() {
   };
 
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false, animation: 'none' }}>
+    <Stack.Navigator key={navigationKey} screenOptions={{ headerShown: false, animation: 'none' }}>
       {user ? (
         showAdminView ? (
           <>

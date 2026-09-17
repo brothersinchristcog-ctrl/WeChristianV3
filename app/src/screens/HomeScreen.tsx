@@ -1284,7 +1284,7 @@ export default function HomeScreen() {
       const verseTe = stripHtml(promise.verseTelugu || '');
       const churchName = (isImpersonating && impersonatedBranchName)
         ? impersonatedBranchName
-        : (activeChurch?.name || member?.churchName || authMember?.churchName || '');
+        : (activeChurch?.name || (member as any)?.churchName || (authMember as any)?.churchName || '');
 
       const cleanYId = promise.youtubeId ? extractYoutubeId(promise.youtubeId) : '';
       const watchText = cleanYId ? `\n\nWatch Devotional: https://youtu.be/${cleanYId}` : '';
@@ -2383,9 +2383,9 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={{ alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)', paddingTop: 16 }}>
-                  {((isImpersonating && impersonatedBranchName) ? impersonatedBranchName : (activeChurch?.name || member?.churchName || authMember?.churchName)) ? (
+                  {((isImpersonating && impersonatedBranchName) ? impersonatedBranchName : (activeChurch?.name || (member as any)?.churchName || (authMember as any)?.churchName)) ? (
                     <Text style={{ fontSize: 15, color: '#ffffff', fontWeight: '800', letterSpacing: 0.5 }}>
-                      {(isImpersonating && impersonatedBranchName) ? impersonatedBranchName : (activeChurch?.name || member?.churchName || authMember?.churchName)} 🙏
+                      {(isImpersonating && impersonatedBranchName) ? impersonatedBranchName : (activeChurch?.name || (member as any)?.churchName || (authMember as any)?.churchName)} 🙏
                     </Text>
                   ) : null}
                 </View>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking, Alert, Image } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking, Alert, Image, BackHandler } from 'react-native';
 import { ChevronLeft, ArrowLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic , Video } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -127,8 +127,39 @@ export default function UpdatesScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
-  const { user, member, viewMode } = useAuth();
+  const { user, member } = useAuth();
   const { activeChurch } = useChurch();
+
+  const handleBack = () => {
+    if (selectedUpdate) {
+      setSelectedUpdate(null);
+      return;
+    }
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      navigation.navigate('Tabs', { screen: 'Home' });
+    }
+  };
+
+  useEffect(() => {
+    const backAction = () => {
+      if (selectedUpdate) {
+        setSelectedUpdate(null);
+        return true;
+      }
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+        return true;
+      } else {
+        navigation.navigate('Tabs', { screen: 'Home' });
+        return true;
+      }
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [selectedUpdate, navigation]);
 
   useEffect(() => {
     const loadDeletedIds = async () => {
@@ -389,18 +420,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <TouchableOpacity style={styles.backBtn} onPress={() => {
-          try {
-            const state = navigation.getState();
-            if (state && state.routes && state.routes.length > 1) {
-              navigation.goBack();
-            } else {
-              navigation.navigate(viewMode === 'admin' ? 'AdminRoot' : 'Tabs');
-            }
-          } catch (e) {
-            navigation.navigate(viewMode === 'admin' ? 'AdminRoot' : 'Tabs');
-          }
-        }} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack} hitSlop={{top:10, bottom:10, left:10, right:10}}>
           <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
         
@@ -444,20 +464,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   if (update.type === 'song') {
                     navigation.navigate('Songs', { songId: update.relatedId });
                   } else if (update.type === 'promise') {
-                    if (viewMode === 'admin') {
-                      try {
-                        const state = navigation.getState();
-                        if (state && state.routes && state.routes.length > 1) {
-                          navigation.goBack();
-                        } else {
-                          navigation.navigate('AdminRoot');
-                        }
-                      } catch (e) {
-                        navigation.navigate('AdminRoot');
-                      }
-                    } else {
-                      navigation.navigate('Tabs', { screen: 'Promise' });
-                    }
+                    navigation.navigate('Tabs', { screen: 'Promise' });
                   } else if (update.type === 'sermon') {
                     navigation.navigate('Sermons');
                   } else if (update.type === 'event') {
