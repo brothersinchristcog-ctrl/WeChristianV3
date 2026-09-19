@@ -66,7 +66,7 @@ export default function DailyVideoScreen({ navigation, route }: any) {
           publishedAt: p.date,
           date: p.date,
           duration: p.duration || '',
-          pastor: p.pastor || 'Brother Y. Rajesh'
+          pastor: p.pastor || 'Pastor'
         }));
       setVideos(data);
       
@@ -87,7 +87,7 @@ export default function DailyVideoScreen({ navigation, route }: any) {
             publishedAt: 'Today',
             date: 'Today',
             duration: '',
-            pastor: paramPastor || 'Brother Y. Rajesh'
+            pastor: paramPastor || 'Pastor'
           });
         }
       } else {
@@ -182,7 +182,7 @@ export default function DailyVideoScreen({ navigation, route }: any) {
           <View style={styles.pastorCard}>
             <View style={styles.pastorAv}><Text style={styles.pastorAvTxt}>P</Text></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.pastorName}>{activeVideo?.pastor || 'Brother Y. Rajesh'}</Text>
+              <Text style={styles.pastorName}>{activeVideo?.pastor || 'Pastor'}</Text>
               <Text style={styles.pastorRole}>Main Speaker</Text>
             </View>
             <TouchableOpacity style={styles.subBtn} onPress={handleSubscribe}>

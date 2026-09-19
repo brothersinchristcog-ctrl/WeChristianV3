@@ -13,8 +13,10 @@ import {
   Alert,
   RefreshControl,
   Modal,
-  Animated
+  Animated,
+  KeyboardAvoidingView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Heart,
   CheckCircle,
@@ -31,12 +33,17 @@ import {
   Send,
   MoreVertical,
   Megaphone,
-  ChevronLeft
+  ChevronLeft,
+  FileDown
 } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import Theme from '../../theme/Theme';
 import { useAuth } from '../../context/AuthContext';
+import { useChurch } from '../../context/ChurchContext';
 import { AdminTabContext } from '../../context/AdminTabContext';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { documentDirectory, copyAsync } from 'expo-file-system/legacy';
 
 const { width } = Dimensions.get('window');
 
@@ -48,7 +55,7 @@ const COLORS = {
   paper: '#FFFCF5',
   gold: '#A67C3D',
   goldDeep: '#8C6428',
-  goldBright: '#D8B369',
+  goldBright: '#F4C430',
   clay: '#A24B34',
   clayBg: '#F3E1D6',
   clayLine: '#E3C3B2',
@@ -65,8 +72,11 @@ const FONTS = {
 
 export default function AdminPrayerModeration() {
   const { member } = useAuth();
+  const { activeChurch } = useChurch();
   const { setActiveTab } = React.useContext(AdminTabContext);
   const adminName = member?.name || 'Administrator';
+  const churchName = activeChurch?.name || 'Church';
+  const churchLogo = activeChurch?.theme?.logoUrl || null;
 
   const [prayers, setPrayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -78,12 +88,16 @@ export default function AdminPrayerModeration() {
   const [memberSearchResults, setMemberSearchResults] = useState<any[]>([]);
   const [selectedMember, setSelectedMember] = useState<any>(null);
   const [searchingMembers, setSearchingMembers] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [adminResponses, setAdminResponses] = useState<{[key: string]: string}>({});
+  const [successModalData, setSuccessModalData] = useState<{ visible: boolean; title: string; sub: string }>({ visible: false, title: '', sub: '' });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [closeConfirmId, setCloseConfirmId] = useState<string | null>(null);
+  const [showTopMenu, setShowTopMenu] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
   const successAnim = React.useRef(new Animated.Value(0)).current;
 
-  const triggerSuccess = () => {
-    setShowSuccessModal(true);
+  const triggerSuccess = (title: string, sub: string) => {
+    setSuccessModalData({ visible: true, title, sub });
     Animated.spring(successAnim, {
       toValue: 1,
       useNativeDriver: true,
@@ -97,7 +111,7 @@ export default function AdminPrayerModeration() {
       toValue: 0,
       duration: 200,
       useNativeDriver: true
-    }).start(() => setShowSuccessModal(false));
+    }).start(() => setSuccessModalData(prev => ({ ...prev, visible: false })));
   };
 
   const handleMemberSearch = async (query: string) => {
@@ -168,13 +182,90 @@ export default function AdminPrayerModeration() {
     fetchPrayers(true);
   };
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (id: string, responseText?: string) => {
     try {
+      if (responseText && responseText.trim()) {
+        await FirestoreService.addPrayerComment(id, responseText.trim(), adminName);
+      }
       await FirestoreService.markAsAnswered(id);
-      fetchPrayers(true);
-      Alert.alert('Success', 'Prayer request status updated.');
+      
+      setAdminResponses(prev => {
+        const next = {...prev};
+        delete next[id];
+        return next;
+      });
+      
+      // Immediately update local state to move to 'Processed'
+      setPrayers(prev => prev.map(p => p.id === id ? { ...p, isAnswered: true, isPublic: true } : p));
+      
+      triggerSuccess('Approved!', 'Prayer request approved and made public.');
     } catch (err) {
       Alert.alert('Error', 'Failed to update status.');
+    }
+  };
+
+  const handleRespondPrivately = async (id: string, responseText?: string) => {
+    try {
+      if (responseText && responseText.trim()) {
+        await FirestoreService.addPrayerComment(id, responseText.trim(), adminName);
+      }
+      await FirestoreService.markAsAnswered(id);
+      
+      setAdminResponses(prev => {
+        const next = {...prev};
+        delete next[id];
+        return next;
+      });
+      
+      // Mark answered but keep private (isPublic stays false)
+      setPrayers(prev => prev.map(p => p.id === id ? { ...p, isAnswered: true } : p));
+      
+      triggerSuccess('Responded! 🙏', 'Your private response has been sent to the member.');
+    } catch (err) {
+      Alert.alert('Error', 'Failed to send response.');
+    }
+  };
+
+  const handleClose = (id: string) => {
+    setCloseConfirmId(id);
+  };
+
+  const handleAdminPray = async (id: string) => {
+    if (!member) return;
+    const uid = member.id || 'admin';
+    const name = member.name || adminName;
+    // Prevent double-pray
+    if (prayers.find(p => p.id === id)?.prayedBy?.includes(uid)) {
+      triggerSuccess('Already Prayed', 'You have already prayed for this request.');
+      return;
+    }
+    try {
+      await FirestoreService.incrementPrayCount(id, uid, name);
+      setPrayers(prev => prev.map(p => p.id === id
+        ? {
+            ...p,
+            prayCount: (p.prayCount || 0) + 1,
+            prayedBy: [...(p.prayedBy || []), uid],
+            prayedByNames: [...(p.prayedByNames || []), name]
+          }
+        : p
+      ));
+      triggerSuccess('Amen! 🙏', 'Your prayer has been recorded for this request.');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to record your prayer.');
+    }
+  };
+
+  const confirmClose = async () => {
+    if (!closeConfirmId) return;
+    const id = closeConfirmId;
+    setCloseConfirmId(null);
+    try {
+      await FirestoreService.closePrayerRequest(id);
+      setPrayers(prev => prev.map(p => p.id === id ? { ...p, isClosed: true } : p));
+      triggerSuccess('Closed', 'Prayer request closed successfully.');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to close prayer request.');
     }
   };
 
@@ -220,7 +311,7 @@ export default function AdminPrayerModeration() {
       setSelectedMember(null);
       setMemberSearchQuery('');
       setShowCreateModal(false);
-      triggerSuccess();
+      triggerSuccess('Request Published!', 'The prayer request has been successfully created and published.');
       fetchPrayers(true);
     } catch (err) {
       Alert.alert('Error', 'Failed to publish request.');
@@ -229,8 +320,107 @@ export default function AdminPrayerModeration() {
     }
   };
 
-  const pendingPrayers = prayers.filter(p => !p.isAnswered);
-  const answeredPrayers = prayers.filter(p => p.isAnswered);
+  const [pdfFilter, setPdfFilter] = useState<'all' | 'pending' | 'answered'>('all');
+
+  const exportPrayersToPDF = async (filter: 'all' | 'pending' | 'answered' = pdfFilter) => {
+    try {
+      const today = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
+      const logoHtml = churchLogo
+        ? `<img src="${churchLogo}" style="width:80px; height:80px; object-fit:contain; border-radius:10px; margin-bottom:8px;" />`
+        : `<div style="font-size:40px;">⛪</div>`;
+
+      let filteredPrayers = prayers;
+      let filterLabel = 'All Prayer Requests';
+      if (filter === 'pending') {
+        filteredPrayers = pendingPrayers;
+        filterLabel = 'Pending Prayer Requests';
+      } else if (filter === 'answered') {
+        filteredPrayers = answeredPrayers;
+        filterLabel = 'Processed Prayer Requests';
+      }
+
+      // Sort by latest first
+      filteredPrayers = [...filteredPrayers].sort((a, b) => {
+        const t1 = a.createdAt?.seconds || 0;
+        const t2 = b.createdAt?.seconds || 0;
+        return t2 - t1;
+      });
+
+      if (filteredPrayers.length === 0) {
+        Alert.alert('No Requests', 'No prayer requests found for this filter.');
+        return;
+      }
+
+      const htmlContent = `
+        <html>
+          <head>
+            <style>
+              body { font-family: Helvetica, sans-serif; padding: 24px; color: #333; }
+              .header { text-align: center; margin-bottom: 30px; padding-bottom: 16px; border-bottom: 2px solid #1a2d5a; }
+              h1 { color: #1a2d5a; font-size: 20px; margin: 6px 0 2px 0; }
+              .subtitle { color: #666; font-size: 12px; }
+              .filter-label { color: #1a2d5a; font-size: 11px; font-weight: bold; margin-top: 4px; }
+              .prayer-box { border-bottom: 1px solid #ddd; padding: 12px 0; margin-bottom: 6px; }
+              .row { display: flex; justify-content: space-between; align-items: center; }
+              .author { font-weight: bold; color: #b91c1c; font-size: 14px; }
+              .phone { color: #666; font-size: 11px; }
+              .date { color: #999; font-size: 11px; }
+              .text { margin-top: 6px; font-size: 13px; line-height: 1.6; color: #222; }
+              .status-approved { font-style: italic; font-size: 11px; color: #059669; margin-top: 4px; }
+              .status-pending { font-style: italic; font-size: 11px; color: #d97706; margin-top: 4px; }
+              .footer { text-align: center; font-size: 10px; color: #aaa; margin-top: 30px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              ${logoHtml}
+              <h1>${churchName}</h1>
+              <div class="subtitle">Generated on ${today}</div>
+              <div class="filter-label">${filterLabel} (${filteredPrayers.length})</div>
+            </div>
+            ${filteredPrayers.map(p => `
+              <div class="prayer-box">
+                <div class="row">
+                  <span class="author">${p.name || p.authorName || 'Member'}</span>
+                  <span class="date">${p.createdAt?.seconds ? new Date(p.createdAt.seconds * 1000).toLocaleDateString('en-IN') : ''}</span>
+                </div>
+                ${p.phone ? `<div class="phone">📱 ${p.phone}</div>` : ''}
+                <div class="text">${p.text || ''}</div>
+                ${p.isAnswered
+                  ? '<div class="status-approved">✓ Answered / Approved</div>'
+                  : '<div class="status-pending">⏳ Pending Review</div>'
+                }
+              </div>
+            `).join('')}
+            <div class="footer">${churchName} · ${today}</div>
+          </body>
+        </html>
+      `;
+      
+      const { uri } = await Print.printToFileAsync({ html: htmlContent });
+      
+      const safeName = churchName.replace(/[^a-zA-Z0-9]/g, '_');
+      const dateTag = new Date().toISOString().split('T')[0];
+      const filterTag = filter === 'all' ? 'All' : filter === 'pending' ? 'Pending' : 'Answered';
+      const fileName = `${safeName}_Prayers_${filterTag}_${dateTag}.pdf`;
+      const newPath = `${documentDirectory}${fileName}`;
+      await copyAsync({ from: uri, to: newPath });
+      
+      setShowDownloadModal(false);
+      
+      await Sharing.shareAsync(newPath, {
+        UTI: '.pdf',
+        mimeType: 'application/pdf',
+        dialogTitle: fileName,
+      });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      Alert.alert('Error', 'Failed to generate PDF.');
+    }
+  };
+
+  const pendingPrayers = prayers.filter(p => !p.isAnswered && !p.isClosed);
+  const answeredPrayers = prayers.filter(p => p.isAnswered && !p.isClosed);
 
   const getTimeAgo = (rawDate: any) => {
     try {
@@ -312,19 +502,64 @@ export default function AdminPrayerModeration() {
           <View style={styles.catDot} />
           <Text style={styles.catTxt}>{item.category || 'General'}</Text>
         </View>
-
-        {!isAnswered && (
-          <View style={styles.pActions}>
-            <TouchableOpacity
-              style={[styles.pActionBtn, { backgroundColor: '#F0FDF4' }]}
-              onPress={() => handleApprove(item.id)}
-            >
-              <CheckCircle2 size={12} color="#15803D" />
-              <Text style={[styles.pActionBtnTxt, { color: '#15803D' }]}>Approve</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <View style={styles.pActions}>
+          {/* Pray button */}
+          <TouchableOpacity
+            style={[styles.pActionBtn, { backgroundColor: '#EFF6FF', paddingHorizontal: 12, paddingVertical: 6, gap: 5 }]}
+            onPress={() => handleAdminPray(item.id)}
+          >
+            <Heart size={14} color="#2563EB" />
+            <Text style={[styles.pActionBtnTxt, { color: '#2563EB' }]}>Pray</Text>
+          </TouchableOpacity>
+          {/* Close button */}
+          <TouchableOpacity
+            style={[styles.pActionBtn, { backgroundColor: '#FEE2E2', paddingHorizontal: 12, paddingVertical: 6 }]}
+            onPress={() => handleClose(item.id)}
+          >
+            <Text style={[styles.pActionBtnTxt, { color: '#EF4444' }]}>Close</Text>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {!isAnswered && (
+        <View style={{ marginTop: 16, paddingTop: 16, borderTopWidth: 1, borderTopColor: '#e2e8f0' }}>
+          {item.isPublic && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <Megaphone size={14} color="#d97706" />
+              <Text style={{ fontSize: 12, fontWeight: '700', color: '#d97706' }}>User requested this to be PUBLIC</Text>
+            </View>
+          )}
+          <TextInput
+            style={styles.adminReplyInput}
+            placeholder="Write a prayer response (optional)..."
+            placeholderTextColor="#94a3b8"
+            value={adminResponses[item.id] || ''}
+            onChangeText={(txt) => setAdminResponses(prev => ({ ...prev, [item.id]: txt }))}
+            multiline
+          />
+          <View style={[styles.pActions, { marginTop: 12, justifyContent: 'flex-end' }]}>
+            {item.isPublic ? (
+              // Public request → Approve & Make Public
+              <TouchableOpacity
+                style={[styles.pActionBtn, { backgroundColor: '#F0FDF4', paddingHorizontal: 16, paddingVertical: 10 }]}
+                onPress={() => handleApprove(item.id, adminResponses[item.id])}
+              >
+                <CheckCircle2 size={16} color="#15803D" />
+                <Text style={[styles.pActionBtnTxt, { color: '#15803D', fontWeight: '800', fontSize: 13 }]}>Approve & Make Public</Text>
+              </TouchableOpacity>
+            ) : (
+              // Personal request → Respond Privately only
+              <TouchableOpacity
+                style={[styles.pActionBtn, { backgroundColor: '#EFF6FF', paddingHorizontal: 16, paddingVertical: 10 }]}
+                onPress={() => handleRespondPrivately(item.id, adminResponses[item.id])}
+              >
+                <CheckCircle2 size={16} color="#2563EB" />
+                <Text style={[styles.pActionBtnTxt, { color: '#2563EB', fontWeight: '800', fontSize: 13 }]}>Respond Privately</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
     </View>
   );
 
@@ -355,10 +590,11 @@ export default function AdminPrayerModeration() {
               <Text style={[styles.heroSub, { marginTop: 2 }]}>{pendingPrayers.length} new · {answeredPrayers.length} processed</Text>
             </View>
           </View>
-          <TouchableOpacity style={styles.newBtn} onPress={() => setShowCreateModal(true)}>
-            <Plus size={16} color="#1a2d5a" />
-            <Text style={styles.newBtnTxt}>New</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity style={{ padding: 8 }} onPress={() => setShowTopMenu(true)}>
+              <MoreVertical size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -367,7 +603,6 @@ export default function AdminPrayerModeration() {
         contentContainerStyle={styles.scroll}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-
 
         {/* ── Stats Row ── */}
         <View style={styles.statsRow}>
@@ -404,17 +639,19 @@ export default function AdminPrayerModeration() {
       </ScrollView>
 
       {/* ── Create Prayer Request Modal ── */}
-      <Modal visible={showCreateModal} animationType="slide" transparent>
-        <View style={styles.createModalOverlay}>
-          <View style={styles.createModalContent}>
-            <View style={styles.createModalHeader}>
-              <Text style={styles.createModalTitle}>Create New Prayer Request</Text>
-              <TouchableOpacity onPress={() => setShowCreateModal(false)} style={styles.closeBtn}>
-                <XCircle size={24} color="#64748b" />
-              </TouchableOpacity>
-            </View>
-            
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
+      {showCreateModal && (
+        <View style={[StyleSheet.absoluteFill, { zIndex: 1000, backgroundColor: COLORS.paper }]}>
+          <SafeAreaView style={{ flex: 1 }}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+              <View style={[styles.createModalContent, { flex: 1, height: undefined, borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
+                <View style={[styles.createModalHeader, { borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
+                  <Text style={styles.createModalTitle}>Create New Prayer Request</Text>
+                  <TouchableOpacity onPress={() => setShowCreateModal(false)} style={styles.closeBtn}>
+                    <XCircle size={24} color="#64748b" />
+                  </TouchableOpacity>
+                </View>
+                
+                <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 20 }}>
               {/* Member Lookup */}
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Church Member</Text>
@@ -500,9 +737,9 @@ export default function AdminPrayerModeration() {
                 <View style={styles.textArea}>
                   <TextInput
                     placeholder="Type the prayer request details..."
+                    style={[styles.textInput, { minHeight: 120 }]}
                     multiline
-                    numberOfLines={4}
-                    style={styles.textInput}
+                    scrollEnabled={false}
                     value={pastorRequest.en}
                     onChangeText={t => setPastorRequest({ ...pastorRequest, en: t })}
                   />
@@ -513,10 +750,10 @@ export default function AdminPrayerModeration() {
                 <Text style={styles.inputLabel}>Detailed Prayer Request</Text>
                 <View style={styles.textArea}>
                   <TextInput
-                    placeholder="తెలుగులో ప్రార్థన విజ్ఞాపన..."
+                    placeholder="ప్రార్థన మనవి వివరాలను టైప్ చేయండి..."
+                    style={[styles.textInput, { minHeight: 120, fontStyle: 'italic' }]}
                     multiline
-                    numberOfLines={4}
-                    style={[styles.textInput, { fontStyle: 'italic' }]}
+                    scrollEnabled={false}
                     value={pastorRequest.te}
                     onChangeText={t => setPastorRequest({ ...pastorRequest, te: t })}
                   />
@@ -567,14 +804,17 @@ export default function AdminPrayerModeration() {
                   </>
                 )}
               </TouchableOpacity>
+              <View style={{ height: 400 }} />
             </ScrollView>
-          </View>
+              </View>
+            </KeyboardAvoidingView>
+          </SafeAreaView>
         </View>
-      </Modal>
+      )}
 
       {/* ── Success Modal ── */}
-      <Modal visible={showSuccessModal} transparent animationType="fade">
-        <View style={styles.modalOverlay}>
+      <Modal visible={successModalData.visible} transparent animationType="fade">
+        <View style={styles.successModalOverlay}>
           <Animated.View 
             style={[
               styles.successCard,
@@ -590,9 +830,9 @@ export default function AdminPrayerModeration() {
             <View style={styles.successIconBox}>
               <CheckCircle2 size={40} color="#fff" />
             </View>
-            <Text style={styles.successTitle}>Request Published!</Text>
+            <Text style={styles.successTitle}>{successModalData.title}</Text>
             <Text style={styles.successSub}>
-              The prayer request has been successfully created and published.
+              {successModalData.sub}
             </Text>
             
             <TouchableOpacity style={styles.successBtn} onPress={closeSuccess}>
@@ -601,6 +841,94 @@ export default function AdminPrayerModeration() {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* Close Confirmation Modal */}
+      <Modal visible={!!closeConfirmId} transparent animationType="fade">
+        <View style={styles.createModalOverlay}>
+          <View style={styles.closeConfirmCard}>
+            <View style={styles.closeConfirmIconBox}>
+              <XCircle size={40} color="#ef4444" />
+            </View>
+            <Text style={styles.successTitle}>Close Prayer Request?</Text>
+            <Text style={styles.successSub}>This will hide the prayer request from the public view and remove it from the admin dashboard.</Text>
+            
+            <View style={styles.closeConfirmActions}>
+              <TouchableOpacity style={styles.closeCancelBtn} onPress={() => setCloseConfirmId(null)}>
+                <Text style={styles.closeCancelTxt}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.closeConfirmBtn} onPress={confirmClose}>
+                <Text style={styles.closeConfirmTxt}>Close Request</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+      {/* ── Top Menu Modal ── */}
+      <Modal transparent visible={showTopMenu} animationType="fade" onRequestClose={() => setShowTopMenu(false)}>
+        <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={() => setShowTopMenu(false)}>
+          <View style={{ position: 'absolute', top: 90, right: 20, backgroundColor: '#fff', borderRadius: 12, padding: 8, elevation: 10, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, width: 220 }}>
+            <TouchableOpacity 
+              style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', alignItems: 'center', gap: 10 }}
+              onPress={() => { setShowTopMenu(false); setShowCreateModal(true); }}
+            >
+              <Plus size={18} color={COLORS.ink} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: COLORS.ink }}>New Prayer</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={{ padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}
+              onPress={() => { setShowTopMenu(false); setShowDownloadModal(true); }}
+            >
+              <FileDown size={18} color={COLORS.ink} />
+              <Text style={{ fontSize: 14, fontWeight: '700', color: COLORS.ink }}>Download Requests</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Download PDF Modal ── */}
+      <Modal transparent visible={showDownloadModal} animationType="slide" onRequestClose={() => setShowDownloadModal(false)}>
+        <View style={styles.createModalOverlay}>
+          <View style={[styles.createModalContent, { height: 'auto', paddingBottom: 40 }]}>
+            <View style={styles.createModalHeader}>
+              <Text style={styles.createModalTitle}>Download Report</Text>
+              <TouchableOpacity onPress={() => setShowDownloadModal(false)} style={styles.closeBtn}>
+                <XCircle size={24} color={COLORS.inkSoft} />
+              </TouchableOpacity>
+            </View>
+            <View style={{ padding: 24 }}>
+              <Text style={{ fontSize: 14, fontWeight: '700', color: COLORS.ink, marginBottom: 12 }}>Select Filter</Text>
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 24 }}>
+                {(['all', 'pending', 'answered'] as const).map(f => (
+                  <TouchableOpacity
+                    key={f}
+                    onPress={() => setPdfFilter(f)}
+                    style={{
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderRadius: 20,
+                      backgroundColor: pdfFilter === f ? COLORS.ink : COLORS.parchment,
+                      borderWidth: 1,
+                      borderColor: pdfFilter === f ? COLORS.ink : COLORS.rule,
+                    }}
+                  >
+                    <Text style={{ color: pdfFilter === f ? '#fff' : COLORS.inkSoft, fontWeight: '700', fontSize: 13 }}>
+                      {f === 'all' ? `All (${prayers.length})` : f === 'pending' ? `Pending (${pendingPrayers.length})` : `Answered (${answeredPrayers.length})`}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TouchableOpacity
+                onPress={() => exportPrayersToPDF(pdfFilter)}
+                style={{ backgroundColor: COLORS.goldDeep, borderRadius: 12, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+              >
+                <FileDown size={20} color="#fff" />
+                <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>Download Prayer Requests</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
 }
@@ -694,6 +1022,18 @@ const styles = StyleSheet.create({
   searchItemPhone: { fontSize: 12, color: COLORS.inkSoft, marginTop: 2 },
   selectedBadge: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: COLORS.ink, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 10, marginTop: 8 },
   selectedBadgeTxt: { color: '#fff', fontSize: 13, fontWeight: '800' },
+  
+  adminReplyInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 13,
+    color: COLORS.ink,
+    minHeight: 80,
+    textAlignVertical: 'top',
+  },
 
   createModalOverlay: { flex: 1, backgroundColor: 'rgba(21, 28, 51, 0.75)', justifyContent: 'flex-end' },
   createModalContent: { backgroundColor: COLORS.parchment, borderTopLeftRadius: 30, borderTopRightRadius: 30, height: '85%' },
@@ -702,14 +1042,22 @@ const styles = StyleSheet.create({
   closeBtn: { padding: 4, backgroundColor: COLORS.clayBg, borderRadius: 20 },
 
   // Success Modal Styles
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(21, 28, 51, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
-  successCard: { backgroundColor: COLORS.paper, borderRadius: 24, padding: 32, width: '92%', maxWidth: 400, alignItems: 'center', elevation: 10, borderWidth: 1, borderColor: COLORS.rule },
-  successIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.mossBg, justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
-  successIconInner: { width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.moss, justifyContent: 'center', alignItems: 'center' },
-  successTitle: { fontSize: 24, fontWeight: '900', color: COLORS.ink, marginBottom: 12, textAlign: 'center', fontFamily: FONTS.serif },
-  successSub: { fontSize: 14, color: COLORS.inkSoft, textAlign: 'center', lineHeight: 22, marginBottom: 30, fontFamily: FONTS.serif },
-  successBtn: { backgroundColor: COLORS.goldBright, height: 48, borderRadius: 12, width: '100%', justifyContent: 'center', alignItems: 'center', marginBottom: 10, elevation: 2, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 3 },
-  successBtnTxt: { color: COLORS.ink, fontSize: 14, fontWeight: '800', fontFamily: FONTS.serif },
+  successModalOverlay: { flex: 1, backgroundColor: 'rgba(21, 28, 51, 0.75)', justifyContent: 'center', alignItems: 'center', padding: 24 },
+  successCard: { width: '100%', backgroundColor: '#fff', borderRadius: 24, padding: 32, alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20 },
+  successIconBox: { width: 80, height: 80, borderRadius: 40, backgroundColor: COLORS.moss, justifyContent: 'center', alignItems: 'center', marginBottom: 20, shadowColor: COLORS.moss, shadowOpacity: 0.4, shadowRadius: 12, elevation: 6 },
+  successTitle: { fontSize: 22, fontWeight: '900', color: COLORS.ink, fontFamily: FONTS.serif, marginBottom: 8, textAlign: 'center' },
+  successSub: { fontSize: 14, color: COLORS.inkSoft, textAlign: 'center', marginBottom: 30, lineHeight: 22 },
+  successBtn: { width: '100%', height: 54, backgroundColor: COLORS.ink, borderRadius: 16, justifyContent: 'center', alignItems: 'center', shadowColor: COLORS.ink, shadowOpacity: 0.3, shadowRadius: 10, elevation: 4 },
+  successBtnTxt: { color: '#fff', fontSize: 15, fontWeight: '800' },
+
+  // Close Confirmation Styles
+  closeConfirmCard: { width: '85%', alignSelf: 'center', backgroundColor: '#fff', borderRadius: 24, padding: 32, alignItems: 'center', elevation: 10, shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, marginBottom: '50%' },
+  closeConfirmIconBox: { width: 70, height: 70, borderRadius: 35, backgroundColor: '#fee2e2', justifyContent: 'center', alignItems: 'center', marginBottom: 20 },
+  closeConfirmActions: { flexDirection: 'row', gap: 12, width: '100%' },
+  closeCancelBtn: { flex: 1, height: 50, backgroundColor: '#f1f5f9', borderRadius: 14, justifyContent: 'center', alignItems: 'center' },
+  closeCancelTxt: { color: '#475569', fontSize: 14, fontWeight: '700' },
+  closeConfirmBtn: { flex: 1, height: 50, backgroundColor: '#ef4444', borderRadius: 14, justifyContent: 'center', alignItems: 'center', shadowColor: '#ef4444', shadowOpacity: 0.3, shadowRadius: 6, elevation: 4 },
+  closeConfirmTxt: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
   // Replies Styles
   repliesContainer: { marginTop: 15, paddingTop: 15, borderTopWidth: 1, borderTopColor: COLORS.rule },

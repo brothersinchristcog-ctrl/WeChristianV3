@@ -43,6 +43,7 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
   const [title, setTitle] = useState('');
   const [eventType, setEventType] = useState('');
   const [date, setDate] = useState(new Date());
+  const [endDate, setEndDate] = useState(new Date());
   const [startTime, setStartTime] = useState(new Date());
   const [endTime, setEndTime] = useState(() => {
     const d = new Date();
@@ -57,6 +58,7 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
 
   // UI state for Pickers
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showEndDatePicker, setShowEndDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showEndTimePicker, setShowEndTimePicker] = useState(false);
 
@@ -64,7 +66,12 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
   const [step, setStep] = useState(1);
 
   // Derived state
-  const durationMinsNum = Math.max(0, (endTime.getTime() - startTime.getTime()) / 60000);
+  const derivedStartDateTime = new Date(date);
+  derivedStartDateTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
+  const derivedEndDateTime = new Date(endDate);
+  derivedEndDateTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
+
+  const durationMinsNum = Math.max(0, (derivedEndDateTime.getTime() - derivedStartDateTime.getTime()) / 60000);
   const durationHoursDerived = durationMinsNum > 0 ? (durationMinsNum / 60).toFixed(1).replace(/\.0$/, '') : '0';
 
   const editEvent = route?.params?.editEvent;
@@ -75,6 +82,8 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
       setEventType(editEvent.type === 'worship' ? '' : editEvent.type);
       
       if (editEvent.date) setDate(new Date(editEvent.date));
+      if (editEvent.endDate) setEndDate(new Date(editEvent.endDate));
+      else if (editEvent.date) setEndDate(new Date(editEvent.date));
       
       if (editEvent.startTime) {
         const timeDate = new Date();
@@ -162,12 +171,10 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
     try {
       // Calculate start and end date times
       const startDateTime = new Date(date);
-      startDateTime.setHours(startTime.getHours());
-      startDateTime.setMinutes(startTime.getMinutes());
-      startDateTime.setSeconds(0);
-      startDateTime.setMilliseconds(0);
+      startDateTime.setHours(startTime.getHours(), startTime.getMinutes(), 0, 0);
 
-      const endDateTime = new Date(startDateTime.getTime() + durationMinsNum * 60 * 1000);
+      const endDateTime = new Date(endDate);
+      endDateTime.setHours(endTime.getHours(), endTime.getMinutes(), 0, 0);
 
       // Build full address with PIN code for geocoding
       const fullLocation = [venue.trim(), city.trim(), address.trim()]
@@ -202,6 +209,7 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
         title: title,
         type: eventType || 'meeting',
         date: startDateTime.toISOString().split('T')[0],
+        endDate: endDateTime.toISOString().split('T')[0],
         startTime: startDateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
         endTime: endDateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
         durationMins: durationMinsNum,
@@ -439,25 +447,48 @@ export const CreatePastorEvent = ({ route, navigation }: { route: any; navigatio
               />
             </View>
 
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Date *</Text>
-              <TouchableOpacity style={styles.dropdown} onPress={() => setShowDatePicker(true)}>
-                <Text style={styles.dropdownText}>
-                  {date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
-                </Text>
-                <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
-              </TouchableOpacity>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={date}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowDatePicker(false);
-                    if (selectedDate) setDate(selectedDate);
-                  }}
-                />
-              )}
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.label}>Start Date *</Text>
+                <TouchableOpacity style={styles.dropdown} onPress={() => setShowDatePicker(true)}>
+                  <Text style={styles.dropdownText}>
+                    {date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+                </TouchableOpacity>
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={date}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowDatePicker(false);
+                      if (selectedDate) setDate(selectedDate);
+                    }}
+                  />
+                )}
+              </View>
+
+              <View style={[styles.inputGroup, { flex: 1 }]}>
+                <Text style={styles.label}>End Date *</Text>
+                <TouchableOpacity style={styles.dropdown} onPress={() => setShowEndDatePicker(true)}>
+                  <Text style={styles.dropdownText}>
+                    {endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </Text>
+                  <Ionicons name="calendar-outline" size={16} color={colors.textSecondary} />
+                </TouchableOpacity>
+                {showEndDatePicker && (
+                  <DateTimePicker
+                    value={endDate}
+                    mode="date"
+                    display="default"
+                    onChange={(event, selectedDate) => {
+                      setShowEndDatePicker(false);
+                      if (selectedDate) setEndDate(selectedDate);
+                    }}
+                  />
+                )}
+              </View>
             </View>
 
             <View style={styles.row}>

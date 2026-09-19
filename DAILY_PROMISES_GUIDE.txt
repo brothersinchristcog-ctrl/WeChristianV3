@@ -1,0 +1,220 @@
+================================================================================
+          WECHRISTIAN - DAILY PROMISES & PROMISE EDITOR GUIDE
+================================================================================
+
+TABLE OF CONTENTS:
+1. Overview & Architecture
+2. Part 1: The "Promises" Tab (Dashboard & List View)
+3. Part 2: The "New Promise / Edit Promise" Tab (Editor)
+4. Part 3: Saving, Success Feedback & Live Member App Sync
+
+================================================================================
+1. OVERVIEW & ARCHITECTURE
+================================================================================
+The Daily Promise system allows church administrators to publish daily
+scripture verses, devotional commentary, customized 16:9 branded graphics,
+and YouTube devotional videos.
+
+When a Daily Promise is published:
+- It appears immediately on the Member App Home Screen hero card.
+- It appears in the Daily Video / Devotional Player screen.
+- It is permanently recorded in the Church Promise Archive.
+- An automated push notification broadcast is sent to all church members.
+
+================================================================================
+2. PART 1: THE "PROMISES" TAB (DASHBOARD & LIST VIEW)
+================================================================================
+
+[ TOP HEADER BAR ]
+* "< Back" Button:
+  - Returns to the main Admin Dashboard.
+* "Daily Promises" Title:
+  - Header of the screen.
+* "+ New" Button:
+  - Opens the New Promise Editor with a fresh blank form.
+
+[ THREE INTERACTIVE CLICKABLE STAT CARDS ]
+All three summary stat cards at the top are interactive filters:
+
+1. "Published" Card (Moss Green):
+   - Shows total count of promises live with status 'Published'.
+   - CLICK ACTION: Filters the list to display all Published promises in
+     reverse-chronological order.
+   - Tapping it again resets the filter to show all.
+
+2. "Drafts" Card (Gold):
+   - Shows total count of promises saved as private 'Draft'.
+   - CLICK ACTION: Instantly filters the list to show all unpublished drafts,
+     allowing you to quickly locate, edit, and publish draft work.
+   - Tapping it again resets the filter to show all.
+
+3. "Missing" Card (Terracotta Clay):
+   - Shows count of empty days in the current month without a promise.
+   - CLICK ACTION: Displays the full calendar grid of all missing dates with
+     direct "+ Add" buttons for each missing day.
+   - Tapping it again resets the filter to show all.
+
+[ ACTIVE FILTER BANNER ]
+* When any stat card is active, a filter banner appears:
+  - Displays: "Showing: Published Promises (X)" or "Draft Promises (X)".
+  - "Show All" Button: One-tap button to clear the filter and restore the full
+    overview.
+
+[ DEFAULT SECTIONS (WHEN NO FILTER IS ACTIVE) ]
+* Alert Banner:
+  - Displays when days in the current month are still unassigned.
+* "Today" Section:
+  - Shows today's active promise. If empty, displays a "+ Schedule today's
+    promise" button.
+* "Upcoming" Section:
+  - Lists future promises in chronological order.
+* "Missing Dates" Preview:
+  - Displays cards for empty calendar days with month, day, and "+ Add" button.
+  - Includes "View all (X) ->" button.
+* "Past Promises" Section:
+  - Shows previously published promises for historical reference.
+
+[ INDIVIDUAL PROMISE CARDS IN LIST ]
+Each card displayed contains:
+* Header Band:
+  - Date (e.g., 14 September 2026).
+  - Status Badge Pill: Green "Published", Blue "Scheduled", or Amber "Draft".
+  - Seal Badge: Checkmark (past/today) or Plus icon (upcoming).
+* Body:
+  - Scripture Reference: English and Telugu citations (e.g. John 3:16 | యోహాను 3:16).
+  - Pastor Name: Displayed with a bullet.
+  - English Verse: Editorial style with drop-cap.
+  - Telugu Verse: Native Telugu scripture text.
+* Bottom Toolbar:
+  - Flags: English, Telugu, and YouTube indicators.
+  - "Edit ->" Button: Opens the promise in the editor with all data loaded.
+
+[ FLOATING ACTION BUTTON (FAB +) ]
+* Located in the bottom-right corner. Tapping it opens the New Promise editor.
+
+================================================================================
+3. PART 2: THE "NEW PROMISE / EDIT PROMISE" TAB (EDITOR)
+================================================================================
+
+[ SECTION 1: SCHEDULE ]
+* "Promise date *" Field:
+  - Displays currently selected date.
+  - Tapping opens a calendar date picker to pick any day of the month.
+
+[ SECTION 2: ENGLISH PROMISE & AUTO-POPULATE BIBLE ENGINE ]
+* Auto-Populate Bible Verse Box:
+  - "Select Book": Picker with all 66 books of the Bible in English & Telugu.
+  - "Select Chapter": Dynamically loads chapters for the chosen book.
+  - "Select Verse": Dynamically loads verse numbers for the chosen chapter.
+  - Auto-Fetch Engine: Automatically queries Bolls KJV Bible API and local
+    Telugu Bible simultaneously, populating:
+      1. English reference (e.g., John 3:16)
+      2. English verse text
+      3. Telugu reference (e.g., యోహాను 3:16)
+      4. Telugu verse text
+* "Scripture reference *" Input:
+  - Manual edit or auto-filled citation.
+* "Verse text (English) *" Textarea:
+  - Full English scripture text.
+* "Devotional Note (English)" Textarea:
+  - Optional commentary or prayer points displayed to members.
+
+[ SECTION 3: TELUGU PROMISE (తెలుగు వాగ్దానము) ]
+* "Scripture reference (Telugu)" Input:
+  - Telugu citation (e.g., యోహాను 3:16).
+* "Verse text (Telugu)" Textarea:
+  - Native Telugu scripture text with custom serif typography.
+
+[ SECTION 4: DEVOTIONAL THUMBNAIL (16:9 LANDSCAPE CARD) ]
+Every promise generates a branded 16:9 graphic displayed on Member Home View:
+
+1. Live 16:9 Graphic Preview:
+   - Header Bar: Church Logo or Cross, Church Name, and Date Pill.
+   - Center Card: Scripture text in quotation marks with golden reference pill.
+   - Footer Bar: YouTube video badge, Pastor name, and Church branding.
+
+2. Media Control Buttons:
+   - "Regenerate" Button: Cycles through high-resolution Christian landscape
+     backgrounds.
+   - "Change Background" Button: Opens device gallery to upload custom church
+     photos.
+   - "AI Redesign" Button: AI-enhances the visual composite.
+
+3. Thumbnail Colors & Custom Palette (Collapsible via Chevron):
+   - Color Family Tabs: Filter swatches by Blue, Navy, Purple, Violet, Pink,
+     Red, Orange, Gold, Green, Teal, Slate, etc.
+   - Swatches: Over 50 curated tones and gradients.
+   - Custom Color Mode:
+     - Solid: Enter any Hex code or tap a spectrum dot.
+     - Gradient: Enter custom Start & End Hex colors with live preview bar.
+
+[ SECTION 5: VIDEO DEVOTIONAL (OPTIONAL) ]
+* "Devotional Video Title" Input: Title for the devotional video.
+* "Duration" Input: Length hint (e.g., 1:20).
+* "YouTube video URL" Input: Full YouTube link or video ID. When provided,
+  a video player card appears for members.
+
+[ SECTION 6: PASTOR & PUBLISH STATUS ]
+* "Pastor Name" Input: Name of the minister sharing the promise.
+* Publish Status (Dedicated 3-Card Selector):
+  1. "Publish Now" Card (Emerald Green):
+     - Icon: Send.
+     - Subtext: "Live immediately on Member Home View".
+     - Action: Publishes immediately and broadcasts push notification.
+  2. "Scheduled" Card (Amber / Navy):
+     - Icon: Clock.
+     - Subtext: "Auto-publishes on [Selected Date]".
+     - Action: Queued to automatically show when that calendar date arrives.
+  3. "Save as Draft" Card (Slate):
+     - Icon: Document.
+     - Subtext: "Saved privately, hidden from members".
+     - Action: Saved to database archive without being visible to members.
+
+[ SECTION 7: ACTION BUTTONS & FAB ]
+* Bottom Action Buttons (Dynamically adapts to selected status):
+  - When status is "Publish Now":
+    * Left: "Save as Draft" (saves draft).
+    * Right (Primary): "Save & Publish Now" (Green #15803D).
+  - When status is "Scheduled":
+    * Left: "Save as Draft".
+    * Right (Primary): "Save & Schedule" (Navy #1a2d5a).
+  - When status is "Draft":
+    * Left: "Publish Now" (Green #15803D, quick publish).
+    * Right (Primary): "Save as Draft" (Slate #475569).
+* "<- Back to list" Button:
+  - Cancels and returns to Promises list.
+* Floating Action Button (FAB):
+  - Bottom-right corner circular quick-save button. Icon and background color
+    automatically adapt to status (Send for Published, Clock for Scheduled,
+    Save for Draft).
+
+================================================================================
+4. PART 3: SAVING, SUCCESS FEEDBACK & LIVE MEMBER APP SYNC
+================================================================================
+
+[ SAVING PROCESS ]
+1. Captures the high-resolution 16:9 composite graphic via ViewShot.
+2. Uploads the final graphic to cloud storage.
+3. Saves the complete promise details to Firestore.
+4. Clears local device cache (@cached_daily_promise) so the Member Home View
+   immediately reflects the newest update.
+5. If status is "Published", broadcasts a push notification to all members.
+
+[ CELEBRATORY SUCCESS MODAL ]
+* Decorative Top Gradient Accent Bar:
+  - Emerald for Published, Amber/Navy for Scheduled, Slate for Draft.
+* Layered Multi-Ring Glowing Icon Badge:
+  - Animated multi-ring glow with central icon (CheckCircle2 / Clock / FileText).
+* Status Pill Badge:
+  - "LIVE ON MEMBER APP" / "SCHEDULED * [Date]" / "SAVED AS PRIVATE DRAFT".
+* Headline & Explanatory Text:
+  - "Promise Published! 🎉" / "Promise Scheduled! ⏰" / "Draft Saved! 💾".
+* Summary Details Card:
+  - Verse citation, Date, and Pastor Name.
+* Dual Action Buttons:
+  - Primary: "View Promises List ->" with LinearGradient to navigate to list.
+  - Secondary: "Stay & Keep Editing" link to dismiss and continue editing.
+
+================================================================================
+                              END OF GUIDE
+================================================================================

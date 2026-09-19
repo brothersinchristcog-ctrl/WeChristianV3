@@ -13,8 +13,9 @@ import {
   Alert,
   Image
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
-  ChevronLeft, 
+  ArrowLeft, 
   MapPin, 
   CalendarCheck,
   Calendar,
@@ -22,11 +23,13 @@ import {
 } from 'lucide-react-native';
 import FirestoreService, { ScheduleEvent } from '../services/FirestoreService';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
 export default function EventsScreen({ navigation }: any) {
   const { isDark, colors } = useTheme();
+  const { t } = useLanguage();
   const [upcomingEvents, setUpcomingEvents] = useState<ScheduleEvent[]>([]);
   const [pastEvents, setPastEvents] = useState<ScheduleEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -117,7 +120,7 @@ export default function EventsScreen({ navigation }: any) {
         <View style={[styles.ebHd, isPast && { backgroundColor: '#475569' }]}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
             <Calendar size={14} color="#FCD34D" />
-            <Text style={styles.ebHdLbl}>{isPast ? 'PAST EVENT · ముగిసినవి' : 'EVENT DETAILS · వివరాలు'}</Text>
+            <Text style={styles.ebHdLbl}>{isPast ? t('events.pastEvents').toUpperCase() : t('events.eventDetails').toUpperCase()}</Text>
           </View>
         </View>
         <View style={styles.ebBody}>
@@ -177,7 +180,7 @@ export default function EventsScreen({ navigation }: any) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#0f172a' : '#1a2d5a' }]}>
         <ActivityIndicator size="large" color="#FCD34D" />
-        <Text style={styles.loadingText}>Loading Events... కార్యక్రమాలు లోడ్ అవుతున్నాయి...</Text>
+        <Text style={styles.loadingText}>{t('events.loading')}</Text>
       </View>
     );
   }
@@ -187,24 +190,30 @@ export default function EventsScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* ── Page Header ── */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
         
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Events Archive</Text>
-          <Text style={styles.headerSub}>కార్యక్రమాల జాబితా</Text>
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
+            <Text style={styles.headerTitle}>{t('events.title')}</Text>
+          </View>
         </View>
-        <View style={{ width: 60 }} />
-      </View>
+
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       {/* Tabs */}
       <View style={styles.tabContainer}>
         {(['thisWeek', 'upcoming', 'past'] as const).map(tab => {
           const isActive = activeTab === tab;
-          let label = tab === 'thisWeek' ? 'This Week' : tab === 'upcoming' ? 'Upcoming' : 'Past';
+          let label = tab === 'thisWeek' ? t('events.thisWeek') : tab === 'upcoming' ? t('events.upcoming') : t('events.past');
           return (
             <TouchableOpacity 
               key={tab} 
@@ -244,8 +253,9 @@ export default function EventsScreen({ navigation }: any) {
           !loading ? (
             <View style={styles.emptyState}>
               <CalendarCheck size={60} color="#cbd5e1" />
-              <Text style={styles.emptyTitle}>No Events Found</Text>
-              <Text style={styles.emptySub}>Check back later for new activities.</Text>
+              <Text style={styles.emptyTitle}>
+                {activeTab === 'past' ? t('events.noPastEvents') : t('events.noUpcomingEvents')}
+              </Text>
             </View>
           ) : null
         }
@@ -262,31 +272,33 @@ const styles = StyleSheet.create({
   // Header
   header: {
     backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 25,
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
     paddingBottom: 25,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5, minWidth: 60 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  backBtn: { zIndex: 10, padding: 5 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
   headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
 
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    gap: 10,
-    elevation: 2,
+    marginTop: 15,
+    marginHorizontal: 16,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    borderRadius: 30,
+    gap: 4,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
     marginBottom: 5,
   },
   tabBtn: {

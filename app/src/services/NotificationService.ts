@@ -170,10 +170,20 @@ class NotificationService {
     });
   }
 
-  // Subscribe user to a specific church topic for isolated notifications
   async subscribeToChurchTopic(churchId: string) {
     if (!churchId) return;
     try {
+      // Check permission first to prevent silent failures on fresh installs (especially iOS APNS)
+      const authStatus = await messaging().hasPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        
+      if (!enabled) {
+        console.log(`⚠️ Cannot subscribe to church_${churchId} yet: Permissions not granted.`);
+        return;
+      }
+
       const topicName = `church_${churchId}`;
       await messaging().subscribeToTopic(topicName);
       console.log(`📡 Subscribed to FCM topic: ${topicName}`);

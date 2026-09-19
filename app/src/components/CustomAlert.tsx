@@ -147,8 +147,12 @@ export const CustomAlert = forwardRef<CustomAlertRef, CustomAlertProps>((props, 
                     buttons.length === 2 && styles.buttonHalf
                   ]}
                   onPress={() => {
-                    if (btn.onPress) btn.onPress();
-                    if (!btn.onPress || btn.style === 'cancel') handleClose();
+                    handleClose();
+                    if (btn.onPress) {
+                      setTimeout(() => {
+                        btn.onPress!();
+                      }, 100);
+                    }
                   }}
                   activeOpacity={0.8}
                 >

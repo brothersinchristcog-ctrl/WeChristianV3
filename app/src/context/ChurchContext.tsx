@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { firestore } from '../services/firebaseConfig';
 import ChurchService, { ChurchDetails } from '../services/ChurchService';
 import { useAuth } from './AuthContext';
 
@@ -29,6 +30,26 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [originalChurchId, setOriginalChurchId] = useState<string | null>(null);
   const [impersonatedBranchName, setImpersonatedBranchName] = useState<string | null>(null);
   const isImpersonating = !!originalChurchId;
+
+  // Real-time listener for active church document so changes (service timings, theme, etc.) reflect immediately
+  useEffect(() => {
+    if (!churchId) return;
+    const unsub = firestore()
+      .collection('churches')
+      .doc(churchId)
+      .onSnapshot(
+        (docSnap) => {
+          if (docSnap && docSnap.exists()) {
+            const data = { id: docSnap.id, ...docSnap.data() } as ChurchDetails;
+            setActiveChurch(data);
+          }
+        },
+        (error) => {
+          console.warn('[ChurchContext] onSnapshot error:', error);
+        }
+      );
+    return () => unsub();
+  }, [churchId]);
 
   // When auth state changes, if the member has a churchId, use it.
   useEffect(() => {

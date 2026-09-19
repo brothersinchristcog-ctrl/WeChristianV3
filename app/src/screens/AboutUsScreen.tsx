@@ -8,13 +8,16 @@ import {
   TouchableOpacity,
   Image,
   Dimensions,
-  Platform
+  Platform,
+  StatusBar
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { ChevronLeft, Target, Heart, Sparkles, Users, BookOpen, Video, Hand, Gift, Calendar } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ChevronLeft, ArrowLeft, Target, Heart, Sparkles, Users, BookOpen, Video, Hand, Gift, Calendar } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useChurch } from '../context/ChurchContext';
+import { useLanguage } from '../context/LanguageContext';
 import firestoreService from '../services/FirestoreService';
 
 interface AboutUsData {
@@ -39,6 +42,7 @@ export default function AboutUsScreen() {
   const navigation = useNavigation();
   const { colors, isDark } = useTheme();
   const { activeChurch } = useChurch();
+  const { t } = useLanguage();
   const [data, setData] = useState<AboutUsData>(DEFAULT);
   const [loading, setLoading] = useState(true);
 
@@ -53,11 +57,19 @@ export default function AboutUsScreen() {
             if (doc.exists()) {
               const d = doc.data() as AboutUsData;
               setData({
-                churchName: d.churchName || DEFAULT.churchName,
-                churchSubtitle: d.churchSubtitle || DEFAULT.churchSubtitle,
-                description: d.description || DEFAULT.description,
-                mission: d.mission || DEFAULT.mission,
-                vision: d.vision || DEFAULT.vision,
+                churchName: d.churchName || activeChurch?.name || 'Your Church',
+                churchSubtitle: d.churchSubtitle || '',
+                description: d.description || activeChurch?.aboutUs || '',
+                mission: d.mission || '',
+                vision: d.vision || '',
+              });
+            } else {
+              setData({
+                churchName: activeChurch?.name || 'Your Church',
+                churchSubtitle: '',
+                description: activeChurch?.aboutUs || '',
+                mission: '',
+                vision: '',
               });
             }
             setLoading(false);
@@ -80,23 +92,26 @@ export default function AboutUsScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <View style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor="#2b52a1" />
       {/* Hero Header Card */}
-      <View style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft size={22} color="#fff" />
-            <Text style={styles.backBtnTxt}>Back</Text>
-          </TouchableOpacity>
-          <View style={styles.headerBadge}>
-            <Text style={styles.headerBadgeTxt}>⛪ Church</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
+        </TouchableOpacity>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>{t('aboutUs.title')}</Text>
+            <Text style={styles.headerSub}>{t('aboutUs.subtitle')}</Text>
           </View>
         </View>
-        <View style={styles.headerBottom}>
-          <Text style={styles.headerTitle}>About Us</Text>
-          <Text style={styles.headerSub}>Discover our mission and values</Text>
-        </View>
-      </View>
+      </LinearGradient>
 
       {loading ? (
         <View style={styles.loadingContainer}>
@@ -129,7 +144,7 @@ export default function AboutUsScreen() {
           <View style={styles.callingCard}>
             <View style={styles.callingHeader}>
               <Heart size={20} color="#1a2d5a" strokeWidth={2} />
-              <Text style={styles.callingTitle}>Our Calling</Text>
+              <Text style={styles.callingTitle}>{t('aboutUs.ourCalling')}</Text>
             </View>
             <Text style={styles.callingText}>{data.description}</Text>
           </View>
@@ -142,7 +157,7 @@ export default function AboutUsScreen() {
 
           {/* Our Vision */}
           <View style={styles.visionSection}>
-            <Text style={styles.sectionTitle}>Our Vision</Text>
+            <Text style={styles.sectionTitle}>{t('aboutUs.ourVision')}</Text>
             <View style={styles.blockquoteContainer}>
               <View style={styles.blockquoteLine} />
               <Text style={styles.blockquoteText}>{data.vision}</Text>
@@ -152,152 +167,110 @@ export default function AboutUsScreen() {
 
           {/* Our Core Values */}
           <View style={styles.valuesSection}>
-            <Text style={[styles.sectionTitle, { textAlign: 'center' }]}>Our Core Values</Text>
+            <Text style={[styles.sectionTitle, { textAlign: 'center' }]}>{t('aboutUs.ourCoreValues')}</Text>
             <View style={styles.valuesGrid}>
               <View style={[styles.valuePill, { backgroundColor: '#dbeafe' }]}>
                 <Heart size={16} color="#1e3a8a" />
-                <Text style={[styles.valuePillText, { color: '#1e3a8a' }]}>Compassion</Text>
+                <Text style={[styles.valuePillText, { color: '#1e3a8a' }]}>{t('aboutUs.values.compassion')}</Text>
               </View>
               <View style={[styles.valuePill, { backgroundColor: '#fef08a' }]}>
                 <Target size={16} color="#854d0e" />
-                <Text style={[styles.valuePillText, { color: '#854d0e' }]}>Integrity</Text>
+                <Text style={[styles.valuePillText, { color: '#854d0e' }]}>{t('aboutUs.values.integrity')}</Text>
               </View>
               <View style={[styles.valuePill, { backgroundColor: '#e5e7eb' }]}>
                 <Sparkles size={16} color="#374151" />
-                <Text style={[styles.valuePillText, { color: '#374151' }]}>Faith</Text>
+                <Text style={[styles.valuePillText, { color: '#374151' }]}>{t('aboutUs.values.faith')}</Text>
               </View>
               <View style={[styles.valuePill, { backgroundColor: '#bfdbfe' }]}>
                 <Users size={16} color="#1e40af" />
-                <Text style={[styles.valuePillText, { color: '#1e40af' }]}>Fellowship</Text>
+                <Text style={[styles.valuePillText, { color: '#1e40af' }]}>{t('aboutUs.values.fellowship')}</Text>
               </View>
             </View>
           </View>
 
           {/* Connected in Spirit */}
           <View style={styles.connectedSection}>
-            <Text style={styles.sectionTitle}>Connected in Spirit</Text>
+            <Text style={styles.sectionTitle}>{t('aboutUs.connectedInSpirit')}</Text>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#e2e8f0' }]}>
                 <BookOpen size={20} color="#1e293b" />
               </View>
-              <Text style={styles.featureTitle}>Sermons On-Demand</Text>
-              <Text style={styles.featureDesc}>Revisit Sunday messages anytime. Journey through our archive of teachings wherever you are.</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.sermonsTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.sermonsDesc')}</Text>
             </View>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#fef3c7' }]}>
                 <Video size={20} color="#92400e" />
               </View>
-              <Text style={styles.featureTitle}>Live Services</Text>
-              <Text style={styles.featureDesc}>Watch our Sunday gatherings live. Connect from anywhere in the world.</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.liveServicesTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.liveServicesDesc')}</Text>
             </View>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#fef3c7' }]}>
                 <Hand size={20} color="#92400e" />
               </View>
-              <Text style={styles.featureTitle}>Prayer Requests</Text>
-              <Text style={styles.featureDesc}>"Submit and join in communal prayer. Your burdens are shared, and your joys are celebrated."</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.prayerRequestsTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.prayerRequestsDesc')}</Text>
             </View>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#e2e8f0' }]}>
                 <Gift size={20} color="#1e293b" />
               </View>
-              <Text style={styles.featureTitle}>Giving & Support</Text>
-              <Text style={styles.featureDesc}>Seamlessly support church ministries. Secure and faithful stewardship for our shared mission.</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.givingTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.givingDesc')}</Text>
             </View>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#e5e7eb' }]}>
                 <Sparkles size={20} color="#1f2937" />
               </View>
-              <Text style={styles.featureTitle}>Daily Promises</Text>
-              <Text style={styles.featureDesc}>Start your day with scripture and reflection. Morning bread for your spiritual journey.</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.dailyPromisesTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.dailyPromisesDesc')}</Text>
             </View>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#e2e8f0' }]}>
                 <Calendar size={20} color="#1e293b" />
               </View>
-              <Text style={styles.featureTitle}>Events & RSVP</Text>
-              <Text style={styles.featureDesc}>Stay updated and register for gatherings. Never miss a moment with your church family.</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.eventsTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.eventsDesc')}</Text>
             </View>
           </View>
 
           {/* Footer Quote */}
           <View style={styles.footerQuoteCard}>
-            <Text style={styles.footerQuoteText}>"And the peace of God, which transcends all understanding, will guard your hearts and your minds in Christ Jesus."</Text>
-            <Text style={styles.footerQuoteRef}>PHILIPPIANS 4:7</Text>
+            <Text style={styles.footerQuoteText}>{t('aboutUs.footerQuote')}</Text>
+            <Text style={styles.footerQuoteRef}>{t('aboutUs.footerRef')}</Text>
           </View>
 
           <View style={{ height: 40 }} />
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#1a2d5a' },
+  safe: { flex: 1, backgroundColor: '#fafafa' },
   header: {
-    backgroundColor: '#1a2d5a',
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
-    paddingBottom: 28,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    shadowColor: '#1a2d5a',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 12,
-    elevation: 8,
-    zIndex: 10,
-  },
-  headerTopRow: {
+    paddingBottom: 30,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    marginBottom: 20,
-    paddingTop: 12,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  headerBottom: {
-    paddingLeft: 4,
-  },
-  headerBadge: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  headerBadgeTxt: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  backBtnTxt: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#fff',
-    marginBottom: 4,
-  },
-  headerSub: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.65)',
-    fontWeight: '500',
-  },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 24 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8, marginBottom: 8 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 2 },
+  headerSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: '500' },
   
   loadingContainer: {
     flex: 1,

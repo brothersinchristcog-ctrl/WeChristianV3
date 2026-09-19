@@ -10,85 +10,57 @@ import {
   Dimensions,
   TextInput
 } from 'react-native';
-// Removed SafeAreaView as padding is handled by the header
-import { ChevronLeft, Search, BookOpen, Globe } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowLeft, ChevronLeft, Search, BookOpen, Globe } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import { BibleService, BIBLE_BOOKS, ALL_BOOKS_BY_LANG } from '../services/BibleService';
 
 const { width } = Dimensions.get('window');
 
-const BIBLE_DATA = {
-  English: {
-    OT: [
-      'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 
-      'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel', 
-      '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles', 'Ezra', 
-      'Nehemiah', 'Esther', 'Job', 'Psalms', 'Proverbs', 
-      'Ecclesiastes', 'Song of Solomon', 'Isaiah', 'Jeremiah', 'Lamentations', 
-      'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos', 
-      'Obadiah', 'Jonah', 'Micah', 'Nahum', 'Habakkuk', 
-      'Zephaniah', 'Haggai', 'Zechariah', 'Malachi'
-    ],
-    NT: [
-      'Matthew', 'Mark', 'Luke', 'John', 'Acts', 
-      'Romans', '1 Corinthians', '2 Corinthians', 'Galatians', 'Ephesians', 
-      'Philippians', 'Colossians', '1 Thessalonians', '2 Thessalonians', '1 Timothy', 
-      '2 Timothy', 'Titus', 'Philemon', 'Hebrews', 'James', 
-      '1 Peter', '2 Peter', '1 John', '2 John', '3 John', 
-      'Jude', 'Revelation'
-    ]
-  },
-  Telugu: {
-    OT: [
-      'ఆదికాండము', 'నిర్గమకాండము', 'లేవీయకాండము', 'సంఖ్యాకాండము', 'ద్వితీయోపదేశకాండము',
-      'యెహోషువ', 'న్యాయాధిపతులు', 'రూతు', '1 సమూయేలు', '2 సమూయేలు',
-      '1 రాజులు', '2 రాజులు', '1 దినవృత్తాంతములు', '2 దినవృత్తాంతములు', 'ఎజ్రా',
-      'నెహెమ్యా', 'ఎస్తేరు', 'యోబు', 'కీర్తనల గ్రంథము', 'సామెతలు',
-      'ప్రసంగి', 'పరమగీతము', 'యెషయా', 'యిర్మియా', 'విలాపవాక్యములు',
-      'యెహెజ్కేలు', 'దానియేలు', 'హోషేయ', 'యోవేలు', 'ఆమోసు',
-      'ఓబద్యా', 'యోనా', 'మీకా', 'నహూము', 'హబక్కూకు',
-      'జెఫన్యా', 'హగ్గయి', 'జెకర్యా', 'మలాకీ'
-    ],
-    NT: [
-      'మత్తయి సువార్త', 'మార్కు సువార్త', 'లూకా సువార్త', 'యోహాను సువార్త', 'అపొస్తలుల కార్యములు',
-      'రోమీయులకు వ్రాసిన పత్రిక', '1 కొరింథీయులకు', '2 కొరింథీయులకు', 'గలతీయులకు', 'ఎఫెసీయులకు',
-      'ఫిలిప్పీయులకు', 'కొలొస్సయులకు', '1 థెస్సలొనీకయులకు', '2 థెస్సలొనీకయులకు', '1 తిమోతికి',
-      '2 తిమోతికి', 'తీతుకు', 'ఫిలేమోనుకు', 'హెబ్రీయులకు', 'యాకోబు',
-      '1 పేతురు', '2 పేతురు', '1 యోహాను', '2 యోహాను', '3 యోహాను',
-      'యూదా', 'ప్రకటన గ్రంథము'
-    ]
-  }
-};
-
-// Define flat lists of all books for search utility
-const ALL_BOOKS = {
-  English: [...BIBLE_DATA.English.OT, ...BIBLE_DATA.English.NT],
-  Telugu: [...BIBLE_DATA.Telugu.OT, ...BIBLE_DATA.Telugu.NT]
-};
-
 export default function BibleScreen({ navigation }: any) {
-  const { isDark, toggleTheme } = useTheme();
-  const [lang, setLang] = useState<'English' | 'Telugu'>('Telugu');
+  const { isDark } = useTheme();
+  const { language, setLanguage, t, languages } = useLanguage();
   const [testament, setTestament] = useState<'OT' | 'NT'>('NT');
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [englishVersion, setEnglishVersion] = useState('KJV');
 
-  const books = lang === 'English' ? BIBLE_DATA.English[testament] : BIBLE_DATA.Telugu[testament];
+  const ENGLISH_VERSIONS = ['KJV', 'NKJV', 'ESV', 'NIRV', 'ASV', 'WEB', 'YLT', 'BBE'];
+
+  useEffect(() => {
+    AsyncStorage.getItem('@BibleEnglishVersion').then(v => {
+      if (v) setEnglishVersion(v);
+    });
+  }, []);
+
+  const handleVersionSelect = (ver: string) => {
+    setEnglishVersion(ver);
+    AsyncStorage.setItem('@BibleEnglishVersion', ver);
+  };
+
+  const currentBookMap = BIBLE_BOOKS[language] || BIBLE_BOOKS.en;
+  const books = currentBookMap[testament] || currentBookMap.NT;
 
   useEffect(() => {
     const fetchSuggestions = async () => {
-      if (!searchQuery.trim() || lang !== 'Telugu') {
+      if (!searchQuery.trim()) {
         setSuggestions([]);
         return;
       }
       
       const isEnglishQuery = /[a-zA-Z]/.test(searchQuery);
-      if (isEnglishQuery) {
+      if (isEnglishQuery && language !== 'en') {
         try {
-          const transResponse = await fetch(`https://inputtools.google.com/request?text=${encodeURIComponent(searchQuery)}&itc=te-t-i0-und&num=6`);
-          if (transResponse.ok) {
-            const transData = await transResponse.json();
-            const suggestionsList: string[] = transData?.[1]?.[0]?.[1] || [];
-            setSuggestions(suggestionsList.slice(0, 6));
+          const inputCode = language === 'te' ? 'te-t-i0-und' : language === 'hi' ? 'hi-t-i0-und' : language === 'ta' ? 'ta-t-i0-und' : null;
+          if (inputCode) {
+            const transResponse = await fetch(`https://inputtools.google.com/request?text=${encodeURIComponent(searchQuery)}&itc=${inputCode}&num=6`);
+            if (transResponse.ok) {
+              const transData = await transResponse.json();
+              const suggestionsList: string[] = transData?.[1]?.[0]?.[1] || [];
+              setSuggestions(suggestionsList.slice(0, 6));
+            }
           }
         } catch (e) {
           // silently ignore suggestion fetch errors
@@ -100,78 +72,29 @@ export default function BibleScreen({ navigation }: any) {
 
     const debounceTimer = setTimeout(fetchSuggestions, 300);
     return () => clearTimeout(debounceTimer);
-  }, [searchQuery, lang]);
-
-  // Helper mapping for English Abbreviations
-  const abbrevMap: any = {
-    'gen': 'Genesis', 'ex': 'Exodus', 'exo': 'Exodus', 'lev': 'Leviticus', 'num': 'Numbers', 'deut': 'Deuteronomy',
-    'josh': 'Joshua', 'judg': 'Judges', 'jdg': 'Judges', 'rut': 'Ruth', '1sam': '1 Samuel', '2sam': '2 Samuel',
-    '1ki': '1 Kings', '2ki': '2 Kings', '1chr': '1 Chronicles', '2chr': '2 Chronicles', 'ezr': 'Ezra',
-    'neh': 'Nehemiah', 'est': 'Esther', 'ps': 'Psalms', 'psa': 'Psalms', 'prov': 'Proverbs', 'pr': 'Proverbs',
-    'eccl': 'Ecclesiastes', 'song': 'Song of Solomon', 'isa': 'Isaiah', 'jer': 'Jeremiah', 'lam': 'Lamentations',
-    'ezek': 'Ezekiel', 'dan': 'Daniel', 'hos': 'Hosea', 'joe': 'Joel', 'amo': 'Amos', 'ob': 'Obadiah',
-    'jon': 'Jonah', 'mic': 'Micah', 'nah': 'Nahum', 'habakkuk': 'Habakkuk', 'hab': 'Habakkuk', 'zeph': 'Zephaniah',
-    'hag': 'Haggai', 'zech': 'Zechariah', 'mal': 'Malachi',
-    'matt': 'Matthew', 'mat': 'Matthew', 'mk': 'Mark', 'mar': 'Mark', 'lk': 'Luke', 'luk': 'Luke',
-    'jn': 'John', 'joh': 'John', 'ac': 'Acts', 'act': 'Acts', 'rom': 'Romans', '1cor': '1 Corinthians',
-    '2cor': '2 Corinthians', 'gal': 'Galatians', 'eph': 'Ephesians', 'phil': 'Philippians', 'php': 'Philippians',
-    'col': 'Colossians', '1thess': '1 Thessalonians', '2thess': '2 Thessalonians', '1tim': '1 Timothy',
-    '2tim': '2 Timothy', 'tit': 'Titus', 'philem': 'Philemon', 'phm': 'Philemon', 'heb': 'Hebrews',
-    'jas': 'James', '1pet': '1 Peter', '2pet': '2 Peter', '1jn': '1 John', '2jn': '2 John',
-    '3jn': '3 John', 'jude': 'Jude', 'rev': 'Revelation'
-  };
+  }, [searchQuery, language]);
 
   // Robust reference parser matching Book, Chapter, and optional Verse
   const parseReference = (text: string) => {
     if (!text) return null;
-    const regex = /^([1-3]?\s*[a-zA-Z\u0C00-\u0C7F\s\.]+?)\s*(\d+)?(?:\s*:\s*(\d+))?$/;
+    const regex = /^([1-3]?\s*[\p{L}\s\.]+?)\s*(\d+)?(?:\s*:\s*(\d+))?$/u;
     const match = text.trim().match(regex);
     if (!match) return null;
 
-    const parsedBook = match[1].trim().toLowerCase();
+    const parsedBook = match[1].trim();
     const parsedChapter = match[2] ? parseInt(match[2], 10) : null;
     const parsedVerse = match[3] ? parseInt(match[3], 10) : null;
 
-    // Search in current language
-    const currentLangBooks = ALL_BOOKS[lang];
-    const otherLang = lang === 'English' ? 'Telugu' : 'English';
-    const otherLangBooks = ALL_BOOKS[otherLang];
+    const bookIndex = BibleService.getBookIndex(parsedBook);
+    const bookName = BibleService.getBookName(bookIndex, language);
 
-    let matchedBook = currentLangBooks.find(b => 
-      b.toLowerCase().startsWith(parsedBook) || 
-      b.toLowerCase().replace(/\s/g, '').startsWith(parsedBook.replace(/\s/g, ''))
-    );
-
-    let resolvedLang = lang;
-
-    if (!matchedBook) {
-      matchedBook = otherLangBooks.find(b => 
-        b.toLowerCase().startsWith(parsedBook) || 
-        b.toLowerCase().replace(/\s/g, '').startsWith(parsedBook.replace(/\s/g, ''))
-      );
-      if (matchedBook) {
-        resolvedLang = otherLang;
-      }
-    }
-
-    // Try abbreviation lookup
-    if (!matchedBook) {
-      const key = parsedBook.replace(/\s/g, '');
-      if (abbrevMap[key]) {
-        matchedBook = abbrevMap[key];
-        resolvedLang = 'English';
-      }
-    }
-
-    if (matchedBook) {
-      return {
-        bookName: matchedBook,
-        chapter: parsedChapter,
-        verse: parsedVerse,
-        lang: resolvedLang
-      };
-    }
-    return null;
+    return {
+      bookIndex,
+      bookName,
+      chapter: parsedChapter,
+      verse: parsedVerse,
+      lang: language
+    };
   };
 
   const parsedRef = parseReference(searchQuery);
@@ -181,23 +104,19 @@ export default function BibleScreen({ navigation }: any) {
       return books;
     }
     
-    // If we matched a clean reference, keep the matched book
-    if (parsedRef) {
+    if (parsedRef && parsedRef.chapter) {
       return [parsedRef.bookName];
     }
 
-    const query = searchQuery.toLowerCase().trim();
-    const currentLangBooks = ALL_BOOKS[lang];
+    const q = searchQuery.toLowerCase().trim().replace(/\s+/g, '');
+    const currentLangBooks = ALL_BOOKS_BY_LANG[language] || ALL_BOOKS_BY_LANG.en;
     let matches = currentLangBooks.filter(b => 
-      b.toLowerCase().includes(query) || 
-      b.toLowerCase().replace(/\s/g, '').includes(query.replace(/\s/g, ''))
+      b.toLowerCase().replace(/\s+/g, '').includes(q)
     );
 
     if (matches.length === 0) {
-      const otherLang = lang === 'English' ? 'Telugu' : 'English';
-      matches = ALL_BOOKS[otherLang].filter(b => 
-        b.toLowerCase().includes(query) || 
-        b.toLowerCase().replace(/\s/g, '').includes(query.replace(/\s/g, ''))
+      matches = ALL_BOOKS_BY_LANG.en.filter(b => 
+        b.toLowerCase().replace(/\s+/g, '').includes(q)
       );
     }
     return matches;
@@ -205,35 +124,29 @@ export default function BibleScreen({ navigation }: any) {
 
   const filteredBooks = getFilteredBooks();
 
-  const getBookLanguage = (book: string) => {
-    return ALL_BOOKS.Telugu.includes(book) ? 'Telugu' : 'English';
-  };
-
-  const getBookTestament = (book: string) => {
-    if (BIBLE_DATA.English.OT.includes(book) || BIBLE_DATA.Telugu.OT.includes(book)) {
-      return 'OT';
-    }
-    return 'NT';
-  };
-
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Holy Bible</Text>
-          <Text style={styles.headerSub}>పరిశుద్ధ గ్రంథం</Text>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
+            <Text style={styles.headerTitle}>{t('bible.bibleTitle')}</Text>
+          </View>
         </View>
-        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-          <Text style={styles.themeToggleText}>{isDark ? '🌙' : '☀️'}</Text>
-        </TouchableOpacity>
-      </View>
+
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       {/* Search Input + Dropdown Suggestions Wrapper */}
       <View style={{ marginHorizontal: 20, zIndex: 200 }}>
@@ -244,7 +157,7 @@ export default function BibleScreen({ navigation }: any) {
               if (searchQuery.length > 2 && !parsedRef?.chapter) {
                 navigation.navigate('BibleSearch', {
                   initialQuery: searchQuery,
-                  initialLang: lang
+                  initialLang: language
                 });
               }
             }}
@@ -252,7 +165,7 @@ export default function BibleScreen({ navigation }: any) {
             <Search size={20} color={isDark ? '#94a3b8' : '#64748b'} />
           </TouchableOpacity>
           <TextInput
-            placeholder={lang === 'English' ? "Reference search (e.g. John 3:16)..." : "రెఫరెన్స్ వెతకండి (ఉదా: యోహాను 3:16)..."}
+            placeholder={t('bible.searchPlaceholder')}
             placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
             style={[styles.searchBarInput, { color: isDark ? '#fff' : '#0f172a' }]}
             value={searchQuery}
@@ -264,7 +177,7 @@ export default function BibleScreen({ navigation }: any) {
               if (searchQuery.length > 2 && !parsedRef?.chapter) {
                 navigation.navigate('BibleSearch', {
                   initialQuery: searchQuery,
-                  initialLang: lang
+                  initialLang: language
                 });
               }
             }}
@@ -297,40 +210,79 @@ export default function BibleScreen({ navigation }: any) {
         )}
       </View>
 
-      {/* Language Toggle */}
-      <View style={styles.toggleContainer}>
-        <TouchableOpacity 
-          style={[styles.toggleBtn, lang === 'English' && styles.toggleBtnActive]}
-          onPress={() => {
-            setLang('English');
-            setSearchQuery(''); 
-          }}
-        >
-          <Globe size={16} color={lang === 'English' ? '#fff' : '#64748b'} />
-          <Text style={[styles.toggleText, lang === 'English' && styles.toggleTextActive]}>English</Text>
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={[styles.toggleBtn, lang === 'Telugu' && styles.toggleBtnActive]}
-          onPress={() => {
-            setLang('Telugu');
-            setSearchQuery(''); 
-          }}
-        >
-          <Globe size={16} color={lang === 'Telugu' ? '#fff' : '#64748b'} />
-          <Text style={[styles.toggleText, lang === 'Telugu' && styles.toggleTextActive]}>తెలుగు</Text>
-        </TouchableOpacity>
+      {/* Multi-Language Selector Bar (All App Languages) */}
+      <View style={styles.languageChipsContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.languageChipsScroll}>
+          {languages.map((l) => {
+            const isSelected = language === l.code;
+            return (
+              <TouchableOpacity 
+                key={l.code}
+                style={[
+                  styles.langChip, 
+                  { backgroundColor: isSelected ? '#1a2d5a' : (isDark ? '#1e293b' : '#e2e8f0') }
+                ]}
+                onPress={() => {
+                  setLanguage(l.code);
+                  setSearchQuery('');
+                  setSuggestions([]);
+                }}
+              >
+                <Globe size={14} color={isSelected ? '#fff' : (isDark ? '#94a3b8' : '#64748b')} style={{ marginRight: 6 }} />
+                <Text style={[
+                  styles.langChipText, 
+                  { color: isSelected ? '#fff' : (isDark ? '#94a3b8' : '#475569') },
+                  isSelected && styles.langChipTextActive
+                ]}>
+                  {l.nativeName}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
-      {/* Elegant Quick Jump Card */}
+      {/* English Version Selector (When English is active) */}
+      {language === 'en' && !searchQuery && (
+        <View style={{ marginHorizontal: 20, marginBottom: 15 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            {ENGLISH_VERSIONS.map(ver => (
+              <TouchableOpacity
+                key={ver}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  backgroundColor: englishVersion === ver ? '#1a2d5a' : (isDark ? '#1e293b' : '#e2e8f0'),
+                  borderWidth: 1,
+                  borderColor: englishVersion === ver ? '#1a2d5a' : (isDark ? '#334155' : '#cbd5e1')
+                }}
+                onPress={() => handleVersionSelect(ver)}
+              >
+                <Text style={{
+                  color: englishVersion === ver ? '#fff' : (isDark ? '#94a3b8' : '#475569'),
+                  fontWeight: englishVersion === ver ? '700' : '500',
+                  fontSize: 13
+                }}>
+                  {ver}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+
+      {/* Quick Jump Card */}
       {parsedRef && parsedRef.chapter && (
         <TouchableOpacity 
           style={styles.quickJumpCard}
           activeOpacity={0.8}
           onPress={() => {
             navigation.navigate('BibleReader', {
+              bookIndex: parsedRef.bookIndex,
               bookName: parsedRef.bookName,
               chapter: parsedRef.chapter,
-              lang: parsedRef.lang
+              lang: language
             });
             setSearchQuery('');
           }}
@@ -341,19 +293,20 @@ export default function BibleScreen({ navigation }: any) {
             </View>
             <View>
               <Text style={styles.quickJumpHeading}>
-                {lang === 'English' ? 'Jump to Chapter' : 'అధ్యాయానికి వెళ్ళండి'}
+                {t('bible.jumpToChapter')}
               </Text>
               <Text style={styles.quickJumpSub}>
-                {parsedRef.bookName} {parsedRef.chapter}{parsedRef.verse ? `:${parsedRef.verse}` : ''} ({parsedRef.lang})
+                {parsedRef.bookName} {parsedRef.chapter}{parsedRef.verse ? `:${parsedRef.verse}` : ''}
               </Text>
             </View>
           </View>
           <View style={styles.quickJumpRight}>
-            <Text style={styles.quickJumpBtnTxt}>{lang === 'English' ? 'Read' : 'చదవండి'} →</Text>
+            <Text style={styles.quickJumpBtnTxt}>{t('bible.readNow')} →</Text>
           </View>
         </TouchableOpacity>
       )}
 
+      {/* Testament Tabs */}
       {!searchQuery && (
         <View style={styles.tabContainer}>
           <TouchableOpacity 
@@ -361,7 +314,7 @@ export default function BibleScreen({ navigation }: any) {
             onPress={() => setTestament('OT')}
           >
             <Text style={[styles.tabText, testament === 'OT' && styles.tabTextActive]}>
-              {lang === 'English' ? 'Old Testament' : 'పాత నిబంధన'}
+              {t('bible.oldTestament')}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
@@ -369,21 +322,21 @@ export default function BibleScreen({ navigation }: any) {
             onPress={() => setTestament('NT')}
           >
             <Text style={[styles.tabText, testament === 'NT' && styles.tabTextActive]}>
-              {lang === 'English' ? 'New Testament' : 'క్రొత్త నిబంధన'}
+              {t('bible.newTestament')}
             </Text>
           </TouchableOpacity>
         </View>
       )}
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {/* Deep Verse Search Prompt (moved inside ScrollView) */}
+        {/* Deep Verse Search Prompt */}
         {searchQuery.length > 2 && !parsedRef?.chapter && (
           <TouchableOpacity 
             style={[styles.deepSearchCard, { marginTop: 10 }]}
             onPress={() => {
               navigation.navigate('BibleSearch', {
                 initialQuery: searchQuery,
-                initialLang: lang
+                initialLang: language
               });
             }}
           >
@@ -393,7 +346,7 @@ export default function BibleScreen({ navigation }: any) {
               </View>
               <View>
                 <Text style={styles.deepSearchTitle}>
-                  {lang === 'English' ? 'Search all verses for' : 'అన్ని వచనాలలో వెతకండి'}
+                  {t('bible.searchPlaceholder')}
                 </Text>
                 <Text style={styles.deepSearchQuery}>"{searchQuery}"</Text>
               </View>
@@ -401,44 +354,43 @@ export default function BibleScreen({ navigation }: any) {
             <ChevronLeft color="#1a2d5a" size={20} style={{ transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
         )}
+
         {filteredBooks.length === 0 ? (
           <View style={styles.noResultsContainer}>
             <Text style={[styles.noResultsTitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              {lang === 'English' ? 'No matching books found' : 'సరిపోలే పుస్తకాలు కనుగొనబడలేదు'}
-            </Text>
-            <Text style={styles.noResultsSubtitle}>
-              {lang === 'English' 
-                ? 'Try searching with correct names like "Genesis 3" or "Gen 3"' 
-                : 'ఉదాహరణకు "ఆదికాండము 3" లేదా "ఆది 3" అని వెతకండి'}
+              {t('bible.noBooksFound')}
             </Text>
           </View>
         ) : (
           <View style={styles.grid}>
-            {filteredBooks.map((book, index) => (
-              <TouchableOpacity 
-                key={index} 
-                style={[styles.bookCard, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}
-                onPress={() => {
-                  const bookLang = getBookLanguage(book);
-                  const bookTestament = getBookTestament(book);
-                  navigation.navigate('BibleChapters', { 
-                    bookName: book,
-                    lang: bookLang,
-                    testament: bookTestament
-                  });
-                }}
-              >
-                <View style={styles.bookIcon}>
-                  <BookOpen size={20} color="#1a2d5a" />
-                </View>
-                <Text style={[styles.bookName, { color: isDark ? '#fff' : '#1e293b' }]} numberOfLines={1}>
-                  {book}
-                </Text>
-                <Text style={styles.bookSub}>
-                  {lang === 'English' ? 'Read now' : 'చదవండి'}
-                </Text>
-              </TouchableOpacity>
-            ))}
+            {filteredBooks.map((book, index) => {
+              const bookIndex = BibleService.getBookIndex(book);
+              const bookTestament = BibleService.getTestament(bookIndex);
+              return (
+                <TouchableOpacity 
+                  key={`${bookIndex}-${index}`} 
+                  style={[styles.bookCard, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}
+                  onPress={() => {
+                    navigation.navigate('BibleChapters', { 
+                      bookIndex,
+                      bookName: book,
+                      lang: language,
+                      testament: bookTestament
+                    });
+                  }}
+                >
+                  <View style={styles.bookIcon}>
+                    <BookOpen size={20} color="#1a2d5a" />
+                  </View>
+                  <Text style={[styles.bookName, { color: isDark ? '#fff' : '#1e293b' }]} numberOfLines={1}>
+                    {book}
+                  </Text>
+                  <Text style={styles.bookSub}>
+                    {t('bible.readNow')}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
         <View style={{ height: 100 }} />
@@ -454,48 +406,43 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
-  themeToggle: {
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)'
-  },
-  themeToggleText: { color: '#fff', fontSize: 16 },
+  backBtn: { zIndex: 10, padding: 5 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
   
-  toggleContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#e2e8f0',
+  languageChipsContainer: {
     marginHorizontal: 20,
-    marginTop: 5,
-    marginBottom: 15,
-    borderRadius: 25,
-    padding: 4,
+    marginTop: 6,
+    marginBottom: 14,
   },
-  toggleBtn: {
-    flex: 1,
+  languageChipsScroll: {
+    gap: 8,
+    paddingVertical: 2,
+  },
+  langChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 21,
-    gap: 6
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
   },
-  toggleBtnActive: { backgroundColor: '#1a2d5a' },
-  toggleText: { fontSize: 13, fontWeight: '700', color: '#64748b' },
-  toggleTextActive: { color: '#fff' },
+  langChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  langChipTextActive: {
+    fontWeight: '800',
+  },
 
   tabContainer: {
     flexDirection: 'row',
@@ -543,7 +490,6 @@ const styles = StyleSheet.create({
   bookName: { fontSize: 13, fontWeight: '800', textAlign: 'center', marginBottom: 2 },
   bookSub: { fontSize: 10, color: '#94a3b8', fontWeight: '600' },
 
-  // New premium styles for reference search
   searchBarContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -557,46 +503,69 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  searchBarIcon: {
-    marginRight: 10,
   },
   searchBarInput: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600',
-    paddingVertical: 8,
+    paddingVertical: 0
   },
   searchBarClear: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#cbd5e1',
+    backgroundColor: 'rgba(0,0,0,0.06)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginLeft: 6
   },
   searchBarClearTxt: {
-    color: '#475569',
-    fontSize: 14,
-    fontWeight: '900',
-    lineHeight: 16,
-    textAlign: 'center',
+    fontSize: 16,
+    color: '#64748b',
+    fontWeight: 'bold',
+    marginTop: -2
   },
+
+  suggestionDropdown: {
+    position: 'absolute',
+    top: 68,
+    left: 0,
+    right: 0,
+    borderRadius: 14,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    zIndex: 1000,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.05)',
+    overflow: 'hidden'
+  },
+  suggestionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1
+  },
+  suggestionItemTxt: {
+    fontSize: 14,
+    fontWeight: '600'
+  },
+
   quickJumpCard: {
+    marginHorizontal: 20,
+    marginBottom: 15,
+    backgroundColor: '#1a2d5a',
+    borderRadius: 18,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#c0392b',
-    marginHorizontal: 20,
-    marginBottom: 15,
-    padding: 16,
-    borderRadius: 16,
-    elevation: 5,
-    shadowColor: '#c0392b',
-    shadowOpacity: 0.3,
+    elevation: 4,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 4 }
   },
@@ -606,17 +575,17 @@ const styles = StyleSheet.create({
     gap: 12
   },
   quickJumpIconWrapper: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center'
   },
   quickJumpHeading: {
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255,255,255,0.7)',
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5
   },
@@ -627,117 +596,65 @@ const styles = StyleSheet.create({
     marginTop: 2
   },
   quickJumpRight: {
-    backgroundColor: '#fff',
+    backgroundColor: 'rgba(255,255,255,0.15)',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20
   },
   quickJumpBtnTxt: {
-    color: '#c0392b',
+    color: '#fff',
     fontSize: 12,
-    fontWeight: '800'
+    fontWeight: '700'
   },
-  noResultsContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 50,
-    paddingHorizontal: 20,
-  },
-  noResultsTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    marginBottom: 8,
-  },
-  noResultsSubtitle: {
-    fontSize: 13,
-    color: '#94a3b8',
-    textAlign: 'center',
-    lineHeight: 18,
-  },
-  deepSearchHint: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    marginHorizontal: 20,
-    marginTop: 5,
-    backgroundColor: '#fee2e2',
-    borderRadius: 12,
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#fecaca',
-  },
-  deepSearchTxt: {
-    color: '#c0392b',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  suggestionTxt: { fontSize: 16, fontWeight: '600' },
+
   deepSearchCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#eff6ff',
-    marginHorizontal: 20,
-    marginBottom: 20,
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#bfdbfe'
+    marginBottom: 15,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    borderLeftWidth: 4,
+    borderLeftColor: '#1a2d5a'
   },
   deepSearchLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12
+    gap: 12,
+    flex: 1
   },
   deepSearchIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: '#1a2d5a',
     alignItems: 'center',
     justifyContent: 'center'
   },
   deepSearchTitle: {
+    fontSize: 12,
     color: '#64748b',
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5
+    fontWeight: '600'
   },
   deepSearchQuery: {
+    fontSize: 14,
     color: '#1a2d5a',
-    fontSize: 15,
-    fontWeight: '800',
-    marginTop: 2
+    fontWeight: '800'
   },
 
-  suggestionDropdown: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    overflow: 'hidden',
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    zIndex: 999,
-  },
-  suggestionItem: {
-    flexDirection: 'row',
+  noResultsContainer: {
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
+    justifyContent: 'center',
+    paddingVertical: 50
   },
-  suggestionItemTxt: {
+  noResultsTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    flexShrink: 1,
-  },
+    fontWeight: '700',
+    marginBottom: 6
+  }
 });

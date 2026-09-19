@@ -5,6 +5,7 @@ import { Calendar, Clock, User, BookOpen, Radio, ExternalLink, LogOut, Video } f
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
+import { useLanguage } from '../context/LanguageContext';
 import firestore from '@react-native-firebase/firestore';
 
 const BRAND = '#1a2d5a';
@@ -16,6 +17,7 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
   const { isDark } = useTheme();
   const { user, member } = useAuth();
   const { activeChurch } = useChurch();
+  const { t } = useLanguage();
 
   const [hasJoined, setHasJoined] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -70,11 +72,11 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
       if (meeting.meetingLink) {
         Linking.openURL(meeting.meetingLink);
       } else {
-        Alert.alert("No Link", "The meeting link is not available yet.");
+        Alert.alert(t('meetings.alerts.noLinkTitle'), t('meetings.alerts.noLinkMsg'));
       }
     } catch (e) {
       console.log('Attendance log error:', e);
-      Alert.alert("Error", "Failed to join meeting.");
+      Alert.alert(t('common.error'), t('meetings.alerts.joinError'));
     }
   };
 
@@ -91,7 +93,7 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
         .delete();
     } catch (e) {
       console.log('Leave error:', e);
-      Alert.alert("Error", "Failed to leave meeting.");
+      Alert.alert(t('common.error'), t('meetings.alerts.leaveError'));
     }
   };
 
@@ -124,7 +126,7 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <MaterialIcons name="arrow-back" color="#fff" size={24} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Meeting Details</Text>
+        <Text style={styles.headerTitle}>{t('meetings.meetingDetails')}</Text>
         <View style={{ width: 44 }} />
       </View>
 
@@ -135,7 +137,7 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
 
           {/* Title */}
           <Text style={styles.gradTitle} numberOfLines={3}>
-            {meeting.title || 'Online Meeting'}
+            {meeting.title || t('meetings.onlineMeeting')}
           </Text>
 
           {/* Subtitle / Topic */}
@@ -162,7 +164,7 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
           {meeting.teacher && (
             <View style={styles.gradInfoRow}>
               <User size={18} color="rgba(255,255,255,0.75)" />
-              <Text style={styles.gradInfoText}>Host: {meeting.teacher}</Text>
+              <Text style={styles.gradInfoText}>{t('meetings.hostPrefix')} {meeting.teacher}</Text>
             </View>
           )}
           
@@ -177,7 +179,7 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
           {isCompleted ? (
             <View style={[styles.gradActions, { marginTop: 20, justifyContent: 'center' }]}>
               <View style={[styles.gradLeaveBtn, { borderWidth: 0, backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 32 }]}>
-                <Text style={[styles.gradLeaveText, { opacity: 0.9 }]}>Meeting Completed</Text>
+                <Text style={[styles.gradLeaveText, { opacity: 0.9 }]}>{t('meetings.meetingCompleted')}</Text>
               </View>
             </View>
           ) : (
@@ -189,10 +191,10 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
                   {/* Joined / Open Link */}
                   <TouchableOpacity
                     style={[styles.gradJoinBtn, { backgroundColor: '#fff' }]}
-                    onPress={() => meeting.meetingLink ? Linking.openURL(meeting.meetingLink) : Alert.alert('No Link', 'Meeting link is not available.')}
+                    onPress={() => meeting.meetingLink ? Linking.openURL(meeting.meetingLink) : Alert.alert(t('meetings.alerts.noLinkTitle'), t('meetings.alerts.noLinkMsg'))}
                   >
                     <Video size={16} color={gradStart} />
-                    <Text style={[styles.gradJoinText, { color: gradStart }]}>Joined</Text>
+                    <Text style={[styles.gradJoinText, { color: gradStart }]}>{t('meetings.joined')}</Text>
                   </TouchableOpacity>
 
                   {/* Leave */}
@@ -200,7 +202,7 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
                     style={styles.gradLeaveBtn}
                     onPress={handleLeave}
                   >
-                    <Text style={styles.gradLeaveText}>Leave</Text>
+                    <Text style={styles.gradLeaveText}>{t('meetings.leave')}</Text>
                   </TouchableOpacity>
                 </>
               ) : (
@@ -210,7 +212,7 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
                 >
                   <Video size={16} color={gradStart} />
                   <Text style={[styles.gradJoinText, { color: gradStart }]}>
-                    {isLive ? 'Join Live' : 'Join'}
+                    {isLive ? t('meetings.joinLive') : t('meetings.join')}
                   </Text>
                 </TouchableOpacity>
               )}

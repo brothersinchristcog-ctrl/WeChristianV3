@@ -15,7 +15,10 @@ import {
 } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
+  ArrowLeft,
+  MoreVertical,
   ChevronLeft, 
   Plus, 
   Trash2, 
@@ -31,6 +34,7 @@ import {
   Combine
 } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { CustomAlert } from '../components/CustomAlert';
 
 const { width, height } = Dimensions.get('window');
@@ -40,14 +44,32 @@ interface SermonNote {
   title: string;
   content: string;
   timestamp: string;
+  category?: string;
+  titleTe?: string;
+  titleEn?: string;
+  titleHi?: string;
+  titleTa?: string;
+  titleMr?: string;
+  titleMl?: string;
+  titleKn?: string;
+  contentTe?: string;
+  contentEn?: string;
+  contentHi?: string;
+  contentTa?: string;
+  contentMr?: string;
+  contentMl?: string;
+  contentKn?: string;
+  translations?: Record<string, { title?: string; content?: string; category?: string }>;
 }
 
 export default function MemberNotesScreen({ navigation, route }: any) {
   const { isDark } = useTheme();
+  const { t, language } = useLanguage();
   const insets = useSafeAreaInsets();
   const { prefillTitle, prefillContent } = route?.params || {};
   const [notes, setNotes] = useState<SermonNote[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   
   // Modal & form states
   const [modalVisible, setModalVisible] = useState(false);
@@ -74,6 +96,47 @@ export default function MemberNotesScreen({ navigation, route }: any) {
   const [mergeModalVisible, setMergeModalVisible] = useState(false);
   const [mergeTitle, setMergeTitle] = useState('');
 
+  const getNoteDisplayTitle = (note?: SermonNote | null): string => {
+    if (!note) return '';
+    if (note.translations && note.translations[language]?.title) {
+      return note.translations[language].title!;
+    }
+    const langKey = language.charAt(0).toUpperCase() + language.slice(1);
+    const directLangVal = (note as any)[`title${langKey}`];
+    if (directLangVal) return directLangVal;
+
+    if (language === 'en' && (note as any).titleEn) return (note as any).titleEn;
+
+    return note.title || '';
+  };
+
+  const getNoteDisplayContent = (note?: SermonNote | null): string => {
+    if (!note) return '';
+    if (note.translations && note.translations[language]?.content) {
+      return note.translations[language].content!;
+    }
+    const langKey = language.charAt(0).toUpperCase() + language.slice(1);
+    const directLangVal = (note as any)[`content${langKey}`];
+    if (directLangVal) return directLangVal;
+
+    if (language === 'en' && (note as any).contentEn) return (note as any).contentEn;
+
+    return note.content || '';
+  };
+
+  const getCategoryLabel = (category?: string): string => {
+    if (!category) return '';
+    const catKey = category.toLowerCase().trim().replace(/[\s_-]+/g, '');
+    if (catKey === 'all') return t('memberNotes.categories.all');
+    if (catKey === 'sundayservice') return t('memberNotes.categories.sundayService');
+    if (catKey === 'biblestudy') return t('memberNotes.categories.bibleStudy');
+    if (catKey === 'prayermeeting') return t('memberNotes.categories.prayerMeeting');
+    if (catKey === 'youthmeeting') return t('memberNotes.categories.youthMeeting');
+    if (catKey === 'personalreflection') return t('memberNotes.categories.personalReflection');
+    if (catKey === 'other') return t('memberNotes.categories.other');
+    return category;
+  };
+
   useEffect(() => {
     loadNotes();
   }, [route?.params?.refreshId]);
@@ -81,7 +144,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
   // Auto-open create modal when pre-fill params are passed (e.g. from Bible Search)
   useEffect(() => {
     if (prefillTitle || prefillContent) {
-      setNoteTitle(prefillTitle || 'Bible Study Notes');
+      setNoteTitle(prefillTitle || t('memberNotes.categories.bibleStudy') + ' ' + t('memberNotes.title'));
       setNoteContent(prefillContent || '');
       setEditingNoteId(null);
       setModalVisible(true);
@@ -104,13 +167,13 @@ export default function MemberNotesScreen({ navigation, route }: any) {
       await AsyncStorage.setItem('@SermonPersonalNotes', JSON.stringify(newNotesList));
     } catch (e) {
       console.error('Error saving sermon notes:', e);
-      Alert.alert('Error', 'Failed to save sermon notes.');
+      Alert.alert(t('common.error'), t('memberNotes.saveError'));
     }
   };
 
   const handleCreateOrEditNote = () => {
     if (!noteTitle.trim()) {
-      Alert.alert('Required', 'Please enter a note title.');
+      Alert.alert(t('memberNotes.required'), t('memberNotes.enterTitlePrompt'));
       return;
     }
 
@@ -125,7 +188,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
     let updatedNotes: SermonNote[];
 
     if (editingNoteId) {
-      // Editing Mode
+      // Editing Mode - preserves existing extra fields like category/translations
       updatedNotes = notes.map(n => 
         n.id === editingNoteId 
           ? { ...n, title: noteTitle.trim(), content: noteContent.trim(), timestamp: dateStr }
@@ -154,18 +217,23 @@ export default function MemberNotesScreen({ navigation, route }: any) {
 
   const handleDeleteNote = (id: string) => {
     Alert.alert(
-      'Delete Note',
-      'Are you sure you want to delete this sermon note?',
+      t('memberNotes.deleteNoteTitle'),
+      t('memberNotes.deleteNoteConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('memberNotes.cancel'), style: 'cancel' },
         { 
-          text: 'Delete', 
+          text: t('memberNotes.delete'), 
           style: 'destructive',
           onPress: () => {
             const filtered = notes.filter(n => n.id !== id);
             setNotes(filtered);
             saveNotesToStorage(filtered);
-            setAlertConfig({ visible: true, title: 'Note Deleted', message: 'Sermon Note Deleted Successfully', type: 'success' });
+            setAlertConfig({ 
+              visible: true, 
+              title: t('memberNotes.noteDeletedTitle'), 
+              message: t('memberNotes.noteDeletedMsg'), 
+              type: 'success' 
+            });
           }
         }
       ]
@@ -196,7 +264,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
 
   const handleMergeNotes = () => {
     if (!mergeTitle.trim()) {
-      Alert.alert('Required', 'Please enter a title for the merged sermon collection.');
+      Alert.alert(t('memberNotes.required'), t('memberNotes.enterMergeTitlePrompt'));
       return;
     }
 
@@ -204,8 +272,8 @@ export default function MemberNotesScreen({ navigation, route }: any) {
     
     // Combine content
     let combinedContent = '';
-    notesToMerge.forEach((note, index) => {
-      combinedContent += `--- ${note.title} ---\n${note.content}\n\n`;
+    notesToMerge.forEach((note) => {
+      combinedContent += `--- ${getNoteDisplayTitle(note)} ---\n${getNoteDisplayContent(note)}\n\n`;
     });
 
     const dateStr = new Date().toLocaleDateString('en-US', {
@@ -237,13 +305,24 @@ export default function MemberNotesScreen({ navigation, route }: any) {
     setSelectedNoteIds([]);
   };
 
-  const filteredNotes = notes.filter(n =>
-    n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    n.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredNotes = notes.filter(n => {
+    const displayTitle = getNoteDisplayTitle(n).toLowerCase();
+    const displayContent = getNoteDisplayContent(n).toLowerCase();
+    const origTitle = (n.title || '').toLowerCase();
+    const origContent = (n.content || '').toLowerCase();
+    const q = searchQuery.toLowerCase();
+    return (
+      displayTitle.includes(q) ||
+      displayContent.includes(q) ||
+      origTitle.includes(q) ||
+      origContent.includes(q)
+    );
+  });
 
   const renderNoteCard = ({ item }: { item: SermonNote }) => {
     const isSelected = selectedNoteIds.includes(item.id);
+    const displayTitle = getNoteDisplayTitle(item);
+    const displayContent = getNoteDisplayContent(item);
 
     return (
       <View style={[
@@ -275,7 +354,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
           <View style={{ flex: 1 }}>
             <View style={styles.cardHeaderRow}>
               <Text style={[styles.noteCardTitle, { color: isDark ? '#fff' : '#0f172a' }]} numberOfLines={1}>
-                {item.title}
+                {displayTitle}
               </Text>
               <View style={styles.dateBadge}>
                 <Calendar size={10} color="#64748b" />
@@ -283,8 +362,16 @@ export default function MemberNotesScreen({ navigation, route }: any) {
               </View>
             </View>
             
+            {item.category ? (
+              <View style={[styles.categoryBadge, { backgroundColor: isDark ? '#0f172a' : '#f1f5f9' }]}>
+                <Text style={[styles.categoryBadgeTxt, { color: isDark ? '#60a5fa' : '#1a2d5a' }]}>
+                  {getCategoryLabel(item.category)}
+                </Text>
+              </View>
+            ) : null}
+
             <Text style={[styles.noteCardSnippet, { color: isDark ? '#94a3b8' : '#475569' }]} numberOfLines={3}>
-              {item.content || '(No additional text)'}
+              {displayContent || t('memberNotes.noAdditionalText')}
             </Text>
           </View>
         </TouchableOpacity>
@@ -293,11 +380,11 @@ export default function MemberNotesScreen({ navigation, route }: any) {
           <View style={styles.cardActionsRow}>
             <TouchableOpacity style={styles.actionBtn} onPress={() => openViewMode(item)}>
               <Edit3 size={15} color={isDark ? '#60a5fa' : '#1a2d5a'} />
-              <Text style={[styles.actionBtnTxt, { color: isDark ? '#60a5fa' : '#1a2d5a' }]}>View</Text>
+              <Text style={[styles.actionBtnTxt, { color: isDark ? '#60a5fa' : '#1a2d5a' }]}>{t('memberNotes.view')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.actionBtn} onPress={() => handleDeleteNote(item.id)}>
               <Trash2 size={15} color="#ef4444" />
-              <Text style={[styles.actionBtnTxt, { color: '#ef4444' }]}>Delete</Text>
+              <Text style={[styles.actionBtnTxt, { color: '#ef4444' }]}>{t('memberNotes.delete')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -318,43 +405,70 @@ export default function MemberNotesScreen({ navigation, route }: any) {
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 15) }]}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft color="#fff" size={28} />
-          </TouchableOpacity>
-          <View>
-            <Text style={styles.headerTitle}>Sermon Notes</Text>
-            <Text style={styles.headerSubtitle}>ప్రసంగ గమనికలు</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft color="#fff" size={24} />
+        </TouchableOpacity>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>{t('memberNotes.title')}</Text>
           </View>
         </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
-          {notes.length > 0 && (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {isSelectionMode ? (
             <TouchableOpacity 
-              style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: isSelectionMode ? '#fff' : 'rgba(255,255,255,0.2)', borderRadius: 15 }} 
+              style={{ paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#fff', borderRadius: 15 }} 
               onPress={() => {
-                setIsSelectionMode(!isSelectionMode);
+                setIsSelectionMode(false);
                 setSelectedNoteIds([]);
               }}
             >
-              <Text style={{ color: isSelectionMode ? '#1a2d5a' : '#fff', fontSize: 12, fontWeight: '700' }}>
-                {isSelectionMode ? 'Cancel' : 'Select'}
-              </Text>
+              <Text style={{ color: '#1a2d5a', fontSize: 12, fontWeight: '700' }}>{t('memberNotes.cancel')}</Text>
             </TouchableOpacity>
-          )}
-          {!isSelectionMode && (
-            <TouchableOpacity style={styles.plusBtn} onPress={openCreateForm}>
-              <Plus size={22} color="#fff" />
+          ) : (
+            <TouchableOpacity style={styles.plusBtn} onPress={() => setIsMenuOpen(true)}>
+              <MoreVertical size={22} color="#fff" />
             </TouchableOpacity>
           )}
         </View>
-      </View>
+      </LinearGradient>
+
+      {/* Dropdown Menu Modal */}
+      <Modal visible={isMenuOpen} transparent animationType="fade" onRequestClose={() => setIsMenuOpen(false)}>
+        <TouchableOpacity style={styles.menuOverlay} onPress={() => setIsMenuOpen(false)} activeOpacity={1}>
+          <View style={[styles.menuContainer, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
+            <TouchableOpacity style={styles.menuItem} onPress={() => {
+              setIsMenuOpen(false);
+              openCreateForm();
+            }}>
+              <Plus size={18} color={isDark ? '#e2e8f0' : '#1e293b'} />
+              <Text style={[styles.menuItemText, { color: isDark ? '#e2e8f0' : '#1e293b' }]}>{t('memberNotes.addNote')}</Text>
+            </TouchableOpacity>
+            {notes.length > 0 && (
+              <TouchableOpacity style={styles.menuItem} onPress={() => {
+                setIsMenuOpen(false);
+                setIsSelectionMode(true);
+                setSelectedNoteIds([]);
+              }}>
+                <CheckSquare size={18} color={isDark ? '#e2e8f0' : '#1e293b'} />
+                <Text style={[styles.menuItemText, { color: isDark ? '#e2e8f0' : '#1e293b' }]}>{t('memberNotes.select')}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
 
       {/* Search Input */}
       <View style={[styles.searchBarContainer, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
         <Search size={20} color={isDark ? '#94a3b8' : '#64748b'} />
         <TextInput
-          placeholder="Search sermon notes..."
+          placeholder={t('memberNotes.searchPlaceholder')}
           placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
           style={[styles.searchInput, { color: isDark ? '#fff' : '#0f172a' }]}
           value={searchQuery}
@@ -378,14 +492,14 @@ export default function MemberNotesScreen({ navigation, route }: any) {
           <View style={styles.emptyStateContainer}>
             <FileText size={50} color={isDark ? '#334155' : '#cbd5e1'} />
             <Text style={[styles.emptyStateTitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              No sermon notes found
+              {t('memberNotes.noNotesFound')}
             </Text>
             <Text style={styles.emptyStateSubtitle}>
-              Create a note of your favorite sermons, verses, or study logs!
+              {t('memberNotes.emptySubtitle')}
             </Text>
             <TouchableOpacity style={styles.createFirstBtn} onPress={openCreateForm}>
               <Plus size={16} color="#fff" style={{ marginRight: 6 }} />
-              <Text style={styles.createFirstBtnTxt}>Create First Note</Text>
+              <Text style={styles.createFirstBtnTxt}>{t('memberNotes.createFirstNote')}</Text>
             </TouchableOpacity>
           </View>
         }
@@ -415,7 +529,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
         >
           <Combine size={20} color="#FCD34D" />
           <Text style={{ color: '#fff', fontSize: 15, fontWeight: '800' }}>
-            Merge Selected ({selectedNoteIds.length})
+            {t('memberNotes.mergeSelected', { count: selectedNoteIds.length })}
           </Text>
         </TouchableOpacity>
       )}
@@ -430,14 +544,14 @@ export default function MemberNotesScreen({ navigation, route }: any) {
         <View style={styles.modalBg}>
           <View style={[styles.modalCard, { backgroundColor: isDark ? '#1e293b' : '#fff', padding: 24, paddingBottom: 30 }]}>
             <Text style={[{ fontSize: 18, fontWeight: '800', marginBottom: 15, color: isDark ? '#fff' : '#0f172a' }]}>
-              Name your Sermon Group
+              {t('memberNotes.nameSermonGroup')}
             </Text>
             <Text style={[{ fontSize: 13, color: isDark ? '#94a3b8' : '#64748b', marginBottom: 20 }]}>
-              The selected {selectedNoteIds.length} notes will be combined into a single note and the originals will be removed.
+              {t('memberNotes.mergeSubtitle', { count: selectedNoteIds.length })}
             </Text>
             
             <TextInput
-              placeholder="E.g. Sunday Service Notes..."
+              placeholder={t('memberNotes.mergePlaceholder')}
               placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
               style={[styles.titleInput, { color: isDark ? '#fff' : '#0f172a', borderColor: isDark ? '#334155' : '#cbd5e1', marginBottom: 24 }]}
               value={mergeTitle}
@@ -450,13 +564,13 @@ export default function MemberNotesScreen({ navigation, route }: any) {
                 style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: isDark ? '#334155' : '#f1f5f9', alignItems: 'center' }}
                 onPress={() => setMergeModalVisible(false)}
               >
-                <Text style={{ color: isDark ? '#fff' : '#475569', fontWeight: '700' }}>Cancel</Text>
+                <Text style={{ color: isDark ? '#fff' : '#475569', fontWeight: '700' }}>{t('memberNotes.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={{ flex: 1, paddingVertical: 14, borderRadius: 12, backgroundColor: '#1a2d5a', alignItems: 'center' }}
                 onPress={handleMergeNotes}
               >
-                <Text style={{ color: '#fff', fontWeight: '700' }}>Merge Notes</Text>
+                <Text style={{ color: '#fff', fontWeight: '700' }}>{t('memberNotes.mergeNotes')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -475,7 +589,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
             {/* Modal Header */}
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#0f172a' }]}>
-                {!editingNoteId ? 'Create New Sermon Note' : isViewMode ? 'Sermon Note' : 'Edit Sermon Note'}
+                {!editingNoteId ? t('memberNotes.createNote') : isViewMode ? t('memberNotes.viewNote') : t('memberNotes.editNote')}
               </Text>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                 {/* Edit toggle button when in view mode */}
@@ -485,7 +599,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
                     onPress={() => setIsViewMode(false)}
                   >
                     <Edit3 size={14} color="#FCD34D" />
-                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>Edit</Text>
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>{t('memberNotes.edit')}</Text>
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity 
@@ -499,29 +613,50 @@ export default function MemberNotesScreen({ navigation, route }: any) {
 
             {/* View Mode: Read-Only */}
             {isViewMode && editingNoteId ? (
-              <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                <Text style={[styles.inputLabel, { marginBottom: 6 }]}>SERMON TITLE · శీర్షిక</Text>
-                <View style={[styles.titleInput, { backgroundColor: isDark ? '#0f172a' : '#f8fafc', borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center' }]}>
-                  <Text style={{ color: isDark ? '#fff' : '#0f172a', fontSize: 15, fontWeight: '700' }}>{noteTitle}</Text>
-                </View>
+              (() => {
+                const activeNote = notes.find(n => n.id === editingNoteId);
+                const displayTitle = activeNote ? getNoteDisplayTitle(activeNote) : noteTitle;
+                const displayContent = (activeNote ? getNoteDisplayContent(activeNote) : noteContent) || t('memberNotes.noContentYet');
+                const category = activeNote?.category;
 
-                <View style={{ height: 15 }} />
+                return (
+                  <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                    <Text style={[styles.inputLabel, { marginBottom: 6 }]}>{t('memberNotes.sermonTitle')}</Text>
+                    <View style={[styles.titleInput, { backgroundColor: isDark ? '#0f172a' : '#f8fafc', borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center' }]}>
+                      <Text style={{ color: isDark ? '#fff' : '#0f172a', fontSize: 15, fontWeight: '700' }}>{displayTitle}</Text>
+                    </View>
 
-                <Text style={[styles.inputLabel, { marginBottom: 6 }]}>SERMON DETAILS & POINTS · గమనికలు</Text>
-                <View style={[styles.contentInput, { backgroundColor: isDark ? '#0f172a' : '#f8fafc', borderColor: isDark ? '#334155' : '#e2e8f0', minHeight: 180, height: undefined }]}>
-                  <Text style={{ color: isDark ? '#cbd5e1' : '#334155', fontSize: 14, lineHeight: 22 }}>
-                    {noteContent || '(No content yet)'}
-                  </Text>
-                </View>
+                    {category ? (
+                      <>
+                        <View style={{ height: 12 }} />
+                        <Text style={[styles.inputLabel, { marginBottom: 6 }]}>{t('memberNotes.categoryLabel')}</Text>
+                        <View style={[styles.categoryPill, { backgroundColor: isDark ? '#0f172a' : '#f1f5f9', borderColor: isDark ? '#334155' : '#e2e8f0', alignSelf: 'flex-start' }]}>
+                          <Text style={{ color: isDark ? '#60a5fa' : '#1a2d5a', fontSize: 12, fontWeight: '700' }}>
+                            {getCategoryLabel(category)}
+                          </Text>
+                        </View>
+                      </>
+                    ) : null}
 
-                <View style={{ height: 60 }} />
-              </ScrollView>
+                    <View style={{ height: 15 }} />
+
+                    <Text style={[styles.inputLabel, { marginBottom: 6 }]}>{t('memberNotes.sermonDetails')}</Text>
+                    <View style={[styles.contentInput, { backgroundColor: isDark ? '#0f172a' : '#f8fafc', borderColor: isDark ? '#334155' : '#e2e8f0', minHeight: 180, height: undefined }]}>
+                      <Text style={{ color: isDark ? '#cbd5e1' : '#334155', fontSize: 14, lineHeight: 22 }}>
+                        {displayContent}
+                      </Text>
+                    </View>
+
+                    <View style={{ height: 60 }} />
+                  </ScrollView>
+                );
+              })()
             ) : (
               /* Edit/Create Mode: Editable Inputs */
               <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
-                <Text style={styles.inputLabel}>SERMON TITLE · శీర్షిక</Text>
+                <Text style={styles.inputLabel}>{t('memberNotes.sermonTitle')}</Text>
                 <TextInput
-                  placeholder="E.g. Sunday Sermon Notes, Scripture Reflections..."
+                  placeholder={t('memberNotes.titlePlaceholder')}
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   style={[styles.titleInput, { color: isDark ? '#fff' : '#0f172a', borderColor: isDark ? '#334155' : '#cbd5e1' }]}
                   value={noteTitle}
@@ -531,9 +666,9 @@ export default function MemberNotesScreen({ navigation, route }: any) {
 
                 <View style={{ height: 15 }} />
 
-                <Text style={styles.inputLabel}>SERMON DETAILS & POINTS · గమనికలు</Text>
+                <Text style={styles.inputLabel}>{t('memberNotes.sermonDetails')}</Text>
                 <TextInput
-                  placeholder="Write your sermon points, verses, and key takeaways here..."
+                  placeholder={t('memberNotes.contentPlaceholder')}
                   placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
                   style={[styles.contentInput, { color: isDark ? '#fff' : '#0f172a', borderColor: isDark ? '#334155' : '#cbd5e1' }]}
                   value={noteContent}
@@ -549,7 +684,7 @@ export default function MemberNotesScreen({ navigation, route }: any) {
                 <TouchableOpacity style={styles.saveBtn} onPress={handleCreateOrEditNote}>
                   <Save size={18} color="#fff" style={{ marginRight: 8 }} />
                   <Text style={styles.saveBtnTxt}>
-                    {editingNoteId ? 'Save Changes' : 'Save Sermon Note'}
+                    {editingNoteId ? t('memberNotes.saveChanges') : t('memberNotes.saveNote')}
                   </Text>
                 </TouchableOpacity>
                 <View style={{ height: 60 }} />
@@ -565,19 +700,20 @@ export default function MemberNotesScreen({ navigation, route }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    backgroundColor: '#1a2d5a',
-    paddingHorizontal: 16,
-    paddingVertical: 15,
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  backBtn: { marginRight: 12 },
-  headerTitle: { color: '#fff', fontSize: 17, fontWeight: '800' },
-  headerSubtitle: { color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: '600' },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8 },
+  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 24 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
   plusBtn: {
     width: 36,
     height: 36,
@@ -585,6 +721,33 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center'
+  },
+  
+  // Menu styles
+  menuOverlay: { flex: 1, backgroundColor: 'transparent' },
+  menuContainer: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 100 : 80,
+    right: 20,
+    borderRadius: 12,
+    paddingVertical: 8,
+    minWidth: 160,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12
+  },
+  menuItemText: {
+    fontSize: 15,
+    fontWeight: '600'
   },
 
   // Search
@@ -664,6 +827,23 @@ const styles = StyleSheet.create({
     gap: 4
   },
   dateText: { fontSize: 9, color: '#64748b', fontWeight: '700' },
+  categoryBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 6
+  },
+  categoryBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '800'
+  },
+  categoryPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1
+  },
   noteCardSnippet: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
   cardActionsRow: {
     flexDirection: 'row',

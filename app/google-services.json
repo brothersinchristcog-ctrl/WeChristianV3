@@ -20,6 +20,18 @@
             "package_name": "com.wechristian.app",
             "certificate_hash": "36d716feb0ee3ee00422f32d2f2e4aa19a5bf36b"
           }
+        },
+        {
+          "client_id": "962252889183-rs90gflqej8453a9ogrr3udd40av4dur.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wechristian.app",
+            "certificate_hash": "c53431ee538accbce4ab4e1e0c008ba4afeb5293"
+          }
+        },
+        {
+          "client_id": "962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com",
+          "client_type": 3
         }
       ],
       "api_key": [
@@ -29,7 +41,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, Linking } from 'react-native';
 import { ChevronLeft, Gift } from 'lucide-react-native';
 
 const MemberAvatar = ({ member, initials, styles, bgColor }: any) => {
@@ -100,7 +100,32 @@ export default function AdminWeCelebrationsMemberDetails({ member, category, onB
         {/* WhatsApp Number Card */}
         <View style={styles.fullCard}>
           <Text style={styles.cardLabel}>WHATSAPP NUMBER</Text>
-          <Text style={styles.cardValue}>{member.phone || '--'}</Text>
+          {(() => {
+            const displayPhone = member.phone
+              ? member.phone
+              : member.referencePhone
+              ? member.referencePhone
+              : null;
+            const displayLabel = member.phone
+              ? member.phone
+              : member.referencePhone
+              ? `${member.referencePhone} (Parent Reference)`
+              : '--';
+            return displayPhone ? (
+              <TouchableOpacity onPress={() => Linking.openURL(`tel:${displayPhone}`)}>
+                <Text style={[styles.cardValue, { color: '#1a2d5a', textDecorationLine: 'underline' }]}>
+                  {displayLabel}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.cardValue}>--</Text>
+            );
+          })()}
+          {member.isReferencePhone && (
+            <Text style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>
+              📞 Birthday wishes will be sent to the parent's number
+            </Text>
+          )}
         </View>
 
         {/* Action Button */}

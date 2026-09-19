@@ -1,0 +1,122 @@
+=============================================================================================================================
+                           WECHRISTIAN - COMPLETE HOW-TO GUIDE: WORSHIP SONGS
+=============================================================================================================================
+
+
+HOW TO CREATE & MANAGE SONGS FROM THE ADMIN DASHBOARD
+=====================================================
+
+1. Starting the Process
+-----------------------
+From the main Admin Dashboard, navigate to the "Songs" section. 
+- You will see the Songs Dashboard containing your church song library, preloaded master Christian hymns, and the "+ New Song" button at the top-right corner.
+- Tapping "+ New Song" opens the Song Creation Modal with a clean, easy-to-use form.
+
+
+2. Song Titles (English & Telugu)
+---------------------------------
+- Song Title — English (Required): 
+  * The primary display name of the song (e.g., "Hosanna in the Highest" or "Nee Krupa Leni Kshaname").
+- Song Title — Telugu (Optional but Recommended): 
+  * The authentic Telugu title written in Telugu script (e.g., "నీ కృప లేని క్షణమే" or "హోసన్నా సర్వోన్నతమైన స్థలములలో").
+  * Having both allows congregation members to search and read in either English or Telugu script!
+
+
+3. Artist & Composer Attribution
+--------------------------------
+- Artist / Writer / Composer (Optional): 
+  * Credit the original songwriter, worship ministry, or singer (e.g., "Bro. Yesanna", "Hemasagar", "Hillsong Worship", "Don Moen").
+  * Appears right under the song title on the lyrics screen.
+
+
+4. Musical Key (For Worship Teams & Musicians)
+----------------------------------------------
+- Musical Key: 
+  * Specify the root musical key for church musicians and choir team (e.g., C, D, E, F, G, A, B, or minor keys like Em, Am, Dm).
+  * Helps the church keyboardist, guitarist, and worship leader know the scale immediately when leading service!
+
+
+5. Song Category (Ministry Tags)
+--------------------------------
+- Categories Selector: Select all ministry tags that apply to this song:
+  * Stuthi Songs (Praise & Thanksgiving)
+  * Aradhana Songs (Deep Worship & Adoration)
+  * Offering Songs (Offertory & Giving)
+  * Youth Songs (Fast beat, modern praise)
+  * Christmas Songs (Advent & Nativity)
+  * Easter Songs (Resurrection & Cross)
+  * Gospel Songs (Evangelism & Salvation)
+  * Marriage Songs (Wedding blessings)
+  * Thanksgiving Songs (New Year & Harvest)
+  * Special Songs (Choir specials & Solos)
+  * Theme Songs (Church anniversary or yearly motto songs)
+- Members can filter directly by these categories on Sunday morning or during mid-week prayer!
+
+
+6. Complete Song Lyrics (The Heart of the Song)
+----------------------------------------------
+- Lyrics & Scripts (Required):
+  * Type or paste the full verses, chorus, bridge, and ending.
+  * Supports Telugu script, English lyrics, or transliterated Romanized Telugu (e.g., "Nee Krupa Leni Kshaname nenu brathakalene").
+  * Clean Line Breaks: Format stanzas cleanly with line breaks between Verse 1, Chorus, and Verse 2 so members can easily sing along without squinting.
+
+
+7. YouTube Link (Audio / Video Playback)
+----------------------------------------
+- YouTube Video URL / ID:
+  * Paste the full YouTube link (e.g., https://www.youtube.com/watch?v=... or https://youtu.be/...) OR the 11-character video ID.
+  * When members open the song lyrics in the app, they can tap the YouTube button to listen to the song and practice the tune!
+
+
+8. Publish Status & Visibility
+------------------------------
+- Publish Status:
+  1. Published: Goes live immediately on the Member App Songbook and search library.
+  2. Draft: Saved privately in the Admin panel for review, completely hidden from members until finalized.
+
+
+9. Final Actions & What Happens Next
+------------------------------------
+A. Save / Publish Song:
+- Tapping "Save & Publish Song":
+  * Instantly saves the song into your church's secure cloud database (`churches/{churchId}/worship_songs`).
+  * Clears the in-memory cache so all members see the new song without delay.
+  * THE MAGIC STEP: An automated Push Notification broadcast is dispatched to all church members:
+    "🎵 New Song: [Title] — A new worship song '[Title]' has been posted under [Category]!"
+  * A Success popup appears with your database sync receipt confirmation.
+
+B. The Master Song Library:
+- WeChristian comes preloaded with hundreds of beloved traditional and contemporary Telugu Christian songs and global hymns, so your church starts with a rich catalog on Day 1!
+
+
+
+=============================================================================================================================
+
+
+
+HOW MEMBERS USE THE SONGS FEATURE IN THE APP
+============================================
+
+1. The "Songs" Screen Tabs (SongsScreen.tsx)
+--------------------------------------------
+When members tap "Songs" in the app navigation, they have 4 dedicated browsing tabs:
+- "Browse All": Access the complete songbook containing thousands of Telugu and English worship songs.
+- "Church Own": Displays songs uniquely written, arranged, or uploaded by your specific local church.
+- "Theme Songs": Highlights your church's special annual convention or theme hymns.
+- "My Songbook": The member's personal favorites list! Members can tap the Star / Bookmark icon on any song to save it for Sunday choir practice or personal devotions.
+
+2. Real-Time Instant Search
+---------------------------
+- Search by English Title (e.g., "Hosanna")
+- Search by Telugu Title (e.g., "హోసన్నా")
+- Search by Lyric words: Even if members don't know the title, typing a line from the chorus instantly finds the song!
+
+3. The Lyric Reader Modal (SongDetailModal.tsx)
+-----------------------------------------------
+Tapping any song opens the full-screen Lyric Reader:
+- Displays large, crisp typography optimized for singing in low-light church sanctuaries.
+- Shows Song Title, Telugu script, Artist, and Musical Key.
+- Bookmark Button: One-tap button to add or remove the song from personal favorites.
+- WhatsApp Share Button: Allows members to easily share the song lyrics and YouTube link directly to their family or church prayer groups.
+
+=============================================================================================================================

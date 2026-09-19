@@ -26,7 +26,9 @@ import {
   LogOut,
   Smartphone,
   Moon,
-  Video
+  Video,
+  Headset,
+  Wand2
 } from 'lucide-react-native';
 import { useChurch } from '../../context/ChurchContext';
 import HexagonDate from '../../components/HexagonDate';
@@ -46,6 +48,7 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'Events': require('../../../assets/admin_cards/events.png'),
   'New Event': require('../../../assets/admin_cards/new_event.png'),
   'Pastor Event': require('../../../assets/admin_cards/pastor_event.png'),
+  'Gallery': require('../../../assets/admin_cards/gallery.png'),
   'Celebrations': require('../../../assets/admin_cards/celebrations.png'),
   'WeCelebrations': require('../../../assets/admin_cards/wecelebrations.png'),
   'Notifications': require('../../../assets/admin_cards/notification.png'),
@@ -56,11 +59,16 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'Schedule': require('../../../assets/admin_cards/schedule.png'),
   'About Us': require('../../../assets/admin_cards/about_us.png'),
   'Contact Us': require('../../../assets/admin_cards/contact_us.png'),
+  'Support Team': require('../../../assets/support_bg.png'),
   'Church Settings': require('../../../assets/admin_cards/church_settings.png'),
   'Church Branches': require('../../../assets/admin_cards/church_branches.jpg'),
   'Attendance': require('../../../assets/admin_cards/attendance.png'),
   'Online Meetings': require('../../../assets/admin_cards/online_meetings.jpg'),
   'New Online Meeting': require('../../../assets/admin_cards/new_online_meeting.png'),
+  'App Admin': require('../../../assets/admin_cards/app_admin.png'),
+  'AI Sermon Assistant': require('../../../assets/admin_cards/ai_sermon.jpg'),
+  'AI Sermon': require('../../../assets/admin_cards/ai_sermon.jpg'),
+  'AI Content Creator': require('../../../assets/admin_cards/ai_content.jpg'),
 };
 
 const CATEGORIES = [
@@ -68,7 +76,7 @@ const CATEGORIES = [
     title: 'Content Management',
     icon: BookOpen,
     color: '#0F766E', // Teal
-    keywords: ['Promise', 'Sermon', 'Song']
+    keywords: ['Promise', 'Sermons', 'New Sermon', 'Song']
   },
   {
     title: 'Community & Members',
@@ -83,13 +91,19 @@ const CATEGORIES = [
     keywords: ['Event', 'Celebration']
   },
   {
+    title: 'AI Ministry Tools',
+    icon: Wand2,
+    color: '#6D28D9', // Deep violet for AI
+    keywords: ['AI Sermon', 'AI Content']
+  },
+  {
     title: 'Communication',
     icon: Bell,
     color: '#78350F', // Rich Deep Bronze/Chocolate for excellent warm contrast
     keywords: ['Notification', 'WhatsApp']
   },
   {
-    title: 'Finance & Subscriptions',
+    title: 'Church Ledger',
     icon: DollarSign,
     color: '#206A5D', // Deep green
     keywords: ['Expense', 'Donation', 'Subscription']
@@ -98,14 +112,20 @@ const CATEGORIES = [
     title: 'Online Meeting Management',
     icon: Video,
     color: '#4F46E5', // Indigo for a professional look
-    keywords: ['Online Meeting']
+    keywords: ['Online Meeting', 'Gallery']
   },
   {
     title: 'Administration',
     icon: Settings,
     color: '#1E3A8A', // Deep Navy for maximum contrast
-    keywords: ['Church Setting', 'Church Branch', 'Super Admin', 'About', 'Contact', 'Schedule']
-  }
+    keywords: ['Church Setting', 'Church Branch', 'App Admin', 'About', 'Contact', 'Schedule']
+  },
+  {
+    title: 'Support',
+    icon: Headset,
+    color: '#0284C7', // Sky blue for trust
+    keywords: ['Support']
+  },
 ];
 
 const FULL_WIDTH_MODULES = ['Songs', 'Members', 'Subscription', 'WeCelebrations'];
@@ -234,7 +254,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
                 <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderWidth: 1, borderColor: '#e2e8f0', elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4 }}>
                   <Image 
-                    source={activeChurch?.theme?.logoUrl ? { uri: activeChurch.theme.logoUrl } : require('../../../assets/icon.png')} 
+                    source={activeChurch?.theme?.logoUrl ? { uri: activeChurch.theme.logoUrl } : require('../../../assets/logo.png')} 
                     style={{ width: '100%', height: '100%' }} 
                     resizeMode="cover" 
                   />
@@ -374,11 +394,19 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                               <Text 
                                 style={[
                                   styles.moduleTitle,
-                                  CARD_BACKGROUNDS[tab.name] && { color: '#ffffff', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }
+                                  CARD_BACKGROUNDS[tab.name] && { color: '#ffffff', textShadowColor: 'rgba(0,0,0,0.85)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }
                                 ]} 
                                 numberOfLines={2}
+                                adjustsFontSizeToFit
+                                minimumFontScale={0.8}
                               >
-                                {tab.name === 'About Us' ? 'About\u00A0Us' : tab.name}
+                                {tab.name === 'About Us' 
+                                  ? 'About\u00A0Us' 
+                                  : (tab.name === 'AI Sermon Assistant' || tab.name === 'AI Sermon') 
+                                  ? 'AI Sermon\nAssistant' 
+                                  : tab.name === 'AI Content Creator' 
+                                  ? 'AI Content\nCreator' 
+                                  : tab.name}
                               </Text>
                             </View>
                           )}
