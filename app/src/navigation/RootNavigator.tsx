@@ -13,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ChurchProvider, useChurch } from '../context/ChurchContext';
 import { ThemeProvider } from '../context/ThemeContext';
+import { LanguageProvider, useLanguage } from '../context/LanguageContext';
 import Theme from '../theme/Theme';
 import AdminNavigator from './AdminNavigator'; 
 import NotificationService from '../services/NotificationService';
@@ -96,31 +97,34 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
 );
 
   const TABS = [
-    { key: 'Home',    label: 'Home',    Icon: Home,     bg: '#1a2d5a', fg: '#1a2d5a' },
-    { key: 'Promise', label: 'Promise', Icon: BookOpen, bg: '#0F766E', fg: '#0F766E' },
-    { key: 'Sermons', label: 'Sermons', Icon: Mic,      bg: '#D8632E', fg: '#D8632E' },
-    { key: 'Prayer',  label: 'Prayer',  Icon: Heart,    bg: '#0284C7', fg: '#0284C7' },
-    { key: 'Profile', label: 'Profile', Icon: UserIcon, bg: '#27272A', fg: '#27272A' },
+    { key: 'Home',    navKey: 'nav.home',    defaultLabel: 'Home',    Icon: Home,     bg: '#1a2d5a', fg: '#1a2d5a' },
+    { key: 'Promise', navKey: 'nav.promise', defaultLabel: 'Promise', Icon: BookOpen, bg: '#0F766E', fg: '#0F766E' },
+    { key: 'Sermons', navKey: 'nav.sermons', defaultLabel: 'Sermons', Icon: Mic,      bg: '#D8632E', fg: '#D8632E' },
+    { key: 'Prayer',  navKey: 'nav.prayer',  defaultLabel: 'Prayer',  Icon: Heart,    bg: '#0284C7', fg: '#0284C7' },
+    { key: 'Profile', navKey: 'nav.profile', defaultLabel: 'Profile', Icon: UserIcon, bg: '#27272A', fg: '#27272A' },
   ] as const;
 
-  const getTabConfig = (routeName: string, useDailyVerse: boolean = false) => {
+  const getTabConfig = (routeName: string, useDailyVerse: boolean = false, t?: (k: string) => string) => {
     if (routeName === 'Promise') {
       return {
         key: 'Promise',
-        label: useDailyVerse ? 'Daily Verse' : 'Promise',
+        label: t ? (useDailyVerse ? t('nav.dailyVerse') : t('nav.promise')) : (useDailyVerse ? 'Daily Verse' : 'Promise'),
         Icon: BookOpen,
         bg: '#0F766E',
         fg: '#0F766E',
       };
     }
-    return TABS.find(t => t.key === routeName) || TABS[0];
+    const tab = TABS.find(t => t.key === routeName) || TABS[0];
+    const label = t ? t(tab.navKey) : tab.defaultLabel;
+    return { ...tab, label };
   };
 
   function CustomTabBar({ state, descriptors, navigation }: any) {
     const { activeChurch } = useChurch();
+    const { language, t } = useLanguage();
     const useWeChristianDailyPromise = activeChurch?.useWeChristianDailyPromise !== false;
     const currentRoute = state.routes[state.index];
-    const activeConfig = getTabConfig(currentRoute.name, useWeChristianDailyPromise);
+    const activeConfig = getTabConfig(currentRoute.name, useWeChristianDailyPromise, t);
 
     const [publicPrayerCount, setPublicPrayerCount] = useState(0);
     const [lastSeenPrayerCount, setLastSeenPrayerCount] = useState(0);
@@ -174,7 +178,7 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
         {state.routes.map((route: any, index: number) => {
           const { options } = descriptors[route.key];
           const isFocused = state.index === index;
-          const config = getTabConfig(route.name, useWeChristianDailyPromise);
+          const config = getTabConfig(route.name, useWeChristianDailyPromise, t);
           const IconComponent = config.Icon;
 
           const onPress = () => {
@@ -415,6 +419,7 @@ const LockedFeatureScreen = ({ navigation }: any) => {
 function TabNavigator() {
   const { user, signOut, member, viewMode, setViewMode } = useAuth();
   const { activeChurch } = useChurch();
+  const { language, t } = useLanguage();
   const useWeChristianDailyPromise = activeChurch?.useWeChristianDailyPromise !== false;
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
@@ -466,7 +471,8 @@ function TabNavigator() {
   return (
     <>
       <Tab.Navigator
-        tabBar={(props) => <CustomTabBar {...props} />}
+        key={language}
+        tabBar={(props) => <CustomTabBar key={language} {...props} />}
         screenOptions={{ headerShown: false }}
       >
       <Tab.Screen 
@@ -817,7 +823,9 @@ export default function RootNavigator() {
     <AuthProvider>
       <ChurchProvider>
         <ThemeProvider>
-          <Navigation />
+          <LanguageProvider>
+            <Navigation />
+          </LanguageProvider>
         </ThemeProvider>
       </ChurchProvider>
     </AuthProvider>
@@ -973,6 +981,7 @@ const lockStyles = StyleSheet.create({
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 function DraggableAdminPill({ onPress }: { onPress: () => void }) {
+  const { t } = useLanguage();
   const pan = React.useRef(new Animated.ValueXY({ 
     x: SCREEN_WIDTH - 150, 
     y: SCREEN_HEIGHT - (Platform.OS === 'ios' ? 240 : 230) 
@@ -1028,7 +1037,7 @@ function DraggableAdminPill({ onPress }: { onPress: () => void }) {
         }}
       >
         <ShieldCheck size={18} color="#FCD34D" />
-        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>Admin View</Text>
+        <Text style={{ color: '#fff', fontSize: 13, fontWeight: '800', letterSpacing: 0.5 }}>{t('nav.adminView')}</Text>
       </TouchableOpacity>
     </Animated.View>
   );

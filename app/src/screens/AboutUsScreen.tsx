@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { ChevronLeft, ArrowLeft, Target, Heart, Sparkles, Users, BookOpen, Video, Hand, Gift, Calendar } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useChurch } from '../context/ChurchContext';
+import { useLanguage } from '../context/LanguageContext';
 import firestoreService from '../services/FirestoreService';
 
 interface AboutUsData {
@@ -41,6 +42,7 @@ export default function AboutUsScreen() {
   const navigation = useNavigation();
   const { colors, isDark } = useTheme();
   const { activeChurch } = useChurch();
+  const { t } = useLanguage();
   const [data, setData] = useState<AboutUsData>(DEFAULT);
   const [loading, setLoading] = useState(true);
 
@@ -105,8 +107,8 @@ export default function AboutUsScreen() {
         
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>About Us</Text>
-            <Text style={styles.headerSub}>Discover our mission and values</Text>
+            <Text style={styles.headerTitle}>{t('aboutUs.title')}</Text>
+            <Text style={styles.headerSub}>{t('aboutUs.subtitle')}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -142,7 +144,7 @@ export default function AboutUsScreen() {
           <View style={styles.callingCard}>
             <View style={styles.callingHeader}>
               <Heart size={20} color="#1a2d5a" strokeWidth={2} />
-              <Text style={styles.callingTitle}>Our Calling</Text>
+              <Text style={styles.callingTitle}>{t('aboutUs.ourCalling')}</Text>
             </View>
             <Text style={styles.callingText}>{data.description}</Text>
           </View>
@@ -155,7 +157,7 @@ export default function AboutUsScreen() {
 
           {/* Our Vision */}
           <View style={styles.visionSection}>
-            <Text style={styles.sectionTitle}>Our Vision</Text>
+            <Text style={styles.sectionTitle}>{t('aboutUs.ourVision')}</Text>
             <View style={styles.blockquoteContainer}>
               <View style={styles.blockquoteLine} />
               <Text style={styles.blockquoteText}>{data.vision}</Text>
@@ -165,84 +167,84 @@ export default function AboutUsScreen() {
 
           {/* Our Core Values */}
           <View style={styles.valuesSection}>
-            <Text style={[styles.sectionTitle, { textAlign: 'center' }]}>Our Core Values</Text>
+            <Text style={[styles.sectionTitle, { textAlign: 'center' }]}>{t('aboutUs.ourCoreValues')}</Text>
             <View style={styles.valuesGrid}>
               <View style={[styles.valuePill, { backgroundColor: '#dbeafe' }]}>
                 <Heart size={16} color="#1e3a8a" />
-                <Text style={[styles.valuePillText, { color: '#1e3a8a' }]}>Compassion</Text>
+                <Text style={[styles.valuePillText, { color: '#1e3a8a' }]}>{t('aboutUs.values.compassion')}</Text>
               </View>
               <View style={[styles.valuePill, { backgroundColor: '#fef08a' }]}>
                 <Target size={16} color="#854d0e" />
-                <Text style={[styles.valuePillText, { color: '#854d0e' }]}>Integrity</Text>
+                <Text style={[styles.valuePillText, { color: '#854d0e' }]}>{t('aboutUs.values.integrity')}</Text>
               </View>
               <View style={[styles.valuePill, { backgroundColor: '#e5e7eb' }]}>
                 <Sparkles size={16} color="#374151" />
-                <Text style={[styles.valuePillText, { color: '#374151' }]}>Faith</Text>
+                <Text style={[styles.valuePillText, { color: '#374151' }]}>{t('aboutUs.values.faith')}</Text>
               </View>
               <View style={[styles.valuePill, { backgroundColor: '#bfdbfe' }]}>
                 <Users size={16} color="#1e40af" />
-                <Text style={[styles.valuePillText, { color: '#1e40af' }]}>Fellowship</Text>
+                <Text style={[styles.valuePillText, { color: '#1e40af' }]}>{t('aboutUs.values.fellowship')}</Text>
               </View>
             </View>
           </View>
 
           {/* Connected in Spirit */}
           <View style={styles.connectedSection}>
-            <Text style={styles.sectionTitle}>Connected in Spirit</Text>
+            <Text style={styles.sectionTitle}>{t('aboutUs.connectedInSpirit')}</Text>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#e2e8f0' }]}>
                 <BookOpen size={20} color="#1e293b" />
               </View>
-              <Text style={styles.featureTitle}>Sermons On-Demand</Text>
-              <Text style={styles.featureDesc}>Revisit Sunday messages anytime. Journey through our archive of teachings wherever you are.</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.sermonsTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.sermonsDesc')}</Text>
             </View>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#fef3c7' }]}>
                 <Video size={20} color="#92400e" />
               </View>
-              <Text style={styles.featureTitle}>Live Services</Text>
-              <Text style={styles.featureDesc}>Watch our Sunday gatherings live. Connect from anywhere in the world.</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.liveServicesTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.liveServicesDesc')}</Text>
             </View>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#fef3c7' }]}>
                 <Hand size={20} color="#92400e" />
               </View>
-              <Text style={styles.featureTitle}>Prayer Requests</Text>
-              <Text style={styles.featureDesc}>"Submit and join in communal prayer. Your burdens are shared, and your joys are celebrated."</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.prayerRequestsTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.prayerRequestsDesc')}</Text>
             </View>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#e2e8f0' }]}>
                 <Gift size={20} color="#1e293b" />
               </View>
-              <Text style={styles.featureTitle}>Giving & Support</Text>
-              <Text style={styles.featureDesc}>Seamlessly support church ministries. Secure and faithful stewardship for our shared mission.</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.givingTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.givingDesc')}</Text>
             </View>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#e5e7eb' }]}>
                 <Sparkles size={20} color="#1f2937" />
               </View>
-              <Text style={styles.featureTitle}>Daily Promises</Text>
-              <Text style={styles.featureDesc}>Start your day with scripture and reflection. Morning bread for your spiritual journey.</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.dailyPromisesTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.dailyPromisesDesc')}</Text>
             </View>
             
             <View style={styles.featureCard}>
               <View style={[styles.featureIconBox, { backgroundColor: '#e2e8f0' }]}>
                 <Calendar size={20} color="#1e293b" />
               </View>
-              <Text style={styles.featureTitle}>Events & RSVP</Text>
-              <Text style={styles.featureDesc}>Stay updated and register for gatherings. Never miss a moment with your church family.</Text>
+              <Text style={styles.featureTitle}>{t('aboutUs.features.eventsTitle')}</Text>
+              <Text style={styles.featureDesc}>{t('aboutUs.features.eventsDesc')}</Text>
             </View>
           </View>
 
           {/* Footer Quote */}
           <View style={styles.footerQuoteCard}>
-            <Text style={styles.footerQuoteText}>"And the peace of God, which transcends all understanding, will guard your hearts and your minds in Christ Jesus."</Text>
-            <Text style={styles.footerQuoteRef}>PHILIPPIANS 4:7</Text>
+            <Text style={styles.footerQuoteText}>{t('aboutUs.footerQuote')}</Text>
+            <Text style={styles.footerQuoteRef}>{t('aboutUs.footerRef')}</Text>
           </View>
 
           <View style={{ height: 40 }} />

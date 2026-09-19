@@ -8,6 +8,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import VerseNotificationService, { DailyVerse } from '../services/VerseNotificationService';
 import { useTheme } from '../context/ThemeContext';
 import { useChurch } from '../context/ChurchContext';
+import { useLanguage } from '../context/LanguageContext';
+import { getLocalizedVerse, getPeriodGreeting } from './HomeScreen';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
@@ -169,6 +171,7 @@ export default function VerseOfTheDayScreen() {
 
   const { isDark, colors } = useTheme();
   const { activeChurch } = useChurch();
+  const { t, language, languages } = useLanguage();
   
   // Still supporting initial verse routing if necessary (e.g. tracking "shown" state)
   const verseId = route.params?.verseId;
@@ -232,6 +235,25 @@ export default function VerseOfTheDayScreen() {
     init();
   }, [verseId]);
 
+  // Localize verses when language changes
+  useEffect(() => {
+    if (verseData.length > 0 && language !== 'en') {
+      let isMounted = true;
+      Promise.all(
+        verseData.map(async item => ({
+          ...item,
+          verses: await VerseNotificationService.localizeVerses(item.verses, language as any)
+        }))
+      ).then(localizedData => {
+        if (isMounted) setVerseData(localizedData);
+      }).catch(() => {});
+
+      return () => {
+        isMounted = false;
+      };
+    }
+  }, [language]);
+
   const loadVerses = async (forceRefresh = false, silent = false) => {
     if (forceRefresh) {
       if (!silent) setRefreshing(true);
@@ -241,7 +263,17 @@ export default function VerseOfTheDayScreen() {
     
     // Fetch today + past 5 days = 6 days total
     const data = await VerseNotificationService.getRecentVerses(5, true, forceRefresh);
-    setVerseData(data);
+    if (language !== 'en') {
+      const localizedData = await Promise.all(
+        data.map(async item => ({
+          ...item,
+          verses: await VerseNotificationService.localizeVerses(item.verses, language as any)
+        }))
+      );
+      setVerseData(localizedData);
+    } else {
+      setVerseData(data);
+    }
     
     if (!silent) {
       setLoading(false);
@@ -311,7 +343,7 @@ export default function VerseOfTheDayScreen() {
   };
 
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    return date.toLocaleDateString(language === 'en' ? 'en-US' : 'en-IN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
   };
 
   if (loading) {
@@ -366,7 +398,7 @@ export default function VerseOfTheDayScreen() {
         
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
           <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 16 }}>
-            <Text style={styles.headerTitle}>Daily Verses</Text>
+            <Text style={styles.headerTitle}>{t('nav.dailyVerse')}</Text>
           </View>
         </View>
         
@@ -376,7 +408,7 @@ export default function VerseOfTheDayScreen() {
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
           <Repeat size={13} color="#fff" style={{ marginRight: 5 }} />
-          <Text style={styles.themeToggleText}>{showTelugu ? 'English' : 'Telugu'}</Text>
+          <Text style={styles.themeToggleText}>{showTelugu ? 'English' : (language === 'te' ? 'Telugu' : (languages.find(l => l.code === language)?.nativeName || 'Regional'))}</Text>
         </TouchableOpacity>
       </LinearGradient>
 
@@ -399,7 +431,7 @@ export default function VerseOfTheDayScreen() {
                   <View style={styles.sectionHeader}>
                     <View style={styles.todayHeaderRow}>
                       <Sun color="#f59e0b" size={24} />
-                      <Text style={styles.sectionTitle}>Today</Text>
+                      <Text style={styles.sectionTitle}>{t('common.today')}</Text>
                     </View>
                     <Text style={styles.dateText}>{formatDate(dayData.date)}</Text>
                   </View>
@@ -490,6 +522,8 @@ export default function VerseOfTheDayScreen() {
 
   function renderCardContent(verse: DailyVerse, period: string, theme: any, periodIndex: number, date: Date) {
     const Icon = theme.Icon;
+    const loc = getLocalizedVerse(verse, language);
+    const greeting = getPeriodGreeting(period, t);
     
     return (
       <>
@@ -500,7 +534,7 @@ export default function VerseOfTheDayScreen() {
               <Icon color="#fff" size={28} />
             </View>
             <View style={styles.titleWrapper}>
-              <Text style={[styles.periodText, { color: theme.color }]}>GOOD {period.toUpperCase()}</Text>
+              <Text style={[styles.periodText, { color: theme.color }]}>{greeting.toUpperCase()}</Text>
             </View>
           </View>
 
@@ -510,13 +544,13 @@ export default function VerseOfTheDayScreen() {
             <View style={styles.verseTextContainer}>
               <Text style={[styles.quoteMark, { color: theme.color }]}>“</Text>
               <Text style={[styles.verseText, { color: '#ffffff' }]}>
-                {showTelugu ? verse.verseTe : verse.verseEn}
+                {showTelugu ? (loc.primaryVerse || verse.verseTe || verse.verseEn) : (verse.verseEn || loc.primaryVerse)}
               </Text>
               <Text style={[styles.quoteMarkBottom, { color: theme.color }]}>”</Text>
             </View>
           </View>
           <Text style={[styles.referenceText, { color: theme.color }]}>
-            {showTelugu ? verse.referenceTe : verse.referenceEn}
+            {showTelugu ? (loc.primaryReference || verse.referenceTe || verse.referenceEn) : (verse.referenceEn || loc.primaryReference)}
           </Text>
         </View>
 
@@ -563,6 +597,8 @@ export default function VerseOfTheDayScreen() {
     const { verse, period, theme, periodIndex, date } = captureConfig;
     const Icon = theme.Icon;
     const dynamicColors = getDynamicGradient(date, period, periodIndex);
+    const loc = getLocalizedVerse(verse, language);
+    const greeting = getPeriodGreeting(period, t);
 
     const captureContent = (
       <>
@@ -572,7 +608,7 @@ export default function VerseOfTheDayScreen() {
               <Icon color="#fff" size={28} />
             </View>
             <View style={styles.titleWrapper}>
-              <Text style={[styles.periodText, { color: theme.color }]}>GOOD {period.toUpperCase()}</Text>
+              <Text style={[styles.periodText, { color: theme.color }]}>{greeting.toUpperCase()}</Text>
             </View>
           </View>
 
@@ -581,19 +617,22 @@ export default function VerseOfTheDayScreen() {
             <View style={styles.verseTextContainer}>
               <Text style={[styles.quoteMark, { color: theme.color }]}>“</Text>
               
-              {/* BOTH TELUGU AND ENGLISH FOR CAPTURE */}
-              <Text style={[styles.verseText, { color: '#ffffff', marginBottom: 12 }]}>
-                {verse.verseTe}
+              <Text style={[styles.verseText, { color: '#ffffff', marginBottom: loc.secondaryVerse && loc.secondaryVerse !== loc.primaryVerse ? 12 : 0 }]}>
+                {loc.primaryVerse}
               </Text>
-              <Text style={[styles.verseText, { color: '#ffffff', fontSize: 18, opacity: 0.95 }]}>
-                {verse.verseEn}
-              </Text>
+              {loc.secondaryVerse && loc.secondaryVerse !== loc.primaryVerse ? (
+                <Text style={[styles.verseText, { color: '#ffffff', fontSize: 18, opacity: 0.95 }]}>
+                  {loc.secondaryVerse}
+                </Text>
+              ) : null}
               
               <Text style={[styles.quoteMarkBottom, { color: theme.color }]}>”</Text>
             </View>
           </View>
           <Text style={[styles.referenceText, { color: theme.color, fontSize: 16 }]}>
-            {verse.referenceTe} | {verse.referenceEn}
+            {loc.secondaryReference && loc.secondaryReference !== loc.primaryReference
+              ? `${loc.primaryReference} | ${loc.secondaryReference}`
+              : loc.primaryReference}
           </Text>
           {activeChurch?.name && (
             <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', marginTop: 12, fontWeight: '500', textAlign: 'center', letterSpacing: 0.5 }}>

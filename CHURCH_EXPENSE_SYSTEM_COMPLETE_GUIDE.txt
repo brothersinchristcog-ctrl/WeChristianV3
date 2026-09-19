@@ -1,0 +1,353 @@
+================================================================================
+           WECHRISTIAN - COMPLETE CHURCH EXPENSE & FINANCE SYSTEM
+                         PIN-TO-PIN STEP-BY-STEP GUIDE
+================================================================================
+
+This document covers EVERYTHING about the Church Expense & Finance Module:
+how expenses are recorded, calculated, categorized, approved, invoiced, 
+tracked, audited, and exported in the WeChristian application.
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS:
+--------------------------------------------------------------------------------
+1. Where to Find Expense & Finance in the App
+2. Expense Dashboard & Real-Time Financial Metrics
+3. Recording an Expense (Pin-to-Pin Step-by-Step)
+4. Built-in Church Expense Groups & Custom Line Items
+5. Dynamic Price & Quantity Calculation Engine
+6. Vendor, Payment & Receipt Tracking
+7. Invoices & Billing Management
+8. The Multi-Admin Invoice Approval Workflow
+9. Batch Actions, Multi-Selection & Audit Statements
+10. Database Schema (Firestore Collections & Fields)
+11. Security, Role Permissions & Push Notifications
+
+
+================================================================================
+1. WHERE TO FIND EXPENSE & FINANCE IN THE APP
+================================================================================
+• Location: Admin View -> Navigation Tab: "Expense" (Wallet Icon)
+• Screen File: app/src/screens/admin/AdminFinanceDashboard.tsx
+• Target Users: Church Admins, Pastors, Treasurers, Finance Committee Members
+• Four Core Sub-Tabs:
+    [1] Dashboard  - Live KPI metrics, outflow charts & category breakdown
+    [2] Expenses   - Chronological ledger of all church expense records
+    [3] Invoices   - Formal church invoice generation & PDF exports
+    [4] Editor     - Interactive line-item expense builder
+
+
+================================================================================
+2. EXPENSE DASHBOARD & REAL-TIME FINANCIAL METRICS
+================================================================================
+When an admin opens the Expense tab, the Dashboard presents real-time numbers:
+
+A. KEY KPI METRIC CARDS:
+   1. Total Expenses (₹):
+      • Aggregates every approved and recorded expense in the chosen period.
+   2. Total Invoices (₹):
+      • Total monetary value of all formal invoices generated.
+   3. Pending Payments (₹):
+      • Highlights unpaid vendor dues, credit purchases, or unsettled bills
+        requiring church attention.
+
+B. TIME PERIOD FILTER BAR:
+   Single-tap quick toggles to recalculate all numbers instantly:
+   • Today        - Outflow incurred on the current day
+   • This Week    - Monday to Sunday aggregated spending
+   • This Month   - Current calendar month spending (default)
+   • This Year    - Annual financial year expenditure
+   • Custom Range - Two date-pickers (Start Date & End Date) for custom audits
+
+C. MINISTRY CATEGORY BREAKDOWN:
+   Visual cards showing money spent per church ministry:
+   • Sunday Service
+   • Youth Meeting
+   • Bible Study
+   • Church Maintenance
+   • Women's Prayer
+   • Outreach / Gospel Missions
+   • Custom Categories (e.g. Christmas Celebration, Annual Convention)
+   Each card displays the count of expenses and the total amount in Rupees (₹).
+
+
+================================================================================
+3. RECORDING AN EXPENSE (PIN-TO-PIN STEP-BY-STEP)
+================================================================================
+Follow these exact steps to record any church expenditure:
+
+STEP 1: INITIATE NEW EXPENSE
+• Tap the floating "+ Add Expense" button or navigate to the "Editor" sub-tab.
+• A modal or editor view opens with fresh blank fields.
+
+STEP 2: SELECT MINISTRY CATEGORY
+• Tap the Category Dropdown.
+• Choose the relevant church department:
+  - Sunday Service
+  - Youth Meeting
+  - Bible Study
+  - Church Maintenance
+  - Women's Prayer
+  - Outreach
+  - Or tap "+ Add Category" to create a new category (e.g., "VBS 2026").
+
+STEP 3: SELECT LINE ITEMS
+• Select pre-configured items from built-in groups (General, Vegetables, Groceries)
+  or type a custom item name and tap "Add Item".
+• Tapping an item highlights it with a blue border and adds it to the active
+  line-item calculation table below.
+
+STEP 4: ENTER QUANTITY & UNIT PRICE (PER ITEM)
+• For each selected line item:
+  - Quantity Field: e.g., 5 (kgs), 2 (units), 10 (packets), 1 (month)
+  - Unit Price Field (₹): e.g., 50
+• The system automatically multiplies: Subtotal = Quantity × Unit Price
+• As you type, the Grand Total at the bottom updates in real-time.
+
+STEP 5: ENTER VENDOR & PAYMENT DETAILS
+• Vendor Name:
+  - Enter shop, supplier, or contractor name (e.g. "Sri Rama Sound Systems",
+    "Reliance Supermarket", "Brother David Travel Services").
+• Expense Date:
+  - Defaults to today's date. Tap the calendar icon to pick past service dates.
+• Payment Method:
+  - Choose one: Cash | UPI (GPay/PhonePe) | Cheque | Bank Transfer | Card
+• Payment Status:
+  - Choose "Paid" if already settled.
+  - Choose "Pending" if the goods/services were taken on credit or bill is unpaid.
+• Notes & Remarks:
+  - Optional text: e.g., "Advance ₹1,000 paid; balance ₹2,000 due on Monday".
+
+STEP 6: ATTACH PHYSICAL BILL / RECEIPT (OCR & ARCHIVING)
+• Tap "Attach Bill / Document".
+• Pick a photo of the paper receipt/vendor bill from camera or device storage.
+• The document is linked to this expense record for audit verification.
+
+STEP 7: SAVE EXPENSE
+• Tap "Save Expense" (or "Update Expense" if editing).
+• The record is written to Firestore: churches/{churchId}/expenses/{expenseId}
+• The dashboard metrics, category totals, and expense lists refresh immediately.
+
+
+================================================================================
+4. BUILT-IN CHURCH EXPENSE GROUPS & CUSTOM ITEMS
+================================================================================
+To save time, WeChristian comes pre-loaded with common church expense items:
+
+1. GENERAL CHURCH SUPPLIES:
+   • Water
+   • Snacks
+   • Tea & Coffee
+   • Flowers & Garlands
+   • Sound System & Mic Cables
+   • Stage Décor & Lighting
+   • Transport & Fuel
+   • Printing (Bulletins, Flyers)
+   • Electricity & Generator Fuel
+   • Stationery & Envelopes
+   • Cleaning Supplies & Sanitizers
+   • Musical Instruments & Repairs
+   • Honorarium (Guest Speakers / Visiting Pastors)
+
+2. VEGETABLES (FOR CHURCH FEASTS & COMMUNITY MEALS):
+   • Tomato, Onion, Potato, Carrot, Cabbage, Chilli, Garlic, Ginger, Beans,
+     Brinjal, Lemon, Coriander.
+
+3. GROCERIES & PROVISIONS (LOVE FEASTS & ANNIVERSARIES):
+   • Rice (Bags)
+   • Cooking Oil (Tins/Liters)
+   • Dal & Pulses
+   • Spices & Masalas
+   • Wheat / Atta
+   • Sugar & Salt
+   • Milk & Curd
+   • Tea Powder & Coffee Powder
+
+4. DYNAMIC CUSTOM ITEMS:
+   • Admins can add any new item to any group at any time.
+   • Custom items are saved to Firestore under churches/{churchId}/customExpenseItems
+     and remain available for all future expense entries.
+
+
+================================================================================
+5. DYNAMIC PRICE & QUANTITY CALCULATION ENGINE
+================================================================================
+• Formula per Item:
+    Item Total (₹) = Quantity × Price Per Unit
+
+• Grand Total Formula:
+    Grand Total (₹) = Sum of all (Quantity × Price Per Unit) for all selected items
+
+• Example:
+    - Tea:        50 Cups  × ₹10  = ₹500
+    - Biscuits:   10 Pkts  × ₹30  = ₹300
+    - Water:       2 Cans  × ₹40  =  ₹80
+    --------------------------------------
+    GRAND TOTAL                   = ₹880
+
+• Real-time responsiveness: Changing any number instantly recalculates the
+  grand total with zero delay.
+
+
+================================================================================
+6. VENDOR, PAYMENT & RECEIPT TRACKING
+================================================================================
+• Vendor History:
+  - Search any past expense by vendor name to see total money paid to a
+    specific contractor or store over any period.
+• Payment Mode Reconciliation:
+  - Filter expenses by payment method (e.g. all Cash expenses vs all Bank Transfers)
+    to balance church petty cash and bank passbooks.
+• Clearance Status:
+  - Expenses marked "Pending" stay highlighted in yellow/orange.
+  - When the balance is cleared, the admin opens the expense and toggles status
+    to "Paid".
+
+
+================================================================================
+7. INVOICES & BILLING MANAGEMENT
+================================================================================
+Located under the "Invoices" sub-tab:
+
+A. INVOICE GENERATION:
+   1. Admin selects one or more recorded expenses from the list.
+   2. Taps "Generate Invoice".
+   3. The system assigns a unique formal Invoice Number:
+      Format: INV-{ChurchCode}-{7-Digit-Sequential-Number}
+      Example: INV-BIC-0000042
+   4. Specifies:
+      - Category (e.g. Sunday Service)
+      - Invoice Date
+      - Prepared By (e.g. Pastor / Treasurer Name)
+      - Designated Approvers
+
+B. HIGH-RESOLUTION BRANDED PDF EXPORT:
+   The system generates an official A4-ready PDF containing:
+   • Church Header: Legal Name, Logo, Registered Address, Phone Number
+   • Invoice Meta: Invoice No, Invoice Date, Category, Prepared By, Reported By
+   • Itemized Table: Item Name, Quantity, Unit Price (₹), Amount (₹)
+   • Ministry Subtotals: Grouped by category
+   • Grand Total Box in Indian Rupees (₹)
+   • Official Footers: "Church Seal" box and "Authorized Signature" line
+   • Wireless Printing: Send directly to any Wi-Fi printer via expo-print
+   • Instant Sharing: Share directly via WhatsApp or Email via expo-sharing
+   • Gallery Download: Save high-resolution PNG image directly to camera roll
+
+
+================================================================================
+8. THE MULTI-ADMIN INVOICE APPROVAL WORKFLOW
+================================================================================
+To ensure financial transparency and prevent unauthorized church spending:
+
+STEP 1: SUBMITTING FOR APPROVAL
+  • When generating an invoice, the submitter must select at least one
+    Designated Approver from the registered Church Admins list.
+  • Invoice status is set to "Pending Approval".
+
+STEP 2: AUTOMATED NOTIFICATION TO APPROVERS
+  • The system sends a high-priority push notification to the chosen Approvers:
+    Title: "New Expense Invoice Approval"
+    Content: "[User Name] submitted invoice (INV-BIC-0000042) for your approval."
+
+STEP 3: REVIEW & DECISION BY APPROVER
+  • The approver opens the notification or goes to Admin Finance -> Invoices.
+  • The complete itemized invoice preview opens.
+  • The approver has three options:
+    [1] APPROVE:
+        - Marks invoice status as "Approved".
+        - Locks the invoice as an official approved church document.
+    [2] REJECT:
+        - Marks invoice status as "Rejected" with mandatory explanation comments.
+    [3] REQUEST CHANGES:
+        - Marks status as "Changes Requested" with specific feedback notes
+          (e.g., "Please attach the transport petrol bill before approval").
+
+STEP 4: NOTIFICATION BACK TO SUBMITTER
+  • The submitter receives an automated push notification with the final decision:
+    "Your expense invoice (INV-BIC-0000042) was [Approved/Rejected/Changes Requested]
+     by [Approver Name]."
+
+
+================================================================================
+9. BATCH ACTIONS, MULTI-SELECTION & AUDIT STATEMENTS
+================================================================================
+• Checkbox Multi-Selection:
+  - Tap or long-press expense items in the list to select multiple records.
+  - Action Bar appears with count of selected items.
+• Bulk Delete:
+  - Delete multiple erroneous or test records in one tap with confirmation.
+• Combined Category Audit Report:
+  - Select all expenses under a ministry category (e.g., all 8 Sunday Services
+    in July and August).
+  - Tapping "Generate Statement" produces a single combined audit document
+    showing total expenditure, vendor lists, and item breakdowns.
+  - Ideal for presenting at Church Board, Committee, or AGM meetings.
+
+
+================================================================================
+10. FIRESTORE DATABASE SCHEMA (TECHNICAL REFERENCE)
+================================================================================
+
+A. churches/{churchId}/expenses/{expenseId}
+   {
+     id: string,                 // Document ID
+     category: string,           // 'Sunday Service' | 'Church Maintenance' | etc.
+     date: string,               // 'YYYY-MM-DD'
+     vendorName: string,         // 'City Supermarket'
+     paymentMethod: string,      // 'Cash' | 'UPI' | 'Cheque' | 'Bank Transfer' | 'Card'
+     status: 'Paid' | 'Pending', // Clearance status
+     lineItems: [
+       {
+         type: string,           // 'Tea'
+         quantity: number,       // 50
+         pricePerUnit: number    // 10
+       }
+     ],
+     amount: number,             // Total sum of all line items
+     notes?: string,             // Remarks
+     receiptUrl?: string,        // Storage URL of uploaded bill image
+     churchId: string,
+     createdAt: timestamp
+   }
+
+B. churches/{churchId}/invoices/{invoiceId}
+   {
+     id: string,                 // 'INV-BIC-0000042'
+     category: string,
+     date: string,
+     amount: number,
+     preparedBy: string,
+     expenseIds: string[],       // Array of expense document IDs included
+     status: 'Pending Approval' | 'Approved' | 'Rejected' | 'Changes Requested',
+     reportedByUserIds: string[],// Selected approver admin IDs
+     reportedByNames: string[],  // Selected approver admin names
+     submitterPhone: string,
+     approvalComments?: string,
+     churchId: string,
+     createdAt: timestamp
+   }
+
+C. churches/{churchId} (Root Document Fields for Finance)
+   {
+     customCategories: string[], // ['Christmas 2026', 'Building Expansion']
+     customExpenseItems: {       // User-added items per group
+       'General': ['Generator Rent', 'LED Screen'],
+       'Vegetables': ['Capsicum', 'Mushroom'],
+       'Groceries': ['Basmati Rice', 'Ghee']
+     }
+   }
+
+
+================================================================================
+11. SECURITY, ROLE PERMISSIONS & PUSH NOTIFICATIONS
+================================================================================
+• Role Security:
+  - Only authenticated users with userType containing "ADMIN" or "SUPER"
+    can access the Expense tab.
+  - Regular members have zero visibility into church expenses or vendor bills.
+• Offline / Online Sync:
+  - Firestore caching enables offline draft entries; updates sync automatically
+    when mobile data or Wi-Fi reconnects.
+• Cross-Platform:
+  - Works identically on both Android and iOS with native date pickers,
+    sharing sheets, and printing bridges.
+================================================================================

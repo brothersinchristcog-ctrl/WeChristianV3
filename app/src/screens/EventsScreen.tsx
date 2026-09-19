@@ -23,11 +23,13 @@ import {
 } from 'lucide-react-native';
 import FirestoreService, { ScheduleEvent } from '../services/FirestoreService';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
 export default function EventsScreen({ navigation }: any) {
   const { isDark, colors } = useTheme();
+  const { t } = useLanguage();
   const [upcomingEvents, setUpcomingEvents] = useState<ScheduleEvent[]>([]);
   const [pastEvents, setPastEvents] = useState<ScheduleEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +120,7 @@ export default function EventsScreen({ navigation }: any) {
         <View style={[styles.ebHd, isPast && { backgroundColor: '#475569' }]}>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
             <Calendar size={14} color="#FCD34D" />
-            <Text style={styles.ebHdLbl}>{isPast ? 'PAST EVENT · ముగిసినవి' : 'EVENT DETAILS · వివరాలు'}</Text>
+            <Text style={styles.ebHdLbl}>{isPast ? t('events.pastEvents').toUpperCase() : t('events.eventDetails').toUpperCase()}</Text>
           </View>
         </View>
         <View style={styles.ebBody}>
@@ -178,7 +180,7 @@ export default function EventsScreen({ navigation }: any) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#0f172a' : '#1a2d5a' }]}>
         <ActivityIndicator size="large" color="#FCD34D" />
-        <Text style={styles.loadingText}>Loading Events... కార్యక్రమాలు లోడ్ అవుతున్నాయి...</Text>
+        <Text style={styles.loadingText}>{t('events.loading')}</Text>
       </View>
     );
   }
@@ -200,7 +202,7 @@ export default function EventsScreen({ navigation }: any) {
         
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
           <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
-            <Text style={styles.headerTitle}>Events Archive</Text>
+            <Text style={styles.headerTitle}>{t('events.title')}</Text>
           </View>
         </View>
 
@@ -211,7 +213,7 @@ export default function EventsScreen({ navigation }: any) {
       <View style={styles.tabContainer}>
         {(['thisWeek', 'upcoming', 'past'] as const).map(tab => {
           const isActive = activeTab === tab;
-          let label = tab === 'thisWeek' ? 'This Week' : tab === 'upcoming' ? 'Upcoming' : 'Past';
+          let label = tab === 'thisWeek' ? t('events.thisWeek') : tab === 'upcoming' ? t('events.upcoming') : t('events.past');
           return (
             <TouchableOpacity 
               key={tab} 
@@ -251,8 +253,9 @@ export default function EventsScreen({ navigation }: any) {
           !loading ? (
             <View style={styles.emptyState}>
               <CalendarCheck size={60} color="#cbd5e1" />
-              <Text style={styles.emptyTitle}>No Events Found</Text>
-              <Text style={styles.emptySub}>Check back later for new activities.</Text>
+              <Text style={styles.emptyTitle}>
+                {activeTab === 'past' ? t('events.noPastEvents') : t('events.noUpcomingEvents')}
+              </Text>
             </View>
           ) : null
         }

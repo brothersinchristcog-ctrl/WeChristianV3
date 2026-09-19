@@ -18,59 +18,22 @@ import { ArrowLeft, ChevronLeft, Share2, BookMarked, Settings, Search, CheckCirc
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Speech from 'expo-speech';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import { BibleService } from '../services/BibleService';
 
 const { width } = Dimensions.get('window');
 
-const BOOK_MAP: any = {
-  // OT
-  'Genesis': 1, 'Exodus': 2, 'Leviticus': 3, 'Numbers': 4, 'Deuteronomy': 5,
-  'Joshua': 6, 'Judges': 7, 'Ruth': 8, '1 Samuel': 9, '2 Samuel': 10,
-  '1 Kings': 11, '2 Kings': 12, '1 Chronicles': 13, '2 Chronicles': 14, 'Ezra': 15,
-  'Nehemiah': 16, 'Esther': 17, 'Job': 18, 'Psalms': 19, 'Proverbs': 20,
-  'Ecclesiastes': 21, 'Song of Solomon': 22, 'Isaiah': 23, 'Jeremiah': 24, 'Lamentations': 25,
-  'Ezekiel': 26, 'Daniel': 27, 'Hosea': 28, 'Joel': 29, 'Amos': 30,
-  'Obadiah': 31, 'Jonah': 32, 'Micah': 33, 'Nahum': 34, 'Habakkuk': 35,
-  'Zephaniah': 36, 'Haggai': 37, 'Zechariah': 38, 'Malachi': 39,
-  // NT
-  'Matthew': 40, 'Mark': 41, 'Luke': 42, 'John': 43, 'Acts': 44,
-  'Romans': 45, '1 Corinthians': 46, '2 Corinthians': 47, 'Galatians': 48, 'Ephesians': 49,
-  'Philippians': 50, 'Colossians': 51, '1 Thessalonians': 52, '2 Thessalonians': 53, '1 Timothy': 54,
-  '2 Timothy': 55, 'Titus': 56, 'Philemon': 57, 'Hebrews': 58, 'James': 59,
-  '1 Peter': 60, '2 Peter': 61, '1 John': 62, '2 John': 63, '3 John': 64,
-  'Jude': 65, 'Revelation': 66,
-  // Telugu
-  'ఆదికాండము': 1, 'నిర్గమకాండము': 2, 'లేవీయకాండము': 3, 'సంఖ్యాకాండము': 4, 'ద్వితీయోపదేశకాండము': 5,
-  'యెహోషువ': 6, 'న్యాయాధిపతులు': 7, 'రూతు': 8, '1 సమూయేలు': 9, '2 సమూయేలు': 10,
-  '1 రాజులు': 11, '2 రాజులు': 12, '1 దినవృత్తాంతములు': 13, '2 దినవృత్తాంతములు': 14, 'ఎజ్రా': 15,
-  'నెహెమ్యా': 16, 'ఎస్తేరు': 17, 'యోబు': 18, 'కీర్తనల గ్రంథము': 19, 'సామెతలు': 20,
-  'ప్రసంగి': 21, 'పరమగీతము': 22, 'యెషయా': 23, 'యిర్మియా': 24, 'విలాపవాక్యములు': 25,
-  'యెహెజ్కేలు': 26, 'దానియేలు': 27, 'హోషేయ': 28, 'యోవేలు': 29, 'ఆమోసు': 30,
-  'ఓబద్యా': 31, 'యోనా': 32, 'మీకా': 33, 'నహూము': 34, 'హబక్కూకు': 35,
-  'జెఫన్యా': 36, 'హగ్గయి': 37, 'జెకర్యా': 38, 'మలాకీ': 39,
-  'మత్తయి సువార్త': 40, 'మార్కు సువార్త': 41, 'లూకా సువార్త': 42, 'యోహాను సువార్త': 43, 'అపొస్తలుల కార్యములు': 44,
-  'రోమీయులకు వ్రాసిన పత్రిక': 45, '1 కొరింథీయులకు': 46, '2 కొరింథీయులకు': 47, 'గలతీయులకు': 48, 'ఎఫెసీయులకు': 49,
-  'ఫిలిప్పీయులకు': 50, 'కొలొస్సయులకు': 51, '1 థెస్సలొనీకయులకు': 52, '2 థెస్సలొనీకయులకు': 53, '1 తిమోతికి': 54,
-  '2 తిమోతికి': 55, 'తీతుకు': 56, 'ఫిలేమోనుకు': 57, 'హెబ్రీయులకు': 58, 'యాకోబు': 59,
-  '1 పేతురు': 60, '2 పేతురు': 61, '1 యోహాను': 62, '2 యోహాను': 63, '3 యోహాను': 64,
-  'యూదా': 65, 'ప్రకటన గ్రంథము': 66
-};
-
-const ENGLISH_NAMES = [
-  'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel',
-  '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles', 'Ezra', 'Nehemiah', 'Esther', 'Job', 'Psalms', 'Proverbs',
-  'Ecclesiastes', 'Song of Solomon', 'Isaiah', 'Jeremiah', 'Lamentations', 'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos',
-  'Obadiah', 'Jonah', 'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai', 'Zechariah', 'Malachi',
-  'Matthew', 'Mark', 'Luke', 'John', 'Acts', 'Romans', '1 Corinthians', '2 Corinthians', 'Galatians', 'Ephesians',
-  'Philippians', 'Colossians', '1 Thessalonians', '2 Thessalonians', '1 Timothy', '2 Timothy', 'Titus', 'Philemon', 'Hebrews', 'James',
-  '1 Peter', '2 Peter', '1 John', '2 John', '3 John', 'Jude', 'Revelation'
-];
-
-// Local Telugu Bible Data Fallback
-const LOCAL_TELUGU_BIBLE: any = require('../../assets/telugu_bible.json');
-
 export default function BibleReaderScreen({ route, navigation }: any) {
-  const { bookName, chapter, lang, targetVerse } = route.params;
+  const { bookName, chapter, lang: paramLang, bookIndex: paramBookIndex, targetVerse } = route.params || {};
   const { isDark } = useTheme();
+  const { language, t } = useLanguage();
+  const activeLang = paramLang || language;
+
+  const bookIndex = paramBookIndex !== undefined ? paramBookIndex : BibleService.getBookIndex(bookName);
+  const localizedBookName = BibleService.getBookName(bookIndex, activeLang);
+  const englishBookName = BibleService.getBookName(bookIndex, 'en');
+  const totalChapters = BibleService.getChapterCount(bookIndex);
+
   const [verses, setVerses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,11 +63,6 @@ export default function BibleReaderScreen({ route, navigation }: any) {
   const [selectedVoice, setSelectedVoice] = useState<'male' | 'female'>('female');
   const selectedVoiceRef = React.useRef<'male' | 'female'>('female');
   const [showVoiceModal, setShowVoiceModal] = useState(false);
-
-  // Derive English name and total chapters
-  const bookIndex = (BOOK_MAP[bookName] || 1) - 1;
-  const englishBookName = ENGLISH_NAMES[bookIndex] || bookName;
-  const totalChapters = LOCAL_TELUGU_BIBLE?.Book?.[bookIndex]?.Chapter?.length || 150;
 
   React.useEffect(() => {
     selectedVoiceRef.current = selectedVoice;
@@ -147,7 +105,7 @@ export default function BibleReaderScreen({ route, navigation }: any) {
       isSpeakingRef.current = false;
       Speech.stop();
     };
-  }, [bookName, chapter, lang, bookIndex]);
+  }, [bookName, chapter, activeLang, bookIndex]);
 
   React.useEffect(() => {
     if (targetVerse && verseLayouts[targetVerse] !== undefined) {
@@ -162,70 +120,9 @@ export default function BibleReaderScreen({ route, navigation }: any) {
     try {
       setLoading(true);
       setError(null);
-
-      // 1. Check Local Fallback for Telugu First (Simple & Robust)
-      if (lang === 'Telugu') {
-        const bIndex = (BOOK_MAP[bookName] || 1) - 1;
-        if (LOCAL_TELUGU_BIBLE && LOCAL_TELUGU_BIBLE.Book && LOCAL_TELUGU_BIBLE.Book[bIndex]) {
-          const bookData = LOCAL_TELUGU_BIBLE.Book[bIndex];
-          if (bookData.Chapter && bookData.Chapter[chapter - 1]) {
-            console.log(`📖 Loading ${bookName} Chapter ${chapter} from local JSON...`);
-            const chapterData = bookData.Chapter[chapter - 1].Verse;
-            const formattedVerses = chapterData.map((v: any, i: number) => ({
-              verse: i + 1,
-              text: v.Verse
-            }));
-            setVerses(formattedVerses);
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
-      // 2. Otherwise, use API (Primary for English, Fallback for Telugu)
-      const bookId = BOOK_MAP[bookName] || 1;
-      
       const storedVersion = await AsyncStorage.getItem('@BibleEnglishVersion');
       const prefEngVersion = storedVersion || 'KJV';
-      // Fallback chain: Primary selected version -> KJV -> ASV
-      const versions = lang === 'English' ? [prefEngVersion, 'KJV', 'ASV'] : ['TELBSI', 'BSITEL', 'TEL'];
-      
-      let data = null;
-      let lastError = null;
-
-      for (const v of versions) {
-        try {
-          const url = `https://bolls.life/get-text/${v}/${bookId}/${chapter}/`;
-          console.log(`🔗 Fetching from API (${v}):`, url);
-          
-          const response = await fetch(url, {
-            headers: { 'Accept': 'application/json' }
-          });
-          
-          if (response.ok) {
-            const result = await response.json();
-            if (result && Array.isArray(result) && result.length > 0) {
-              // Strip Strong's numbers, <sup> translator notes, and any other HTML tags
-              data = result.map((item: any) => ({
-                ...item,
-                text: item.text ? item.text
-                  .replace(/<S>\d*<\/S>/gi, '') // Remove Strongs
-                  .replace(/<sup[^>]*>.*?<\/sup>/gi, '') // Remove translator notes
-                  .replace(/<[^>]+>/g, '') // Strip any other stray HTML tags (<i>, <b>, etc.)
-                  .replace(/\s{2,}/g, ' ') // Clean up double spaces
-                  .trim() : item.text
-              }));
-              break;
-            }
-          }
-        } catch (e: any) {
-          lastError = e.message;
-        }
-      }
-
-      if (!data) {
-        throw new Error('Scripture not available offline. Please check your internet connection.');
-      }
+      const data = await BibleService.fetchChapterVerses(bookIndex, chapter, activeLang, prefEngVersion);
       setVerses(data);
     } catch (error: any) {
       console.error('❌ Bible Load Error:', error);
@@ -263,7 +160,7 @@ export default function BibleReaderScreen({ route, navigation }: any) {
     }
 
     const textToSpeak = v.text;
-    const speechLang = lang === 'English' ? 'en-US' : 'te-IN';
+    const speechLang = BibleService.getTTSLanguageCode(activeLang);
     const currentVoice = selectedVoiceRef.current;
     
     // 0.55 pitch guarantees a deep, masculine sound
@@ -460,9 +357,11 @@ export default function BibleReaderScreen({ route, navigation }: any) {
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
           <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 12 }}>
             <Text style={styles.headerTitle}>
-              {lang === 'Telugu' ? `${englishBookName} · ${bookName}` : englishBookName}
+              {activeLang === 'en' ? englishBookName : `${englishBookName} · ${localizedBookName}`}
             </Text>
-            <Text style={styles.headerSub}>Chapter {chapter} · అధ్యాయం {chapter}</Text>
+            <Text style={styles.headerSub}>
+              {t('bible.chapters')} {chapter}
+            </Text>
           </View>
         </View>
 
@@ -479,13 +378,15 @@ export default function BibleReaderScreen({ route, navigation }: any) {
         <View style={styles.readerContent}>
           {loading ? (
             <View style={styles.loadingContainer}>
-               <Text style={{ color: '#1a2d5a', fontWeight: '700' }}>Loading verses... పరిశుద్ధ గ్రంథం లోడ్ అవుతోంది...</Text>
+               <Text style={{ color: '#1a2d5a', fontWeight: '700' }}>
+                 {t('bible.readNow')}...
+               </Text>
             </View>
           ) : error ? (
             <View style={styles.loadingContainer}>
                <Text style={{ color: '#c0392b', fontWeight: '700', textAlign: 'center' }}>{error}</Text>
                <TouchableOpacity style={styles.retryBtn} onPress={fetchVerses}>
-                 <Text style={styles.retryText}>Tap to Retry · మళ్ళీ ప్రయత్నించండి</Text>
+                 <Text style={styles.retryText}>Tap to Retry</Text>
                </TouchableOpacity>
             </View>
           ) : (
@@ -691,22 +592,22 @@ export default function BibleReaderScreen({ route, navigation }: any) {
         >
           <TouchableOpacity 
             style={[styles.barAction, chapter <= 1 && { opacity: 0.3 }, { backgroundColor: 'transparent' }]} 
-            onPress={() => chapter > 1 && navigation.push('BibleReader', { bookName, chapter: chapter - 1, lang })}
+            onPress={() => chapter > 1 && navigation.push('BibleReader', { bookIndex, bookName: localizedBookName, chapter: chapter - 1, lang: activeLang })}
             disabled={chapter <= 1}
           >
             <ChevronLeft color="#fff" size={24} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.barMain}
-            onPress={() => navigation.navigate('BibleChapters', { bookName, lang })}
+            onPress={() => navigation.navigate('BibleChapters', { bookIndex, bookName: localizedBookName, lang: activeLang })}
           >
             <Text style={[styles.barMainTxt, { color: '#fff' }]}>
-              Chapter {chapter} of {totalChapters}
+              {t('bible.chapters')} {chapter} / {totalChapters}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.barAction, chapter >= totalChapters && { opacity: 0.3 }, { backgroundColor: 'transparent' }]}
-            onPress={() => chapter < totalChapters && navigation.push('BibleReader', { bookName, chapter: chapter + 1, lang })}
+            onPress={() => chapter < totalChapters && navigation.push('BibleReader', { bookIndex, bookName: localizedBookName, chapter: chapter + 1, lang: activeLang })}
             disabled={chapter >= totalChapters}
           >
             <ChevronLeft color="#fff" size={24} style={{ transform: [{ rotate: '180deg' }] }} />

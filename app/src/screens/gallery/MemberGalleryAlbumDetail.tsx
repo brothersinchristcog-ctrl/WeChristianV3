@@ -10,6 +10,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MemberGalleryStackParamList } from './MemberGalleryNavigator';
 import GalleryService, { GalleryPhoto } from '../../services/GalleryService';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 2;
@@ -24,6 +25,7 @@ export default function MemberGalleryAlbumDetail() {
   const route = useRoute<RouteProps>();
   const { albumId, albumName, albumDescription } = route.params;
   const { isDark, colors } = useTheme();
+  const { t } = useLanguage();
 
   const [photos, setPhotos] = useState<GalleryPhoto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +86,7 @@ export default function MemberGalleryAlbumDetail() {
       setIsDownloading(true);
       const { status } = await MediaLibrary.requestPermissionsAsync(true);
       if (status !== 'granted') {
-        Alert.alert("Permission Required", "We need access to your photos to save images.");
+        Alert.alert(t('gallery.alerts.permissionTitle'), t('gallery.alerts.permissionMsg'));
         return;
       }
       
@@ -93,10 +95,10 @@ export default function MemberGalleryAlbumDetail() {
       const downloadRes = await FileSystem.downloadAsync(url, fileUri);
       
       await MediaLibrary.saveToLibraryAsync(downloadRes.uri);
-      showToast("Image saved to gallery!");
+      showToast(t('gallery.toasts.savedSuccess'));
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Failed to download photo");
+      Alert.alert(t('common.error'), t('gallery.alerts.downloadError'));
     } finally {
       setIsDownloading(false);
     }
@@ -106,7 +108,7 @@ export default function MemberGalleryAlbumDetail() {
     try {
       setIsSharing(true);
       if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert("Error", "Sharing is not available on your device");
+        Alert.alert(t('common.error'), t('gallery.alerts.shareNotAvailable'));
         return;
       }
       const filename = `gallery_photo_${Date.now()}.jpg`;
@@ -117,7 +119,7 @@ export default function MemberGalleryAlbumDetail() {
       await Sharing.shareAsync(downloadRes.uri);
     } catch (err) {
       console.error(err);
-      Alert.alert("Error", "Failed to share photo");
+      Alert.alert(t('common.error'), t('gallery.alerts.shareError'));
     } finally {
       setIsSharing(false);
     }
@@ -127,19 +129,19 @@ export default function MemberGalleryAlbumDetail() {
     <View style={styles.header}>
       <TouchableOpacity style={styles.iconBtn} onPress={() => navigation.goBack()}>
         <ArrowLeft size={20} color={colors.text} />
-        <Text style={[styles.backText, { color: colors.text }]}>Back</Text>
+        <Text style={[styles.backText, { color: colors.text }]}>{t('common.back')}</Text>
       </TouchableOpacity>
     </View>
   );
 
   const renderTitleArea = () => (
     <View style={styles.titleArea}>
-      <Text style={styles.categoryText}>ALBUM</Text>
+      <Text style={styles.categoryText}>{t('gallery.albumBadge')}</Text>
       <Text style={[styles.mainTitle, { color: colors.text }]}>{albumName}</Text>
       {albumDescription ? (
         <Text style={[styles.descText, { color: isDark ? '#CBD5E1' : '#64748B' }]}>{albumDescription}</Text>
       ) : null}
-      <Text style={[styles.metaText, { color: '#94A3B8' }]}>{photos.length} photos</Text>
+      <Text style={[styles.metaText, { color: '#94A3B8' }]}>{photos.length} {t('gallery.photosCount')}</Text>
     </View>
   );
 
@@ -176,7 +178,7 @@ export default function MemberGalleryAlbumDetail() {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           !loading ? (
-            <Text style={styles.emptyText}>No photos yet.</Text>
+            <Text style={styles.emptyText}>{t('gallery.empty.noPhotos')}</Text>
           ) : null
         }
       />
@@ -294,7 +296,7 @@ export default function MemberGalleryAlbumDetail() {
                         ) : (
                           <Download size={20} color="#fff" strokeWidth={2} />
                         )}
-                        <Text style={styles.badgeText}>Download</Text>
+                        <Text style={styles.badgeText}>{t('gallery.download')}</Text>
                       </TouchableOpacity>
 
                       <View style={styles.badgeDivider} />
@@ -309,7 +311,7 @@ export default function MemberGalleryAlbumDetail() {
                         ) : (
                           <Share2 size={20} color="#fff" strokeWidth={2} />
                         )}
-                        <Text style={styles.badgeText}>Share</Text>
+                        <Text style={styles.badgeText}>{t('gallery.share')}</Text>
                       </TouchableOpacity>
                     </View>
                   </LinearGradient>

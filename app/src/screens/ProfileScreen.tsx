@@ -39,6 +39,7 @@ import {
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import FirestoreService, { AppMember } from '../services/FirestoreService';
 import ReferralService from '../services/ReferralService';
 import { useChurch } from '../context/ChurchContext';
@@ -57,6 +58,7 @@ export default function ProfileScreen({ navigation }: any) {
   const { user, signOut, member: authMember, setViewMode, setMember: setGlobalMember } = useAuth();
   const { activeChurch, isImpersonating, impersonatedBranchName, stopImpersonation } = useChurch();
   const { isDark, toggleTheme, colors } = useTheme();
+  const { language, setLanguage, languages, currentLanguageOption, t } = useLanguage();
   
   const [member, setMember] = useState<AppMember | null>(authMember as AppMember | null);
   const [loading, setLoading] = useState(!authMember);
@@ -64,7 +66,6 @@ export default function ProfileScreen({ navigation }: any) {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
   const [isNotifyModalVisible, setIsNotifyModalVisible] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState('Telugu');
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [generatingCode, setGeneratingCode] = useState(false);
@@ -223,11 +224,11 @@ export default function ProfileScreen({ navigation }: any) {
               }
 
               setConfirmModalVisible(false);
-              setSuccessMessage('Profile photo updated successfully!');
+              setSuccessMessage(t('profile.photoUpdatedSuccess'));
               setTimeout(() => setSuccessModalVisible(true), 300);
             }
           } catch (error: any) {
-            Alert.alert('Error', 'Failed to update photo: ' + error.message);
+            Alert.alert(t('common.error'), t('common.error') + ': ' + error.message);
           } finally {
             setUpdating(false);
           }
@@ -239,8 +240,8 @@ export default function ProfileScreen({ navigation }: any) {
 
   const handleRemovePhoto = async () => {
     setConfirmConfig({
-      title: 'Remove Photo',
-      message: 'Are you sure you want to remove your profile photo?',
+      title: t('profile.removePhotoConfirmTitle'),
+      message: t('profile.removePhotoConfirmMsg'),
       isDestructive: true,
       onConfirm: async () => {
         try {
@@ -265,7 +266,7 @@ export default function ProfileScreen({ navigation }: any) {
             }
 
             setConfirmModalVisible(false);
-            setSuccessMessage('Profile photo removed successfully.');
+            setSuccessMessage(t('profile.photoRemovedSuccess'));
             setTimeout(() => setSuccessModalVisible(true), 300);
           }
         } catch (error: any) {
@@ -403,14 +404,14 @@ export default function ProfileScreen({ navigation }: any) {
 
           {/* Name + Greeting */}
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 20, color: '#a78bfa', fontStyle: 'italic', fontWeight: '400', marginBottom: 2 }}>Welcome back,</Text>
+            <Text style={{ fontSize: 20, color: '#a78bfa', fontStyle: 'italic', fontWeight: '400', marginBottom: 2 }}>{t('profile.welcomeBack')}</Text>
             <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', lineHeight: 28 }}>
               {member?.firstName ? `${member.firstName} ${member.lastName || ''}` : member?.name || user?.displayName || 'Beloved Member'}
             </Text>
             {/* Member Since Pill */}
             <View style={{ marginTop: 8, alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 20 }}>
               <Text style={{ color: '#e2e8f0', fontSize: 12, fontWeight: '500' }}>
-                Member since {member?.joinDate ? new Date(member.joinDate).getFullYear() : '2026'}
+                {t('profile.memberSince', { year: member?.joinDate ? new Date(member.joinDate).getFullYear() : '2026' })}
               </Text>
             </View>
           </View>
@@ -424,7 +425,7 @@ export default function ProfileScreen({ navigation }: any) {
                 <MapPin size={14} color="#fff" strokeWidth={2.5} />
               </View>
               <View style={styles.statTextCol}>
-                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Village</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>{t('profile.village')}</Text>
                 <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{member?.mailingCity || 'N/A'}</Text>
               </View>
             </View>
@@ -436,8 +437,8 @@ export default function ProfileScreen({ navigation }: any) {
                 <Globe size={14} color="#fff" strokeWidth={2.5} />
               </View>
               <View style={styles.statTextCol}>
-                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Language</Text>
-                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>Telugu</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>{t('profile.language')}</Text>
+                <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>{currentLanguageOption.nativeName}</Text>
               </View>
             </View>
 
@@ -448,7 +449,7 @@ export default function ProfileScreen({ navigation }: any) {
                 <Crown size={14} color="#fff" strokeWidth={2.5} />
               </View>
               <View style={styles.statTextCol}>
-                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Role</Text>
+                <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>{t('profile.role')}</Text>
                 <Text style={styles.statValue} numberOfLines={1} adjustsFontSizeToFit>
                   {(member?.userType || 'MEMBER').toUpperCase()}
                 </Text>
@@ -461,29 +462,29 @@ export default function ProfileScreen({ navigation }: any) {
         {/* Stats removed for accuracy */}
 
         {/* ── Account Section ── */}
-        <Text style={styles.sectionLabel}>ACCOUNT</Text>
+        <Text style={styles.sectionLabel}>{t('profile.accountSection')}</Text>
         <View style={styles.menuGroup}>
           {(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER')) && (
             <MenuItem 
               icon={<Shield size={20} color="#1a2d5a" />} 
               iconBg="#e6f0fa"
-              title="Admin Dashboard" 
-              sub="Access church management tools" 
+              title={t('profile.adminDashboard')} 
+              sub={t('profile.adminDashboardSub')} 
               onPress={() => setViewMode('admin')}
             />
           )}
           <MenuItem 
             icon={<User size={20} color="#1a2d5a" />} 
             iconBg="#eff6ff"
-            title="My profile" 
-            sub="Edit name, photo, address" 
+            title={t('profile.myProfile')} 
+            sub={t('profile.myProfileSub')} 
             onPress={() => setIsEditModalVisible(true)}
           />
           <MenuItem 
             icon={<CreditCard size={20} color="#94a3b8" />} 
             iconBg="#f1f5f9"
-            title="Giving history" 
-            sub="View your donation records" 
+            title={t('profile.givingHistory')} 
+            sub={t('profile.givingHistorySub')} 
             onPress={() => {
               navigation.navigate('GivingHistory');
             }}
@@ -493,8 +494,8 @@ export default function ProfileScreen({ navigation }: any) {
             <MenuItem 
               icon={<CreditCard size={20} color="#d97706" />} 
               iconBg="#fffbeb"
-              title="Church Subscription" 
-              sub="Manage church plan and billing" 
+              title={t('profile.churchSubscription')} 
+              sub={t('profile.churchSubscriptionSub')} 
               isLast 
               onPress={() => {
                 navigation.navigate('Subscription');
@@ -504,13 +505,13 @@ export default function ProfileScreen({ navigation }: any) {
         </View>
 
         {/* ── Settings Section ── */}
-        <Text style={styles.sectionLabel}>SETTINGS</Text>
+        <Text style={styles.sectionLabel}>{t('profile.settingsSection')}</Text>
         <View style={styles.menuGroup}>
           <MenuItem 
             icon={<Bell size={20} color="#0891b2" />} 
             iconBg="#eff6ff"
-            title="Notifications" 
-            sub="Manage your preferences" 
+            title={t('profile.notifications')} 
+            sub={t('profile.notificationsSub')} 
             onPress={() => {
               setIsLanguageModalVisible(false);
               setIsNotifyModalVisible(true);
@@ -519,8 +520,8 @@ export default function ProfileScreen({ navigation }: any) {
           <MenuItem 
             icon={<Globe size={20} color="#166534" />} 
             iconBg="#f0fdf4"
-            title="Language" 
-            sub={`${selectedLanguage} (selected)`} 
+            title={t('profile.language')} 
+            sub={`${currentLanguageOption.nativeName} (${currentLanguageOption.name})`} 
             onPress={() => {
               setIsNotifyModalVisible(false); // Close other modal
               setIsLanguageModalVisible(true);
@@ -529,8 +530,8 @@ export default function ProfileScreen({ navigation }: any) {
           <MenuItem 
             icon={<Moon size={20} color="#d97706" />} 
             iconBg="#fffbeb"
-            title="Dark mode" 
-            sub={`Currently: ${isDark ? 'Dark' : 'Light'}`} 
+            title={t('profile.darkMode')} 
+            sub={t('profile.darkModeCurrently', { mode: isDark ? t('profile.modeDark') : t('profile.modeLight') })} 
             isLast 
             onPress={toggleTheme}
           />
@@ -539,15 +540,15 @@ export default function ProfileScreen({ navigation }: any) {
         {/* ── Security Section ── */}
         {biometricAvailable && (
           <>
-            <Text style={styles.sectionLabel}>SECURITY</Text>
+            <Text style={styles.sectionLabel}>{t('profile.securitySection')}</Text>
             <View style={styles.menuGroup}>
               <View style={[styles.menuItem, { borderBottomWidth: 0 }]}>
                 <View style={[styles.iconBox, { backgroundColor: '#fdf2f2' }]}>
                   <Lock size={20} color="#c0392b" />
                 </View>
                 <View style={styles.menuContent}>
-                  <Text style={styles.menuTitle}>Biometric Lock</Text>
-                  <Text style={styles.menuSub}>Fingerprint / Face ID</Text>
+                  <Text style={styles.menuTitle}>{t('profile.biometricLock')}</Text>
+                  <Text style={styles.menuSub}>{t('profile.biometricSub')}</Text>
                 </View>
                 <Switch 
                   value={biometricEnabled} 
@@ -560,13 +561,13 @@ export default function ProfileScreen({ navigation }: any) {
         )}
 
         {/* ── Referrals Section ── */}
-        <Text style={styles.sectionLabel}>REFERRALS</Text>
+        <Text style={styles.sectionLabel}>{t('profile.referralsSection')}</Text>
         <View style={styles.menuGroup}>
           <MenuItem 
             icon={<Award size={20} color="#8b5cf6" />} 
             iconBg="#f3e8ff"
-            title="Refer a Church" 
-            sub={generatingCode ? "Generating code..." : (referralCode ? `Your code: ${referralCode}` : "Share the app and earn")} 
+            title={t('profile.referChurch')} 
+            sub={generatingCode ? t('profile.generatingCode') : (referralCode ? t('profile.yourCode', { code: referralCode }) : t('profile.referChurchSub'))} 
             isLast 
             onPress={handleReferralShare}
           />
@@ -594,11 +595,11 @@ export default function ProfileScreen({ navigation }: any) {
           onPress={signOut}
         >
           <LogOut size={20} color="#ffffff" style={{ marginRight: 10 }} />
-          <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>Sign out</Text>
+          <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>{t('profile.signOut')}</Text>
         </TouchableOpacity>
 
         <Text style={styles.versionTxt}>
-          Version {Constants.expoConfig?.version || '1.0.3'}
+          {t('profile.version')} {Constants.expoConfig?.version || '1.0.3'}
         </Text>
       </ScrollView>
 
@@ -607,9 +608,9 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <Text style={styles.modalTitle}>{t('profile.editProfile')}</Text>
               <TouchableOpacity onPress={() => setIsEditModalVisible(false)}>
-                <Text style={styles.closeText}>Cancel</Text>
+                <Text style={styles.closeText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -624,49 +625,49 @@ export default function ProfileScreen({ navigation }: any) {
                 </View>
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 10 }}>
                   <TouchableOpacity style={styles.changePhotoBtn} onPress={pickImage}>
-                    <Text style={styles.changePhotoText}>Change Photo</Text>
+                    <Text style={styles.changePhotoText}>{t('profile.changePhoto')}</Text>
                   </TouchableOpacity>
                   {localPhotoUrl ? (
                     <TouchableOpacity style={styles.removePhotoBtn} onPress={handleRemovePhoto}>
-                      <Text style={styles.removePhotoText}>Remove Photo</Text>
+                      <Text style={styles.removePhotoText}>{t('profile.removePhoto')}</Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>First Name</Text>
+                <Text style={styles.inputLabel}>{t('profile.firstName')}</Text>
                 <TextInput 
                   style={styles.input}
                   value={editForm.firstName}
                   onChangeText={(t) => setEditForm({...editForm, firstName: t})}
-                  placeholder="First Name"
+                  placeholder={t('profile.firstName')}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Last Name</Text>
+                <Text style={styles.inputLabel}>{t('profile.lastName')}</Text>
                 <TextInput 
                   style={styles.input}
                   value={editForm.lastName}
                   onChangeText={(t) => setEditForm({...editForm, lastName: t})}
-                  placeholder="Last Name"
+                  placeholder={t('profile.lastName')}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email Address</Text>
+                <Text style={styles.inputLabel}>{t('profile.email')}</Text>
                 <TextInput 
                   style={styles.input}
                   value={editForm.email}
                   onChangeText={(t) => setEditForm({...editForm, email: t})}
-                  placeholder="Email"
+                  placeholder={t('profile.email')}
                   keyboardType="email-address"
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Birthday</Text>
+                <Text style={styles.inputLabel}>{t('profile.birthday')}</Text>
                 <TouchableOpacity 
                   style={[styles.input, { justifyContent: 'center' }]}
                   onPress={() => {
@@ -675,13 +676,13 @@ export default function ProfileScreen({ navigation }: any) {
                   }}
                 >
                   <Text style={{ fontSize: 15, color: editForm.dob ? '#1e293b' : '#94a3b8' }}>
-                    {editForm.dob ? formatDateDisplay(editForm.dob) : "Select Date"}
+                    {editForm.dob ? formatDateDisplay(editForm.dob) : t('profile.selectDate')}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Baptism Date</Text>
+                <Text style={styles.inputLabel}>{t('profile.baptismDate')}</Text>
                 <TouchableOpacity 
                   style={[styles.input, { justifyContent: 'center' }]}
                   onPress={() => {
@@ -690,13 +691,13 @@ export default function ProfileScreen({ navigation }: any) {
                   }}
                 >
                   <Text style={{ fontSize: 15, color: editForm.baptismDate ? '#1e293b' : '#94a3b8' }}>
-                    {editForm.baptismDate ? formatDateDisplay(editForm.baptismDate) : "Select Date"}
+                    {editForm.baptismDate ? formatDateDisplay(editForm.baptismDate) : t('profile.selectDate')}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Wedding Anniversary Date</Text>
+                <Text style={styles.inputLabel}>{t('profile.weddingAnniversaryDate')}</Text>
                 <TouchableOpacity 
                   style={[styles.input, { justifyContent: 'center' }]}
                   onPress={() => {
@@ -705,13 +706,13 @@ export default function ProfileScreen({ navigation }: any) {
                   }}
                 >
                   <Text style={{ fontSize: 15, color: editForm.anniversaryDate ? '#1e293b' : '#94a3b8' }}>
-                    {editForm.anniversaryDate ? formatDateDisplay(editForm.anniversaryDate) : "Select Date"}
+                    {editForm.anniversaryDate ? formatDateDisplay(editForm.anniversaryDate) : t('profile.selectDate')}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Phone Number (Managed by Auth)</Text>
+                <Text style={styles.inputLabel}>{t('profile.phoneManagedByAuth')}</Text>
                 <TextInput 
                   style={[styles.input, { backgroundColor: '#f1f5f9', color: '#64748b' }]}
                   value={user?.phoneNumber || ''}
@@ -721,32 +722,32 @@ export default function ProfileScreen({ navigation }: any) {
 
               <View style={styles.inputRow}>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
-                  <Text style={styles.inputLabel}>City / Village</Text>
+                  <Text style={styles.inputLabel}>{t('profile.city')}</Text>
                   <TextInput
                     style={styles.input}
                     value={editForm.city}
                     onChangeText={(t) => setEditForm({...editForm, city: t})}
-                    placeholder="City / Village"
+                    placeholder={t('profile.city')}
                   />
                 </View>
                 <View style={[styles.inputGroup, { flex: 1, marginLeft: 10 }]}>
-                  <Text style={styles.inputLabel}>State</Text>
+                  <Text style={styles.inputLabel}>{t('profile.state')}</Text>
                   <TextInput 
                     style={styles.input}
                     value={editForm.mailingState}
                     onChangeText={(t) => setEditForm({...editForm, mailingState: t})}
-                    placeholder="State"
+                    placeholder={t('profile.state')}
                   />
                 </View>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Street Address</Text>
+                <Text style={styles.inputLabel}>{t('profile.streetAddress')}</Text>
                 <TextInput 
                   style={styles.input}
                   value={editForm.mailingStreet}
                   onChangeText={(t) => setEditForm({...editForm, mailingStreet: t})}
-                  placeholder="Street"
+                  placeholder={t('profile.streetAddress')}
                   multiline
                 />
               </View>
@@ -759,7 +760,7 @@ export default function ProfileScreen({ navigation }: any) {
                 {updating ? (
                   <ActivityIndicator color="#fff" size="small" />
                 ) : (
-                  <Text style={styles.saveBtnText}>Update My Profile</Text>
+                  <Text style={styles.saveBtnText}>{t('profile.updateProfileBtn')}</Text>
                 )}
               </TouchableOpacity>
               
@@ -787,36 +788,33 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.bottomSheetContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Language</Text>
+              <Text style={styles.modalTitle}>{t('profile.selectLanguage')}</Text>
               <TouchableOpacity onPress={() => setIsLanguageModalVisible(false)}>
                 <X size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.langList}>
-              {[
-                { id: 'en', name: 'English', native: 'English' },
-                { id: 'te', name: 'Telugu', native: 'తెలుగు' }
-              ].map((lang) => (
+              {languages.map((lang) => (
                 <TouchableOpacity 
-                  key={lang.id}
+                  key={lang.code}
                   style={[
                     styles.langItem, 
-                    selectedLanguage === lang.name && styles.langItemActive
+                    language === lang.code && styles.langItemActive
                   ]}
                   onPress={() => {
-                    setSelectedLanguage(lang.name);
-                    setTimeout(() => setIsLanguageModalVisible(false), 300);
+                    setLanguage(lang.code);
+                    setTimeout(() => setIsLanguageModalVisible(false), 200);
                   }}
                 >
                   <View>
                     <Text style={[
                       styles.langName,
-                      selectedLanguage === lang.name && styles.langTextActive
-                    ]}>{lang.name}</Text>
-                    <Text style={styles.langNative}>{lang.native}</Text>
+                      language === lang.code && styles.langTextActive
+                    ]}>{lang.nativeName}</Text>
+                    <Text style={styles.langNative}>{lang.name}</Text>
                   </View>
-                  {selectedLanguage === lang.name && (
+                  {language === lang.code && (
                     <Check size={20} color="#1a2d5a" />
                   )}
                 </TouchableOpacity>
@@ -832,7 +830,7 @@ export default function ProfileScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.bottomSheetContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Notification Preferences</Text>
+              <Text style={styles.modalTitle}>{t('profile.notifications')}</Text>
               <TouchableOpacity onPress={() => setIsNotifyModalVisible(false)}>
                 <X size={24} color="#64748b" />
               </TouchableOpacity>
@@ -841,8 +839,8 @@ export default function ProfileScreen({ navigation }: any) {
             <View style={styles.notifyList}>
               <View style={styles.notifyItem}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.notifyName}>Daily Promise</Text>
-                  <Text style={styles.notifyDesc}>Receive a blessed verse every morning</Text>
+                  <Text style={styles.notifyName}>{t('profile.dailyPromiseNotif')}</Text>
+                  <Text style={styles.notifyDesc}>{t('profile.dailyPromiseNotifDesc')}</Text>
                 </View>
                 <Switch 
                   value={dailyPromiseNotify} 
@@ -853,8 +851,8 @@ export default function ProfileScreen({ navigation }: any) {
 
               <View style={styles.notifyItem}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.notifyName}>New Sermons</Text>
-                  <Text style={styles.notifyDesc}>Alert when a new video is uploaded</Text>
+                  <Text style={styles.notifyName}>{t('profile.newSermonsNotif')}</Text>
+                  <Text style={styles.notifyDesc}>{t('profile.newSermonsNotifDesc')}</Text>
                 </View>
                 <Switch 
                   value={newSermonNotify} 
@@ -865,8 +863,8 @@ export default function ProfileScreen({ navigation }: any) {
 
               <View style={styles.notifyItem}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.notifyName}>Event Reminders</Text>
-                  <Text style={styles.notifyDesc}>Notifications for upcoming events</Text>
+                  <Text style={styles.notifyName}>{t('profile.eventsNotif')}</Text>
+                  <Text style={styles.notifyDesc}>{t('profile.eventsNotifDesc')}</Text>
                 </View>
                 <Switch 
                   value={eventReminderNotify} 
@@ -877,8 +875,8 @@ export default function ProfileScreen({ navigation }: any) {
 
               <View style={styles.notifyItem}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.notifyName}>Prayer Updates</Text>
-                  <Text style={styles.notifyDesc}>Alerts when your prayer is answered (Do Not Disturb)</Text>
+                  <Text style={styles.notifyName}>{t('profile.prayerNotif')}</Text>
+                  <Text style={styles.notifyDesc}>{t('profile.prayerNotifDesc')}</Text>
                 </View>
                 <Switch 
                   value={prayerNotify} 
@@ -898,7 +896,7 @@ export default function ProfileScreen({ navigation }: any) {
             <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               <CheckCircle2 size={32} color="#16a34a" />
             </View>
-            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1e293b', marginBottom: 8 }}>Success!</Text>
+            <Text style={{ fontSize: 20, fontWeight: '700', color: '#1e293b', marginBottom: 8 }}>{t('profile.successTitle')}</Text>
             <Text style={{ fontSize: 15, color: '#64748b', textAlign: 'center', marginBottom: 24, lineHeight: 22 }}>
               {successMessage}
             </Text>
@@ -906,7 +904,7 @@ export default function ProfileScreen({ navigation }: any) {
               style={{ backgroundColor: '#1a2d5a', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 24, width: '100%', alignItems: 'center' }}
               onPress={() => setSuccessModalVisible(false)}
             >
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Awesome</Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{t('common.ok')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -927,7 +925,7 @@ export default function ProfileScreen({ navigation }: any) {
               style={{ backgroundColor: '#0284c7', paddingVertical: 14, paddingHorizontal: 32, borderRadius: 24, width: '100%', alignItems: 'center' }}
               onPress={() => setInfoModalVisible(false)}
             >
-              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>Got it</Text>
+              <Text style={{ color: '#fff', fontSize: 16, fontWeight: '600' }}>{t('common.ok')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -950,7 +948,7 @@ export default function ProfileScreen({ navigation }: any) {
                 onPress={() => setConfirmModalVisible(false)}
                 disabled={updating}
               >
-                <Text style={{ color: '#64748b', fontSize: 15, fontWeight: '700' }}>Cancel</Text>
+                <Text style={{ color: '#64748b', fontSize: 15, fontWeight: '700' }}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={{ flex: 1, backgroundColor: confirmConfig.isDestructive ? '#ef4444' : '#1a2d5a', paddingVertical: 14, borderRadius: 24, alignItems: 'center' }}
@@ -960,7 +958,7 @@ export default function ProfileScreen({ navigation }: any) {
                 {updating ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{confirmConfig.isDestructive ? 'Remove' : 'Confirm'}</Text>
+                  <Text style={{ color: '#fff', fontSize: 15, fontWeight: '700' }}>{confirmConfig.isDestructive ? t('common.delete') : t('common.confirm')}</Text>
                 )}
               </TouchableOpacity>
             </View>

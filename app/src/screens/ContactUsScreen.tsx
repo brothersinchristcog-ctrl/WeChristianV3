@@ -18,6 +18,7 @@ import { ChevronLeft, ArrowLeft, ChevronRight, MapPin, Phone, Mail } from 'lucid
 import Svg, { Path, Rect, Circle } from 'react-native-svg';
 import firestore from '@react-native-firebase/firestore';
 import firestoreService from '../services/FirestoreService';
+import { useLanguage } from '../context/LanguageContext';
 
 interface ContactData {
   churchName: string;
@@ -77,6 +78,7 @@ const WhatsappIcon = ({ size = 26 }: { size?: number }) => (
 
 export default function ContactUsScreen() {
   const navigation = useNavigation();
+  const { t } = useLanguage();
   const [data, setData] = useState<ContactData>(DEFAULT);
   const [loading, setLoading] = useState(true);
 
@@ -124,21 +126,21 @@ export default function ContactUsScreen() {
   }, []);
 
   const openPhone = (number: string) =>
-    Linking.openURL(`tel:${number}`).catch(() => Alert.alert('Error', 'Unable to open the phone dialer.'));
+    Linking.openURL(`tel:${number}`).catch(() => Alert.alert(t('common.error'), t('contactUs.alerts.phoneError')));
 
   const openEmail = (email: string) =>
-    Linking.openURL(`mailto:${email}`).catch(() => Alert.alert('Error', 'Unable to open the email app.'));
+    Linking.openURL(`mailto:${email}`).catch(() => Alert.alert(t('common.error'), t('contactUs.alerts.emailError')));
 
   const openUrl = (url: string) => {
     if (!url) return;
-    Linking.openURL(url).catch(() => Alert.alert('Error', 'Could not open the link.'));
+    Linking.openURL(url).catch(() => Alert.alert(t('common.error'), t('contactUs.alerts.linkError')));
   };
 
   const openWhatsapp = (phone?: string) => {
     if (!phone) return;
     const cleaned = phone.replace(/[^0-9]/g, '');
     Linking.openURL(`whatsapp://send?phone=${cleaned}`).catch(() => {
-      Linking.openURL(`https://wa.me/${cleaned}`).catch(() => Alert.alert('Error', 'Could not open WhatsApp.'));
+      Linking.openURL(`https://wa.me/${cleaned}`).catch(() => Alert.alert(t('common.error'), t('contactUs.alerts.whatsappError')));
     });
   };
 
@@ -158,8 +160,8 @@ export default function ContactUsScreen() {
         
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Contact Us</Text>
-            <Text style={styles.headerSub}>Reach out, we'd love to hear from you</Text>
+            <Text style={styles.headerTitle}>{t('contactUs.title')}</Text>
+            <Text style={styles.headerSub}>{t('contactUs.subtitle')}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -180,7 +182,7 @@ export default function ContactUsScreen() {
               <View style={styles.churchIconBg}>
                 <Text style={{ fontSize: 18 }}>⛪</Text>
               </View>
-              <Text style={styles.detailsCardTitle}>Our Details</Text>
+              <Text style={styles.detailsCardTitle}>{t('contactUs.ourDetails')}</Text>
             </View>
             <View style={styles.detailsDivider} />
             <Text style={styles.churchName}>{data.churchName}</Text>
@@ -204,7 +206,7 @@ export default function ContactUsScreen() {
                   <Phone size={18} color="#7c0c14" />
                 </View>
                 <View>
-                  <Text style={styles.contactRowLabel}>Call</Text>
+                  <Text style={styles.contactRowLabel}>{t('contactUs.call')}</Text>
                   <Text style={styles.contactRowValue}>{phone}</Text>
                 </View>
               </View>
@@ -225,7 +227,7 @@ export default function ContactUsScreen() {
                   <Mail size={18} color="#7c0c14" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.contactRowLabel}>Email</Text>
+                  <Text style={styles.contactRowLabel}>{t('contactUs.email')}</Text>
                   <Text style={styles.contactRowValue} numberOfLines={1}>{email}</Text>
                 </View>
               </View>
@@ -235,7 +237,7 @@ export default function ContactUsScreen() {
 
           {/* ── Follow Us ── */}
           <View style={styles.followUsSection}>
-            <Text style={styles.followUsTitle}>Follow us</Text>
+            <Text style={styles.followUsTitle}>{t('contactUs.followUs')}</Text>
             <View style={styles.socialRow}>
               {/* YouTube */}
               {!!data.socialLinks.youtube && (

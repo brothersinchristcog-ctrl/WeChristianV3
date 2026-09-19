@@ -50,6 +50,8 @@ import {
   Image as ImageIcon,
   FileText,
   X,
+  Globe,
+  Check,
   Phone,
   Mail,
   Info,
@@ -71,9 +73,12 @@ import HexagonDate from '../components/HexagonDate';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import Theme from '../theme/Theme';
 import FirestoreService, { DailyPromise, ScheduleEvent, AppMember, Sermon } from '../services/FirestoreService';
 import VerseNotificationService, { DailyVerse } from '../services/VerseNotificationService';
+import { BibleService } from '../services/BibleService';
+import { SupportedLanguage } from '../locales';
 import { CustomAlert } from '../components/CustomAlert';
 import Svg, { Path, Circle, Rect, Polygon, Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText, Mask } from 'react-native-svg';
 
@@ -226,6 +231,7 @@ const stripHtml = (html: string | undefined): string => {
 const EventMarquee = ({ events, onEventPress }: { events: any[], onEventPress: (event: any) => void }) => {
   const [contentWidth, setContentWidth] = useState(0);
   const scrollAnim = React.useRef(new Animated.Value(0)).current;
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (contentWidth > 0) {
@@ -303,7 +309,7 @@ const EventMarquee = ({ events, onEventPress }: { events: any[], onEventPress: (
       {/* Header row */}
       <View style={styles.marqueeTitleRow}>
         <Text style={styles.marqueeTitleEmoji}>🎉</Text>
-        <Text style={styles.marqueeTitleText}>TODAY'S EVENTS  •  నేటి కార్యక్రమాలు</Text>
+        <Text style={styles.marqueeTitleText}>{t('home.upcomingEvents').toUpperCase()}</Text>
       </View>
       {/* Scrolling ticker */}
       <View style={styles.marqueeTicker}>
@@ -496,20 +502,103 @@ const getDayIndex = (date: Date = new Date()): number => {
   return Math.abs(diffDays);
 };
 
-export const getPeriodTheme = (period: string, date: Date = new Date()) => {
+export const getPeriodGreeting = (period: string, t?: any): string => {
+  if (!t) return `Good ${period}`;
+  const p = (period || '').toLowerCase();
+  if (p.includes('morning')) return t('home.greetingMorning');
+  if (p.includes('afternoon')) return t('home.greetingAfternoon');
+  if (p.includes('evening')) return t('home.greetingEvening');
+  if (p.includes('night')) return t('home.greetingNight');
+  return `Good ${period}`;
+};
+
+export interface LocalizedVerseDisplay {
+  primaryVerse: string;
+  primaryReference: string;
+  secondaryVerse?: string;
+  secondaryReference?: string;
+  isAvailableInLanguage: boolean;
+}
+
+export const getLocalizedVerse = (verse: any, lang: string): LocalizedVerseDisplay => {
+  if (!verse) {
+    return { primaryVerse: '', primaryReference: '', isAvailableInLanguage: false };
+  }
+
+  // 1. If language is English ('en')
+  if (lang === 'en') {
+    // When English is selected, display both Telugu and English on the card if Telugu is available
+    if (verse.verseTe && verse.verseTe.trim().length > 0) {
+      return {
+        primaryVerse: verse.verseTe.trim(),
+        primaryReference: verse.referenceTe || '',
+        secondaryVerse: (verse.verseEn || verse.verse || '').trim(),
+        secondaryReference: verse.referenceEn || verse.reference || '',
+        isAvailableInLanguage: true,
+      };
+    }
+    return {
+      primaryVerse: verse.verseEn || verse.verse || '',
+      primaryReference: verse.referenceEn || verse.reference || '',
+      isAvailableInLanguage: true,
+    };
+  }
+
+  // 2. Check direct language-specific fields on the verse:
+  // e.g., verseTe / referenceTe, verseHi / referenceHi, verseTa / referenceTa, etc.
+  const cap = lang.charAt(0).toUpperCase() + lang.slice(1);
+  const directVerse = verse[`verse${cap}`] || verse[`verse_${lang}`] || verse.translations?.[lang]?.verse || (typeof verse.translations?.[lang] === 'string' ? verse.translations[lang] : undefined);
+  const directRef = verse[`reference${cap}`] || verse[`reference_${lang}`] || verse.translations?.[lang]?.reference;
+
+  if (directVerse && typeof directVerse === 'string' && directVerse.trim().length > 0) {
+    const locRef = directRef || BibleService.getLocalizedReference(verse.referenceEn || verse.reference || '', lang as any) || verse.referenceEn || '';
+    return {
+      primaryVerse: directVerse.trim(),
+      primaryReference: locRef,
+      secondaryVerse: verse.verseEn ? verse.verseEn.trim() : undefined,
+      secondaryReference: verse.referenceEn || '',
+      isAvailableInLanguage: true,
+    };
+  }
+
+  // 3. If selected language is Telugu ('te') and verse.verseTe is present
+  if (lang === 'te' && verse.verseTe && verse.verseTe.trim().length > 0) {
+    const teRef = verse.referenceTe || BibleService.getLocalizedReference(verse.referenceEn || verse.reference || '', 'te') || verse.referenceEn || '';
+    return {
+      primaryVerse: verse.verseTe.trim(),
+      primaryReference: teRef,
+      secondaryVerse: verse.verseEn ? verse.verseEn.trim() : undefined,
+      secondaryReference: verse.referenceEn || '',
+      isAvailableInLanguage: true,
+    };
+  }
+
+  // 4. If selected language verse text is still fetching / not directly stored,
+  // dynamically localize the reference (e.g. "Psalms 78:52" -> "भजन संहिता 78:52")
+  // and fall back cleanly to original English verse without machine-translating:
+  const localizedRef = BibleService.getLocalizedReference(verse.referenceEn || verse.reference || '', lang as any);
+  return {
+    primaryVerse: verse.verseEn || verse.verse || '',
+    primaryReference: localizedRef || verse.referenceEn || verse.reference || '',
+    isAvailableInLanguage: false,
+  };
+};
+
+export const getPeriodTheme = (period: string, date: Date = new Date(), t?: any) => {
   const dayIdx = getDayIndex(date);
+  const greeting = t ? getPeriodGreeting(period, t) : `Good ${period}`;
   if (period === 'Morning') {
     const color = MORNING_ORANGE_SHADES[dayIdx % MORNING_ORANGE_SHADES.length];
-    return { Icon: Sun, color, greeting: 'GOOD MORNING · శుభోదయం' };
+    return { Icon: Sun, color, greeting };
   } else if (period === 'Afternoon') {
     const color = AFTERNOON_BLUE_SHADES[dayIdx % AFTERNOON_BLUE_SHADES.length];
-    return { Icon: Sun, color, greeting: 'GOOD AFTERNOON · శుభ మధ్యాహ్నం' };
+    return { Icon: Sun, color, greeting };
   } else if (period === 'Evening') {
     const color = EVENING_PURPLE_SHADES[dayIdx % EVENING_PURPLE_SHADES.length];
-    return { Icon: Sunset, color, greeting: 'GOOD EVENING · శుభ సాయంత్రం' };
+    return { Icon: Sunset, color, greeting };
   } else {
     const color = NIGHT_SKYBLUE_SHADES[dayIdx % NIGHT_SKYBLUE_SHADES.length];
-    return { Icon: Moon, color, greeting: 'GOOD NIGHT · శుభరాత్రి' };
+    return { Icon: Moon, color, greeting };
   }
 };
 
@@ -520,11 +609,26 @@ const PERIOD_COLORS: Record<string, string[]> = {
   get Night() { return [getPeriodTheme('Night').color, '#0284c7']; },
 };
 
-const getCurrentPeriod = (): string => {
-  const hour = new Date().getHours();
-  if (hour >= 5 && hour < 12) return 'Morning';
-  if (hour >= 12 && hour < 17) return 'Afternoon';
-  if (hour >= 17 && hour < 21) return 'Evening';
+/**
+ * Progressive time-based unlock for WeChristian Daily Verses:
+ * - 12:00 AM – 11:59 AM (hour < 12) : 1 card  (Good Morning)
+ * - 12:00 PM –  4:59 PM (hour < 17) : 2 cards (Good Morning + Good Afternoon)
+ * -  5:00 PM –  7:59 PM (hour < 20) : 3 cards (Good Morning + Good Afternoon + Good Evening)
+ * -  8:00 PM – 11:59 PM (hour >= 20): 4 cards (Good Morning + Good Afternoon + Good Evening + Good Night)
+ */
+const getUnlockedVersesCount = (date: Date = new Date()): number => {
+  const hour = date.getHours();
+  if (hour < 12) return 1; // 12:00 AM - 11:59 AM
+  if (hour < 17) return 2; // 12:00 PM - 4:59 PM
+  if (hour < 20) return 3; // 5:00 PM - 7:59 PM
+  return 4;                // 8:00 PM - 11:59 PM
+};
+
+const getCurrentPeriod = (date: Date = new Date()): string => {
+  const hour = date.getHours();
+  if (hour < 12) return 'Morning';
+  if (hour < 17) return 'Afternoon';
+  if (hour < 20) return 'Evening';
   return 'Night';
 };
 
@@ -551,8 +655,13 @@ const getDynamicGradient = (date: Date, period: string, periodIndex: number): re
 };
 
 const DailyVerseCard = ({ verse, period, onPress }: { verse: DailyVerse | null; period: string; onPress: () => void }) => {
+  const { language, t } = useLanguage();
   if (!verse) return null;
   const colors = PERIOD_COLORS[period] || PERIOD_COLORS.Morning;
+  const loc = getLocalizedVerse(verse, language);
+  const greeting = getPeriodGreeting(period, t);
+  const cardTitle = `🕊️  ${greeting.toUpperCase()} · ${t('home.quickDailyVerse').toUpperCase()}`;
+
   return (
     <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={{ marginHorizontal: 0, marginBottom: 20 }}>
       <LinearGradient colors={colors as [string, string]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{
@@ -565,26 +674,36 @@ const DailyVerseCard = ({ verse, period, onPress }: { verse: DailyVerse | null; 
 
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
           <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: '800', letterSpacing: 1.5 }}>
-            🕊️  GOOD {period.toUpperCase()} · DAILY VERSE
+            {cardTitle}
           </Text>
           <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11, fontWeight: '700' }}>
             {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
           </Text>
         </View>
         <Text numberOfLines={3} style={{
-          color: '#fff', fontSize: 17, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-          fontStyle: 'italic', lineHeight: 26, fontWeight: '600', marginBottom: 10,
+          color: '#fff', fontSize: 16, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+          fontWeight: '700', lineHeight: 24, marginBottom: loc.secondaryVerse && loc.secondaryVerse !== loc.primaryVerse ? 6 : 10,
         }}>
-          “{verse.verseEn}”
+          “{loc.primaryVerse}”
         </Text>
+        {loc.secondaryVerse && loc.secondaryVerse !== loc.primaryVerse ? (
+          <Text numberOfLines={3} style={{
+            color: 'rgba(255,255,255,0.92)', fontSize: 15, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+            fontStyle: 'italic', lineHeight: 22, fontWeight: '500', marginBottom: 10,
+          }}>
+            “{loc.secondaryVerse}”
+          </Text>
+        ) : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '700' }}>— {verse.referenceEn}</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '700' }}>
+            — {loc.secondaryReference && loc.secondaryReference !== loc.primaryReference ? `${loc.primaryReference}   —   ${loc.secondaryReference}` : loc.primaryReference}
+          </Text>
           <View style={{
             flexDirection: 'row', alignItems: 'center', gap: 4,
             backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20,
           }}>
             <BookOpen size={14} color="#fff" />
-            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Read Full Verse</Text>
+            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>{t('home.readFullVerse')}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -598,6 +717,7 @@ export default function HomeScreen() {
   const { user, signOut, member: authMember } = useAuth();
   const { activeChurch, isImpersonating, impersonatedBranchName, stopImpersonation } = useChurch();
   const { mode, isDark, toggleTheme, colors } = useTheme();
+  const { language, setLanguage, languages, t } = useLanguage();
   const [member, setMember] = useState<AppMember | null>(authMember as AppMember | null);
   const [promise, setPromise] = useState<DailyPromise | null>(cachedPromise);
   const [todayEvents, setTodayEvents] = useState<ScheduleEvent[]>(cachedTodayEvents);
@@ -624,10 +744,17 @@ export default function HomeScreen() {
   useEffect(() => {
     const period = getCurrentPeriod();
     setTodayPeriod(period);
-    VerseNotificationService.getVerseForDate(new Date(), period).then(v => {
-      if (v) setTodayVerse(v);
+    VerseNotificationService.getVerseForDate(new Date(), period).then(async v => {
+      if (v) {
+        if (language !== 'en') {
+          const lv = await VerseNotificationService.localizeVerse(v, language as any);
+          setTodayVerse(lv);
+        } else {
+          setTodayVerse(v);
+        }
+      }
     }).catch(() => {});
-  }, []);
+  }, [language]);
 
   const fetchLiveCelebrations = async () => {
     if (!activeChurch?.id) return;
@@ -702,6 +829,9 @@ export default function HomeScreen() {
 
   useFocusEffect(
     React.useCallback(() => {
+      // Refresh current time on focus to unlock new time-based cards immediately
+      setCurrentTime(new Date());
+
       // Always re-fetch the latest server daily promise on screen focus to ensure zero stale cache
       FirestoreService.getDailyPromise(true).then((fresh) => {
         if (fresh) {
@@ -838,12 +968,48 @@ export default function HomeScreen() {
   const useWeChristianDailyPromise = activeChurch?.useWeChristianDailyPromise !== false;
   const hasServiceTimings = !!(activeChurch?.serviceTimings && activeChurch.serviceTimings.length > 0);
   const [todayFourVerses, setTodayFourVerses] = useState<DailyVerse[]>(cachedTodayFourVerses);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Periodically refresh time every 60s so newly unlocked time-based cards appear automatically
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Time-based progressive unlocked verses (Morning -> +Afternoon -> +Evening -> +Night)
+  const unlockedCount = getUnlockedVersesCount(currentTime);
+  const visibleVerses = todayFourVerses.slice(0, Math.min(todayFourVerses.length, unlockedCount));
   const verseAutoScrollTimer = useRef<any>(null);
   const captureVerseRef = useRef<ViewShot>(null);
   const capturePromiseRef = useRef<ViewShot>(null);
   const [captureVerseConfig, setCaptureVerseConfig] = useState<{ verse: DailyVerse; period: string; theme: any } | null>(null);
   const [isSavingCard, setIsSavingCard] = useState(false);
   const [isSharingCard, setIsSharingCard] = useState(false);
+
+  // Automatically localize the 4 Daily Verses when language changes or when verses are fetched
+  useEffect(() => {
+    if (!todayFourVerses || todayFourVerses.length === 0) return;
+    if (language === 'en') return;
+
+    let isMounted = true;
+    VerseNotificationService.localizeVerses(todayFourVerses, language as any)
+      .then(localized => {
+        if (!isMounted || !localized) return;
+        const cap = language.charAt(0).toUpperCase() + language.slice(1);
+        const hasLocalized = localized.some((v: any) => v[`verse${cap}`]);
+        if (hasLocalized) {
+          cachedTodayFourVerses = localized;
+          setTodayFourVerses(localized);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [language, todayFourVerses.length]);
   
   // -- Sticky Header Animation --
   const [onlineMeetingsY, setOnlineMeetingsY] = useState(0);
@@ -942,6 +1108,14 @@ export default function HomeScreen() {
         if (verses && verses.length > 0) {
           cachedTodayFourVerses = verses;
           setTodayFourVerses(verses);
+          if (language !== 'en') {
+            VerseNotificationService.localizeVerses(verses, language as any).then(lv => {
+              if (lv) {
+                cachedTodayFourVerses = lv;
+                setTodayFourVerses(lv);
+              }
+            }).catch(() => {});
+          }
         }
       }).catch(() => {});
 
@@ -1100,9 +1274,10 @@ export default function HomeScreen() {
 
   // Helper to restart verse carousel auto-scroll after touch or slide change
   const restartVerseTimer = (startIndex: number) => {
-    if (!useWeChristianDailyPromise || todayFourVerses.length === 0) return;
+    if (!useWeChristianDailyPromise || visibleVerses.length === 0) return;
     clearInterval(verseAutoScrollTimer.current);
-    const count = todayFourVerses.length + (hasServiceTimings ? 1 : 0);
+    const count = visibleVerses.length + (hasServiceTimings ? 1 : 0);
+    if (count <= 1) return;
     verseAutoScrollTimer.current = setInterval(() => {
       setCarouselSlide(prev => {
         const next = (prev + 1) % count;
@@ -1118,46 +1293,64 @@ export default function HomeScreen() {
       if (verses && verses.length > 0) {
         cachedTodayFourVerses = verses;
         setTodayFourVerses(verses);
+        if (language !== 'en') {
+          VerseNotificationService.localizeVerses(verses, language as any).then(lv => {
+            if (lv) {
+              cachedTodayFourVerses = lv;
+              setTodayFourVerses(lv);
+            }
+          }).catch(() => {});
+        }
       }
       // Silently refresh in background to ensure latest Unsplash images are synced
       VerseNotificationService.getTodayVerses(true).then(freshVerses => {
         if (freshVerses && freshVerses.length > 0) {
           cachedTodayFourVerses = freshVerses;
           setTodayFourVerses(freshVerses);
+          if (language !== 'en') {
+            VerseNotificationService.localizeVerses(freshVerses, language as any).then(lv => {
+              if (lv) {
+                cachedTodayFourVerses = lv;
+                setTodayFourVerses(lv);
+              }
+            }).catch(() => {});
+          }
         }
       }).catch(() => {});
     }).catch(() => {});
-  }, [activeChurch?.id]);
+  }, [activeChurch?.id, language]);
 
-  // Carousel auto-slide logic (supports 4 verses when ON, or church promise & thumbnail when OFF, plus service timings)
+  // Carousel auto-slide logic (supports progressive verses when ON, or church promise & thumbnail when OFF, plus service timings)
   useEffect(() => {
     if (useWeChristianDailyPromise) {
-      if (todayFourVerses.length === 0) return;
+      if (visibleVerses.length === 0) return;
 
       // Determine initial slide based on current time
-      const hour = new Date().getHours();
-      let initialIndex = 0; // Morning (5:00 - 11:59)
-      if (hour >= 12 && hour < 17) initialIndex = 1; // Afternoon (12:00 - 16:59)
-      else if (hour >= 17 && hour < 21) initialIndex = 2; // Evening (17:00 - 20:59)
-      else if (hour >= 21 || hour < 5) initialIndex = 3; // Night (21:00 - 4:59)
+      const hour = currentTime.getHours();
+      let initialIndex = 0; // Morning (12:00 AM - 11:59 AM)
+      if (hour >= 12 && hour < 17) initialIndex = 1; // Afternoon (12:00 PM - 4:59 PM)
+      else if (hour >= 17 && hour < 20) initialIndex = 2; // Evening (5:00 PM - 7:59 PM)
+      else if (hour >= 20) initialIndex = 3; // Night (8:00 PM - 11:59 PM)
 
-      initialIndex = Math.min(initialIndex, todayFourVerses.length - 1);
+      initialIndex = Math.min(initialIndex, Math.max(0, visibleVerses.length - 1));
       setCarouselSlide(initialIndex);
 
       setTimeout(() => {
         carouselScrollRef.current?.scrollTo({ x: initialIndex * (width - 32), animated: false });
       }, 300);
 
-      // Start auto-scroll for 4 verses + service timings
-      const totalOnSlides = todayFourVerses.length + (hasServiceTimings ? 1 : 0);
+      // Start auto-scroll for unlocked verses + service timings
+      const totalOnSlides = visibleVerses.length + (hasServiceTimings ? 1 : 0);
       clearInterval(verseAutoScrollTimer.current);
-      verseAutoScrollTimer.current = setInterval(() => {
-        setCarouselSlide(prev => {
-          const next = (prev + 1) % totalOnSlides;
-          carouselScrollRef.current?.scrollTo({ x: next * (width - 32), animated: true });
-          return next;
-        });
-      }, 7000);
+      if (totalOnSlides > 1) {
+        verseAutoScrollTimer.current = setInterval(() => {
+          setCarouselSlide(prev => {
+            const next = (prev + 1) % totalOnSlides;
+            carouselScrollRef.current?.scrollTo({ x: next * (width - 32), animated: true });
+            return next;
+          });
+        }, 7000);
+      }
 
       return () => clearInterval(verseAutoScrollTimer.current);
     } else {
@@ -1177,7 +1370,7 @@ export default function HomeScreen() {
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [useWeChristianDailyPromise, todayFourVerses.length, promiseThumbnail, hasServiceTimings]);
+  }, [useWeChristianDailyPromise, visibleVerses.length, promiseThumbnail, hasServiceTimings]);
 
   const goToSlide = (idx: number) => {
     setCarouselSlide(idx);
@@ -1189,10 +1382,17 @@ export default function HomeScreen() {
 
   const handleShareDailyVerse = async (verse: DailyVerse, period: string) => {
     try {
-      const verseEn = stripHtml(verse.verseEn);
-      const verseTe = stripHtml(verse.verseTe);
+      const loc = getLocalizedVerse(verse, language);
+      const greeting = getPeriodGreeting(period, t);
       const churchName = activeChurch?.name || '';
-      const message = `🕊️ Good ${period} Daily Verse · అనుదిన వాక్యము\n\n"${verseEn}"\n— ${verse.referenceEn || 'Scripture'}\n\n"${verseTe}"\n— ${verse.referenceTe || 'లేఖనము'}${churchName ? `\n\n${churchName} 🙏` : ''}`;
+      
+      let message = `🕊️ ${greeting} · ${t('home.quickDailyVerse')}\n\n"${stripHtml(loc.primaryVerse)}"\n— ${loc.primaryReference || 'Scripture'}`;
+      if (loc.secondaryVerse && loc.secondaryVerse !== loc.primaryVerse) {
+        message += `\n\n"${stripHtml(loc.secondaryVerse)}"\n— ${loc.secondaryReference || 'Scripture'}`;
+      }
+      if (churchName) {
+        message += `\n\n${churchName} 🙏`;
+      }
 
       const theme = VERSE_THEMES[period] || VERSE_THEMES.Morning;
       setCaptureVerseConfig({ verse, period, theme });
@@ -1206,7 +1406,7 @@ export default function HomeScreen() {
             if (isAvailable) {
               await Sharing.shareAsync(uri, {
                 mimeType: 'image/png',
-                dialogTitle: `🕊️ Good ${period} Daily Verse · ${churchName || 'Daily Verse'}`,
+                dialogTitle: `🕊️ ${greeting} · ${t('home.quickDailyVerse')} · ${churchName || 'Daily Verse'}`,
                 UTI: 'public.png',
               });
             } else {
@@ -1233,7 +1433,7 @@ export default function HomeScreen() {
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Needed', 'Please allow photo gallery permission to save the verse card.');
+        Alert.alert(t('gallery.alerts.permissionTitle') || 'Permission Needed', t('gallery.alerts.permissionMsg') || 'Please allow photo gallery permission to save the verse card.');
         return;
       }
       const theme = VERSE_THEMES[period] || VERSE_THEMES.Morning;
@@ -1245,16 +1445,17 @@ export default function HomeScreen() {
           if (captureVerseRef.current?.capture) {
             const uri = await captureVerseRef.current.capture();
             await MediaLibrary.saveToLibraryAsync(uri);
+            const greeting = getPeriodGreeting(period, t);
             setAlertConfig({
               visible: true,
-              title: 'Saved to Gallery!',
-              message: `The ${period} Daily Verse card has been saved to your photos.`,
+              title: t('gallery.toasts.savedSuccess') || 'Saved to Gallery!',
+              message: `${greeting} · ${t('home.quickDailyVerse')}`,
               type: 'success'
             });
           }
         } catch (e) {
           console.error('Failed to capture verse card:', e);
-          Alert.alert('Error', 'Failed to save verse card image.');
+          Alert.alert(t('common.error') || 'Error', t('gallery.alerts.downloadError') || 'Failed to save verse card image.');
         } finally {
           setIsSavingCard(false);
           setCaptureVerseConfig(null);
@@ -1407,9 +1608,10 @@ export default function HomeScreen() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
+    if (hour < 12) return t('home.greetingMorning');
+    if (hour < 17) return t('home.greetingAfternoon');
+    if (hour < 21) return t('home.greetingEvening');
+    return t('home.greetingNight');
   };
 
   const getTeluguDay = () => {
@@ -1469,7 +1671,7 @@ export default function HomeScreen() {
           <View style={{ position: 'absolute', top: -50, right: -50, width: 190, height: 190, borderRadius: 95, borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.08)' }} />
 
           {/* Centered Header */}
-          <Text style={styles.serviceSlideCleanTitle}>OUR SERVICE TIMINGS</Text>
+          <Text style={styles.serviceSlideCleanTitle}>{t('home.churchServiceTimings')}</Text>
           <View style={styles.serviceSlideCleanBar} />
 
           {/* Service Items List */}
@@ -1702,7 +1904,7 @@ export default function HomeScreen() {
               scrollEventThrottle={16}
               onMomentumScrollEnd={(e) => {
                 const maxSlides = useWeChristianDailyPromise
-                  ? (todayFourVerses.length || 4) + (hasServiceTimings ? 1 : 0)
+                  ? (visibleVerses.length || 1) + (hasServiceTimings ? 1 : 0)
                   : 1 + (promiseThumbnail ? 1 : 0) + (hasServiceTimings ? 1 : 0);
                 const slide = Math.min(Math.max(0, Math.round(e.nativeEvent.contentOffset.x / (width - 32))), maxSlides - 1);
                 setCarouselSlide(slide);
@@ -1713,14 +1915,16 @@ export default function HomeScreen() {
               style={{ borderRadius: 20 }}
             >
               {useWeChristianDailyPromise ? (
-                // ── When Toggle is ON: 4 Daily Verses Auto-Scrolling Carousel (+ Service Timings Slide) ──
+                // ── When Toggle is ON: Time-Based Daily Verses Auto-Scrolling Carousel (+ Service Timings Slide) ──
                 <>
-                  {todayFourVerses.length > 0 ? (
-                    todayFourVerses.map((verse, idx) => {
+                  {visibleVerses.length > 0 ? (
+                    visibleVerses.map((verse, idx) => {
                       const period = VERSE_PERIODS[idx] || 'Daily';
                       const theme = VERSE_THEMES[period] || VERSE_THEMES.Morning;
                       const Icon = theme.Icon;
-                      const dynamicColors = getDynamicGradient(new Date(), period, idx);
+                      const dynamicColors = getDynamicGradient(currentTime, period, idx);
+                      const loc = getLocalizedVerse(verse, language);
+                      const greeting = getPeriodGreeting(period, t);
 
                       const cardContent = (
                         <View style={styles.vdCardInner}>
@@ -1731,7 +1935,7 @@ export default function HomeScreen() {
                             </View>
                             <View style={styles.vdTitleWrapper}>
                               <Text style={[styles.vdPeriodText, { color: theme.color }]}>
-                                GOOD {period.toUpperCase()}
+                                {greeting.toUpperCase()}
                               </Text>
                             </View>
                           </View>
@@ -1742,15 +1946,20 @@ export default function HomeScreen() {
                             <View style={styles.vdVerseTextContainer}>
                               <Text style={[styles.vdQuoteMark, { color: theme.color }]}>“</Text>
 
-                              {verse.verseTe ? (
-                                <Text style={styles.vdVerseTe} numberOfLines={5}>
-                                  {stripHtml(verse.verseTe)}
+                              {/* Primary localized verse */}
+                              <Text 
+                                style={[styles.vdVerseTe, !loc.secondaryVerse && { fontSize: 17, lineHeight: 26 }]} 
+                                numberOfLines={5}
+                              >
+                                {stripHtml(loc.primaryVerse)}
+                              </Text>
+
+                              {/* Secondary verse (English) if distinct */}
+                              {loc.secondaryVerse && loc.secondaryVerse !== loc.primaryVerse ? (
+                                <Text style={styles.vdVerseEn} numberOfLines={4}>
+                                  {stripHtml(loc.secondaryVerse)}
                                 </Text>
                               ) : null}
-
-                              <Text style={[styles.vdVerseEn, !verse.verseTe && { fontSize: 17, lineHeight: 26 }]} numberOfLines={5}>
-                                {stripHtml(verse.verseEn)}
-                              </Text>
 
                               <Text style={[styles.vdQuoteMarkBottom, { color: theme.color }]}>”</Text>
                             </View>
@@ -1758,7 +1967,9 @@ export default function HomeScreen() {
 
                           {/* Centered Reference */}
                           <Text style={[styles.vdReferenceText, { color: theme.color }]}>
-                            {verse.referenceTe ? `${verse.referenceTe}   —   ${verse.referenceEn}` : verse.referenceEn}
+                            {loc.secondaryReference && loc.secondaryReference !== loc.primaryReference
+                              ? `${loc.primaryReference}   —   ${loc.secondaryReference}`
+                              : loc.primaryReference}
                           </Text>
 
                           {/* Action Buttons */}
@@ -1769,7 +1980,7 @@ export default function HomeScreen() {
                               activeOpacity={0.75}
                             >
                               <Share2 size={16} color="#fff" />
-                              <Text style={styles.vdBtnTxt}>Share</Text>
+                              <Text style={styles.vdBtnTxt}>{t('common.share')}</Text>
                             </TouchableOpacity>
                             <TouchableOpacity 
                               style={styles.vdSaveBtn} 
@@ -1777,7 +1988,7 @@ export default function HomeScreen() {
                               activeOpacity={0.75}
                             >
                               <Download size={16} color="#fff" />
-                              <Text style={styles.vdBtnTxt}>Save Card</Text>
+                              <Text style={styles.vdBtnTxt}>{t('common.saveCard')}</Text>
                             </TouchableOpacity>
                           </View>
                         </View>
@@ -1832,7 +2043,7 @@ export default function HomeScreen() {
                         style={[styles.vdCardBg, { justifyContent: 'center', alignItems: 'center', minHeight: 240 }]}
                       >
                         <ActivityIndicator size="small" color="#c9973f" />
-                        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 8 }}>Loading Daily Verses...</Text>
+                        <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, marginTop: 8 }}>{t('common.loading')}</Text>
                       </LinearGradient>
                     </View>
                   </View>
@@ -1861,7 +2072,7 @@ export default function HomeScreen() {
                       <View style={{ position: 'absolute', top: -10, right: -10, width: 100, height: 100, borderRadius: 50, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.1)' }} />
                       <View style={{ position: 'absolute', bottom: -50, left: -20, width: 140, height: 140, borderRadius: 70, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.1)' }} />
 
-                      <Text style={styles.phLabel}>TODAY'S PROMISE · ఈ రోజు వాగ్దానం</Text>
+                      <Text style={styles.phLabel}>{t('home.todaysPromise')}</Text>
                       <Text style={styles.phEn}>{promise ? `"${stripHtml(promise.verse)}"` : ''}</Text>
                       <Text style={styles.phRefEn}>{promise ? `— ${promise.verseReferenceEn || promise.verseReference}` : ''}</Text>
                       <View style={styles.phDivider} />
@@ -1870,7 +2081,7 @@ export default function HomeScreen() {
                       <View style={styles.phActions}>
                         <TouchableOpacity style={styles.phShareBtn} onPress={handleSharePromise}>
                           <Share2 size={18} color="#fff" />
-                          <Text style={styles.phBtnTxt}>Share</Text>
+                          <Text style={styles.phBtnTxt}>{t('common.share')}</Text>
                         </TouchableOpacity>
                         <TouchableOpacity 
                           style={styles.phWatchBtn} 
@@ -1883,7 +2094,7 @@ export default function HomeScreen() {
                           }}
                         >
                           <Play size={18} color="#fff" fill="#fff" />
-                          <Text style={styles.phBtnTxt}>Watch video</Text>
+                          <Text style={styles.phBtnTxt}>{t('common.watchVideo')}</Text>
                         </TouchableOpacity>
                       </View>
                     </LinearGradient>
@@ -1902,7 +2113,7 @@ export default function HomeScreen() {
                         <View style={{ position: 'absolute', top: -40, right: -40, width: 160, height: 160, borderRadius: 80, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.15)' }} />
                         <View style={{ position: 'absolute', top: -10, right: -10, width: 100, height: 100, borderRadius: 50, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.1)' }} />
                         <View style={{ position: 'absolute', bottom: -50, left: -20, width: 140, height: 140, borderRadius: 70, borderWidth: 1.5, borderColor: 'rgba(203, 213, 225, 0.1)' }} />
-                        <Text style={styles.phLabel}>TODAY'S PROMISE · ఈ రోజు వాగ్దానం</Text>
+                        <Text style={styles.phLabel}>{t('home.todaysPromise')}</Text>
                         <Image
                           source={{ uri: promiseThumbnail }}
                           style={[styles.phThumbnailImg, { flex: 1 }]}
@@ -1911,7 +2122,7 @@ export default function HomeScreen() {
                         <View style={[styles.phActions, { paddingHorizontal: 16, paddingBottom: 14 }]}>
                           <TouchableOpacity style={styles.phShareBtn} onPress={handleSharePromise}>
                             <Share2 size={18} color="#fff" />
-                            <Text style={styles.phBtnTxt}>Share</Text>
+                            <Text style={styles.phBtnTxt}>{t('common.share')}</Text>
                           </TouchableOpacity>
                         </View>
                       </LinearGradient>
@@ -1924,10 +2135,10 @@ export default function HomeScreen() {
               )}
             </ScrollView>
 
-            {/* Dot Indicators (Dynamically adapts to verse count, thumbnail, and service timings) */}
+            {/* Dot Indicators (Dynamically adapts to visible verse count, thumbnail, and service timings) */}
             {(() => {
               const totalDots = useWeChristianDailyPromise
-                ? (todayFourVerses.length > 0 ? todayFourVerses.length : 4) + (hasServiceTimings ? 1 : 0)
+                ? (visibleVerses.length > 0 ? visibleVerses.length : 1) + (hasServiceTimings ? 1 : 0)
                 : 1 + (promiseThumbnail ? 1 : 0) + (hasServiceTimings ? 1 : 0);
 
               if (totalDots <= 1) return null;
@@ -1944,16 +2155,16 @@ export default function HomeScreen() {
             })()}
           </View>
 
-          <Text style={[styles.secLbl, isDark && { color: '#e2e8f0' }]}>QUICK ACCESS</Text>
+          <Text style={[styles.secLbl, isDark && { color: '#e2e8f0' }]}>{t('home.quickAccess')}</Text>
           <View style={styles.iconGrid}>
-            <GridItem isDark={isDark} icon={<Mic size={26} color="#fff" />} label="Sermons" color="#1a2d5a" onPress={() => navigation.navigate('Sermons')} />
-            <GridItem isDark={isDark} icon={<Heart size={26} color="#fff" />} label="Prayer Wall" color="#c0392b" onPress={() => handleGuestProtectedNavigation('Prayer')} />
-            <GridItem isDark={isDark} icon={<Calendar size={26} color="#fff" />} label="Events" color="#0F766E" onPress={() => navigation.navigate('Events')} />
+            <GridItem isDark={isDark} icon={<Mic size={26} color="#fff" />} label={t('home.quickSermons')} color="#1a2d5a" onPress={() => navigation.navigate('Sermons')} />
+            <GridItem isDark={isDark} icon={<Heart size={26} color="#fff" />} label={t('home.quickPrayer')} color="#c0392b" onPress={() => handleGuestProtectedNavigation('Prayer')} />
+            <GridItem isDark={isDark} icon={<Calendar size={26} color="#fff" />} label={t('home.quickEvents')} color="#0F766E" onPress={() => navigation.navigate('Events')} />
             {!useWeChristianDailyPromise && (
               <GridItem
                 isDark={isDark}
                 icon={<Sparkles size={26} color="#f97316" />}
-                label="Daily Verse"
+                label={t('home.quickDailyVerse')}
                 color="#1e1b4b"
                 onPress={() => {
                   if (todayVerse) {
@@ -1965,7 +2176,7 @@ export default function HomeScreen() {
             <GridItem 
               isDark={isDark} 
               icon={<DollarSign size={26} color="#fff" />} 
-              label="Give / Tithe" 
+              label={t('home.quickGiving')} 
               color="#f0a500" 
               onPress={() => {
                 if (!activeChurch?.features?.hasGiving) {
@@ -1981,17 +2192,16 @@ export default function HomeScreen() {
               }} 
             />
             
-            <GridItem isDark={isDark} icon={<BookOpen size={26} color="#fff" />} label="Bible" color="#7C3AED" onPress={() => handleGuestProtectedNavigation('Bible')} />
-            <GridItem isDark={isDark} icon={<Music size={26} color="#fff" />} label="Songs" color="#0369a1" onPress={() => handleGuestProtectedNavigation('Songs')} />
-            <GridItem isDark={isDark} icon={<FileText size={26} color="#fff" />} label="Sermon Notes" color="#BE185D" onPress={() => handleGuestProtectedNavigation('MemberNotes')} />
-            <GridItem isDark={isDark} icon={<Award size={26} color="#fff" />} label="Bible Plans" color="#374151" onPress={() => handleGuestProtectedNavigation('BiblePlans')} />
+            <GridItem isDark={isDark} icon={<BookOpen size={26} color="#fff" />} label={t('home.quickBible')} color="#7C3AED" onPress={() => handleGuestProtectedNavigation('Bible')} />
+            <GridItem isDark={isDark} icon={<Music size={26} color="#fff" />} label={t('home.quickSongs')} color="#0369a1" onPress={() => handleGuestProtectedNavigation('Songs')} />
+            <GridItem isDark={isDark} icon={<FileText size={26} color="#fff" />} label={t('home.quickSermonNotes')} color="#BE185D" onPress={() => handleGuestProtectedNavigation('MemberNotes')} />
+            <GridItem isDark={isDark} icon={<Award size={26} color="#fff" />} label={t('home.quickBiblePlans')} color="#374151" onPress={() => handleGuestProtectedNavigation('BiblePlans')} />
 
-
-            <GridItem isDark={isDark} icon={<Bell size={26} color="#fff" />} label="Updates" color="#0284c7" onPress={() => navigation.navigate('Updates')} />
+            <GridItem isDark={isDark} icon={<Bell size={26} color="#fff" />} label={t('home.quickUpdates')} color="#0284c7" onPress={() => navigation.navigate('Updates')} />
             <GridItem 
               isDark={isDark}
               icon={<YoutubeIcon size={26} color="#fff" />} 
-              label="YouTube Live" 
+              label={t('home.quickYoutubeLive')} 
               color="#ef4444" 
               onPress={() => {
                 const yUrl = activeChurch?.socialLinks?.youtube?.trim();
@@ -2007,9 +2217,9 @@ export default function HomeScreen() {
                 }
               }} 
             />
-            <GridItem isDark={isDark} icon={<Users size={26} color="#fff" />} label="Members" color="#db2777" onPress={handleOpenMembers} />
+            <GridItem isDark={isDark} icon={<Users size={26} color="#fff" />} label={t('home.quickMembers')} color="#db2777" onPress={handleOpenMembers} />
             {useWeChristianDailyPromise && (
-              <GridItem isDark={isDark} icon={<AnimatedCameraIcon size={26} color="#fff" />} label="Online Meetings" color="#3B82F6" onPress={() => navigation.navigate('OnlineMeetings')} />
+              <GridItem isDark={isDark} icon={<AnimatedCameraIcon size={26} color="#fff" />} label={t('home.quickMeetings')} color="#3B82F6" onPress={() => navigation.navigate('OnlineMeetings')} />
             )}
           </View>
 
@@ -2040,7 +2250,7 @@ export default function HomeScreen() {
                 activeOpacity={0.8}
               >
                 <AnimatedCameraIcon size={20} color="#fff" scrollY={scrollY} triggerY={onlineMeetingsY} />
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 }}>Online Meetings</Text>
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 }}>{t('home.quickMeetings')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -2069,8 +2279,8 @@ export default function HomeScreen() {
                 <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderWidth: 4, borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
                   <Users size={26} color="#ef4444" />
                 </View>
-                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13, textAlign: 'center' }}>About us</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>Our mission</Text>
+                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13, textAlign: 'center' }}>{t('home.aboutUs')}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>{t('home.aboutUsSub')}</Text>
               </TouchableOpacity>
 
               {/* Contact Us */}
@@ -2082,8 +2292,8 @@ export default function HomeScreen() {
                 <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderWidth: 4, borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
                   <MessageSquare size={26} color="#a855f7" />
                 </View>
-                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13, textAlign: 'center' }}>Contact us</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>Get in touch</Text>
+                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13, textAlign: 'center' }}>{t('home.contactUs')}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>{t('home.contactUsSub')}</Text>
               </TouchableOpacity>
 
               {/* Gallery */}
@@ -2095,8 +2305,8 @@ export default function HomeScreen() {
                 <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderWidth: 4, borderColor: isDark ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
                   <LucideImage size={26} color="#10b981" />
                 </View>
-                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13, textAlign: 'center' }}>Gallery</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>Church memories</Text>
+                <Text style={{ color: isDark ? '#f8fafc' : '#0f172a', fontWeight: 'bold', fontSize: 13, textAlign: 'center' }}>{t('home.gallery')}</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, textAlign: 'center' }}>{t('home.gallerySub')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2105,10 +2315,10 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Calendar size={16} color={isDark ? '#FCD34D' : '#1a2d5a'} />
-              <Text style={[styles.sectionHeaderTxt, { color: isDark ? '#f1f5f9' : '#1a2d5a' }]}>Upcoming Events</Text>
+              <Text style={[styles.sectionHeaderTxt, { color: isDark ? '#f1f5f9' : '#1a2d5a' }]}>{t('home.upcomingEvents')}</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Events')}>
-              <Text style={[styles.sectionSeeAll, { color: isDark ? '#FCD34D' : '#1a2d5a' }]}>See all →</Text>
+              <Text style={[styles.sectionSeeAll, { color: isDark ? '#FCD34D' : '#1a2d5a' }]}>{t('home.seeAll')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -2151,10 +2361,10 @@ export default function HomeScreen() {
   
                         <View style={[styles.ebMetaRow, { marginTop: 6, alignItems: 'flex-start' }]}>
                           <MapPin size={11} color="#64748b" style={{ marginTop: 2 }} />
-                          <Text style={styles.ebMetaText}>{item.address || item.location || 'Church Main Hall'}</Text>
+                          <Text style={styles.ebMetaText}>{item.address || item.location || t('home.churchMainHall')}</Text>
                         </View>
                         
-                        <Text style={styles.ebDetailsLink}>Details →</Text>
+                        <Text style={styles.ebDetailsLink}>{t('home.details')}</Text>
                       </View>
                     </TouchableOpacity>
                     {index < events.length - 1 && <View style={styles.ebDivider} />}
@@ -2163,8 +2373,8 @@ export default function HomeScreen() {
               ) : (
                 <View style={styles.emptyEvents}>
                   <Calendar size={32} color="#94a3b8" />
-                  <Text style={styles.emptyEventsTxt}>No upcoming events scheduled</Text>
-                  <Text style={styles.emptyEventsSub}>Check back soon for updates!</Text>
+                  <Text style={styles.emptyEventsTxt}>{t('events.noUpcomingEvents')}</Text>
+                  <Text style={styles.emptyEventsSub}>{t('home.emptyEventsSub')}</Text>
                 </View>
               )}
             </View>
@@ -2174,10 +2384,10 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Mic size={16} color={isDark ? '#FCD34D' : '#1a2d5a'} />
-              <Text style={[styles.sectionHeaderTxt, { color: isDark ? '#f1f5f9' : '#1a2d5a' }]}>Latest Sermon</Text>
+              <Text style={[styles.sectionHeaderTxt, { color: isDark ? '#f1f5f9' : '#1a2d5a' }]}>{t('sermons.latestSermon')}</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Sermons')}>
-              <Text style={[styles.sectionSeeAll, { color: isDark ? '#FCD34D' : '#1a2d5a' }]}>See all →</Text>
+              <Text style={[styles.sectionSeeAll, { color: isDark ? '#FCD34D' : '#1a2d5a' }]}>{t('home.seeAll')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -2197,13 +2407,13 @@ export default function HomeScreen() {
               </View>
               <View style={styles.scInfo}>
                 <Text style={styles.scTitle} numberOfLines={1}>
-                  {latestSermon?.title || 'Explore Sermons'}
+                  {latestSermon?.title || t('home.exploreSermons')}
                 </Text>
                 {latestSermon?.titleTelugu ? (
                   <Text style={styles.scTitleTe} numberOfLines={1}>{latestSermon.titleTelugu}</Text>
                 ) : null}
                 <Text style={styles.scMeta} numberOfLines={1}>
-                  {latestSermon?.pastor || 'Pastor'}
+                  {latestSermon?.pastor || t('sermons.pastor')}
                   {latestSermon?.date ? ` • ${formatDateDisplay(latestSermon.date)}` : ''}
                   {latestSermon?.duration ? ` • ${latestSermon.duration}` : ''}
                 </Text>
@@ -2218,10 +2428,10 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Heart size={16} color={isDark ? '#FCD34D' : '#1a2d5a'} fill={isDark ? 'rgba(252,211,77,0.2)' : 'rgba(26,45,90,0.15)'} />
-              <Text style={[styles.sectionHeaderTxt, { color: isDark ? '#f1f5f9' : '#1a2d5a' }]}>Prayer Wall</Text>
+              <Text style={[styles.sectionHeaderTxt, { color: isDark ? '#f1f5f9' : '#1a2d5a' }]}>{t('prayer.title')}</Text>
             </View>
             <TouchableOpacity onPress={() => handleGuestProtectedNavigation('Prayer')}>
-              <Text style={[styles.sectionSeeAll, { color: isDark ? '#FCD34D' : '#1a2d5a' }]}>See all →</Text>
+              <Text style={[styles.sectionSeeAll, { color: isDark ? '#FCD34D' : '#1a2d5a' }]}>{t('home.seeAll')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -2229,15 +2439,15 @@ export default function HomeScreen() {
             <TouchableOpacity style={styles.pcBody} onPress={() => handleGuestProtectedNavigation('Prayer')}>
               <View style={styles.pcTextContainer}>
                 <Text style={styles.pcText} numberOfLines={3}>
-                  {latestPrayer ? `"${latestPrayer.text}" — ${latestPrayer.name}` : '"Please pray for our community and the growth of our church." — Faith Member'}
+                  {latestPrayer ? `"${latestPrayer.text}" — ${latestPrayer.name}` : t('home.prayerDefaultPrompt')}
                 </Text>
               </View>
               <View style={styles.pcFoot}>
-                <TouchableOpacity style={styles.prayedBtn} onPress={() => Alert.alert('Prayed', 'Thank you for praying!')}>
+                <TouchableOpacity style={styles.prayedBtn} onPress={() => Alert.alert(t('home.prayedAlertTitle'), t('home.prayedAlertMsg'))}>
                    <CheckCircle size={14} color="#1a2d5a" />
-                   <Text style={styles.prayedBtnTxt}>I prayed</Text>
+                   <Text style={styles.prayedBtnTxt}>{t('home.iPrayedBtn')}</Text>
                 </TouchableOpacity>
-                <Text style={styles.pcSeeAll}>{prayerCount} requests</Text>
+                <Text style={styles.pcSeeAll}>{prayerCount} {t('home.prayerRequestsCount')}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -2269,7 +2479,7 @@ export default function HomeScreen() {
               )}
             </TouchableOpacity>
           </Animated.View>
-          <Text style={styles.floatingLabel}>Live Celebrations</Text>
+          <Text style={styles.floatingLabel}>{t('home.liveCelebrations')}</Text>
         </Animated.View>
       )}
 
@@ -2289,49 +2499,55 @@ export default function HomeScreen() {
                 colors={['rgba(0,0,0,0.3)', 'rgba(0,0,0,0.88)']}
                 style={StyleSheet.absoluteFillObject}
               />
-              <View style={{ flex: 1, padding: 26, justifyContent: 'space-between' }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
-                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: captureVerseConfig.theme.color, justifyContent: 'center', alignItems: 'center' }}>
-                    {(() => {
-                      const Icon = captureVerseConfig.theme.Icon;
-                      return <Icon color="#fff" size={26} />;
-                    })()}
-                  </View>
-                  <View>
-                    <Text style={{ fontSize: 20, fontWeight: '900', color: captureVerseConfig.theme.color, letterSpacing: 1.2 }}>
-                      GOOD {captureVerseConfig.period.toUpperCase()}
-                    </Text>
-                    <Text style={{ fontSize: 13, color: '#fff', opacity: 0.8, fontWeight: '600', marginTop: 2 }}>
-                      {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
-                    </Text>
-                  </View>
-                </View>
+              {(() => {
+                const capLoc = getLocalizedVerse(captureVerseConfig.verse, language);
+                const capGreeting = getPeriodGreeting(captureVerseConfig.period, t);
+                const Icon = captureVerseConfig.theme.Icon;
+                return (
+                  <View style={{ flex: 1, padding: 26, justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+                      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: captureVerseConfig.theme.color, justifyContent: 'center', alignItems: 'center' }}>
+                        <Icon color="#fff" size={26} />
+                      </View>
+                      <View>
+                        <Text style={{ fontSize: 20, fontWeight: '900', color: captureVerseConfig.theme.color, letterSpacing: 1.2 }}>
+                          {capGreeting.toUpperCase()}
+                        </Text>
+                        <Text style={{ fontSize: 13, color: '#fff', opacity: 0.8, fontWeight: '600', marginTop: 2 }}>
+                          {new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'en-IN', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                        </Text>
+                      </View>
+                    </View>
 
-                <View style={{ flexDirection: 'row', marginVertical: 20 }}>
-                  <View style={{ width: 4, borderRadius: 2, backgroundColor: captureVerseConfig.theme.color, marginRight: 16 }} />
-                  <View style={{ flex: 1 }}>
-                    {captureVerseConfig.verse.verseTe ? (
-                      <Text style={{ color: '#ffffff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '700', lineHeight: 30, marginBottom: 14 }}>
-                        "{stripHtml(captureVerseConfig.verse.verseTe)}"
+                    <View style={{ flexDirection: 'row', marginVertical: 20 }}>
+                      <View style={{ width: 4, borderRadius: 2, backgroundColor: captureVerseConfig.theme.color, marginRight: 16 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#ffffff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '700', lineHeight: 30, marginBottom: capLoc.secondaryVerse && capLoc.secondaryVerse !== capLoc.primaryVerse ? 14 : 0 }}>
+                          "{stripHtml(capLoc.primaryVerse)}"
+                        </Text>
+                        {capLoc.secondaryVerse && capLoc.secondaryVerse !== capLoc.primaryVerse ? (
+                          <Text style={{ color: '#ffffff', fontSize: 18, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', fontStyle: 'italic', lineHeight: 28, opacity: 0.95 }}>
+                            "{stripHtml(capLoc.secondaryVerse)}"
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+
+                    <View style={{ alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)', paddingTop: 16 }}>
+                      <Text style={{ fontSize: 16, fontWeight: '800', color: captureVerseConfig.theme.color, letterSpacing: 0.5 }}>
+                        {capLoc.secondaryReference && capLoc.secondaryReference !== capLoc.primaryReference
+                          ? `${capLoc.primaryReference}   —   ${capLoc.secondaryReference}`
+                          : capLoc.primaryReference}
                       </Text>
-                    ) : null}
-                    <Text style={{ color: '#ffffff', fontSize: 18, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', fontStyle: 'italic', lineHeight: 28, opacity: 0.95 }}>
-                      "{stripHtml(captureVerseConfig.verse.verseEn)}"
-                    </Text>
+                      {activeChurch?.name ? (
+                        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 8, fontWeight: '700', letterSpacing: 0.5 }}>
+                          {activeChurch.name}
+                        </Text>
+                      ) : null}
+                    </View>
                   </View>
-                </View>
-
-                <View style={{ alignItems: 'center', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.15)', paddingTop: 16 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '800', color: captureVerseConfig.theme.color, letterSpacing: 0.5 }}>
-                    {captureVerseConfig.verse.referenceTe ? `${captureVerseConfig.verse.referenceTe}   —   ${captureVerseConfig.verse.referenceEn}` : captureVerseConfig.verse.referenceEn}
-                  </Text>
-                  {activeChurch?.name ? (
-                    <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.85)', marginTop: 8, fontWeight: '700', letterSpacing: 0.5 }}>
-                      {activeChurch.name}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
+                );
+              })()}
             </View>
           </ViewShot>
         </View>
@@ -2354,7 +2570,7 @@ export default function HomeScreen() {
               <View style={{ flex: 1, padding: 26, justifyContent: 'space-between' }}>
                 <View>
                   <Text style={{ fontSize: 13, fontWeight: '800', color: '#fbbf24', letterSpacing: 1.5 }}>
-                    TODAY'S PROMISE · ఈ రోజు వాగ్దానం
+                    {t('home.todaysPromise')}
                   </Text>
                   <Text style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: '600', marginTop: 4 }}>
                     {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
@@ -2406,6 +2622,8 @@ export default function HomeScreen() {
           </View>
         </View>
       )}
+
+
 
     </View>
   );
@@ -3160,5 +3378,59 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#111827',
+  },
+  langModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  langModalBox: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    width: '100%',
+    maxWidth: 360,
+    padding: 20,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  langModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  langModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1a2d5a',
+  },
+  langModalItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    backgroundColor: '#f8fafc',
+  },
+  langModalNative: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  langModalName: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748b',
+    marginTop: 2,
   },
 });

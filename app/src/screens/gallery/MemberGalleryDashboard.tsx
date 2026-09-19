@@ -7,6 +7,7 @@ import { MemberGalleryStackParamList } from './MemberGalleryNavigator';
 import GalleryService, { GalleryAlbum } from '../../services/GalleryService';
 import { useTheme } from '../../context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useLanguage } from '../../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -15,6 +16,7 @@ type NavigationProp = NativeStackNavigationProp<MemberGalleryStackParamList, 'Me
 export default function MemberGalleryDashboard() {
   const navigation = useNavigation<NavigationProp>();
   const { isDark, colors } = useTheme();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
   
   const [albums, setAlbums] = useState<GalleryAlbum[]>([]);
@@ -50,7 +52,7 @@ export default function MemberGalleryDashboard() {
 
   const getLatestTime = () => {
     if (albums.length === 0) return '--';
-    return 'Recently';
+    return t('gallery.recently');
   };
 
   const renderHeader = () => (
@@ -62,35 +64,35 @@ export default function MemberGalleryDashboard() {
           </TouchableOpacity>
           <View style={[styles.badgeContainer, { marginBottom: 0, alignSelf: 'center' }]}>
             <Sparkles size={16} color="#FCD34D" />
-            <Text style={styles.badgeText}>Moments of Faith</Text>
+            <Text style={styles.badgeText}>{t('gallery.momentsOfFaith')}</Text>
           </View>
         </View>
         
-        <Text style={styles.mainTitle}>Church <Text style={styles.titleHighlight}>Gallery</Text></Text>
+        <Text style={styles.mainTitle}>{t('gallery.church')} <Text style={styles.titleHighlight}>{t('gallery.title')}</Text></Text>
         <Text style={styles.mainDesc}>
-          Relive precious moments from our church events.
+          {t('gallery.subtitle')}
         </Text>
 
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{albums.length}</Text>
-            <Text style={styles.statLabel}>ALBUMS</Text>
+            <Text style={styles.statLabel}>{t('gallery.stats.albums')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{totalPhotos}</Text>
-            <Text style={styles.statLabel}>PHOTOS</Text>
+            <Text style={styles.statLabel}>{t('gallery.stats.photos')}</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statValue}>{getLatestTime()}</Text>
-            <Text style={styles.statLabel}>LATEST</Text>
+            <Text style={styles.statLabel}>{t('gallery.stats.latest')}</Text>
           </View>
         </View>
       </View>
 
       <View style={styles.sectionHeader}>
         <View style={{ flex: 1 }}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Church Albums</Text>
-          <Text style={styles.sectionDesc}>Browse photos from past events.</Text>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('gallery.churchAlbums')}</Text>
+          <Text style={styles.sectionDesc}>{t('gallery.churchAlbumsSub')}</Text>
         </View>
       </View>
     </View>
@@ -114,7 +116,9 @@ export default function MemberGalleryDashboard() {
         {/* Visibility Badge */}
         <View style={styles.visibilityBadge}>
           <Globe size={12} color="#fff" style={{ marginRight: 4 }} />
-          <Text style={styles.visibilityText}>{item.visibility || 'Public'}</Text>
+          <Text style={styles.visibilityText}>
+            {item.visibility === 'Public' || !item.visibility ? t('gallery.public') : item.visibility}
+          </Text>
         </View>
         
         <View style={styles.albumTitleOverlay}>
@@ -127,12 +131,14 @@ export default function MemberGalleryDashboard() {
           <View style={styles.detailRow}>
             <Calendar size={14} color="#94A3B8" />
             <Text style={[styles.detailText, { color: isDark ? '#94A3B8' : '#64748B' }]}>
-              {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (item.date || 'No Date')}
+              {item.createdAt?.toDate ? item.createdAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : (item.date || t('gallery.noDate'))}
             </Text>
           </View>
           <View style={styles.detailRow}>
             <ImageIcon size={14} color="#94A3B8" />
-            <Text style={[styles.detailText, { color: isDark ? '#94A3B8' : '#64748B' }]}>{item.photoCount || 0} photos</Text>
+            <Text style={[styles.detailText, { color: isDark ? '#94A3B8' : '#64748B' }]}>
+              {item.photoCount || 0} {t('gallery.photosCount')}
+            </Text>
           </View>
         </View>
       </View>
@@ -157,9 +163,9 @@ export default function MemberGalleryDashboard() {
             !loading ? (
               <View style={{ alignItems: 'center', marginTop: 40 }}>
                 <ImageIcon size={48} color="#94A3B8" style={{ marginBottom: 12 }} />
-                <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }}>No Albums Yet</Text>
+                <Text style={{ color: colors.text, fontSize: 16, fontWeight: '600' }}>{t('gallery.empty.noAlbums')}</Text>
                 <Text style={{ color: '#94A3B8', fontSize: 14, textAlign: 'center', marginTop: 8, paddingHorizontal: 40 }}>
-                  Photos and memories will appear here once the admins upload them.
+                  {t('gallery.empty.noAlbumsSub')}
                 </Text>
               </View>
             ) : null

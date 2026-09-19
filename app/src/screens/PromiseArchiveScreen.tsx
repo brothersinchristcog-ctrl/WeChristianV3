@@ -23,6 +23,7 @@ import * as MediaLibrary from 'expo-media-library';
 import FirestoreService, { DailyPromise } from '../services/FirestoreService';
 import { useChurch } from '../context/ChurchContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +40,7 @@ export default function PromiseArchiveScreen({ navigation }: { navigation: any }
   const [refreshing, setRefreshing] = useState(false);
   const { activeChurch } = useChurch();
   const { colors, isDark } = useTheme();
+  const { t } = useLanguage();
   const scrollViewRef = useRef<ScrollView>(null);
   const viewShotRef = useRef<ViewShot>(null);
 
@@ -154,8 +156,8 @@ export default function PromiseArchiveScreen({ navigation }: { navigation: any }
         
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
           <View style={styles.headerCenter}>
-            <Text style={styles.pageTitle}>Daily Promise</Text>
-            <Text style={styles.pageSub}>ఈ రోజు వాగ్దానం</Text>
+            <Text style={styles.pageTitle}>{t('nav.promise')}</Text>
+            <Text style={styles.pageSub}>{t('home.todaysPromiseSub')}</Text>
           </View>
         </View>
       </LinearGradient>

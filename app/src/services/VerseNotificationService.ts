@@ -1,6 +1,8 @@
 import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
+import { BibleService } from './BibleService';
+import { SupportedLanguage } from '../locales';
 
 const VERSES_CACHE_KEY = '@wechristian_verses_cache';
 
@@ -10,9 +12,21 @@ export interface DailyVerse {
   referenceEn: string;
   verseTe: string;
   referenceTe: string;
+  verseHi?: string;
+  referenceHi?: string;
+  verseTa?: string;
+  referenceTa?: string;
+  verseKn?: string;
+  referenceKn?: string;
+  verseMl?: string;
+  referenceMl?: string;
+  verseMr?: string;
+  referenceMr?: string;
+  translations?: Record<string, { verse: string; reference?: string } | string>;
   index?: number;
   backgroundUrl?: string;
   unsplashPhotographer?: string;
+  [key: string]: any;
 }
 
 // Fixed epoch date for global synchronization across all phones
@@ -355,6 +369,70 @@ class VerseNotificationService {
       console.error('[VerseNotificationService] Error in getTodayVerses:', e);
       return [];
     }
+  }
+
+  /**
+   * Localizes a DailyVerse object for the requested language by resolving
+   * scripture text and reference via BibleService or local cache.
+   */
+  async localizeVerse(verse: DailyVerse, lang: SupportedLanguage): Promise<DailyVerse> {
+    if (!verse || !lang || lang === 'en') return verse;
+    if (lang === 'te' && verse.verseTe && verse.verseTe.trim().length > 0) return verse;
+
+    const cap = lang.charAt(0).toUpperCase() + lang.slice(1);
+    const directKey = `verse${cap}`;
+    const directRefKey = `reference${cap}`;
+
+    // If already localized in-memory
+    if (verse[directKey] && verse[directRefKey]) {
+      return verse;
+    }
+
+    const cacheKey = `@daily_verse_trans_${verse.id || verse.referenceEn}_${lang}`;
+    try {
+      const cachedStr = await AsyncStorage.getItem(cacheKey);
+      if (cachedStr) {
+        const cached = JSON.parse(cachedStr);
+        if (cached.verse && cached.reference) {
+          return {
+            ...verse,
+            [directKey]: cached.verse,
+            [directRefKey]: cached.reference,
+            [`verse_${lang}`]: cached.verse,
+            [`reference_${lang}`]: cached.reference,
+          };
+        }
+      }
+    } catch (_) {}
+
+    const ref = verse.referenceEn || verse.reference;
+    if (!ref) return verse;
+
+    try {
+      const res = await BibleService.fetchVerseByReference(ref, lang);
+      if (res && res.verse) {
+        await AsyncStorage.setItem(cacheKey, JSON.stringify(res));
+        return {
+          ...verse,
+          [directKey]: res.verse,
+          [directRefKey]: res.reference,
+          [`verse_${lang}`]: res.verse,
+          [`reference_${lang}`]: res.reference,
+        };
+      }
+    } catch (e) {
+      console.warn('[VerseNotificationService] Failed to localize verse:', e);
+    }
+
+    return verse;
+  }
+
+  /**
+   * Localizes an array of DailyVerse objects for the requested language
+   */
+  async localizeVerses(verses: DailyVerse[], lang: SupportedLanguage): Promise<DailyVerse[]> {
+    if (!verses || verses.length === 0 || !lang || lang === 'en') return verses;
+    return Promise.all(verses.map(v => this.localizeVerse(v, lang)));
   }
 }
 

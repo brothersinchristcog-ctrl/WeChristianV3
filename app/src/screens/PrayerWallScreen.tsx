@@ -26,6 +26,7 @@ import {
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import FirestoreService, { AppMember } from '../services/FirestoreService';
 import { PrayerRequest } from '../types/schema';
 
@@ -41,6 +42,27 @@ interface PrayerFormProps {
   setIsPublic: (val: boolean) => void;
 }
 
+const getPrayerCategoryLabel = (label: string, t: any) => {
+  if (!label) return '';
+  const normalized = label.trim().toLowerCase();
+  if (normalized.includes('me')) {
+    return t('prayer.categories.prayForMe');
+  }
+  if (normalized.includes('family')) {
+    return t('prayer.categories.prayForFamily');
+  }
+  if (normalized.includes('healing')) {
+    return t('prayer.categories.prayForHealing');
+  }
+  if (normalized.includes('peace') || normalized.includes('strength')) {
+    return t('prayer.categories.prayForPeaceAndStrength');
+  }
+  if (normalized.includes('other')) {
+    return t('prayer.categories.other');
+  }
+  return label;
+};
+
 const PrayerForm = ({ 
   prayerInput, 
   setPrayerInput, 
@@ -51,77 +73,90 @@ const PrayerForm = ({
   handleSubmit,
   isPublic,
   setIsPublic
-}: PrayerFormProps) => (
-  <View style={styles.composeCard}>
-    <View style={styles.composeHeader}>
-      <CheckCircle size={16} color="#fff" />
-      <Text style={styles.composeHeaderText}>SUBMIT PRAYER REQUEST</Text>
-    </View>
-    <View style={styles.composeBody}>
-      <Text style={styles.inputLabel}>Select Category</Text>
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false} 
-        contentContainerStyle={styles.catList}
-      >
-        {categories.map((cat) => (
-          <TouchableOpacity 
-            key={cat.label}
-            style={[styles.catBtn, category === cat.label && styles.catBtnActive]}
-            onPress={() => setCategory(cat.label)}
-          >
-            <Text style={styles.catIcon}>{cat.icon}</Text>
-            <Text style={[styles.catLabel, category === cat.label && styles.catLabelActive]}>
-              {cat.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+}: PrayerFormProps) => {
+  const { t } = useLanguage();
 
-      <Text style={styles.inputLabel}>Detailed Prayer Request</Text>
-      <TextInput
-        style={styles.composeInput}
-        placeholder="Share your prayer request... తెలుగులో కూడా రాయవచ్చు…"
-        placeholderTextColor="#94a3b8"
-        multiline
-        numberOfLines={4}
-        value={prayerInput}
-        onChangeText={setPrayerInput}
-        blurOnSubmit={false}
-      />
+  return (
+    <View style={styles.composeCard}>
+      <View style={styles.composeHeader}>
+        <CheckCircle size={16} color="#fff" />
+        <Text style={styles.composeHeaderText}>{t('prayer.submitPrayerRequestHeader')}</Text>
+      </View>
+      <View style={styles.composeBody}>
+        <Text style={styles.inputLabel}>{t('prayer.selectCategory')}</Text>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false} 
+          contentContainerStyle={styles.catList}
+        >
+          {categories.map((cat) => (
+            <TouchableOpacity 
+              key={cat.label}
+              style={[styles.catBtn, category === cat.label && styles.catBtnActive]}
+              onPress={() => setCategory(cat.label)}
+            >
+              <Text style={styles.catIcon}>{cat.icon}</Text>
+              <Text style={[styles.catLabel, category === cat.label && styles.catLabelActive]}>
+                {getPrayerCategoryLabel(cat.label, t)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
 
-      <View style={[styles.composeFooter, { justifyContent: 'space-between' }]}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          <Text style={{ fontSize: 13, fontWeight: '700', color: '#1e293b' }}>Public</Text>
+        <Text style={styles.inputLabel}>{t('prayer.detailedRequest')}</Text>
+        <TextInput
+          style={styles.composeInput}
+          placeholder={t('prayer.requestPlaceholder')}
+          placeholderTextColor="#94a3b8"
+          multiline
+          numberOfLines={4}
+          value={prayerInput}
+          onChangeText={setPrayerInput}
+          blurOnSubmit={false}
+        />
+
+        {/* Public Toggle & Submit Request on Same Line */}
+        <View style={styles.composeFooter}>
           <TouchableOpacity 
-            style={[styles.toggleSwitch, isPublic && styles.toggleSwitchActive]}
+            style={styles.toggleContainer}
             onPress={() => setIsPublic(!isPublic)}
+            activeOpacity={0.7}
           >
-            <View style={[styles.toggleThumb, isPublic && styles.toggleThumbActive]} />
+            <Text style={styles.toggleLabel}>{t('prayer.publicToggle')}</Text>
+            <View style={[styles.toggleSwitch, isPublic && styles.toggleSwitchActive]}>
+              <View style={[styles.toggleThumb, isPublic && styles.toggleThumbActive]} />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.submitBtn, isSubmitting && { opacity: 0.7 }]}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+            activeOpacity={0.85}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text 
+                style={styles.submitBtnText}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+              >
+                {t('prayer.submitBtn')}
+              </Text>
+            )}
           </TouchableOpacity>
         </View>
-
-        <TouchableOpacity 
-          style={[styles.submitBtn, isSubmitting && { opacity: 0.7 }]}
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-        >
-          {isSubmitting ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.submitBtnText}>Submit Request 🙏</Text>
-          )}
-        </TouchableOpacity>
       </View>
     </View>
-
-    {/* Section Header for the Prayer Wall Feed is handled dynamically via Tabs now */}
-  </View>
-);
+  );
+};
 
 export default function PrayerWallScreen({ navigation, route }: any) {
   const { user } = useAuth();
   const { isDark, toggleTheme, colors } = useTheme();
+  const { t } = useLanguage();
   const [member, setMember] = useState<AppMember | null>(null);
   const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
   const [loading, setLoading] = useState(false);
@@ -202,7 +237,7 @@ export default function PrayerWallScreen({ navigation, route }: any) {
 
   const handleSubmit = async () => {
     if (!prayerInput.trim()) {
-      Alert.alert('Missing Info', 'Please share your prayer request.');
+      Alert.alert(t('prayer.missingInfo'), t('prayer.pleaseShareRequest'));
       return;
     }
 
@@ -224,7 +259,7 @@ export default function PrayerWallScreen({ navigation, route }: any) {
       setPrayerInput('');
       fetchPrayers(member?.id || undefined, true);
     } catch (err) {
-      Alert.alert('Error', 'Unable to submit request. Please try again.');
+      Alert.alert(t('common.error'), t('prayer.submitError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -275,19 +310,19 @@ export default function PrayerWallScreen({ navigation, route }: any) {
 
   const handleDelete = async (id: string) => {
     Alert.alert(
-      'Delete Request',
-      'Are you sure you want to remove this prayer request?',
+      t('prayer.deleteRequestTitle'),
+      t('prayer.deleteRequestConfirm'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         { 
-          text: 'Delete', 
+          text: t('common.delete'), 
           style: 'destructive',
           onPress: async () => {
             try {
               await FirestoreService.deletePrayerRequest(id);
               fetchPrayers(member?.id || undefined, true);
             } catch (err) {
-              Alert.alert('Error', 'Failed to delete request');
+              Alert.alert(t('common.error'), t('prayer.submitError'));
             }
           }
         }
@@ -352,7 +387,7 @@ export default function PrayerWallScreen({ navigation, route }: any) {
             <View style={styles.headerInfo}>
               <Text style={styles.name}>{item.name}</Text>
               <Text style={styles.metaText}>
-                {getTimeAgo(item.createdAt)} · {item.category || 'General'}
+                {getTimeAgo(item.createdAt)} · {getPrayerCategoryLabel(item.category, t) || 'General'}
               </Text>
             </View>
           </View>
@@ -370,7 +405,7 @@ export default function PrayerWallScreen({ navigation, route }: any) {
             >
               <CheckCircle2 size={14} color={hasPrayed ? '#4ade80' : '#fff'} />
               <Text style={[styles.prayBtnText, hasPrayed && styles.prayBtnTextActive]}>
-                {hasPrayed ? 'Praying' : 'I Will Pray for You'}
+                {hasPrayed ? t('prayer.praying') : t('prayer.willPrayForYou')}
               </Text>
             </TouchableOpacity>
 
@@ -388,7 +423,7 @@ export default function PrayerWallScreen({ navigation, route }: any) {
           {/* Dropdown: Members Praying List */}
           {isExpanded && prayedNames.length > 0 && (
             <View style={[styles.prayingNamesBox, { marginTop: 12 }]}>
-              <Text style={styles.prayingNamesHeader}>MEMBERS PRAYING FOR YOU:</Text>
+              <Text style={styles.prayingNamesHeader}>{t('prayer.membersPraying')}</Text>
               {prayedNames.map((name, idx) => (
                 <View key={idx} style={styles.prayingNameRow}>
                   <View style={styles.prayingNameDot} />
@@ -399,7 +434,7 @@ export default function PrayerWallScreen({ navigation, route }: any) {
           )}
           {isExpanded && prayedNames.length === 0 && (
             <Text style={{ fontSize: 13, color: '#94a3b8', marginTop: 10, fontStyle: 'italic' }}>
-              No one has prayed yet. Be the first! 🙏
+              {t('prayer.beFirstToPray')}
             </Text>
           )}
         </View>
@@ -417,13 +452,13 @@ export default function PrayerWallScreen({ navigation, route }: any) {
           <View style={styles.headerInfo}>
             <Text style={styles.name}>{item.name}</Text>
             <Text style={styles.metaText}>
-              {getTimeAgo(item.createdAt)} · {item.category || 'General'}
+              {getTimeAgo(item.createdAt)} · {getPrayerCategoryLabel(item.category, t) || 'General'}
             </Text>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
             {item.isAnswered && (
               <View style={{ backgroundColor: '#dcfce7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
-                <Text style={{ fontSize: 11, fontWeight: '800', color: '#16a34a' }}>✨ Answered</Text>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#16a34a' }}>✨ {t('prayer.answered')}</Text>
               </View>
             )}
             {isOwner && (
@@ -495,7 +530,7 @@ export default function PrayerWallScreen({ navigation, route }: any) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.primary }]}>
         <ActivityIndicator size="large" color={colors.gold} />
-        <Text style={styles.loadingText}>Connecting to Prayer Wall...</Text>
+        <Text style={styles.loadingText}>{t('prayer.connecting')}</Text>
       </View>
     );
   }
@@ -516,7 +551,7 @@ export default function PrayerWallScreen({ navigation, route }: any) {
         
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
           <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
-            <Text style={styles.headerTitle}>Prayer Wall</Text>
+            <Text style={styles.headerTitle}>{t('prayer.title')}</Text>
           </View>
         </View>
         
@@ -541,13 +576,13 @@ export default function PrayerWallScreen({ navigation, route }: any) {
                 style={[styles.tabBtn, activeTab === 'my_requests' && styles.tabBtnActive]}
                 onPress={() => setActiveTab('my_requests')}
               >
-                <Text style={[styles.tabBtnText, activeTab === 'my_requests' && styles.tabBtnTextActive]}>My Requests</Text>
+                <Text style={[styles.tabBtnText, activeTab === 'my_requests' && styles.tabBtnTextActive]}>{t('prayer.myPrayers')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.tabBtn, activeTab === 'public_requests' && styles.tabBtnActive]}
                 onPress={() => setActiveTab('public_requests')}
               >
-                <Text style={[styles.tabBtnText, activeTab === 'public_requests' && styles.tabBtnTextActive]}>Public Prayers</Text>
+                <Text style={[styles.tabBtnText, activeTab === 'public_requests' && styles.tabBtnTextActive]}>{t('prayer.allPrayers')}</Text>
               </TouchableOpacity>
             </View>
             {activeTab === 'my_requests' && (
@@ -568,8 +603,7 @@ export default function PrayerWallScreen({ navigation, route }: any) {
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <MessageCircle size={50} color="#cbd5e1" />
-            <Text style={styles.emptyTitle}>No prayer requests yet</Text>
-            <Text style={styles.emptySub}>Be the first to share your burden with the community.</Text>
+            <Text style={styles.emptyTitle}>{t('prayer.noPrayers')}</Text>
           </View>
         }
       />
@@ -579,10 +613,10 @@ export default function PrayerWallScreen({ navigation, route }: any) {
         <View style={styles.modalOverlay}>
           <View style={styles.successCard}>
             <View style={styles.successIconBox}><CheckCircle size={40} color="#fff" /></View>
-            <Text style={styles.successTitle}>Request Submitted!</Text>
-            <Text style={styles.successSub}>May God answer your prayers according to His will.</Text>
+            <Text style={styles.successTitle}>{t('prayer.requestSubmitted')}</Text>
+            <Text style={styles.successSub}>{t('prayer.requestSubmittedSub')}</Text>
             <TouchableOpacity style={styles.doneBtn} onPress={() => setShowSuccess(false)}>
-              <Text style={styles.doneBtnTxt}>Amen</Text>
+              <Text style={styles.doneBtnTxt}>{t('prayer.amen')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -625,7 +659,8 @@ const styles = StyleSheet.create({
 
   // Compose Card
   composeCard: { 
-    margin: 20, 
+    marginHorizontal: 16, 
+    marginVertical: 14,
     backgroundColor: '#fff', 
     borderRadius: 24, 
     overflow: 'hidden',
@@ -645,64 +680,82 @@ const styles = StyleSheet.create({
     gap: 12 
   },
   composeHeaderText: { fontSize: 13, fontWeight: '800', color: '#fff', letterSpacing: 1, textTransform: 'uppercase' },
-  composeBody: { padding: 20 },
-  inputLabel: { fontSize: 12, fontWeight: '800', color: '#1e293b', marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  composeBody: { padding: 16 },
+  inputLabel: { fontSize: 12, fontWeight: '800', color: '#1e293b', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
   
-  catList: { gap: 12, paddingBottom: 15 },
+  catList: { gap: 10, paddingBottom: 12 },
   catBtn: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     backgroundColor: '#f8fafc', 
-    paddingHorizontal: 15, 
-    paddingVertical: 10, 
+    paddingHorizontal: 14, 
+    paddingVertical: 8, 
     borderRadius: 25,
     borderWidth: 1.5,
     borderColor: '#f1f5f9',
-    gap: 8
+    gap: 6
   },
   catBtnActive: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
-  catIcon: { fontSize: 16 },
-  catLabel: { fontSize: 13, color: '#475569', fontWeight: '700' },
+  catIcon: { fontSize: 15 },
+  catLabel: { fontSize: 12.5, color: '#475569', fontWeight: '700' },
   catLabelActive: { color: '#fff' },
 
   composeInput: { 
     width: '100%', 
     backgroundColor: '#f8fafc', 
     borderRadius: 16, 
-    padding: 18, 
-    fontSize: 15, 
-    lineHeight: 24,
+    padding: 14, 
+    fontSize: 14.5, 
+    lineHeight: 22,
     color: '#1e293b', 
     borderWidth: 1.5, 
     borderColor: '#e2e8f0',
-    minHeight: 140, 
+    minHeight: 120, 
     textAlignVertical: 'top',
-    marginBottom: 5,
+    marginBottom: 4,
     shadowColor: '#000',
     shadowOpacity: 0.02,
     shadowRadius: 3,
   },
   
+  composeFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 14,
+    gap: 8,
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+  },
+  toggleLabel: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
   toggleSwitch: {
-    width: 50,
-    height: 28,
+    width: 40,
+    height: 24,
     backgroundColor: '#cbd5e1',
-    borderRadius: 15,
+    borderRadius: 12,
     padding: 2,
     justifyContent: 'center',
   },
   toggleSwitchActive: { backgroundColor: '#1a2d5a' },
   toggleThumb: {
-    width: 24,
-    height: 24,
+    width: 20,
+    height: 20,
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 10,
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
-  toggleThumbActive: { transform: [{ translateX: 22 }] },
+  toggleThumbActive: { transform: [{ translateX: 16 }] },
 
   tabsContainer: {
     flexDirection: 'row',
@@ -740,21 +793,21 @@ const styles = StyleSheet.create({
   },
   quickReplyText: { fontSize: 13, fontWeight: '600', color: '#475569' },
 
-  composeFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 15 },
   submitBtn: { 
     backgroundColor: '#1a2d5a', 
-    paddingHorizontal: 25, 
-    paddingVertical: 12, 
-    borderRadius: 15, 
+    paddingHorizontal: 12, 
+    paddingVertical: 10, 
+    borderRadius: 14, 
     elevation: 4,
     shadowColor: '#1a2d5a',
     shadowOpacity: 0.3,
     shadowRadius: 5,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8
+    justifyContent: 'center',
+    flexShrink: 1,
   },
-  submitBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  submitBtnText: { color: '#fff', fontSize: 13, fontWeight: '800', textAlign: 'center' },
 
   // Prayer Card
   prayerCard: { 

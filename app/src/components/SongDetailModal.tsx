@@ -1,17 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Platform, StatusBar } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ChevronLeft, Bookmark } from 'lucide-react-native';
-
-interface WorshipSong {
-  id: string;
-  title: string;
-  titleTe?: string;
-  artist?: string;
-  lyrics?: string;
-  category?: string;
-  [key: string]: any;
-}
+import { ArrowLeft, ChevronLeft, Bookmark, Globe } from 'lucide-react-native';
+import { useLanguage } from '../context/LanguageContext';
+import { SupportedLanguage } from '../locales';
+import { WorshipSong } from '../services/FirestoreService';
+import { SongLanguageHelper } from '../services/SongLanguageHelper';
 
 interface SongDetailModalProps {
   visible: boolean;
@@ -46,7 +40,21 @@ export default function SongDetailModal({
   onEdit,
   onDelete
 }: SongDetailModalProps) {
+  const { language, t } = useLanguage();
+  const [selectedLangOverride, setSelectedLangOverride] = useState<SupportedLanguage | null>(null);
+
+  useEffect(() => {
+    setSelectedLangOverride(null);
+  }, [song?.id]);
+
   if (!visible || !song) return null;
+
+  const activeLyricsLang = selectedLangOverride || language;
+  const { primary, secondary } = SongLanguageHelper.getSongTitle(song, activeLyricsLang);
+  const subtitle = secondary || (song.category ? SongLanguageHelper.getLocalizedCategory(song.category, language) : '');
+
+  const availableLanguages = SongLanguageHelper.getAvailableSongLanguages(song, language);
+  const lyricsInfo = SongLanguageHelper.getSongLyrics(song, activeLyricsLang);
 
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
@@ -65,18 +73,53 @@ export default function SongDetailModal({
             <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
               <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
                 <Text style={styles.modalTitleEn} numberOfLines={1}>
-                  {song.title}
+                  {primary}
                 </Text>
-                <Text style={styles.modalTitleTe}>
-                  {song.titleTe || song.category || 'Other'}
-                </Text>
+                {subtitle ? (
+                  <Text style={styles.modalTitleTe} numberOfLines={1}>
+                    {subtitle}
+                  </Text>
+                ) : null}
               </View>
             </View>
             <View style={{ width: 24 }} />
           </LinearGradient>
 
           <View style={styles.modalScroll}>
-            <Text style={[styles.modalSecHeader, { color: isDark ? '#fff' : '#1a2d5a' }]}>LYRICS & SCRIPTS · సాహిత్యం</Text>
+            {/* Multiple translations tab switcher */}
+            {availableLanguages.length > 1 && (
+              <View style={styles.langSelectorRow}>
+                <Globe size={14} color={isDark ? '#94a3b8' : '#64748b'} style={{ marginRight: 4 }} />
+                {availableLanguages.map(item => {
+                  const isSelected = (lyricsInfo.langCode === item.code);
+                  return (
+                    <TouchableOpacity
+                      key={item.code}
+                      style={[
+                        styles.langPill,
+                        { backgroundColor: isDark ? '#1e293b' : '#f1f5f9', borderColor: isDark ? '#334155' : '#e2e8f0' },
+                        isSelected && { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' }
+                      ]}
+                      onPress={() => setSelectedLangOverride(item.code)}
+                    >
+                      <Text style={[
+                        styles.langPillTxt,
+                        { color: isDark ? '#94a3b8' : '#64748b' },
+                        isSelected && { color: '#fff', fontWeight: '800' }
+                      ]}>
+                        {item.name}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
+            <Text style={[styles.modalSecHeader, { color: isDark ? '#fff' : '#1a2d5a' }]}>
+              {t('songs.lyricsAndScripts')}
+              {lyricsInfo.langName ? ` · ${lyricsInfo.langName}` : ''}
+            </Text>
+
             <View style={[styles.lyricsBox, { backgroundColor: isDark ? '#1e293b' : '#fff', position: 'relative' }]}>
               
               <View style={{ position: 'absolute', top: 16, right: 16, zIndex: 10, flexDirection: 'row', gap: 8 }}>
@@ -90,7 +133,9 @@ export default function SongDetailModal({
                     }} 
                     onPress={() => onEdit(song)}
                   >
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: isDark ? '#94a3b8' : '#64748b' }}>Edit</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: isDark ? '#94a3b8' : '#64748b' }}>
+                      {t('songs.edit')}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 {onDelete && (
@@ -103,7 +148,9 @@ export default function SongDetailModal({
                     }} 
                     onPress={() => onDelete(song)}
                   >
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#dc2626' }}>Delete</Text>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#dc2626' }}>
+                      {t('songs.delete')}
+                    </Text>
                   </TouchableOpacity>
                 )}
                 {onToggleSave && (
@@ -118,14 +165,32 @@ export default function SongDetailModal({
                   >
                     <Bookmark size={14} color={isSaved ? '#c0392b' : (isDark ? '#94a3b8' : '#64748b')} fill={isSaved ? '#c0392b' : 'transparent'} />
                     <Text style={{ fontSize: 11, fontWeight: '700', color: isSaved ? '#c0392b' : (isDark ? '#94a3b8' : '#64748b') }}>
-                      {isSaved ? 'Saved' : 'Save'}
+                      {isSaved ? t('songs.saved') : t('songs.save')}
                     </Text>
                   </TouchableOpacity>
                 )}
               </View>
 
-              <Text style={[styles.lyricsText, { color: isDark ? '#e2e8f0' : '#1e293b', marginTop: (onToggleSave || onEdit || onDelete) ? 36 : 0 }]}>
-                {song.lyrics || 'Lyrics are being updated by the administrator. Please check back soon.'}
+              <View style={{ marginTop: (onToggleSave || onEdit || onDelete) ? 36 : 0, marginBottom: 12 }}>
+                {lyricsInfo.isTransliterated && (
+                  <View style={[styles.transliteratedBadge, { backgroundColor: isDark ? '#1e3a5f' : '#eff6ff', borderColor: isDark ? '#2b52a1' : '#bfdbfe' }]}>
+                    <Text style={[styles.transliteratedBadgeTxt, { color: isDark ? '#93c5fd' : '#1d4ed8' }]}>
+                      ✨ {lyricsInfo.langName} Transliteration
+                    </Text>
+                  </View>
+                )}
+
+                {lyricsInfo.isFallback && (
+                  <View style={[styles.fallbackNotice, { backgroundColor: isDark ? '#334155' : '#fef3c7', borderColor: isDark ? '#475569' : '#fde68a' }]}>
+                    <Text style={[styles.fallbackNoticeTxt, { color: isDark ? '#f8fafc' : '#92400e' }]}>
+                      ℹ️ {t('songs.originalContentNotice', { lang: lyricsInfo.langName })}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <Text style={[styles.lyricsText, { color: isDark ? '#e2e8f0' : '#1e293b' }]}>
+                {lyricsInfo.lyrics || t('songs.noLyrics')}
               </Text>
             </View>
             <View style={{ height: 120 }} />
@@ -179,11 +244,54 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  modalTitleEn: { fontSize: 12, fontWeight: '800', color: '#fff', textAlign: 'center', marginHorizontal: 56 },
+  modalTitleEn: { fontSize: 13, fontWeight: '800', color: '#fff', textAlign: 'center', marginHorizontal: 56 },
   modalTitleTe: { fontSize: 12, color: '#aac4e8', marginTop: 2, fontWeight: '600', textAlign: 'center', marginHorizontal: 56 },
   backBtn: { zIndex: 10, padding: 5, marginLeft: -10 },
   modalScroll: { flex: 1, padding: 20 },
-  modalSecHeader: { fontSize: 14, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 15, textAlign: 'center' },
+  langSelectorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+    flexWrap: 'wrap',
+    gap: 8
+  },
+  langPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 16,
+    borderWidth: 1
+  },
+  langPillTxt: {
+    fontSize: 12,
+    fontWeight: '600'
+  },
+  transliteratedBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignSelf: 'center',
+    marginBottom: 8,
+  },
+  transliteratedBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  fallbackNotice: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignSelf: 'stretch',
+    marginBottom: 8,
+  },
+  fallbackNoticeTxt: {
+    fontSize: 11,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  modalSecHeader: { fontSize: 13, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 15, textAlign: 'center' },
   lyricsBox: { borderRadius: 16, padding: 24, elevation: 2, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 5 },
   lyricsText: { fontSize: 16, lineHeight: 28, fontWeight: '500', fontStyle: 'italic', textAlign: 'center' },
   bottomBar: {

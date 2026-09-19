@@ -26,6 +26,7 @@ import {
   Layers
 } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import FirestoreService, { Sermon } from '../services/FirestoreService';
 
 const { width } = Dimensions.get('window');
@@ -77,12 +78,51 @@ const getCategoryColor = (cat: string) => {
 
 export default function SermonsScreen({ navigation }: any) {
   const { isDark, toggleTheme, colors } = useTheme();
+  const { t } = useLanguage();
   const [activeCategory, setActiveCategory] = useState('All');
   const [categoryList, setCategoryList] = useState<string[]>(ALL_CATEGORIES);
   const [sermons, setSermons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+
+  const getCategoryLabel = (cat: string) => {
+    if (!cat) return '';
+    const normalized = cat.trim().toLowerCase().replace(/['’]/g, '');
+    switch (normalized) {
+      case 'all':
+        return t('sermons.categories.all');
+      case 'bible study':
+        return t('sermons.categories.bibleStudy');
+      case 'womens fasting prayer':
+      case 'women fasting prayer':
+        return t('sermons.categories.womensFastingPrayer');
+      case 'second saturday prayer':
+        return t('sermons.categories.secondSaturdayPrayer');
+      case 'sunday service':
+        return t('sermons.categories.sundayService');
+      case 'all-night prayer':
+      case 'all night prayer':
+        return t('sermons.categories.allNightPrayer');
+      case 'youth meeting':
+        return t('sermons.categories.youthMeeting');
+      case 'revival meeting':
+        return t('sermons.categories.revivalMeeting');
+      case 'special messages':
+      case 'special message':
+        return t('sermons.categories.specialMessages');
+      case 'shorts':
+      case 'short':
+        return t('sermons.categories.shorts');
+      case 'testimonies':
+      case 'testimony':
+        return t('sermons.categories.testimonies');
+      case 'uncategorized':
+        return t('sermons.categories.uncategorized');
+      default:
+        return cat;
+    }
+  };
 
   const fetchSermons = async () => {
     try {
@@ -211,7 +251,7 @@ export default function SermonsScreen({ navigation }: any) {
           {item.title}{item.titleTelugu ? ` · ${item.titleTelugu}` : ''}
         </Text>
         <Text style={[styles.scMeta, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-          {item.pastor || 'Pastor'} · {item.date || 'N/A'}{item.duration && item.duration !== 'N/A' ? ` · ${item.duration}` : ''}
+          {item.pastor || t('sermons.pastor')} · {item.date || 'N/A'}{item.duration && item.duration !== 'N/A' ? ` · ${item.duration}` : ''}
         </Text>
         {item.scripture ? (
           <View style={styles.scriptureTag}>
@@ -228,6 +268,7 @@ export default function SermonsScreen({ navigation }: any) {
     const isCollapsed = collapsedSections[title];
     const color = getCategoryColor(title);
     const count = sections.find(s => s.title === title)?.data.length || 0;
+    const countLabel = count === 1 ? t('sermons.sermonCountSingular') : t('sermons.sermonsCountPlural');
     return (
       <TouchableOpacity
         style={[styles.sectionHeader, { borderLeftColor: color, backgroundColor: isDark ? '#1e293b' : '#f8fafc' }]}
@@ -235,8 +276,8 @@ export default function SermonsScreen({ navigation }: any) {
         activeOpacity={0.7}
       >
         <View style={{ flex: 1 }}>
-          <Text style={[styles.sectionTitle, { color: isDark ? '#f8fafc' : color }]}>{title}</Text>
-          <Text style={[styles.sectionCount, { color: isDark ? '#94a3b8' : '#94a3b8' }]}>{count} sermon{count !== 1 ? 's' : ''}</Text>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#f8fafc' : color }]}>{getCategoryLabel(title)}</Text>
+          <Text style={[styles.sectionCount, { color: isDark ? '#94a3b8' : '#94a3b8' }]}>{count} {countLabel}</Text>
         </View>
         {isCollapsed
           ? <ChevronRight size={18} color={isDark ? '#f8fafc' : color} />
@@ -250,7 +291,7 @@ export default function SermonsScreen({ navigation }: any) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#0f172a' : colors.primary }]}>
         <ActivityIndicator size="large" color={colors.gold} />
-        <Text style={styles.loadingText}>Loading Sermons...</Text>
+        <Text style={styles.loadingText}>{t('common.loading')}</Text>
       </View>
     );
   }
@@ -272,8 +313,7 @@ export default function SermonsScreen({ navigation }: any) {
         
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
           <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
-            <Text style={styles.headerTitle}>Sermons</Text>
-            <Text style={styles.headerSub}>Watch & Listen</Text>
+            <Text style={styles.headerTitle}>{t('sermons.title')}</Text>
           </View>
         </View>
         
@@ -293,7 +333,7 @@ export default function SermonsScreen({ navigation }: any) {
               ]}
               onPress={() => setActiveCategory(cat)}
             >
-              <Text style={[styles.pillText, { color: isDark ? '#94a3b8' : '#64748b' }, activeCategory === cat && { color: '#fff' }]}>{cat}</Text>
+              <Text style={[styles.pillText, { color: isDark ? '#94a3b8' : '#64748b' }, activeCategory === cat && { color: '#fff' }]}>{getCategoryLabel(cat)}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -308,8 +348,8 @@ export default function SermonsScreen({ navigation }: any) {
         {sections.length === 0 ? (
           <View style={styles.emptyState}>
             <Layers size={48} color={isDark ? '#334155' : '#cbd5e1'} />
-            <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>No sermons found</Text>
-            <Text style={[styles.emptySub, { color: isDark ? '#475569' : '#94a3b8' }]}>Pull down to refresh</Text>
+            <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>{t('sermons.noSermonsFound')}</Text>
+            <Text style={[styles.emptySub, { color: isDark ? '#475569' : '#94a3b8' }]}>{t('sermons.pullToRefresh')}</Text>
           </View>
         ) : (
           sections.map(section => {

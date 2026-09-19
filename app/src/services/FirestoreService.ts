@@ -97,9 +97,22 @@ export interface WorshipSong {
   id: string;
   title: string;
   titleTe?: string;
+  titleEn?: string;
+  titleHi?: string;
+  titleTa?: string;
+  titleMr?: string;
+  titleMl?: string;
+  titleKn?: string;
   artist?: string; // made optional
   key?: string; // made optional
   lyrics?: string;
+  lyricsTe?: string;
+  lyricsEn?: string;
+  lyricsHi?: string;
+  lyricsTa?: string;
+  lyricsMr?: string;
+  lyricsMl?: string;
+  lyricsKn?: string;
   category?: string;
   youtubeId?: string;
   isThemeSong?: boolean;
@@ -107,6 +120,7 @@ export interface WorshipSong {
   overridesMasterSongId?: string;
   isHidden?: boolean;
   isChurchOwn?: boolean;
+  translations?: Record<string, { title?: string; lyrics?: string }>;
 }
 
 export interface ScheduleEvent {

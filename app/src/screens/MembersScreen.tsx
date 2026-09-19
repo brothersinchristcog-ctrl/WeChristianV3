@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -6,33 +6,35 @@ import {
   ScrollView, 
   TouchableOpacity, 
   ActivityIndicator, 
-  StatusBar,
-  Platform,
-  Dimensions,
-  Linking,
-  Alert,
-  TextInput,
-  Modal
+  StatusBar, 
+  Platform, 
+  Dimensions, 
+  Linking, 
+  Alert, 
+  TextInput, 
+  Modal 
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Users, 
-  ArrowLeft,
-  ChevronLeft,
-  ChevronDown,
-  Phone,
-  Mail,
-  Calendar,
-  UserCheck,
-  Plus,
-  X,
-  Calendar as CalendarIcon,
-  Edit3,
-  Trash2
+  ArrowLeft, 
+  ChevronLeft, 
+  ChevronDown, 
+  Phone, 
+  Mail, 
+  Calendar, 
+  UserCheck, 
+  Plus, 
+  X, 
+  Calendar as CalendarIcon, 
+  Edit3, 
+  Trash2,
+  Search
 } from 'lucide-react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import FirestoreService from '../services/FirestoreService';
 
 const { width } = Dimensions.get('window');
@@ -51,15 +53,17 @@ const KID_RELATIONS = ['Son', 'Daughter', 'Grandson', 'Granddaughter', 'Nephew',
 export default function MembersScreen({ navigation }: any) {
   const { member } = useAuth();
   const { isDark } = useTheme();
+  const { t, language } = useLanguage();
   const [relatedContacts, setRelatedContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   
   const [newMember, setNewMember] = useState<any>({
     firstName: '',
     lastName: '',
-    relation: 'Husband', // picklist
+    relation: 'Husband',
     gender: 'Male',
     dob: '',
     anniversaryDate: '',
@@ -69,7 +73,7 @@ export default function MembersScreen({ navigation }: any) {
     isKidMember: false
   });
   const [showSuccess, setShowSuccess] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('Family member added successfully.');
+  const [successMessage, setSuccessMessage] = useState('');
   const [showRelationPicker, setShowRelationPicker] = useState(false);
   const [datePickerType, setDatePickerType] = useState<'birthdate' | 'anniversary' | null>(null);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -80,13 +84,52 @@ export default function MembersScreen({ navigation }: any) {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  const getRelationLabel = (relation: string): string => {
+    if (!relation) return '';
+    const keyMap: Record<string, string> = {
+      'husband': 'husband',
+      'wife': 'wife',
+      'father': 'father',
+      'mother': 'mother',
+      'son': 'son',
+      'daughter': 'daughter',
+      'son-in-law': 'sonInLaw',
+      'daughter-in-law': 'daughterInLaw',
+      'brother': 'brother',
+      'sister': 'sister',
+      'father-in-law': 'fatherInLaw',
+      'mother-in-law': 'motherInLaw',
+      'brother-in-law': 'brotherInLaw',
+      'sister-in-law': 'sisterInLaw',
+      'grandfather': 'grandfather',
+      'grandmother': 'grandmother',
+      'grandson': 'grandson',
+      'granddaughter': 'granddaughter',
+      'uncle': 'uncle',
+      'aunt': 'aunt',
+      'nephew': 'nephew',
+      'niece': 'niece',
+      'cousin': 'cousin',
+      'guardian': 'guardian',
+      'other': 'other',
+      'parent': 'parent',
+      'child': 'child',
+    };
+    const normalized = relation.toLowerCase().trim();
+    const transKey = keyMap[normalized];
+    if (transKey) {
+      const res = t(`members.relations.${transKey}`);
+      if (res && res !== `members.relations.${transKey}`) return res;
+    }
+    return relation;
+  };
+
   const fetchFamily = async () => {
     if (!member) {
       setLoading(false);
       return;
     }
     
-    // Default to the member's own ID as the household group ID if they don't have one
     const targetAccountId = member.accountId || member.id;
     
     try {
@@ -98,8 +141,6 @@ export default function MembersScreen({ navigation }: any) {
       
       const contacts = await FirestoreService.getRelatedContacts(churchId, targetAccountId);
       
-      // If the member isn't in the related contacts list because they don't have accountId set yet,
-      // add them manually to the display list so they see themselves.
       const selfExists = contacts.some((c: any) => c.id === member.id || c.Id === member.id);
       if (!selfExists) {
         contacts.unshift({
@@ -116,7 +157,7 @@ export default function MembersScreen({ navigation }: any) {
       setRelatedContacts(contacts);
     } catch (err) {
       console.error('Error fetching household members:', err);
-      Alert.alert('Error', 'Failed to retrieve household members.');
+      Alert.alert(t('common.error'), t('members.fetchError'));
     } finally {
       setLoading(false);
     }
@@ -126,7 +167,6 @@ export default function MembersScreen({ navigation }: any) {
     fetchFamily();
   }, [member]);
 
-  // Compute available parent phones from the current household
   const getParentPhones = () => {
     const parentRelations = ['Father', 'Mother', 'Husband', 'Wife', 'Guardian'];
     const parents = relatedContacts.filter((c: any) => {
@@ -135,26 +175,24 @@ export default function MembersScreen({ navigation }: any) {
       return (parentRelations.includes(rel) || c.id === member?.id) && phone.length >= 10;
     });
     return parents.map((c: any) => ({
-      name: (`${c.FirstName || c.firstName || ''} ${c.LastName || c.lastName || ''}`.trim()) || c.Name || c.name || 'Parent',
-      relation: c.relation || c.Relation || 'Parent',
+      name: (`${c.FirstName || c.firstName || ''} ${c.LastName || c.lastName || ''}`.trim()) || c.Name || c.name || t('members.relations.parent'),
+      relation: c.relation || c.Relation || t('members.relations.parent'),
       phone: (c.phone || c.Phone || c.MobilePhone || '').replace(/\D/g, '').slice(-10)
     }));
   };
 
   const handleAddMember = async () => {
     if (!newMember.firstName || !newMember.lastName) {
-      Alert.alert('Validation', 'First name and Last name are required.');
+      Alert.alert(t('members.validation'), t('members.nameRequired'));
       return;
     }
 
     const isKid = KID_RELATIONS.includes(newMember.relation);
 
-    // For kids, phone is optional — skip duplicate check if phone is empty
     if (newMember.phone) {
       const digitsOnly = newMember.phone.replace(/\D/g, '');
       if (digitsOnly.length >= 10) {
         const last10 = digitsOnly.slice(-10);
-        // Instant client-side check against currently loaded household members
         const isDuplicateLocal = relatedContacts.some(c => {
           if (editingMemberId && (c.id === editingMemberId || c.Id === editingMemberId)) return false;
           const cPhone = (c.phone || c.Phone || c.MobilePhone || '').replace(/\D/g, '');
@@ -162,14 +200,13 @@ export default function MembersScreen({ navigation }: any) {
         });
 
         if (isDuplicateLocal) {
-          setErrorMessage('This mobile number is already registered. Duplicate members are not allowed.');
+          setErrorMessage(t('members.duplicateMemberMsg'));
           setShowErrorModal(true);
           return;
         }
       }
     }
 
-    // For kids without a phone, auto-assign referencePhone from parent if available
     if (isKid && !newMember.phone && !newMember.referencePhone) {
       const parents = getParentPhones();
       if (parents.length > 0) {
@@ -182,27 +219,24 @@ export default function MembersScreen({ navigation }: any) {
       const churchId = member!.churchId || await FirestoreService.getChurchId();
       const targetAccountId = member!.accountId || member!.id;
       
-      // If the member themselves doesn't have an accountId yet, update their profile
       if (!member!.accountId && churchId) {
         await FirestoreService.updateMemberProfile(churchId, member!.id, { accountId: targetAccountId });
-        member!.accountId = targetAccountId; // Update local state tentatively
+        member!.accountId = targetAccountId;
       }
       
-      // Build the member data object, including referencePhone for kids
-      const isKid = KID_RELATIONS.includes(newMember.relation);
+      const isKidMember = KID_RELATIONS.includes(newMember.relation);
       const memberData = {
         ...newMember,
-        isKidMember: isKid,
-        // If kid has no phone, ensure phone is stored as empty string (not undefined)
+        isKidMember,
         phone: newMember.phone || ''
       };
 
       if (editingMemberId) {
         await FirestoreService.updateMemberProfile(churchId!, editingMemberId, memberData);
-        setSuccessMessage('Family member updated successfully.');
+        setSuccessMessage(t('members.memberUpdatedSuccess'));
       } else {
         await FirestoreService.addFamilyMember(churchId!, targetAccountId, memberData);
-        setSuccessMessage('Family member added successfully.');
+        setSuccessMessage(t('members.memberAddedSuccess'));
       }
       setShowSuccess(true);
       setShowAddModal(false);
@@ -213,10 +247,10 @@ export default function MembersScreen({ navigation }: any) {
       fetchFamily();
     } catch (err: any) {
       if (err.message === 'DUPLICATE_MEMBER') {
-        setErrorMessage('This mobile number is already registered. Duplicate members are not allowed.');
+        setErrorMessage(t('members.duplicateMemberMsg'));
         setShowErrorModal(true);
       } else {
-        Alert.alert('Error', err.message || 'Failed to add family member.');
+        Alert.alert(t('common.error'), err.message || t('members.addError'));
       }
     } finally {
       setSubmitting(false);
@@ -236,12 +270,12 @@ export default function MembersScreen({ navigation }: any) {
       const churchId = member?.churchId || await FirestoreService.getChurchId();
       if (churchId) {
         await FirestoreService.deleteMemberPermanent(churchId, memberToDelete.id);
-        setSuccessMessage('Family member deleted successfully.');
+        setSuccessMessage(t('members.memberDeletedSuccess'));
         setShowSuccess(true);
         fetchFamily();
       }
     } catch (err: any) {
-      Alert.alert('Error', 'Failed to delete member.');
+      Alert.alert(t('common.error'), t('members.deleteError'));
       setLoading(false);
     } finally {
       setMemberToDelete(null);
@@ -251,14 +285,14 @@ export default function MembersScreen({ navigation }: any) {
   const handleMakeCall = (phoneNumber: string) => {
     if (!phoneNumber) return;
     Linking.openURL(`tel:${phoneNumber}`).catch(() => {
-      Alert.alert('Error', 'Unable to initiate phone call.');
+      Alert.alert(t('common.error'), t('members.callError'));
     });
   };
 
   const handleSendEmail = (email: string) => {
     if (!email) return;
     Linking.openURL(`mailto:${email}`).catch(() => {
-      Alert.alert('Error', 'Unable to open email client.');
+      Alert.alert(t('common.error'), t('members.mailError'));
     });
   };
 
@@ -268,6 +302,18 @@ export default function MembersScreen({ navigation }: any) {
     if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     return name[0].toUpperCase();
   };
+
+  const filteredContacts = useMemo(() => {
+    if (!searchQuery.trim()) return relatedContacts;
+    const q = searchQuery.toLowerCase().trim();
+    return relatedContacts.filter(c => {
+      const name = ((`${c.FirstName || c.firstName || ''} ${c.LastName || c.lastName || ''}`.trim()) || c.Name || c.name || '').toLowerCase();
+      const rel = (c.relation || c.Relation || '').toLowerCase();
+      const locRel = getRelationLabel(c.relation || c.Relation || '').toLowerCase();
+      const phone = (c.phone || c.Phone || c.MobilePhone || '').replace(/\D/g, '');
+      return name.includes(q) || rel.includes(q) || locRel.includes(q) || phone.includes(q);
+    });
+  }, [relatedContacts, searchQuery, language]);
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
@@ -286,7 +332,7 @@ export default function MembersScreen({ navigation }: any) {
         
         <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
           <View style={styles.headerCenter} pointerEvents="box-none">
-            <Text style={styles.headerTitle}>Household Directory</Text>
+            <Text style={styles.headerTitle}>{t('members.title')}</Text>
           </View>
         </View>
 
@@ -304,21 +350,40 @@ export default function MembersScreen({ navigation }: any) {
         ) : <View style={{ width: 32 }} />}
       </LinearGradient>
 
+      {/* ── Optional Search Bar when multiple members exist ── */}
+      {!loading && member && relatedContacts.length > 2 && (
+        <View style={[styles.searchBarContainer, { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#e2e8f0' }]}>
+          <Search size={18} color={isDark ? '#94a3b8' : '#64748b'} />
+          <TextInput
+            placeholder={t('members.searchPlaceholder')}
+            placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+            style={[styles.searchInput, { color: isDark ? '#fff' : '#0f172a' }]}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <X size={16} color={isDark ? '#94a3b8' : '#64748b'} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
       {/* ── Main Body ── */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FCD34D" />
           <Text style={[styles.loadingText, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-            Loading family directory...
+            {t('members.loading')}
           </Text>
         </View>
       ) : !member ? (
         <View style={styles.emptyContainer}>
           <Text style={[styles.emptyText, { color: isDark ? '#fff' : '#1a2d5a' }]}>
-            Sign In Required
+            {t('members.signInRequired')}
           </Text>
           <Text style={styles.emptySubText}>
-            Please sign in to view your household details.
+            {t('members.signInPrompt')}
           </Text>
         </View>
       ) : (
@@ -326,11 +391,17 @@ export default function MembersScreen({ navigation }: any) {
           {relatedContacts.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptySubText}>
-                No household contacts found linked to your account.
+                {t('members.noContactsFound')}
+              </Text>
+            </View>
+          ) : filteredContacts.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptySubText}>
+                {t('members.noMembersFound')}
               </Text>
             </View>
           ) : (
-            relatedContacts.map((c, index) => {
+            filteredContacts.map((c, index) => {
               const contactId = c.id || c.Id;
               const isCurrentUser = contactId === member.id;
               const contactPhone = c.Phone || c.MobilePhone || c.phone;
@@ -352,6 +423,10 @@ export default function MembersScreen({ navigation }: any) {
               }
               
               const contactName = (`${c.FirstName || c.firstName || ''} ${c.LastName || c.lastName || ''}`.trim()) || c.Name || c.name || 'Unknown';
+              const rawRole = (c.userType || c.User_Type__c || 'Member').toString();
+              const displayRole = rawRole.toLowerCase() === 'member' ? t('members.memberRole') : (rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase());
+              const displayRelation = getRelationLabel(c.relation || c.Relation || '');
+
               return (
                 <View 
                   key={`${contactId || 'member'}-${index}`} 
@@ -376,13 +451,20 @@ export default function MembersScreen({ navigation }: any) {
                         </Text>
                         {isCurrentUser && (
                           <View style={styles.selfBadge}>
-                            <Text style={styles.selfBadgeTxt}>You</Text>
+                            <Text style={styles.selfBadgeTxt}>{t('members.you')}</Text>
                           </View>
                         )}
                       </View>
 
-                      <View style={styles.roleBadge}>
-                        <Text style={styles.roleBadgeTxt}>{(c.userType || c.User_Type__c || 'Member').toString().charAt(0).toUpperCase() + (c.userType || c.User_Type__c || 'Member').toString().slice(1).toLowerCase()}</Text>
+                      <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center', marginTop: 6 }}>
+                        <View style={styles.roleBadge}>
+                          <Text style={styles.roleBadgeTxt}>{displayRole}</Text>
+                        </View>
+                        {displayRelation ? (
+                          <View style={[styles.roleBadge, { backgroundColor: isDark ? '#1e3a5f' : '#f0fdf4' }]}>
+                            <Text style={[styles.roleBadgeTxt, { color: isDark ? '#60a5fa' : '#15803d' }]}>{displayRelation}</Text>
+                          </View>
+                        ) : null}
                       </View>
                     </View>
 
@@ -431,7 +513,7 @@ export default function MembersScreen({ navigation }: any) {
                           <Phone size={14} color="#15803D" />
                         </View>
                         <View>
-                          <Text style={styles.detailLabel}>Phone Number</Text>
+                          <Text style={styles.detailLabel}>{t('members.phoneNumber')}</Text>
                           <Text style={[styles.detailValue, { color: isDark ? '#cbd5e1' : '#334155' }]}>
                             {contactPhone}
                           </Text>
@@ -446,9 +528,9 @@ export default function MembersScreen({ navigation }: any) {
                           <Phone size={14} color="#b45309" />
                         </View>
                         <View>
-                          <Text style={styles.detailLabel}>📞 Parent Reference</Text>
+                          <Text style={styles.detailLabel}>{t('members.parentReference')}</Text>
                           <Text style={[styles.detailValue, { color: isDark ? '#fbbf24' : '#b45309' }]}>
-                            {contactRefPhone} (Parent Ref)
+                            {contactRefPhone} {t('members.parentRefSuffix')}
                           </Text>
                         </View>
                       </TouchableOpacity>
@@ -463,7 +545,7 @@ export default function MembersScreen({ navigation }: any) {
                           <Mail size={14} color="#0369a1" />
                         </View>
                         <View>
-                          <Text style={styles.detailLabel}>Email Address</Text>
+                          <Text style={styles.detailLabel}>{t('members.emailAddress')}</Text>
                           <Text style={[styles.detailValue, { color: isDark ? '#cbd5e1' : '#334155' }]}>
                             {contactEmail}
                           </Text>
@@ -477,9 +559,9 @@ export default function MembersScreen({ navigation }: any) {
                           <Calendar size={14} color="#b45309" />
                         </View>
                         <View>
-                          <Text style={styles.detailLabel}>Registered Since</Text>
+                          <Text style={styles.detailLabel}>{t('members.registeredSince')}</Text>
                           <Text style={[styles.detailValue, { color: isDark ? '#cbd5e1' : '#334155' }]}>
-                            {contactDate.toLocaleDateString('en-US', {
+                            {contactDate.toLocaleDateString(language === 'te' ? 'te-IN' : language === 'hi' ? 'hi-IN' : language === 'ta' ? 'ta-IN' : 'en-US', {
                               month: 'long',
                               year: 'numeric'
                             })}
@@ -502,13 +584,13 @@ export default function MembersScreen({ navigation }: any) {
             <View style={styles.successIconCircle}>
               <UserCheck size={36} color="#15803D" />
             </View>
-            <Text style={[styles.successTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>Success!</Text>
+            <Text style={[styles.successTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>{t('common.success')}</Text>
             <Text style={styles.successSub}>{successMessage}</Text>
             <TouchableOpacity 
               style={styles.successBtn} 
               onPress={() => setShowSuccess(false)}
             >
-              <Text style={styles.successBtnTxt}>Done</Text>
+              <Text style={styles.successBtnTxt}>{t('common.done')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -521,13 +603,13 @@ export default function MembersScreen({ navigation }: any) {
             <View style={[styles.successIconCircle, { backgroundColor: '#fee2e2' }]}>
               <X size={36} color="#ef4444" />
             </View>
-            <Text style={[styles.successTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>Duplicate Member</Text>
+            <Text style={[styles.successTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>{t('members.duplicateMemberTitle')}</Text>
             <Text style={styles.successSub}>{errorMessage}</Text>
             <TouchableOpacity 
               style={[styles.successBtn, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]} 
               onPress={() => setShowErrorModal(false)}
             >
-              <Text style={[styles.successBtnTxt, { color: isDark ? '#fff' : '#334155' }]}>Close</Text>
+              <Text style={[styles.successBtnTxt, { color: isDark ? '#fff' : '#334155' }]}>{t('common.close')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -540,21 +622,21 @@ export default function MembersScreen({ navigation }: any) {
             <View style={[styles.successIconCircle, { backgroundColor: '#fee2e2' }]}>
               <Trash2 size={36} color="#ef4444" />
             </View>
-            <Text style={[styles.successTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>Delete Member?</Text>
-            <Text style={styles.successSub}>Are you sure you want to permanently delete {memberToDelete.name} from this household?</Text>
+            <Text style={[styles.successTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>{t('members.deleteMemberTitle')}</Text>
+            <Text style={styles.successSub}>{t('members.deleteMemberConfirm', { name: memberToDelete.name })}</Text>
             
             <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
               <TouchableOpacity 
                 style={[styles.successBtn, { flex: 1, width: 'auto', paddingHorizontal: 0, backgroundColor: isDark ? '#334155' : '#f1f5f9' }]} 
                 onPress={() => setShowDeleteConfirm(false)}
               >
-                <Text style={[styles.successBtnTxt, { color: isDark ? '#fff' : '#334155' }]}>Cancel</Text>
+                <Text style={[styles.successBtnTxt, { color: isDark ? '#fff' : '#334155' }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.successBtn, { flex: 1, width: 'auto', paddingHorizontal: 0, backgroundColor: '#ef4444' }]} 
                 onPress={confirmDeleteMember}
               >
-                <Text style={[styles.successBtnTxt, { color: '#fff' }]}>Delete</Text>
+                <Text style={[styles.successBtnTxt, { color: '#fff' }]}>{t('common.delete')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -566,7 +648,9 @@ export default function MembersScreen({ navigation }: any) {
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>{editingMemberId ? 'Edit Member' : 'Add New Member'}</Text>
+              <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>
+                {editingMemberId ? t('members.editMember') : t('members.addNewMember')}
+              </Text>
               <TouchableOpacity onPress={() => setShowAddModal(false)}>
                 <X size={24} color="#94a3b8" />
               </TouchableOpacity>
@@ -574,45 +658,45 @@ export default function MembersScreen({ navigation }: any) {
             
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>First Name *</Text>
+                <Text style={styles.inputLabel}>{t('members.firstName')}</Text>
                 <TextInput 
                   style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
-                  placeholder="e.g. John"
+                  placeholder={t('members.firstNamePlaceholder')}
                   placeholderTextColor="#94a3b8"
                   value={newMember.firstName}
-                  onChangeText={(t) => setNewMember({...newMember, firstName: t})}
+                  onChangeText={(tVal) => setNewMember({...newMember, firstName: tVal})}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Last Name *</Text>
+                <Text style={styles.inputLabel}>{t('members.lastName')}</Text>
                 <TextInput 
                   style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
-                  placeholder="e.g. Doe"
+                  placeholder={t('members.lastNamePlaceholder')}
                   placeholderTextColor="#94a3b8"
                   value={newMember.lastName}
-                  onChangeText={(t) => setNewMember({...newMember, lastName: t})}
+                  onChangeText={(tVal) => setNewMember({...newMember, lastName: tVal})}
                 />
               </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>
-                  Mobile Number{KID_RELATIONS.includes(newMember.relation) ? ' (Optional for kids)' : ''}
+                  {KID_RELATIONS.includes(newMember.relation) ? t('members.mobileNumberKids') : t('members.mobileNumber')}
                 </Text>
                 <TextInput 
                   style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
-                  placeholder={KID_RELATIONS.includes(newMember.relation) ? "Leave empty to use parent's number" : "e.g. 9988776655"}
+                  placeholder={KID_RELATIONS.includes(newMember.relation) ? t('members.phoneKidsPlaceholder') : t('members.phonePlaceholder')}
                   placeholderTextColor="#94a3b8"
                   keyboardType="phone-pad"
                   value={newMember.phone}
-                  onChangeText={(t) => setNewMember({...newMember, phone: t})}
+                  onChangeText={(tVal) => setNewMember({...newMember, phone: tVal})}
                 />
               </View>
 
               {/* Reference Phone — shown for kid relations when phone is empty */}
               {KID_RELATIONS.includes(newMember.relation) && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Parent Reference Number</Text>
+                  <Text style={styles.inputLabel}>{t('members.parentReferenceNumber')}</Text>
                   {getParentPhones().length > 0 ? (
                     <View>
                       {getParentPhones().map((p, i) => (
@@ -629,7 +713,7 @@ export default function MembersScreen({ navigation }: any) {
                           onPress={() => setNewMember({...newMember, referencePhone: p.phone})}
                         >
                           <Text style={{ color: isDark ? '#cbd5e1' : '#334155', fontSize: 14, fontWeight: '600' }}>
-                            {p.name} ({p.relation}) — {p.phone}
+                            {p.name} ({getRelationLabel(p.relation)}) — {p.phone}
                           </Text>
                           {newMember.referencePhone === p.phone && (
                             <Text style={{ color: '#1a2d5a', fontWeight: '800', fontSize: 12 }}>✓</Text>
@@ -637,50 +721,50 @@ export default function MembersScreen({ navigation }: any) {
                         </TouchableOpacity>
                       ))}
                       <Text style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-                        📞 Birthday wishes will be sent to this number
+                        {t('members.birthdayWishesNote')}
                       </Text>
                     </View>
                   ) : (
                     <TextInput 
                       style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
-                      placeholder="Parent/Guardian mobile number"
+                      placeholder={t('members.parentPhonePlaceholder')}
                       placeholderTextColor="#94a3b8"
                       keyboardType="phone-pad"
                       value={newMember.referencePhone}
-                      onChangeText={(t) => setNewMember({...newMember, referencePhone: t})}
+                      onChangeText={(tVal) => setNewMember({...newMember, referencePhone: tVal})}
                     />
                   )}
                 </View>
               )}
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Email Address</Text>
+                <Text style={styles.inputLabel}>{t('members.emailAddress')}</Text>
                 <TextInput 
                   style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
-                  placeholder="e.g. john@example.com"
+                  placeholder={t('members.emailPlaceholder')}
                   placeholderTextColor="#94a3b8"
                   keyboardType="email-address"
                   autoCapitalize="none"
                   value={newMember.email}
-                  onChangeText={(t) => setNewMember({...newMember, email: t})}
+                  onChangeText={(tVal) => setNewMember({...newMember, email: tVal})}
                 />
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Relation *</Text>
+                <Text style={styles.inputLabel}>{t('members.relation')}</Text>
                 <TouchableOpacity
                   style={[styles.input, styles.dateInput, { borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
                   onPress={() => setShowRelationPicker(true)}
                 >
                   <Text style={{ color: isDark ? '#fff' : '#1a2d5a', fontSize: 16, fontWeight: '600' }}>
-                    {newMember.relation || 'Select Relation'}
+                    {getRelationLabel(newMember.relation) || t('members.selectRelation')}
                   </Text>
                   <ChevronDown size={18} color="#94a3b8" />
                 </TouchableOpacity>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Gender</Text>
+                <Text style={styles.inputLabel}>{t('members.gender')}</Text>
                 <View style={styles.pillContainer}>
                   {['Male', 'Female'].map(gen => (
                     <TouchableOpacity 
@@ -688,20 +772,22 @@ export default function MembersScreen({ navigation }: any) {
                       style={[styles.pill, newMember.gender === gen && styles.pillActive]}
                       onPress={() => setNewMember({...newMember, gender: gen})}
                     >
-                      <Text style={[styles.pillText, newMember.gender === gen && styles.pillTextActive]}>{gen}</Text>
+                      <Text style={[styles.pillText, newMember.gender === gen && styles.pillTextActive]}>
+                        {gen === 'Male' ? t('members.male') : t('members.female')}
+                      </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Birthdate</Text>
+                <Text style={styles.inputLabel}>{t('members.birthdate')}</Text>
                 <TouchableOpacity 
                   style={[styles.input, styles.dateInput, { borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
                   onPress={() => setDatePickerType('birthdate')}
                 >
                   <Text style={{ color: newMember.dob ? (isDark ? '#fff' : '#000') : '#94a3b8' }}>
-                    {newMember.dob || 'Select Birthdate'}
+                    {newMember.dob || t('members.selectBirthdate')}
                   </Text>
                   <CalendarIcon size={18} color="#94a3b8" />
                 </TouchableOpacity>
@@ -709,13 +795,13 @@ export default function MembersScreen({ navigation }: any) {
 
               {SPOUSE_RELATIONS.includes(newMember.relation) && (
                 <View style={styles.inputGroup}>
-                  <Text style={styles.inputLabel}>Anniversary Date</Text>
+                  <Text style={styles.inputLabel}>{t('members.anniversaryDate')}</Text>
                   <TouchableOpacity 
                     style={[styles.input, styles.dateInput, { borderColor: isDark ? '#334155' : '#e2e8f0', backgroundColor: isDark ? '#0f172a' : '#fff' }]}
                     onPress={() => setDatePickerType('anniversary')}
                   >
                     <Text style={{ color: newMember.anniversaryDate ? (isDark ? '#fff' : '#000') : '#94a3b8' }}>
-                      {newMember.anniversaryDate || 'Select Anniversary'}
+                      {newMember.anniversaryDate || t('members.selectAnniversary')}
                     </Text>
                     <CalendarIcon size={18} color="#94a3b8" />
                   </TouchableOpacity>
@@ -730,7 +816,7 @@ export default function MembersScreen({ navigation }: any) {
                 {submitting ? (
                   <ActivityIndicator color="#1a2d5a" />
                 ) : (
-                  <Text style={styles.submitBtnTxt}>{editingMemberId ? 'Save Changes' : 'Add Member'}</Text>
+                  <Text style={styles.submitBtnTxt}>{editingMemberId ? t('members.saveChanges') : t('members.addMember')}</Text>
                 )}
               </TouchableOpacity>
             </ScrollView>
@@ -752,7 +838,7 @@ export default function MembersScreen({ navigation }: any) {
         >
           <View style={[styles.pickerSheet, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
             <View style={styles.pickerHeader}>
-              <Text style={[styles.pickerTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>Select Relation</Text>
+              <Text style={[styles.pickerTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>{t('members.selectRelation')}</Text>
               <TouchableOpacity onPress={() => setShowRelationPicker(false)}>
                 <X size={22} color={isDark ? '#94a3b8' : '#64748b'} />
               </TouchableOpacity>
@@ -776,7 +862,7 @@ export default function MembersScreen({ navigation }: any) {
                     newMember.relation === option && styles.pickerOptionTxtActive,
                     { color: isDark && newMember.relation !== option ? '#cbd5e1' : undefined }
                   ]}>
-                    {option}
+                    {getRelationLabel(option)}
                   </Text>
                   {newMember.relation === option && (
                     <View style={styles.pickerCheck}>
@@ -842,6 +928,30 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 }
   },
 
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 4,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    height: 46,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1,
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '600',
+    paddingVertical: 6,
+  },
+
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },
   loadingText: { fontSize: 14, fontWeight: '600', marginTop: 12 },
 
@@ -889,8 +999,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#eff6ff', 
     paddingHorizontal: 8, 
     paddingVertical: 3, 
-    borderRadius: 6, 
-    marginTop: 6 
+    borderRadius: 6
   },
   roleBadgeTxt: { color: '#1e40af', fontSize: 11, fontWeight: '700' },
   

@@ -32,6 +32,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import FirestoreService, { WorshipSong } from '../services/FirestoreService';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import { SongLanguageHelper, CANONICAL_SONG_CATEGORIES } from '../services/SongLanguageHelper';
 import { CustomAlert } from '../components/CustomAlert';
 import SongDetailModal from '../components/SongDetailModal';
 
@@ -40,23 +42,11 @@ const { width, height } = Dimensions.get('window');
 
 const SONGBOOK_KEY = 'cog_my_songbook_ids';
 
-const CATEGORIES = [
-  'All',
-  'Stuthi Songs',
-  'Aradhana Songs',
-  'Offering Songs',
-  'Special Songs',
-  'Gospel Songs',
-  'Youth Songs',
-  'Christmas Songs',
-  'Easter Songs',
-  'Marriage Songs',
-  'Thanksgiving Songs',
-  'Other'
-];
+const CATEGORIES = CANONICAL_SONG_CATEGORIES;
 
 export default function SongsScreen({ navigation, route }: any) {
   const { isDark, toggleTheme } = useTheme();
+  const { language, t } = useLanguage();
 
   // ── Tabs ──────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<'browse' | 'songbook' | 'theme' | 'churchOwn'>('browse');
@@ -68,6 +58,7 @@ export default function SongsScreen({ navigation, route }: any) {
 
   // ── Category filter ───────────────────────────────
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedChurchCategory, setSelectedChurchCategory] = useState('All');
 
   // ── Search ────────────────────────────────────────
   const [search, setSearch] = useState('');
@@ -159,13 +150,14 @@ export default function SongsScreen({ navigation, route }: any) {
   // ── Toggle save/unsave song ───────────────────────
   const toggleSave = async (song: WorshipSong) => {
     const isAlreadySaved = savedIds.includes(song.id);
+    const songTitle = SongLanguageHelper.getSongTitle(song, language).primary || song.title;
     let newIds: string[];
     if (isAlreadySaved) {
       newIds = savedIds.filter(id => id !== song.id);
-      setAlertConfig({ visible: true, title: 'Song Removed', message: `"${song.title}" has been removed from your Songbook.`, type: 'info' });
+      setAlertConfig({ visible: true, title: t('songs.songRemoved'), message: t('songs.songRemovedMsg', { title: songTitle }), type: 'info' });
     } else {
       newIds = [...savedIds, song.id];
-      setAlertConfig({ visible: true, title: 'Song Saved Successfully', message: `"${song.title}" has been added to your Songbook.`, type: 'success' });
+      setAlertConfig({ visible: true, title: t('songs.songSaved'), message: t('songs.songSavedMsg', { title: songTitle }), type: 'success' });
     }
     setSavedIds(newIds);
     await AsyncStorage.setItem(SONGBOOK_KEY, JSON.stringify(newIds));
@@ -175,30 +167,76 @@ export default function SongsScreen({ navigation, route }: any) {
   const getSongCategories = (song: WorshipSong): string[] =>
     (song.category || 'Other').split(';').map(c => c.trim()).filter(Boolean);
 
+  // Search filter helper
+  const matchesSearch = (s: WorshipSong & { displayNumber?: number }, q: string): boolean => {
+    if (!q) return true;
+    const { primary, secondary } = SongLanguageHelper.getSongTitle(s, language);
+    return (
+      (s.displayNumber !== undefined && s.displayNumber.toString() === q) ||
+      primary.toLowerCase().includes(q) ||
+      (secondary ? secondary.toLowerCase().includes(q) : false) ||
+      (s.title && s.title.toLowerCase().includes(q)) ||
+      (s.titleTe ? s.titleTe.toLowerCase().includes(q) : false) ||
+      (s.titleEn ? s.titleEn.toLowerCase().includes(q) : false) ||
+      (s.titleHi ? s.titleHi.toLowerCase().includes(q) : false) ||
+      (s.titleTa ? s.titleTa.toLowerCase().includes(q) : false) ||
+      (s.titleMr ? s.titleMr.toLowerCase().includes(q) : false) ||
+      (s.titleMl ? s.titleMl.toLowerCase().includes(q) : false) ||
+      (s.titleKn ? s.titleKn.toLowerCase().includes(q) : false) ||
+      (s.artist ? s.artist.toLowerCase().includes(q) : false)
+    );
+  };
+
+  // Category matching helper (handling "Stuthi" / "Sthuthi" and "All" / "All Songs")
+  const categoryMatches = (songCats: string[], targetCat: string): boolean => {
+    if (targetCat === 'All' || targetCat === 'All Songs') return true;
+    const targetLower = targetCat.toLowerCase().trim();
+    return songCats.some(c => {
+      const cLower = c.toLowerCase().trim();
+      if (cLower === targetLower) return true;
+      if (targetLower.includes('stuthi') && cLower.includes('sthuthi')) return true;
+      if (targetLower.includes('sthuthi') && cLower.includes('stuthi')) return true;
+      return false;
+    });
+  };
+
+  // Church songs categories: Canonical categories + any custom categories defined in church songs
+  const churchCategories = React.useMemo(() => {
+    const extraCats = new Set<string>();
+    songs.filter(s => s.isChurchOwn).forEach(s => {
+      getSongCategories(s).forEach(c => {
+        const cLower = c.toLowerCase().trim();
+        const exists = CATEGORIES.some(cat => {
+          const catLower = cat.toLowerCase().trim();
+          return catLower === cLower || 
+            (catLower.includes('stuthi') && cLower.includes('sthuthi')) || 
+            (catLower.includes('sthuthi') && cLower.includes('stuthi'));
+        });
+        if (!exists) {
+          extraCats.add(c);
+        }
+      });
+    });
+    return [...CATEGORIES, ...Array.from(extraCats)];
+  }, [songs]);
+
   // ── Filtered songs ────────────────────────────────
   const browseBaseList = songs.filter(s => {
     const cats = getSongCategories(s);
     // Songs that are ONLY a Theme Song stay in Theme tab; others show in Browse too
     if (cats.length === 1 && cats[0] === 'Theme Songs') return false;
-    return selectedCategory === 'All' || cats.includes(selectedCategory);
+    return categoryMatches(cats, selectedCategory);
   });
 
   const filteredBrowse = browseBaseList.map((s, idx) => ({ ...s, displayNumber: idx + 1 })).filter(s => {
     const q = search.toLowerCase().trim();
-    if (!q) return true;
-    return s.displayNumber.toString() === q ||
-      s.title.toLowerCase().includes(q) ||
-      (s.titleTe && s.titleTe.toLowerCase().includes(q)) ||
-      (s.artist && s.artist.toLowerCase().includes(q));
+    return matchesSearch(s, q);
   });
 
   const savedSongsBase = songs.filter(s => savedIds.includes(s.id));
   const filteredSongbook = savedSongsBase.map((s, idx) => ({ ...s, displayNumber: idx + 1 })).filter(s => {
     const q = search.toLowerCase().trim();
-    if (!q) return true;
-    return s.displayNumber.toString() === q ||
-      s.title.toLowerCase().includes(q) ||
-      (s.titleTe && s.titleTe.toLowerCase().includes(q));
+    return matchesSearch(s, q);
   });
 
   const themeBaseList = songs.filter(s => {
@@ -207,25 +245,25 @@ export default function SongsScreen({ navigation, route }: any) {
   });
   const filteredTheme = themeBaseList.map((s, idx) => ({ ...s, displayNumber: idx + 1 })).filter(s => {
     const q = search.toLowerCase().trim();
-    if (!q) return true;
-    return s.displayNumber.toString() === q ||
-      s.title.toLowerCase().includes(q) ||
-      (s.titleTe && s.titleTe.toLowerCase().includes(q));
+    return matchesSearch(s, q);
   });
 
-  const churchOwnBaseList = songs.filter(s => s.isChurchOwn);
+  const churchOwnBaseList = songs.filter(s => {
+    if (!s.isChurchOwn) return false;
+    const cats = getSongCategories(s);
+    return categoryMatches(cats, selectedChurchCategory);
+  });
   const filteredChurchOwn = churchOwnBaseList.map((s, idx) => ({ ...s, displayNumber: idx + 1 })).filter(s => {
     const q = search.toLowerCase().trim();
-    if (!q) return true;
-    return s.displayNumber.toString() === q ||
-      s.title.toLowerCase().includes(q) ||
-      (s.titleTe && s.titleTe.toLowerCase().includes(q));
+    return matchesSearch(s, q);
   });
 
   // ── Song Card ─────────────────────────────────────
   const renderSongCard = ({ item, index }: { item: WorshipSong & { displayNumber?: number }; index: number }) => {
     const isSaved = savedIds.includes(item.id);
     const displayIndex = item.displayNumber !== undefined ? item.displayNumber : index + 1;
+    const { primary, secondary } = SongLanguageHelper.getSongTitle(item, language);
+    const subtitle = secondary ? `${secondary}${item.artist ? ` · ${item.artist}` : ''}` : (item.artist || '');
     return (
       <TouchableOpacity
         style={[styles.songCard, { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#e5e7eb' }]}
@@ -237,10 +275,12 @@ export default function SongsScreen({ navigation, route }: any) {
           <Text style={[styles.indexTxt, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{displayIndex}</Text>
         </View>
         <View style={styles.info}>
-          <Text style={[styles.title, { color: isDark ? '#fff' : '#111827' }]} numberOfLines={1}>{item.title}</Text>
-          <Text style={[styles.artist, { color: isDark ? '#94a3b8' : '#6B7280' }]} numberOfLines={1}>
-            {item.titleTe ? `${item.titleTe} · ` : ''}{item.artist}
-          </Text>
+          <Text style={[styles.title, { color: isDark ? '#fff' : '#111827' }]} numberOfLines={1}>{primary}</Text>
+          {subtitle ? (
+            <Text style={[styles.artist, { color: isDark ? '#94a3b8' : '#6B7280' }]} numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
         </View>
         {isSaved && <Bookmark size={14} color="#c0392b" style={{ marginRight: 4 }} />}
         <ChevronRight size={16} color={isDark ? '#475569' : '#D1D5DB'} />
@@ -277,7 +317,7 @@ export default function SongsScreen({ navigation, route }: any) {
         
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
           <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 24 }}>
-            <Text style={styles.pageTitle}>Worship & Praise</Text>
+            <Text style={styles.pageTitle}>{t('songs.worshipAndPraise')}</Text>
           </View>
         </View>
 
@@ -289,24 +329,30 @@ export default function SongsScreen({ navigation, route }: any) {
         <TouchableOpacity style={[styles.tab, activeTab === 'browse' && styles.tabActive]}
           onPress={() => { setActiveTab('browse'); setSearch(''); }}>
           <Music size={13} color={activeTab === 'browse' ? '#fff' : '#64748b'} />
-          <Text style={[styles.tabTxt, activeTab === 'browse' && styles.tabTxtActive]} numberOfLines={1}>All Songs</Text>
+          <Text style={[styles.tabTxt, activeTab === 'browse' && styles.tabTxtActive]} numberOfLines={1}>
+            {t('songs.allSongs')}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'churchOwn' && styles.tabActive]}
           onPress={() => { setActiveTab('churchOwn'); setSearch(''); }}>
           <Music size={13} color={activeTab === 'churchOwn' ? '#fff' : '#64748b'} />
-          <Text style={[styles.tabTxt, activeTab === 'churchOwn' && styles.tabTxtActive]} numberOfLines={1}>Church Songs</Text>
+          <Text style={[styles.tabTxt, activeTab === 'churchOwn' && styles.tabTxtActive]} numberOfLines={1}>
+            {t('songs.churchSongs')}
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'songbook' && styles.tabActive]}
           onPress={() => { setActiveTab('songbook'); setSearch(''); }}>
           <BookMarked size={13} color={activeTab === 'songbook' ? '#fff' : '#64748b'} />
           <Text style={[styles.tabTxt, activeTab === 'songbook' && styles.tabTxtActive]} numberOfLines={1}>
-            My Songs{savedIds.length > 0 ? ` (${savedIds.length})` : ''}
+            {t('songs.mySongs')}{savedIds.length > 0 ? ` (${savedIds.length})` : ''}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'theme' && styles.tabActive]}
           onPress={() => { setActiveTab('theme'); setSearch(''); }}>
           <Music size={13} color={activeTab === 'theme' ? '#fff' : '#64748b'} />
-          <Text style={[styles.tabTxt, activeTab === 'theme' && styles.tabTxtActive]} numberOfLines={1}>Theme</Text>
+          <Text style={[styles.tabTxt, activeTab === 'theme' && styles.tabTxtActive]} numberOfLines={1}>
+            {t('songs.theme')}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -320,7 +366,27 @@ export default function SongsScreen({ navigation, route }: any) {
               key={cat}
               style={[styles.chip, selectedCategory === cat && styles.chipActive]}
               onPress={() => setSelectedCategory(cat)}>
-              <Text style={[styles.chipTxt, selectedCategory === cat && styles.chipTxtActive]}>{cat}</Text>
+              <Text style={[styles.chipTxt, selectedCategory === cat && styles.chipTxtActive]}>
+                {SongLanguageHelper.getLocalizedCategory(cat, language)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
+
+      {/* ── Category Chips (Church Songs only) ── */}
+      {activeTab === 'churchOwn' && (
+        <ScrollView
+          horizontal showsHorizontalScrollIndicator={false}
+          style={styles.chipScroll} contentContainerStyle={{ paddingHorizontal: 16, gap: 8, alignItems: 'center' }}>
+          {churchCategories.map(cat => (
+            <TouchableOpacity
+              key={cat}
+              style={[styles.chip, selectedChurchCategory === cat && styles.chipActive]}
+              onPress={() => setSelectedChurchCategory(cat)}>
+              <Text style={[styles.chipTxt, selectedChurchCategory === cat && styles.chipTxtActive]}>
+                {SongLanguageHelper.getLocalizedCategory(cat, language)}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -330,7 +396,12 @@ export default function SongsScreen({ navigation, route }: any) {
       <View style={[styles.searchBar, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
         <Search size={18} color={isDark ? '#94a3b8' : '#64748b'} />
         <TextInput
-          placeholder={activeTab === 'browse' ? 'Search songs...' : activeTab === 'theme' ? 'Search theme songs...' : 'Search your songbook...'}
+          placeholder={
+            activeTab === 'browse' ? t('songs.searchSongs') :
+            activeTab === 'churchOwn' ? t('songs.searchChurchSongs') :
+            activeTab === 'theme' ? t('songs.searchThemeSongs') :
+            t('songs.searchSongbook')
+          }
           placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
           style={[styles.searchInput, { color: isDark ? '#fff' : '#0f172a' }]}
           value={search} onChangeText={setSearch}
@@ -344,11 +415,11 @@ export default function SongsScreen({ navigation, route }: any) {
       </View>
 
       {/* ── Long Press hint ── */}
-      {activeTab === 'browse' && (
-        <Text style={styles.hint}>💡 Long press a song to add it to My Songbook</Text>
+      {(activeTab === 'browse' || activeTab === 'churchOwn') && (
+        <Text style={styles.hint}>{t('songs.longPressSaveHint')}</Text>
       )}
       {activeTab === 'songbook' && (
-        <Text style={styles.hint}>💡 Long press a song to remove it from your Songbook</Text>
+        <Text style={styles.hint}>{t('songs.longPressRemoveHint')}</Text>
       )}
 
       {/* ── Browse List ── */}
@@ -372,14 +443,14 @@ export default function SongsScreen({ navigation, route }: any) {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />}
             ListHeaderComponent={
               <Text style={styles.secLbl}>
-                {selectedCategory === 'All' ? 'ALL SONGS' : selectedCategory.toUpperCase()} • {filteredBrowse.length} Songs
+                {selectedCategory === 'All' ? t('songs.allSongs').toUpperCase() : SongLanguageHelper.getLocalizedCategory(selectedCategory, language).toUpperCase()} • {t('songs.songsCount', { count: filteredBrowse.length })}
               </Text>
             }
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <AlertCircle size={44} color="#cbd5e1" />
-                <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>No songs found</Text>
-                <Text style={styles.emptySub}>Try a different category or search term</Text>
+                <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{t('songs.noSongsFound')}</Text>
+                <Text style={styles.emptySub}>{t('songs.tryDifferentCategory')}</Text>
               </View>
             }
           />
@@ -400,13 +471,13 @@ export default function SongsScreen({ navigation, route }: any) {
           windowSize={5}
           removeClippedSubviews={true}
           ListHeaderComponent={
-            <Text style={styles.secLbl}>MY SAVED SONGS • {filteredSongbook.length} Songs</Text>
+            <Text style={styles.secLbl}>{t('songs.mySavedSongs')} • {t('songs.songsCount', { count: filteredSongbook.length })}</Text>
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <BookMarked size={44} color="#cbd5e1" />
-              <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>Your Songbook is Empty</Text>
-              <Text style={styles.emptySub}>Long press any song in the Browse tab to save it here for offline viewing.</Text>
+              <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{t('songs.songbookEmpty')}</Text>
+              <Text style={styles.emptySub}>{t('songs.songbookEmptySub')}</Text>
             </View>
           }
         />
@@ -433,13 +504,13 @@ export default function SongsScreen({ navigation, route }: any) {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />}
             ListHeaderComponent={
               <Text style={styles.secLbl}>
-                THEME SONGS • {filteredTheme.length} Songs
+                {t('songs.themeSongs')} • {t('songs.songsCount', { count: filteredTheme.length })}
               </Text>
             }
             ListEmptyComponent={
               <View style={styles.emptyState}>
-                <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>No Theme Songs</Text>
-                <Text style={styles.emptySub}>There are currently no Theme Songs available.</Text>
+                <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{t('songs.noThemeSongs')}</Text>
+                <Text style={styles.emptySub}>{t('songs.noThemeSongsSub')}</Text>
               </View>
             }
           />
@@ -467,13 +538,21 @@ export default function SongsScreen({ navigation, route }: any) {
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1a2d5a" />}
             ListHeaderComponent={
               <Text style={styles.secLbl}>
-                CHURCH SONGS • {filteredChurchOwn.length} Songs
+                {(selectedChurchCategory === 'All' || selectedChurchCategory === 'All Songs'
+                  ? t('songs.allSongs')
+                  : SongLanguageHelper.getLocalizedCategory(selectedChurchCategory, language)
+                ).toUpperCase()} • {t('songs.songsCount', { count: filteredChurchOwn.length })}
               </Text>
             }
             ListEmptyComponent={
               <View style={styles.emptyState}>
-                <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>No Church Songs</Text>
-                <Text style={styles.emptySub}>Your church has not posted any custom songs yet.</Text>
+                <AlertCircle size={44} color="#cbd5e1" />
+                <Text style={[styles.emptyTitle, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>
+                  {songs.some(s => s.isChurchOwn) ? t('songs.noSongsFound') : t('songs.noChurchSongs')}
+                </Text>
+                <Text style={styles.emptySub}>
+                  {songs.some(s => s.isChurchOwn) ? t('songs.tryDifferentCategory') : t('songs.noChurchSongsSub')}
+                </Text>
               </View>
             }
           />

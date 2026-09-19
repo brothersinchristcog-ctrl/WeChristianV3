@@ -30,6 +30,7 @@ import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 const BRAND = '#1a2d5a';
@@ -39,6 +40,7 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
   const { activeChurch } = useChurch();
   const { user, member } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,7 +158,7 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
 
           {/* Title */}
           <Text style={styles.gradTitle} numberOfLines={2}>
-            {item.title || 'Online Meeting'}
+            {item.title || t('meetings.onlineMeeting')}
           </Text>
 
           {/* Subtitle / Topic */}
@@ -193,7 +195,7 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
             <View style={styles.gradInfoRow}>
               <User size={16} color="rgba(255,255,255,0.75)" />
               <Text style={styles.gradInfoText} numberOfLines={1}>
-                Host: {item.teacher}
+                {t('meetings.hostPrefix')} {item.teacher}
               </Text>
             </View>
           )}
@@ -206,7 +208,7 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
             >
               <Video size={15} color={gradStart} />
               <Text style={[styles.gradJoinText, { color: gradStart }]}>
-                {isLive ? 'Join Live' : 'Join'}
+                {isLive ? t('meetings.joinLive') : t('meetings.join')}
               </Text>
             </TouchableOpacity>
 
@@ -215,7 +217,7 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
                 style={styles.gradLeaveBtn}
                 onPress={() => navigation.navigate('OnlineMeetingDetail', { meeting: item })}
               >
-                <Text style={styles.gradLeaveText}>Details</Text>
+                <Text style={styles.gradLeaveText}>{t('meetings.details')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -225,9 +227,9 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
   };
 
   const tabs: { key: 'live' | 'upcoming' | 'completed'; label: string; count: number; color: string }[] = [
-    { key: 'live', label: 'Live', count: liveMeetings.length, color: LIVE_COLOR },
-    { key: 'upcoming', label: 'Upcoming', count: upcomingMeetings.length, color: BRAND },
-    { key: 'completed', label: 'Completed', count: pastMeetings.length, color: '#64748b' },
+    { key: 'live', label: t('meetings.tabs.live'), count: liveMeetings.length, color: LIVE_COLOR },
+    { key: 'upcoming', label: t('meetings.tabs.upcoming'), count: upcomingMeetings.length, color: BRAND },
+    { key: 'completed', label: t('meetings.tabs.completed'), count: pastMeetings.length, color: '#64748b' },
   ];
 
   return (
@@ -247,7 +249,7 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
         
         <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
           <View style={styles.headerCenter} pointerEvents="box-none">
-            <Text style={styles.headerTitle}>Online Bible Classes</Text>
+            <Text style={styles.headerTitle}>{t('meetings.title')}</Text>
           </View>
         </View>
       </LinearGradient>
@@ -277,13 +279,19 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
       ) : displayList.length === 0 ? (
         <View style={styles.center}>
           <Video size={52} color={textMuted} style={{ opacity: 0.35, marginBottom: 16 }} />
-          <Text style={[styles.emptyTitle, { color: textPrimary }]}>No {activeTab} meetings</Text>
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>
+            {activeTab === 'live'
+              ? t('meetings.empty.noLiveTitle')
+              : activeTab === 'upcoming'
+              ? t('meetings.empty.noUpcomingTitle')
+              : t('meetings.empty.noCompletedTitle')}
+          </Text>
           <Text style={[styles.emptySubtitle, { color: textMuted }]}>
             {activeTab === 'live'
-              ? 'No meetings are currently live.'
+              ? t('meetings.empty.noLiveSub')
               : activeTab === 'upcoming'
-              ? 'No upcoming meetings scheduled yet.'
-              : 'No completed meetings to show.'}
+              ? t('meetings.empty.noUpcomingSub')
+              : t('meetings.empty.noCompletedSub')}
           </Text>
         </View>
       ) : (

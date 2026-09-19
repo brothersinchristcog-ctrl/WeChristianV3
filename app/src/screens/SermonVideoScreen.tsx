@@ -28,6 +28,7 @@ import {
 } from 'lucide-react-native';
 import FirestoreService from '../services/FirestoreService';
 import { useChurch } from '../context/ChurchContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -47,6 +48,7 @@ export default function SermonVideoScreen({ navigation, route }: any) {
   const [playing, setPlaying] = useState(false);
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
   const { activeChurch } = useChurch();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
 
   // Initial load from params or fetch
@@ -134,8 +136,8 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           
           <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
             <View style={styles.headerCenter}>
-              <Text style={styles.pageTitle}>Sermon Video</Text>
-              <Text style={styles.pageSub}>ప్రసంగం</Text>
+              <Text style={styles.pageTitle}>{t('sermons.videoTitle')}</Text>
+              <Text style={styles.pageSub}>{t('sermons.title')}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -155,48 +157,48 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           ) : (
             <View style={{ height: width * 0.56, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111827' }}>
               <Video size={40} color="#374151" />
-              <Text style={{ color: '#9CA3AF', marginTop: 10, fontSize: 12, fontWeight: '600' }}>No Video Link Available</Text>
+              <Text style={{ color: '#9CA3AF', marginTop: 10, fontSize: 12, fontWeight: '600' }}>{t('sermons.noVideoLink')}</Text>
             </View>
           )}
         </View>
 
         {/* ── Video Details ── */}
         <View style={styles.videoDetails}>
-          <Text style={styles.videoTitle}>{activeVideo?.title || 'Sermon'}</Text>
+          <Text style={styles.videoTitle}>{activeVideo?.title || t('home.exploreSermons')}</Text>
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Play size={12} color="#c0392b" fill="#c0392b" />
-              <Text style={styles.metaTxt}>Featured Teaching</Text>
+              <Text style={styles.metaTxt}>{t('sermons.featuredTeaching')}</Text>
             </View>
             <View style={styles.metaItem}>
               <Clock size={12} color="#9CA3AF" />
-              <Text style={styles.metaTxt}>{activeVideo?.date || 'Today'}</Text>
+              <Text style={styles.metaTxt}>{activeVideo?.date || t('common.today')}</Text>
             </View>
           </View>
 
           <View style={styles.pastorCard}>
             <View style={styles.pastorAv}><Text style={styles.pastorAvTxt}>P</Text></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.pastorName}>{activeVideo?.pastor || 'Pastor'}</Text>
-              <Text style={styles.pastorRole}>Main Speaker</Text>
+              <Text style={styles.pastorName}>{activeVideo?.pastor || t('sermons.pastor')}</Text>
+              <Text style={styles.pastorRole}>{t('sermons.mainSpeaker')}</Text>
             </View>
             <TouchableOpacity style={styles.subBtn} onPress={handleSubscribe}>
-              <Text style={styles.subBtnTxt}>Subscribe</Text>
+              <Text style={styles.subBtnTxt}>{t('sermons.subscribe')}</Text>
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
             <Share2 size={16} color="#fff" />
-            <Text style={styles.shareBtnTxt}>Share this message</Text>
+            <Text style={styles.shareBtnTxt}>{t('sermons.shareThisMessage')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* ── Archive ── */}
-        <Text style={styles.secLbl}>PAST SERMONS</Text>
+        <Text style={styles.secLbl}>{t('sermons.pastSermons')}</Text>
         <View style={styles.archiveList}>
           {videos.filter(v => v.id !== activeVideo?.id).length === 0 ? (
             <View style={{ padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#9CA3AF', fontSize: 12, fontStyle: 'italic' }}>No other past video sermons available.</Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 12, fontStyle: 'italic' }}>{t('sermons.noPastSermons')}</Text>
             </View>
           ) : (
             videos.filter(v => v.id !== activeVideo?.id).map((video) => (

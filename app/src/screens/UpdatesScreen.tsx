@@ -14,11 +14,13 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { formatDateDisplay } from '../utils/DateUtils';
 import { useChurch } from '../context/ChurchContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.35;
 
 function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDelete: () => void }) {
+  const { t } = useLanguage();
   const translateX = React.useRef(new Animated.Value(0)).current;
 
   const panResponder = React.useRef(
@@ -85,7 +87,7 @@ function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDel
       <Animated.View style={[styles.swipeBackdrop, { opacity }]}>
         <View style={styles.swipeBackdropContent}>
           <Trash2 size={20} color="#fff" />
-          <Text style={styles.swipeBackdropTxt}>Deleted</Text>
+          <Text style={styles.swipeBackdropTxt}>{t('updates.deleted')}</Text>
         </View>
       </Animated.View>
 
@@ -115,7 +117,15 @@ function stripHtml(html: string): string {
 
 export default function UpdatesScreen({ navigation, route }: any) {
   const { highlightId, highlightType } = route?.params || {};
-    const [dynamicUpdates, setDynamicUpdates] = useState<any[]>([]);
+  const { t } = useLanguage();
+
+  const getTypeName = (type: string) => {
+    if (!type) return (t('updates.types.announcement') || 'ANNOUNCEMENT').toUpperCase();
+    const trans = t(`updates.types.${type}`);
+    return trans && trans !== `updates.types.${type}` ? trans.toUpperCase() : type.toUpperCase();
+  };
+
+  const [dynamicUpdates, setDynamicUpdates] = useState<any[]>([]);
   const [broadcastsList, setBroadcastsList] = useState<any[]>([]);
   const [meetingsList, setMeetingsList] = useState<any[]>([]);
 
@@ -287,7 +297,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
 
             return {
               id: doc.id,
-              title: data.title || 'Announcement',
+              title: data.title || t('updates.announcement'),
               content: stripHtml(data.content || ''),
               date: dateStr,
               type: resolvedType,
@@ -329,8 +339,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
             
             return {
               id: doc.id,
-              title: 'New Online Meeting',
-              content: data.title + ' has been scheduled.',
+              title: t('updates.newOnlineMeeting'),
+              content: `${data.title || ''} ${t('updates.meetingScheduled')}`.trim(),
               date: dateStr,
               type: 'online_meeting',
               icon: Video,
@@ -378,9 +388,9 @@ export default function UpdatesScreen({ navigation, route }: any) {
       if (highlightType === 'birthday') {
         setSelectedUpdate({
           id: 'temp-bd',
-          title: '🎂 Happy Birthday!',
-          content: 'Wishing you a very Happy Birthday! May God bless you abundantly and fulfill all your prayers today. 🙏🎈',
-          date: 'Today',
+          title: t('updates.birthdayTitle'),
+          content: t('updates.birthdayMessage'),
+          date: t('updates.today'),
           type: 'birthday',
           color: '#d97706'
         });
@@ -388,9 +398,9 @@ export default function UpdatesScreen({ navigation, route }: any) {
       } else if (highlightType === 'anniversary') {
         setSelectedUpdate({
           id: 'temp-ann',
-          title: '💐 Happy Wedding Anniversary!',
-          content: 'Wishing you a wonderful wedding anniversary! May God bless your home with love, joy, and peace. 💒💖',
-          date: 'Today',
+          title: t('updates.anniversaryTitle'),
+          content: t('updates.anniversaryMessage'),
+          date: t('updates.today'),
           type: 'anniversary',
           color: '#be185d'
         });
@@ -398,9 +408,9 @@ export default function UpdatesScreen({ navigation, route }: any) {
       } else if (highlightType === 'baptism' || highlightType === 'celebration') {
         setSelectedUpdate({
           id: 'temp-cel',
-          title: '🕊️ Happy Baptism Anniversary!',
-          content: 'Happy Baptism Anniversary! May you continue to grow in faith and walk in His light. 🙏🕊️',
-          date: 'Today',
+          title: t('updates.baptismTitle'),
+          content: t('updates.baptismMessage'),
+          date: t('updates.today'),
           type: 'celebration',
           color: '#3b82f6'
         });
@@ -426,8 +436,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
         
         <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Church Updates</Text>
-            <Text style={styles.headerSub}>Latest announcements & news from your church</Text>
+            <Text style={styles.headerTitle}>{t('updates.title')}</Text>
+            <Text style={styles.headerSub}>{t('updates.subtitle')}</Text>
           </View>
         </View>
 
@@ -446,12 +456,12 @@ export default function UpdatesScreen({ navigation, route }: any) {
           {loading && visibleUpdates.length === 0 ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 100 }}>
               <ActivityIndicator size="large" color="#f0b429" />
-              <Text style={{ marginTop: 16, fontSize: 14, color: '#94a3b8' }}>Loading updates...</Text>
+              <Text style={{ marginTop: 16, fontSize: 14, color: '#94a3b8' }}>{t('updates.loadingUpdates')}</Text>
             </View>
           ) : loading && visibleUpdates.length > 0 ? (
             <View style={styles.loadingBox}>
               <ActivityIndicator size="small" color="#1a2d5a" />
-              <Text style={styles.loadingTxt}>Syncing live alerts...</Text>
+              <Text style={styles.loadingTxt}>{t('updates.syncingAlerts')}</Text>
             </View>
           ) : null}
 
@@ -481,7 +491,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
                 </View>
                 <View style={styles.updateInfo}>
                   <View style={styles.metaRow}>
-                    <Text style={[styles.typeTag, { color: update.color }]}>{update.type.toUpperCase()}</Text>
+                    <Text style={[styles.typeTag, { color: update.color }]}>{getTypeName(update.type)}</Text>
                     <Text style={styles.dateTxt}>{formatDateDisplay(update.date)}</Text>
                   </View>
                   <Text style={styles.updateTitle}>{update.title}</Text>
@@ -494,8 +504,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
           {visibleUpdates.length === 0 && !loading && (
             <View style={styles.emptyContainer}>
               <Bell size={48} color="#94a3b8" style={{ marginBottom: 12 }} />
-              <Text style={styles.emptyText}>All caught up!</Text>
-              <Text style={styles.emptySubText}>Swipe notifications from left to right to delete them.</Text>
+              <Text style={styles.emptyText}>{t('updates.allCaughtUp')}</Text>
+              <Text style={styles.emptySubText}>{t('updates.emptySub')}</Text>
             </View>
           )}
         </View>
@@ -547,8 +557,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   <Text style={styles.emojiDecor}>🎈</Text>
                 </View>
                 <Sparkles size={32} color="#f59e0b" style={styles.sparkleIcon} />
-                <Text style={styles.celebrationTitleEn}>Happy Birthday!</Text>
-                <Text style={styles.celebrationTitleTe}>పుట్టినరోజు శుభాకాంక్షలు! 💐</Text>
+                <Text style={styles.celebrationTitleEn}>{t('updates.birthdayGreeting')}</Text>
+                <Text style={styles.celebrationTitleTe}>{t('updates.birthdaySubGreeting')}</Text>
                 <View style={styles.dividerGold} />
                 
                 <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
@@ -559,7 +569,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
 
                 <View style={styles.celebrationFooter}>
                   <Gift size={24} color="#b45309" />
-                  <Text style={styles.footerBlessing}>"May the Lord bless you out of Zion..." - Psalm 128:5</Text>
+                  <Text style={styles.footerBlessing}>{t('updates.birthdayBlessing')}</Text>
                 </View>
               </View>
             ) : selectedUpdate?.type === 'anniversary' ? (
@@ -571,8 +581,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   <Text style={styles.emojiDecor}>💖</Text>
                 </View>
                 <Sparkles size={32} color="#be185d" style={styles.sparkleIcon} />
-                <Text style={[styles.celebrationTitleEn, { color: '#be185d' }]}>Happy Wedding Anniversary!</Text>
-                <Text style={[styles.celebrationTitleTe, { color: '#be185d' }]}>వివాహ వార్షికోత్సవ శుభాకాంక్షలు! 💒</Text>
+                <Text style={[styles.celebrationTitleEn, { color: '#be185d' }]}>{t('updates.anniversaryGreeting')}</Text>
+                <Text style={[styles.celebrationTitleTe, { color: '#be185d' }]}>{t('updates.anniversarySubGreeting')}</Text>
                 <View style={styles.dividerPink} />
 
                 <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
@@ -583,7 +593,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
 
                 <View style={styles.celebrationFooter}>
                   <Heart size={24} color="#be185d" strokeWidth={2} />
-                  <Text style={[styles.footerBlessing, { color: '#be185d' }]}>"What therefore God hath joined together, let not man put asunder." - Mark 10:9</Text>
+                  <Text style={[styles.footerBlessing, { color: '#be185d' }]}>{t('updates.anniversaryBlessing')}</Text>
                 </View>
               </View>
             ) : selectedUpdate?.type === 'celebration' ? (
@@ -595,7 +605,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   <Text style={styles.emojiDecor}>🕊️</Text>
                 </View>
                 <Sparkles size={32} color="#3b82f6" style={styles.sparkleIcon} />
-                <Text style={[styles.celebrationTitleEn, { color: '#3b82f6' }]}>{selectedUpdate?.title || 'Celebration!'}</Text>
+                <Text style={[styles.celebrationTitleEn, { color: '#3b82f6' }]}>{selectedUpdate?.title || t('updates.celebrationDefault')}</Text>
                 <View style={styles.dividerBlue} />
 
                 <ScrollView style={[styles.modalScroll, { maxHeight: 400 }]} showsVerticalScrollIndicator={false}>
@@ -608,7 +618,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
                 </ScrollView>
 
                 <View style={[styles.celebrationFooter, { borderTopColor: '#3b82f6' }]}>
-                  <Text style={[styles.footerBlessing, { color: '#1e3a8a' }]}>"Therefore if any man be in Christ, he is a new creature: old things are passed away; behold, all things are become new." - 2 Cor 5:17</Text>
+                  <Text style={[styles.footerBlessing, { color: '#1e3a8a' }]}>{t('updates.baptismBlessing')}</Text>
                 </View>
               </View>
             ) : (
@@ -632,7 +642,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
                       styles.stdTypeTag,
                       (selectedUpdate?.type === 'emergency' || selectedUpdate?.title?.includes('🚨') || selectedUpdate?.type === 'youtube_live') && { color: '#ef4444' }
                     ]}>
-                      {selectedUpdate?.type?.toUpperCase() || 'ANNOUNCEMENT'}
+                      {getTypeName(selectedUpdate?.type || 'announcement')}
                     </Text>
                     <Text style={styles.stdDateTxt}>{formatDateDisplay(selectedUpdate?.date)}</Text>
                   </View>
@@ -668,11 +678,11 @@ export default function UpdatesScreen({ navigation, route }: any) {
                       }
                       Linking.openURL(base).catch(err => console.error(err));
                     } else {
-                      Alert.alert('Not Configured', 'The YouTube Live link has not been set up by the church admin yet.');
+                      Alert.alert(t('updates.alerts.notConfiguredTitle'), t('updates.alerts.notConfiguredMsg'));
                     }
                     }}
                   >
-                    <Text style={styles.joinLiveBtnTxt}>📺 Join Live Stream</Text>
+                    <Text style={styles.joinLiveBtnTxt}>📺 {t('updates.joinLiveStream')}</Text>
                   </TouchableOpacity>
                 )}
               </View>

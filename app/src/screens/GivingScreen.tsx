@@ -26,11 +26,14 @@ import {
   ArrowLeft,
   ShieldCheck,
   XCircle,
-  Info
+  Info,
+  Clock
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useChurch } from '../context/ChurchContext';
+import { useLanguage } from '../context/LanguageContext';
+import { SupportedLanguage } from '../locales';
 import FirestoreService, { AppMember } from '../services/FirestoreService';
 import { functions } from '../services/firebaseConfig';
 import storage from '@react-native-firebase/storage';
@@ -41,21 +44,113 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 
-const CATEGORIES = [
-  { id: 'Tithe', label: 'Tithe', labelTe: 'దశమభాగం', icon: '🙏' },
-  { id: 'Offering', label: 'Offering', labelTe: 'కానుక', icon: '🎁' },
-  { id: 'Missions', label: 'Missions', labelTe: 'సేవా నిధి', icon: '🌍' },
-  { id: 'Building', label: 'Building', labelTe: 'నిర్మాణ నిధి', icon: '🏛️' },
-  { id: 'Special', label: 'Special', labelTe: 'ప్రత్యేక కానుక', icon: '💎' },
-  { id: 'Others', label: 'Others', labelTe: 'ఇతర', icon: '📝' }
+interface CategoryItem {
+  id: string;
+  icon: string;
+  labelEn: string;
+  labelTe: string;
+  labels: Record<SupportedLanguage, string>;
+}
+
+const CATEGORIES: CategoryItem[] = [
+  {
+    id: 'Tithe',
+    icon: '🙏',
+    labelEn: 'Tithe',
+    labelTe: 'దశమభాగం',
+    labels: {
+      en: 'Tithe',
+      te: 'దశమభాగం',
+      hi: 'दशमांश',
+      ta: 'தசமபாகம்',
+      kn: 'ದಶಮಾಂಶ',
+      ml: 'ദശാംശം',
+      mr: 'दशांश'
+    }
+  },
+  {
+    id: 'Offering',
+    icon: '🎁',
+    labelEn: 'Offering',
+    labelTe: 'కానుక',
+    labels: {
+      en: 'Offering',
+      te: 'కానుక',
+      hi: 'भेंट',
+      ta: 'காணிக்கை',
+      kn: 'ಕಾಣಿಕೆ',
+      ml: 'കാഴ്ച',
+      mr: 'अर्पण'
+    }
+  },
+  {
+    id: 'Missions',
+    icon: '🌍',
+    labelEn: 'Missions',
+    labelTe: 'సేవా నిధి',
+    labels: {
+      en: 'Missions',
+      te: 'సేవా నిధి',
+      hi: 'सेवा निधि',
+      ta: 'ஊழிய நிதி',
+      kn: 'ಸೇವಾ నిధి',
+      ml: 'മിഷൻ ഫണ്ട്',
+      mr: 'सेवा निधी'
+    }
+  },
+  {
+    id: 'Building',
+    icon: '🏛️',
+    labelEn: 'Building',
+    labelTe: 'నిర్మాణ నిధి',
+    labels: {
+      en: 'Building',
+      te: 'నిర్మాణ నిధి',
+      hi: 'भवन निर्माण',
+      ta: 'கட்டிட நிதி',
+      kn: 'ಕಟ್ಟಡ ನಿಧಿ',
+      ml: 'നിർമ്മാണ ഫണ്ട്',
+      mr: 'इमारत निधी'
+    }
+  },
+  {
+    id: 'Special',
+    icon: '💎',
+    labelEn: 'Special',
+    labelTe: 'ప్రత్యేక కానుక',
+    labels: {
+      en: 'Special',
+      te: 'ప్రత్యేక కానుక',
+      hi: 'विशेष भेंट',
+      ta: 'சிறப்பு காணிக்கை',
+      kn: 'ವಿಶೇಷ ಕಾಣಿಕೆ',
+      ml: 'പ്രത്യേക സംഭാവന',
+      mr: 'विशेष दान'
+    }
+  },
+  {
+    id: 'Others',
+    icon: '📝',
+    labelEn: 'Others',
+    labelTe: 'ఇతర',
+    labels: {
+      en: 'Others',
+      te: 'ఇతర',
+      hi: 'अन्य',
+      ta: 'மற்றவை',
+      kn: 'ಇತರ',
+      ml: 'മറ്റുള്ളവ',
+      mr: 'इतर'
+    }
+  }
 ];
 
 const PRESETS = [50, 100, 500, 1000, 5000];
 
 const GIVING_WORDS = [
-  { text: 'Joy', colors: ['rgba(59,130,246,0.3)', 'rgba(59,130,246,0.05)'] as const, border: '#3b82f6', textCol: '#60a5fa' },
-  { text: 'Love', colors: ['rgba(239,68,68,0.3)', 'rgba(239,68,68,0.05)'] as const, border: '#ef4444', textCol: '#f87171' },
-  { text: 'Faith', colors: ['rgba(234,179,8,0.3)', 'rgba(234,179,8,0.05)'] as const, border: '#facc15', textCol: '#fde047' },
+  { key: 'joy', colors: ['rgba(59,130,246,0.3)', 'rgba(59,130,246,0.05)'] as const, border: '#3b82f6', textCol: '#60a5fa' },
+  { key: 'love', colors: ['rgba(239,68,68,0.3)', 'rgba(239,68,68,0.05)'] as const, border: '#ef4444', textCol: '#f87171' },
+  { key: 'faith', colors: ['rgba(234,179,8,0.3)', 'rgba(234,179,8,0.05)'] as const, border: '#facc15', textCol: '#fde047' },
 ];
 
 export default function GivingScreen({ navigation }: any) {
@@ -63,6 +158,7 @@ export default function GivingScreen({ navigation }: any) {
   const { user } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const { activeChurch } = useChurch();
+  const { t, language } = useLanguage();
   const amountInputRef = useRef<TextInput>(null);
   const [member, setMember] = useState<AppMember | null>(null);
   const [activeCat, setActiveCat] = useState('Tithe');
@@ -404,14 +500,21 @@ export default function GivingScreen({ navigation }: any) {
         {/* ── Page Header ── */}
         <View style={[styles.header, { backgroundColor: isDark ? '#0f172a' : '#f8fafc', paddingTop: insets.top + 10, marginHorizontal: -16 }]}>
           <View style={styles.headerTop}>
-            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
               <ArrowLeft size={24} color={isDark ? "#FCD34D" : "#1a2d5a"} />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.backBtn} 
+              onPress={() => navigation.navigate('GivingHistory')}
+              hitSlop={{top:10, bottom:10, left:10, right:10}}
+            >
+              <Clock size={22} color={isDark ? "#FCD34D" : "#1a2d5a"} />
             </TouchableOpacity>
           </View>
           
           <View style={styles.headerContent}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 12, marginTop: 10 }}>
-              <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#1e293b' }]}>Give with</Text>
+              <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#1e293b' }]}>{t('giving.giveWith')}</Text>
               
               <LinearGradient
                 colors={GIVING_WORDS[wordIdx % GIVING_WORDS.length].colors as [string, string]}
@@ -421,73 +524,93 @@ export default function GivingScreen({ navigation }: any) {
                   borderWidth: 1.5, 
                   borderColor: GIVING_WORDS[wordIdx % GIVING_WORDS.length].border, 
                   borderRadius: 30, 
-                  paddingHorizontal: 20, 
+                  paddingHorizontal: 16, 
                   height: 38,
-                  minWidth: 100,
+                  minWidth: 110,
                   alignItems: 'center',
                   marginLeft: 8,
                   overflow: 'hidden'
                 }}
               >
                 <Animated.View style={{ transform: [{ translateY: scrollAnim }] }}>
-                  {[...GIVING_WORDS, GIVING_WORDS[0]].map((w, index) => (
-                    <View key={`${w.text}-${index}`} style={{ height: 38, justifyContent: 'center', alignItems: 'center' }}>
-                      <Text style={{ 
-                        fontSize: 26, 
-                        fontStyle: 'italic', 
-                        color: w.textCol, 
-                        fontWeight: '600', 
-                        fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' 
-                      }}>
-                        {w.text}
-                      </Text>
-                    </View>
-                  ))}
+                  {[...GIVING_WORDS, GIVING_WORDS[0]].map((w, index) => {
+                    const wordLabel = w.key === 'joy' ? t('giving.joy') : w.key === 'love' ? t('giving.love') : t('giving.faith');
+                    return (
+                      <View key={`${w.key}-${index}`} style={{ height: 38, justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ 
+                          fontSize: 20, 
+                          fontStyle: 'italic', 
+                          color: w.textCol, 
+                          fontWeight: '600', 
+                          fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif' 
+                        }}>
+                          {wordLabel}
+                        </Text>
+                      </View>
+                    );
+                  })}
                 </Animated.View>
               </LinearGradient>
             </View>
-            <Text style={[styles.headerQuote, { color: isDark ? '#94a3b8' : '#64748b' }]}>"God loves a cheerful giver" — 2 Cor 9:7</Text>
+            <Text style={[styles.headerQuote, { color: isDark ? '#94a3b8' : '#64748b' }]}>{t('giving.verseQuote')}</Text>
           </View>
         </View>
 
         <View>
             {/* ── Category Selection ── */}
         <View style={[styles.sectionCard, isDark && { backgroundColor: 'transparent', elevation: 0, borderWidth: 0, paddingHorizontal: 0 }]}>
-          <Text style={[styles.sectionLabel, isDark && { color: '#94a3b8', paddingLeft: 4 }]}>SELECT GIVING CATEGORY</Text>
+          <Text style={[styles.sectionLabel, isDark && { color: '#94a3b8', paddingLeft: 4 }]}>{t('giving.selectCategory').toUpperCase()}</Text>
           <View style={styles.grid}>
-            {CATEGORIES.map(cat => (
-              <TouchableOpacity 
-                key={cat.id} 
-                style={[
-                  styles.gridItem, 
-                  { width: (width - (isDark ? 32 : 64) - 20) / 3 },
-                  activeCat === cat.id && styles.gridItemActive,
-                  isDark && { backgroundColor: '#1e293b', borderColor: '#334155' },
-                  activeCat === cat.id && isDark && { borderColor: '#FCD34D', backgroundColor: '#1e293b' }
-                ]}
-                onPress={() => {
-                  setActiveCat(cat.id);
-                  if (cat.id === 'Others') {
-                    setShowEventModal(true);
-                  }
-                }}
-              >
-                {activeCat === cat.id && (
-                  <View style={{ position: 'absolute', top: 8, right: 8 }}>
-                    <ShieldCheck size={16} color={isDark ? '#FCD34D' : '#1a2d5a'} />
-                  </View>
-                )}
-                <Text style={styles.catEmoji}>{cat.icon}</Text>
-                <Text style={[styles.catTitle, isDark && { color: '#f8fafc' }]}>{cat.label}</Text>
-                <Text style={[styles.catTitleTe, isDark && { color: '#94a3b8' }]}>{cat.labelTe}</Text>
-              </TouchableOpacity>
-            ))}
+            {CATEGORIES.map(cat => {
+              const primaryLabel = cat.labels[language] || cat.labelEn;
+              const secondaryLabel = language === 'en' ? cat.labelTe : cat.labelEn;
+
+              return (
+                <TouchableOpacity 
+                  key={cat.id} 
+                  style={[
+                    styles.gridItem, 
+                    { width: (width - (isDark ? 32 : 64) - 20) / 3 },
+                    activeCat === cat.id && styles.gridItemActive,
+                    isDark && { backgroundColor: '#1e293b', borderColor: '#334155' },
+                    activeCat === cat.id && isDark && { borderColor: '#FCD34D', backgroundColor: '#1e293b' }
+                  ]}
+                  onPress={() => {
+                    setActiveCat(cat.id);
+                    if (cat.id === 'Others') {
+                      setShowEventModal(true);
+                    }
+                  }}
+                >
+                  {activeCat === cat.id && (
+                    <View style={{ position: 'absolute', top: 8, right: 8 }}>
+                      <ShieldCheck size={16} color={isDark ? '#FCD34D' : '#1a2d5a'} />
+                    </View>
+                  )}
+                  <Text style={styles.catEmoji}>{cat.icon}</Text>
+                  <Text 
+                    style={[styles.catTitle, isDark && { color: '#f8fafc' }]} 
+                    numberOfLines={1} 
+                    adjustsFontSizeToFit
+                  >
+                    {primaryLabel}
+                  </Text>
+                  <Text 
+                    style={[styles.catTitleTe, isDark && { color: '#94a3b8' }]} 
+                    numberOfLines={1} 
+                    adjustsFontSizeToFit
+                  >
+                    {secondaryLabel}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
         {/* ── Amount Selection ── */}
         <View style={styles.sectionCard}>
-          <Text style={styles.sectionLabel}>SELECT OR ENTER AMOUNT (₹)</Text>
+          <Text style={styles.sectionLabel}>{t('giving.enterAmount').toUpperCase()} (₹)</Text>
           <View style={styles.presetRow}>
             {PRESETS.map(val => (
               <TouchableOpacity 
@@ -514,7 +637,7 @@ export default function GivingScreen({ navigation }: any) {
           </TouchableOpacity>
 
           <View style={{ marginTop: 20 }}>
-            <Text style={styles.sectionLabel}>PAYMENT METHOD</Text>
+            <Text style={styles.sectionLabel}>{t('giving.paymentMethod').toUpperCase()}</Text>
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 20 }}>
               <TouchableOpacity 
                 style={[styles.paymentMethodBtn, paymentMethod === 'razorpay' && styles.paymentMethodBtnActive]}
@@ -541,30 +664,30 @@ export default function GivingScreen({ navigation }: any) {
                 ) : (
                   <View style={styles.payBtnInner}>
                     <CreditCard size={20} color="#fff" />
-                    <Text style={styles.payBtnTxt}>Pay ₹{amount} Securely</Text>
+                    <Text style={styles.payBtnTxt}>{t('giving.giveNow')} ₹{amount}</Text>
                   </View>
                 )}
               </TouchableOpacity>
             ) : (
               <View style={[styles.upiFlowContainer, { backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#e2e8f0' }]}>
-                <Text style={[styles.upiFlowTitle, { color: isDark ? '#fff' : '#1e293b' }]}>Complete your payment via UPI</Text>
-                <Text style={[styles.upiFlowSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>Use the church's UPI ID or PhonePe number listed below to make a payment of ₹{amount}. Once paid, upload the screenshot below.</Text>
+                <Text style={[styles.upiFlowTitle, { color: isDark ? '#fff' : '#1e293b' }]}>{t('giving.upiFlowTitle')}</Text>
+                <Text style={[styles.upiFlowSub, { color: isDark ? '#94a3b8' : '#64748b' }]}>{t('giving.upiFlowSub', { amount })}</Text>
                 
                 {upiId ? (
                   <TouchableOpacity 
                     style={styles.openUpiBtn}
                     onPress={() => Linking.openURL(`upi://pay?pa=${upiId}&pn=${encodeURIComponent(payeeName)}&am=${amount}&cu=INR`)}
                   >
-                    <Text style={styles.openUpiBtnTxt}>Open UPI App</Text>
+                    <Text style={styles.openUpiBtnTxt}>{t('giving.openUpiApp')}</Text>
                   </TouchableOpacity>
                 ) : null}
                 
                 <View style={styles.uploadSection}>
                   <TouchableOpacity style={[styles.uploadBtn, { borderColor: isDark ? '#475569' : '#cbd5e1' }]} onPress={handlePickReceipt}>
                     {receiptImage ? (
-                      <Text style={{ color: '#16a34a', fontWeight: 'bold' }}>Screenshot Selected ✓</Text>
+                      <Text style={{ color: '#16a34a', fontWeight: 'bold' }}>{t('giving.screenshotSelected')}</Text>
                     ) : (
-                      <Text style={{ color: isDark ? '#cbd5e1' : '#64748b' }}>Upload Payment Screenshot</Text>
+                      <Text style={{ color: isDark ? '#cbd5e1' : '#64748b' }}>{t('giving.uploadScreenshot')}</Text>
                     )}
                   </TouchableOpacity>
                 </View>
@@ -578,7 +701,7 @@ export default function GivingScreen({ navigation }: any) {
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <View style={styles.payBtnInner}>
-                      <Text style={styles.payBtnTxt}>Submit Donation</Text>
+                      <Text style={styles.payBtnTxt}>{t('giving.submitDonation')}</Text>
                     </View>
                   )}
                 </TouchableOpacity>
@@ -588,13 +711,13 @@ export default function GivingScreen({ navigation }: any) {
 
           {/* UPI Copy Box */}
           <View style={[styles.upiInfoCard, { backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#e2e8f0' }]}>
-            <Text style={[styles.upiSectionTitle, { color: isDark ? '#fcd34d' : '#1a2d5a' }]}>Direct Transfer / PhonePe Details</Text>
+            <Text style={[styles.upiSectionTitle, { color: isDark ? '#fcd34d' : '#1a2d5a' }]}>{t('giving.directTransferTitle')}</Text>
             
             {phonepeNum && (
               <>
                 <View style={styles.upiDetailRow}>
                   <View>
-                    <Text style={styles.upiLabel}>PHONEPE NUMBER</Text>
+                    <Text style={styles.upiLabel}>{t('giving.phonepeNumber')}</Text>
                     <Text style={[styles.upiValue, { color: isDark ? '#fff' : '#1e293b' }]}>{phonepeNum}</Text>
                   </View>
                   <TouchableOpacity 
@@ -602,7 +725,7 @@ export default function GivingScreen({ navigation }: any) {
                     onPress={() => handleCopy(phonepeNum, 'PhonePe Number')}
                   >
                     <Share2 size={14} color={isDark ? '#fcd34d' : '#1a2d5a'} />
-                    <Text style={[styles.copyBtnTxt, { color: isDark ? '#fcd34d' : '#1a2d5a' }]}>Copy</Text>
+                    <Text style={[styles.copyBtnTxt, { color: isDark ? '#fcd34d' : '#1a2d5a' }]}>{t('common.copy')}</Text>
                   </TouchableOpacity>
                 </View>
                 <View style={[styles.upiDivider, { backgroundColor: isDark ? '#334155' : '#e2e8f0' }]} />
@@ -612,7 +735,7 @@ export default function GivingScreen({ navigation }: any) {
             {upiId && (
               <View style={styles.upiDetailRow}>
                 <View>
-                  <Text style={styles.upiLabel}>UPI ID</Text>
+                  <Text style={styles.upiLabel}>{t('giving.upiId')}</Text>
                   <Text style={[styles.upiValue, { color: isDark ? '#fff' : '#1e293b' }]}>{upiId}</Text>
                 </View>
                 <TouchableOpacity 
@@ -620,7 +743,7 @@ export default function GivingScreen({ navigation }: any) {
                   onPress={() => handleCopy(upiId, 'UPI ID')}
                 >
                   <Share2 size={14} color={isDark ? '#fcd34d' : '#1a2d5a'} />
-                  <Text style={[styles.copyBtnTxt, { color: isDark ? '#fcd34d' : '#1a2d5a' }]}>Copy</Text>
+                  <Text style={[styles.copyBtnTxt, { color: isDark ? '#fcd34d' : '#1a2d5a' }]}>{t('common.copy')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -640,7 +763,7 @@ export default function GivingScreen({ navigation }: any) {
                     onPress={() => handleCopy(upi.upiId, 'UPI ID')}
                   >
                     <Share2 size={14} color={isDark ? '#fcd34d' : '#1a2d5a'} />
-                    <Text style={[styles.copyBtnTxt, { color: isDark ? '#fcd34d' : '#1a2d5a' }]}>Copy</Text>
+                    <Text style={[styles.copyBtnTxt, { color: isDark ? '#fcd34d' : '#1a2d5a' }]}>{t('common.copy')}</Text>
                   </TouchableOpacity>
                 </View>
               </React.Fragment>
@@ -650,15 +773,15 @@ export default function GivingScreen({ navigation }: any) {
           {/* Bank Transfer Box */}
           {(giving?.accountNumber || giving?.banks?.length) ? (
             <View style={[styles.upiInfoCard, { backgroundColor: isDark ? '#1e293b' : '#f8fafc', borderColor: isDark ? '#334155' : '#e2e8f0' }]}>
-              <Text style={[styles.upiSectionTitle, { color: isDark ? '#fcd34d' : '#1a2d5a' }]}>Bank Transfer Details</Text>
+              <Text style={[styles.upiSectionTitle, { color: isDark ? '#fcd34d' : '#1a2d5a' }]}>{t('giving.bankTransferTitle')}</Text>
               
               {giving?.accountNumber && (
                 <View style={styles.bankSection}>
-                  <Text style={styles.upiLabel}>PRIMARY BANK</Text>
+                  <Text style={styles.upiLabel}>{t('giving.primaryBank')}</Text>
                   <Text style={[styles.upiValue, { color: isDark ? '#fff' : '#1e293b' }]}>{giving?.bankName || 'Bank Name Not Set'}</Text>
                   <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>{giving?.accountName || 'Account Name Not Set'}</Text>
-                  <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>A/c: {giving?.accountNumber}</Text>
-                  <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>IFSC: {giving?.ifscCode}</Text>
+                  <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>{t('giving.accountNumber')}: {giving?.accountNumber}</Text>
+                  <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>{t('giving.ifscCode')}: {giving?.ifscCode}</Text>
                 </View>
               )}
 
@@ -667,11 +790,11 @@ export default function GivingScreen({ navigation }: any) {
                 <React.Fragment key={bank.id}>
                   {(giving?.accountNumber || bank.id !== giving?.banks?.[0]?.id) && <View style={[styles.upiDivider, { backgroundColor: isDark ? '#334155' : '#e2e8f0', marginVertical: 16 }]} />}
                   <View style={styles.bankSection}>
-                    <Text style={styles.upiLabel}>{bank.name?.toUpperCase() || 'ADDITIONAL BANK'}</Text>
+                    <Text style={styles.upiLabel}>{bank.name?.toUpperCase() || t('giving.additionalBank')}</Text>
                     <Text style={[styles.upiValue, { color: isDark ? '#fff' : '#1e293b' }]}>{bank.bankName}</Text>
                     <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>{bank.accountName}</Text>
-                    <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>A/c: {bank.accountNumber}</Text>
-                    <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>IFSC: {bank.ifscCode}</Text>
+                    <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>{t('giving.accountNumber')}: {bank.accountNumber}</Text>
+                    <Text style={[styles.upiValue, { color: isDark ? '#cbd5e1' : '#475569', fontSize: 13, marginTop: 2 }]}>{t('giving.ifscCode')}: {bank.ifscCode}</Text>
                   </View>
                 </React.Fragment>
               ))}
@@ -680,7 +803,7 @@ export default function GivingScreen({ navigation }: any) {
 
           <View style={styles.securityFooter}>
              <Lock size={12} color="#94a3b8" />
-             <Text style={styles.securityText}>Secured by Razorpay · UPI · PhonePe · All major banks</Text>
+             <Text style={styles.securityText}>{t('giving.securedBy')}</Text>
           </View>
           </View>
           </View>
@@ -690,12 +813,12 @@ export default function GivingScreen({ navigation }: any) {
       <Modal visible={showEventModal} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
-            <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#1e293b' }]}>Event / Offering Name</Text>
-            <Text style={[styles.modalSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>Please enter the name of the special event or offering you are giving towards.</Text>
+            <Text style={[styles.modalTitle, { color: isDark ? '#fff' : '#1e293b' }]}>{t('giving.eventNameTitle')}</Text>
+            <Text style={[styles.modalSubtitle, { color: isDark ? '#94a3b8' : '#64748b' }]}>{t('giving.eventNameSub')}</Text>
             
             <TextInput
               style={[styles.inputWrapper, { width: '100%', marginBottom: 20 }]}
-              placeholder="e.g. Youth Camp 2026"
+              placeholder={t('giving.eventNamePlaceholder')}
               placeholderTextColor="#94a3b8"
               value={customEventName}
               onChangeText={setCustomEventName}
@@ -711,7 +834,7 @@ export default function GivingScreen({ navigation }: any) {
                   }
                 }}
               >
-                <Text style={{ color: isDark ? '#cbd5e1' : '#475569', fontWeight: '700', fontSize: 13 }}>Cancel</Text>
+                <Text style={{ color: isDark ? '#cbd5e1' : '#475569', fontWeight: '700', fontSize: 13 }}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
@@ -724,7 +847,7 @@ export default function GivingScreen({ navigation }: any) {
                   }
                 }}
               >
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Save</Text>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>{t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>
