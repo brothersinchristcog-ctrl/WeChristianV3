@@ -48,6 +48,7 @@ export const ml: TranslationSchema = {
     promise: 'വാഗ്ദത്തം',
     dailyVerse: 'ദിനവാക്യം',
     sermons: 'പ്രസംഗങ്ങൾ',
+    attendance: 'ഹാജർ',
     prayer: 'പ്രാർത്ഥന',
     profile: 'പ്രൊഫൈൽ',
     bible: 'ബൈബിൾ',

@@ -26,9 +26,15 @@ service cloud.firestore {
 
     // --- TOP-LEVEL COLLECTIONS ---
 
-    // Collection Group queries for members
+    // Collection Group queries for members and attendance
     match /{path=**}/members/{memberId} {
       allow read: if isAuthenticated();
+    }
+    match /{path=**}/attendanceRecords/{recordId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /{path=**}/attendees/{attendeeId} {
+      allow read, write: if isAuthenticated();
     }
 
     match /unmappedWhatsappMessages/{messageId} {
@@ -64,6 +70,14 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
+
+      match /attendees/{attendeeId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    match /attendanceRecords/{recordId} {
+      allow read, write: if isAuthenticated();
     }
 
     // 4. Prayer Requests
@@ -190,6 +204,10 @@ service cloud.firestore {
       match /events/{docId} {
         allow read: if isAuthenticated();
         allow write: if isChurchAdmin();
+
+        match /attendees/{attendeeId} {
+          allow read, write: if isAuthenticated();
+        }
       }
 
       // Sermons
@@ -325,6 +343,11 @@ service cloud.firestore {
           allow read: if isAuthenticated();
           allow write: if isAuthenticated();
         }
+      }
+
+      // Attendance Records (Church-wide check-in logs)
+      match /attendanceRecords/{recordId} {
+        allow read, write: if isAuthenticated();
       }
 
       // Any other church subcollection: authenticated members can read, admins can write

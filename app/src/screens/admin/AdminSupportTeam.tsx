@@ -2,8 +2,19 @@ import React, { useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform, Dimensions, StatusBar, ImageBackground } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Phone, MessageCircle, Mail, ChevronLeft, Globe } from 'lucide-react-native';
+import Svg, { Path } from 'react-native-svg';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { LinearGradient } from 'expo-linear-gradient';
+
+const YouTubeIcon = ({ size = 20, color = '#CC0000' }: { size?: number; color?: string }) => (
+  <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <Path
+      d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"
+      fill={color}
+    />
+    <Path d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" fill="#FFFFFF" />
+  </Svg>
+);
 
 const { width } = Dimensions.get('window');
 
@@ -51,6 +62,10 @@ export default function AdminSupportTeam({ navigation }: any) {
     const message = encodeURIComponent('Hello WeChristian Support Team,\n\nI need help with...');
     const url = `mailto:wechristianapp@gmail.com?subject=WeChristian%20app%20support&body=${message}`;
     Linking.openURL(url).catch(err => console.error("Couldn't open email", err));
+  };
+
+  const handleYouTube = () => {
+    Linking.openURL('https://www.youtube.com/@WeChristianApp').catch(err => console.error("Couldn't open YouTube", err));
   };
 
   return (
@@ -180,6 +195,27 @@ export default function AdminSupportTeam({ navigation }: any) {
                 activeOpacity={0.7}
               >
                 <Text style={styles.btnEmailText}>Visit Website</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={[styles.card, { marginTop: 10 }]}>
+              <View style={styles.person}>
+                <View style={[styles.emailIcon, { backgroundColor: '#FDECEA' }]}>
+                  <YouTubeIcon color="#CC0000" size={20} />
+                </View>
+                <View>
+                  <Text style={styles.personName}>WeChristian on YouTube</Text>
+                  <Text style={styles.personNumber}>@WeChristianApp</Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={[styles.btn, styles.btnYoutube]}
+                onPress={handleYouTube}
+                activeOpacity={0.7}
+              >
+                <YouTubeIcon color="#CC0000" size={16} />
+                <Text style={styles.btnYoutubeText}>Watch on YouTube</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -380,6 +416,21 @@ const styles = StyleSheet.create({
     color: '#F7F3EA',
     fontSize: 13.5,
     fontWeight: '600',
+  },
+  btnYoutube: {
+    width: '100%',
+    backgroundColor: '#FDECEA',
+    paddingVertical: 12,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 7,
+  },
+  btnYoutubeText: {
+    color: '#CC0000',
+    fontSize: 13.5,
+    fontWeight: '700',
   },
   footnote: {
     paddingHorizontal: 26,

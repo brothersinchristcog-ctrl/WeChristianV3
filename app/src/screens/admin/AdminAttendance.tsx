@@ -1,13 +1,21 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView,
-  TextInput, ActivityIndicator, Alert, Platform, Modal
+  TextInput, ActivityIndicator, Alert, Platform, Modal, ToastAndroid
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { CheckCircle, XCircle, Clock, Calendar, Users, Send, ChevronLeft, Plus, History, Trash2, AlarmClock, Edit2 } from 'lucide-react-native';
+import { 
+  CheckCircle, XCircle, Clock, Calendar, Users, Send, ChevronLeft, Plus, 
+  History, Trash2, AlarmClock, Edit2, QrCode, Download, Share2, X, Building2 
+} from 'lucide-react-native';
+import QRCode from 'react-native-qrcode-svg';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as Sharing from 'expo-sharing';
+import * as MediaLibrary from 'expo-media-library';
 import { CustomAlert } from '../../components/CustomAlert';
 import FirestoreService from '../../services/FirestoreService';
+import AttendanceService from '../../services/AttendanceService';
 import { useChurch } from '../../context/ChurchContext';
 import { AdminTabContext } from '../../context/AdminTabContext';
 
@@ -296,6 +304,79 @@ export default function AdminAttendance() {
     return 'Closed';
   };
 
+  // ── Church Attendance QR Code Modal State & Handlers ──
+  const [showQRModal, setShowQRModal] = useState(false);
+  const qrRef = useRef<any>(null);
+
+  const churchId = activeChurch?.id || '';
+  const churchName = activeChurch?.name || 'Church';
+  const churchCode = activeChurch?.churchCode || '';
+
+  const churchQRValue = useMemo(() => {
+    return AttendanceService.generateAttendanceQRPayload(
+      churchId,
+      churchName,
+      churchCode,
+      liveActiveRequest?.id || 'general_service',
+      liveActiveRequest?.title || 'General Church Attendance'
+    );
+  }, [churchId, churchName, churchCode, liveActiveRequest]);
+
+  const handleDownloadQR = async () => {
+    if (qrRef.current) {
+      qrRef.current.toDataURL(async (data: string) => {
+        try {
+          const { status } = await MediaLibrary.requestPermissionsAsync();
+          if (status !== 'granted') {
+            Alert.alert('Permission needed', 'Please grant permission to save images to your gallery.');
+            return;
+          }
+
+          const filename = `church-${(churchCode || 'qr').toLowerCase()}-attendance.png`;
+          const filepath = FileSystem.documentDirectory + filename;
+          await FileSystem.writeAsStringAsync(filepath, data, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          
+          await MediaLibrary.saveToLibraryAsync(filepath);
+          
+          if (Platform.OS === 'android') {
+            ToastAndroid.show('Church QR Code saved to gallery', ToastAndroid.SHORT);
+          } else {
+            Alert.alert('Success', 'Church QR Code saved to gallery');
+          }
+        } catch (error) {
+          Alert.alert('Error', 'Failed to save QR Code.');
+        }
+      });
+    }
+  };
+
+  const handleShareQR = () => {
+    if (qrRef.current) {
+      qrRef.current.toDataURL(async (data: string) => {
+        try {
+          const filename = `church-${(churchCode || 'qr').toLowerCase()}-attendance.png`;
+          const filepath = FileSystem.documentDirectory + filename;
+          await FileSystem.writeAsStringAsync(filepath, data, {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+          
+          if (await Sharing.isAvailableAsync()) {
+            await Sharing.shareAsync(filepath, {
+              mimeType: 'image/png',
+              dialogTitle: `${churchName} Attendance QR Code`,
+            });
+          } else {
+            Alert.alert('Success', 'QR Code generated successfully.');
+          }
+        } catch (error) {
+          Alert.alert('Error', 'Failed to share QR Code.');
+        }
+      });
+    }
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -314,14 +395,86 @@ export default function AdminAttendance() {
             <Text style={styles.heroBackTxt}>Back</Text>
           </TouchableOpacity>
           <View style={styles.heroDivider} />
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.heroTitle}>Attendance</Text>
-            <Text style={styles.heroSub}>
-              {liveActiveRequest ? `${responses.length} responses · ${pendingMembers.length} pending` : 'Manage attendance requests'}
+            <Text style={styles.heroSub} numberOfLines={1}>
+              {liveActiveRequest ? `${responses.length} responses · ${pendingMembers.length} pending` : (churchName || 'Manage attendance requests')}
             </Text>
           </View>
+          <TouchableOpacity 
+            style={styles.heroQrBtn} 
+            onPress={() => setShowQRModal(true)}
+            activeOpacity={0.8}
+            accessibilityLabel="Show Church Attendance QR"
+          >
+            <QrCode size={16} color="#1a2d5a" />
+            <Text style={styles.heroQrBtnTxt}>Church QR</Text>
+          </TouchableOpacity>
         </View>
       </View>
+
+      {/* ── Church Attendance QR Modal ── */}
+      <Modal visible={showQRModal} transparent={true} animationType="fade">
+        <View style={styles.qrModalOverlay}>
+          <View style={styles.qrModalCard}>
+            <View style={styles.qrModalHeader}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={styles.qrModalTitle}>Church Attendance QR</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                  <Building2 size={13} color="#64748b" />
+                  <Text style={styles.qrModalSub} numberOfLines={1}>{churchName}</Text>
+                  {churchCode ? (
+                    <View style={styles.qrChurchCodeBadge}>
+                      <Text style={styles.qrChurchCodeTxt}>{churchCode}</Text>
+                    </View>
+                  ) : null}
+                </View>
+                {liveActiveRequest?.title ? (
+                  <Text style={styles.qrModalEventTxt} numberOfLines={1}>Active: {liveActiveRequest.title}</Text>
+                ) : null}
+              </View>
+              <TouchableOpacity style={styles.qrModalCloseBtn} onPress={() => setShowQRModal(false)}>
+                <X size={22} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            {/* QR View */}
+            <View style={styles.qrBox}>
+              <QRCode 
+                getRef={(c) => (qrRef.current = c)}
+                value={churchQRValue}
+                size={220}
+                color="#0f172a"
+                backgroundColor="#ffffff"
+              />
+            </View>
+
+            <Text style={styles.qrModalHelpTxt}>
+              Members scan this unique QR code with the app to mark attendance. Attendance is automatically recorded under {churchName}.
+            </Text>
+
+            <View style={styles.qrModalActions}>
+              <TouchableOpacity 
+                style={styles.qrActionBtn} 
+                onPress={handleDownloadQR}
+                accessibilityLabel="Save QR Code"
+              >
+                <Download size={22} color="#1e293b" />
+                <Text style={styles.qrActionTxt}>Save to Gallery</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.qrActionBtn, styles.qrActionBtnPrimary]} 
+                onPress={handleShareQR}
+                accessibilityLabel="Share QR Code"
+              >
+                <Share2 size={22} color="#ffffff" />
+                <Text style={styles.qrActionTxtPrimary}>Share QR</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
@@ -781,4 +934,134 @@ const styles = StyleSheet.create({
   },
   historyStatChipNum: { fontSize: 18, fontWeight: '800', color: COLORS.ink },
   historyStatChipLbl: { fontSize: 10, fontWeight: '600', color: COLORS.inkSoft, marginTop: 2 },
+
+  // ── Hero QR Button & Modal ──
+  heroQrBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#FCD34D',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    marginLeft: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+  },
+  heroQrBtnTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+
+  qrModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  qrModalCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+  },
+  qrModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 16,
+    alignItems: 'flex-start',
+  },
+  qrModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  qrModalSub: {
+    fontSize: 14,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  qrChurchCodeBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 6,
+    paddingVertical: 1.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  qrChurchCodeTxt: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#4338CA',
+  },
+  qrModalEventTxt: {
+    fontSize: 12,
+    color: '#0284C7',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  qrModalCloseBtn: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  qrBox: {
+    padding: 16,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+    marginBottom: 12,
+  },
+  qrModalHelpTxt: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+    lineHeight: 17,
+    paddingHorizontal: 10,
+    marginBottom: 16,
+  },
+  qrModalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  qrActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    backgroundColor: '#f1f5f9',
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  qrActionTxt: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  qrActionBtnPrimary: {
+    backgroundColor: '#1a2d5a',
+  },
+  qrActionTxtPrimary: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
 });

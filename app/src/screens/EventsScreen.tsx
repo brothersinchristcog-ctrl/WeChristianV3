@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     color: '#FCD34D',
   },
 
-  listContainer: { paddingBottom: 40, paddingTop: 10 },
+  listContainer: { paddingBottom: 40, paddingTop: 10, flexGrow: 1 },
 
   // Event Card
   // Event Card (Sermon Style)
@@ -361,7 +361,7 @@ const styles = StyleSheet.create({
   ebMetaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 },
   ebMetaText: { fontSize: 10, color: '#64748b', fontWeight: '500', lineHeight: 14 },
 
-  emptyState: { padding: 60, alignItems: 'center', marginTop: 60 },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, paddingBottom: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '800', color: '#1a2d5a', marginTop: 15 },
   emptySub: { fontSize: 14, color: '#94a3b8', textAlign: 'center', marginTop: 8 },
 });

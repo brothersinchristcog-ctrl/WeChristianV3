@@ -122,40 +122,27 @@ class NotificationService {
           nav.navigate('AttendanceScreen');
           break;
         case 'birthday':
-          break;
-        case 'invoice':
-          nav.navigate('AdminRoot', { targetTab: 'Expense', highlightInvoiceId: id });
-          break;
-        case 'promise':
-          nav.navigate('Updates');
-          break;
-        case 'attendance':
-          nav.navigate('AttendanceScreen');
-          break;
-        case 'birthday':
         case 'anniversary':
         case 'baptism':
         case 'celebration':
         case 'emergency':
           nav.navigate('Updates', { highlightId: id, highlightType: type });
           break;
-        case 'youtube_live':
-          {
-            const liveUrl = remoteMessage.data?.url || 'https://www.youtube.com/@Brothersinchristfellowship/live';
-            Linking.openURL(liveUrl).catch((err: any) => {
-              console.error("Couldn't open live stream URL", err);
-            });
-          }
+        case 'youtube_live': {
+          const liveUrl = remoteMessage.data && remoteMessage.data.url ? remoteMessage.data.url : 'https://www.youtube.com/@Brothersinchristfellowship/live';
+          Linking.openURL(liveUrl).catch(function(err) {
+            console.error("Couldn't open live stream URL", err);
+          });
           break;
+        }
         case 'LIVE_CELEBRATION':
           nav.navigate('LiveCelebrationsChat', {});
           break;
         default:
-          // Fallback: navigate to Updates if it has a broadcast ID
           if (id) {
             nav.navigate('Updates', { highlightId: id, highlightType: type });
           } else {
-            console.log('❓ Unknown notification type, staying on current screen');
+            console.log('Unknown notification type, staying on current screen');
           }
       }
     } catch (e) {

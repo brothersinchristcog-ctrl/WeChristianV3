@@ -68,6 +68,7 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'App Admin': require('../../../assets/admin_cards/app_admin.png'),
   'AI Sermon Assistant': require('../../../assets/admin_cards/ai_sermon.jpg'),
   'AI Sermon': require('../../../assets/admin_cards/ai_sermon.jpg'),
+  'AI Thumbnail Creation': require('../../../assets/admin_cards/ai_content.jpg'),
   'AI Content Creator': require('../../../assets/admin_cards/ai_content.jpg'),
 };
 
@@ -94,7 +95,7 @@ const CATEGORIES = [
     title: 'AI Ministry Tools',
     icon: Wand2,
     color: '#6D28D9', // Deep violet for AI
-    keywords: ['AI Sermon', 'AI Content']
+    keywords: ['AI Sermon', 'AI Content', 'AI Thumbnail']
   },
   {
     title: 'Communication',
@@ -404,8 +405,8 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                                   ? 'About\u00A0Us' 
                                   : (tab.name === 'AI Sermon Assistant' || tab.name === 'AI Sermon') 
                                   ? 'AI Sermon\nAssistant' 
-                                  : tab.name === 'AI Content Creator' 
-                                  ? 'AI Content\nCreator' 
+                                  : (tab.name === 'AI Content Creator' || tab.name === 'AI Thumbnail Creation') 
+                                  ? 'AI Thumbnail\nCreation' 
                                   : tab.name}
                               </Text>
                             </View>

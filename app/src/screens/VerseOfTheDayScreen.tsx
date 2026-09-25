@@ -5,6 +5,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Share2, Sun, Sunset, Moon, BookOpen, Shield, Heart, Repeat, Calendar as CalendarIcon, Download } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import VerseNotificationService, { DailyVerse } from '../services/VerseNotificationService';
 import { useTheme } from '../context/ThemeContext';
 import { useChurch } from '../context/ChurchContext';
@@ -156,6 +157,14 @@ const getDynamicGradient = (date: Date, period: string, periodIndex: number): re
   }
 };
 
+// Maps period label → card index in the 4-card carousel
+const PERIOD_INDEX: Record<string, number> = {
+  Morning: 0,
+  Afternoon: 1,
+  Evening: 2,
+  Night: 3,
+};
+
 export default function VerseOfTheDayScreen() {
   const route = useRoute<any>();
   const navigation = useNavigation<any>();
@@ -173,8 +182,10 @@ export default function VerseOfTheDayScreen() {
   const { activeChurch } = useChurch();
   const { t, language, languages } = useLanguage();
   
-  // Still supporting initial verse routing if necessary (e.g. tracking "shown" state)
+  // verseId & period come from notification tap (via RootNavigator deep-link handler)
   const verseId = route.params?.verseId;
+  // 'period' is the card to open: 'Morning' | 'Afternoon' | 'Evening' | 'Night'
+  const notificationPeriod: string | undefined = route.params?.period;
 
   const styles = getStyles(isDark, colors);
 
@@ -183,17 +194,26 @@ export default function VerseOfTheDayScreen() {
   const currentIndexRef = useRef(0);
   const timerRef = useRef<any>(null);
 
+  // Resolve the target card index:
+  // 1. If opened from a notification → use the period encoded in the notification payload.
+  // 2. If opened normally → fall back to current hour.
+  const getTargetIndex = (): number => {
+    if (notificationPeriod && PERIOD_INDEX[notificationPeriod] !== undefined) {
+      return PERIOD_INDEX[notificationPeriod];
+    }
+    const hour = new Date().getHours();
+    if (hour >= 12 && hour < 17) return 1; // Afternoon
+    if (hour >= 17 && hour < 20) return 2; // Evening
+    if (hour >= 20) return 3;              // Night
+    return 0;                              // Morning
+  };
+
   useEffect(() => {
     if (verseData.length > 0) {
-      const hour = new Date().getHours();
-      let initialIndex = 0;
-      if (hour >= 12 && hour < 17) initialIndex = 1; // Afternoon
-      else if (hour >= 17 && hour < 20) initialIndex = 2; // Evening
-      else if (hour >= 20) initialIndex = 3; // Night
-
+      const initialIndex = getTargetIndex();
       currentIndexRef.current = initialIndex;
 
-      // Ensure layout is ready before initial scroll
+      // Scroll to the correct card (instantly for notification deep-links, so user sees it immediately)
       setTimeout(() => {
         todayCarouselRef.current?.scrollTo({ x: initialIndex * width, animated: false });
       }, 200);
@@ -207,6 +227,23 @@ export default function VerseOfTheDayScreen() {
     }
     return () => clearInterval(timerRef.current);
   }, [verseData.length]);
+
+  // When route params change (e.g. another notification tapped while screen is open),
+  // immediately jump to the new period card.
+  useEffect(() => {
+    if (notificationPeriod && verseData.length > 0) {
+      const idx = PERIOD_INDEX[notificationPeriod] ?? getTargetIndex();
+      currentIndexRef.current = idx;
+      clearInterval(timerRef.current);
+      setTimeout(() => {
+        todayCarouselRef.current?.scrollTo({ x: idx * width, animated: true });
+      }, 100);
+      timerRef.current = setInterval(() => {
+        currentIndexRef.current = (currentIndexRef.current + 1) % 4;
+        todayCarouselRef.current?.scrollTo({ x: currentIndexRef.current * width, animated: true });
+      }, 8000);
+    }
+  }, [notificationPeriod]);
 
   const handleScrollEnd = (e: any) => {
     currentIndexRef.current = Math.round(e.nativeEvent.contentOffset.x / width);

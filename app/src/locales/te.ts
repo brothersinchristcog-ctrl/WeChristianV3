@@ -48,6 +48,7 @@ export const te: TranslationSchema = {
     promise: 'వాగ్దానం',
     dailyVerse: 'దినవచనము',
     sermons: 'ప్రసంగాలు',
+    attendance: 'హాజరు',
     prayer: 'ప్రార్థన',
     profile: 'ప్రొఫైల్',
     bible: 'బైబిల్',

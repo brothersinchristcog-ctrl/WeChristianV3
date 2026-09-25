@@ -23,6 +23,7 @@ import {
   Eye, 
   Save, 
   ChevronLeft,
+  ChevronRight,
   ChevronDown,
   ChevronUp,
   X,
@@ -38,7 +39,10 @@ import {
   Clock,
   Send,
   FileText,
-  ArrowRight
+  ArrowRight,
+  Type,
+  Minus,
+  Plus
 } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -48,6 +52,17 @@ import { AppAlert } from '../../components/CustomAlert';
 import { formatDateDisplay } from '../../utils/DateUtils';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { useChurch } from '../../context/ChurchContext';
+import { 
+  loadTeluguFonts, 
+  TELUGU_FONT_OPTIONS, 
+  FONT_SIZE_PRESETS, 
+  TEXT_COLOR_PALETTE, 
+  TEXT_COLOR_CATEGORIES,
+  isDarkColor,
+  getActiveFontFamily,
+  isCustomTeluguFont,
+  TeluguFontOption 
+} from '../../utils/ThumbnailTypography';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -91,6 +106,9 @@ const cleanVerse = (v: string) => (v || '').trim().replace(/^[“"']+|[”"'.]+$
 const cleanRef = (r: string) => {
   const c = (r || '').trim().replace(/^\(|\)$/g, '');
   return c ? `(${c})` : '';
+};
+const cleanRefWithoutOuter = (r: string) => {
+  return (r || '').trim().replace(/^[-—\s()]+|[-—\s()]+$/g, '');
 };
 
 function hexToRgba(hex: string, alpha: number): string {
@@ -375,6 +393,54 @@ export default function AdminPromiseEditor() {
     imageUrl: ''
   });
 
+  // ─── Thumbnail Typography & Styling State ─────────────────────────────────
+  const [thumbFontFamily, setThumbFontFamily] = useState<string>('Suranna');
+  const [thumbFontSize, setThumbFontSize] = useState<number>(11.0);
+  const [thumbTextAlign, setThumbTextAlign] = useState<'left' | 'center' | 'right'>('center');
+  const [thumbTextPosition, setThumbTextPosition] = useState<'top' | 'center' | 'bottom'>('center');
+  const [thumbTextColor, setThumbTextColor] = useState<string>('#FFFFFF');
+  const [thumbFontWeight, setThumbFontWeight] = useState<'400' | '600' | '700' | '800'>('800');
+  const [thumbIsItalic, setThumbIsItalic] = useState<boolean>(false);
+  const [isTypographyExpanded, setIsTypographyExpanded] = useState<boolean>(true);
+  const [fontsReady, setFontsReady] = useState<boolean>(false);
+  const [customTextColorInput, setCustomTextColorInput] = useState<string>('');
+  const [activeTextColorCategory, setActiveTextColorCategory] = useState<string>('All');
+
+  // Calendar Date Picker State with Full Month/Year Navigation
+  const [pickerYear, setPickerYear] = useState<number>(() => {
+    const parts = (form.date || '').split('-');
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      if (!isNaN(y)) return y;
+    }
+    return new Date().getFullYear();
+  });
+  const [pickerMonth, setPickerMonth] = useState<number>(() => {
+    const parts = (form.date || '').split('-');
+    if (parts.length === 3) {
+      const m = parseInt(parts[1], 10) - 1;
+      if (!isNaN(m) && m >= 0 && m < 12) return m;
+    }
+    return new Date().getMonth();
+  });
+
+  const openDatePicker = () => {
+    const parts = (form.date || '').split('-');
+    if (parts.length === 3) {
+      const y = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10) - 1;
+      if (!isNaN(y) && !isNaN(m) && m >= 0 && m < 12) {
+        setPickerYear(y);
+        setPickerMonth(m);
+      }
+    }
+    setShowDatePicker(true);
+  };
+
+  useEffect(() => {
+    loadTeluguFonts().then(() => setFontsReady(true));
+  }, []);
+
   // ─── Thumbnail Color & Theme State ─────────────────────────────────────────
   const [colorMode, setColorMode] = useState<'solid' | 'gradient' | 'custom'>('solid');
   const [selectedSolidColor, setSelectedSolidColor] = useState('#1E3A8A');
@@ -411,6 +477,16 @@ export default function AdminPromiseEditor() {
         setSelectedSolidColor(savedTheme);
         setCustomSolidInput(savedTheme);
       }
+
+      if (editingData.thumbnailStyle) {
+        setThumbFontFamily(editingData.thumbnailStyle.fontFamily || 'Suranna');
+        setThumbFontSize(editingData.thumbnailStyle.fontSize || 11.0);
+        setThumbTextAlign(editingData.thumbnailStyle.textAlign || 'center');
+        setThumbTextPosition(editingData.thumbnailStyle.textPosition || 'center');
+        setThumbTextColor(editingData.thumbnailStyle.textColor || '#FFFFFF');
+        setThumbFontWeight(editingData.thumbnailStyle.fontWeight || '800');
+        setThumbIsItalic(editingData.thumbnailStyle.isItalic || false);
+      }
       
       setForm({
         ...form,
@@ -438,6 +514,13 @@ export default function AdminPromiseEditor() {
       setCustomSolidInput('#1E3A8A');
       setCustomGradStart('#1E40AF');
       setCustomGradEnd('#7C3AED');
+      setThumbFontFamily('Suranna');
+      setThumbFontSize(11.0);
+      setThumbTextAlign('center');
+      setThumbTextPosition('center');
+      setThumbTextColor('#FFFFFF');
+      setThumbFontWeight('800');
+      setThumbIsItalic(false);
       setForm({
         date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
         enRef: '',
@@ -691,7 +774,16 @@ export default function AdminPromiseEditor() {
         pastor: form.pastor,
         status: finalStatus,
         theme: (colorMode === 'gradient' || (colorMode === 'custom' && customType === 'gradient')) ? `${activePrimaryColor}|${activeSecondaryColor}` : activePrimaryColor,
-        imageUrl: finalImageUrl
+        imageUrl: finalImageUrl,
+        thumbnailStyle: {
+          fontFamily: thumbFontFamily,
+          fontSize: thumbFontSize,
+          textAlign: thumbTextAlign,
+          textPosition: thumbTextPosition,
+          textColor: thumbTextColor,
+          fontWeight: thumbFontWeight,
+          isItalic: thumbIsItalic,
+        }
       };
       
       await FirestoreService.createDailyPromise(details);
@@ -736,33 +828,162 @@ export default function AdminPromiseEditor() {
   const currentStatusLabel = STATUS_OPTIONS.find(o => o.value === form.status)?.label || form.status;
 
   const renderDatePicker = () => {
-    const days = Array.from({ length: 30 }, (_, i) => i + 1);
+    const firstDayOfWeek = new Date(pickerYear, pickerMonth, 1).getDay();
+    const daysInMonth = new Date(pickerYear, pickerMonth + 1, 0).getDate();
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+    const blankLeadingCells = Array.from({ length: firstDayOfWeek }, (_, i) => i);
+
+    const today = new Date();
+    const todayY = today.getFullYear();
+    const todayM = today.getMonth();
+    const todayD = today.getDate();
+    const todayStr = `${todayY}-${String(todayM + 1).padStart(2, '0')}-${String(todayD).padStart(2, '0')}`;
+
+    const prevMonth = () => {
+      if (pickerMonth === 0) {
+        setPickerMonth(11);
+        setPickerYear(y => y - 1);
+      } else {
+        setPickerMonth(m => m - 1);
+      }
+    };
+
+    const nextMonth = () => {
+      if (pickerMonth === 11) {
+        setPickerMonth(0);
+        setPickerYear(y => y + 1);
+      } else {
+        setPickerMonth(m => m + 1);
+      }
+    };
+
+    const selectToday = () => {
+      setPickerYear(todayY);
+      setPickerMonth(todayM);
+      setForm({ ...form, date: todayStr });
+      setShowDatePicker(false);
+    };
+
+    const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
     return (
       <Modal visible={showDatePicker} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.pickerCard}>
+            {/* Header: Title & Close */}
             <View style={styles.pickerHd}>
-              <Text style={styles.pickerTitle}>Select Date</Text>
-              <TouchableOpacity onPress={() => setShowDatePicker(false)}><X size={20} color="#1a2d5a" /></TouchableOpacity>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <CalendarIcon size={18} color="#1a2d5a" />
+                <Text style={styles.pickerTitle}>Select Promise Date</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => setShowDatePicker(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
             </View>
+
+            {/* Month & Year Navigation Row */}
+            <View style={styles.pickerNavRow}>
+              <TouchableOpacity 
+                style={styles.pickerNavBtn} 
+                onPress={prevMonth}
+                activeOpacity={0.7}
+              >
+                <ChevronLeft size={20} color="#1a2d5a" />
+              </TouchableOpacity>
+              
+              <View style={{ alignItems: 'center' }}>
+                <Text style={styles.pickerMonthYearTxt}>
+                  {FULL_EN_MONTHS_LIST[pickerMonth]} {pickerYear}
+                </Text>
+                <Text style={styles.pickerMonthTeluguTxt}>
+                  {TELUGU_MONTHS_LIST[pickerMonth]}
+                </Text>
+              </View>
+
+              <TouchableOpacity 
+                style={styles.pickerNavBtn} 
+                onPress={nextMonth}
+                activeOpacity={0.7}
+              >
+                <ChevronRight size={20} color="#1a2d5a" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Weekdays Header */}
+            <View style={styles.pickerWeekDaysRow}>
+              {WEEKDAYS.map((wd, idx) => (
+                <View key={wd} style={styles.pickerWeekDayCol}>
+                  <Text style={[styles.pickerWeekDayTxt, (idx === 0 || idx === 6) && { color: '#EF4444' }]}>
+                    {wd}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Calendar Days Grid */}
             <View style={styles.calGrid}>
+              {/* Leading blank slots */}
+              {blankLeadingCells.map(b => (
+                <View key={`blank-${b}`} style={styles.calCellBlank} />
+              ))}
+
+              {/* Days of Month */}
               {days.map(d => {
-                const year = new Date().getFullYear();
-                const monthStr = String(new Date().getMonth() + 1).padStart(2, '0');
-                const dStr = `${year}-${monthStr}-${String(d).padStart(2,'0')}`;
+                const monthStr = String(pickerMonth + 1).padStart(2, '0');
+                const dayStr = String(d).padStart(2, '0');
+                const dStr = `${pickerYear}-${monthStr}-${dayStr}`;
+                const isSelected = form.date === dStr;
+                const isTodayDate = todayStr === dStr;
+
                 return (
                   <TouchableOpacity 
                     key={d} 
-                    style={[styles.calCell, form.date === dStr && styles.calCellActive]}
+                    style={[
+                      styles.calCell, 
+                      isSelected && styles.calCellActive,
+                      isTodayDate && !isSelected && styles.calCellToday
+                    ]}
                     onPress={() => {
-                      setForm({...form, date: dStr});
+                      setForm({ ...form, date: dStr });
                       setShowDatePicker(false);
                     }}
+                    activeOpacity={0.75}
                   >
-                    <Text style={[styles.calCellTxt, form.date === dStr && styles.calCellTxtActive]}>{d}</Text>
+                    <Text 
+                      style={[
+                        styles.calCellTxt, 
+                        isSelected && styles.calCellTxtActive,
+                        isTodayDate && !isSelected && styles.calCellTxtToday
+                      ]}
+                    >
+                      {d}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
+            </View>
+
+            {/* Footer with Today Quick Action */}
+            <View style={styles.pickerFooterRow}>
+              <TouchableOpacity 
+                style={styles.pickerTodayBtn} 
+                onPress={selectToday}
+                activeOpacity={0.75}
+              >
+                <Sparkles size={13} color="#1a2d5a" />
+                <Text style={styles.pickerTodayBtnTxt}>Today (నేడు)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.pickerCancelBtn} 
+                onPress={() => setShowDatePicker(false)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.pickerCancelBtnTxt}>Cancel</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -794,7 +1015,7 @@ export default function AdminPromiseEditor() {
           </View>
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Promise date <Text style={{color:'#c0392b'}}>*</Text></Text>
-            <TouchableOpacity style={styles.inputWrap} onPress={() => setShowDatePicker(true)}>
+            <TouchableOpacity style={styles.inputWrap} onPress={openDatePicker}>
               <Text style={styles.inputText}>{formatDateDisplay(form.date)}</Text>
               <CalendarIcon size={14} color="#374151" style={styles.inputIcon} />
             </TouchableOpacity>
@@ -961,7 +1182,7 @@ export default function AdminPromiseEditor() {
                       style={StyleSheet.absoluteFillObject}
                     />
 
-                    {/* 3. Devotional Altar Content Layout */}
+                    {/* 3. Devotional Altar Content Layout: Integrated directly on background without separate card */}
                     <View style={styles.promiseMainLayout}>
                       {/* Top Header Bar */}
                       <View style={styles.promiseTopBar}>
@@ -974,100 +1195,230 @@ export default function AdminPromiseEditor() {
                             </View>
                           )}
                           <View style={{ flexShrink: 1 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                              <Text style={{ fontSize: 8.5 }} allowFontScaling={false}>🕊</Text>
-                              <Text style={styles.promiseChurchName} numberOfLines={1} allowFontScaling={false}>
-                                {(activeChurch?.name || 'WE CHRISTIAN').toUpperCase()}
-                              </Text>
-                            </View>
-                            <Text style={styles.promiseSubHeaderTxt} numberOfLines={1} allowFontScaling={false}>నేటి దైవిక వాగ్దానం</Text>
+                            <Text style={styles.promiseChurchName} numberOfLines={1} allowFontScaling={false}>
+                              {(activeChurch?.name || 'WE CHRISTIAN').toUpperCase()}
+                            </Text>
                           </View>
                         </View>
 
                         {/* Dynamic Date Badge (Pulls from selected promise date) */}
-                        <View style={[styles.promiseDatePill, { borderColor: `${activePrimaryColor}AA`, backgroundColor: hexToRgba(activePrimaryColor, 0.28) }]}>
-                          <CalendarIcon size={7} color={activeSecondaryColor} />
+                        <View style={styles.promiseDatePill}>
+                          <CalendarIcon size={8.5} color="#F59E0B" strokeWidth={2.4} />
                           <Text style={styles.promiseDateTxt} numberOfLines={1} allowFontScaling={false}>
                             {getPromiseDateDisplay(form.date, true)}
                           </Text>
                         </View>
                       </View>
 
-                      {/* Center Devotional Card */}
-                      <View style={[styles.promiseCenterCard, { borderColor: `${activeSecondaryColor}66` }]}>
-                        {/* Ribbon Pill */}
-                        <View style={[styles.promiseRibbonPill, { backgroundColor: activeSecondaryColor }]}>
-                          <Sparkles size={7} color={getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF'} />
-                          <Text style={[styles.promiseRibbonTxt, { color: getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF' }]} allowFontScaling={false} numberOfLines={1}>
-                            ✨ నేటి దేవుని వాగ్దానం ✨
-                          </Text>
-                        </View>
+                      {/* Direct Scripture Placement on Background (NO separate card, NO Neti Devuni Vagadhanam ribbon) */}
+                      <View style={[
+                        styles.promiseDirectTextWrapper,
+                        {
+                          justifyContent: thumbTextPosition === 'top' ? 'flex-start' : thumbTextPosition === 'bottom' ? 'flex-end' : 'center',
+                          alignItems: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center',
+                          paddingTop: thumbTextPosition === 'top' ? 2 : 0,
+                          paddingBottom: thumbTextPosition === 'bottom' ? 2 : 0,
+                        }
+                      ]}>
+                        {(() => {
+                          const activeTeluguFont = getActiveFontFamily(thumbFontFamily);
+                          const isCustomTelugu = isCustomTeluguFont(thumbFontFamily);
+                          const hasEnglish = !!form.enVerse;
+                          const teLen = (form.teVerse || '').length;
+                          const enLen = (form.enVerse || '').length;
 
-                        {/* Scripture Presentation: Automatically pulled from selected Bible verse */}
-                        <View style={styles.promiseQuoteContainer}>
-                          {/* Telugu Scripture Line */}
-                          <View style={styles.promiseQuoteLineWrap}>
-                            <Text
-                              style={styles.promiseQuoteTelugu}
-                              numberOfLines={2}
-                              adjustsFontSizeToFit={true}
-                              minimumFontScale={0.75}
-                              allowFontScaling={false}
+                          // Dynamic height & font balancing so bilingual verses never collide with header or footer:
+                          const effectiveTeFontSize = hasEnglish
+                            ? (teLen > 80 ? Math.min(thumbFontSize, 11.0) : teLen > 50 ? Math.min(thumbFontSize, 11.8) : Math.min(thumbFontSize, 12.6))
+                            : thumbFontSize;
+                          const effectiveTeLineHeight = Math.round(effectiveTeFontSize * 1.34);
+                          const effectiveTeRefFontSize = Math.min(effectiveTeFontSize * 0.72, 8.5);
+
+                          // English companion verse: elegant SERIF, legible sizing, compact vertical footprint
+                          const effectiveEnFontSize = enLen > 110 ? 6.8 : enLen > 65 ? 7.4 : 8.2;
+                          const effectiveEnLineHeight = Math.round(effectiveEnFontSize * 1.25);
+                          const effectiveEnRefFontSize = Math.min(effectiveEnFontSize * 0.95, 7.0);
+
+                          return (
+                            <View 
+                              key={`quote-container-${thumbFontFamily}-${fontsReady}`}
+                              style={[
+                                styles.promiseQuoteContainer,
+                                { alignItems: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center' }
+                              ]}
                             >
-                              “{cleanVerse(form.teVerse || 'దీర్ఘాయువు చేత అతనిని తృప్తిపరచెదను')}.”{' '}
+                              {/* Telugu Scripture Line */}
+                              <View style={[
+                                styles.promiseQuoteLineWrap, 
+                                { 
+                                  alignItems: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center',
+                                  transform: thumbIsItalic ? [{ skewX: '-13deg' }] : undefined,
+                                }
+                              ]}>
+                                <Text
+                                  style={[
+                                    styles.promiseQuoteTelugu,
+                                    {
+                                      fontFamily: activeTeluguFont,
+                                      fontSize: effectiveTeFontSize,
+                                      lineHeight: effectiveTeLineHeight,
+                                      color: thumbTextColor,
+                                      fontWeight: isCustomTelugu ? (Platform.OS === 'ios' ? thumbFontWeight : 'normal') : thumbFontWeight,
+                                      fontStyle: isCustomTelugu ? 'normal' : (thumbIsItalic ? 'italic' : 'normal'),
+                                      textAlign: thumbTextAlign,
+                                      textShadowColor: isDarkColor(thumbTextColor) ? 'rgba(255, 255, 255, 0.92)' : 'rgba(0, 0, 0, 0.96)',
+                                      textShadowOffset: thumbFontWeight === '800' ? { width: 0.6, height: 1.6 } : thumbFontWeight === '700' ? { width: 0.4, height: 1.4 } : { width: 0, height: 1.2 },
+                                      textShadowRadius: thumbFontWeight === '800' ? 5 : 4,
+                                    }
+                                  ]}
+                                  numberOfLines={hasEnglish ? 3 : 4}
+                                  adjustsFontSizeToFit={true}
+                                  minimumFontScale={0.65}
+                                  allowFontScaling={false}
+                                >
+                                  “{cleanVerse(form.teVerse || 'దీర్ఘాయువు చేత అతనిని తృప్తిపరచెదను')}.”
+                                </Text>
+                              </View>
+
+                              {/* Dedicated Telugu Scripture Reference Row - Radiant Gold & Never Cut Off */}
                               {form.teRef ? (
-                                <Text style={[styles.promiseQuoteTeluguRef, { color: activeSecondaryColor }]} allowFontScaling={false}>
-                                  {cleanRef(form.teRef)}
-                                </Text>
+                                <View style={[
+                                  styles.promiseRefRow, 
+                                  { 
+                                    justifyContent: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center',
+                                    transform: thumbIsItalic ? [{ skewX: '-13deg' }] : undefined,
+                                    marginTop: 1,
+                                    marginBottom: 0,
+                                  }
+                                ]}>
+                                  <Text 
+                                    style={[
+                                      styles.promiseQuoteTeluguRef, 
+                                      { 
+                                        fontFamily: activeTeluguFont,
+                                        fontSize: effectiveTeRefFontSize,
+                                        fontWeight: isCustomTelugu ? (Platform.OS === 'ios' ? (thumbFontWeight === '800' || thumbFontWeight === '700' ? '700' : '600') : 'normal') : (thumbFontWeight === '800' || thumbFontWeight === '700' ? '700' : '600'),
+                                        fontStyle: isCustomTelugu ? 'normal' : (thumbIsItalic ? 'italic' : 'normal'),
+                                        textAlign: thumbTextAlign,
+                                      }
+                                    ]} 
+                                    numberOfLines={1}
+                                    adjustsFontSizeToFit={true}
+                                    minimumFontScale={0.75}
+                                    allowFontScaling={false}
+                                  >
+                                    — {cleanRefWithoutOuter(form.teRef)}
+                                  </Text>
+                                </View>
                               ) : null}
-                            </Text>
-                          </View>
 
-                          {/* Dynamic Divider with Cross */}
-                          <View style={styles.promiseDividerRow}>
-                            <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
-                            <Text style={[styles.promiseDividerCross, { color: activeSecondaryColor }]} allowFontScaling={false}>✝</Text>
-                            <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
-                          </View>
-
-                          {/* English Scripture Line */}
-                          <View style={styles.promiseQuoteLineWrap}>
-                            <Text
-                              style={styles.promiseQuoteEnglish}
-                              numberOfLines={2}
-                              adjustsFontSizeToFit={true}
-                              minimumFontScale={0.75}
-                              allowFontScaling={false}
-                            >
-                              “{cleanVerse(form.enVerse || 'I will satisfy him with long life')}.”{' '}
-                              {form.enRef ? (
-                                <Text style={styles.promiseQuoteEnglishRef} allowFontScaling={false}>
-                                  {cleanRef(form.enRef)}
-                                </Text>
+                              {/* Dynamic Divider with Cross (only if English is entered) */}
+                              {hasEnglish ? (
+                                <View style={[
+                                  styles.promiseDividerRow,
+                                  { 
+                                    justifyContent: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center',
+                                    marginVertical: 1.5,
+                                    width: '36%',
+                                  }
+                                ]}>
+                                  <View style={styles.promiseDividerLine} />
+                                  <Text style={styles.promiseDividerCross} allowFontScaling={false}>✝</Text>
+                                  <View style={styles.promiseDividerLine} />
+                                </View>
                               ) : null}
-                            </Text>
-                          </View>
-                        </View>
 
-                        {/* Tagline / Devotional Note */}
-                        <View style={styles.promiseTagRow}>
-                          <Text style={{ fontSize: 6.5 }} allowFontScaling={false}>🌿</Text>
-                          <Text style={styles.promiseTagTxt} numberOfLines={1} adjustsFontSizeToFit={true} minimumFontScale={0.8} allowFontScaling={false}>
-                            {form.teNote || form.enNote || 'దీర్ఘాయువునిచ్చు దేవుని వాగ్దానం'}
-                          </Text>
-                          <Text style={{ fontSize: 6.5 }} allowFontScaling={false}>🌿</Text>
-                        </View>
+                              {/* English Scripture Line (if entered) */}
+                              {form.enVerse ? (
+                                <View style={[
+                                  styles.promiseQuoteLineWrap, 
+                                  { 
+                                    alignItems: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center',
+                                  }
+                                ]}>
+                                  <Text
+                                    style={[
+                                      styles.promiseQuoteEnglish,
+                                      {
+                                        fontFamily: SERIF,
+                                        fontSize: effectiveEnFontSize,
+                                        lineHeight: effectiveEnLineHeight,
+                                        color: thumbTextColor === '#FFFFFF' ? '#FEF3C7' : thumbTextColor,
+                                        fontWeight: '500',
+                                        fontStyle: 'italic',
+                                        textAlign: thumbTextAlign,
+                                        letterSpacing: 0.12,
+                                        textShadowColor: isDarkColor(thumbTextColor) ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.92)',
+                                        textShadowOffset: { width: 0, height: 1.2 },
+                                        textShadowRadius: 3,
+                                      }
+                                    ]}
+                                    numberOfLines={2}
+                                    adjustsFontSizeToFit={true}
+                                    minimumFontScale={0.7}
+                                    allowFontScaling={false}
+                                  >
+                                    “{cleanVerse(form.enVerse)}.”
+                                  </Text>
+                                  {form.enRef ? (
+                                    <View style={[
+                                      styles.promiseRefRow, 
+                                      { 
+                                        justifyContent: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center',
+                                        marginTop: 1,
+                                        marginBottom: 0,
+                                      }
+                                    ]}>
+                                      <Text 
+                                        style={[
+                                          styles.promiseQuoteEnglishRef, 
+                                          { 
+                                            fontFamily: SERIF,
+                                            fontSize: effectiveEnRefFontSize,
+                                            fontWeight: '600',
+                                            fontStyle: 'normal',
+                                            textAlign: thumbTextAlign,
+                                            color: '#FCD34D',
+                                            letterSpacing: 0.2,
+                                          }
+                                        ]} 
+                                        numberOfLines={1}
+                                        adjustsFontSizeToFit={true}
+                                        minimumFontScale={0.8}
+                                        allowFontScaling={false}
+                                      >
+                                        — {cleanRefWithoutOuter(form.enRef)}
+                                      </Text>
+                                    </View>
+                                  ) : null}
+                                </View>
+                              ) : null}
+
+                              {/* Devotional Note / Tagline (if entered) */}
+                              {(form.teNote || form.enNote) ? (
+                                <View style={[
+                                  styles.promiseTagRow,
+                                  { justifyContent: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center' }
+                                ]}>
+                                  <Text style={[styles.promiseTagTxt, { fontFamily: activeTeluguFont, color: 'rgba(255,255,255,0.92)', fontWeight: isCustomTelugu ? 'normal' : '700' }]} numberOfLines={1} adjustsFontSizeToFit={true} minimumFontScale={0.8} allowFontScaling={false}>
+                                    {form.teNote || form.enNote}
+                                  </Text>
+                                </View>
+                              ) : null}
+                            </View>
+                          );
+                        })()}
                       </View>
 
                       {/* Bottom Footer Bar */}
                       <View style={styles.promiseBottomBar}>
-                        <View style={[styles.promisePhonePill, { backgroundColor: activePrimaryColor }]}>
-                          <Phone size={7} color="#fff" />
+                        <View style={[styles.promisePhonePill, { backgroundColor: hexToRgba(activePrimaryColor, 0.75) }]}>
+                          <Phone size={6.5} color="#fff" />
                           <Text style={styles.promisePhoneTxt} numberOfLines={1} allowFontScaling={false}>
                             {`మరిన్ని వివరాలకు : ${activeChurch?.contactPhone || '8000504070'}`}
                           </Text>
                         </View>
-                        <Text style={[styles.promiseWelcomeScript, { color: activeSecondaryColor }]} numberOfLines={1} allowFontScaling={false}>
+                        <Text style={[styles.promiseWelcomeScript, { color: isDarkColor(activeSecondaryColor) ? '#FDE68A' : activeSecondaryColor, fontFamily: getActiveFontFamily(thumbFontFamily), fontWeight: isCustomTeluguFont(thumbFontFamily) ? 'normal' : '700' }]} numberOfLines={1} allowFontScaling={false}>
                           దీవించబడుదురు గాక
                         </Text>
                       </View>
@@ -1201,6 +1552,289 @@ export default function AdminPromiseEditor() {
               </View>
             )}
 
+            {/* ── SCRIPTURE TYPOGRAPHY & TELUGU FONT CUSTOMIZATION ── */}
+            <View style={styles.typographySection}>
+              <TouchableOpacity
+                style={styles.typographyHeaderTouchable}
+                activeOpacity={0.7}
+                onPress={() => setIsTypographyExpanded(prev => !prev)}
+              >
+                <View style={styles.typographyTitleRow}>
+                  <Type size={16} color="#1a2d5a" />
+                  <Text style={styles.typographyHeaderTitle} numberOfLines={1}>తెలుగు ఫాంట్ & శైలి</Text>
+                </View>
+
+                <View style={styles.typographyHeaderRight}>
+                  <View style={styles.typographyActivePill}>
+                    <Text style={[styles.typographyActivePillTxt, { fontFamily: thumbFontFamily }]}>
+                      {TELUGU_FONT_OPTIONS.find(f => f.id === thumbFontFamily)?.teluguName || 'సురన్న'} · {thumbFontSize}pt
+                    </Text>
+                  </View>
+                  <View style={styles.chevronWrap}>
+                    {isTypographyExpanded ? <ChevronUp size={16} color="#1a2d5a" /> : <ChevronDown size={16} color="#1a2d5a" />}
+                  </View>
+                </View>
+              </TouchableOpacity>
+
+              {isTypographyExpanded && (
+                <View style={styles.typographyExpandedContent}>
+                  {/* 1. TELUGU FONT SELECTION */}
+                  <Text style={styles.typoSubHeading}>తెలుగు ఫాంట్ శైలి (Select Telugu Font)</Text>
+                  <View style={styles.teluguFontGrid}>
+                    {TELUGU_FONT_OPTIONS.map((fOption) => {
+                      const isSelected = thumbFontFamily === fOption.id;
+                      return (
+                        <TouchableOpacity
+                          key={fOption.id}
+                          style={[styles.teluguFontCard, isSelected && styles.teluguFontCardSelected]}
+                          onPress={() => setThumbFontFamily(fOption.id)}
+                          activeOpacity={0.75}
+                        >
+                          <View style={styles.teluguFontCardHeader}>
+                            <Text 
+                              style={[
+                                styles.teluguFontSample, 
+                                { 
+                                  fontFamily: getActiveFontFamily(fOption.id),
+                                  fontWeight: fOption.id === 'System' ? '700' : 'normal',
+                                }, 
+                                isSelected && styles.teluguFontSampleSelected
+                              ]} 
+                              numberOfLines={1}
+                            >
+                              {fOption.teluguName}
+                            </Text>
+                            <View style={[styles.fontRadioCircle, isSelected && styles.fontRadioCircleSelected]}>
+                              {isSelected && <Check size={10} color="#FFFFFF" strokeWidth={3} />}
+                            </View>
+                          </View>
+                          <Text style={[styles.teluguFontSub, isSelected && styles.teluguFontSubSelected]} numberOfLines={1}>
+                            {fOption.name}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* 2. FONT SIZE & STEPPER */}
+                  <View style={{ marginTop: 14 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <Text style={styles.typoSubHeading}>అక్షర పరిమాణం (Font Size)</Text>
+                      <View style={styles.stepperContainer}>
+                        <TouchableOpacity
+                          style={styles.stepperBtn}
+                          onPress={() => setThumbFontSize(prev => Math.max(8.0, Number((prev - 0.5).toFixed(1))))}
+                          activeOpacity={0.7}
+                        >
+                          <Minus size={13} color="#1a2d5a" />
+                        </TouchableOpacity>
+                        <Text style={styles.stepperValueTxt}>{thumbFontSize} pt</Text>
+                        <TouchableOpacity
+                          style={styles.stepperBtn}
+                          onPress={() => setThumbFontSize(prev => Math.min(18.0, Number((prev + 0.5).toFixed(1))))}
+                          activeOpacity={0.7}
+                        >
+                          <Plus size={13} color="#1a2d5a" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Quick Size Presets */}
+                    <View style={styles.presetRow}>
+                      {FONT_SIZE_PRESETS.map((p) => {
+                        const isSelected = thumbFontSize === p.size;
+                        return (
+                          <TouchableOpacity
+                            key={p.label}
+                            style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                            onPress={() => setThumbFontSize(p.size)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[styles.presetChipTxt, isSelected && styles.presetChipTxtActive]} numberOfLines={1}>
+                              {p.label}
+                            </Text>
+                            <Text style={[styles.presetChipSubTxt, isSelected && styles.presetChipSubTxtActive]} numberOfLines={1}>
+                              {p.size}pt
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  {/* 3. ALIGNMENT (HORIZONTAL) */}
+                  <View style={{ marginTop: 14 }}>
+                    <Text style={styles.typoSubHeading}>టెక్స్ట్ అలైన్‌మెంట్ (Horizontal Alignment)</Text>
+                    <View style={styles.segmentedControl}>
+                      {(['left', 'center', 'right'] as const).map((align) => {
+                        const isSelected = thumbTextAlign === align;
+                        const label = align === 'left' ? 'ఎడమ (Left)' : align === 'center' ? 'మధ్యలో (Center)' : 'కుడి (Right)';
+                        return (
+                          <TouchableOpacity
+                            key={align}
+                            style={[styles.segmentBtn, isSelected && styles.segmentBtnActive]}
+                            onPress={() => setThumbTextAlign(align)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[styles.segmentBtnTxt, isSelected && styles.segmentBtnTxtActive]}>
+                              {label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  {/* 4. POSITION (VERTICAL) */}
+                  <View style={{ marginTop: 12 }}>
+                    <Text style={styles.typoSubHeading}>వాక్య స్థానం (Vertical Position)</Text>
+                    <View style={styles.segmentedControl}>
+                      {(['top', 'center', 'bottom'] as const).map((pos) => {
+                        const isSelected = thumbTextPosition === pos;
+                        const label = pos === 'top' ? 'పైభాగం (Top)' : pos === 'center' ? 'మధ్యలో (Center)' : 'క్రింద (Bottom)';
+                        return (
+                          <TouchableOpacity
+                            key={pos}
+                            style={[styles.segmentBtn, isSelected && styles.segmentBtnActive]}
+                            onPress={() => setThumbTextPosition(pos)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[styles.segmentBtnTxt, isSelected && styles.segmentBtnTxtActive]}>
+                              {label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+
+                  {/* 5. TEXT COLOR SELECTION - 31 Devotional Colors + Categories */}
+                  <View style={{ marginTop: 14 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <Text style={styles.typoSubHeading}>టెక్స్ట్ రంగు (Text Color)</Text>
+                      <View style={styles.selectedColorBadge}>
+                        <View style={[styles.selectedColorDot, { backgroundColor: thumbTextColor }]} />
+                        <Text style={styles.selectedColorBadgeTxt} numberOfLines={1}>
+                          {TEXT_COLOR_PALETTE.find(c => c.hex.toLowerCase() === thumbTextColor.toLowerCase())?.label || thumbTextColor}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Category Filter Tabs */}
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.colorCategoryScroll}>
+                      {TEXT_COLOR_CATEGORIES.map((cat) => {
+                        const isCatSelected = activeTextColorCategory === cat;
+                        return (
+                          <TouchableOpacity
+                            key={cat}
+                            style={[styles.colorCategoryChip, isCatSelected && styles.colorCategoryChipActive]}
+                            onPress={() => setActiveTextColorCategory(cat)}
+                            activeOpacity={0.7}
+                          >
+                            <Text style={[styles.colorCategoryChipTxt, isCatSelected && styles.colorCategoryChipTxtActive]}>
+                              {cat}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+
+                    {/* Color Swatches Grid */}
+                    <View style={styles.colorSwatchWrap}>
+                      {TEXT_COLOR_PALETTE
+                        .filter(c => activeTextColorCategory === 'All' || c.category === activeTextColorCategory)
+                        .map((c) => {
+                          const isSelected = thumbTextColor.toLowerCase() === c.hex.toLowerCase();
+                          return (
+                            <TouchableOpacity
+                              key={c.hex}
+                              style={[
+                                styles.textSwatchCircle,
+                                { backgroundColor: c.hex },
+                                isSelected && styles.textSwatchCircleActive,
+                              ]}
+                              onPress={() => {
+                                setThumbTextColor(c.hex);
+                                setCustomTextColorInput(c.hex);
+                              }}
+                              activeOpacity={0.7}
+                            >
+                              {isSelected && (
+                                <Check
+                                  size={12}
+                                  color={isDarkColor(c.hex) ? '#FFFFFF' : '#111827'}
+                                  strokeWidth={3}
+                                />
+                              )}
+                            </TouchableOpacity>
+                          );
+                        })}
+                    </View>
+
+                    {/* Custom Hex Color input */}
+                    <View style={styles.customColorInputRow}>
+                      <Text style={styles.customColorInputLabel}>Custom Hex:</Text>
+                      <TextInput
+                        style={styles.customColorTextInput}
+                        value={customTextColorInput}
+                        placeholder="#FFFFFF"
+                        placeholderTextColor="#94A3B8"
+                        maxLength={7}
+                        autoCapitalize="characters"
+                        onChangeText={(txt) => {
+                          setCustomTextColorInput(txt);
+                          if (/^#[0-9A-Fa-f]{6}$/.test(txt)) {
+                            setThumbTextColor(txt);
+                          }
+                        }}
+                      />
+                      <View style={[styles.customColorSample, { backgroundColor: thumbTextColor }]} />
+                    </View>
+                  </View>
+
+                  {/* 6. FONT WEIGHT & ITALIC STYLE */}
+                  <View style={{ marginTop: 14 }}>
+                    <Text style={styles.typoSubHeading}>స్టైల్ & మందం (Style & Weight)</Text>
+                    <View style={styles.styleAndWeightRow}>
+                      <View style={styles.weightSegmentedControl}>
+                        {([
+                          { label: 'Regular', val: '400' },
+                          { label: 'SemiBold', val: '600' },
+                          { label: 'Bold', val: '700' },
+                          { label: 'Heavy', val: '800' },
+                        ] as const).map((w) => {
+                          const isSelected = thumbFontWeight === w.val;
+                          return (
+                            <TouchableOpacity
+                              key={w.val}
+                              style={[styles.segmentBtn, isSelected && styles.segmentBtnActive]}
+                              onPress={() => setThumbFontWeight(w.val)}
+                              activeOpacity={0.7}
+                            >
+                              <Text style={[styles.segmentBtnTxt, isSelected && styles.segmentBtnTxtActive]}>
+                                {w.label}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+
+                      {/* Italic Toggle */}
+                      <TouchableOpacity
+                        style={[styles.italicToggleBtn, thumbIsItalic && styles.italicToggleBtnActive]}
+                        onPress={() => setThumbIsItalic(prev => !prev)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.italicToggleTxt, thumbIsItalic && styles.italicToggleTxtActive]}>
+                          Italic (వాలు)
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              )}
+            </View>
+
             {/* ── THUMBNAIL COLOR & THEME PALETTE ── */}
             <View style={styles.colorPickerSection}>
               <TouchableOpacity
@@ -1210,7 +1844,7 @@ export default function AdminPromiseEditor() {
               >
                 <View style={styles.colorPickerTitleRow}>
                   <Palette size={15} color="#1a2d5a" />
-                  <Text style={styles.colorPickerTitle} numberOfLines={1} ellipsizeMode="tail">Thumbnail Color & Theme</Text>
+                  <Text style={styles.typographyHeaderTitle} numberOfLines={1}>రంగు & థీమ్ (Color & Theme)</Text>
                 </View>
 
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -1552,121 +2186,154 @@ export default function AdminPromiseEditor() {
           </View>
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Publish status</Text>
-            <View style={styles.statusSelectorContainer}>
-              {/* Option 1: Publish Now */}
-              <TouchableOpacity
-                style={[
-                  styles.statusOptionCard,
-                  form.status === 'Published' && styles.statusOptionCardPublished
-                ]}
-                onPress={() => setForm({ ...form, status: 'Published' })}
-                activeOpacity={0.8}
-              >
-                <View style={[
-                  styles.statusOptionIconBox,
-                  form.status === 'Published' ? styles.statusOptionIconBoxPublished : {}
-                ]}>
-                  <Send size={15} color={form.status === 'Published' ? '#fff' : '#059669'} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={[
-                      styles.statusOptionTitle,
-                      form.status === 'Published' && styles.statusOptionTitlePublished
-                    ]}>
-                      Publish Now
-                    </Text>
-                    {form.status === 'Published' && (
-                      <View style={styles.activeDotGreen} />
-                    )}
-                  </View>
-                  <Text style={styles.statusOptionSub}>Live immediately on Member Home View</Text>
-                </View>
-                <View style={[
-                  styles.statusRadioCircle,
-                  form.status === 'Published' && styles.statusRadioCirclePublished
-                ]}>
-                  {form.status === 'Published' && <Check size={12} color="#fff" strokeWidth={3} />}
-                </View>
-              </TouchableOpacity>
 
-              {/* Option 2: Scheduled */}
-              <TouchableOpacity
-                style={[
-                  styles.statusOptionCard,
-                  form.status === 'Scheduled' && styles.statusOptionCardScheduled
-                ]}
-                onPress={() => setForm({ ...form, status: 'Scheduled' })}
-                activeOpacity={0.8}
-              >
-                <View style={[
-                  styles.statusOptionIconBox,
-                  form.status === 'Scheduled' ? styles.statusOptionIconBoxScheduled : {}
-                ]}>
-                  <Clock size={15} color={form.status === 'Scheduled' ? '#fff' : '#D97706'} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={[
-                      styles.statusOptionTitle,
-                      form.status === 'Scheduled' && styles.statusOptionTitleScheduled
-                    ]}>
-                      Scheduled
-                    </Text>
-                    {form.status === 'Scheduled' && (
-                      <View style={styles.activeDotAmber} />
-                    )}
-                  </View>
-                  <Text style={styles.statusOptionSub}>
-                    Auto-publishes on {formatDateDisplay(form.date)}
-                  </Text>
-                </View>
-                <View style={[
-                  styles.statusRadioCircle,
-                  form.status === 'Scheduled' && styles.statusRadioCircleScheduled
-                ]}>
-                  {form.status === 'Scheduled' && <Check size={12} color="#fff" strokeWidth={3} />}
-                </View>
-              </TouchableOpacity>
+            {/* Derive today's date string for comparison */}
+            {(() => {
+              const todayStr = (() => {
+                const d = new Date();
+                return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              })();
+              const isToday = form.date === todayStr;
 
-              {/* Option 3: Draft */}
-              <TouchableOpacity
-                style={[
-                  styles.statusOptionCard,
-                  form.status === 'Draft' && styles.statusOptionCardDraft
-                ]}
-                onPress={() => setForm({ ...form, status: 'Draft' })}
-                activeOpacity={0.8}
-              >
-                <View style={[
-                  styles.statusOptionIconBox,
-                  form.status === 'Draft' ? styles.statusOptionIconBoxDraft : {}
-                ]}>
-                  <FileText size={15} color={form.status === 'Draft' ? '#fff' : '#475569'} />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={[
-                      styles.statusOptionTitle,
-                      form.status === 'Draft' && styles.statusOptionTitleDraft
+              // Auto-switch to Published if today is selected but a non-publishable status is set
+              if (isToday && form.status !== 'Published') {
+                setTimeout(() => setForm(prev => ({ ...prev, status: 'Published' })), 0);
+              }
+
+              return (
+                <View style={styles.statusSelectorContainer}>
+                  {isToday && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fffbeb', borderRadius: 10, padding: 10, marginBottom: 8, borderWidth: 1, borderColor: '#fde68a' }}>
+                      <Clock size={13} color="#D97706" />
+                      <Text style={{ fontSize: 11.5, color: '#92400e', fontWeight: '600', flex: 1 }}>
+                        Today's date selected — only Publish Now is available.
+                      </Text>
+                    </View>
+                  )}
+
+                  {/* Option 1: Publish Now — always enabled */}
+                  <TouchableOpacity
+                    style={[
+                      styles.statusOptionCard,
+                      form.status === 'Published' && styles.statusOptionCardPublished
+                    ]}
+                    onPress={() => setForm({ ...form, status: 'Published' })}
+                    activeOpacity={0.8}
+                  >
+                    <View style={[
+                      styles.statusOptionIconBox,
+                      form.status === 'Published' ? styles.statusOptionIconBoxPublished : {}
                     ]}>
-                      Save as Draft
-                    </Text>
-                    {form.status === 'Draft' && (
-                      <View style={styles.activeDotSlate} />
-                    )}
-                  </View>
-                  <Text style={styles.statusOptionSub}>Saved privately, hidden from members</Text>
+                      <Send size={15} color={form.status === 'Published' ? '#fff' : '#059669'} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={[
+                          styles.statusOptionTitle,
+                          form.status === 'Published' && styles.statusOptionTitlePublished
+                        ]}>
+                          Publish Now
+                        </Text>
+                        {form.status === 'Published' && (
+                          <View style={styles.activeDotGreen} />
+                        )}
+                      </View>
+                      <Text style={styles.statusOptionSub}>Live immediately on Member Home View</Text>
+                    </View>
+                    <View style={[
+                      styles.statusRadioCircle,
+                      form.status === 'Published' && styles.statusRadioCirclePublished
+                    ]}>
+                      {form.status === 'Published' && <Check size={12} color="#fff" strokeWidth={3} />}
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Option 2: Scheduled — disabled for today */}
+                  <TouchableOpacity
+                    style={[
+                      styles.statusOptionCard,
+                      form.status === 'Scheduled' && styles.statusOptionCardScheduled,
+                      isToday && { opacity: 0.38 }
+                    ]}
+                    onPress={() => !isToday && setForm({ ...form, status: 'Scheduled' })}
+                    activeOpacity={isToday ? 1 : 0.8}
+                    disabled={isToday}
+                  >
+                    <View style={[
+                      styles.statusOptionIconBox,
+                      form.status === 'Scheduled' ? styles.statusOptionIconBoxScheduled : {}
+                    ]}>
+                      <Clock size={15} color={form.status === 'Scheduled' ? '#fff' : '#D97706'} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={[
+                          styles.statusOptionTitle,
+                          form.status === 'Scheduled' && styles.statusOptionTitleScheduled
+                        ]}>
+                          Scheduled
+                        </Text>
+                        {form.status === 'Scheduled' && (
+                          <View style={styles.activeDotAmber} />
+                        )}
+                      </View>
+                      <Text style={styles.statusOptionSub}>
+                        {isToday ? 'Not available for today\'s date' : `Auto-publishes on ${formatDateDisplay(form.date)}`}
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.statusRadioCircle,
+                      form.status === 'Scheduled' && styles.statusRadioCircleScheduled
+                    ]}>
+                      {form.status === 'Scheduled' && <Check size={12} color="#fff" strokeWidth={3} />}
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Option 3: Draft — disabled for today */}
+                  <TouchableOpacity
+                    style={[
+                      styles.statusOptionCard,
+                      form.status === 'Draft' && styles.statusOptionCardDraft,
+                      isToday && { opacity: 0.38 }
+                    ]}
+                    onPress={() => !isToday && setForm({ ...form, status: 'Draft' })}
+                    activeOpacity={isToday ? 1 : 0.8}
+                    disabled={isToday}
+                  >
+                    <View style={[
+                      styles.statusOptionIconBox,
+                      form.status === 'Draft' ? styles.statusOptionIconBoxDraft : {}
+                    ]}>
+                      <FileText size={15} color={form.status === 'Draft' ? '#fff' : '#475569'} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={[
+                          styles.statusOptionTitle,
+                          form.status === 'Draft' && styles.statusOptionTitleDraft
+                        ]}>
+                          Save as Draft
+                        </Text>
+                        {form.status === 'Draft' && (
+                          <View style={styles.activeDotSlate} />
+                        )}
+                      </View>
+                      <Text style={styles.statusOptionSub}>
+                        {isToday ? 'Not available for today\'s date' : 'Saved privately, hidden from members'}
+                      </Text>
+                    </View>
+                    <View style={[
+                      styles.statusRadioCircle,
+                      form.status === 'Draft' && styles.statusRadioCircleDraft
+                    ]}>
+                      {form.status === 'Draft' && <Check size={12} color="#fff" strokeWidth={3} />}
+                    </View>
+                  </TouchableOpacity>
                 </View>
-                <View style={[
-                  styles.statusRadioCircle,
-                  form.status === 'Draft' && styles.statusRadioCircleDraft
-                ]}>
-                  {form.status === 'Draft' && <Check size={12} color="#fff" strokeWidth={3} />}
-                </View>
-              </TouchableOpacity>
-            </View>
+              );
+            })()}
           </View>
+
         </View>
 
         <View style={styles.footerBtnRow}>
@@ -2042,15 +2709,30 @@ const styles = StyleSheet.create({
   themeRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6, gap: 10 },
   themeChip: { width: 38, height: 38, borderRadius: 19, borderWidth: 2.5, borderColor: 'transparent' },
   themeActive: { borderColor: '#C9A84C', transform: [{ scale: 1.1 }] },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
-  pickerCard: { backgroundColor: '#fff', width: '85%', borderRadius: 20, padding: 20 },
-  pickerHd: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  pickerTitle: { fontSize: 14, fontWeight: '700', color: '#1a2d5a' },
-  calGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
-  calCell: { width: (width * 0.85 - 70) / 7, height: 35, justifyContent: 'center', alignItems: 'center', borderRadius: 8, backgroundColor: '#F5F0E8' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  pickerCard: { backgroundColor: '#fff', width: '88%', maxWidth: 360, borderRadius: 20, padding: 18, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
+  pickerHd: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  pickerTitle: { fontSize: 15, fontWeight: '700', color: '#1a2d5a' },
+  pickerNavRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 4 },
+  pickerNavBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' },
+  pickerMonthYearTxt: { fontSize: 15, fontWeight: '800', color: '#1a2d5a' },
+  pickerMonthTeluguTxt: { fontSize: 11, fontWeight: '600', color: '#64748B', marginTop: 1 },
+  pickerWeekDaysRow: { flexDirection: 'row', marginBottom: 6, paddingBottom: 4, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  pickerWeekDayCol: { flex: 1, alignItems: 'center' },
+  pickerWeekDayTxt: { fontSize: 11, fontWeight: '700', color: '#64748B' },
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calCellBlank: { width: '14.28%', height: 36 },
+  calCell: { width: '14.28%', height: 36, justifyContent: 'center', alignItems: 'center', borderRadius: 8, marginVertical: 2 },
   calCellActive: { backgroundColor: '#1a2d5a' },
-  calCellTxt: { fontSize: 11, color: '#374151', fontWeight: '600' },
-  calCellTxtActive: { color: '#fff' },
+  calCellToday: { borderWidth: 1.5, borderColor: '#F59E0B', backgroundColor: 'rgba(245, 158, 11, 0.1)' },
+  calCellTxt: { fontSize: 12, color: '#334155', fontWeight: '600' },
+  calCellTxtActive: { color: '#FFFFFF', fontWeight: '800' },
+  calCellTxtToday: { color: '#B45309', fontWeight: '700' },
+  pickerFooterRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F1F5F9' },
+  pickerTodayBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, backgroundColor: '#EFF6FF' },
+  pickerTodayBtnTxt: { fontSize: 12, fontWeight: '700', color: '#1a2d5a' },
+  pickerCancelBtn: { paddingVertical: 8, paddingHorizontal: 12 },
+  pickerCancelBtnTxt: { fontSize: 12, fontWeight: '600', color: '#64748B' },
 
   modalOption: {
     paddingVertical: 14,
@@ -2521,110 +3203,97 @@ const styles = StyleSheet.create({
   promiseDatePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    gap: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.65)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
     borderRadius: 999,
     flexShrink: 0,
   },
   promiseDateTxt: {
     color: '#FFFFFF',
-    fontSize: 7.0,
+    fontSize: 7.5,
     fontWeight: '800',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
-  promiseCenterCard: {
+  promiseDirectTextWrapper: {
     flex: 1,
-    marginHorizontal: 4,
+    marginHorizontal: 8,
     marginVertical: 2,
-    backgroundColor: 'rgba(15, 8, 26, 0.72)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.55)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
   },
-  promiseRibbonPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 7,
-    paddingVertical: 1.5,
-    borderRadius: 999,
-    marginBottom: 2,
-  },
-  promiseRibbonTxt: {
-    color: '#211A2E',
-    fontSize: 6.2,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-  },
   promiseQuoteContainer: {
     width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: 4,
     flexShrink: 1,
   },
   promiseQuoteLineWrap: {
     width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   promiseQuoteTelugu: {
-    fontSize: 10.5,
-    fontWeight: '800',
+    fontSize: 11.0,
     color: '#FFFFFF',
     textAlign: 'center',
-    lineHeight: 14.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
+    lineHeight: 16.0,
+    textShadowColor: 'rgba(0, 0, 0, 0.95)',
+    textShadowOffset: { width: 0, height: 1.5 },
+    textShadowRadius: 4,
+  },
+  promiseRefRow: {
+    width: '100%',
+    marginTop: 1,
+    marginBottom: 0,
   },
   promiseQuoteTeluguRef: {
-    fontSize: 8.8,
-    fontWeight: '800',
-    color: '#F59E0B',
+    fontSize: 8.5,
+    color: '#FCD34D',
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.95)',
+    textShadowOffset: { width: 0, height: 1.2 },
+    textShadowRadius: 3,
   },
   promiseDividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 5,
-    width: '50%',
+    width: '36%',
     marginVertical: 1.5,
+    alignSelf: 'center',
   },
   promiseDividerLine: {
     flex: 1,
     height: 1,
-    opacity: 0.6,
+    backgroundColor: 'rgba(245, 158, 11, 0.55)',
   },
   promiseDividerCross: {
-    fontSize: 7,
+    fontSize: 7.0,
     color: '#F59E0B',
+    fontWeight: '800',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   promiseQuoteEnglish: {
-    fontSize: 8.0,
-    fontStyle: 'italic',
-    fontWeight: '700',
+    fontSize: 7.5,
     color: '#FEF3C7',
     textAlign: 'center',
-    lineHeight: 11.5,
-    fontFamily: SERIF,
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
-    textShadowOffset: { width: 0, height: 1 },
+    lineHeight: 10.0,
+    textShadowColor: 'rgba(0, 0, 0, 0.92)',
+    textShadowOffset: { width: 0, height: 1.2 },
     textShadowRadius: 3,
   },
   promiseQuoteEnglishRef: {
-    fontSize: 7.5,
-    fontWeight: '800',
+    fontSize: 7.0,
     color: '#FCD34D',
+    letterSpacing: 0.2,
+    textShadowColor: 'rgba(0, 0, 0, 0.95)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   promiseTagRow: {
     flexDirection: 'row',
@@ -2644,6 +3313,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
     paddingHorizontal: 4,
+    zIndex: 20,
+    marginTop: 'auto',
+    paddingTop: 1,
+    paddingBottom: 1,
   },
   promisePhonePill: {
     flexDirection: 'row',
@@ -2662,10 +3335,7 @@ const styles = StyleSheet.create({
   },
   promiseWelcomeScript: {
     fontSize: 8.5,
-    fontStyle: 'italic',
-    fontWeight: '700',
     color: '#F59E0B',
-    fontFamily: SERIF,
   },
   thumbActionContainer: {
     marginTop: 10,
@@ -3107,6 +3777,369 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+
+  // ─── Scripture Typography & Telugu Fonts ─────────────────────────────────
+  typographySection: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 14,
+  },
+  typographyHeaderTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+  },
+  typographyTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    flexShrink: 1,
+    marginRight: 8,
+  },
+  typographyHeaderTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    letterSpacing: 0.2,
+  },
+  typographyHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+  },
+  typographyActivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  typographyActivePillTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  typographyExpandedContent: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 12,
+  },
+  typoSubHeading: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1a2d5a',
+    marginBottom: 6,
+  },
+  teluguFontGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 8,
+  },
+  teluguFontCard: {
+    width: '48.5%',
+    minHeight: 56,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+  },
+  teluguFontCardSelected: {
+    borderColor: '#1a2d5a',
+    backgroundColor: '#EFF6FF',
+  },
+  teluguFontCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  teluguFontSample: {
+    fontSize: 16,
+    color: '#1E293B',
+    flex: 1,
+  },
+  teluguFontSampleSelected: {
+    color: '#1a2d5a',
+  },
+  fontRadioCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.2,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  fontRadioCircleSelected: {
+    borderColor: '#1a2d5a',
+    backgroundColor: '#1a2d5a',
+  },
+  teluguFontSub: {
+    fontSize: 9.5,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  teluguFontSubSelected: {
+    color: '#1E40AF',
+    fontWeight: '700',
+  },
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 3,
+    height: 30,
+    gap: 4,
+  },
+  stepperBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 5,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperValueTxt: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#1a2d5a',
+    minWidth: 46,
+    textAlign: 'center',
+  },
+  presetRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 6,
+  },
+  presetChip: {
+    flex: 1,
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  presetChipActive: {
+    backgroundColor: '#1a2d5a',
+    borderColor: '#1a2d5a',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  presetChipTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  presetChipTxtActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  presetChipSubTxt: {
+    fontSize: 8.5,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginTop: 1,
+  },
+  presetChipSubTxtActive: {
+    color: '#93C5FD',
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: '#EEF2F6',
+    borderRadius: 8,
+    padding: 3,
+    height: 36,
+    gap: 3,
+  },
+  segmentBtn: {
+    flex: 1,
+    height: '100%',
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentBtnActive: {
+    backgroundColor: '#1a2d5a',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 1.5,
+  },
+  segmentBtnTxt: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  segmentBtnTxtActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  selectedColorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  selectedColorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  selectedColorBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  colorCategoryScroll: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingVertical: 6,
+  },
+  colorCategoryChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  colorCategoryChipActive: {
+    backgroundColor: '#1a2d5a',
+    borderColor: '#1a2d5a',
+  },
+  colorCategoryChipTxt: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  colorCategoryChipTxtActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  colorSwatchWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+    paddingVertical: 8,
+  },
+  textSwatchCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+  },
+  textSwatchCircleActive: {
+    borderColor: '#1a2d5a',
+    borderWidth: 2.5,
+    transform: [{ scale: 1.14 }],
+    elevation: 4,
+  },
+  customColorInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 10,
+    height: 38,
+    marginTop: 8,
+    gap: 8,
+  },
+  customColorInputLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  customColorTextInput: {
+    flex: 1,
+    fontSize: 12,
+    color: '#1a2d5a',
+    fontWeight: '700',
+    paddingVertical: 0,
+  },
+  customColorSample: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+  },
+  styleAndWeightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  weightSegmentedControl: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#EEF2F6',
+    borderRadius: 8,
+    padding: 3,
+    height: 38,
+    gap: 2,
+  },
+  italicToggleBtn: {
+    height: 38,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  italicToggleBtnActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#1a2d5a',
+    borderWidth: 1.5,
+  },
+  italicToggleTxt: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#64748B',
+    fontStyle: 'italic',
+  },
+  italicToggleTxtActive: {
+    color: '#1a2d5a',
+    fontWeight: '700',
   },
 
   // ─── FAB ─────────────────────────────────────────────────────────────────

@@ -48,6 +48,7 @@ export const kn: TranslationSchema = {
     promise: 'ವಾಗ್ದಾನ',
     dailyVerse: 'ದೈನಂದಿನ ವಾಕ್ಯ',
     sermons: 'ಉಪದೇಶಗಳು',
+    attendance: 'ಹಾಜರಾತಿ',
     prayer: 'ಪ್ರಾರ್ಥನೆ',
     profile: 'ಪ್ರೊಫೈಲ್',
     bible: 'ಬೈಬಲ್',

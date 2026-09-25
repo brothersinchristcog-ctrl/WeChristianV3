@@ -151,7 +151,7 @@ export default function AdminNavigator({ navigation, route }: any) {
         'Promises', 'New Promise', 'Schedule', 'Promise Calendar', 'Add Promise',
         'Sermons', 'New Sermon', 'Songs', 'Events', 'New Event', 'Pastor Event',
         'Prayers', 'Celebrations', 'Gallery', 'Expense', 'Donations', 
-        'Online Meetings', 'New Online Meeting', 'AI Sermon Assistant', 'AI Content Creator',
+        'Online Meetings', 'New Online Meeting', 'AI Sermon Assistant', 'AI Thumbnail Creation', 'AI Content Creator',
         'WeCelebrations', 'WhatsApp'
       ];
       
@@ -244,7 +244,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     { name: 'New Online Meeting', icon: VideoIcon, component: AdminOnlineMeetingEditor },
     // ── AI Ministry Tools ──
     { name: 'AI Sermon Assistant', icon: Sparkles, component: AISermonAssistant },
-    { name: 'AI Content Creator', icon: Wand2, component: AIContentCreator },
+    { name: 'AI Thumbnail Creation', icon: Wand2, component: AIContentCreator },
     ...(isPlatformSuperAdmin ? [{ name: 'App Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];
 
@@ -288,7 +288,7 @@ export default function AdminNavigator({ navigation, route }: any) {
   }
 
   const isSuperAdminTab = tabs[activeTab]?.name === 'App Admin';
-  const isAiTab = tabs[activeTab]?.name === 'AI Content Creator' || tabs[activeTab]?.name === 'AI Sermon Assistant';
+  const isAiTab = tabs[activeTab]?.name === 'AI Thumbnail Creation' || tabs[activeTab]?.name === 'AI Content Creator' || tabs[activeTab]?.name === 'AI Sermon Assistant';
 
   // We provide handleSetTab via setActiveTab so child components can push to history
   return (

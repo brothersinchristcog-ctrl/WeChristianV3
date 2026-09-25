@@ -48,6 +48,7 @@ export const ta: TranslationSchema = {
     promise: 'வாக்குத்தத்தம்',
     dailyVerse: 'தினசரி வசனம்',
     sermons: 'பிரசங்கங்கள்',
+    attendance: 'வருகைப்பதிவு',
     prayer: 'ஜெபம்',
     profile: 'சுயவிவரம்',
     bible: 'வேதாகமம்',

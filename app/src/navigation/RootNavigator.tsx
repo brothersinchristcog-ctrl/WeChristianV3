@@ -55,6 +55,7 @@ import BibleSearchScreen from '../screens/BibleSearchScreen';
 import AboutUsScreen from '../screens/AboutUsScreen';
 import ContactUsScreen from '../screens/ContactUsScreen';
 import AttendanceScreen from '../screens/AttendanceScreen';
+import EventAttendeesScreen from '../screens/admin/EventAttendeesScreen';
 import PastorEventDetail from '../screens/admin/pastor_events/PastorEventDetail';
 import CreatePastorEvent from '../screens/admin/pastor_events/CreatePastorEvent';
 import PastorEventRoutePlanner from '../screens/admin/pastor_events/PastorEventRoutePlanner';
@@ -67,7 +68,7 @@ import MemberGalleryNavigator from '../screens/gallery/MemberGalleryNavigator';
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-import { Mic, Book, User as UserIcon } from 'lucide-react-native';
+import { Mic, Book, User as UserIcon, CalendarCheck } from 'lucide-react-native';
 
 const CustomTabBarButton = ({ children, onPress }: any) => (
   <TouchableOpacity
@@ -97,11 +98,11 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
 );
 
   const TABS = [
-    { key: 'Home',    navKey: 'nav.home',    defaultLabel: 'Home',    Icon: Home,     bg: '#1a2d5a', fg: '#1a2d5a' },
-    { key: 'Promise', navKey: 'nav.promise', defaultLabel: 'Promise', Icon: BookOpen, bg: '#0F766E', fg: '#0F766E' },
-    { key: 'Sermons', navKey: 'nav.sermons', defaultLabel: 'Sermons', Icon: Mic,      bg: '#D8632E', fg: '#D8632E' },
-    { key: 'Prayer',  navKey: 'nav.prayer',  defaultLabel: 'Prayer',  Icon: Heart,    bg: '#0284C7', fg: '#0284C7' },
-    { key: 'Profile', navKey: 'nav.profile', defaultLabel: 'Profile', Icon: UserIcon, bg: '#27272A', fg: '#27272A' },
+    { key: 'Home',       navKey: 'nav.home',       defaultLabel: 'Home',       Icon: Home,          bg: '#1a2d5a', fg: '#1a2d5a' },
+    { key: 'Promise',    navKey: 'nav.promise',    defaultLabel: 'Promise',    Icon: BookOpen,      bg: '#0F766E', fg: '#0F766E' },
+    { key: 'Sermons',    navKey: 'nav.sermons',    defaultLabel: 'Sermons',    Icon: Mic,           bg: '#D8632E', fg: '#D8632E' },
+    { key: 'Prayer',     navKey: 'nav.prayer',     defaultLabel: 'Prayer',     Icon: Heart,         bg: '#0284C7', fg: '#0284C7' },
+    { key: 'Profile',    navKey: 'nav.profile',    defaultLabel: 'Profile',    Icon: UserIcon,      bg: '#27272A', fg: '#27272A' },
   ] as const;
 
   const getTabConfig = (routeName: string, useDailyVerse: boolean = false, t?: (k: string) => string) => {
@@ -115,7 +116,8 @@ const CustomTabBarButton = ({ children, onPress }: any) => (
       };
     }
     const tab = TABS.find(t => t.key === routeName) || TABS[0];
-    const label = t ? t(tab.navKey) : tab.defaultLabel;
+    const rawLabel = t ? t(tab.navKey) : tab.defaultLabel;
+    const label = (!rawLabel || rawLabel === tab.navKey) ? tab.defaultLabel : rawLabel;
     return { ...tab, label };
   };
 
@@ -583,6 +585,31 @@ function Navigation() {
       }
     });
 
+    // Cold-start: app was fully closed when user tapped the notification.
+    // addNotificationResponseReceivedListener won't fire in this case,
+    // so we check getLastNotificationResponseAsync() once on mount.
+    Notifications.getLastNotificationResponseAsync().then(response => {
+      if (!response) return;
+      const data = response.notification.request.content.data;
+      if (data?.type === 'daily_verse' && data.verseId) {
+        // Wait for navigation to be ready before navigating
+        const { navigationRef } = require('../../App');
+        let retries = 0;
+        const tryNav = () => {
+          if (navigationRef && navigationRef.isReady()) {
+            navigationRef.navigate('VerseOfTheDay', {
+              verseId: data.verseId,
+              period: data.period,
+            });
+          } else if (retries < 20) {
+            retries++;
+            setTimeout(tryNav, 250);
+          }
+        };
+        tryNav();
+      }
+    }).catch(() => {});
+
     // 1. When app is in background and user clicks notification
     const unsubscribeOnOpen = NotificationService.messaging().onNotificationOpenedApp(remoteMessage => {
       setPendingNotification(remoteMessage);
@@ -679,7 +706,7 @@ function Navigation() {
 
   // Existing auth effect
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 7500);
+    const timer = setTimeout(() => setShowSplash(false), 2500);
     
     let unsub: any;
 
@@ -773,6 +800,7 @@ function Navigation() {
             <Stack.Screen name="Sermons" component={renderPremium(SermonsScreen)} />
             <Stack.Screen name="Events" component={renderPremium(EventsScreen)} />
             <Stack.Screen name="AttendanceScreen" component={renderPremium(AttendanceScreen)} />
+            <Stack.Screen name="EventAttendees" component={EventAttendeesScreen} />
             <Stack.Screen name="LiveCelebrationsChat" component={renderPremium(LiveCelebrationsChat)} />
             <Stack.Screen name="VerseOfTheDay" component={renderPremium(VerseOfTheDayScreen)} />
           </>
@@ -781,6 +809,7 @@ function Navigation() {
             <Stack.Screen name="Tabs" component={TabNavigator} />
             <Stack.Screen name="LockedFeature" component={LockedFeatureScreen} />
             <Stack.Screen name="Celebration" component={renderPremium(CelebrationScreen)} />
+            <Stack.Screen name="Attendance" component={renderPremium(AttendanceScreen)} />
             <Stack.Screen name="AttendanceScreen" component={renderPremium(AttendanceScreen)} />
             <Stack.Screen name="DailyVideo" component={renderPremium(DailyVideoScreen)} />
             <Stack.Screen name="SermonVideo" component={renderPremium(SermonVideoScreen)} />

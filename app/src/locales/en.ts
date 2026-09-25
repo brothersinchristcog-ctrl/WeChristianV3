@@ -46,6 +46,7 @@ export const en = {
     promise: 'Promise',
     dailyVerse: 'Daily Verse',
     sermons: 'Sermons',
+    attendance: 'Attendance',
     prayer: 'Prayer',
     profile: 'Profile',
     bible: 'Bible',

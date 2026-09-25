@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
@@ -5,6 +6,9 @@ import { BibleService } from './BibleService';
 import { SupportedLanguage } from '../locales';
 
 const VERSES_CACHE_KEY = '@wechristian_verses_cache';
+
+// Stable notification ID prefix — used to deduplicate / cancel by slot
+const NOTIF_ID_PREFIX = 'daily_verse_';
 
 export interface DailyVerse {
   id: string;
@@ -34,11 +38,23 @@ export interface DailyVerse {
 const EPOCH = new Date('2024-01-01T00:00:00Z');
 
 class VerseNotificationService {
-  
+  // Mutex: prevents concurrent syncAndSchedule calls (e.g. auth state flicker)
+  private isSyncing = false;
+
   async initialize() {
     console.log('[VerseNotificationService] Initializing...');
     const hasPermission = await this.requestPermissions();
     if (!hasPermission) return;
+
+    if (Platform.OS === 'android') {
+      await Notifications.setNotificationChannelAsync('daily_verse', {
+        name: 'Daily Verses',
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: 'default',
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FCD34D',
+      });
+    }
 
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
@@ -84,52 +100,119 @@ class VerseNotificationService {
   }
 
   /**
+   * Builds a stable, unique notification identifier for a given date + period slot.
+   * This ensures that even if syncAndSchedule is called multiple times, the same
+   * slot is never duplicated — the OS simply overwrites/ignores the same identifier.
+   * Format: daily_verse_YYYY-MM-DD_Morning (e.g. daily_verse_2024-09-23_Morning)
+   */
+  private getNotifId(date: Date, periodLabel: string): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${NOTIF_ID_PREFIX}${y}-${m}-${d}_${periodLabel}`;
+  }
+
+  /**
    * Combined function to fetch missing verses and schedule them perfectly.
+   * Protected by an isSyncing mutex to prevent double-execution on auth re-renders.
    */
   async syncAndSchedule() {
+    // ── Mutex guard: skip if already running ──────────────────────────────────
+    if (this.isSyncing) {
+      console.log('[VerseNotificationService] Sync already in progress. Skipping duplicate call.');
+      return;
+    }
+    this.isSyncing = true;
+
     try {
-      // 1. Check scheduled notifications to see if we need to do work
-      const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
-      const verseNotifications = allScheduled.filter(n => n.content.data?.type === 'daily_verse');
-      
-      // If we already have 14+ notifications (3+ days) scheduled, save battery/network and skip.
-      if (verseNotifications.length > 14) {
-        console.log(`[VerseNotificationService] Already have ${verseNotifications.length} scheduled. Skipping sync.`);
-        return;
-      }
+      const times = [
+        { hour: 8,  title: '✝️ Good Morning',   label: 'Morning'   },
+        { hour: 13, title: '✝️ Good Afternoon',  label: 'Afternoon' },
+        { hour: 18, title: '✝️ Good Evening',    label: 'Evening'   },
+        { hour: 21, title: '✝️ Good Night',      label: 'Night'     },
+      ];
 
-      // 2. Fetch total verses metadata
-      const metaDoc = await firestore().collection('daily_verses_meta').doc('metadata').get();
-      const metaExists = typeof metaDoc.exists === 'function' ? metaDoc.exists() : metaDoc.exists;
-      if (!metaExists) return;
-      const totalVerses = metaDoc.data()?.totalVerses || 0;
-      if (totalVerses === 0) return;
-
-      // 3. Determine which dates we need to schedule
-      const targetDates: Date[] = [];
+      // 1. Calculate the next 7 days we need to cover
       const today = new Date();
+      const targetDates: Date[] = [];
       for (let i = 0; i < 7; i++) {
         const d = new Date(today);
         d.setDate(today.getDate() + i);
         targetDates.push(d);
       }
 
-      // 4. Calculate exactly which indices are required for the next 7 days
+      // 2. Build the full set of stable IDs we expect to have scheduled
+      const now = new Date();
+      const expectedIds = new Set<string>();
+      for (const d of targetDates) {
+        for (const time of times) {
+          const scheduleDate = new Date(d);
+          scheduleDate.setHours(time.hour, 0, 0, 0);
+          if (scheduleDate > now) {
+            expectedIds.add(this.getNotifId(d, time.label));
+          }
+        }
+      }
+
+      // 3. Cancel ALL legacy, duplicate, or stale scheduled notifications first!
+      // This wipes out:
+      //  - Old legacy notifications that had random UUIDs and old titles ("Good Morning", sun/moon emojis)
+      //  - Stale notifications from past days or obsolete schedules
+      //  - Any duplicate notification entries for the same slot
+      const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
+      const seenIds = new Set<string>();
+      for (const n of allScheduled) {
+        const title = n.content.title || '';
+        const hasCross = title.startsWith('✝️') || title.startsWith('✝');
+        const isDuplicate = seenIds.has(n.identifier);
+        if (!expectedIds.has(n.identifier) || !hasCross || isDuplicate) {
+          console.log(`[VerseNotificationService] Cancelling legacy/duplicate/stale notification: ${n.identifier} (${title})`);
+          await Notifications.cancelScheduledNotificationAsync(n.identifier);
+        } else {
+          seenIds.add(n.identifier);
+        }
+      }
+
+      // 4. Clean up any legacy AsyncStorage tracking keys from old implementation
+      AsyncStorage.multiRemove([
+        '@wechristian_scheduled_verses',
+        '@wechristian_shown_verses',
+        '@wechristian_verses_pool',
+      ]).catch(() => {});
+
+      // 5. Check which of the expected IDs still need to be scheduled
+      const remainingScheduled = await Notifications.getAllScheduledNotificationsAsync();
+      const scheduledVerseIds = new Set(remainingScheduled.map(n => n.identifier));
+      const missingIds = [...expectedIds].filter(id => !scheduledVerseIds.has(id));
+
+      // 6. If all expected notifications are already scheduled, nothing to do
+      if (missingIds.length === 0) {
+        console.log('[VerseNotificationService] All verse notifications already scheduled. Skipping.');
+        return;
+      }
+
+      console.log(`[VerseNotificationService] Need to schedule ${missingIds.length} missing notification(s).`);
+
+      // 6. Fetch total verses metadata
+      const metaDoc = await firestore().collection('daily_verses_meta').doc('metadata').get();
+      const metaExists = typeof metaDoc.exists === 'function' ? metaDoc.exists() : metaDoc.exists;
+      if (!metaExists) return;
+      const totalVerses = metaDoc.data()?.totalVerses || 0;
+      if (totalVerses === 0) return;
+
+      // 7. Calculate which verse indices are required
       const requiredIndices = new Set<number>();
       for (const d of targetDates) {
         this.getIndicesForDate(d, totalVerses).forEach(idx => requiredIndices.add(idx));
       }
 
-      // 5. Check local cache
+      // 8. Load cache and fetch any missing verse data
       const cacheStr = await AsyncStorage.getItem(VERSES_CACHE_KEY);
       const cache: Record<number, DailyVerse> = cacheStr ? JSON.parse(cacheStr) : {};
-      
-      // 6. Find missing indices
-      const missingIndices = Array.from(requiredIndices).filter(idx => !cache[idx]);
 
-      // 7. Fetch missing indices from Firestore efficiently (using 'in' batches of 10)
+      const missingIndices = Array.from(requiredIndices).filter(idx => !cache[idx]);
       if (missingIndices.length > 0) {
-        console.log(`[VerseNotificationService] Fetching ${missingIndices.length} missing verses...`);
+        console.log(`[VerseNotificationService] Fetching ${missingIndices.length} missing verses from Firestore...`);
         for (let i = 0; i < missingIndices.length; i += 10) {
           const batch = missingIndices.slice(i, i + 10);
           const snapshot = await firestore().collection('daily_verses').where('index', 'in', batch).get();
@@ -140,71 +223,66 @@ class VerseNotificationService {
             }
           });
         }
-        // Save updated cache
         await AsyncStorage.setItem(VERSES_CACHE_KEY, JSON.stringify(cache));
       }
 
-      // 8. Schedule them
-      console.log('[VerseNotificationService] Scheduling new verses deterministically...');
-      
-      // Cancel all existing verse notifications to ensure clean slate and correct order if anything changed
-      for (const n of verseNotifications) {
-        await Notifications.cancelScheduledNotificationAsync(n.identifier);
-      }
-
-      const times = [
-        { hour: 8, title: 'Good Morning', label: 'Morning' },
-        { hour: 13, title: 'Good Afternoon', label: 'Afternoon' },
-        { hour: 18, title: 'Good Evening', label: 'Evening' },
-        { hour: 21, title: 'Good Night', label: 'Night' }
-      ];
-
-      const now = new Date();
+      // 9. Schedule only the missing notification slots using stable identifiers
       let scheduledCount = 0;
 
       for (const d of targetDates) {
         const dailyIndices = this.getIndicesForDate(d, totalVerses);
-        
+
         for (let i = 0; i < 4; i++) {
+          const time = times[i];
+          const notifId = this.getNotifId(d, time.label);
+
+          // Skip if this slot is already scheduled
+          if (!missingIds.includes(notifId)) continue;
+
           const verseIndex = dailyIndices[i];
           const verse = cache[verseIndex];
-          const time = times[i];
-
-          if (!verse) continue; // safety check
+          if (!verse) continue;
 
           const scheduleDate = new Date(d);
           scheduleDate.setHours(time.hour, 0, 0, 0);
 
-          // Only schedule if it's in the future
-          if (scheduleDate > now) {
-            await Notifications.scheduleNotificationAsync({
-              content: {
-                title: time.title,
-                body: `"${verse.verseEn}"\n${verse.referenceEn}`,
-                sound: true,
-                data: {
-                  type: 'daily_verse',
-                  verseId: verse.id,
-                  period: time.label
-                },
-              },
-              trigger: { 
-                type: Notifications.SchedulableTriggerInputTypes.DATE,
-                date: scheduleDate,
-                channelId: 'default' 
-              },
-            });
-            scheduledCount++;
+          // Hard safety check: Never schedule a notification in the past or current time
+          if (scheduleDate.getTime() <= Date.now()) {
+            continue;
           }
+
+          await Notifications.scheduleNotificationAsync({
+            identifier: notifId, // ← stable ID prevents duplicates
+            content: {
+              title: time.title,
+              body: `"${verse.verseEn}"\n${verse.referenceEn}`,
+              sound: true,
+              data: {
+                type: 'daily_verse',
+                verseId: verse.id,
+                period: time.label,
+              },
+            },
+            trigger: {
+              type: Notifications.SchedulableTriggerInputTypes.DATE,
+              date: scheduleDate,
+              channelId: 'daily_verse', // dedicated channel — independent of other app notifications
+            },
+          });
+          scheduledCount++;
         }
       }
 
-      console.log(`[VerseNotificationService] Successfully scheduled ${scheduledCount} verses globally synced!`);
+      console.log(`[VerseNotificationService] Scheduled ${scheduledCount} new verse notification(s). Total covered: ${expectedIds.size}.`);
 
     } catch (error) {
       console.error('[VerseNotificationService] Error syncing/scheduling verses:', error);
+    } finally {
+      // Always release the mutex
+      this.isSyncing = false;
     }
   }
+
 
   /**
    * (Helper) Used by UI when user clicks notification

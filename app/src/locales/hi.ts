@@ -48,6 +48,7 @@ export const hi: TranslationSchema = {
     promise: 'प्रतिज्ञा',
     dailyVerse: 'दैनिक वचन',
     sermons: 'उपदेश',
+    attendance: 'उपस्थिति',
     prayer: 'प्रार्थना',
     profile: 'प्रोफ़ाइल',
     bible: 'बाइबल',

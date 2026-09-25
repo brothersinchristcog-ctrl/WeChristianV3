@@ -365,7 +365,34 @@ export const BibleService = {
     const bookId = bookIndex + 1;
     const usfm = BIBLE_BOOK_USFM[bookIndex] || 'GEN';
 
-    // ─── 1. Telugu: Try local bundled JSON first for instant offline access ───
+    // ─── 1. Telugu ERV / IRV request: try helloao tel_irv first ───
+    const isTeluguErv = lang === 'te' && (
+      englishVersion?.toLowerCase().includes('erv') || 
+      englishVersion?.toLowerCase().includes('irv')
+    );
+
+    if (isTeluguErv) {
+      try {
+        const url = `https://bible.helloao.org/api/tel_irv/${usfm}/${chapter}.json`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.chapter?.content && Array.isArray(data.chapter.content)) {
+            const verses: BibleVerse[] = data.chapter.content
+              .filter((c: any) => c.type === 'verse')
+              .map((c: any) => ({
+                verse: c.number,
+                text: Array.isArray(c.content) ? c.content.filter((s: any) => typeof s === 'string').join(' ') : String(c.content || '')
+              }));
+            if (verses.length > 0) return verses;
+          }
+        }
+      } catch (e) {
+        console.warn('Telugu ERV (tel_irv) fetch failed, falling back to BSI:', e);
+      }
+    }
+
+    // ─── 2. Telugu: Try local bundled JSON first for instant offline access (BSI) ───
     if (lang === 'te') {
       try {
         if (LOCAL_TELUGU_BIBLE?.Book?.[bookIndex]?.Chapter?.[chapter - 1]?.Verse) {
@@ -595,7 +622,8 @@ export const BibleService = {
    */
   async fetchVerseByReference(
     referenceStr: string,
-    lang: SupportedLanguage
+    lang: SupportedLanguage = 'en',
+    version?: string
   ): Promise<{ verse: string; reference: string } | null> {
     if (!referenceStr) return null;
     const clean = referenceStr.trim();
@@ -611,7 +639,7 @@ export const BibleService = {
     const localizedReference = BibleService.getLocalizedReference(referenceStr, lang);
 
     try {
-      const verses = await BibleService.fetchChapterVerses(bookIndex, chapter, lang);
+      const verses = await BibleService.fetchChapterVerses(bookIndex, chapter, lang, version || 'KJV');
       if (!verses || verses.length === 0) return null;
 
       if (endVerse && endVerse >= startVerse) {

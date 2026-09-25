@@ -58,7 +58,8 @@ import {
   Video,
   Download,
   Image as LucideImage,
-  Clock
+  Clock,
+  CalendarCheck
 } from 'lucide-react-native';
 import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
@@ -1798,10 +1799,10 @@ export default function HomeScreen() {
               const greetingTxt = getGreeting() + ",";
               const availableWidth = width - 100; // Account for padding and date hexagon
               const estimatedCharWidth = 0.45; // Approximate width-to-height ratio for this cursive font
-              const calculatedFontSize = Math.max(24, Math.min(44, availableWidth / (greetingTxt.length * estimatedCharWidth)));
+              const calculatedFontSize = Math.max(18, Math.min(32, availableWidth / (greetingTxt.length * estimatedCharWidth)));
               
               return (
-                <Svg height="55" width="100%" style={{ marginBottom: 2 }}>
+                <Svg height="40" width="100%" style={{ marginBottom: 2 }}>
                   <Defs>
                     <SvgLinearGradient id="greetingGrad" x1="0" y1="0" x2="1" y2="0">
                       <Stop offset="0" stopColor="#FCD34D" stopOpacity="1" />
@@ -2223,34 +2224,105 @@ export default function HomeScreen() {
             )}
           </View>
 
-          {/* ── Online Meetings Badge ── */}
-          {!useWeChristianDailyPromise && (
-            <View 
-              style={{ marginTop: 15, marginBottom: 5, alignItems: 'center' }}
-              onLayout={(e) => setOnlineMeetingsY(e.nativeEvent.layout.y)}
-            >
-              <TouchableOpacity 
+          {/* Attendance pill button centered below grid when Daily Promise toggle is ON */}
+          {useWeChristianDailyPromise && (
+            <View style={{ alignItems: 'center', marginTop: 4, marginBottom: 8, paddingHorizontal: 15 }}>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Attendance')}
+                activeOpacity={0.8}
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  backgroundColor: '#059669',
+                  paddingVertical: 14,
+                  paddingHorizontal: 32,
+                  borderRadius: 50,
+                  gap: 10,
+                  elevation: 4,
+                  shadowColor: '#059669',
+                  shadowOpacity: 0.35,
+                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 3 },
+                  minWidth: 200,
+                }}
+              >
+                <CalendarCheck size={22} color="#fff" strokeWidth={2.2} />
+                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 }}>
+                  {t('nav.attendance')}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* ── Separate Member View Navigation: Online Meetings & Attendance ──
+               Only shown when Daily Promise toggle is OFF.
+               When ON, these two items already appear in the Quick Access grid above. ── */}
+          {!useWeChristianDailyPromise && (
+            <View 
+              style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                justifyContent: 'space-between', 
+                gap: 12, 
+                marginTop: 18, 
+                marginBottom: 10, 
+                paddingHorizontal: 20 
+              }}
+              onLayout={(e) => setOnlineMeetingsY(e.nativeEvent.layout.y)}
+            >
+              {/* Separate Button 1: Online Meetings */}
+              <TouchableOpacity 
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   backgroundColor: '#3B82F6',
-                  paddingVertical: 12,
-                  paddingHorizontal: 24,
+                  paddingVertical: 13,
+                  paddingHorizontal: 14,
                   borderRadius: 20,
                   elevation: 4,
                   shadowColor: '#3B82F6',
-                  shadowOpacity: 0.3,
+                  shadowOpacity: 0.35,
                   shadowRadius: 6,
                   shadowOffset: { width: 0, height: 3 },
-                  gap: 10,
-                  minWidth: 200
+                  gap: 8,
                 }}
                 onPress={() => navigation.navigate('OnlineMeetings')}
                 activeOpacity={0.8}
               >
                 <AnimatedCameraIcon size={20} color="#fff" scrollY={scrollY} triggerY={onlineMeetingsY} />
-                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 }}>{t('home.quickMeetings')}</Text>
+                <Text style={{ color: '#fff', fontSize: 13.5, fontWeight: '700', letterSpacing: 0.3 }} numberOfLines={1}>
+                  {t('home.quickMeetings')}
+                </Text>
+              </TouchableOpacity>
+
+              {/* Separate Button 2: Attendance */}
+              <TouchableOpacity 
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#059669',
+                  paddingVertical: 13,
+                  paddingHorizontal: 14,
+                  borderRadius: 20,
+                  elevation: 4,
+                  shadowColor: '#059669',
+                  shadowOpacity: 0.35,
+                  shadowRadius: 6,
+                  shadowOffset: { width: 0, height: 3 },
+                  gap: 8,
+                }}
+                onPress={() => navigation.navigate('Attendance')}
+                activeOpacity={0.8}
+              >
+                <CalendarCheck size={20} color="#fff" strokeWidth={2.2} />
+                <Text style={{ color: '#fff', fontSize: 13.5, fontWeight: '700', letterSpacing: 0.3 }} numberOfLines={1}>
+                  {t('nav.attendance')}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -2738,7 +2810,7 @@ const styles = StyleSheet.create({
   
   greetingSection: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 2 },
   greetingLeft: { flex: 1 },
-  greetingText: { color: '#FCD34D', fontSize: 32, fontWeight: '400', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontStyle: 'italic', marginBottom: 2, letterSpacing: 0.5, textShadowColor: 'rgba(252, 211, 77, 0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6 },
+  greetingText: { color: '#FCD34D', fontSize: 22, fontWeight: '400', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontStyle: 'italic', marginBottom: 2, letterSpacing: 0.5, textShadowColor: 'rgba(252, 211, 77, 0.4)', textShadowOffset: { width: 0, height: 2 }, textShadowRadius: 6 },
   userNameCream: { color: '#F3EAD9', fontSize: 22, fontWeight: '900', fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', letterSpacing: 0.5 },
   
   greetingRight: { alignItems: 'center', justifyContent: 'center', marginLeft: 15 },

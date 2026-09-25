@@ -3,7 +3,7 @@
     "name": "We Christian",
     "slug": "we-christian",
     "scheme": "wechristian",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
@@ -38,12 +38,21 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "versionCode": 30,
+      "versionCode": 31,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyAa7M7Xr7W_hNOpy3BeSHMBD6oEYjD78HA"
         }
-      }
+      },
+      "notificationChannels": [
+        {
+          "name": "Daily Verse",
+          "importance": "HIGH",
+          "showBadge": true,
+          "sound": "default",
+          "id": "daily_verse"
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -80,7 +89,8 @@
           "contactsPermission": "Allow We Christian to access your contacts to invite members to the church."
         }
       ],
-      "./withRazorpayPatch.js"
+      "./withRazorpayPatch.js",
+      "expo-font"
     ],
     "extra": {
       "eas": {

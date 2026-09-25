@@ -13,6 +13,7 @@ import {
   Dimensions,
   Image,
   KeyboardAvoidingView,
+  Vibration,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -49,12 +50,16 @@ import {
   Phone,
   Upload,
   Heart,
-  Palette
+  Palette,
+  Type,
+  Minus,
+  Plus
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { useChurch } from '../../context/ChurchContext';
 import AIService from '../../services/AIService';
 import FirestoreService from '../../services/FirestoreService';
+import { BibleService } from '../../services/BibleService';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import {
   hexToRgba,
@@ -64,6 +69,58 @@ import {
   GRADIENT_PRESETS,
   SPECTRUM_SWATCHES
 } from '../../utils/ThumbnailColorUtils';
+import {
+  loadTeluguFonts,
+  TELUGU_FONT_OPTIONS,
+  getActiveFontFamily,
+  isCustomTeluguFont,
+  FONT_SIZE_PRESETS,
+  TEXT_COLOR_PALETTE,
+  TEXT_COLOR_CATEGORIES,
+  isDarkColor
+} from '../../utils/ThumbnailTypography';
+
+const DEFAULT_PREVIEW_BACKGROUND = 'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1280&q=85';
+
+export interface BibleVersionOption {
+  id: string;
+  name: string;
+  language: 'Telugu' | 'English';
+  tag: string;
+  description: string;
+  apiCode: string;
+}
+
+const BIBLE_VERSIONS: BibleVersionOption[] = [
+  { id: 'te-bsi', name: 'Telugu (BSI)', language: 'Telugu', tag: 'BSI', description: 'బైబిల్ సొసైటీ ఆఫ్ ఇండియా (ప్రామాణిక శైలి)', apiCode: 'BSI' },
+  { id: 'te-erv', name: 'Telugu (ERV)', language: 'Telugu', tag: 'ERV', description: 'సులభ వచన బైబిల్ (Easy-to-Read Version)', apiCode: 'ERV' },
+  { id: 'en-kjv', name: 'English (KJV)', language: 'English', tag: 'KJV', description: 'King James Version (Classic Reverent)', apiCode: 'KJV' },
+  { id: 'en-niv', name: 'English (NIV)', language: 'English', tag: 'NIV', description: 'New International Version', apiCode: 'NIV' },
+  { id: 'en-esv', name: 'English (ESV)', language: 'English', tag: 'ESV', description: 'English Standard Version', apiCode: 'ESV' },
+  { id: 'en-nkjv', name: 'English (NKJV)', language: 'English', tag: 'NKJV', description: 'New King James Version', apiCode: 'NKJV' },
+];
+
+const LOCAL_TELUGU_BIBLE: any = require('../../../assets/telugu_bible.json');
+
+const ENGLISH_NAMES = [
+  'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel',
+  '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles', 'Ezra', 'Nehemiah', 'Esther', 'Job', 'Psalms', 'Proverbs',
+  'Ecclesiastes', 'Song of Solomon', 'Isaiah', 'Jeremiah', 'Lamentations', 'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos',
+  'Obadiah', 'Jonah', 'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai', 'Zechariah', 'Malachi',
+  'Matthew', 'Mark', 'Luke', 'John', 'Acts', 'Romans', '1 Corinthians', '2 Corinthians', 'Galatians', 'Ephesians',
+  'Philippians', 'Colossians', '1 Thessalonians', '2 Thessalonians', '1 Timothy', '2 Timothy', 'Titus', 'Philemon', 'Hebrews', 'James',
+  '1 Peter', '2 Peter', '1 John', '2 John', '3 John', 'Jude', 'Revelation'
+];
+
+const TELUGU_NAMES = [
+  'ఆదికాండము', 'నిర్గమకాండము', 'లేవీయకాండము', 'సంఖ్యాకాండము', 'ద్వితీయోపదేశకాండము', 'యెహోషువ', 'న్యాయాధిపతులు', 'రూతు', 'సమూయేలు మొదటి గ్రంథము', 'సమూయేలు రెండవ గ్రంథము',
+  'రాజులు మొదటి గ్రంథము', 'రాజులు రెండవ గ్రంథము', 'దినవృత్తాంతములు మొదటి గ్రంథము', 'దినవృత్తాంతములు రెండవ గ్రంథము', 'ఎజ్రా', 'నెహెమ్యా', 'ఎస్తేరు', 'యోబు', 'కీర్తనల గ్రంథము', 'సామెతలు',
+  'ప్రసంగి', 'పరమగీతము', 'యెషయా', 'యిర్మీయా', 'విలాపవాక్యములు', 'యెహెజ్కేలు', 'దానియేలు', 'హోషేయ', 'యోవేలు', 'ఆమోసు',
+  'ఓబద్యా', 'యోనా', 'మీకా', 'నహూము', 'హబక్కూకు', 'జెఫన్యా', 'హగ్గయి', 'జెకర్యా', 'మలాకీ',
+  'మత్తయి సువార్త', 'మార్కు సువార్త', 'లూకా సువార్త', 'యోహాను సువార్త', 'అపొస్తలుల కార్యములు', 'రోమీయులకు', 'కొరింథీయులకు 1వ పత్రిక', 'కొరింథీయులకు 2వ పత్రిక', 'గలతీయులకు', 'ఎఫెసీయులకు',
+  'ఫిలిప్పీయులకు', 'కొలొస్సయులకు', 'థెస్సలొనీకయులకు 1వ పత్రిక', 'థెస్సలొనీకయులకు 2వ పత్రిక', 'తిమోతికి 1వ పత్రిక', 'తిమోతికి 2వ పత్రిక', 'తీతుకు', 'ఫిలేమోనుకు', 'హెబ్రీయులకు', 'యాకోబు',
+  'పేతురు 1వ పత్రిక', 'పేతురు 2వ పత్రిక', 'యోహాను 1వ పత్రిక', 'యోహాను 2వ పత్రిక', 'యోహాను 3వ పత్రిక', 'యూదా', 'ప్రకటన గ్రంథము'
+];
 
 const { width } = Dimensions.get('window');
 
@@ -1236,21 +1293,63 @@ export default function AIContentCreator() {
   // Screen Mode
   const [activeScreenTab, setActiveScreenTab] = useState<'create' | 'history'>('create');
 
-  // Streamlined Form State (Only Essential Fields) - Starts in neutral/blank state
-  const [contentType, setContentType]       = useState('');
+  // Streamlined Form State (Starts with a default content type so live preview is active immediately)
+  const [contentType, setContentType]       = useState('Sunday Worship');
   const [speaker, setSpeaker]               = useState('');
-  const [startDate, setStartDate]           = useState<Date | null>(null);
+  const [startDate, setStartDate]           = useState<Date | null>(new Date());
   const [endDate, setEndDate]               = useState<Date | null>(null);
-  const [startTime, setStartTime]           = useState<Date | null>(null);
+  const [startTime, setStartTime]           = useState<Date | null>(() => {
+    const d = new Date();
+    d.setHours(9, 30, 0, 0);
+    return d;
+  });
   const [endTime, setEndTime]               = useState<Date | null>(null);
   const [location, setLocation]             = useState('');
   const [language, setLanguage]             = useState('Telugu');
 
   // User-editable & auto-selected Theme, Tagline, and Scripture state
-  const [customTheme, setCustomTheme]         = useState('');
-  const [customTagline, setCustomTagline]     = useState('');
-  const [customVerseRef, setCustomVerseRef]   = useState('');
-  const [customVerseText, setCustomVerseText] = useState('');
+  const [customTheme, setCustomTheme]                     = useState('');
+  const [customTagline, setCustomTagline]                 = useState('');
+  const [customVerseRef, setCustomVerseRef]               = useState('');
+  const [customVerseText, setCustomVerseText]             = useState('');
+  const [customVerseEnglishRef, setCustomVerseEnglishRef]   = useState('');
+  const [customVerseEnglishText, setCustomVerseEnglishText] = useState('');
+
+  // ─── Bible Selection State ────────────────────────────────────────────────
+  const [selectedBibleVersion, setSelectedBibleVersion]   = useState('Telugu (BSI)');
+  const [isFetchingVerse, setIsFetchingVerse]             = useState(false);
+  const [selectedBook, setSelectedBook]                   = useState<number | null>(null);
+  const [selectedChapter, setSelectedChapter]             = useState<number | null>(null);
+  const [selectedVerse, setSelectedVerse]                 = useState<number | null>(null);
+  const [selectionModalType, setSelectionModalType]       = useState<'book' | 'chapter' | 'verse' | null>(null);
+  const [bookSearchQuery, setBookSearchQuery]             = useState('');
+
+  // ─── Typography & Telugu Font State ───────────────────────────────────────
+  const [fontsReady, setFontsReady]                       = useState(false);
+  const [thumbFontFamily, setThumbFontFamily]             = useState<string>('Suranna');
+  const [thumbFontSize, setThumbFontSize]                 = useState<number>(11.0);
+  const [thumbFontWeight, setThumbFontWeight]             = useState<string>('700');
+  const [thumbIsItalic, setThumbIsItalic]                 = useState<boolean>(false);
+  const [thumbTextColor, setThumbTextColor]               = useState<string>('#FFFFFF');
+  const [thumbTextAlign, setThumbTextAlign]               = useState<'left' | 'center' | 'right'>('center');
+  const [thumbTextPosition, setThumbTextPosition]         = useState<'top' | 'center' | 'bottom'>('center');
+  const [activeTextColorCategory, setActiveTextColorCategory] = useState<string>('All');
+  const [customTextColorInput, setCustomTextColorInput]   = useState<string>('#FFFFFF');
+  const [isTypographyExpanded, setIsTypographyExpanded]   = useState<boolean>(false);
+
+  // ─── Download Success Modal State ──────────────────────────────────────────
+  const [downloadSuccessModal, setDownloadSuccessModal]   = useState<{
+    visible: boolean;
+    imageUri: string | null;
+  }>({
+    visible: false,
+    imageUri: null,
+  });
+
+  // Load authentic Telugu Google Fonts on mount
+  useEffect(() => {
+    loadTeluguFonts().then(() => setFontsReady(true));
+  }, []);
 
   // ─── Thumbnail Color & Theme State ─────────────────────────────────────────
   const [colorMode, setColorMode] = useState<'solid' | 'gradient' | 'custom'>('solid');
@@ -1265,11 +1364,11 @@ export default function AIContentCreator() {
   const [customType, setCustomType] = useState<'solid' | 'gradient'>('solid');
   const [isColorPickerExpanded, setIsColorPickerExpanded] = useState(false);
 
-  // Per-content-type variation rotation counter
+  // Per-content-type variation rotation counter (kept for selectContentTypeWithVariation)
   const variationCounterMapRef = useRef<Record<string, number>>({});
 
-  // Generator variation counter ref
-  const visualVariationCounterRef           = useRef<number>(0);
+  // Per-content-type registry of already-used visual prompts — prevents repeats until pool exhausted
+  const usedPromptsRef = useRef<Record<string, Set<string>>>({});
 
   // Reference Thumbnail State (Selected at Generate stage)
   const [sampleImageUri, setSampleImageUri] = useState<string | null>(null);
@@ -1340,6 +1439,11 @@ export default function AIContentCreator() {
     );
   };
 
+  // Initial default selection on mount so preview is live immediately
+  useEffect(() => {
+    selectContentTypeWithVariation('Sunday Worship', 'Telugu');
+  }, []);
+
   // ── Variation Selection & Rotation Handlers ──────────────────────────────────
   const selectContentTypeWithVariation = (type: string, overrideLang?: string) => {
     const targetLang = overrideLang || language;
@@ -1386,6 +1490,14 @@ export default function AIContentCreator() {
     setCustomTagline(newTagline);
     setCustomVerseRef(newVerseRef);
     setCustomVerseText(newVerseText);
+    setCustomVerseEnglishRef(chosenVar.verseRefEnglish || dyn.verseRefEnglish || '');
+    setCustomVerseEnglishText(chosenVar.verseTextEnglish || dyn.verseTextEnglish || '');
+
+    // Reset coordinate pickers when cycling variations
+    setSelectedBook(null);
+    setSelectedChapter(null);
+    setSelectedVerse(null);
+    setBookSearchQuery('');
   };
 
   const handleLanguageChange = (newLang: string) => {
@@ -1403,6 +1515,141 @@ export default function AIContentCreator() {
       setCustomTagline(isTelugu ? (chosenVar.taglineTelugu || dyn.taglineTelugu || dyn.teluguTitle) : (chosenVar.taglineEnglish || dyn.tagline));
       setCustomVerseRef(isTelugu ? chosenVar.verseRefTelugu : chosenVar.verseRefEnglish);
       setCustomVerseText(isTelugu ? chosenVar.verseTextTelugu : chosenVar.verseTextEnglish);
+      setCustomVerseEnglishRef(chosenVar.verseRefEnglish || dyn.verseRefEnglish || '');
+      setCustomVerseEnglishText(chosenVar.verseTextEnglish || dyn.verseTextEnglish || '');
+    }
+  };
+
+  const handleBibleVersionChange = async (verOption: BibleVersionOption) => {
+    setSelectedBibleVersion(verOption.name);
+    if (selectedBook !== null && selectedChapter !== null && selectedVerse !== null) {
+      await handleFetchVerse(selectedBook, selectedChapter, selectedVerse, verOption.name);
+      return;
+    }
+
+    const targetLangCode = verOption.language === 'Telugu' ? 'te' : 'en';
+    const refToFetch = (targetLangCode === 'te' ? customVerseRef : (customVerseEnglishRef || customVerseRef)).trim();
+
+    if (refToFetch) {
+      setIsFetchingVerse(true);
+      try {
+        const fetched = await BibleService.fetchVerseByReference(refToFetch, targetLangCode, verOption.apiCode);
+        if (fetched && fetched.verse) {
+          if (targetLangCode === 'te') {
+            setCustomVerseText(fetched.verse);
+            if (fetched.reference) setCustomVerseRef(fetched.reference);
+          } else {
+            setCustomVerseEnglishText(fetched.verse);
+            if (fetched.reference) setCustomVerseEnglishRef(fetched.reference);
+          }
+        }
+      } catch (e) {
+        console.warn('Could not auto-fetch verse for version:', e);
+      } finally {
+        setIsFetchingVerse(false);
+      }
+    }
+  };
+
+  const handleFetchVerse = async (bIdx?: number | null, cNum?: number | null, vNum?: number | null, overrideVer?: string) => {
+    const bookIndex = (typeof bIdx === 'number') ? bIdx : selectedBook;
+    const chapterNumber = (typeof cNum === 'number') ? cNum : selectedChapter;
+    const verseNumber = (typeof vNum === 'number') ? vNum : selectedVerse;
+    const versionToUse = overrideVer || selectedBibleVersion;
+
+    if (bookIndex !== null && chapterNumber !== null && verseNumber !== null) {
+      setIsFetchingVerse(true);
+      try {
+        const bookId = bookIndex + 1;
+        const engBookName = ENGLISH_NAMES[bookIndex];
+        const teBookName = TELUGU_NAMES[bookIndex];
+        const engRef = `${engBookName} ${chapterNumber}:${verseNumber}`;
+        const teRef = `${teBookName} ${chapterNumber}:${verseNumber}`;
+
+        let engText = '';
+        let telText = '';
+
+        // 1. Fetch Telugu text from offline local Bible JSON
+        const bookData = LOCAL_TELUGU_BIBLE.Book[bookIndex];
+        if (bookData && bookData.Chapter && bookData.Chapter[chapterNumber - 1]) {
+          const chapterData = bookData.Chapter[chapterNumber - 1].Verse;
+          if (chapterData && chapterData[verseNumber - 1]) {
+            telText = chapterData[verseNumber - 1].Verse || '';
+          }
+        }
+
+        // 2. Fetch English text from Bolls API (KJV default)
+        try {
+          const url = `https://bolls.life/get-text/KJV/${bookId}/${chapterNumber}/`;
+          const engResponse = await fetch(url, { headers: { 'Accept': 'application/json' } });
+          if (engResponse.ok) {
+            const result = await engResponse.json();
+            const verseObj = result.find((v: any) => v.verse === verseNumber);
+            if (verseObj) {
+              engText = verseObj.text ? verseObj.text.replace(/<[^>]*>?/gm, '').replace(/\d+/g, '').replace(/\s+/g, ' ').trim() : '';
+            }
+          }
+        } catch (apiErr) {
+          console.warn('bolls.life fetch failed, trying BibleService:', apiErr);
+        }
+
+        // 3. If a specific version is selected (like ERV, NIV, ESV, NKJV), fetch that specific translation
+        const verObj = BIBLE_VERSIONS.find(v => v.name === versionToUse);
+        if (verObj && verObj.apiCode !== 'BSI' && verObj.apiCode !== 'KJV') {
+          try {
+            const fetchedVer = await BibleService.fetchVerseByReference(
+              verObj.language === 'Telugu' ? teRef : engRef,
+              verObj.language === 'Telugu' ? 'te' : 'en',
+              verObj.apiCode
+            );
+            if (fetchedVer && fetchedVer.verse) {
+              if (verObj.language === 'Telugu') {
+                telText = fetchedVer.verse;
+              } else {
+                engText = fetchedVer.verse;
+              }
+            }
+          } catch (vErr) {
+            console.warn('Version-specific fetch failed, keeping base translation:', vErr);
+          }
+        }
+
+        setCustomVerseEnglishRef(engRef);
+        setCustomVerseEnglishText(engText);
+        setCustomVerseRef(teRef);
+        setCustomVerseText(telText);
+
+      } catch (err) {
+        console.error('Failed to fetch verses:', err);
+        Alert.alert('Error', 'Failed to fetch verses automatically. Please enter manually.');
+      } finally {
+        setIsFetchingVerse(false);
+      }
+      return;
+    }
+
+    // Fallback if book/chapter/verse are not chosen from modal
+    const isTelugu = language === 'Telugu';
+    const currentVer = BIBLE_VERSIONS.find(v => v.name === versionToUse) || BIBLE_VERSIONS[0];
+    const targetLangCode = isTelugu ? 'te' : 'en';
+    const refToFetch = customVerseRef.trim() || customVerseEnglishRef.trim();
+    if (!refToFetch) {
+      Alert.alert('Reference Required', 'Please select Book, Chapter and Verse or enter a reference (e.g. John 3:16).');
+      return;
+    }
+    setIsFetchingVerse(true);
+    try {
+      const fetched = await BibleService.fetchVerseByReference(refToFetch, targetLangCode, currentVer.apiCode);
+      if (fetched && fetched.verse) {
+        setCustomVerseText(fetched.verse);
+        if (fetched.reference) setCustomVerseRef(fetched.reference);
+      } else {
+        Alert.alert('Scripture Not Found', 'Could not locate that verse reference. You can type or paste the verse text directly.');
+      }
+    } catch (e: any) {
+      Alert.alert('Fetch Error', e.message || 'Could not load scripture.');
+    } finally {
+      setIsFetchingVerse(false);
     }
   };
 
@@ -1425,12 +1672,27 @@ export default function AIContentCreator() {
     setGenerating(true);
 
     const dyn = getDynamicContent(contentType);
-    visualVariationCounterRef.current += 1;
-    const vIndex = visualVariationCounterRef.current;
+
+    // ── True-random prompt selection — never repeat consecutively ──────────────
     const variations = dyn.visualVariations && dyn.visualVariations.length > 0
       ? dyn.visualVariations
       : [dyn.visualSubject];
-    const chosenPrompt = variations[vIndex % variations.length];
+
+    // Retrieve previously used prompts for this content type (per-session)
+    const usedKey = `used_prompts_${contentType}`;
+    const usedSet: Set<string> = (usedPromptsRef.current[usedKey] as Set<string>) || new Set<string>();
+
+    // Filter out already-used prompts; if all used, reset
+    let freshVariations = variations.filter(v => !usedSet.has(v));
+    if (freshVariations.length === 0) {
+      usedSet.clear();
+      freshVariations = variations;
+    }
+
+    // Pick a random prompt from the fresh pool
+    const chosenPrompt = freshVariations[Math.floor(Math.random() * freshVariations.length)];
+    usedSet.add(chosenPrompt);
+    usedPromptsRef.current[usedKey] = usedSet;
 
     const isGrad = colorMode === 'gradient' || (colorMode === 'custom' && customType === 'gradient');
     const primColor = colorMode === 'gradient'
@@ -1515,7 +1777,8 @@ export default function AIContentCreator() {
       if (viewShotRef.current?.capture) {
         const capturedUri = await viewShotRef.current.capture();
         await MediaLibrary.saveToLibraryAsync(capturedUri);
-        Alert.alert('Downloaded! 🎉', 'Your church thumbnail has been saved to your photo gallery.');
+        try { Vibration.vibrate(60); } catch (_) {}
+        setDownloadSuccessModal({ visible: true, imageUri: capturedUri });
       } else {
         throw new Error('Capture view not ready');
       }
@@ -1551,14 +1814,11 @@ export default function AIContentCreator() {
   };
 
   const resetForm = () => {
-    setContentType('');
-    setCustomTheme('');
-    setCustomTagline('');
-    setCustomVerseRef('');
-    setCustomVerseText('');
+    setContentType('Sunday Worship');
+    selectContentTypeWithVariation('Sunday Worship', language);
     setSpeaker('');
     setLocation('');
-    setStartDate(null);
+    setStartDate(new Date());
     setEndDate(null);
     setStartTime(null);
     setEndTime(null);
@@ -1568,6 +1828,14 @@ export default function AIContentCreator() {
     setSelectedSolidColor(null);
     setSelectedGradient(null);
     setColorMode('solid');
+    setSelectedBibleVersion('Telugu (BSI)');
+    setThumbFontFamily('Suranna');
+    setThumbFontSize(11.0);
+    setThumbFontWeight('700');
+    setThumbIsItalic(false);
+    setThumbTextColor('#FFFFFF');
+    setThumbTextAlign('center');
+    setThumbTextPosition('center');
   };
 
   const filteredHistory = historyItems.filter(item => {
@@ -1624,7 +1892,7 @@ export default function AIContentCreator() {
         >
           <View style={styles.colorPickerTitleRow}>
             <Palette size={15} color="#1a2d5a" />
-            <Text style={styles.colorPickerTitle} numberOfLines={1} ellipsizeMode="tail">Thumbnail Color & Theme</Text>
+            <Text style={styles.colorPickerTitle} numberOfLines={1} ellipsizeMode="tail">రంగు & థీమ్ (Color & Theme)</Text>
           </View>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -1931,6 +2199,294 @@ export default function AIContentCreator() {
     );
   };
 
+  // ── Render Typography & Telugu Font Selector Section ──
+  const renderTypographySection = () => {
+    const activeTeluguFont = getActiveFontFamily(thumbFontFamily);
+    return (
+      <View style={styles.typographySection}>
+        <TouchableOpacity
+          style={styles.typographyHeaderTouchable}
+          activeOpacity={0.7}
+          onPress={() => setIsTypographyExpanded(prev => !prev)}
+        >
+          <View style={styles.typographyTitleRow}>
+            <Type size={16} color="#5B3FA6" />
+            <Text style={styles.typographyHeaderTitle} numberOfLines={1}>తెలుగు ఫాంట్ & శైలి (Typography & Fonts)</Text>
+          </View>
+
+          <View style={styles.typographyHeaderRight}>
+            <View style={styles.typographyActivePill}>
+              <Text style={[styles.typographyActivePillTxt, { fontFamily: activeTeluguFont }]}>
+                {TELUGU_FONT_OPTIONS.find(f => f.id === thumbFontFamily)?.teluguName || 'సురన్న'} · {thumbFontSize}pt
+              </Text>
+            </View>
+            <View style={styles.chevronWrap}>
+              {isTypographyExpanded ? <ChevronUp size={16} color="#5B3FA6" /> : <ChevronDown size={16} color="#5B3FA6" />}
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        {isTypographyExpanded && (
+          <View style={styles.typographyExpandedContent}>
+            {/* 1. TELUGU FONT SELECTION */}
+            <Text style={styles.typoSubHeading}>తెలుగు ఫాంట్ ఎంపిక (Select Telugu Font)</Text>
+            <View style={styles.teluguFontGrid}>
+              {TELUGU_FONT_OPTIONS.map((fOption) => {
+                const isSelected = thumbFontFamily === fOption.id;
+                return (
+                  <TouchableOpacity
+                    key={fOption.id}
+                    style={[styles.teluguFontCard, isSelected && styles.teluguFontCardSelected]}
+                    onPress={() => setThumbFontFamily(fOption.id)}
+                    activeOpacity={0.75}
+                  >
+                    <View style={styles.teluguFontCardHeader}>
+                      <Text 
+                        style={[
+                          styles.teluguFontSample, 
+                          { 
+                            fontFamily: getActiveFontFamily(fOption.id),
+                            fontWeight: fOption.id === 'System' ? '700' : 'normal',
+                          }, 
+                          isSelected && styles.teluguFontSampleSelected
+                        ]} 
+                        numberOfLines={1}
+                      >
+                        {fOption.teluguName}
+                      </Text>
+                      <View style={[styles.fontRadioCircle, isSelected && styles.fontRadioCircleSelected]}>
+                        {isSelected && <Check size={10} color="#FFFFFF" strokeWidth={3} />}
+                      </View>
+                    </View>
+                    <Text style={[styles.teluguFontSub, isSelected && styles.teluguFontSubSelected]} numberOfLines={1}>
+                      {fOption.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* 2. FONT SIZE & STEPPER */}
+            <View style={{ marginTop: 14 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={styles.typoSubHeading}>అక్షర పరిమాణం (Font Size)</Text>
+                <View style={styles.stepperContainer}>
+                  <TouchableOpacity
+                    style={styles.stepperBtn}
+                    onPress={() => setThumbFontSize(prev => Math.max(8.0, Number((prev - 0.5).toFixed(1))))}
+                    activeOpacity={0.7}
+                  >
+                    <Minus size={13} color="#1a2d5a" />
+                  </TouchableOpacity>
+                  <Text style={styles.stepperValueTxt}>{thumbFontSize} pt</Text>
+                  <TouchableOpacity
+                    style={styles.stepperBtn}
+                    onPress={() => setThumbFontSize(prev => Math.min(18.0, Number((prev + 0.5).toFixed(1))))}
+                    activeOpacity={0.7}
+                  >
+                    <Plus size={13} color="#1a2d5a" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Quick Size Presets */}
+              <View style={styles.presetRow}>
+                {FONT_SIZE_PRESETS.map((p) => {
+                  const isSelected = thumbFontSize === p.size;
+                  return (
+                    <TouchableOpacity
+                      key={p.label}
+                      style={[styles.presetChip, isSelected && styles.presetChipActive]}
+                      onPress={() => setThumbFontSize(p.size)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.presetChipTxt, isSelected && styles.presetChipTxtActive]} numberOfLines={1}>
+                        {p.label}
+                      </Text>
+                      <Text style={[styles.presetChipSubTxt, isSelected && styles.presetChipSubTxtActive]} numberOfLines={1}>
+                        {p.size}pt
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* 3. ALIGNMENT (HORIZONTAL) */}
+            <View style={{ marginTop: 14 }}>
+              <Text style={styles.typoSubHeading}>టెక్స్ట్ అలైన్‌మెంట్ (Horizontal Alignment)</Text>
+              <View style={styles.segmentedControl}>
+                {(['left', 'center', 'right'] as const).map((align) => {
+                  const isSelected = thumbTextAlign === align;
+                  const label = align === 'left' ? 'ఎడమ (Left)' : align === 'center' ? 'మధ్యలో (Center)' : 'కుడి (Right)';
+                  return (
+                    <TouchableOpacity
+                      key={align}
+                      style={[styles.segmentBtn, isSelected && styles.segmentBtnActive]}
+                      onPress={() => setThumbTextAlign(align)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.segmentBtnTxt, isSelected && styles.segmentBtnTxtActive]}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* 4. POSITION (VERTICAL) */}
+            <View style={{ marginTop: 12 }}>
+              <Text style={styles.typoSubHeading}>వాక్య స్థానం (Vertical Position)</Text>
+              <View style={styles.segmentedControl}>
+                {(['top', 'center', 'bottom'] as const).map((pos) => {
+                  const isSelected = thumbTextPosition === pos;
+                  const label = pos === 'top' ? 'పైభాగం (Top)' : pos === 'center' ? 'మధ్యలో (Center)' : 'క్రింద (Bottom)';
+                  return (
+                    <TouchableOpacity
+                      key={pos}
+                      style={[styles.segmentBtn, isSelected && styles.segmentBtnActive]}
+                      onPress={() => setThumbTextPosition(pos)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.segmentBtnTxt, isSelected && styles.segmentBtnTxtActive]}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* 5. TEXT COLOR SELECTION */}
+            <View style={{ marginTop: 14 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={styles.typoSubHeading}>టెక్స్ట్ రంగు (Text Color)</Text>
+                <View style={styles.selectedColorBadge}>
+                  <View style={[styles.selectedColorDot, { backgroundColor: thumbTextColor }]} />
+                  <Text style={styles.selectedColorBadgeTxt} numberOfLines={1}>
+                    {TEXT_COLOR_PALETTE.find(c => c.hex.toLowerCase() === thumbTextColor.toLowerCase())?.label || thumbTextColor}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Category Filter Tabs */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.colorCategoryScroll}>
+                {TEXT_COLOR_CATEGORIES.map((cat) => {
+                  const isCatSelected = activeTextColorCategory === cat;
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      style={[styles.colorCategoryChip, isCatSelected && styles.colorCategoryChipActive]}
+                      onPress={() => setActiveTextColorCategory(cat)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.colorCategoryChipTxt, isCatSelected && styles.colorCategoryChipTxtActive]}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* Color Swatches Grid */}
+              <View style={styles.colorSwatchWrap}>
+                {TEXT_COLOR_PALETTE
+                  .filter(c => activeTextColorCategory === 'All' || c.category === activeTextColorCategory)
+                  .map((c) => {
+                    const isSelected = thumbTextColor.toLowerCase() === c.hex.toLowerCase();
+                    return (
+                      <TouchableOpacity
+                        key={c.hex}
+                        style={[
+                          styles.textSwatchCircle,
+                          { backgroundColor: c.hex },
+                          isSelected && styles.textSwatchCircleActive,
+                        ]}
+                        onPress={() => {
+                          setThumbTextColor(c.hex);
+                          setCustomTextColorInput(c.hex);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        {isSelected && (
+                          <Check
+                            size={12}
+                            color={isDarkColor(c.hex) ? '#FFFFFF' : '#111827'}
+                            strokeWidth={3}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+              </View>
+
+              {/* Custom Hex Color input */}
+              <View style={styles.customColorInputRow}>
+                <Text style={styles.customColorInputLabel}>Custom Hex:</Text>
+                <TextInput
+                  style={styles.customColorTextInput}
+                  value={customTextColorInput}
+                  placeholder="#FFFFFF"
+                  placeholderTextColor="#94A3B8"
+                  maxLength={7}
+                  autoCapitalize="characters"
+                  onChangeText={(txt) => {
+                    setCustomTextColorInput(txt);
+                    if (/^#[0-9A-Fa-f]{6}$/.test(txt)) {
+                      setThumbTextColor(txt);
+                    }
+                  }}
+                />
+                <View style={[styles.customColorSample, { backgroundColor: thumbTextColor }]} />
+              </View>
+            </View>
+
+            {/* 6. FONT WEIGHT & ITALIC STYLE */}
+            <View style={{ marginTop: 14 }}>
+              <Text style={styles.typoSubHeading}>స్టైల్ & మందం (Style & Weight)</Text>
+              <View style={styles.styleAndWeightRow}>
+                <View style={styles.weightSegmentedControl}>
+                  {[
+                    { label: 'Regular', val: '400' },
+                    { label: 'SemiBold', val: '600' },
+                    { label: 'Bold', val: '700' },
+                    { label: 'Heavy', val: '800' },
+                  ].map((w) => {
+                    const isSelected = thumbFontWeight === w.val;
+                    return (
+                      <TouchableOpacity
+                        key={w.val}
+                        style={[styles.segmentBtn, isSelected && styles.segmentBtnActive]}
+                        onPress={() => setThumbFontWeight(w.val)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.segmentBtnTxt, isSelected && styles.segmentBtnTxtActive]}>
+                          {w.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Italic Toggle */}
+                <TouchableOpacity
+                  style={[styles.italicToggleBtn, thumbIsItalic && styles.italicToggleBtnActive]}
+                  onPress={() => setThumbIsItalic(prev => !prev)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.italicToggleTxt, thumbIsItalic && styles.italicToggleTxtActive]}>
+                    Italic (వాలు)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   // ── JSX ─────────────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
@@ -1946,7 +2502,7 @@ export default function AIContentCreator() {
             </TouchableOpacity>
             <Text style={[styles.headerTitle, { marginHorizontal: 12, opacity: 0.4, flexShrink: 0 }]}>|</Text>
             <View style={{ flexShrink: 1 }}>
-              <Text style={[styles.headerTitle, { flexShrink: 1 }]} numberOfLines={1}>AI Content Creator</Text>
+              <Text style={[styles.headerTitle, { flexShrink: 1 }]} numberOfLines={1}>AI Thumbnail Creation</Text>
             </View>
           </View>
         </View>
@@ -1971,7 +2527,7 @@ export default function AIContentCreator() {
             )}
             <Wand2 size={14} color={activeScreenTab === 'create' ? '#fff' : '#6B627F'} style={{ zIndex: 1 }} />
             <Text style={[styles.switchBtnTxt, activeScreenTab === 'create' && styles.switchBtnTxtActive]}>
-              Create Visual
+              Create Thumbnail
             </Text>
           </TouchableOpacity>
 
@@ -2084,8 +2640,109 @@ export default function AIContentCreator() {
               </View>
 
               <Text style={styles.themeScriptureSub}>
-                Auto-picked for “{contentType}”. You can manually edit any field below or tap “Different Theme & Verse” to cycle variations.
+                Auto-picked for “{contentType}”. You can select any Bible book, chapter and verse below, switch Bible translations, or manually edit any field.
               </Text>
+
+              {/* ── AUTO-POPULATE BIBLE VERSE (Matching Create Promise Flow) ── */}
+              <View style={styles.autoPopulateCard}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <BookOpen size={14} color="#1a2d5a" />
+                    <Text style={styles.autoPopulateTitle}>Auto-Populate Bible Verse</Text>
+                  </View>
+                  {isFetchingVerse && (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <ActivityIndicator size="small" color="#1a2d5a" />
+                      <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '500' }}>Fetching verse…</Text>
+                    </View>
+                  )}
+                </View>
+
+                <View style={{ flexDirection: 'column', gap: 10 }}>
+                  {/* Select Book Touchable */}
+                  <TouchableOpacity 
+                    style={[styles.input, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 46, paddingVertical: 10, paddingHorizontal: 12, backgroundColor: '#FFFFFF' }]} 
+                    onPress={() => { setSelectionModalType('book'); setBookSearchQuery(''); }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{ color: selectedBook !== null ? '#1a2d5a' : '#94A3B8', flex: 1, fontSize: 13, fontWeight: '600' }} numberOfLines={1} ellipsizeMode="tail">
+                      {selectedBook !== null ? `${ENGLISH_NAMES[selectedBook]} - ${TELUGU_NAMES[selectedBook]}` : 'Select Bible Book (గ్రంథము ఎంచుకోండి)'}
+                    </Text>
+                    <ChevronDown size={16} color="#94A3B8" style={{ marginLeft: 6 }} />
+                  </TouchableOpacity>
+                  
+                  {/* Select Chapter & Verse Touchables Row */}
+                  <View style={{ flexDirection: 'row', gap: 10, alignItems: 'stretch' }}>
+                    <TouchableOpacity 
+                      style={[styles.input, { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 46, paddingVertical: 10, paddingHorizontal: 10, backgroundColor: '#FFFFFF' }]} 
+                      onPress={() => {
+                        if (selectedBook === null) return Alert.alert('Info', 'Please select a Bible Book first');
+                        setSelectionModalType('chapter');
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text 
+                        style={{ color: selectedChapter !== null ? '#1a2d5a' : '#94A3B8', fontSize: 12.5, fontWeight: '600', flex: 1, marginRight: 4 }}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit={true}
+                        minimumFontScale={0.8}
+                      >
+                        {selectedChapter !== null ? `Chapter ${selectedChapter}` : 'Select Chapter (అధ్యాయం)'}
+                      </Text>
+                      <ChevronDown size={15} color="#94A3B8" />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                      style={[styles.input, { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', minHeight: 46, paddingVertical: 10, paddingHorizontal: 10, backgroundColor: '#FFFFFF' }]} 
+                      onPress={() => {
+                        if (selectedChapter === null) return Alert.alert('Info', 'Please select a Chapter first');
+                        setSelectionModalType('verse');
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text 
+                        style={{ color: selectedVerse !== null ? '#1a2d5a' : '#94A3B8', fontSize: 12.5, fontWeight: '600', flex: 1, marginRight: 4 }}
+                        numberOfLines={1}
+                        adjustsFontSizeToFit={true}
+                        minimumFontScale={0.8}
+                      >
+                        {selectedVerse !== null ? `Verse ${selectedVerse}` : 'Select Verse (వచనం)'}
+                      </Text>
+                      <ChevronDown size={15} color="#94A3B8" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Bible Version Selection Chips */}
+                <View style={{ marginTop: 12 }}>
+                  <Text style={{ fontSize: 11.5, fontWeight: '700', color: '#475569', marginBottom: 6 }}>
+                    బైబిల్ వెర్షన్ (Bible Selection)
+                  </Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                    {BIBLE_VERSIONS.map((bv) => {
+                      const isSelected = selectedBibleVersion === bv.name;
+                      return (
+                        <TouchableOpacity
+                          key={bv.id}
+                          style={[styles.bibleVersionChip, isSelected && styles.bibleVersionChipActive]}
+                          onPress={() => handleBibleVersionChange(bv)}
+                          activeOpacity={0.75}
+                        >
+                          <View style={[styles.bibleVersionTag, isSelected && styles.bibleVersionTagActive]}>
+                            <Text style={[styles.bibleVersionTagTxt, isSelected && styles.bibleVersionTagTxtActive]}>
+                              {bv.tag}
+                            </Text>
+                          </View>
+                          <Text style={[styles.bibleVersionChipTxt, isSelected && styles.bibleVersionChipTxtActive]} numberOfLines={1}>
+                            {bv.name}
+                          </Text>
+                          {isSelected && <Check size={11} color="#FFFFFF" strokeWidth={3} style={{ marginLeft: 4 }} />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </View>
+              </View>
 
               {/* Theme / Event Title Input */}
               <Text style={styles.fieldLabelSmall}>Theme / Event Title (శీర్షిక)</Text>
@@ -2107,27 +2764,76 @@ export default function AIContentCreator() {
                 placeholderTextColor="#9ca3af"
               />
 
-              {/* Bible Verse Reference Input */}
-              <Text style={styles.fieldLabelSmall}>Bible Verse Reference (రిఫరెన్స్)</Text>
-              <TextInput
-                style={styles.themeInput}
-                value={customVerseRef}
-                onChangeText={setCustomVerseRef}
-                placeholder={language === 'Telugu' ? 'ఉదా. కీర్తనలు 119:105' : 'e.g. PSALM 119:105'}
-                placeholderTextColor="#9ca3af"
-              />
+              {/* Telugu Bible Verse Section */}
+              <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+                <Text style={[styles.fieldLabelSmall, { color: '#1a2d5a', fontWeight: '700' }]}>
+                  Telugu Promise - తెలుగు వాగ్దానం
+                </Text>
+                
+                <Text style={styles.fieldLabelSmall}>Verse Reference — Telugu (రిఫరెన్స్)</Text>
+                <TextInput
+                  style={styles.themeInput}
+                  value={customVerseRef}
+                  onChangeText={setCustomVerseRef}
+                  placeholder="ఉదా. యోహాను 3:16"
+                  placeholderTextColor="#9ca3af"
+                />
 
-              {/* Bible Verse Text Input */}
-              <Text style={styles.fieldLabelSmall}>Bible Verse Text (వాక్య భాగం)</Text>
-              <TextInput
-                style={[styles.themeInput, styles.multilineInput]}
-                value={customVerseText}
-                onChangeText={setCustomVerseText}
-                multiline
-                numberOfLines={3}
-                placeholder={language === 'Telugu' ? 'ఉదా. నీ వాక్యము నా పాదములకు దీపమును...' : 'e.g. Your word is a lamp to my feet...'}
-                placeholderTextColor="#9ca3af"
-              />
+                <Text style={styles.fieldLabelSmall}>Verse Text — Telugu (వాక్య భాగం)</Text>
+                <TextInput
+                  style={[styles.themeInput, styles.multilineInput]}
+                  value={customVerseText}
+                  onChangeText={setCustomVerseText}
+                  multiline
+                  numberOfLines={3}
+                  placeholder="తెలుగులో బైబిల్ వచనం ఇక్కడ టైప్ చేయండి…"
+                  placeholderTextColor="#9ca3af"
+                />
+              </View>
+
+              {/* English Bible Verse Section */}
+              <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+                <Text style={[styles.fieldLabelSmall, { color: '#1a2d5a', fontWeight: '700' }]}>
+                  English Promise - ఇంగ్లీష్ వాగ్దానం
+                </Text>
+
+                <Text style={styles.fieldLabelSmall}>Verse Reference — English</Text>
+                <TextInput
+                  style={styles.themeInput}
+                  value={customVerseEnglishRef}
+                  onChangeText={setCustomVerseEnglishRef}
+                  placeholder="e.g. John 3:16"
+                  placeholderTextColor="#9ca3af"
+                />
+
+                <Text style={styles.fieldLabelSmall}>Verse Text — English</Text>
+                <TextInput
+                  style={[styles.themeInput, styles.multilineInput]}
+                  value={customVerseEnglishText}
+                  onChangeText={setCustomVerseEnglishText}
+                  multiline
+                  numberOfLines={2}
+                  placeholder="Type or paste Bible verse in English…"
+                  placeholderTextColor="#9ca3af"
+                />
+              </View>
+
+              {/* Quick Fetch Verse in Selected Translation */}
+              <TouchableOpacity
+                style={styles.fetchScriptureBtn}
+                onPress={() => handleFetchVerse(selectedBook, selectedChapter, selectedVerse)}
+                disabled={isFetchingVerse}
+                activeOpacity={0.75}
+              >
+                {isFetchingVerse ? (
+                  <ActivityIndicator size="small" color="#5B3FA6" />
+                ) : (
+                  <RefreshCw size={12} color="#5B3FA6" />
+                )}
+                <Text style={styles.fetchScriptureBtnTxt}>
+                  {isFetchingVerse ? 'Loading Verse…' : `Re-Fetch in ${selectedBibleVersion}`}
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <View style={styles.emptyPromptCard}>
@@ -2267,6 +2973,9 @@ export default function AIContentCreator() {
             </View>
           )}
 
+          {/* ── STEP 3: TYPOGRAPHY & TELUGU FONTS (Requirement 5) ── */}
+          {renderTypographySection()}
+
           {/* ── THUMBNAIL COLOR & THEME PALETTE ── */}
           {renderColorPickerSection()}
 
@@ -2278,7 +2987,7 @@ export default function AIContentCreator() {
                 <ActivityIndicator size="small" color="#fff" style={{ zIndex: 1, marginRight: 8 }} />
               )}
               <Text style={styles.btnPrimaryTxt}>
-                {generating ? 'Generating Thumbnail…' : 'Generate Thumbnail'}
+                {generating ? 'Generating AI Background…' : (bgImageUrl ? 'Re-Generate AI Background' : 'Generate AI Background')}
               </Text>
             </TouchableOpacity>
             {generating && (
@@ -2288,577 +2997,987 @@ export default function AIContentCreator() {
             )}
           </View>
 
-          {/* ── RESULT OUTPUT: COMPLETE COMPOSITE THUMBNAIL ── */}
-          {showResult && bgImageUrl ? (
-            <View style={styles.outputPanel}>
-              <View style={styles.outputHeader}>
-                <Sparkles size={14} color="#5B3FA6" />
-                <Text style={styles.outputHeaderTxt}>Generated Church Graphic</Text>
-                <View style={styles.cleanBadge}>
-                  <Text style={styles.cleanBadgeTxt}>100% Watermark-Free</Text>
-                </View>
+          {/* ── LIVE THUMBNAIL PREVIEW & RESULT (Requirement 3 & 6: Real-Time 2-Way Sync) ── */}
+          <View style={styles.outputPanel}>
+            <View style={styles.outputHeader}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={15} color="#5B3FA6" />
+                <Text style={styles.outputHeaderTxt}>
+                  {bgImageUrl ? 'Generated Church Graphic' : 'Live Thumbnail Preview'}
+                </Text>
               </View>
+              <View style={styles.cleanBadge}>
+                <Text style={styles.cleanBadgeTxt}>
+                  {bgImageUrl ? '100% Watermark-Free' : '⚡ Real-Time Sync'}
+                </Text>
+              </View>
+            </View>
 
-              {/* VIEWSHOT CAPTURE FRAME (16:9 Landscape) */}
-              {(() => {
-                const isTelugu = language === 'Telugu';
-                const dyn = activeDyn;
-                const churchLogoUrl = activeChurch?.theme?.logoUrl;
-                const churchName = (activeChurch?.name || 'CHURCH OF GOD').toUpperCase();
-                const churchPhone = activeChurch?.contactPhone || '8000504070';
-                const effectiveLocation = location.trim() || activeChurch?.address || (isTelugu ? 'చర్చి ప్రాంగణం' : 'Church Sanctuary');
+            {/* VIEWSHOT CAPTURE FRAME (16:9 Landscape) */}
+            {(() => {
+              const isTelugu = language === 'Telugu';
+              const dyn = activeDyn;
+              const churchLogoUrl = activeChurch?.theme?.logoUrl;
+              const churchName = (activeChurch?.name || 'CHURCH OF GOD').toUpperCase();
+              const churchPhone = activeChurch?.contactPhone || '8000504070';
+              const effectiveLocation = location.trim() || activeChurch?.address || (isTelugu ? 'చర్చి ప్రాంగణం' : 'Church Sanctuary');
 
-                const effectiveTheme = customTheme.trim() || (isTelugu ? dyn.teluguTitle : dyn.englishTitle);
-                const effectiveTagline = customTagline.trim() || (isTelugu ? (dyn.taglineTelugu || dyn.teluguTitle) : dyn.tagline);
-                const effectiveVerseRef = customVerseRef.trim() || (isTelugu ? dyn.verseRefTelugu : dyn.verseRefEnglish);
-                const effectiveVerseText = customVerseText.trim() || (isTelugu ? dyn.verseTextTelugu : dyn.verseTextEnglish);
+              const effectiveTheme = customTheme.trim() || (isTelugu ? dyn.teluguTitle : dyn.englishTitle);
+              const effectiveTagline = customTagline.trim() || (isTelugu ? (dyn.taglineTelugu || dyn.teluguTitle) : dyn.tagline);
+              const effectiveVerseRef = customVerseRef.trim() || (isTelugu ? dyn.verseRefTelugu : dyn.verseRefEnglish);
+              const effectiveVerseText = customVerseText.trim() || (isTelugu ? dyn.verseTextTelugu : dyn.verseTextEnglish);
 
-                const dateDisplay = formatDateRange(startDate, endDate, isTelugu);
-                const timeDisplay = formatTimeRange(startTime, endTime, isTelugu);
+              const dateDisplay = formatDateRange(startDate, endDate, isTelugu);
+              const timeDisplay = formatTimeRange(startTime, endTime, isTelugu);
 
-                // ── Dynamic Responsive Typography & Layout Calculations ──
-                // Title / Theme calculations (keeps short title prominent, dynamically scales long title)
-                const themeLen = effectiveTheme.length;
-                const hasMultipleWords = effectiveTheme.trim().includes(' ');
-                const isThemeLong = isTelugu ? themeLen > 11 : (themeLen > 10 || hasMultipleWords);
-                const themeMaxLines = themeLen > 35 ? 3 : isThemeLong ? 2 : 1;
-                const themeFontSize = (() => {
-                  if (isTelugu) {
-                    if (themeLen <= 9) return 16.5;
-                    if (themeLen <= 15) return 14.0;
-                    if (themeLen <= 24) return 12.2;
-                    if (themeLen <= 36) return 10.8;
-                    return 9.6;
-                  } else {
-                    if (themeLen <= 8) return 16.0;
-                    if (themeLen <= 14) return 13.0; // "FASTING PRAYER" fits with zero truncation
-                    if (themeLen <= 24) return 11.5; // "WOMEN'S FASTING PRAYER" fits on 2 lines with zero truncation
-                    if (themeLen <= 36) return 10.2;
-                    return 9.2;
-                  }
-                })();
-                const themeLineHeight = Math.round(themeFontSize * (isTelugu ? 1.25 : 1.18));
+              // ── Dynamic Responsive Typography & Layout Calculations ──
+              const activeTeluguFont = getActiveFontFamily(thumbFontFamily);
+              const isTeluguCustom = isCustomTeluguFont(thumbFontFamily);
+              // Android Typeface fallback protection:
+              // Custom Telugu fonts on Android fail/fallback if fontWeight !== 'normal'
+              const effectiveFontWeight = isTeluguCustom && Platform.OS === 'android' ? 'normal' : thumbFontWeight;
+              const effectiveFontStyle = isTeluguCustom ? 'normal' : (thumbIsItalic ? 'italic' : 'normal');
+              const syntheticSkew = (isTeluguCustom && thumbIsItalic) ? [{ skewX: '-12deg' }] : [];
+              const directTextJustify = thumbTextPosition === 'top' ? 'flex-start' : thumbTextPosition === 'bottom' ? 'flex-end' : 'center';
 
-                // Tagline calculations
-                const tagLen = effectiveTagline.length;
-                const tagFontSize = tagLen > 30 ? 5.6 : tagLen > 20 ? 6.3 : 7.0;
+              // Title / Theme calculations
+              const themeLen = effectiveTheme.length;
+              const hasMultipleWords = effectiveTheme.trim().includes(' ');
+              const isThemeLong = isTelugu ? themeLen > 11 : (themeLen > 10 || hasMultipleWords);
+              const themeMaxLines = themeLen > 35 ? 3 : isThemeLong ? 2 : 1;
+              const themeFontSize = (() => {
+                if (isTelugu) {
+                  if (themeLen <= 9) return 16.5;
+                  if (themeLen <= 15) return 14.0;
+                  if (themeLen <= 24) return 12.2;
+                  if (themeLen <= 36) return 10.8;
+                  return 9.6;
+                } else {
+                  if (themeLen <= 8) return 16.0;
+                  if (themeLen <= 14) return 13.0;
+                  if (themeLen <= 24) return 11.5;
+                  if (themeLen <= 36) return 10.2;
+                  return 9.2;
+                }
+              })();
+              const themeLineHeight = Math.round(themeFontSize * (isTelugu ? 1.25 : 1.18));
 
-                // Location calculations (seamlessly expands up to 2 lines without truncation)
-                const locLen = effectiveLocation.length;
-                const isLocLong = locLen > 30;
-                const isLocVeryLong = locLen > 55;
-                const locFontSize = isLocVeryLong ? 4.9 : isLocLong ? 5.5 : 6.2;
-                const locLineHeight = Math.round(locFontSize * 1.25);
-                const locMaxLines = isLocLong ? 2 : 1;
+              // Tagline calculations
+              const tagLen = effectiveTagline.length;
+              const tagFontSize = tagLen > 30 ? 5.6 : tagLen > 20 ? 6.3 : 7.0;
 
-                // Date & Time calculations
-                const timeLen = timeDisplay.length;
-                const isTimeVeryLong = timeLen > 22;
-                const timeFontSize = isTimeVeryLong ? 4.1 : timeLen > 16 ? 4.8 : 5.8;
-                const timeLineHeight = Math.round(timeFontSize * 1.25);
+              // Location calculations
+              const locLen = effectiveLocation.length;
+              const isLocLong = locLen > 30;
+              const isLocVeryLong = locLen > 55;
+              const locFontSize = isLocVeryLong ? 4.9 : isLocLong ? 5.5 : 6.2;
+              const locLineHeight = Math.round(locFontSize * 1.25);
+              const locMaxLines = isLocLong ? 2 : 1;
 
-                const dateLen = dateDisplay.length;
-                const isDateLong = dateLen > 18;
-                const dateFontSize = isDateLong ? 4.9 : 5.8;
-                const dateLineHeight = Math.round(dateFontSize * 1.25);
+              // Date & Time calculations
+              const timeLen = timeDisplay.length;
+              const isTimeVeryLong = timeLen > 22;
+              const timeFontSize = isTimeVeryLong ? 4.1 : timeLen > 16 ? 4.8 : 5.8;
+              const timeLineHeight = Math.round(timeFontSize * 1.25);
 
-                // Speaker calculations
-                const speakerLen = speaker ? speaker.length : 0;
-                const speakerFontSize = speakerLen > 26 ? 7.0 : 8.0;
+              const dateLen = dateDisplay.length;
+              const isDateLong = dateLen > 18;
+              const dateFontSize = isDateLong ? 4.9 : 5.8;
+              const dateLineHeight = Math.round(dateFontSize * 1.25);
 
-                // Church Name calculations
-                const churchNameFontSize = churchName.length > 25 ? 8.2 : 9.5;
+              // Speaker calculations
+              const speakerLen = speaker ? speaker.length : 0;
+              const speakerFontSize = speakerLen > 26 ? 7.0 : 8.0;
 
-                // Scripture Verse calculations (Left Column)
-                const verseLen = effectiveVerseText.length;
-                const verseFontSize = verseLen > 110 ? 7.4 : verseLen > 70 ? 8.2 : 8.8;
-                const verseLineHeight = Math.round(verseFontSize * 1.32);
-                const verseMaxLines = verseLen > 90 ? 5 : 4;
+              // Church Name calculations
+              const churchNameFontSize = churchName.length > 25 ? 8.2 : 9.5;
 
-                // Dynamic vertical spacing adjustments to prevent any crowding or clipping
-                const isDenseLayout = isThemeLong || isLocLong || speakerLen > 20;
-                const heroBannerPaddingV = isDenseLayout ? 2 : 3.5;
-                const metaContainerGap = isDenseLayout ? 2 : 2.5;
+              // Scripture Verse calculations (Left Column)
+              const verseLen = effectiveVerseText.length;
+              const verseFontSize = verseLen > 110 ? 7.4 : verseLen > 70 ? 8.2 : 8.8;
+              const verseLineHeight = Math.round(verseFontSize * 1.32);
+              const verseMaxLines = verseLen > 90 ? 5 : 4;
 
-                // Dedicated Daily Promise Card check & formatting
-                const isDailyPromise = contentType === 'Daily Promise Card';
-                const promiseDateDisplay = (() => {
-                  const FULL_EN_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                  const targetDate = startDate || new Date(); // Dynamically uses actual current date
-                  const m = targetDate.getMonth();
-                  const d = targetDate.getDate();
-                  if (endDate && (endDate.getDate() !== d || endDate.getMonth() !== m)) {
-                    return formatDateRange(targetDate, endDate, isTelugu);
-                  }
-                  return isTelugu ? `${TELUGU_MONTHS[m]} ${d}` : `${FULL_EN_MONTHS[m]} ${d}`;
-                })();
+              // Dynamic vertical spacing adjustments to prevent any crowding or clipping
+              const isDenseLayout = isThemeLong || isLocLong || speakerLen > 20;
+              const heroBannerPaddingV = isDenseLayout ? 2 : 3.5;
+              const metaContainerGap = isDenseLayout ? 2 : 2.5;
 
-                const cleanVerse = (v: string) => (v || '').trim().replace(/^[“"']+|[”"'.]+$/g, '');
-                const cleanRef = (r: string) => {
-                  const c = (r || '').trim().replace(/^\(|\)$/g, '');
-                  return c ? `(${c})` : '';
-                };
+              // Dedicated Daily Promise Card check & formatting
+              const isDailyPromise = contentType === 'Daily Promise Card';
+              const promiseDateDisplay = (() => {
+                const FULL_EN_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                const targetDate = startDate || new Date();
+                const m = targetDate.getMonth();
+                const d = targetDate.getDate();
+                if (endDate && (endDate.getDate() !== d || endDate.getMonth() !== m)) {
+                  return formatDateRange(targetDate, endDate, isTelugu);
+                }
+                return isTelugu ? `${TELUGU_MONTHS[m]} ${d}` : `${FULL_EN_MONTHS[m]} ${d}`;
+              })();
 
-                const teluguText = isTelugu ? effectiveVerseText : (dyn.verseTextTelugu || 'దీర్ఘాయువు చేత అతనిని తృప్తిపరచెదను');
-                const teluguRef = isTelugu ? effectiveVerseRef : (dyn.verseRefTelugu || 'కీర్తనల గ్రంథము 91:16');
-                const englishText = !isTelugu ? effectiveVerseText : (dyn.verseTextEnglish || 'I will satisfy him with long life');
-                const englishRef = !isTelugu ? effectiveVerseRef : (dyn.verseRefEnglish || 'Psalm 91:16');
+              const cleanVerse = (v: string) => (v || '').trim().replace(/^[“"']+|[”"'.]+$/g, '');
+              const cleanRefWithoutOuter = (r: string) => {
+                return (r || '').trim().replace(/^[-—\s()]+|[-—\s()]+$/g, '');
+              };
 
-                return (
-                  <ViewShot
-                    ref={viewShotRef}
-                    options={{ format: 'jpg', quality: 1.0 }}
-                    style={[styles.thumbnailFrame, { borderColor: activeSecondaryColor }]}
-                  >
-                    {/* 1. Pure AI Background Image */}
-                    <Image
-                      source={{ uri: bgImageUrl }}
-                      style={StyleSheet.absoluteFillObject}
-                      resizeMode="cover"
-                    />
+              const teluguText = customVerseText.trim() || dyn.verseTextTelugu || 'దీర్ఘాయువు చేత అతనిని తృప్తిపరచెదను';
+              const teluguRef = customVerseRef.trim() || dyn.verseRefTelugu || 'కీర్తనల గ్రంథము 91:16';
+              const englishText = customVerseEnglishText.trim() || dyn.verseTextEnglish || 'I will satisfy him with long life';
+              const englishRef = customVerseEnglishRef.trim() || dyn.verseRefEnglish || 'Psalm 91:16';
 
-                    {/* 2. Professional Cinematic Vignette Gradient */}
-                    <LinearGradient
-                      colors={thumbnailVignetteColors}
-                      start={thumbnailGradientStart}
-                      end={thumbnailGradientEnd}
-                      style={StyleSheet.absoluteFillObject}
-                    />
+              return (
+                <ViewShot
+                  ref={viewShotRef}
+                  options={{ format: 'jpg', quality: 1.0 }}
+                  style={[styles.thumbnailFrame, { borderColor: activeSecondaryColor }]}
+                >
+                  {/* 1. Pure AI Background Image or Default Devotional Visual */}
+                  <Image
+                    source={{ uri: bgImageUrl || DEFAULT_PREVIEW_BACKGROUND }}
+                    style={StyleSheet.absoluteFillObject}
+                    resizeMode="cover"
+                  />
 
-                    {/* 3. CONTENT LAYOUT: DEDICATED DEVOTIONAL STYLE FOR DAILY PROMISE, OR TWO-COLUMN FOR EVENTS */}
-                    {isDailyPromise ? (
-                      <View style={styles.promiseMainLayout}>
-                        {/* Top Header Bar: Church Logo & Name on left, Date Badge on right */}
-                        <View style={styles.promiseTopBar}>
-                          <View style={styles.promiseLogoRow}>
-                            {churchLogoUrl ? (
-                              <Image source={{ uri: churchLogoUrl }} style={styles.promiseChurchLogo} resizeMode="contain" />
-                            ) : (
-                              <View style={[styles.promiseLogoFallback, { backgroundColor: activePrimaryColor }]}>
-                                <Text style={styles.thumbChurchLogoCross} allowFontScaling={false}>✝</Text>
-                              </View>
-                            )}
-                            <View style={{ flexShrink: 1 }}>
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                <Text style={{ fontSize: 8.5 }} allowFontScaling={false}>🕊</Text>
-                                <Text style={styles.promiseChurchName} numberOfLines={1} allowFontScaling={false}>{churchName}</Text>
-                              </View>
-                              <Text style={styles.promiseSubHeaderTxt} numberOfLines={1} allowFontScaling={false}>{isTelugu ? 'నేటి దైవిక వాగ్దానం' : "TODAY'S SCRIPTURE PROMISE"}</Text>
+                  {/* 2. Professional Cinematic Vignette Gradient */}
+                  <LinearGradient
+                    colors={thumbnailVignetteColors}
+                    start={thumbnailGradientStart}
+                    end={thumbnailGradientEnd}
+                    style={StyleSheet.absoluteFillObject}
+                  />
+
+                  {/* 3. CONTENT LAYOUT: DEDICATED DEVOTIONAL STYLE FOR DAILY PROMISE, OR TWO-COLUMN FOR EVENTS */}
+                  {isDailyPromise ? (
+                    <View style={styles.promiseMainLayout}>
+                      {/* Top Header Bar: Church Logo & Name on left, Date Badge on right */}
+                      <View style={styles.promiseTopBar}>
+                        <View style={styles.promiseLogoRow}>
+                          {churchLogoUrl ? (
+                            <Image source={{ uri: churchLogoUrl }} style={styles.promiseChurchLogo} resizeMode="contain" />
+                          ) : (
+                            <View style={[styles.promiseLogoFallback, { backgroundColor: activePrimaryColor }]}>
+                              <Text style={styles.thumbChurchLogoCross} allowFontScaling={false}>✝</Text>
                             </View>
-                          </View>
-
-                          {/* Date Badge */}
-                          <View style={[styles.promiseDatePill, { borderColor: `${activeSecondaryColor}88`, backgroundColor: hexToRgba(activePrimaryColor, 0.28) }]}>
-                            <CalendarIcon size={7} color={activeSecondaryColor} />
-                            <Text style={styles.promiseDateTxt} numberOfLines={1} allowFontScaling={false}>{promiseDateDisplay}</Text>
+                          )}
+                          <View style={{ flexShrink: 1 }}>
+                            <Text
+                              style={[
+                                styles.promiseChurchName,
+                                {
+                                  fontFamily: activeTeluguFont,
+                                  fontWeight: effectiveFontWeight as any,
+                                  transform: syntheticSkew,
+                                }
+                              ]}
+                              numberOfLines={1}
+                              allowFontScaling={false}
+                            >
+                              {churchName}
+                            </Text>
                           </View>
                         </View>
 
-                        {/* Center Devotional Card (Glassmorphic Altar Aesthetic) */}
-                        <View style={[styles.promiseCenterCard, { borderColor: `${activeSecondaryColor}77` }]}>
-                          {/* Promise Ribbon Pill */}
-                          <View style={[styles.promiseRibbonPill, { backgroundColor: activeSecondaryColor }]}>
-                            <Sparkles size={7} color={getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF'} />
-                            <Text style={[styles.promiseRibbonTxt, { color: getLuminance(activeSecondaryColor) > 0.6 ? '#111827' : '#FFFFFF' }]} allowFontScaling={false} numberOfLines={1}>
-                              {isTelugu ? '✨ నేటి దేవుని వాగ్దానం ✨' : '✨ TODAY’S DAILY PROMISE ✨'}
+                        {/* Date Badge */}
+                        <View style={styles.promiseDatePill}>
+                          <CalendarIcon size={8.5} color="#F59E0B" strokeWidth={2.4} />
+                          <Text
+                            style={[
+                              styles.promiseDateTxt,
+                              {
+                                fontFamily: activeTeluguFont,
+                                fontWeight: effectiveFontWeight as any,
+                                transform: syntheticSkew,
+                              }
+                            ]}
+                            numberOfLines={1}
+                            allowFontScaling={false}
+                          >
+                            {promiseDateDisplay}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Theme / Event Title (if entered) */}
+                      {effectiveTheme ? (
+                        <View style={[styles.promiseThemeHeaderWrap, { alignItems: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center' }]}>
+                          <Text
+                            style={[
+                              styles.promiseThemeTitle,
+                              {
+                                fontFamily: activeTeluguFont,
+                                fontWeight: effectiveFontWeight as any,
+                                fontStyle: effectiveFontStyle as any,
+                                transform: syntheticSkew,
+                                color: thumbTextColor || '#FFFFFF',
+                                textAlign: thumbTextAlign,
+                              }
+                            ]}
+                            numberOfLines={1}
+                            allowFontScaling={false}
+                          >
+                            {effectiveTheme}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {/* Speaker Badge (if entered) */}
+                      {speaker ? (
+                        <View style={[styles.promiseSpeakerRow, { alignItems: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center', marginTop: 2, marginBottom: 2 }]}>
+                          <View style={[styles.thumbSpeakerBadge, { borderColor: `${activeSecondaryColor}99` }]}>
+                            <Mic size={7.5} color={activeSecondaryColor} />
+                            <Text
+                              style={[
+                                styles.thumbSpeakerBadgeTxt,
+                                {
+                                  fontSize: 7.2,
+                                  fontFamily: activeTeluguFont,
+                                  fontWeight: effectiveFontWeight as any,
+                                  fontStyle: effectiveFontStyle as any,
+                                  transform: syntheticSkew,
+                                  color: thumbTextColor || '#FFFFFF',
+                                }
+                              ]}
+                              numberOfLines={1}
+                              allowFontScaling={false}
+                            >
+                              {(() => {
+                                const s = speaker.trim();
+                                if (/^(with|by|pastor|bro|rev|డాక్టర్|పాస్టర్|బ్రదర్|సందేశం|వాక్య)/i.test(s)) return s;
+                                return isTelugu ? `సందేశం: ${s}` : `With ${s}`;
+                              })()}
                             </Text>
                           </View>
+                        </View>
+                      ) : null}
 
-                          {/* Scripture Presentation: Telugu & English in Exact Format */}
-                          <View style={styles.promiseQuoteContainer}>
-                            {/* Telugu Scripture Line */}
-                            <View style={styles.promiseQuoteLineWrap}>
-                              <Text
-                                style={styles.promiseQuoteTelugu}
-                                numberOfLines={2}
-                                adjustsFontSizeToFit={true}
-                                minimumFontScale={0.75}
-                                allowFontScaling={false}
-                              >
-                                “{cleanVerse(teluguText)}.”{' '}
-                                <Text style={[styles.promiseQuoteTeluguRef, { color: activeSecondaryColor }]} allowFontScaling={false}>{cleanRef(teluguRef)}</Text>
-                              </Text>
-                            </View>
+                      {/* Direct Scripture Placement on Background */}
+                      <View style={[styles.promiseDirectTextWrapper, { justifyContent: directTextJustify }]}>
+                        <View style={styles.promiseQuoteContainer}>
+                          {(() => {
+                            const hasEnglish = !!englishText;
+                            const teLen = (teluguText || '').length;
+                            const enLen = (englishText || '').length;
 
-                            {/* Subtle Decorative Golden Divider */}
-                            <View style={styles.promiseDividerRow}>
-                              <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
-                              <Text style={[styles.promiseDividerCross, { color: activeSecondaryColor }]} allowFontScaling={false}>✝</Text>
-                              <View style={[styles.promiseDividerLine, { backgroundColor: `${activeSecondaryColor}66` }]} />
-                            </View>
+                            // Dynamic height & font balancing so bilingual verses never collide with header or footer:
+                            const effectiveTeFontSize = hasEnglish
+                              ? (teLen > 80 ? Math.min(thumbFontSize, 11.0) : teLen > 50 ? Math.min(thumbFontSize, 11.8) : Math.min(thumbFontSize, 12.6))
+                              : thumbFontSize;
+                            const effectiveTeLineHeight = Math.round(effectiveTeFontSize * 1.34);
+                            const effectiveTeRefFontSize = Math.min(effectiveTeFontSize * 0.72, 8.5);
 
-                            {/* English Scripture Line */}
-                            <View style={styles.promiseQuoteLineWrap}>
-                              <Text
-                                style={styles.promiseQuoteEnglish}
-                                numberOfLines={2}
-                                adjustsFontSizeToFit={true}
-                                minimumFontScale={0.75}
-                                allowFontScaling={false}
-                              >
-                                “{cleanVerse(englishText)}.”{' '}
-                                <Text style={[styles.promiseQuoteEnglishRef, { color: activeSecondaryColor }]} allowFontScaling={false}>{cleanRef(englishRef)}</Text>
-                              </Text>
-                            </View>
+                            // English companion verse: elegant SERIF, legible sizing, compact vertical footprint
+                            const effectiveEnFontSize = enLen > 110 ? 6.8 : enLen > 65 ? 7.4 : 8.2;
+                            const effectiveEnLineHeight = Math.round(effectiveEnFontSize * 1.25);
+                            const effectiveEnRefFontSize = Math.min(effectiveEnFontSize * 0.95, 7.0);
+
+                            return (
+                              <>
+                                {/* Telugu Scripture Line */}
+                                <View style={[styles.promiseQuoteLineWrap, { alignItems: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center' }]}>
+                                  <Text
+                                    style={[
+                                      styles.promiseQuoteTelugu,
+                                      {
+                                        fontFamily: activeTeluguFont,
+                                        fontSize: effectiveTeFontSize,
+                                        lineHeight: effectiveTeLineHeight,
+                                        color: thumbTextColor,
+                                        fontWeight: effectiveFontWeight as any,
+                                        fontStyle: effectiveFontStyle as any,
+                                        textAlign: thumbTextAlign,
+                                        transform: syntheticSkew,
+                                      }
+                                    ]}
+                                    numberOfLines={hasEnglish ? 3 : 4}
+                                    adjustsFontSizeToFit={true}
+                                    minimumFontScale={0.65}
+                                    allowFontScaling={false}
+                                  >
+                                    “{cleanVerse(teluguText)}.”
+                                  </Text>
+                                </View>
+
+                                {/* Dedicated Telugu Scripture Reference Row */}
+                                {teluguRef ? (
+                                  <View style={[styles.promiseRefRow, { marginTop: 1, marginBottom: 0, alignItems: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center' }]}>
+                                    <Text
+                                      style={[
+                                        styles.promiseQuoteTeluguRef,
+                                        {
+                                          fontFamily: activeTeluguFont,
+                                          fontSize: effectiveTeRefFontSize,
+                                          color: isDarkColor(activeSecondaryColor) ? '#FCD34D' : activeSecondaryColor,
+                                          fontWeight: effectiveFontWeight as any,
+                                          fontStyle: effectiveFontStyle as any,
+                                          textAlign: thumbTextAlign,
+                                          transform: syntheticSkew,
+                                        }
+                                      ]}
+                                      numberOfLines={1}
+                                      adjustsFontSizeToFit={true}
+                                      minimumFontScale={0.75}
+                                      allowFontScaling={false}
+                                    >
+                                      — {cleanRefWithoutOuter(teluguRef)}
+                                    </Text>
+                                  </View>
+                                ) : null}
+
+                                {/* Subtle Decorative Golden Divider (only if English is entered) */}
+                                {hasEnglish ? (
+                                  <View style={[styles.promiseDividerRow, { marginVertical: 1.5, width: '36%' }]}>
+                                    <View style={styles.promiseDividerLine} />
+                                    <Text style={styles.promiseDividerCross} allowFontScaling={false}>✝</Text>
+                                    <View style={styles.promiseDividerLine} />
+                                  </View>
+                                ) : null}
+
+                                {/* English Scripture Line */}
+                                {englishText ? (
+                                  <View style={[styles.promiseQuoteLineWrap, { alignItems: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center' }]}>
+                                    <Text
+                                      style={[
+                                        styles.promiseQuoteEnglish,
+                                        {
+                                          fontFamily: SERIF,
+                                          fontSize: effectiveEnFontSize,
+                                          lineHeight: effectiveEnLineHeight,
+                                          color: thumbTextColor === '#FFFFFF' ? '#FEF3C7' : thumbTextColor,
+                                          fontWeight: '500',
+                                          fontStyle: 'italic',
+                                          textAlign: thumbTextAlign,
+                                          letterSpacing: 0.12,
+                                          textShadowColor: isDarkColor(thumbTextColor) ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.92)',
+                                          textShadowOffset: { width: 0, height: 1.2 },
+                                          textShadowRadius: 3,
+                                        }
+                                      ]}
+                                      numberOfLines={2}
+                                      adjustsFontSizeToFit={true}
+                                      minimumFontScale={0.7}
+                                      allowFontScaling={false}
+                                    >
+                                      “{cleanVerse(englishText)}.”
+                                    </Text>
+                                    {englishRef ? (
+                                      <View style={[styles.promiseRefRow, { marginTop: 1, marginBottom: 0, alignItems: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center' }]}>
+                                        <Text
+                                          style={[
+                                            styles.promiseQuoteEnglishRef,
+                                            {
+                                              fontFamily: SERIF,
+                                              fontSize: effectiveEnRefFontSize,
+                                              fontWeight: '600',
+                                              fontStyle: 'normal',
+                                              textAlign: thumbTextAlign,
+                                              color: '#FCD34D',
+                                              letterSpacing: 0.2,
+                                            }
+                                          ]}
+                                          numberOfLines={1}
+                                          adjustsFontSizeToFit={true}
+                                          minimumFontScale={0.8}
+                                          allowFontScaling={false}
+                                        >
+                                          — {cleanRefWithoutOuter(englishRef)}
+                                        </Text>
+                                      </View>
+                                    ) : null}
+                                  </View>
+                                ) : null}
+                              </>
+                            );
+                          })()}
+                        </View>
+
+                        {/* Devotional Tagline / Blessing */}
+                        {effectiveTagline ? (
+                          <View style={[styles.promiseTagRow, { alignItems: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center' }]}>
+                            <Text
+                              style={[
+                                styles.promiseTagTxt,
+                                {
+                                  fontFamily: activeTeluguFont,
+                                  fontWeight: effectiveFontWeight as any,
+                                  fontStyle: effectiveFontStyle as any,
+                                  textAlign: thumbTextAlign,
+                                  transform: syntheticSkew,
+                                }
+                              ]}
+                              numberOfLines={1}
+                              adjustsFontSizeToFit={true}
+                              minimumFontScale={0.8}
+                              allowFontScaling={false}
+                            >
+                              {effectiveTagline}
+                            </Text>
                           </View>
+                        ) : null}
 
-                          {/* Devotional Tagline / Blessing */}
+                        {/* Optional Time & Location in Daily Promise (if entered) */}
+                        {(timeDisplay || effectiveLocation) ? (
+                          <View style={[styles.promiseMetaRow, { justifyContent: thumbTextAlign === 'left' ? 'flex-start' : thumbTextAlign === 'right' ? 'flex-end' : 'center', marginTop: 2, marginBottom: 2 }]}>
+                            {timeDisplay ? (
+                              <View style={styles.promiseMetaPill}>
+                                <Clock size={7} color="#FDE68A" />
+                                <Text
+                                  style={[
+                                    styles.promiseMetaTxt,
+                                    {
+                                      fontFamily: activeTeluguFont,
+                                      fontWeight: effectiveFontWeight as any,
+                                      fontStyle: effectiveFontStyle as any,
+                                      transform: syntheticSkew,
+                                    }
+                                  ]}
+                                  numberOfLines={1}
+                                  allowFontScaling={false}
+                                >
+                                  {timeDisplay}
+                                </Text>
+                              </View>
+                            ) : null}
+                            {effectiveLocation ? (
+                              <View style={styles.promiseMetaPill}>
+                                <MapPin size={7} color="#FDE68A" />
+                                <Text
+                                  style={[
+                                    styles.promiseMetaTxt,
+                                    {
+                                      fontFamily: activeTeluguFont,
+                                      fontWeight: effectiveFontWeight as any,
+                                      fontStyle: effectiveFontStyle as any,
+                                      transform: syntheticSkew,
+                                    }
+                                  ]}
+                                  numberOfLines={1}
+                                  allowFontScaling={false}
+                                >
+                                  {effectiveLocation}
+                                </Text>
+                              </View>
+                            ) : null}
+                          </View>
+                        ) : null}
+                      </View>
+
+                      {/* Bottom Footer: Phone on left, Blessing on right */}
+                      <View style={styles.promiseBottomBar}>
+                        <View style={[styles.thumbPhonePill, { backgroundColor: activePrimaryColor }]}>
+                          <Phone size={7} color="#fff" />
+                          <Text
+                            style={[
+                              styles.thumbPhoneTxt,
+                              {
+                                fontFamily: activeTeluguFont,
+                                fontWeight: effectiveFontWeight as any,
+                                transform: syntheticSkew,
+                              }
+                            ]}
+                            numberOfLines={1}
+                            allowFontScaling={false}
+                          >
+                            {isTelugu ? `మరిన్ని వివరాలకు : ${churchPhone}` : `for more information : ${churchPhone}`}
+                          </Text>
+                        </View>
+                        <Text
+                          style={[
+                            styles.thumbWelcomeScript,
+                            {
+                              color: isDarkColor(activeSecondaryColor) ? '#FDE68A' : activeSecondaryColor,
+                              fontFamily: activeTeluguFont,
+                              fontWeight: effectiveFontWeight as any,
+                              fontStyle: effectiveFontStyle as any,
+                              transform: syntheticSkew,
+                            }
+                          ]}
+                          numberOfLines={1}
+                          allowFontScaling={false}
+                        >
+                          {isTelugu ? 'దీవించబడుదురు గాక' : 'Be Blessed & Victorious'}
+                        </Text>
+                      </View>
+
+                      {/* Live Loading Overlay while generating thumbnail */}
+                      {generating && (
+                        <View style={styles.thumbnailGeneratingOverlay}>
+                          <ActivityIndicator size="large" color="#FFFFFF" />
+                          <Text style={styles.thumbnailGeneratingTxt}>Generating New Background…</Text>
+                        </View>
+                      )}
+                    </View>
+                  ) : (
+                    <View style={styles.thumbMainRow}>
+                      
+                      {/* LEFT COLUMN (38% width): Church Logo at top, Scripture in center, Sub-footer at bottom */}
+                      <View style={styles.thumbLeftCol}>
+                        {/* Top Left Church Logo */}
+                        <View style={styles.thumbTopLeftLogoWrap}>
+                          {churchLogoUrl ? (
+                            <Image source={{ uri: churchLogoUrl }} style={styles.thumbChurchLogoImg} resizeMode="contain" />
+                          ) : (
+                            <View style={[styles.thumbChurchLogoFallback, { backgroundColor: activePrimaryColor }]}>
+                              <Text style={styles.thumbChurchLogoCross}>✝</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Scripture Verse Quote & Reference */}
+                        <View style={styles.thumbLeftScriptureBox}>
+                          <Text
+                            style={[
+                              styles.scriptureQuoteItalic,
+                              {
+                                fontFamily: activeTeluguFont,
+                                fontSize: Math.min(verseFontSize, thumbFontSize),
+                                lineHeight: verseLineHeight,
+                                color: thumbTextColor,
+                                fontWeight: effectiveFontWeight as any,
+                                fontStyle: effectiveFontStyle as any,
+                                textAlign: thumbTextAlign,
+                                transform: syntheticSkew,
+                              }
+                            ]}
+                            numberOfLines={verseMaxLines}
+                            allowFontScaling={false}
+                          >
+                            “{effectiveVerseText}”
+                          </Text>
+                          <Text
+                            style={[
+                              styles.scriptureRefBadge,
+                              {
+                                color: activeSecondaryColor,
+                                fontFamily: activeTeluguFont,
+                                textAlign: thumbTextAlign,
+                                transform: syntheticSkew,
+                              }
+                            ]}
+                            allowFontScaling={false}
+                          >
+                            {effectiveVerseRef}
+                          </Text>
+                        </View>
+
+                        {/* Bottom Left Sub-text */}
+                        <Text
+                          style={[
+                            styles.thumbLeftFooterTxt,
+                            {
+                              fontFamily: activeTeluguFont,
+                              fontWeight: effectiveFontWeight as any,
+                              fontStyle: effectiveFontStyle as any,
+                              transform: syntheticSkew,
+                            }
+                          ]}
+                          allowFontScaling={false}
+                        >
+                          {isTelugu
+                            ? 'రండి   |   ఆరాధించండి   |   పొందుకోండి   |   దీవించబడండి'
+                            : 'COME   |   WORSHIP   |   RECEIVE   |   BE BLESSED'}
+                        </Text>
+                      </View>
+
+                      {/* RIGHT COLUMN (62% width): Header, Title, Speaker, Metadata, Phone Bar */}
+                      <View style={styles.thumbRightCol}>
+                        
+                        {/* Church Header */}
+                        <View style={styles.thumbHeaderBlock}>
+                          <View style={styles.thumbChurchHeaderRow}>
+                            <Text
+                              style={[
+                                styles.thumbChurchNameCaps,
+                                {
+                                  fontSize: churchNameFontSize,
+                                  fontFamily: activeTeluguFont,
+                                  fontWeight: effectiveFontWeight as any,
+                                  transform: syntheticSkew,
+                                }
+                              ]}
+                              numberOfLines={1}
+                              allowFontScaling={false}
+                            >
+                              {churchName}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Hero Title Block (Theme / Event Title) */}
+                        <View style={[styles.thumbHeroBanner, { backgroundColor: `${activePrimaryColor}88`, borderColor: `${activeSecondaryColor}55`, borderWidth: 1, paddingVertical: heroBannerPaddingV }]}>
+                          <Text
+                            style={[
+                              isTelugu ? styles.thumbHeroTitleTelugu : styles.thumbHeroTitleEnglish,
+                              {
+                                fontFamily: activeTeluguFont,
+                                fontSize: themeFontSize,
+                                lineHeight: themeLineHeight,
+                                letterSpacing: isTelugu ? 0.2 : (themeLen > 12 ? 0.4 : 0.7),
+                                textAlign: thumbTextAlign,
+                                fontWeight: effectiveFontWeight as any,
+                                fontStyle: effectiveFontStyle as any,
+                                transform: syntheticSkew,
+                                color: thumbTextColor || '#FFFFFF',
+                              }
+                            ]}
+                            numberOfLines={themeMaxLines}
+                            adjustsFontSizeToFit={true}
+                            minimumFontScale={0.75}
+                            allowFontScaling={false}
+                          >
+                            {effectiveTheme}
+                          </Text>
                           {effectiveTagline ? (
-                            <View style={styles.promiseTagRow}>
+                            <View style={[styles.thumbTagPillWrap, { marginTop: isDenseLayout ? 1.5 : 2 }]}>
                               <Text style={styles.thumbLeaf} allowFontScaling={false}>🌿</Text>
-                              <Text style={styles.promiseTagTxt} numberOfLines={1} adjustsFontSizeToFit={true} minimumFontScale={0.8} allowFontScaling={false}>
-                                {effectiveTagline}
-                              </Text>
+                              <View style={[styles.thumbTagPill, { paddingVertical: tagLen > 25 ? 0.5 : 1 }]}>
+                                <Text
+                                  style={[
+                                    styles.thumbTagPillTxt,
+                                    {
+                                      fontSize: tagFontSize,
+                                      fontFamily: activeTeluguFont,
+                                      fontWeight: effectiveFontWeight as any,
+                                      fontStyle: effectiveFontStyle as any,
+                                      transform: syntheticSkew,
+                                    }
+                                  ]}
+                                  numberOfLines={1}
+                                  adjustsFontSizeToFit={true}
+                                  minimumFontScale={0.8}
+                                  allowFontScaling={false}
+                                >
+                                  {effectiveTagline}
+                                </Text>
+                              </View>
                               <Text style={styles.thumbLeaf} allowFontScaling={false}>🌿</Text>
                             </View>
                           ) : null}
                         </View>
 
-                        {/* Bottom Footer: Phone on left, Blessing on right */}
-                        <View style={styles.promiseBottomBar}>
+                        {/* Speaker Name */}
+                        {speaker ? (
+                          <View style={[styles.thumbSpeakerBadge, { borderColor: `${activeSecondaryColor}99` }]}>
+                            <Mic size={9} color={activeSecondaryColor} />
+                            <Text
+                              style={[
+                                styles.thumbSpeakerBadgeTxt,
+                                {
+                                  fontSize: speakerFontSize,
+                                  fontFamily: activeTeluguFont,
+                                  fontWeight: effectiveFontWeight as any,
+                                  fontStyle: effectiveFontStyle as any,
+                                  transform: syntheticSkew,
+                                  color: thumbTextColor || '#FFFFFF',
+                                }
+                              ]}
+                              numberOfLines={1}
+                              allowFontScaling={false}
+                            >
+                              {(() => {
+                                const s = speaker.trim();
+                                if (/^(with|by|pastor|bro|rev|డాక్టర్|పాస్టర్|బ్రదర్|సందేశం|వాక్య)/i.test(s)) {
+                                  return s;
+                                }
+                                if (isTelugu) {
+                                  return `సందేశం: ${s}`;
+                                }
+                                return `With ${s}`;
+                              })()}
+                            </Text>
+                          </View>
+                        ) : null}
+
+                        {/* Metadata Container: Row 1 for Date & Time, Row 2 for Full Location */}
+                        <View style={[styles.thumbMetaContainer, { gap: metaContainerGap }]}>
+                          {(dateDisplay || timeDisplay) ? (
+                            <View style={styles.thumbMetaRow}>
+                              {dateDisplay ? (
+                                <View style={[styles.thumbMetaCard, timeDisplay ? { flex: 0.82 } : { flex: 1 }]}>
+                                  <View style={[styles.thumbMetaIconCircle, { backgroundColor: activePrimaryColor }]}>
+                                    <CalendarIcon size={8} color="#fff" />
+                                  </View>
+                                  <View style={styles.thumbMetaTextWrap}>
+                                    <Text
+                                      style={[
+                                        styles.thumbMetaLabel,
+                                        {
+                                          fontFamily: activeTeluguFont,
+                                          fontWeight: effectiveFontWeight as any,
+                                          transform: syntheticSkew,
+                                        }
+                                      ]}
+                                      allowFontScaling={false}
+                                    >
+                                      {isTelugu ? 'తేదీ :' : 'Date :'}
+                                    </Text>
+                                    <Text
+                                      style={[
+                                        styles.thumbMetaValue,
+                                        {
+                                          fontSize: dateFontSize,
+                                          lineHeight: dateLineHeight,
+                                          fontFamily: activeTeluguFont,
+                                          fontWeight: effectiveFontWeight as any,
+                                          fontStyle: effectiveFontStyle as any,
+                                          transform: syntheticSkew,
+                                        }
+                                      ]}
+                                      numberOfLines={1}
+                                      adjustsFontSizeToFit
+                                      minimumFontScale={0.75}
+                                      allowFontScaling={false}
+                                    >
+                                      {dateDisplay}
+                                    </Text>
+                                  </View>
+                                </View>
+                              ) : null}
+
+                              {timeDisplay ? (
+                                <View style={[styles.thumbMetaCard, dateDisplay ? { flex: 1.18 } : { flex: 1 }]}>
+                                  <View style={[styles.thumbMetaIconCircle, { backgroundColor: activePrimaryColor }]}>
+                                    <Clock size={8} color="#fff" />
+                                  </View>
+                                  <View style={styles.thumbMetaTextWrap}>
+                                    <Text
+                                      style={[
+                                        styles.thumbMetaLabel,
+                                        {
+                                          fontFamily: activeTeluguFont,
+                                          fontWeight: effectiveFontWeight as any,
+                                          transform: syntheticSkew,
+                                        }
+                                      ]}
+                                      allowFontScaling={false}
+                                    >
+                                      {isTelugu ? 'సమయం :' : 'Time :'}
+                                    </Text>
+                                    <Text
+                                      style={[
+                                        styles.thumbMetaValue,
+                                        {
+                                          fontSize: timeFontSize,
+                                          lineHeight: timeLineHeight,
+                                          fontFamily: activeTeluguFont,
+                                          fontWeight: effectiveFontWeight as any,
+                                          fontStyle: effectiveFontStyle as any,
+                                          transform: syntheticSkew,
+                                        }
+                                      ]}
+                                      numberOfLines={1}
+                                      adjustsFontSizeToFit
+                                      minimumFontScale={0.7}
+                                      allowFontScaling={false}
+                                    >
+                                      {timeDisplay}
+                                    </Text>
+                                  </View>
+                                </View>
+                              ) : null}
+                            </View>
+                          ) : null}
+
+                          {effectiveLocation ? (
+                            <View style={[styles.thumbLocationCard, isLocLong && { paddingVertical: 1.5 }]}>
+                              <View style={[styles.thumbMetaIconCircle, { backgroundColor: activePrimaryColor }]}>
+                                <MapPin size={8} color="#fff" />
+                              </View>
+                              <View style={styles.thumbLocationTextWrap}>
+                                <Text
+                                  style={[
+                                    styles.thumbLocationValue,
+                                    {
+                                      fontSize: locFontSize,
+                                      lineHeight: locLineHeight,
+                                      fontFamily: activeTeluguFont,
+                                      fontWeight: effectiveFontWeight as any,
+                                      fontStyle: effectiveFontStyle as any,
+                                      transform: syntheticSkew,
+                                    }
+                                  ]}
+                                  numberOfLines={locMaxLines}
+                                  allowFontScaling={false}
+                                >
+                                  <Text
+                                    style={[
+                                      styles.thumbMetaLabel,
+                                      {
+                                        fontFamily: activeTeluguFont,
+                                        fontWeight: effectiveFontWeight as any,
+                                        transform: syntheticSkew,
+                                      }
+                                    ]}
+                                    allowFontScaling={false}
+                                  >
+                                    {isTelugu ? 'స్థలం: ' : 'Location: '}
+                                  </Text>
+                                  {effectiveLocation}
+                                </Text>
+                              </View>
+                            </View>
+                          ) : null}
+                        </View>
+
+                        {/* Bottom Footer Row: Phone pill on left, "All are Welcome" on right */}
+                        <View style={styles.thumbBottomBarRow}>
                           <View style={[styles.thumbPhonePill, { backgroundColor: activePrimaryColor }]}>
-                            <Phone size={7} color="#fff" />
-                            <Text style={styles.thumbPhoneTxt} numberOfLines={1} allowFontScaling={false}>
+                            <Phone size={8} color="#fff" />
+                            <Text
+                              style={[
+                                styles.thumbPhoneTxt,
+                                {
+                                  fontFamily: activeTeluguFont,
+                                  fontWeight: effectiveFontWeight as any,
+                                  transform: syntheticSkew,
+                                }
+                              ]}
+                              allowFontScaling={false}
+                            >
                               {isTelugu ? `మరిన్ని వివరాలకు : ${churchPhone}` : `for more information : ${churchPhone}`}
                             </Text>
                           </View>
-                          <Text style={[styles.thumbWelcomeScript, { color: activeSecondaryColor }]} numberOfLines={1} allowFontScaling={false}>
-                            {isTelugu ? 'దీవించబడుదురు గాక' : 'Be Blessed & Victorious'}
+                          <Text
+                            style={[
+                              styles.thumbWelcomeScript,
+                              {
+                                color: activeSecondaryColor,
+                                fontFamily: activeTeluguFont,
+                                fontWeight: effectiveFontWeight as any,
+                                fontStyle: effectiveFontStyle as any,
+                                transform: syntheticSkew,
+                              }
+                            ]}
+                            allowFontScaling={false}
+                          >
+                            {isTelugu ? 'అందరికీ ఆహ్వానం' : 'All are Welcome'}
                           </Text>
                         </View>
 
-                        {/* Live Loading Overlay while generating thumbnail */}
-                        {generating && (
-                          <View style={styles.thumbnailGeneratingOverlay}>
-                            <ActivityIndicator size="large" color="#FFFFFF" />
-                            <Text style={styles.thumbnailGeneratingTxt}>Generating New Background…</Text>
-                          </View>
-                        )}
                       </View>
-                    ) : (
-                      <View style={styles.thumbMainRow}>
-                        
-                        {/* LEFT COLUMN (38% width): Church Logo at top, Scripture in center, Sub-footer at bottom */}
-                        <View style={styles.thumbLeftCol}>
-                          {/* Top Left Church Logo */}
-                          <View style={styles.thumbTopLeftLogoWrap}>
-                            {churchLogoUrl ? (
-                              <Image source={{ uri: churchLogoUrl }} style={styles.thumbChurchLogoImg} resizeMode="contain" />
-                            ) : (
-                              <View style={[styles.thumbChurchLogoFallback, { backgroundColor: activePrimaryColor }]}>
-                                <Text style={styles.thumbChurchLogoCross}>✝</Text>
-                              </View>
-                            )}
-                          </View>
+                    </View>
+                  )}
 
-                          {/* Scripture Verse Quote & Reference */}
-                          <View style={styles.thumbLeftScriptureBox}>
-                            <Text
-                              style={[
-                                styles.scriptureQuoteItalic,
-                                { fontSize: verseFontSize, lineHeight: verseLineHeight }
-                              ]}
-                              numberOfLines={verseMaxLines}
-                              allowFontScaling={false}
-                            >
-                              “{effectiveVerseText}”
-                            </Text>
-                            <Text style={[styles.scriptureRefBadge, { color: activeSecondaryColor }]} allowFontScaling={false}>
-                              {effectiveVerseRef}
-                            </Text>
-                          </View>
+                  {/* Live Loading Overlay while generating thumbnail */}
+                  {generating && (
+                    <View style={styles.thumbnailGeneratingOverlay}>
+                      <ActivityIndicator size="large" color="#FFFFFF" />
+                      <Text style={styles.thumbnailGeneratingTxt}>Generating New Background…</Text>
+                    </View>
+                  )}
+                </ViewShot>
+              );
+            })()}
 
-                          {/* Bottom Left Sub-text */}
-                          <Text style={styles.thumbLeftFooterTxt} allowFontScaling={false}>
-                            {isTelugu
-                              ? 'రండి   |   ఆరాధించండి   |   పొందుకోండి   |   దీవించబడండి'
-                              : 'COME   |   WORSHIP   |   RECEIVE   |   BE BLESSED'}
-                          </Text>
-                        </View>
-
-                        {/* RIGHT COLUMN (62% width): Header, Title, Speaker, Metadata, Phone Bar */}
-                        <View style={styles.thumbRightCol}>
-                          
-                          {/* Church Header */}
-                          <View style={styles.thumbHeaderBlock}>
-                            <View style={styles.thumbChurchHeaderRow}>
-                              <Text style={[styles.thumbDoveIcon, { color: activeSecondaryColor }]} allowFontScaling={false}>🕊</Text>
-                              <Text
-                                style={[styles.thumbChurchNameCaps, { fontSize: churchNameFontSize }]}
-                                numberOfLines={1}
-                                allowFontScaling={false}
-                              >
-                                {churchName}
-                              </Text>
-                            </View>
-                          </View>
-
-                          {/* Hero Title Block */}
-                          <View style={[styles.thumbHeroBanner, { backgroundColor: `${activePrimaryColor}88`, borderColor: `${activeSecondaryColor}55`, borderWidth: 1, paddingVertical: heroBannerPaddingV }]}>
-                            <Text
-                              style={[
-                                isTelugu ? styles.thumbHeroTitleTelugu : styles.thumbHeroTitleEnglish,
-                                {
-                                  fontSize: themeFontSize,
-                                  lineHeight: themeLineHeight,
-                                  letterSpacing: isTelugu ? 0.2 : (themeLen > 12 ? 0.4 : 0.7),
-                                }
-                              ]}
-                              numberOfLines={themeMaxLines}
-                              adjustsFontSizeToFit={true}
-                              minimumFontScale={0.75}
-                              allowFontScaling={false}
-                            >
-                              {effectiveTheme}
-                            </Text>
-                            {effectiveTagline ? (
-                              <View style={[styles.thumbTagPillWrap, { marginTop: isDenseLayout ? 1.5 : 2 }]}>
-                                <Text style={styles.thumbLeaf} allowFontScaling={false}>🌿</Text>
-                                <View style={[styles.thumbTagPill, { paddingVertical: tagLen > 25 ? 0.5 : 1 }]}>
-                                  <Text
-                                    style={[styles.thumbTagPillTxt, { fontSize: tagFontSize }]}
-                                    numberOfLines={1}
-                                    adjustsFontSizeToFit={true}
-                                    minimumFontScale={0.8}
-                                    allowFontScaling={false}
-                                  >
-                                    {effectiveTagline}
-                                  </Text>
-                                </View>
-                                <Text style={styles.thumbLeaf} allowFontScaling={false}>🌿</Text>
-                              </View>
-                            ) : null}
-                          </View>
-
-                          {/* Speaker (User requested: "With Bro.Rajesh", strictly NO "వక్త") */}
-                          {speaker ? (
-                            <View style={[styles.thumbSpeakerBadge, { borderColor: `${activeSecondaryColor}99` }]}>
-                              <Mic size={9} color={activeSecondaryColor} />
-                              <Text
-                                style={[styles.thumbSpeakerBadgeTxt, { fontSize: speakerFontSize }]}
-                                numberOfLines={1}
-                                allowFontScaling={false}
-                              >
-                                {(() => {
-                                  const s = speaker.trim();
-                                  if (/^(with|by|pastor|bro|rev|డాక్టర్|పాస్టర్|బ్రదర్|సందేశం|వాక్య)/i.test(s)) {
-                                    return s;
-                                  }
-                                  if (isTelugu) {
-                                    return `సందేశం: ${s}`;
-                                  }
-                                  return `With ${s}`;
-                                })()}
-                              </Text>
-                            </View>
-                          ) : null}
-
-                          {/* Metadata Container: Row 1 for Date & Time, Row 2 for Full Location */}
-                          <View style={[styles.thumbMetaContainer, { gap: metaContainerGap }]}>
-                            {(dateDisplay || timeDisplay) ? (
-                              <View style={styles.thumbMetaRow}>
-                                {dateDisplay ? (
-                                  <View style={[styles.thumbMetaCard, timeDisplay ? { flex: 0.82 } : { flex: 1 }]}>
-                                    <View style={[styles.thumbMetaIconCircle, { backgroundColor: activePrimaryColor }]}>
-                                      <CalendarIcon size={8} color="#fff" />
-                                    </View>
-                                    <View style={styles.thumbMetaTextWrap}>
-                                      <Text style={styles.thumbMetaLabel} allowFontScaling={false}>{isTelugu ? 'తేదీ :' : 'Date :'}</Text>
-                                      <Text
-                                        style={[styles.thumbMetaValue, { fontSize: dateFontSize, lineHeight: dateLineHeight }]}
-                                        numberOfLines={1}
-                                        adjustsFontSizeToFit
-                                        minimumFontScale={0.75}
-                                        allowFontScaling={false}
-                                      >
-                                        {dateDisplay}
-                                      </Text>
-                                    </View>
-                                  </View>
-                                ) : null}
-
-                                {timeDisplay ? (
-                                  <View style={[styles.thumbMetaCard, dateDisplay ? { flex: 1.18 } : { flex: 1 }]}>
-                                    <View style={[styles.thumbMetaIconCircle, { backgroundColor: activePrimaryColor }]}>
-                                      <Clock size={8} color="#fff" />
-                                    </View>
-                                    <View style={styles.thumbMetaTextWrap}>
-                                      <Text style={styles.thumbMetaLabel} allowFontScaling={false}>{isTelugu ? 'సమయం :' : 'Time :'}</Text>
-                                      <Text
-                                        style={[styles.thumbMetaValue, { fontSize: timeFontSize, lineHeight: timeLineHeight }]}
-                                        numberOfLines={1}
-                                        adjustsFontSizeToFit
-                                        minimumFontScale={0.7}
-                                        allowFontScaling={false}
-                                      >
-                                        {timeDisplay}
-                                      </Text>
-                                    </View>
-                                  </View>
-                                ) : null}
-                              </View>
-                            ) : null}
-
-                            {effectiveLocation ? (
-                              <View style={[styles.thumbLocationCard, isLocLong && { paddingVertical: 1.5 }]}>
-                                <View style={[styles.thumbMetaIconCircle, { backgroundColor: activePrimaryColor }]}>
-                                  <MapPin size={8} color="#fff" />
-                                </View>
-                                <View style={styles.thumbLocationTextWrap}>
-                                  <Text
-                                    style={[
-                                      styles.thumbLocationValue,
-                                      { fontSize: locFontSize, lineHeight: locLineHeight }
-                                    ]}
-                                    numberOfLines={locMaxLines}
-                                    allowFontScaling={false}
-                                  >
-                                    <Text style={styles.thumbMetaLabel} allowFontScaling={false}>{isTelugu ? 'స్థలం: ' : 'Location: '}</Text>
-                                    {effectiveLocation}
-                                  </Text>
-                                </View>
-                              </View>
-                            ) : null}
-                          </View>
-
-                          {/* Bottom Footer Row: Phone pill on left, "All are Welcome" on right */}
-                          <View style={styles.thumbBottomBarRow}>
-                            <View style={[styles.thumbPhonePill, { backgroundColor: activePrimaryColor }]}>
-                              <Phone size={8} color="#fff" />
-                              <Text style={styles.thumbPhoneTxt} allowFontScaling={false}>
-                                {isTelugu ? `మరిన్ని వివరాలకు : ${churchPhone}` : `for more information : ${churchPhone}`}
-                              </Text>
-                            </View>
-                            <Text style={[styles.thumbWelcomeScript, { color: activeSecondaryColor }]} allowFontScaling={false}>
-                              {isTelugu ? 'అందరికీ ఆహ్వానం' : 'All are Welcome'}
-                            </Text>
-                          </View>
-
-                        </View>
-                      </View>
-                    )}
-
-                    {/* Live Loading Overlay while generating thumbnail */}
-                    {generating && (
-                      <View style={styles.thumbnailGeneratingOverlay}>
-                        <ActivityIndicator size="large" color="#FFFFFF" />
-                        <Text style={styles.thumbnailGeneratingTxt}>Generating New Background…</Text>
-                      </View>
-                    )}
-                  </ViewShot>
-                );
-              })()}
-
-              {/* Thumbnail Action Controls */}
-              <View style={styles.thumbActionContainer}>
-                {/* Row 1: Re-Generate & Change Background */}
-                <View style={styles.thumbActionRow}>
-                  <TouchableOpacity
-                    style={[styles.btnThumbAction, styles.btnThumbActionPrimary]}
-                    onPress={() => executeGenerate()}
-                    disabled={generating}
-                    activeOpacity={0.7}
+            {/* Thumbnail Action Controls */}
+            <View style={styles.thumbActionContainer}>
+              {/* Row 1: Re-Generate & Change Background */}
+              <View style={styles.thumbActionRow}>
+                <TouchableOpacity
+                  style={[styles.btnThumbAction, styles.btnThumbActionPrimary]}
+                  onPress={() => executeGenerate()}
+                  disabled={generating}
+                  activeOpacity={0.7}
+                >
+                  {generating ? (
+                    <ActivityIndicator size="small" color="#1E3A8A" />
+                  ) : (
+                    <RefreshCw size={14} color="#1E3A8A" strokeWidth={2.2} />
+                  )}
+                  <Text 
+                    style={styles.btnThumbActionPrimaryTxt} 
+                    numberOfLines={1} 
+                    adjustsFontSizeToFit={true} 
+                    minimumFontScale={0.85}
                   >
-                    {generating ? (
-                      <ActivityIndicator size="small" color="#1E3A8A" />
-                    ) : (
-                      <RefreshCw size={14} color="#1E3A8A" strokeWidth={2.2} />
-                    )}
-                    <Text 
-                      style={styles.btnThumbActionPrimaryTxt} 
-                      numberOfLines={1} 
-                      adjustsFontSizeToFit={true} 
-                      minimumFontScale={0.85}
-                    >
-                      {generating ? 'Generating…' : 'Re-Generate'}
-                    </Text>
-                  </TouchableOpacity>
+                    {generating ? 'Generating…' : (bgImageUrl ? 'Re-Generate AI Visual' : 'Generate AI Background')}
+                  </Text>
+                </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.btnThumbAction, styles.btnThumbActionSuccess]}
-                    onPress={() => executeGenerate()}
-                    disabled={generating}
-                    activeOpacity={0.7}
+                <TouchableOpacity
+                  style={[styles.btnThumbAction, styles.btnThumbActionSuccess]}
+                  onPress={() => executeGenerate()}
+                  disabled={generating}
+                  activeOpacity={0.7}
+                >
+                  <Sparkles size={14} color="#15803D" strokeWidth={2.2} />
+                  <Text 
+                    style={styles.btnThumbActionSuccessTxt} 
+                    numberOfLines={1} 
+                    adjustsFontSizeToFit={true} 
+                    minimumFontScale={0.85}
                   >
-                    <Sparkles size={14} color="#15803D" strokeWidth={2.2} />
-                    <Text 
-                      style={styles.btnThumbActionSuccessTxt} 
-                      numberOfLines={1} 
-                      adjustsFontSizeToFit={true} 
-                      minimumFontScale={0.85}
-                    >
-                      Change Background
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                    Change Visual Style
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-                {/* Row 2: Download & Share */}
-                <View style={styles.thumbActionRow}>
-                  <TouchableOpacity
-                    style={[styles.btnThumbActionSub, styles.btnThumbActionSecondary]}
-                    onPress={handleSaveToGallery}
-                    disabled={savingImage || generating}
-                    activeOpacity={0.7}
+              {/* Row 2: Download & Share */}
+              <View style={styles.thumbActionRow}>
+                <TouchableOpacity
+                  style={[styles.btnThumbActionSub, styles.btnThumbActionSecondary]}
+                  onPress={handleSaveToGallery}
+                  disabled={savingImage || generating}
+                  activeOpacity={0.7}
+                >
+                  {savingImage ? (
+                    <ActivityIndicator size="small" color="#374151" />
+                  ) : (
+                    <Download size={13} color="#374151" strokeWidth={2.2} />
+                  )}
+                  <Text 
+                    style={styles.btnThumbActionSecondaryTxt} 
+                    numberOfLines={1} 
+                    adjustsFontSizeToFit={true} 
+                    minimumFontScale={0.85}
                   >
-                    {savingImage ? (
-                      <ActivityIndicator size="small" color="#374151" />
-                    ) : (
-                      <Download size={13} color="#374151" strokeWidth={2.2} />
-                    )}
-                    <Text 
-                      style={styles.btnThumbActionSecondaryTxt} 
-                      numberOfLines={1} 
-                      adjustsFontSizeToFit={true} 
-                      minimumFontScale={0.85}
-                    >
-                      {savingImage ? 'Downloading…' : 'Download'}
-                    </Text>
-                  </TouchableOpacity>
+                    {savingImage ? 'Downloading…' : 'Download Thumbnail'}
+                  </Text>
+                </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={[styles.btnThumbActionSub, styles.btnThumbActionSecondary]}
-                    onPress={handleShareImage}
-                    disabled={sharingImage || generating}
-                    activeOpacity={0.7}
+                <TouchableOpacity
+                  style={[styles.btnThumbActionSub, styles.btnThumbActionSecondary]}
+                  onPress={handleShareImage}
+                  disabled={sharingImage || generating}
+                  activeOpacity={0.7}
+                >
+                  {sharingImage ? (
+                    <ActivityIndicator size="small" color="#374151" />
+                  ) : (
+                    <Share2 size={13} color="#374151" strokeWidth={2.2} />
+                  )}
+                  <Text 
+                    style={styles.btnThumbActionSecondaryTxt} 
+                    numberOfLines={1} 
+                    adjustsFontSizeToFit={true} 
+                    minimumFontScale={0.85}
                   >
-                    {sharingImage ? (
-                      <ActivityIndicator size="small" color="#374151" />
-                    ) : (
-                      <Share2 size={13} color="#374151" strokeWidth={2.2} />
-                    )}
-                    <Text 
-                      style={styles.btnThumbActionSecondaryTxt} 
-                      numberOfLines={1} 
-                      adjustsFontSizeToFit={true} 
-                      minimumFontScale={0.85}
-                    >
-                      {sharingImage ? 'Sharing…' : 'Share'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                    {sharingImage ? 'Sharing…' : 'Share'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
-                {/* Row 3: New Creation */}
-                <View style={styles.thumbActionRow}>
-                  <TouchableOpacity
-                    style={[styles.btnThumbActionSub, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' }]}
-                    onPress={resetForm}
-                    disabled={generating}
-                    activeOpacity={0.7}
+              {/* Row 3: New Creation */}
+              <View style={styles.thumbActionRow}>
+                <TouchableOpacity
+                  style={[styles.btnThumbActionSub, { backgroundColor: '#F3F4F6', borderColor: '#E5E7EB' }]}
+                  onPress={resetForm}
+                  disabled={generating}
+                  activeOpacity={0.7}
+                >
+                  <Wand2 size={13} color="#4B5563" strokeWidth={2.2} />
+                  <Text 
+                    style={[styles.btnThumbActionSecondaryTxt, { color: '#4B5563' }]} 
+                    numberOfLines={1} 
+                    adjustsFontSizeToFit={true} 
+                    minimumFontScale={0.85}
                   >
-                    <Wand2 size={13} color="#4B5563" strokeWidth={2.2} />
-                    <Text 
-                      style={[styles.btnThumbActionSecondaryTxt, { color: '#4B5563' }]} 
-                      numberOfLines={1} 
-                      adjustsFontSizeToFit={true} 
-                      minimumFontScale={0.85}
-                    >
-                      New Creation
-                    </Text>
-                  </TouchableOpacity>
-                </View>
+                    Reset / New Creation
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
-          ) : null}
+          </View>
 
           <View style={{ height: 24 }} />
         </ScrollView>
@@ -2941,7 +4060,8 @@ export default function AIContentCreator() {
                               const fileUri = `${FileSystem.cacheDirectory}${filename}`;
                               const downloadRes = await FileSystem.downloadAsync(item.imageUrl, fileUri);
                               await MediaLibrary.saveToLibraryAsync(downloadRes.uri);
-                              Alert.alert('Saved!', 'Image saved to your gallery.');
+                              try { Vibration.vibrate(60); } catch (_) {}
+                              setDownloadSuccessModal({ visible: true, imageUri: downloadRes.uri });
                             } catch (e) {
                               Alert.alert('Error', 'Failed to save.');
                             }
@@ -2967,6 +4087,105 @@ export default function AIContentCreator() {
         </ScrollView>
       )}
       </View>
+
+      {/* ── BIBLE SELECTION MODAL (Book / Chapter / Verse) ── */}
+      <Modal visible={selectionModalType !== null} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.biblePickerCard, { height: '75%', maxHeight: 580 }]}>
+            <View style={styles.biblePickerHd}>
+              <Text style={styles.biblePickerTitle}>
+                {selectionModalType === 'book' ? 'Select Bible Book (గ్రంథము)' : 
+                 selectionModalType === 'chapter' ? `Select Chapter (${selectedBook !== null ? ENGLISH_NAMES[selectedBook] : ''})` : 
+                 `Select Verse (${selectedBook !== null ? ENGLISH_NAMES[selectedBook] : ''} ${selectedChapter || ''})`}
+              </Text>
+              <TouchableOpacity onPress={() => { setSelectionModalType(null); setBookSearchQuery(''); }} style={{ padding: 5 }}>
+                <X size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Book Search Input for 66 books */}
+            {selectionModalType === 'book' && (
+              <View style={styles.bibleModalSearchBox}>
+                <Search size={15} color="#64748B" style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.bibleModalSearchInput}
+                  placeholder="Search Book (e.g. John / యోహాను)..."
+                  placeholderTextColor="#94A3B8"
+                  value={bookSearchQuery}
+                  onChangeText={setBookSearchQuery}
+                  autoCorrect={false}
+                  autoCapitalize="none"
+                />
+                {bookSearchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setBookSearchQuery('')} style={{ padding: 4 }}>
+                    <X size={14} color="#64748B" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {selectionModalType === 'book' && ENGLISH_NAMES
+                .map((name, idx) => ({ name, teName: TELUGU_NAMES[idx], idx }))
+                .filter(b => {
+                  if (!bookSearchQuery.trim()) return true;
+                  const q = bookSearchQuery.toLowerCase().trim();
+                  return b.name.toLowerCase().includes(q) || b.teName.toLowerCase().includes(q);
+                })
+                .map((b) => (
+                  <TouchableOpacity 
+                    key={b.idx} 
+                    style={[styles.bibleModalOption, selectedBook === b.idx && styles.bibleModalOptionActive]}
+                    onPress={() => {
+                      setSelectedBook(b.idx);
+                      setSelectedChapter(null);
+                      setSelectedVerse(null);
+                      setSelectionModalType('chapter');
+                      setBookSearchQuery('');
+                    }}
+                  >
+                    <Text style={[styles.bibleModalOptionText, selectedBook === b.idx && { color: '#fff', fontWeight: '700' }]}>
+                      {b.name} - {b.teName}
+                    </Text>
+                  </TouchableOpacity>
+              ))}
+              
+              {selectionModalType === 'chapter' && selectedBook !== null && Array.from({ length: LOCAL_TELUGU_BIBLE?.Book?.[selectedBook]?.Chapter?.length || 0 }).map((_, idx) => (
+                <TouchableOpacity 
+                  key={idx} 
+                  style={[styles.bibleModalOption, selectedChapter === idx + 1 && styles.bibleModalOptionActive]}
+                  onPress={() => {
+                    setSelectedChapter(idx + 1);
+                    setSelectedVerse(null);
+                    setSelectionModalType('verse');
+                  }}
+                >
+                  <Text style={[styles.bibleModalOptionText, selectedChapter === idx + 1 && { color: '#fff', fontWeight: '700' }]}>
+                    Chapter {idx + 1}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+
+              {selectionModalType === 'verse' && selectedBook !== null && selectedChapter !== null && Array.from({ length: LOCAL_TELUGU_BIBLE?.Book?.[selectedBook]?.Chapter?.[selectedChapter - 1]?.Verse?.length || 0 }).map((_, idx) => (
+                <TouchableOpacity 
+                  key={idx} 
+                  style={[styles.bibleModalOption, selectedVerse === idx + 1 && styles.bibleModalOptionActive]}
+                  onPress={() => {
+                    const vNum = idx + 1;
+                    setSelectedVerse(vNum);
+                    setSelectionModalType(null);
+                    handleFetchVerse(selectedBook, selectedChapter, vNum);
+                  }}
+                >
+                  <Text style={[styles.bibleModalOptionText, selectedVerse === idx + 1 && { color: '#fff', fontWeight: '700' }]}>
+                    Verse {idx + 1}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── REFERENCE THUMBNAIL STAGE MODAL ── */}
       <Modal visible={showRefModal} transparent animationType="fade">
@@ -3039,6 +4258,100 @@ export default function AIContentCreator() {
               <Image source={{ uri: viewImageModal }} style={styles.fsImage} resizeMode="contain" />
             </View>
           ) : null}
+        </View>
+      </Modal>
+
+      {/* ── BEAUTIFUL DOWNLOAD SUCCESS MODAL ── */}
+      <Modal
+        visible={downloadSuccessModal.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDownloadSuccessModal({ visible: false, imageUri: null })}
+      >
+        <View style={styles.downloadModalOverlay}>
+          <View style={styles.downloadModalCard}>
+            {/* Top Close Button */}
+            <TouchableOpacity
+              style={styles.downloadModalCloseBtn}
+              onPress={() => setDownloadSuccessModal({ visible: false, imageUri: null })}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <X size={16} color="#64748B" strokeWidth={2.5} />
+            </TouchableOpacity>
+
+            {/* Glowing Icon Badge */}
+            <View style={styles.downloadModalIconGlow}>
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.downloadModalIconBadge}
+              >
+                <CheckCircle2 size={30} color="#FFFFFF" strokeWidth={2.4} />
+              </LinearGradient>
+            </View>
+
+            {/* Title & Description */}
+            <Text style={styles.downloadModalTitle}>Thumbnail Saved! 🎉</Text>
+            <Text style={styles.downloadModalSub}>
+              High-resolution church thumbnail is now safely stored in your photo gallery.
+            </Text>
+
+            {/* Live Thumbnail Preview Frame */}
+            {downloadSuccessModal.imageUri ? (
+              <View style={styles.downloadPreviewFrame}>
+                <Image
+                  source={{ uri: downloadSuccessModal.imageUri }}
+                  style={styles.downloadPreviewImage}
+                  resizeMode="cover"
+                />
+                <View style={styles.downloadPillBadge}>
+                  <Check size={11} color="#FFFFFF" strokeWidth={3} />
+                  <Text style={styles.downloadPillText}>Ready to Publish</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {/* Action Buttons */}
+            <View style={styles.downloadModalBtnRow}>
+              {downloadSuccessModal.imageUri ? (
+                <TouchableOpacity
+                  style={styles.downloadShareBtn}
+                  onPress={async () => {
+                    try {
+                      if (downloadSuccessModal.imageUri && (await Sharing.isAvailableAsync())) {
+                        await Sharing.shareAsync(downloadSuccessModal.imageUri);
+                      }
+                    } catch (e) {
+                      console.error('Share from modal error:', e);
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Share2 size={16} color="#5B3FA6" strokeWidth={2.2} />
+                  <Text style={styles.downloadShareBtnTxt}>Share</Text>
+                </TouchableOpacity>
+              ) : null}
+
+              <TouchableOpacity
+                style={[
+                  styles.downloadDoneBtn,
+                  !downloadSuccessModal.imageUri && { flex: 1 }
+                ]}
+                onPress={() => setDownloadSuccessModal({ visible: false, imageUri: null })}
+                activeOpacity={0.85}
+              >
+                <LinearGradient
+                  colors={['#5B3FA6', '#4A2F92']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.downloadDoneBtnGrad}
+                >
+                  <Text style={styles.downloadDoneBtnTxt}>Awesome!</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </Modal>
 
@@ -3768,55 +5081,32 @@ const styles = StyleSheet.create({
   promiseDatePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 3,
-    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    gap: 4,
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.65)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
     borderRadius: 999,
     flexShrink: 0,
   },
   promiseDateTxt: {
     color: '#FFFFFF',
-    fontSize: 7.0,
+    fontSize: 7.5,
     fontWeight: '800',
-    letterSpacing: 0.2,
+    letterSpacing: 0.3,
   },
-  promiseCenterCard: {
+  promiseDirectTextWrapper: {
     flex: 1,
-    marginHorizontal: 4,
+    marginHorizontal: 8,
     marginVertical: 2,
-    backgroundColor: 'rgba(15, 8, 26, 0.72)',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(245, 158, 11, 0.55)',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
   },
-  promiseRibbonPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    paddingHorizontal: 7,
-    paddingVertical: 1.5,
-    borderRadius: 999,
-    marginBottom: 2,
-  },
-  promiseRibbonTxt: {
-    color: '#211A2E',
-    fontSize: 6.2,
-    fontWeight: '900',
-    letterSpacing: 0.6,
-  },
   promiseQuoteContainer: {
     width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: 4,
     flexShrink: 1,
   },
   promiseQuoteLineWrap: {
@@ -3826,18 +5116,27 @@ const styles = StyleSheet.create({
   },
   promiseQuoteTelugu: {
     fontSize: 10.5,
-    fontWeight: '800',
     color: '#FFFFFF',
     textAlign: 'center',
     lineHeight: 14.5,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 0, height: 1 },
+    textShadowColor: 'rgba(0, 0, 0, 0.95)',
+    textShadowOffset: { width: 0, height: 1.5 },
     textShadowRadius: 3,
   },
+  promiseRefRow: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+    marginBottom: 0,
+  },
   promiseQuoteTeluguRef: {
-    fontSize: 8.8,
-    fontWeight: '800',
-    color: '#F59E0B',
+    fontSize: 9.2,
+    color: '#FCD34D',
+    letterSpacing: 0.3,
+    textShadowColor: 'rgba(0, 0, 0, 0.95)',
+    textShadowOffset: { width: 0, height: 1.2 },
+    textShadowRadius: 3,
   },
   promiseDividerRow: {
     flexDirection: 'row',
@@ -3850,11 +5149,15 @@ const styles = StyleSheet.create({
   promiseDividerLine: {
     flex: 1,
     height: 1,
-    opacity: 0.6,
+    backgroundColor: 'rgba(245, 158, 11, 0.55)',
   },
   promiseDividerCross: {
-    fontSize: 7,
+    fontSize: 7.5,
     color: '#F59E0B',
+    fontWeight: '800',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   promiseQuoteEnglish: {
     fontSize: 8.0,
@@ -3864,14 +5167,18 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 11.5,
     fontFamily: SERIF,
-    textShadowColor: 'rgba(0, 0, 0, 0.7)',
+    textShadowColor: 'rgba(0, 0, 0, 0.92)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   promiseQuoteEnglishRef: {
-    fontSize: 7.5,
-    fontWeight: '800',
+    fontSize: 8.0,
+    fontWeight: '700',
     color: '#FCD34D',
+    letterSpacing: 0.2,
+    textShadowColor: 'rgba(0, 0, 0, 0.95)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   promiseRefBadge: {
     flexDirection: 'row',
@@ -3899,12 +5206,73 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     letterSpacing: 0.2,
   },
+
+  // Theme title row (shown above scripture in Daily Promise layout)
+  promiseThemeHeaderWrap: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 3,
+    marginBottom: 2,
+    paddingHorizontal: 4,
+  },
+  promiseThemeTitle: {
+    color: '#FFFFFF',
+    fontSize: 11.0,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    textAlign: 'center',
+    textShadowColor: 'rgba(0, 0, 0, 0.95)',
+    textShadowOffset: { width: 0, height: 1.5 },
+    textShadowRadius: 3,
+  },
+
+  // Speaker badge row (Daily Promise layout)
+  promiseSpeakerRow: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 2,
+    marginBottom: 2,
+  },
+
+  // Inline time/location pills inside scripture block (Daily Promise layout)
+  promiseMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    marginTop: 2,
+    marginBottom: 2,
+    flexWrap: 'wrap',
+  },
+  promiseMetaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(15, 23, 42, 0.72)',
+    borderWidth: 0.8,
+    borderColor: 'rgba(245, 158, 11, 0.55)',
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 999,
+    flexShrink: 0,
+  },
+  promiseMetaTxt: {
+    color: '#FDE68A',
+    fontSize: 6.5,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+
   promiseBottomBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
     paddingHorizontal: 4,
+    zIndex: 20,
+    marginTop: 'auto',
+    paddingTop: 1,
+    paddingBottom: 1,
   },
 
   btnRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
@@ -4086,6 +5454,80 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
+  // ── Auto-Populate Bible Verse Card (matching AdminPromiseEditor) ──
+  autoPopulateCard: {
+    backgroundColor: '#F8FAFC',
+    padding: 14,
+    borderRadius: 12,
+    marginTop: 12,
+    marginBottom: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  autoPopulateTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+
+  // ── Bible Selection Modal Styles ──
+  biblePickerCard: {
+    backgroundColor: '#fff',
+    width: '90%',
+    maxWidth: 380,
+    borderRadius: 20,
+    padding: 18,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  biblePickerHd: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  biblePickerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a2d5a',
+    flex: 1,
+  },
+  bibleModalSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  bibleModalSearchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1E293B',
+    padding: 0,
+  },
+  bibleModalOption: {
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    borderRadius: 8,
+  },
+  bibleModalOptionActive: {
+    backgroundColor: '#1a2d5a',
+  },
+  bibleModalOptionText: {
+    fontSize: 14,
+    color: '#334155',
+    fontWeight: '500',
+  },
+
   // ── Color & Theme Picker Styles ──
   colorPickerSection: {
     backgroundColor: '#F8FAFC',
@@ -4110,11 +5552,9 @@ const styles = StyleSheet.create({
   },
   colorPickerTitle: {
     flex: 1,
-    fontSize: 11.5,
-    fontWeight: '800',
+    fontSize: 13,
+    fontWeight: '700',
     color: '#1a2d5a',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
   },
   colorActiveIndicator: {
     flexDirection: 'row',
@@ -4395,5 +5835,610 @@ const styles = StyleSheet.create({
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+
+  // ─── Scripture Typography & Telugu Fonts ─────────────────────────────────
+  typographySection: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 14,
+  },
+  typographyHeaderTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 2,
+  },
+  typographyTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    flexShrink: 1,
+    marginRight: 8,
+  },
+  typographyHeaderTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    letterSpacing: 0.2,
+  },
+  typographyHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+  },
+  typographyActivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  typographyActivePillTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  typographyExpandedContent: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 12,
+  },
+  typoSubHeading: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1a2d5a',
+    marginBottom: 6,
+  },
+  teluguFontGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 8,
+  },
+  teluguFontCard: {
+    width: '48.5%',
+    minHeight: 56,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.2,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
+    paddingVertical: 7,
+    paddingHorizontal: 10,
+    justifyContent: 'center',
+  },
+  teluguFontCardSelected: {
+    borderColor: '#5B3FA6',
+    backgroundColor: '#F3EEFF',
+  },
+  teluguFontCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  teluguFontSample: {
+    fontSize: 16,
+    color: '#1E293B',
+    flex: 1,
+  },
+  teluguFontSampleSelected: {
+    color: '#5B3FA6',
+  },
+  fontRadioCircle: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.2,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  fontRadioCircleSelected: {
+    borderColor: '#5B3FA6',
+    backgroundColor: '#5B3FA6',
+  },
+  teluguFontSub: {
+    fontSize: 9.5,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  teluguFontSubSelected: {
+    color: '#5B3FA6',
+    fontWeight: '700',
+  },
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 3,
+    height: 30,
+    gap: 4,
+  },
+  stepperBtn: {
+    width: 24,
+    height: 24,
+    borderRadius: 5,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  stepperValueTxt: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#1a2d5a',
+    minWidth: 46,
+    textAlign: 'center',
+  },
+  presetRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: 6,
+  },
+  presetChip: {
+    flex: 1,
+    height: 42,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  presetChipActive: {
+    backgroundColor: '#5B3FA6',
+    borderColor: '#5B3FA6',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+  },
+  presetChipTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  presetChipTxtActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+  },
+  presetChipSubTxt: {
+    fontSize: 8.5,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginTop: 1,
+  },
+  presetChipSubTxtActive: {
+    color: '#DDD6FE',
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: '#EEF2F6',
+    borderRadius: 8,
+    padding: 3,
+    height: 36,
+    gap: 3,
+  },
+  segmentBtn: {
+    flex: 1,
+    height: '100%',
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentBtnActive: {
+    backgroundColor: '#5B3FA6',
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.12,
+    shadowRadius: 1.5,
+  },
+  segmentBtnTxt: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  segmentBtnTxtActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  selectedColorBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  selectedColorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  selectedColorBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  colorCategoryScroll: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingVertical: 6,
+  },
+  colorCategoryChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  colorCategoryChipActive: {
+    backgroundColor: '#5B3FA6',
+    borderColor: '#5B3FA6',
+  },
+  colorCategoryChipTxt: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  colorCategoryChipTxtActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  colorSwatchWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9,
+    paddingVertical: 8,
+  },
+  textSwatchCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
+  },
+  textSwatchCircleActive: {
+    borderColor: '#5B3FA6',
+    borderWidth: 2.5,
+    transform: [{ scale: 1.14 }],
+    elevation: 4,
+  },
+  customColorInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    paddingHorizontal: 10,
+    height: 38,
+    marginTop: 8,
+    gap: 8,
+  },
+  customColorInputLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  customColorTextInput: {
+    flex: 1,
+    fontSize: 12,
+    color: '#1a2d5a',
+    fontWeight: '700',
+    paddingVertical: 0,
+  },
+  customColorSample: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+  },
+  styleAndWeightRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  weightSegmentedControl: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#EEF2F6',
+    borderRadius: 8,
+    padding: 3,
+    height: 38,
+    gap: 2,
+  },
+  italicToggleBtn: {
+    height: 38,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  italicToggleBtnActive: {
+    backgroundColor: '#F3EEFF',
+    borderColor: '#5B3FA6',
+    borderWidth: 1.5,
+  },
+  italicToggleTxt: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#64748B',
+    fontStyle: 'italic',
+  },
+  italicToggleTxtActive: {
+    color: '#5B3FA6',
+    fontWeight: '700',
+  },
+
+  // ─── Bible Selection Styles ──────────────────────────────────────────────
+  bibleVersionContainer: {
+    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  bibleVersionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  bibleVersionHeaderTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5B3FA6',
+  },
+  bibleVersionSub: {
+    fontSize: 10.5,
+    color: '#6B7280',
+    marginBottom: 8,
+    lineHeight: 14,
+  },
+  bibleVersionScroll: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingVertical: 2,
+  },
+  bibleVersionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  bibleVersionChipActive: {
+    backgroundColor: '#5B3FA6',
+    borderColor: '#5B3FA6',
+    elevation: 1,
+  },
+  bibleVersionTag: {
+    backgroundColor: '#EDE9FE',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  bibleVersionTagActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  bibleVersionTagTxt: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#5B3FA6',
+  },
+  bibleVersionTagTxtActive: {
+    color: '#FFFFFF',
+  },
+  bibleVersionChipTxt: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  bibleVersionChipTxtActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  fetchScriptureBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 5,
+    backgroundColor: '#F3EEFF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  fetchScriptureBtnTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#5B3FA6',
+  },
+  downloadModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.78)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 22,
+  },
+  downloadModalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 28,
+    paddingHorizontal: 22,
+    paddingTop: 28,
+    paddingBottom: 22,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.28,
+    shadowRadius: 24,
+    elevation: 16,
+    position: 'relative',
+  },
+  downloadModalCloseBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  downloadModalIconGlow: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  downloadModalIconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  downloadModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginBottom: 6,
+    letterSpacing: -0.3,
+  },
+  downloadModalSub: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 19,
+    paddingHorizontal: 10,
+    marginBottom: 18,
+  },
+  downloadPreviewFrame: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#0F172A',
+    marginBottom: 20,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    position: 'relative',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  downloadPreviewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  downloadPillBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(16, 185, 129, 0.92)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  downloadPillText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  downloadModalBtnRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 12,
+  },
+  downloadShareBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: '#F3EEFF',
+    borderWidth: 1.5,
+    borderColor: '#DDD6FE',
+  },
+  downloadShareBtnTxt: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#5B3FA6',
+  },
+  downloadDoneBtn: {
+    flex: 1,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  downloadDoneBtnGrad: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 16,
+  },
+  downloadDoneBtnTxt: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
 });

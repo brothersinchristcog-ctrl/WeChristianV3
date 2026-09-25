@@ -13,7 +13,8 @@ import {
   Modal,
   Alert
 } from 'react-native';
-import { MapPin, Clock, Calendar, Trash2, ChevronLeft, Plus } from 'lucide-react-native';
+import { MapPin, Clock, Calendar, Trash2, ChevronLeft, Plus, Users } from 'lucide-react-native';
+import { useNavigation } from '@react-navigation/native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 
 import FirestoreService from '../../services/FirestoreService';
@@ -43,6 +44,7 @@ const FONTS = {
 };
 
 export default function AdminEventList() {
+  const navigation = useNavigation<any>();
   const { setActiveTab, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [events, setEvents] = useState<any[]>([]);
   const [filterType, setFilterType] = useState<'Upcoming' | 'Past' | 'Published'>('Upcoming');
@@ -243,11 +245,19 @@ export default function AdminEventList() {
               </View>
             </View>
             <View style={styles.actionsContainer}>
+              <TouchableOpacity 
+                onPress={() => navigation.navigate('EventAttendees', { eventId: event.id, eventName: event.name || event.title })} 
+                style={styles.attendeesAction}
+                activeOpacity={0.7}
+              >
+                <Users size={12} color="#047857" />
+                <Text style={styles.attendeesActionTxt}>Attend</Text>
+              </TouchableOpacity>
               <TouchableOpacity onPress={() => handleEdit(event)} style={styles.editAction}>
                 <Text style={styles.editActionTxt}>Edit</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={() => handleDelete(event)} style={styles.deleteAction}>
-                <Trash2 size={14} color="#DC2626" />
+                <Trash2 size={13} color="#DC2626" />
                 <Text style={styles.deleteActionTxt}>Del</Text>
               </TouchableOpacity>
             </View>
@@ -383,11 +393,13 @@ const styles = StyleSheet.create({
   
   eiEdit: { position: 'absolute', top: 0, right: 0, padding: 4 },
   
-  actionsContainer: { borderLeftWidth: 1.5, borderLeftColor: '#E2E8F0', paddingLeft: 12, marginLeft: 6, justifyContent: 'center', width: 56 },
-  editAction: { paddingVertical: 10, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1 },
-  editActionTxt: { fontSize: 9, fontWeight: '800', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.5 },
-  deleteAction: { paddingVertical: 10, alignItems: 'center', justifyContent: 'center', gap: 4, flex: 1, borderTopWidth: 1.5, borderTopColor: '#E2E8F0' },
-  deleteActionTxt: { fontSize: 9, fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', letterSpacing: 0.5 },
+  actionsContainer: { borderLeftWidth: 1.5, borderLeftColor: '#E2E8F0', paddingLeft: 10, marginLeft: 6, justifyContent: 'center', width: 62 },
+  attendeesAction: { paddingVertical: 6, alignItems: 'center', justifyContent: 'center', gap: 2, flex: 1 },
+  attendeesActionTxt: { fontSize: 8.5, fontWeight: '800', color: '#047857', textTransform: 'uppercase', letterSpacing: 0.4 },
+  editAction: { paddingVertical: 6, alignItems: 'center', justifyContent: 'center', gap: 2, flex: 1, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
+  editActionTxt: { fontSize: 8.5, fontWeight: '800', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.4 },
+  deleteAction: { paddingVertical: 6, alignItems: 'center', justifyContent: 'center', gap: 2, flex: 1, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
+  deleteActionTxt: { fontSize: 8.5, fontWeight: '800', color: '#DC2626', textTransform: 'uppercase', letterSpacing: 0.4 },
   
   eiLocRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, marginTop: 6 },
   eiLocTxt: { fontSize: 11, color: COLORS.inkSoft, flexShrink: 1 },

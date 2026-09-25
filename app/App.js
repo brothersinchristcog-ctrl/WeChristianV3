@@ -8,6 +8,7 @@ import RootNavigator from './src/navigation/RootNavigator';
 import * as Application from 'expo-application';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import SpInAppUpdates, { IAUUpdateKind } from 'sp-react-native-in-app-updates';
+import { loadTeluguFonts } from './src/utils/ThumbnailTypography';
 
 // Import Firebase config to initialize it on app start
 import './src/services/firebaseConfig';
@@ -33,6 +34,10 @@ export default function App() {
   const [notification, setNotification] = useState(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const slideAnim = useRef(new Animated.Value(-150)).current;
+
+  useEffect(() => {
+    loadTeluguFonts().catch(e => console.warn('Telugu fonts startup preload error:', e));
+  }, []);
 
   useEffect(() => {
     const checkUpdates = async () => {

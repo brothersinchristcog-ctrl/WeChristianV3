@@ -130,111 +130,313 @@ export interface ContentImageParams {
   excludeUrl?: string;
 }
 
-// Global memory of recently returned visual URLs to prevent repeating backgrounds
+// ─── Per-session registry: track every URL already used this session ──────────
+// This guarantees NO repeat until the entire category pool is exhausted.
+const sessionUsedUrls: Set<string> = new Set();
+// Track the very last returned URL for instant-repeat protection
 let lastReturnedVisualUrl = '';
-let recentVisualUrls: string[] = [];
 
+// ─── Expanded Curated Gallery ─────────────────────────────────────────────────
+// Every category has 10+ images so the admin can click many times without repeats.
 const CHURCH_VISUAL_GALLERY: Record<string, string[]> = {
   'bible': [
-    'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1280&q=85', // Open Bible on pulpit with warm candles
-    'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1280&q=85', // Open scripture on rustic wood, morning sun
-    'https://images.unsplash.com/photo-1544717305-2782549b5136?w=1280&q=85', // Study desk with open scripture & soft rays
-    'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=1280&q=85', // Antique Bible pages bathed in golden sun
+    'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1280&q=85',
+    'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1280&q=85',
+    'https://images.unsplash.com/photo-1544717305-2782549b5136?w=1280&q=85',
+    'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?w=1280&q=85',
+    'https://images.unsplash.com/photo-1509021436665-8f07db76c61?w=1280&q=85',
+    'https://images.unsplash.com/photo-1519817914152-22d216bb9170?w=1280&q=85',
+    'https://images.unsplash.com/photo-1535016120720-40c646be5580?w=1280&q=85',
+    'https://images.unsplash.com/photo-1529070538774-1843cb3265df?w=1280&q=85',
+    'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=1280&q=85',
+    'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470770903676-69b98201ea1c?w=1280&q=85',
+    'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1280&q=85',
   ],
   'communion': [
-    'https://images.unsplash.com/photo-1510936111840-65e151ad71bb?w=1280&q=85', // Holy Communion bread & chalice with cross
-    'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=1280&q=85', // Sacred altar bread and wine table
-    'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=1280&q=85', // Cathedral light shining on holy communion
+    'https://images.unsplash.com/photo-1510936111840-65e151ad71bb?w=1280&q=85',
+    'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=1280&q=85',
+    'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=1280&q=85',
+    'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1280&q=85',
+    'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=1280&q=85',
+    'https://images.unsplash.com/photo-1488345979593-09db0f85545f?w=1280&q=85',
+    'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1280&q=85',
+    'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1280&q=85',
+    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1280&q=85',
+    'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1280&q=85',
   ],
   'fasting': [
-    'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1280&q=85', // Solitary mountain cross at sunrise
-    'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=1280&q=85', // Reverent kneeling prayer silhouette
-    'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1280&q=85', // Open scripture in solemn morning light
-    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1280&q=85', // Serene sunbeams in quiet prayer sanctuary
+    'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1280&q=85',
+    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1280&q=85',
+    'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1280&q=85',
+    'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1280&q=85',
+    'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1280&q=85',
+    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1280&q=85',
+    'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1280&q=85',
+    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1280&q=85',
+    'https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?w=1280&q=85',
+    'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?w=1280&q=85',
   ],
   'sermon': [
-    'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1280&q=85', // Grand sanctuary auditorium
-    'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1280&q=85', // Church stage pulpit with cross
-    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1280&q=85', // Dynamic worship atmosphere
-    'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=1280&q=85', // Church sanctuary in golden light
+    'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1280&q=85',
+    'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1280&q=85',
+    'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=1280&q=85',
+    'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=1280&q=85',
+    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1280&q=85',
+    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1280&q=85',
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1280&q=85',
+    'https://images.unsplash.com/photo-1488345979593-09db0f85545f?w=1280&q=85',
+    'https://images.unsplash.com/photo-1519817914152-22d216bb9170?w=1280&q=85',
+    'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1280&q=85',
+    'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=1280&q=85',
   ],
   'prayer': [
-    'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=1280&q=85', // Reverent praying hands
-    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1280&q=85', // Serene heavenly light
-    'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1280&q=85', // Cross on mountain peak
-    'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1280&q=85', // Quiet prayer morning altar
+    'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=1280&q=85',
+    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1280&q=85',
+    'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1280&q=85',
+    'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1280&q=85',
+    'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1280&q=85',
+    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1280&q=85',
+    'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?w=1280&q=85',
+    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1280&q=85',
+    'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=1280&q=85',
+    'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1280&q=85',
+    'https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?w=1280&q=85',
   ],
   'youth': [
-    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1280&q=85', // Contemporary vibrant church stage
-    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1280&q=85', // Inspiring ambient youth worship lighting
-    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1280&q=85', // Modern creative Christian worship
-    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1280&q=85', // Uplifting celebration lighting
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1280&q=85',
+    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1280&q=85',
+    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1280&q=85',
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1280&q=85',
+    'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1280&q=85',
+    'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1280&q=85',
+    'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=1280&q=85',
+    'https://images.unsplash.com/photo-1488345979593-09db0f85545f?w=1280&q=85',
+    'https://images.unsplash.com/photo-1519817914152-22d216bb9170?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1280&q=85',
   ],
   'promise': [
-    'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1280&q=85', // Radiant mountain sunrise with divine light
-    'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1280&q=85', // Open Holy Bible bathed in warm morning light
-    'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1280&q=85', // Open scripture on rustic cedar with gentle sunrise rays
-    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1280&q=85', // Heavenly sunbeams through green olive canopy
-    'https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=1280&q=85', // Peaceful calm morning dawn horizon over living waters
-    'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=1280&q=85', // Glorious golden sunrise sky
-    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1280&q=85', // Serene golden mist over mountain valley
-    'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1280&q=85', // Golden wheat field at morning dawn
-    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1280&q=85', // Majestic dawn light over mountain ridge
-    'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1280&q=85', // Divine sunlight rays piercing forest mist
-    'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=1280&q=85', // Golden light through majestic green trees
-    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1280&q=85', // Peaceful morning green landscape
-    'https://images.unsplash.com/photo-1509021436665-8f07db76c61?w=1280&q=85', // Open Bible in warm ambient glow
-    'https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?w=1280&q=85', // Heavenly sunbeams through golden clouds
-    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1280&q=85', // Peaceful green meadow at golden sunrise
-    'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1280&q=85', // Mountain peak touched with radiant morning light
+    'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1280&q=85',
+    'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1280&q=85',
+    'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1280&q=85',
+    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=1280&q=85',
+    'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1280&q=85',
+    'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1280&q=85',
+    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1280&q=85',
+    'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1280&q=85',
+    'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=1280&q=85',
+    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1280&q=85',
+    'https://images.unsplash.com/photo-1509021436665-8f07db76c61?w=1280&q=85',
+    'https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?w=1280&q=85',
+    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1280&q=85',
+    'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1280&q=85',
+    'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470770903676-69b98201ea1c?w=1280&q=85',
+    'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1280&q=85',
+    'https://images.unsplash.com/photo-1530908295418-a12e326966ba?w=1280&q=85',
   ],
   'birthday': [
-    'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=1280&q=85', // Elegant celebratory golden bokeh
-    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1280&q=85', // Festive golden ambient sparkle
-    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1280&q=85', // Joyful celebration lighting
+    'https://images.unsplash.com/photo-1513151233558-d860c5398176?w=1280&q=85',
+    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1280&q=85',
+    'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1280&q=85',
+    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1280&q=85',
+    'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1280&q=85',
+    'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=1280&q=85',
+    'https://images.unsplash.com/photo-1519817914152-22d216bb9170?w=1280&q=85',
+    'https://images.unsplash.com/photo-1488345979593-09db0f85545f?w=1280&q=85',
+    'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1280&q=85',
   ],
   'event': [
-    'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1280&q=85', // Grand cathedral altar
-    'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1280&q=85', // Grand sanctuary auditorium
-    'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=1280&q=85', // Cathedral stained glass sunlight
-    'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=1280&q=85', // Golden cathedral architecture
+    'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1280&q=85',
+    'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1280&q=85',
+    'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=1280&q=85',
+    'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1280&q=85',
+    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1280&q=85',
+    'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=1280&q=85',
+    'https://images.unsplash.com/photo-1519817914152-22d216bb9170?w=1280&q=85',
+    'https://images.unsplash.com/photo-1488345979593-09db0f85545f?w=1280&q=85',
+    'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1280&q=85',
+    'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=1280&q=85',
+    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1280&q=85',
+  ],
+  'worship': [
+    'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1280&q=85',
+    'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=1280&q=85',
+    'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=1280&q=85',
+    'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1280&q=85',
+    'https://images.unsplash.com/photo-1510936111840-65e151ad71bb?w=1280&q=85',
+    'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=1280&q=85',
+    'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1280&q=85',
+    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1280&q=85',
+    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1280&q=85',
+    'https://images.unsplash.com/photo-1488345979593-09db0f85545f?w=1280&q=85',
+    'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1280&q=85',
+  ],
+  'nature': [
+    'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1280&q=85',
+    'https://images.unsplash.com/photo-1448375240586-882707db888b?w=1280&q=85',
+    'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=1280&q=85',
+    'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1280&q=85',
+    'https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1280&q=85',
+    'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1280&q=85',
+    'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?w=1280&q=85',
+    'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1280&q=85',
+    'https://images.unsplash.com/photo-1486870591958-9b9d0d1dda99?w=1280&q=85',
+    'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470240731273-7821a6eeb6bd?w=1280&q=85',
+    'https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?w=1280&q=85',
+    'https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470770903676-69b98201ea1c?w=1280&q=85',
+    'https://images.unsplash.com/photo-1530908295418-a12e326966ba?w=1280&q=85',
   ],
   'default': [
     'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=1280&q=85',
     'https://images.unsplash.com/photo-1519817650390-64a93db51149?w=1280&q=85',
     'https://images.unsplash.com/photo-1504052434569-70ad5836ab65?w=1280&q=85',
     'https://images.unsplash.com/photo-1544427920-c49ccfb85579?w=1280&q=85',
-  ]
+    'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?w=1280&q=85',
+    'https://images.unsplash.com/photo-1477281765962-ef34e8bb0967?w=1280&q=85',
+    'https://images.unsplash.com/photo-1507692049790-de58290a4334?w=1280&q=85',
+    'https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1280&q=85',
+    'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=1280&q=85',
+    'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=1280&q=85',
+    'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=1280&q=85',
+    'https://images.unsplash.com/photo-1488345979593-09db0f85545f?w=1280&q=85',
+  ],
 };
 
+// ─── Complete content-type → gallery category mapping ─────────────────────────
+const CONTENT_TYPE_TO_CATEGORY: Record<string, string> = {
+  'bible study':             'bible',
+  'bible verse card':        'bible',
+  'holy bible':              'bible',
+  'holy communion':          'communion',
+  'communion':               'communion',
+  'fasting prayer':          'fasting',
+  "women's fasting prayer":  'fasting',
+  'womens fasting prayer':   'fasting',
+  'prayer meeting':          'prayer',
+  'prayer':                  'prayer',
+  'sunday worship':          'worship',
+  'worship':                 'worship',
+  'church service':          'worship',
+  'sermon':                  'sermon',
+  'youth meeting':           'youth',
+  'youth':                   'youth',
+  'daily promise card':      'promise',
+  'promise card':            'promise',
+  'bible verse':             'promise',
+  'birthday':                'birthday',
+  'wedding anniversary':     'birthday',
+  'baptism anniversary':     'birthday',
+  'church anniversary':      'event',
+  'anniversary':             'birthday',
+  'celebration':             'birthday',
+  'special event':           'event',
+  'announcement':            'event',
+  'event':                   'event',
+  'other':                   'nature',
+};
+
+// ─── Resolve content type string → gallery key ─────────────────────────────────
+const getCategoryKey = (contentType: string): string => {
+  const lower = (contentType || '').toLowerCase().trim();
+  // Exact match first
+  if (CONTENT_TYPE_TO_CATEGORY[lower]) return CONTENT_TYPE_TO_CATEGORY[lower];
+  // Partial match
+  for (const [key, cat] of Object.entries(CONTENT_TYPE_TO_CATEGORY)) {
+    if (lower.includes(key) || key.includes(lower)) return cat;
+  }
+  // Keyword fallback
+  if (lower.includes('bible') || lower.includes('scripture') || lower.includes('verse')) return 'bible';
+  if (lower.includes('prayer') || lower.includes('fasting')) return 'prayer';
+  if (lower.includes('worship') || lower.includes('sunday')) return 'worship';
+  if (lower.includes('youth')) return 'youth';
+  if (lower.includes('promise')) return 'promise';
+  if (lower.includes('birth') || lower.includes('anniversary') || lower.includes('celebr')) return 'birthday';
+  if (lower.includes('event') || lower.includes('announce')) return 'event';
+  if (lower.includes('sermon') || lower.includes('preach')) return 'sermon';
+  if (lower.includes('communion') || lower.includes('holy')) return 'communion';
+  return 'default';
+};
+
+// ─── True-shuffle Fisher-Yates ────────────────────────────────────────────────
+const shuffleArray = <T>(arr: T[]): T[] => {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+};
+
+// ─── Fresh curated visual — guaranteed different every click ──────────────────
 const getFreshCuratedVisual = (categoryKey: string, excludeUrl?: string): string => {
   const pool = CHURCH_VISUAL_GALLERY[categoryKey] || CHURCH_VISUAL_GALLERY['default'];
-  
-  const clean = (u?: string) => (u ? u.split('&sig=')[0].split('?')[0].trim() : '');
-  const excludeBases = new Set([
-    clean(excludeUrl),
-    clean(lastReturnedVisualUrl),
-    ...recentVisualUrls.map(clean)
+
+  const base = (u?: string) => (u || '').split('?')[0].split('&sig=')[0].trim();
+
+  // Build exclusion set: caller-provided exclude + last returned + full session history
+  const excludeBases = new Set<string>([
+    base(excludeUrl),
+    base(lastReturnedVisualUrl),
+    ...Array.from(sessionUsedUrls).map(base),
   ]);
   excludeBases.delete('');
 
-  // Filter pool excluding recent ones to guarantee a fresh background every time
-  let available = pool.filter(url => !excludeBases.has(clean(url)));
-  if (available.length === 0) {
-    const immediateLast = clean(excludeUrl) || clean(lastReturnedVisualUrl);
-    available = pool.filter(url => clean(url) !== immediateLast);
-    if (available.length === 0) available = pool;
-    recentVisualUrls = [];
+  // 1st pass: exclude everything already used this session
+  let candidates = pool.filter(url => !excludeBases.has(base(url)));
+
+  // 2nd pass: if pool is exhausted reset session history (keep excluding just the last one)
+  if (candidates.length === 0) {
+    sessionUsedUrls.clear();
+    const lastBase = base(excludeUrl) || base(lastReturnedVisualUrl);
+    candidates = pool.filter(url => base(url) !== lastBase);
+    if (candidates.length === 0) candidates = pool;
   }
 
-  const randomIndex = Math.floor(Math.random() * available.length);
-  const selected = available[randomIndex];
-  lastReturnedVisualUrl = selected;
-  recentVisualUrls.push(selected);
-  if (recentVisualUrls.length > 12) recentVisualUrls.shift();
+  // True-shuffle the candidates and pick the first element — statistically maximises variety
+  const shuffled = shuffleArray(candidates);
+  const selected = shuffled[0];
 
-  return `${selected}&sig=${Date.now()}_${Math.random().toString(36).substring(5)}`;
+  // Update session registry
+  lastReturnedVisualUrl = selected;
+  sessionUsedUrls.add(selected);
+
+  // Append a unique cache-buster so CDN/browser never serves a cached copy
+  return `${selected}&sig=${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 };
+
+// ─── Composition modifiers pool (large) — rotate to enrich HF prompts ─────────
+const COMPOSITIONS = [
+  'dramatic wide-angle view of holy sanctuary, soft cinematic depth of field',
+  'close-up macro focus with warm golden bokeh, rich spiritual atmosphere',
+  'morning volumetric sunlight rays streaming through cathedral stained glass',
+  'overhead reverent bird-eye view of holy scripture on altar, symmetrical',
+  'warm atmospheric sanctuary lighting with solemn spiritual glow and mist',
+  'ethereal heavenly illumination, serene dreamy composition, soft clouds',
+  'intimate candlelight glow with rich sacred textures and deep shadows',
+  'panoramic wide landscape of rolling green hills at sunrise, divine rays',
+  'cinematic low-angle shot of cross silhouette against radiant golden sky',
+  'misty peaceful forest path with dappled sunlight and soft sacred ambiance',
+  'aerial mountain sunrise with golden light sweeping across valley mist',
+  'dramatic storm clearing with rays of divine light breaking through clouds',
+  'serene lakeside reflection at dawn with still water and gentle morning fog',
+  'silhouette of praying figure against blazing orange sunset horizon',
+  'intimate pew shot of empty sacred church interior, glowing altar candles',
+  'sweeping wheat field at golden hour, warm harvest light and gentle breeze',
+  'ancient stone chapel exterior at sunrise with ivy and soft lens flare',
+  'gentle waterfall in forest with golden light streaming through green canopy',
+];
 
 class AIService {
   public async generateSermon(params: SermonParams): Promise<string> {
@@ -329,76 +531,65 @@ class AIService {
 
   public async generateContentImage(params: ContentImageParams): Promise<string> {
     const hfKey = process.env.EXPO_PUBLIC_HUGGINGFACE_API_KEY || '';
-    
-    // Dynamic camera angle & lighting variation for unique outputs each time
-    const COMPOSITIONS = [
-      'dramatic wide-angle view of holy sanctuary, soft depth of field',
-      'close-up cinematic focus with golden ambient bokeh',
-      'morning volumetric sunlight rays streaming through stained glass',
-      'overhead reverent view of holy scripture and altar',
-      'warm atmospheric sanctuary lighting with solemn spiritual glow',
-      'ethereal heavenly illumination with serene composition',
-      'intimate candlelight glow with rich sacred depth and texture'
-    ];
-    const chosenComposition = COMPOSITIONS[Math.floor(Math.random() * COMPOSITIONS.length)];
-    const randomSeed = Math.floor(Math.random() * 2147483647);
 
-    // Tailored church background prompt without any text or watermarks
+    // ── Pick a completely random composition from the large pool ──
+    const shuffledComps = shuffleArray(COMPOSITIONS);
+    const chosenComposition = shuffledComps[0];
+
+    // ── Truly random seed: combine timestamp + random for collision-proof uniqueness ──
+    const randomSeed = Math.floor(Math.random() * 2147483647) ^ (Date.now() & 0xFFFFFF);
+
+    // ── Resolve category ──
+    const categoryKey = getCategoryKey(params.contentType || '');
+
+    // ── Build subject from prompt ──
     let subject = params.prompt || 'sacred church sanctuary, holy altar, warm spiritual light';
-    const cType = (params.contentType || '').toLowerCase();
-    let categoryKey = 'default';
 
-    if (cType.includes('bible')) {
-      categoryKey = 'bible';
-      if (!params.prompt) subject = 'aesthetic open Holy Bible on wooden pulpit, warm candlelight glow, sacred church scripture atmosphere';
-    } else if (cType.includes('communion')) {
-      categoryKey = 'communion';
-      if (!params.prompt) subject = 'holy communion bread and sacred chalice cup on communion table, glowing cross, reverent worship atmosphere';
-    } else if (cType.includes('fasting')) {
-      categoryKey = 'fasting';
-      if (!params.prompt) subject = 'reverent fasting prayer, open Bible, glowing silhouette cross, deep spiritual worship atmosphere';
-    } else if (cType.includes('sermon') || cType.includes('worship')) {
-      categoryKey = 'sermon';
-      if (!params.prompt) subject = 'cinematic church auditorium stage, glowing golden cross, dramatic worship lighting';
-    } else if (cType.includes('prayer')) {
-      categoryKey = 'prayer';
-      if (!params.prompt) subject = 'serene praying hands, golden heavenly morning rays, peaceful sanctuary';
-    } else if (cType.includes('youth')) {
-      categoryKey = 'youth';
-      if (!params.prompt) subject = 'contemporary Christian worship stage, glowing ambient lighting, modern aesthetic church';
-    } else if (cType.includes('promise') || cType.includes('verse')) {
-      categoryKey = 'promise';
-      if (!params.prompt) subject = 'peaceful radiant morning golden sunrise over wheat field and green olive trees, open Holy Bible bathed in morning dawn light rays, sacred promise of long life divine health peace Psalm 91:16';
-    } else if (cType.includes('birthday') || cType.includes('anniversary') || cType.includes('celebration')) {
-      categoryKey = 'birthday';
-      if (!params.prompt) subject = 'grand sacred church architecture, festive golden bokeh, elegant Christian celebration';
-    } else if (cType.includes('event')) {
-      categoryKey = 'event';
-      if (!params.prompt) subject = 'grand cathedral architecture, sacred sanctuary, inspirational church atmosphere';
-    }
+    const colorMood = params.color
+      ? `bathed in rich ${params.color} ambient lighting, `
+      : '';
 
-    const colorMood = params.color ? `bathed in rich ${params.color} ambient lighting, ` : '';
-    const hfPrompt = `${subject}, ${chosenComposition}, ${colorMood}${params.topic ? `theme "${params.topic}", ` : ''}${params.style || 'Professional'} Christian visual aesthetic, clean background photography, 8k resolution, cinematic lighting, photorealistic, elegant, no text, no letters, no watermark, no logo, clean image`;
+    // ── Every call gets a unique random flavour modifier to further diversify results ──
+    const flavours = [
+      'soft morning mist and golden rays',
+      'dramatic dramatic chiaroscuro lighting',
+      'warm harvest bokeh and serene atmosphere',
+      'ethereal diffused heavenly glow',
+      'deep cinematic shadows with bright divine highlight',
+      'luminous golden hour with long soft shadows',
+      'peaceful blue-hour twilight with warm candle accents',
+      'vibrant sunrise spectrum with radiant lens flare',
+      'misty atmospheric depth with layered light',
+    ];
+    const chosenFlavour = shuffleArray(flavours)[0];
 
-    // 1. Primary: Direct Hugging Face Inference API with Unique Random Seed
+    const hfPrompt = [
+      subject,
+      chosenComposition,
+      colorMood,
+      params.topic ? `theme "${params.topic}"` : '',
+      chosenFlavour,
+      params.style || 'Professional',
+      'Christian visual aesthetic, clean background photography, 8k resolution, cinematic lighting, photorealistic, elegant, no text, no letters, no watermark, no logo, clean image',
+    ].filter(Boolean).join(', ');
+
+    // ── 1. Primary: Hugging Face with unique seed ──
     if (hfKey) {
       try {
-        console.log('[AIService] Generating unique background visual via Hugging Face with seed:', randomSeed);
+        console.log(`[AIService] Generating unique HF background | seed:${randomSeed} | composition:"${chosenComposition.slice(0, 40)}..."`);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4500);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         const res = await fetch('https://router.huggingface.co/hf-inference/models/stabilityai/stable-diffusion-3-medium-diffusers', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${hfKey}`,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             inputs: hfPrompt,
-            parameters: {
-              seed: randomSeed,
-            }
+            parameters: { seed: randomSeed },
           }),
-          signal: controller.signal
+          signal: controller.signal,
         });
         clearTimeout(timeoutId);
 
@@ -410,24 +601,53 @@ class AIService {
             const FileSystem = require('expo-file-system/legacy');
             const localUri = `${FileSystem.cacheDirectory}hf_bg_${Date.now()}_${randomSeed}.jpg`;
             await FileSystem.writeAsStringAsync(localUri, b64, { encoding: FileSystem.EncodingType.Base64 });
-            console.log('[AIService] Fresh Hugging Face background saved to:', localUri);
+            console.log('[AIService] Fresh HF background saved:', localUri);
             lastReturnedVisualUrl = localUri;
+            sessionUsedUrls.add(localUri);
             return localUri;
           }
         } else {
           const errText = await res.text();
-          console.warn('[AIService] Hugging Face returned status:', res.status, errText.slice(0, 150));
+          console.warn('[AIService] HF status:', res.status, errText.slice(0, 150));
         }
       } catch (hfErr) {
-        console.warn('[AIService] Hugging Face fetch error:', hfErr);
+        console.warn('[AIService] HF fetch error:', hfErr);
       }
     }
 
-    // 2. Fallback: Curated High-Resolution Church Gallery (Guaranteed Unique Every Click)
-    console.log('[AIService] Providing fresh curated church visual from gallery for:', categoryKey);
+    // ── 2. Free AI Generator Fallback: Pollinations AI (Unlimited, Free, HD 16:9) ──
+    try {
+      console.log(`[AIService] Generating unique Pollinations AI background | seed:${randomSeed}`);
+      const cleanPrompt = encodeURIComponent(hfPrompt.slice(0, 280));
+      const pollinationsUrl = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1280&height=720&nologo=true&seed=${randomSeed}`;
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 7000);
+      const pollRes = await fetch(pollinationsUrl, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (pollRes.ok) {
+        const buf = await pollRes.arrayBuffer();
+        if (buf && buf.byteLength > 1000) {
+          const { Buffer } = require('buffer');
+          const b64 = Buffer.from(buf).toString('base64');
+          const FileSystem = require('expo-file-system/legacy');
+          const localUri = `${FileSystem.cacheDirectory}poll_bg_${Date.now()}_${randomSeed}.jpg`;
+          await FileSystem.writeAsStringAsync(localUri, b64, { encoding: FileSystem.EncodingType.Base64 });
+          console.log('[AIService] Fresh Pollinations AI background saved:', localUri);
+          lastReturnedVisualUrl = localUri;
+          sessionUsedUrls.add(localUri);
+          return localUri;
+        }
+      }
+    } catch (pollErr) {
+      console.warn('[AIService] Pollinations fetch error:', pollErr);
+    }
+
+    // ── 3. Fallback: Curated gallery — guaranteed unique every click ──
+    console.log(`[AIService] Using curated gallery fallback for category: ${categoryKey}`);
     return getFreshCuratedVisual(categoryKey, params.excludeUrl);
   }
 }
 
 export default new AIService();
-
