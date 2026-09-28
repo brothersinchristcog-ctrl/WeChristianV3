@@ -15,6 +15,7 @@ import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import SuperAdminChurchManager from './SuperAdminChurchManager';
 import SuperAdminVersesManager from './SuperAdminVersesManager';
+import SuperAdminVouchersManager from './SuperAdminVouchersManager';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import SongDetailModal from '../../components/SongDetailModal';
 
@@ -43,8 +44,8 @@ export default function SuperAdminDashboard({ navigation }: any) {
   const [masterSongs, setMasterSongs] = useState<any[]>([]);
   const [churchesLoading, setChurchesLoading] = useState(true);
   const [songsLoading, setSongsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'churches' | 'songs' | 'verses'>('churches');
-  const loading = activeTab === 'churches' ? churchesLoading : songsLoading;
+  const [activeTab, setActiveTab] = useState<'churches' | 'vouchers' | 'songs' | 'verses'>('churches');
+  const loading = activeTab === 'churches' ? churchesLoading : activeTab === 'songs' ? songsLoading : false;
   
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -462,13 +463,16 @@ export default function SuperAdminDashboard({ navigation }: any) {
       {/* Tab Bar */}
       <View style={styles.tabBar}>
         <TouchableOpacity style={[styles.tab, activeTab === 'churches' && styles.tabActive]} onPress={() => setActiveTab('churches')}>
-          <Text style={[styles.tabText, activeTab === 'churches' && styles.tabTextActive]}>All Churches</Text>
+          <Text style={[styles.tabText, activeTab === 'churches' && styles.tabTextActive]}>Churches</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.tab, activeTab === 'vouchers' && styles.tabActive]} onPress={() => setActiveTab('vouchers')}>
+          <Text style={[styles.tabText, activeTab === 'vouchers' && styles.tabTextActive]}>Vouchers</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'songs' && styles.tabActive]} onPress={() => setActiveTab('songs')}>
-          <Text style={[styles.tabText, activeTab === 'songs' && styles.tabTextActive]}>Master Songs</Text>
+          <Text style={[styles.tabText, activeTab === 'songs' && styles.tabTextActive]}>Songs</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'verses' && styles.tabActive]} onPress={() => setActiveTab('verses')}>
-          <Text style={[styles.tabText, activeTab === 'verses' && styles.tabTextActive]}>Daily Verses</Text>
+          <Text style={[styles.tabText, activeTab === 'verses' && styles.tabTextActive]}>Verses</Text>
         </TouchableOpacity>
       </View>
 
@@ -476,7 +480,15 @@ export default function SuperAdminDashboard({ navigation }: any) {
         <Search size={18} color="#64748b" />
         <TextInput 
           style={[styles.searchInput, { flex: 1 }]}
-          placeholder={activeTab === 'churches' ? "Search churches..." : activeTab === 'verses' ? "Search verses..." : "Search master songs..."}
+          placeholder={
+            activeTab === 'churches'
+              ? 'Search churches...'
+              : activeTab === 'vouchers'
+              ? 'Search voucher code, church, admin, or tag...'
+              : activeTab === 'verses'
+              ? 'Search verses...'
+              : 'Search master songs...'
+          }
           placeholderTextColor="#64748b"
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -571,6 +583,8 @@ export default function SuperAdminDashboard({ navigation }: any) {
           <ScrollView showsVerticalScrollIndicator={false}>
             <ActivityIndicator size="large" color="#FCD34D" style={{ marginTop: 40 }} />
           </ScrollView>
+        ) : activeTab === 'vouchers' ? (
+          <SuperAdminVouchersManager searchQuery={searchQuery} />
         ) : activeTab === 'verses' ? (
           <SuperAdminVersesManager searchQuery={searchQuery} />
         ) : activeTab === 'churches' ? (

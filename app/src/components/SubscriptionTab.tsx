@@ -12,6 +12,9 @@ import {
   Modal,
   Image,
   Platform,
+  TextInput,
+  ActivityIndicator,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {
   ArrowRight,
@@ -27,7 +30,9 @@ import {
   Eye,
   X,
   Trash2,
-  Crown
+  Crown,
+  Ticket,
+  Sparkles,
 } from 'lucide-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
@@ -88,6 +93,22 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [subscriptionHistory, setSubscriptionHistory] = useState<any[]>([]);
   const [timeLeft, setTimeLeft] = useState({ days: '00', hours: '00', minutes: '00', seconds: '00' });
+  
+  // Voucher Code States
+  const [voucherModalVisible, setVoucherModalVisible] = useState(false);
+  const [voucherCodeInput, setVoucherCodeInput] = useState('');
+  const [redeemingVoucher, setRedeemingVoucher] = useState(false);
+  const [redemptionSuccessData, setRedemptionSuccessData] = useState<{
+    code: string;
+    message: string;
+    validUntil?: string;
+    durationDays?: number;
+  } | null>(null);
+
+  // Delete Payment Record Card States
+  const [deleteTargetInvoice, setDeleteTargetInvoice] = useState<any | null>(null);
+  const [isDeletingInvoice, setIsDeletingInvoice] = useState(false);
+  const [deleteSuccessData, setDeleteSuccessData] = useState<any | null>(null);
 
   React.useEffect(() => {
     const calculateTimeLeft = () => {
@@ -479,6 +500,54 @@ export default function SubscriptionTab({ member }: { member?: any }) {
     }
   };
 
+  const handleRedeemVoucher = async () => {
+    const code = voucherCodeInput.trim().toUpperCase().replace(/\s+/g, '');
+    if (!code) {
+      Alert.alert('Required', 'Please enter your voucher code.');
+      return;
+    }
+    if (!activeChurch?.id) {
+      Alert.alert('Error', 'No active church selected.');
+      return;
+    }
+
+    setRedeemingVoucher(true);
+    try {
+      const resData = await firestoreService.redeemVoucher({
+        code,
+        churchId: activeChurch.id,
+        churchName: activeChurch.name,
+        userId: user?.uid,
+        userName: member?.firstName ? `${member.firstName} ${member.lastName || ''}` : (user?.displayName || 'Church Admin')
+      });
+
+      // Force ChurchContext reload to update active church validity across the whole app
+      setIsPaymentSuccessful(true);
+      await setChurchId(activeChurch.id);
+
+      // Re-fetch church subscription history ledger
+      const hist = await firestoreService.getChurchSubscriptionHistory(activeChurch.id);
+      setSubscriptionHistory(hist);
+
+      setVoucherModalVisible(false);
+      setVoucherCodeInput('');
+
+      // Show beautiful custom celebration success card
+      setRedemptionSuccessData({
+        code,
+        message: resData?.message || '1 Year subscription has been activated successfully! All church members now have full access.',
+        validUntil: resData?.validUntil,
+        durationDays: resData?.durationDays || 365,
+      });
+    } catch (error: any) {
+      console.error('Voucher Redemption Error:', error);
+      const msg = error?.message || 'Failed to redeem voucher code. Please check the code and try again.';
+      Alert.alert('Redemption Failed', msg);
+    } finally {
+      setRedeemingVoucher(false);
+    }
+  };
+
   const downloadReceipt = async () => {
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync(true);
@@ -506,28 +575,24 @@ export default function SubscriptionTab({ member }: { member?: any }) {
   };
 
   const handleDeleteHistoryItem = (invoice: any) => {
-    Alert.alert(
-      "Delete Payment History",
-      "Are you sure you want to delete this payment record?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive",
-          onPress: async () => {
-            try {
-              if (activeChurch?.id && invoice.id) {
-                await firestoreService.deleteChurchSubscriptionHistory(activeChurch.id, invoice.id);
-                setSubscriptionHistory(prev => prev.filter(item => item.id !== invoice.id));
-              }
-            } catch (error) {
-              console.error('Error deleting history item', error);
-              Alert.alert('Error', 'Failed to delete payment record.');
-            }
-          }
-        }
-      ]
-    );
+    setDeleteTargetInvoice(invoice);
+  };
+
+  const confirmDeleteHistoryItem = async () => {
+    if (!deleteTargetInvoice || !activeChurch?.id) return;
+    try {
+      setIsDeletingInvoice(true);
+      const target = deleteTargetInvoice;
+      await firestoreService.deleteChurchSubscriptionHistory(activeChurch.id, target.id);
+      setSubscriptionHistory(prev => prev.filter(item => item.id !== target.id));
+      setDeleteTargetInvoice(null);
+      setDeleteSuccessData(target);
+    } catch (error) {
+      console.error('Error deleting history item', error);
+      Alert.alert('Error', 'Failed to delete payment record. Please try again.');
+    } finally {
+      setIsDeletingInvoice(false);
+    }
   };
 
   const receiptData = useMemo(() => {
@@ -673,20 +738,38 @@ export default function SubscriptionTab({ member }: { member?: any }) {
 
             <TouchableOpacity 
               onPress={() => setSelectedInvoice(subscriptionHistory[0] || { id: receiptTxnId || 'temp_active', plan: 'Annual', paidAt: new Date(), amount: 1, status: 'active' })}
-              style={{ backgroundColor: '#10b981', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginBottom: 12 }}
+              style={{ 
+                backgroundColor: '#10b981', 
+                borderRadius: 12, 
+                paddingVertical: 14, 
+                alignItems: 'center', 
+                flexDirection: 'row', 
+                justifyContent: 'center', 
+                marginBottom: ChurchService.isSubscriptionExpired(activeChurch) ? 12 : 0 
+              }}
             >
               <Crown size={20} color="#f8fafc" style={{ marginRight: 8 }} />
               <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700' }}>Current Plan Details</Text>
             </TouchableOpacity>
             
             {ChurchService.isSubscriptionExpired(activeChurch) && (
-              <TouchableOpacity 
-                onPress={() => setPlanSelectModalVisible(true)}
-                style={{ backgroundColor: '#ef4444', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
-              >
-                <CreditCard size={20} color="#f8fafc" style={{ marginRight: 8 }} />
-                <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700' }}>Renew Now</Text>
-              </TouchableOpacity>
+              <View style={{ gap: 10 }}>
+                <TouchableOpacity 
+                  onPress={() => setPlanSelectModalVisible(true)}
+                  style={{ backgroundColor: '#ef4444', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+                >
+                  <CreditCard size={20} color="#f8fafc" style={{ marginRight: 8 }} />
+                  <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700' }}>Renew Subscription</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  onPress={() => setVoucherModalVisible(true)}
+                  style={{ backgroundColor: '#059669', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
+                >
+                  <Ticket size={20} color="#f8fafc" style={{ marginRight: 8 }} />
+                  <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700' }}>Redeem Voucher Code</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         </View>
@@ -940,17 +1023,690 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               </View>
             </View>
 
+            {/* Option 1: Pay Subscription */}
             <TouchableOpacity 
               style={{ backgroundColor: '#f59e0b', borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' }}
               onPress={() => handleRazorpayPayment()}
             >
               <Crown size={20} color="#171e2e" style={{ marginRight: 8 }} />
-              <Text style={{ color: '#171e2e', fontSize: 18, fontWeight: '700' }}>Upgrade now</Text>
+              <Text style={{ color: '#171e2e', fontSize: 18, fontWeight: '700' }}>Pay Subscription (₹199/yr)</Text>
+            </TouchableOpacity>
+
+            {/* Divider */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 16 }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.15)' }} />
+              <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700', marginHorizontal: 12, textTransform: 'uppercase', letterSpacing: 1.2 }}>OR</Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.15)' }} />
+            </View>
+
+            {/* Option 2: Redeem Voucher Code */}
+            <TouchableOpacity 
+              style={{ 
+                backgroundColor: 'transparent', 
+                borderRadius: 12, 
+                borderWidth: 1.5, 
+                borderColor: '#10b981', 
+                paddingVertical: 14, 
+                alignItems: 'center', 
+                flexDirection: 'row', 
+                justifyContent: 'center' 
+              }}
+              onPress={() => setVoucherModalVisible(true)}
+            >
+              <Ticket size={20} color="#10b981" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#10b981', fontSize: 17, fontWeight: '700' }}>Redeem Voucher Code</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
       ) : null}
+
+      {/* ── Voucher Code Redemption Modal ── */}
+      <Modal visible={voucherModalVisible} animationType="fade" transparent onRequestClose={() => setVoucherModalVisible(false)}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: 24 }}
+        >
+          <View style={{ width: '100%', maxWidth: 400, backgroundColor: '#171e2e', borderRadius: 24, borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.35, shadowRadius: 16 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ width: 38, height: 38, borderRadius: 12, backgroundColor: '#059669', alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                  <Ticket size={20} color="#ffffff" />
+                </View>
+                <Text style={{ color: '#f8fafc', fontSize: 18, fontWeight: '800' }}>Redeem Voucher</Text>
+              </View>
+              <TouchableOpacity onPress={() => setVoucherModalVisible(false)} style={{ padding: 6, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.08)' }}>
+                <X size={18} color="#cbd5e1" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ color: '#94a3b8', fontSize: 13, lineHeight: 18, marginBottom: 20 }}>
+              Enter your voucher code to activate a 1-year church subscription. The subscription duration will be added to your account immediately.
+            </Text>
+
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 }}>Voucher Code</Text>
+              <TextInput
+                value={voucherCodeInput}
+                onChangeText={(text) => setVoucherCodeInput(text.toUpperCase())}
+                placeholder="e.g. WC-2026-7ABC"
+                placeholderTextColor="#64748b"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                style={{
+                  backgroundColor: '#0f172a',
+                  borderWidth: 1.5,
+                  borderColor: voucherCodeInput.trim() ? '#10b981' : 'rgba(255,255,255,0.15)',
+                  borderRadius: 12,
+                  paddingHorizontal: 16,
+                  paddingVertical: 14,
+                  color: '#f8fafc',
+                  fontSize: 16,
+                  fontWeight: '700',
+                  letterSpacing: 1.5,
+                }}
+              />
+            </View>
+
+            <TouchableOpacity
+              onPress={handleRedeemVoucher}
+              disabled={redeemingVoucher || !voucherCodeInput.trim()}
+              style={{
+                backgroundColor: voucherCodeInput.trim() ? '#10b981' : '#334155',
+                borderRadius: 12,
+                paddingVertical: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                opacity: redeemingVoucher ? 0.7 : 1
+              }}
+            >
+              {redeemingVoucher ? (
+                <>
+                  <ActivityIndicator size="small" color="#ffffff" style={{ marginRight: 8 }} />
+                  <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>Validating Code...</Text>
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                  <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>Apply Voucher</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── 🌟 GORGEOUS CELEBRATION SUCCESS MODAL CARD ── */}
+      <Modal 
+        visible={!!redemptionSuccessData} 
+        animationType="fade" 
+        transparent 
+        onRequestClose={() => setRedemptionSuccessData(null)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(5, 10, 20, 0.82)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 20,
+        }}>
+          <View style={{
+            width: '100%',
+            maxWidth: 390,
+            backgroundColor: '#0f172a',
+            borderRadius: 28,
+            borderWidth: 1.5,
+            borderColor: 'rgba(16, 185, 129, 0.45)',
+            padding: 24,
+            alignItems: 'center',
+            shadowColor: '#10b981',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.35,
+            shadowRadius: 28,
+            elevation: 24,
+          }}>
+            {/* Glowing Dual Halo Rings with Check Icon */}
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: 'rgba(16, 185, 129, 0.12)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16,
+              borderWidth: 1.5,
+              borderColor: 'rgba(16, 185, 129, 0.3)',
+            }}>
+              <View style={{
+                width: 58,
+                height: 58,
+                borderRadius: 29,
+                backgroundColor: '#10b981',
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#10b981',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.5,
+                shadowRadius: 12,
+                elevation: 10,
+              }}>
+                <CheckCircle size={34} color="#ffffff" strokeWidth={2.6} />
+              </View>
+            </View>
+
+            {/* Glowing Status Pill */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: 'rgba(16, 185, 129, 0.16)',
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+              borderRadius: 20,
+              marginBottom: 12,
+              borderWidth: 1,
+              borderColor: 'rgba(16, 185, 129, 0.35)',
+            }}>
+              <Sparkles size={13} color="#10b981" style={{ marginRight: 6 }} />
+              <Text style={{ color: '#10b981', fontSize: 11.5, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                Subscription Activated
+              </Text>
+            </View>
+
+            {/* Heading */}
+            <Text style={{
+              color: '#f8fafc',
+              fontSize: 22,
+              fontWeight: '800',
+              textAlign: 'center',
+              marginBottom: 6,
+              letterSpacing: 0.3,
+            }}>
+              Voucher Redeemed!
+            </Text>
+
+            <Text style={{
+              color: '#94a3b8',
+              fontSize: 13,
+              textAlign: 'center',
+              lineHeight: 19,
+              marginBottom: 20,
+              paddingHorizontal: 10,
+            }}>
+              {redemptionSuccessData?.message}
+            </Text>
+
+            {/* Detailed Ticket Card Box */}
+            <View style={{
+              width: '100%',
+              backgroundColor: '#090e1a',
+              borderRadius: 18,
+              padding: 16,
+              borderWidth: 1,
+              borderColor: '#1e293b',
+              marginBottom: 22,
+            }}>
+              {/* Voucher Code Row */}
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingBottom: 12,
+                borderBottomWidth: 1,
+                borderBottomColor: 'rgba(255,255,255,0.08)',
+                marginBottom: 12,
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Ticket size={16} color="#f0b429" style={{ marginRight: 8 }} />
+                  <Text style={{ color: '#64748b', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                    Voucher Code
+                  </Text>
+                </View>
+                <Text style={{
+                  color: '#f0b429',
+                  fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+                  fontSize: 15,
+                  fontWeight: '800',
+                  letterSpacing: 1.2,
+                }}>
+                  {redemptionSuccessData?.code}
+                </Text>
+              </View>
+
+              {/* Added Access */}
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 10,
+              }}>
+                <Text style={{ color: '#94a3b8', fontSize: 13 }}>Added Access</Text>
+                <Text style={{ color: '#38bdf8', fontSize: 13.5, fontWeight: '700' }}>
+                  +{redemptionSuccessData?.durationDays || 365} Days (1 Year)
+                </Text>
+              </View>
+
+              {/* Church */}
+              <View style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: 10,
+              }}>
+                <Text style={{ color: '#94a3b8', fontSize: 13 }}>Church</Text>
+                <Text style={{ color: '#f8fafc', fontSize: 13.5, fontWeight: '600' }} numberOfLines={1}>
+                  {activeChurch?.name || 'Your Church'}
+                </Text>
+              </View>
+
+              {/* Active Until Date */}
+              {redemptionSuccessData?.validUntil ? (
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  paddingTop: 10,
+                  borderTopWidth: 1,
+                  borderTopColor: 'rgba(255,255,255,0.08)',
+                }}>
+                  <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '600' }}>Active Until</Text>
+                  <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '700' }}>
+                    {new Date(redemptionSuccessData.validUntil).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      year: 'numeric',
+                    })}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Done CTA Button */}
+            <TouchableOpacity
+              onPress={() => setRedemptionSuccessData(null)}
+              style={{
+                width: '100%',
+                backgroundColor: '#10b981',
+                paddingVertical: 14,
+                borderRadius: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                shadowColor: '#10b981',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.35,
+                shadowRadius: 10,
+                elevation: 6,
+              }}
+            >
+              <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '800', marginRight: 6 }}>
+                Awesome, Got It!
+              </Text>
+              <Check size={18} color="#ffffff" strokeWidth={3} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Delete Payment Confirmation Modal Card ── */}
+      <Modal
+        visible={!!deleteTargetInvoice}
+        animationType="fade"
+        transparent
+        onRequestClose={() => !isDeletingInvoice && setDeleteTargetInvoice(null)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(5, 10, 20, 0.85)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 20,
+        }}>
+          <View style={{
+            width: '100%',
+            maxWidth: 390,
+            backgroundColor: '#0f172a',
+            borderRadius: 28,
+            borderWidth: 1.5,
+            borderColor: 'rgba(239, 68, 68, 0.45)',
+            padding: 24,
+            alignItems: 'center',
+            shadowColor: '#ef4444',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.35,
+            shadowRadius: 28,
+            elevation: 24,
+          }}>
+            {/* Halo Icon */}
+            <View style={{
+              width: 76,
+              height: 76,
+              borderRadius: 38,
+              backgroundColor: 'rgba(239, 68, 68, 0.12)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 14,
+              borderWidth: 1.5,
+              borderColor: 'rgba(239, 68, 68, 0.3)',
+            }}>
+              <View style={{
+                width: 54,
+                height: 54,
+                borderRadius: 27,
+                backgroundColor: '#ef4444',
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#ef4444',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.5,
+                shadowRadius: 10,
+                elevation: 8,
+              }}>
+                <Trash2 size={26} color="#ffffff" />
+              </View>
+            </View>
+
+            {/* Status Pill */}
+            <View style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.16)',
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+              borderRadius: 20,
+              marginBottom: 10,
+              borderWidth: 1,
+              borderColor: 'rgba(239, 68, 68, 0.35)',
+            }}>
+              <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                Confirm Deletion
+              </Text>
+            </View>
+
+            <Text style={{
+              color: '#f8fafc',
+              fontSize: 20,
+              fontWeight: '800',
+              textAlign: 'center',
+              marginBottom: 6,
+            }}>
+              Delete Payment Record?
+            </Text>
+
+            <Text style={{
+              color: '#94a3b8',
+              fontSize: 13,
+              textAlign: 'center',
+              lineHeight: 19,
+              marginBottom: 18,
+              paddingHorizontal: 8,
+            }}>
+              Are you sure you want to permanently delete this payment entry from your church's history?
+            </Text>
+
+            {/* Record details */}
+            {deleteTargetInvoice && (
+              <View style={{
+                width: '100%',
+                backgroundColor: '#090e1a',
+                borderRadius: 16,
+                padding: 14,
+                borderWidth: 1,
+                borderColor: '#1e293b',
+                marginBottom: 20,
+                gap: 8,
+              }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '600' }}>Record / Txn ID</Text>
+                  <Text style={{ color: '#f8fafc', fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontWeight: '700' }} numberOfLines={1}>
+                    {deleteTargetInvoice.id?.slice(0, 16) || 'N/A'}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '600' }}>Plan</Text>
+                  <Text style={{ color: '#f8fafc', fontSize: 12, fontWeight: '700' }}>
+                    {deleteTargetInvoice.plan || 'Annual'}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '600' }}>Amount</Text>
+                  <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '800' }}>
+                    ₹{deleteTargetInvoice.amount || 0}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '600' }}>Date</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>
+                    {deleteTargetInvoice.paidAt 
+                      ? ((deleteTargetInvoice.paidAt as any).toDate 
+                          ? (deleteTargetInvoice.paidAt as any).toDate() 
+                          : ((deleteTargetInvoice.paidAt as any).seconds 
+                              ? new Date((deleteTargetInvoice.paidAt as any).seconds * 1000) 
+                              : new Date(deleteTargetInvoice.paidAt as any))
+                        ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+                      : 'N/A'}
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Action Buttons */}
+            <View style={{ flexDirection: 'row', gap: 10, width: '100%' }}>
+              <TouchableOpacity
+                onPress={() => setDeleteTargetInvoice(null)}
+                disabled={isDeletingInvoice}
+                style={{
+                  flex: 1,
+                  paddingVertical: 13,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: 'rgba(255,255,255,0.08)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(255,255,255,0.14)',
+                }}
+              >
+                <Text style={{ color: '#cbd5e1', fontSize: 15, fontWeight: '700' }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={confirmDeleteHistoryItem}
+                disabled={isDeletingInvoice}
+                style={{
+                  flex: 1,
+                  paddingVertical: 13,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  backgroundColor: '#ef4444',
+                  shadowColor: '#ef4444',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 8,
+                  elevation: 6,
+                }}
+              >
+                {isDeletingInvoice ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Trash2 size={16} color="#ffffff" style={{ marginRight: 6 }} />
+                    <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '800' }}>Delete</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── Delete Payment Success Modal Card ── */}
+      <Modal
+        visible={!!deleteSuccessData}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setDeleteSuccessData(null)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(5, 10, 20, 0.85)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 20,
+        }}>
+          <View style={{
+            width: '100%',
+            maxWidth: 390,
+            backgroundColor: '#0f172a',
+            borderRadius: 28,
+            borderWidth: 1.5,
+            borderColor: 'rgba(16, 185, 129, 0.45)',
+            padding: 24,
+            alignItems: 'center',
+            shadowColor: '#10b981',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: 0.35,
+            shadowRadius: 28,
+            elevation: 24,
+          }}>
+            {/* Glowing Dual Halo Rings */}
+            <View style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: 'rgba(16, 185, 129, 0.12)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 16,
+              borderWidth: 1.5,
+              borderColor: 'rgba(16, 185, 129, 0.3)',
+            }}>
+              <View style={{
+                width: 58,
+                height: 58,
+                borderRadius: 29,
+                backgroundColor: '#10b981',
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#10b981',
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.5,
+                shadowRadius: 12,
+                elevation: 10,
+              }}>
+                <CheckCircle size={32} color="#ffffff" strokeWidth={2.6} />
+              </View>
+            </View>
+
+            {/* Glowing Status Pill */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: 'rgba(16, 185, 129, 0.16)',
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+              borderRadius: 20,
+              marginBottom: 12,
+              borderWidth: 1,
+              borderColor: 'rgba(16, 185, 129, 0.35)',
+            }}>
+              <Sparkles size={13} color="#10b981" style={{ marginRight: 6 }} />
+              <Text style={{ color: '#10b981', fontSize: 11.5, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' }}>
+                Record Removed
+              </Text>
+            </View>
+
+            {/* Heading */}
+            <Text style={{
+              color: '#f8fafc',
+              fontSize: 22,
+              fontWeight: '800',
+              textAlign: 'center',
+              marginBottom: 6,
+              letterSpacing: 0.3,
+            }}>
+              Payment Deleted!
+            </Text>
+
+            <Text style={{
+              color: '#94a3b8',
+              fontSize: 13,
+              textAlign: 'center',
+              lineHeight: 19,
+              marginBottom: 20,
+              paddingHorizontal: 10,
+            }}>
+              The payment record has been permanently removed from your church's payment history.
+            </Text>
+
+            {/* Summary Box */}
+            {deleteSuccessData && (
+              <View style={{
+                width: '100%',
+                backgroundColor: '#090e1a',
+                borderRadius: 18,
+                padding: 16,
+                borderWidth: 1,
+                borderColor: '#1e293b',
+                marginBottom: 22,
+                gap: 10,
+              }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '600' }}>Record ID</Text>
+                  <Text style={{ color: '#f8fafc', fontSize: 12, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace', fontWeight: '700' }} numberOfLines={1}>
+                    {deleteSuccessData.id?.slice(0, 16) || 'N/A'}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '600' }}>Amount Deleted</Text>
+                  <Text style={{ color: '#ef4444', fontSize: 14, fontWeight: '800' }}>
+                    ₹{deleteSuccessData.amount || 0}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '600' }}>Church</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '600' }} numberOfLines={1}>
+                    {activeChurch?.name || 'Your Church'}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '600' }}>Status</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <ShieldCheck size={13} color="#10b981" style={{ marginRight: 4 }} />
+                    <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '700' }}>
+                      Ledger Updated
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Done Button */}
+            <TouchableOpacity
+              onPress={() => setDeleteSuccessData(null)}
+              activeOpacity={0.85}
+              style={{
+                width: '100%',
+                backgroundColor: '#10b981',
+                paddingVertical: 14,
+                borderRadius: 14,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                shadowColor: '#10b981',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.35,
+                shadowRadius: 10,
+                elevation: 6,
+              }}
+            >
+              <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '800', marginRight: 6 }}>
+                Done
+              </Text>
+              <Check size={18} color="#ffffff" strokeWidth={3} />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={viewReceiptModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>

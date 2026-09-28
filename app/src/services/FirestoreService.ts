@@ -570,6 +570,145 @@ class FirestoreService {
     }
   }
 
+  /**
+   * Redeem a Voucher Code for a Church
+   * Tries Cloud Function first; if not reachable, runs atomic client Firestore transaction.
+   */
+  async redeemVoucher({
+    code,
+    churchId,
+    churchName,
+    userId,
+    userName,
+  }: {
+    code: string;
+    churchId: string;
+    churchName?: string;
+    userId?: string;
+    userName?: string;
+  }) {
+    const normalizedCode = code.trim().toUpperCase().replace(/\s+/g, '');
+
+    // 1. Try Cloud Function
+    try {
+      const { functions } = require('./firebaseConfig');
+      const redeemFn = functions().httpsCallable('redeemVoucherV1');
+      const response = await redeemFn({
+        code: normalizedCode,
+        churchId,
+        churchName,
+        userId,
+        userName,
+      });
+      if (response?.data) return response.data;
+    } catch (cfError: any) {
+      console.log('Cloud Function unavailable, running atomic client transaction fallback...', cfError?.message);
+    }
+
+    // 2. Client Firestore Atomic Transaction Fallback
+    return await firestore().runTransaction(async (transaction) => {
+      const voucherRef = firestore().collection('vouchers').doc(normalizedCode);
+      const churchRef = firestore().collection('churches').doc(churchId);
+
+      const voucherDoc = await transaction.get(voucherRef);
+      if (!voucherDoc.exists) {
+        throw new Error('Invalid voucher code. Please check and try again.');
+      }
+
+      const voucherData = voucherDoc.data();
+      if (!voucherData) throw new Error('Voucher data is empty.');
+
+      if (voucherData.status === 'redeemed') {
+        throw new Error('This voucher code has already been redeemed.');
+      }
+      if (voucherData.status === 'disabled') {
+        throw new Error('This voucher code has been disabled. Please contact support.');
+      }
+
+      const now = new Date();
+      if (voucherData.voucherExpiryDate) {
+        const expDate = new Date(voucherData.voucherExpiryDate);
+        if (expDate < now) {
+          throw new Error(`This voucher expired on ${expDate.toLocaleDateString()} and cannot be used.`);
+        }
+      }
+
+      const churchDoc = await transaction.get(churchRef);
+      if (!churchDoc.exists) {
+        throw new Error('Church record not found.');
+      }
+
+      const churchData = churchDoc.data();
+      let baseDate = now;
+      const currentValidUntil = churchData?.subscription?.validUntil;
+      const trialEndsAt = churchData?.subscription?.trialEndsAt;
+
+      if (currentValidUntil && new Date(currentValidUntil) > now) {
+        baseDate = new Date(currentValidUntil);
+      } else if (trialEndsAt && new Date(trialEndsAt) > now) {
+        baseDate = new Date(trialEndsAt);
+      } else if (churchData?.createdAt) {
+        const createdDate = churchData.createdAt.toDate ? churchData.createdAt.toDate() : new Date(churchData.createdAt);
+        const trialEnd = new Date(createdDate.getTime() + 60 * 24 * 60 * 60 * 1000);
+        if (trialEnd > now) baseDate = trialEnd;
+      }
+
+      const durationDays = voucherData.durationDays || 365;
+      const newExpiry = new Date(baseDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+      const redemptionDateIso = now.toISOString();
+      const newExpiryIso = newExpiry.toISOString();
+      const transactionId = `VOUCHER_${normalizedCode}_${Date.now()}`;
+
+      // Update Voucher
+      transaction.update(voucherRef, {
+        status: 'redeemed',
+        redeemedAt: redemptionDateIso,
+        redeemedChurchId: churchId,
+        redeemedChurchName: churchName || churchData?.name || 'Church',
+        redeemedByUserId: userId || null,
+        redeemedByUserName: userName || 'Admin',
+      });
+
+      // Update Church
+      transaction.update(churchRef, {
+        'subscription.status': 'active',
+        'subscription.tier': 'premium',
+        'subscriptionTier': 'premium',
+        'subscription.validUntil': newExpiryIso,
+        'subscription.lastVoucherCode': normalizedCode,
+        'subscription.voucherRedeemedAt': redemptionDateIso,
+        'subscription.lastPaymentId': transactionId,
+        'isActive': true,
+      });
+
+      // Add subscription audit record
+      const receiptRef = churchRef.collection('subscriptions').doc(transactionId);
+      transaction.set(receiptRef, {
+        type: 'voucher',
+        voucherCode: normalizedCode,
+        plan: 'annual',
+        amount: 0,
+        status: 'active',
+        durationDays,
+        validUntil: newExpiryIso,
+        paidAt: redemptionDateIso,
+        paymentId: transactionId,
+        redeemedBy: userId || null,
+        redeemedByName: userName || 'Church Admin',
+        notes: `Redeemed Voucher: ${normalizedCode} (${durationDays} Days Subscription)`,
+        platform: 'mobile',
+      });
+
+      return {
+        success: true,
+        message: `Voucher ${normalizedCode} applied successfully! Subscription active until ${newExpiry.toLocaleDateString()}.`,
+        validUntil: newExpiryIso,
+        voucherCode: normalizedCode,
+        durationDays,
+      };
+    });
+  }
+
   // --- 👤 Global User & Member Logic ---
 
   async getGlobalUser(uid: string): Promise<GlobalUser | null> {
