@@ -1310,6 +1310,7 @@ export default function AIContentCreator() {
   // User-editable & auto-selected Theme, Tagline, and Scripture state
   const [customTheme, setCustomTheme]                     = useState('');
   const [customTagline, setCustomTagline]                 = useState('');
+  const [showTagline, setShowTagline]                     = useState(true);
   const [customVerseRef, setCustomVerseRef]               = useState('');
   const [customVerseText, setCustomVerseText]             = useState('');
   const [customVerseEnglishRef, setCustomVerseEnglishRef]   = useState('');
@@ -2755,11 +2756,32 @@ export default function AIContentCreator() {
               />
 
               {/* Tagline / Subtitle Input */}
-              <Text style={styles.fieldLabelSmall}>Tagline / Subtitle (ఉప శీర్షిక)</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <Text style={styles.fieldLabelSmall}>Tagline / Subtitle (ఉప శీర్షిక)</Text>
+                <TouchableOpacity
+                  onPress={() => setShowTagline(prev => !prev)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    backgroundColor: showTagline ? '#EEF2FF' : '#FEE2E2',
+                    borderRadius: 12,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderWidth: 1,
+                    borderColor: showTagline ? '#6366F1' : '#F87171',
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: showTagline ? '#4F46E5' : '#DC2626' }}>
+                    {showTagline ? '👁 Showing' : '🚫 Hidden'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               <TextInput
-                style={styles.themeInput}
+                style={[styles.themeInput, !showTagline && { opacity: 0.4 }]}
                 value={customTagline}
                 onChangeText={setCustomTagline}
+                editable={showTagline}
                 placeholder={language === 'Telugu' ? 'ఉదా. సత్య వాక్య పరిచర్య' : 'e.g. DISCOVER THE WORD'}
                 placeholderTextColor="#9ca3af"
               />
@@ -3023,7 +3045,9 @@ export default function AIContentCreator() {
               const effectiveLocation = location.trim() || activeChurch?.address || (isTelugu ? 'చర్చి ప్రాంగణం' : 'Church Sanctuary');
 
               const effectiveTheme = customTheme.trim() || (isTelugu ? dyn.teluguTitle : dyn.englishTitle);
-              const effectiveTagline = customTagline.trim() || (isTelugu ? (dyn.taglineTelugu || dyn.teluguTitle) : dyn.tagline);
+              const effectiveTagline = showTagline
+                ? (customTagline.trim() || (isTelugu ? (dyn.taglineTelugu || dyn.teluguTitle) : dyn.tagline))
+                : '';
               const effectiveVerseRef = customVerseRef.trim() || (isTelugu ? dyn.verseRefTelugu : dyn.verseRefEnglish);
               const effectiveVerseText = customVerseText.trim() || (isTelugu ? dyn.verseTextTelugu : dyn.verseTextEnglish);
 
@@ -3090,7 +3114,7 @@ export default function AIContentCreator() {
               const speakerFontSize = speakerLen > 26 ? 7.0 : 8.0;
 
               // Church Name calculations
-              const churchNameFontSize = churchName.length > 25 ? 8.2 : 9.5;
+              const churchNameFontSize = churchName.length > 40 ? 6.2 : churchName.length > 30 ? 7.0 : churchName.length > 22 ? 7.8 : 9.0;
 
               // Scripture Verse calculations (Left Column)
               const verseLen = effectiveVerseText.length;
@@ -3560,23 +3584,28 @@ export default function AIContentCreator() {
                           </Text>
                         </View>
 
-                        {/* Bottom Left Sub-text */}
-                        <Text
-                          style={[
-                            styles.thumbLeftFooterTxt,
-                            {
-                              fontFamily: activeTeluguFont,
-                              fontWeight: effectiveFontWeight as any,
-                              fontStyle: effectiveFontStyle as any,
-                              transform: syntheticSkew,
-                            }
-                          ]}
-                          allowFontScaling={false}
-                        >
-                          {isTelugu
-                            ? 'రండి   |   ఆరాధించండి   |   పొందుకోండి   |   దీవించబడండి'
-                            : 'COME   |   WORSHIP   |   RECEIVE   |   BE BLESSED'}
-                        </Text>
+                        {/* Bottom Left Sub-text — single line, pinned to bottom */}
+                        <View style={{ alignSelf: 'stretch', marginTop: 'auto' }}>
+                          <Text
+                            style={[
+                              styles.thumbLeftFooterTxt,
+                              {
+                                fontFamily: activeTeluguFont,
+                                fontWeight: effectiveFontWeight as any,
+                                fontStyle: effectiveFontStyle as any,
+                                transform: syntheticSkew,
+                              }
+                            ]}
+                            numberOfLines={1}
+                            adjustsFontSizeToFit={true}
+                            minimumFontScale={0.5}
+                            allowFontScaling={false}
+                          >
+                            {isTelugu
+                              ? 'రండి | ఆరాధించండి | పొందుకోండి | దీవించబడండి'
+                              : 'COME | WORSHIP | RECEIVE | BE BLESSED'}
+                          </Text>
+                        </View>
                       </View>
 
                       {/* RIGHT COLUMN (62% width): Header, Title, Speaker, Metadata, Phone Bar */}
@@ -4730,7 +4759,7 @@ const styles = StyleSheet.create({
   thumbLeftCol: {
     width: '38%',
     height: '100%',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     paddingRight: 6,
   },
   thumbTopLeftLogoWrap: {
@@ -4755,7 +4784,9 @@ const styles = StyleSheet.create({
   },
   thumbChurchLogoCross: { color: '#fff', fontSize: 13, fontWeight: '800' },
   thumbLeftScriptureBox: {
-    paddingVertical: 2,
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 4,
   },
   thumbLeftScriptureArea: {
     paddingVertical: 2,
@@ -4781,10 +4812,11 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   thumbLeftFooterTxt: {
-    color: 'rgba(255,255,255,0.75)',
-    fontSize: 5.5,
-    letterSpacing: 0.6,
+    color: 'rgba(255,255,255,0.80)',
+    fontSize: 5.2,
+    letterSpacing: 0.4,
     fontWeight: '700',
+    lineHeight: 8,
   },
 
   // Right Column (62% width)

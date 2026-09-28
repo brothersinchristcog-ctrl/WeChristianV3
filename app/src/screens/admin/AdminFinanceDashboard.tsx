@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -84,6 +84,7 @@ export default function AdminFinanceDashboard({ navigation, routeParams }: any) 
   const [isMultiCatSelecting, setIsMultiCatSelecting] = useState(false);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const printBtnRef = useRef(false); // Prevents double-tap on Print button
   // churchProfile replaced by activeChurch
 
   const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
@@ -2071,11 +2072,17 @@ const openAddExpense = () => {
                   <Text style={[styles.invActionBtnTxt, { color: '#ffffff', fontSize: 11 }]}>Save PDF</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.invActionBtn, { flex: 1, backgroundColor: '#e7ebf3', borderWidth: 0 }]} onPress={async () => {
+                  if ((printBtnRef as any).current) return;
+                  (printBtnRef as any).current = true;
                   try {
                     const html = generateInvoiceHtml();
                     await Print.printAsync({ html });
                   } catch (e: any) {
-                    Alert.alert("Print Error", e?.message || "Unknown error");
+                    if (!e?.message?.includes('Another print request')) {
+                      Alert.alert("Print Error", e?.message || "Unknown error");
+                    }
+                  } finally {
+                    (printBtnRef as any).current = false;
                   }
                 }}>
                   <Text style={[styles.invActionBtnTxt, { color: '#1b2a4a', fontSize: 11 }]}>Print</Text>

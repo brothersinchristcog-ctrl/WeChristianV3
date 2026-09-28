@@ -2195,7 +2195,7 @@ export default function HomeScreen() {
             
             <GridItem isDark={isDark} icon={<BookOpen size={26} color="#fff" />} label={t('home.quickBible')} color="#7C3AED" onPress={() => handleGuestProtectedNavigation('Bible')} />
             <GridItem isDark={isDark} icon={<Music size={26} color="#fff" />} label={t('home.quickSongs')} color="#0369a1" onPress={() => handleGuestProtectedNavigation('Songs')} />
-            <GridItem isDark={isDark} icon={<FileText size={26} color="#fff" />} label={t('home.quickSermonNotes')} color="#BE185D" onPress={() => handleGuestProtectedNavigation('MemberNotes')} />
+            <GridItem isDark={isDark} icon={<FileText size={26} color="#fff" />} label={t('home.quickSermonNotes')} color="#854D0E" onPress={() => handleGuestProtectedNavigation('MemberNotes')} />
             <GridItem isDark={isDark} icon={<Award size={26} color="#fff" />} label={t('home.quickBiblePlans')} color="#374151" onPress={() => handleGuestProtectedNavigation('BiblePlans')} />
 
             <GridItem isDark={isDark} icon={<Bell size={26} color="#fff" />} label={t('home.quickUpdates')} color="#0284c7" onPress={() => navigation.navigate('Updates')} />

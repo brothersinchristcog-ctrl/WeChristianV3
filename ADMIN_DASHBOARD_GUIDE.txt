@@ -1,0 +1,581 @@
+=============================================================================================================================
+                           WECHRISTIAN - COMPLETE ADMIN DASHBOARD MASTER MANUAL
+                             EXHAUSTIVE GUIDE FOR EVERY TAB, MODULE & FIELD
+=============================================================================================================================
+
+TABLE OF CONTENTS:
+------------------
+1. OVERVIEW & ACCESS LEVELS (CHURCH ADMIN VS. SUPER ADMIN)
+2. DASHBOARD NAVIGATION & HERO BANNER
+3. CATEGORY 1: CONTENT MANAGEMENT
+   - 3.1 Promises (Daily Promises List)
+   - 3.2 New Promise (Daily Promise Editor)
+   - 3.3 Schedule (Promise Calendar)
+   - 3.4 Sermons (Sermon Video & Audio Archive)
+   - 3.5 New Sermon (Sermon Publisher & Editor)
+   - 3.6 Songs (Church Hymnal & Lyric Editor)
+4. CATEGORY 2: COMMUNITY & MEMBERS
+   - 4.1 Members (Congregation Directory & Household Profiles)
+   - 4.2 Attendance (Service Headcounts & Digital Check-In)
+   - 4.3 Prayers (Prayer Request Moderation & Praise Wall)
+5. CATEGORY 3: EVENTS & CELEBRATIONS
+   - 5.1 Events (Church Calendar & Convention Manager)
+   - 5.2 New Event (Event Creator & RSVP Setup)
+   - 5.3 Pastor Event (Pastor's Private Ministry & Travel Schedule)
+   - 5.4 Celebrations (Automated Member Birthday & Anniversary System)
+   - 5.5 WeCelebrations (AI Theme & WhatsApp Greeting Generator)
+6. CATEGORY 4: AI MINISTRY TOOLS
+   - 6.1 AI Sermon Assistant (Outline, Scripture & Exegesis Generator)
+   - 6.2 AI Thumbnail & Content Creator (Poster & Social Media Graphic Studio)
+7. CATEGORY 5: COMMUNICATION
+   - 7.1 Notifications (Push Notification Broadcast)
+   - 7.2 WhatsApp (Direct Pastoral Chat & Auto-Message Inbox)
+8. CATEGORY 6: CHURCH LEDGER & FINANCES
+   - 8.1 Expense (Church Budget, Receipt Scanning & Ledger)
+   - 8.2 Donations (Tithes, Offerings & 80G Tax Receipts)
+   - 8.3 Subscription (Church Annual Plan, Voucher Redemption & Payment Invoices)
+9. CATEGORY 7: ONLINE MEETINGS & MEDIA
+   - 9.1 Online Meetings (Zoom, Google Meet & YouTube Live Integration)
+   - 9.2 Gallery (Church Albums, Camp Photos & Media Archives)
+10. CATEGORY 8: ADMINISTRATION & SETTINGS
+   - 10.1 Church Settings (Theme Branding, Colors, Logos & Features)
+   - 10.2 Church Branches (Multi-Campus & Satellite Campus Impersonation)
+   - 10.3 About Us (Church History, Statement of Faith & Pastoral Profile)
+   - 10.4 Contact Us (Map Coordinates, Phone, Email & Help Desk)
+11. CATEGORY 9: SUPPORT
+   - 11.1 Support Team (Dedicated Onboarding, Tech & Emergency Contacts)
+12. PART 2: PLATFORM SUPER ADMIN DASHBOARD (APP ADMIN)
+   - 12.1 Churches Manager (All Registered Churches, Tiers & Multi-Church Search)
+   - 12.2 Vouchers Manager (7-Character Captcha Code Generator, PDF Cards & CSV)
+   - 12.3 Master Songs Library (Global Multilingual Hymn Database)
+   - 12.4 Verses & Promises Database (Annual 4-Period Scripture Engine)
+
+
+=============================================================================================================================
+1. OVERVIEW & ACCESS LEVELS (CHURCH ADMIN VS. SUPER ADMIN)
+=============================================================================================================================
+
+WeChristian operates on two distinct administrative tiers:
+
+A. Church Admin / Pastor (`userType = "ADMIN" | "PASTOR"`):
+   - Scope: Restricted exclusively to their own church congregation and its satellite branches.
+   - Purpose: Day-to-day pastoral duties, Sunday services, member communication, attendance, local finances, events.
+
+B. Platform Super Admin (`isPlatformSuperAdmin = true`):
+   - Scope: Platform-wide governance over all churches registered in the WeChristian ecosystem.
+   - Purpose: Manage church subscriptions, create voucher passes, publish master songs, curate global scriptures.
+
+
+=============================================================================================================================
+2. DASHBOARD NAVIGATION & HERO BANNER
+=============================================================================================================================
+
+When an admin logs in, they land on the main Admin Dashboard (`AdminDashboard.tsx`):
+
+A. Hero Banner Section:
+   - Church Logo: Displays the active church's branding circular badge.
+   - Church Name: Bold display of the church congregation.
+   - Subtitle: Dynamic greeting ("Good morning / afternoon / evening, Pastor [Name]").
+   - Impersonation Pill (Multi-Branch Churches): If viewing a branch campus, a top indicator appears:
+     "Viewing Branch: [Branch Name] | [Exit Button]". Tapping Exit safely returns to the main headquarters.
+
+B. Module Cards Grid:
+   - Features rich visual cards organized into 9 color-coded thematic categories.
+   - Full-width hero cards for high-frequency modules (Songs, Members, Subscription, WeCelebrations).
+
+
+=============================================================================================================================
+3. CATEGORY 1: CONTENT MANAGEMENT
+=============================================================================================================================
+
+-----------------------------------------------------------------------------------------------------------------------------
+3.1 PROMISES (DAILY PROMISES LIST - AdminPromiseList.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Manages the daily scripture promises pushed to congregation member home screens every morning and evening.
+
+- Search & Filters:
+  * Search Bar: Filter scriptures by keyword, book name, or Telugu text.
+  * Date Filter: Jump to any specific day of the year.
+- Promise Card Elements:
+  * Scripture Reference: Book, Chapter, Verse (e.g., "Isaiah 40:31" / "యెషయా 40:31").
+  * Scripture Text: Telugu and English scripture promise.
+  * Background Theme: Spiritual aesthetic backdrop selected for that date.
+  * Status Badge: "Scheduled" vs "Published".
+- Card Actions:
+  * Edit (Pencil): Opens the promise in the editor.
+  * Preview (Eye): Simulates how members view it on their phone home screen.
+  * Delete (Trash): Removes the scripture entry.
+
+-----------------------------------------------------------------------------------------------------------------------------
+3.2 NEW PROMISE (PROMISE EDITOR - AdminPromiseEditor.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Form used to draft, design, and schedule a daily scripture.
+
+- Input Fields:
+  * `Schedule Date` (Date Picker): Choose calendar day for publication.
+  * `Time Slot` (Dropdown): Morning Slot (6:00 AM) or Evening Slot (6:00 PM).
+  * `Scripture Reference (English)`: e.g., "Jeremiah 29:11".
+  * `Verse Text (English)`: English scripture text.
+  * `Scripture Reference (Telugu)`: e.g., "యిర్మియా 29:11".
+  * `Verse Text (Telugu)`: Telugu script scripture text.
+  * `Background Artwork Picker`: Select from curated spiritual photo library or upload custom church photo.
+  * `Audio Blessing URL (Optional)`: Link to pastor's short audio voice prayer for the day.
+  * `Publish Immediately Toggle`: Push live now vs keep scheduled.
+- Action Buttons:
+  * "Save Promise": Validates Telugu & English fields and syncs to Firestore.
+  * "Discard": Cancels edits.
+
+-----------------------------------------------------------------------------------------------------------------------------
+3.3 SCHEDULE (PROMISE CALENDAR - AdminPromiseCalendar.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+A full 365-day calendar grid mapping daily promises.
+- Green Dots: Dates with both Morning and Evening promises completed.
+- Yellow Dots: Dates with only one slot filled.
+- Red Dots: Upcoming dates missing scripture promises (alerts pastor to schedule).
+- Tapping any date instantly opens that day's editor.
+
+-----------------------------------------------------------------------------------------------------------------------------
+3.4 SERMONS (SERMON ARCHIVE - AdminSermonList.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Central repository of church video recordings, livestreams, and podcast messages.
+
+- Header Metrics: Total Sermons Published, Total Views, Featured Sermons.
+- Sermon Card Elements:
+  * Video Thumbnail: Auto-fetched from YouTube link or custom church artwork.
+  * Sermon Title: Topic preached (e.g., "Walking in Divine Favor").
+  * Preacher / Speaker Name: Lead pastor, guest speaker, or youth minister.
+  * Service Date: Date sermon was delivered.
+  * Category / Series: e.g., "Faith Series", "Sunday Morning", "Youth Fest".
+  * Platform Badges: YouTube, MP3 Audio, or PDF Notes available.
+- Actions:
+  * Edit: Updates sermon details or video URL.
+  * Feature on App Home: Toggles sermon to member app top carousel.
+  * Delete: Removes sermon from archive.
+
+-----------------------------------------------------------------------------------------------------------------------------
+3.5 NEW SERMON (SERMON EDITOR - AdminSermonEditor.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Form for publishing Sunday sermons and teachings.
+
+- Input Fields:
+  * `Sermon Title` (Required): Catchy, inspirational title.
+  * `Preacher Name` (Required): Speaker's full title & name.
+  * `Sermon Date` (Date Picker): Date service took place.
+  * `Service Type` (Dropdown): Sunday 1st Service, Sunday 2nd Service, Midweek, Youth, Fasting Prayer.
+  * `Bible Passage Reference`: Primary scriptures (e.g., "Romans 8:28-39").
+  * `YouTube / Video Link`: Standard YouTube link (e.g., https://youtu.be/...). Auto-extracts thumbnail and video ID.
+  * `Audio Podcast URL (Optional)`: Direct MP3 link for audio listeners.
+  * `Sermon Outline / Notes`: Pastor's message notes, 3 key points, and application questions.
+  * `Featured Switch`: Highlights on the church app landing screen.
+- Action: "Publish Sermon".
+
+-----------------------------------------------------------------------------------------------------------------------------
+3.6 SONGS (HYMNAL & LYRICS EDITOR - AdminSongEditor.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+The local church worship hymnal. Supplements the platform's global master song library.
+
+- Filters:
+  * Alphabet Ribbon (A-Z + All): Quick indexed search.
+  * Category Selector: Stuthi (Praise), Aradhana (Worship), Offering, Christmas, Easter, Youth, Gospel, Wedding.
+- Song Card Details:
+  * Song Number, English Title, Telugu Script Title, Category Tag, Chord Sheet availability.
+- Add / Edit Song Modal Fields:
+  * `Title (English)`: Romanized song name.
+  * `Title (Telugu)`: Pure Telugu script title.
+  * `Category`: Multi-check tags.
+  * `Scale / Key (Optional)`: Musical scale (e.g., "D Major", "G Minor").
+  * `Tempo / BPM`: Beat tempo (e.g., "85 BPM").
+  * `Song Lyrics`: Complete lyrics with Stanza 1, Chorus, Stanza 2 formatting.
+  * `YouTube Demo URL`: Link to worship reference song.
+
+
+=============================================================================================================================
+4. CATEGORY 2: COMMUNITY & MEMBERS
+=============================================================================================================================
+
+-----------------------------------------------------------------------------------------------------------------------------
+4.1 MEMBERS (CONGREGATION DIRECTORY - AdminMembers.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Core church database tracking every believer, family household, and ministry worker.
+
+- Summary Statistics:
+  * Total Members Count, Active Members, Inactive Members, App Installed Count.
+- Action Bar (⋮ Options Menu):
+  * "Add Member": Manual individual registration form.
+  * "Add From Contacts": Bulk-import members straight from pastor's phonebook.
+  * "Export Members (Excel/CSV)": Downloads member records for offline reporting.
+- Search & Grouping:
+  * Live Search: Instant query by Name, Phone, Village, or Email.
+  * Status Filter Pills: "All", "Active", "Inactive".
+  * Village / Area Filter: Groups believers by local town/colony for cottage prayer cells.
+- Member Profile Fields:
+  * `Full Name` (Required)
+  * `Phone Number` (Required - acts as unique login key)
+  * `City / Village / Colony` (Required for area prayer grouping)
+  * `Email Address` (Optional)
+  * `Role`: "Member", "Admin", "Deacon", "Youth Leader", "Choir", "Sunday School Teacher"
+  * `Date of Birth`: Powers automated birthday celebrations.
+  * `Wedding Anniversary Date`: Powers anniversary greetings.
+  * `Water Baptism Date`: Records spiritual milestone.
+  * `Holy Spirit Baptism (Yes/No)`
+  * `Family Head / Household Link`: Links spouses and children into one family card.
+- Member Card Quick Actions:
+  * Call Icon: One-tap phone dialer.
+  * WhatsApp Icon: Direct WhatsApp chat.
+  * Promote / Demote Admin: Grants or revokes access to the Admin Dashboard.
+  * Delete: Removes member record from church roll.
+
+-----------------------------------------------------------------------------------------------------------------------------
+4.2 ATTENDANCE (SERVICE ATTENDANCE TRACKER - AdminAttendance.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Replaces paper registers with digital service check-ins and demographic headcounts.
+
+- Header Selector:
+  * `Service Date` (Date Picker)
+  * `Service Session` (Dropdown): Sunday Morning 1st Service, 2nd Service, Sunday School, Youth Service, All-Night Prayer.
+- Tracking Modes:
+  * Mode A: Demographic Headcount (Quick Count):
+    - `Men Count` (Numeric +/- stepper)
+    - `Women Count` (Numeric +/- stepper)
+    - `Children Count` (Numeric +/- stepper)
+    - `New Visitors / Guests Count` (Numeric +/- stepper)
+    - `Total Auto-Sum`: Automatically aggregates and plots to weekly growth graphs.
+  * Mode B: Individual Member Check-In:
+    - Member list with quick checkboxes to mark "Present" or "Absent".
+    - Visual attendance percentage for each believer over the last 90 days.
+- Export: Download monthly attendance registers in PDF format for church council records.
+
+-----------------------------------------------------------------------------------------------------------------------------
+4.3 PRAYERS (PRAYER WALL MODERATION - AdminPrayerModeration.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Pastoral triage center for congregation prayer petitions and answered praise reports.
+
+- Tabs: "Pending Review", "Approved & Public", "Pastoral Confidential", "Answered Praises".
+- Prayer Card Fields:
+  * Requester Name & Phone Number.
+  * Submission Timestamp.
+  * Prayer Category: Health / Healing, Financial Deliverance, Family Peace, Job / Career, Marriage, Salvation of Relatives.
+  * Confidentiality Toggle:
+    - "Public Prayer Wall": Visible to congregation for unified intercession.
+    - "Confidential to Pastor": Hidden from public; only pastors and elders can view.
+  * Petition Details: Written prayer description.
+- Action Buttons:
+  * "Approve": Pushes request to the live Prayer Wall.
+  * "Mark Answered (Praise Report)": Highlights the testimony to encourage the church.
+  * "Call / WhatsApp Requester": Direct link to pray with the member over the phone.
+  * "Archive / Dismiss".
+
+
+=============================================================================================================================
+5. CATEGORY 3: EVENTS & CELEBRATIONS
+=============================================================================================================================
+
+-----------------------------------------------------------------------------------------------------------------------------
+5.1 EVENTS (CHURCH CALENDAR - AdminEventList.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Manages church conventions, revivals, camps, and special meetings.
+- Filter: Upcoming Events vs Past Events.
+- Card Elements: Event Banner graphic, Date & Time, Location Venue, Registration Count.
+- Direct link to `EventAttendeesScreen` to view list of members who registered.
+
+-----------------------------------------------------------------------------------------------------------------------------
+5.2 NEW EVENT (EVENT EDITOR - AdminEventEditor.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Form to create and promote a church gathering.
+
+- Input Fields:
+  * `Event Title` (Required): e.g., "Annual Youth Convention 2026".
+  * `Event Category`: Revival Meeting, Fasting Prayer, Camp, Conference, Concert.
+  * `Start Date & Time` (Datetime picker).
+  * `End Date & Time` (Datetime picker).
+  * `Venue / Location`: Church Sanctuary or physical address with Google Maps link.
+  * `Banner Poster Image`: Upload high-resolution promotional flyer.
+  * `Description & Schedule`: Outline of speakers, worship leaders, meal times.
+  * `Enable Registration (RSVP)`:
+    - Toggle on to track attendee headcounts.
+    - `Max Seat Capacity` (Optional limit).
+    - `Food / Accommodation Requirement Checkbox`.
+- Action: "Publish Event".
+
+-----------------------------------------------------------------------------------------------------------------------------
+5.3 PASTOR EVENT (PASTOR'S PRIVATE ITINERARY - PastorEventDashboard.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Personal schedule for the Senior Pastor's external ministerial invitations.
+- Fields: Host Church Name, City/Country, Preaching Dates, Flight/Travel Details, Accommodation, Honorarium notes.
+- Private: Kept confidential from congregation view.
+
+-----------------------------------------------------------------------------------------------------------------------------
+5.4 CELEBRATIONS (MEMBER CELEBRATIONS - AdminCelebrations.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Daily pastoral scanner tracking congregation life milestones.
+- Scans database every morning to detect:
+  * Today's Birthdays
+  * Today's Wedding Anniversaries
+  * Upcoming Milestones (Next 7 Days)
+- One-Tap Greeting Generator:
+  * Generates pre-written pastoral blessings with Bible promises.
+  * One-tap button opens WhatsApp directly with member's personalized greeting.
+
+-----------------------------------------------------------------------------------------------------------------------------
+5.5 WECELEBRATIONS (AI GREETING & FLYER STUDIO - AdminWeCelebrations.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Advanced studio creating luxury digital celebration flyers with member photos.
+- Workflow Steps:
+  1. `Member Picker`: Select birthday/anniversary person.
+  2. `Theme Picker`: Gold Luxury, Royal Ruby, Emerald Blossom, Minimalist Pastel.
+  3. `Photo Picker`: Choose member's profile photo with auto background circle cropping.
+  4. `Verse Picker`: Auto-picks blessing scripture in Telugu & English (e.g., Psalm 20:4, Numbers 6:24).
+  5. `Preview & Share`: Renders a high-resolution flyer image and shares directly to WhatsApp.
+
+
+=============================================================================================================================
+6. CATEGORY 4: AI MINISTRY TOOLS
+=============================================================================================================================
+
+-----------------------------------------------------------------------------------------------------------------------------
+6.1 AI SERMON ASSISTANT (AISermonAssistant.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Artificial Intelligence tool built specifically for biblical preaching and sermon preparation.
+
+- Input Fields:
+  * `Topic or Scripture Passage`: e.g., "Overcoming Fear" or "Psalm 23".
+  * `Sermon Style`: Expository (Verse-by-Verse), Topical, Evangelistic, Youth, Wedding, Funeral.
+  * `Language`: Telugu, English, or Bilingual.
+- AI Generated Outputs:
+  * 3-Point Homiletical Outline with memorable titles.
+  * Biblical Exegesis: Greek/Hebrew word roots, cultural background context.
+  * Opening Illustration: Contemporary real-life sermon illustration.
+  * Supporting Scripture Cross-References.
+  * Practical Congregation Life Application.
+  * Concluding Prayer & Altar Call challenge.
+- Action: Copy full sermon notes or export to PDF.
+
+-----------------------------------------------------------------------------------------------------------------------------
+6.2 AI THUMBNAIL & CONTENT CREATOR (AIContentCreator.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Generative design studio for church media teams.
+- Input Fields:
+  * `Content Type`: YouTube Sermon Thumbnail, Instagram Flyer, Sunday Service Banner.
+  * `Sermon Title & Scripture Text`.
+  * `Pastor Photo Attachment`.
+  * `Style Prompt`: Majestic, Cinematic Lighting, Vibrant Gold, Peaceful Sunset.
+- Action: Produces 3 high-resolution design variants ready for download and social media publication.
+
+
+=============================================================================================================================
+7. CATEGORY 5: COMMUNICATION
+=============================================================================================================================
+
+-----------------------------------------------------------------------------------------------------------------------------
+7.1 NOTIFICATIONS (PUSH BROADCAST - AdminNotificationBroadcast.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Broadcasts push notification alerts to all member mobile devices.
+
+- Input Fields:
+  * `Target Audience`: All Church Members, Admins/Elders Only, Youth Group, Choir.
+  * `Notification Title`: e.g., "Urgent: Fasting Prayer Rescheduled to 6:30 PM".
+  * `Notification Body`: Detailed alert message.
+  * `Deep Link Route (Optional)`:
+    - Directs user upon tap to: "Live Stream", "Sermons", "Events", or "Prayer Wall".
+- Action: "Send Broadcast". Delivered to all registered Android and iOS devices.
+
+-----------------------------------------------------------------------------------------------------------------------------
+7.2 WHATSAPP (DIRECT MESSAGING - AdminWhatsAppInbox.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+WhatsApp Business & Pastoral communication center.
+- Provides one-click WhatsApp chat launch without requiring pastors to save telephone numbers to contacts.
+- Includes pre-made message templates for:
+  * Service Reminders
+  * Pastoral Visitation Appointments
+  * Bereavement & Hospital Condolence Prayers
+  * Tithe / Offering Acknowledgments
+
+
+=============================================================================================================================
+8. CATEGORY 6: CHURCH LEDGER & FINANCES
+=============================================================================================================================
+
+-----------------------------------------------------------------------------------------------------------------------------
+8.1 EXPENSE (EXPENSE TRACKER - AdminFinanceDashboard.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Financial audit ledger tracking all church operational expenditures.
+
+- Top Metrics: Monthly Total Expenses, Budget Remaining, Major Expense Categories.
+- Add Expense Modal Fields:
+  * `Expense Title` (Required): e.g., "Auditorium Electricity Bill".
+  * `Category` (Dropdown):
+    - Building Rent / Mortgage
+    - Utilities (Electricity, Water, Internet)
+    - Pastoral Honorarium & Salaries
+    - Charity & Poor Aid Relief
+    - Media, Sound & Instruments
+    - Travel & Guest Speaker Ministry
+    - Refreshments & Love Feasts
+  * `Amount (₹)` (Numeric)
+  * `Date Paid` (Date Picker)
+  * `Payment Mode`: Cash, UPI / PhonePe / GPay, Bank Wire, Cheque.
+  * `Receipt Voucher Photo`: Camera/Gallery image capture of physical bill.
+  * `Notes / Approved By`: Person authorizing payment.
+- Export: One-click export to CSV / Excel for church annual financial auditing.
+
+-----------------------------------------------------------------------------------------------------------------------------
+8.2 DONATIONS (TITHES & OFFERINGS - DonationsDashboard.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Digital record of church collections and donor contributions.
+
+- Add Donation Record Fields:
+  * `Donor Name`: Church member name or "Anonymous Cash".
+  * `Fund Category`: General Tithes, Sunday Offering, Building Project Fund, Mission & Evangelism, Sunday School.
+  * `Amount (₹)`: Contribution figure.
+  * `Payment Method`: Cash, Online Razorpay, Direct Bank NEFT.
+  * `Receipt Generation`: Generates formal digital receipt with serial number and tax-exempt church seal.
+- Ledger Actions: Search by donor name, date range, or generate annual giving tax statements.
+
+-----------------------------------------------------------------------------------------------------------------------------
+8.3 SUBSCRIPTION (CHURCH SUBSCRIPTION & VOUCHERS - SubscriptionTab.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Governs the church's annual WeChristian platform access license.
+
+- Header Timer Banner:
+  * Dynamic countdown clock: "TIME REMAINING: [Days] DAYS [Hours] HRS [Minutes] MIN [Seconds] SEC".
+- Active Plan Card:
+  * Shows plan rate (₹199 / Year billed yearly) and active features list.
+  * `Current Plan Details Button`: Opens active invoice specification.
+  * `Redeem Voucher Code Button`: Automatically hides while plan is active; appears only when expired or renewal is required!
+- Expired Plan State (If subscription lapsed):
+  * "Renew Subscription": Opens Razorpay payment gateway for instant online renewal.
+  * "Redeem Voucher Code": Opens voucher modal to enter 7-character voucher pass.
+- Payment History Ledger:
+  * Lists all past transactions (Receipt ID, Plan, Date, Amount ₹, Status).
+  * Action Buttons on Each Item:
+    - View Receipt (Eye icon): Opens full-screen branded subscription receipt modal.
+    - Download Receipt (Download icon): Generates official PDF receipt.
+    - Delete Payment (Trash icon):
+      * Triggers custom dark-themed Confirmation Card with halo icon and txn details.
+      * Upon delete, displays celebratory Success Card with green checkmark and updated ledger notice.
+
+
+=============================================================================================================================
+9. CATEGORY 7: ONLINE MEETINGS & MEDIA
+=============================================================================================================================
+
+-----------------------------------------------------------------------------------------------------------------------------
+9.1 ONLINE MEETINGS (VIDEO CONFERENCING - AdminOnlineMeetings.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Scheduled virtual church services, prayer lines, and committee meetings.
+- Fields: Meeting Title, Platform (Zoom, Google Meet, YouTube Live), Meeting ID, Passcode, Direct Join Link, Date & Recurring days.
+- Member view: Features one-tap "Join Meeting" button in the church app.
+
+-----------------------------------------------------------------------------------------------------------------------------
+9.2 GALLERY (CHURCH PHOTO & ALBUM ARCHIVE - gallery/)
+-----------------------------------------------------------------------------------------------------------------------------
+Visual media showcase for church life.
+- Fields: Album Title (e.g., "Youth Camp 2025", "Water Baptisms"), Date, Photo Uploads.
+- Features high-speed thumbnail caching and full-screen pinch-to-zoom for believers.
+
+
+=============================================================================================================================
+10. CATEGORY 8: ADMINISTRATION & SETTINGS
+=============================================================================================================================
+
+-----------------------------------------------------------------------------------------------------------------------------
+10.1 CHURCH SETTINGS (BRANDING & FEATURE TOGGLES - AdminChurchSettings.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Core configuration panel tailoring the WeChristian app to the local church.
+
+- Visual Branding Fields:
+  * `Church Logo URL`: Official church emblem.
+  * `Primary Accent Color`: Brand color theme (e.g., Deep Navy, Emerald Green, Royal Gold).
+  * `Theme Style`: Default dark mode vs warm ivory parchment.
+- Profile Details:
+  * Church Official Name, Registered Address, Contact Mobile, Public Email, Website.
+- Feature Modules Toggles (Enable / Disable):
+  * Toggle Songs Module, Donations, Online Meetings, Prayer Wall, Expense Ledger, AI Tools.
+
+-----------------------------------------------------------------------------------------------------------------------------
+10.2 CHURCH BRANCHES (MULTI-CAMPUS - AdminOrganization.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+For parent churches operating satellite branch campuses.
+- Add Branch Fields: Branch Church Name, Location / Town, Branch Pastor Name, Phone.
+- "View Branch (Impersonate)": Allows headquarters senior pastor to temporarily switch into any satellite branch dashboard to review their local attendance and finances, with an instant exit button back to headquarters.
+
+-----------------------------------------------------------------------------------------------------------------------------
+10.3 ABOUT US & 10.4 CONTACT US EDITORS (AdminAboutUsEditor.tsx, AdminContactUsEditor.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Content management for public information pages displayed in the church app.
+- Fields: Church History, Senior Pastor Biography & Photo, Statement of Faith, Service Timings, Google Maps GPS coordinates, Helpline phone numbers.
+
+
+=============================================================================================================================
+11. CATEGORY 9: SUPPORT
+=============================================================================================================================
+
+-----------------------------------------------------------------------------------------------------------------------------
+11.1 SUPPORT TEAM (AdminSupportTeam.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Dedicated direct access to WeChristian platform engineers, customer support, and billing desk for church onboarding and technical assistance.
+
+
+=============================================================================================================================
+12. PART 2: PLATFORM SUPER ADMIN DASHBOARD (APP ADMIN - SuperAdminDashboard.tsx)
+=============================================================================================================================
+Accessible exclusively to platform owners (`isPlatformSuperAdmin = true`) via the "App Admin" card.
+
+-----------------------------------------------------------------------------------------------------------------------------
+12.1 CHURCHES TAB (SuperAdminChurchManager.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Platform-wide registry of every church organization on WeChristian.
+- Global Search: Filter by church name, subdomain slug, or pastor name.
+- Create Church Modal: Church Name, Tagline, Subdomain (e.g. "bethesda"), Logo.
+- Church Details Modal:
+  * Subscription status, Plan tier, Valid Until expiration date picker.
+  * Active/Inactive master killswitch.
+  * Feature permission flags.
+- Duplicate Scanner: Scans platform to detect duplicate phone numbers across churches with one-click cleanup.
+
+-----------------------------------------------------------------------------------------------------------------------------
+12.2 VOUCHERS TAB (SuperAdminVouchersManager.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Generates, prints, and tracks 1-Year Church Subscription Voucher Passes.
+
+- Code Format (Captcha Style):
+  * Exactly 7 Characters alphanumeric (e.g. `7K8N2XP`, `4M9W3QA`, `8B2P9XM`).
+  * Guaranteed mix of capital letters and numbers.
+  * Uses unambiguous characters (excludes confusing 0/O and 1/I).
+- Single Voucher Modal:
+  * `Voucher Code`: Auto-generate 7-character captcha code or type custom.
+  * `Duration (Days)`: Default 365 (1 year access).
+  * `Voucher Validity (Days)`: Redemption window before code expires.
+  * `Batch Tag`: Optional label.
+- Bulk Voucher Modal:
+  * `Number of Vouchers (1 - 100)`: Batch generate up to 100 unique 7-digit captcha codes.
+  * `Duration Days`: Default 365 days.
+  * `Validity Days`: Claim deadline.
+  * `Batch Tag`: Group name (e.g., "Pastors Conference 2026").
+- Utility Bar:
+  * `Print Cards (PDF)`: Renders printable gold passes with QR code, Play Store URL, and 7-character code.
+  * `Export CSV`: Downloads complete voucher spreadsheet file.
+- Filter Pills (with live counts):
+  * `All (N)`, `Unused (N)`, `Redeemed (N)`, `Expired (N)`, `Disabled (N)`.
+- Card Actions:
+  * Copy Code, Share to WhatsApp, Disable/Enable Toggle, Delete (with custom warning and success modals).
+
+-----------------------------------------------------------------------------------------------------------------------------
+12.3 MASTER SONGS TAB
+-----------------------------------------------------------------------------------------------------------------------------
+Global hymn library automatically shared with all churches.
+- Alphabet Ribbon (A-Z + All) & Bilingual Search (Telugu & English).
+- Add Master Song: Title (English), Title (Telugu), Categories, Lyrics.
+- Bulk Upload: Ingest 500+ hymns at once via CSV / JSON file.
+
+-----------------------------------------------------------------------------------------------------------------------------
+12.4 VERSES TAB (SuperAdminVersesManager.tsx)
+-----------------------------------------------------------------------------------------------------------------------------
+Global 365-day promise engine powering member home screens.
+- Month selector (Jan - Dec) and 4 Daily Periods (Morning, Afternoon, Evening, Night).
+- Fields: English Scripture & Reference, Telugu Scripture & Reference.
+- Bulk JSON payload importer.
+
+=============================================================================================================================
+                                                 END OF MASTER MANUAL
+=============================================================================================================================

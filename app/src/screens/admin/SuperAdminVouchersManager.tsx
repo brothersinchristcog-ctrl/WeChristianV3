@@ -58,15 +58,18 @@ export interface VoucherItem {
 }
 
 function generateRandomCode(): string {
-  const digits = '23456789';
-  const letters = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const currentYear = new Date().getFullYear();
-  const num = digits.charAt(Math.floor(Math.random() * digits.length));
-  let threeLetters = '';
-  for (let i = 0; i < 3; i++) {
-    threeLetters += letters.charAt(Math.floor(Math.random() * letters.length));
+  // Captcha-style: 7 characters total, mixed capital letters and numbers
+  // Uses unambiguous characters (excluding confusing 0/O, 1/I)
+  const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let code = '';
+  for (let i = 0; i < 7; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-  return `WC-${currentYear}-${num}${threeLetters}`;
+  // Guarantee mix of both digits and capital letters
+  if (!/\d/.test(code) || !/[A-Z]/.test(code)) {
+    return generateRandomCode();
+  }
+  return code;
 }
 
 export default function SuperAdminVouchersManager({ searchQuery = '' }: { searchQuery?: string }) {
@@ -1143,9 +1146,10 @@ export default function SuperAdminVouchersManager({ searchQuery = '' }: { search
                 <TextInput
                   value={singleCode}
                   onChangeText={(t) => setSingleCode(t.toUpperCase())}
-                  placeholder="e.g. WC-2026-7ABC"
+                  placeholder="e.g. 7K8N2XP"
                   placeholderTextColor="#64748b"
                   autoCapitalize="characters"
+                  maxLength={12}
                   style={styles.modalInput}
                 />
               </View>
@@ -1223,18 +1227,6 @@ export default function SuperAdminVouchersManager({ searchQuery = '' }: { search
                   keyboardType="numeric"
                   placeholder="10"
                   placeholderTextColor="#64748b"
-                  style={styles.modalInput}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Code Prefix</Text>
-                <TextInput
-                  value={bulkPrefix}
-                  onChangeText={(t) => setBulkPrefix(t.toUpperCase())}
-                  placeholder="WC"
-                  placeholderTextColor="#64748b"
-                  autoCapitalize="characters"
                   style={styles.modalInput}
                 />
               </View>

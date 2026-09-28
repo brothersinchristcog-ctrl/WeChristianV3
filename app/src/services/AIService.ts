@@ -1,7 +1,7 @@
 // ─── AI Engine Configuration ──────────────────────────────────────────────────
 // Primary: Google Gemini Flash (Native Indic/Telugu quality, 100% free on Google AI Studio)
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
-const GEMINI_MODEL   = 'gemini-3.6-flash';
+const GEMINI_MODEL   = 'gemini-2.0-flash';
 const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
 
 // Fallback: Groq (Ultra-fast failover if Gemini is unreachable)
@@ -453,8 +453,8 @@ class AIService {
           systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
           contents: [{ parts: [{ text: userPrompt }] }],
           generationConfig: {
-            maxOutputTokens: 2048,
-            temperature: 0.5,
+            maxOutputTokens: 4096,
+            temperature: 0.7,
           },
         }),
       });
@@ -491,7 +491,7 @@ class AIService {
               { role: 'user',   content: userPrompt },
             ],
             temperature: 0.6,
-            max_tokens: 1200,
+            max_tokens: 3000,
           }),
         });
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -81,6 +81,7 @@ export default function AdminMembers() {
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [editMemberId, setEditMemberId] = useState<string | null>(null);
   const [addMemberLoading, setAddMemberLoading] = useState(false);
+  const isSubmittingRef = useRef(false); // Prevents double-tap race condition
   const [newMemberForm, setNewMemberForm] = useState({
     name: '',
     phone: '',
@@ -275,26 +276,30 @@ export default function AdminMembers() {
     const formattedPhone = `+91${last10}`;
 
     try {
-      setAddMemberLoading(true);
-      
-      const isDuplicate = members.some(member => {
-        // If editing, ignore the current member
-        if (editMemberId && member.id === editMemberId) return false;
-        const mPhoneRaw = (member.phone || '').replace(/\D/g, '');
-        const mPhone10 = mPhoneRaw.slice(-10);
-        return mPhone10 === last10 && mPhone10.length === 10;
-      });
+      // ── Guard: block concurrent submissions (double-tap / fast network race) ──
+      if (isSubmittingRef.current) return;
+      isSubmittingRef.current = true;
 
-      if (isDuplicate) {
-        setAlertConfig({
-          visible: true,
-          title: 'Duplicate Member',
-          message: 'A member with this phone number already exists in this church.',
-          type: 'warning',
-          buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
-        });
-        setAddMemberLoading(false);
-        return;
+      setAddMemberLoading(true);
+
+      // ── Real-time Firestore duplicate check (source of truth, not stale local array) ──
+      if (!editMemberId) {
+        const isDuplicate = await FirestoreService.checkMemberExistsInChurch(
+          activeChurch?.id || '',
+          formattedPhone
+        );
+        if (isDuplicate) {
+          setAlertConfig({
+            visible: true,
+            title: 'Duplicate Member',
+            message: 'A member with this phone number already exists in this church.',
+            type: 'warning',
+            buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+          });
+          setAddMemberLoading(false);
+          isSubmittingRef.current = false;
+          return;
+        }
       }
 
       let res;
@@ -395,6 +400,7 @@ May God bless you abundantly! ❤️`;
       });
     } finally {
       setAddMemberLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 

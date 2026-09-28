@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -322,7 +322,11 @@ export default function AdminPrayerModeration() {
 
   const [pdfFilter, setPdfFilter] = useState<'all' | 'pending' | 'answered'>('all');
 
+  const isPdfExportingRef = useRef(false);
+
   const exportPrayersToPDF = async (filter: 'all' | 'pending' | 'answered' = pdfFilter) => {
+    if (isPdfExportingRef.current) return;
+    isPdfExportingRef.current = true;
     try {
       const today = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' });
       const logoHtml = churchLogo
@@ -413,9 +417,13 @@ export default function AdminPrayerModeration() {
         mimeType: 'application/pdf',
         dialogTitle: fileName,
       });
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      Alert.alert('Error', 'Failed to generate PDF.');
+    } catch (error: any) {
+      if (!error?.message?.includes('Another print request')) {
+        console.error('Error generating PDF:', error);
+        Alert.alert('Error', 'Failed to generate PDF.');
+      }
+    } finally {
+      isPdfExportingRef.current = false;
     }
   };
 

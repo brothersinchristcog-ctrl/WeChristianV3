@@ -1,185 +1,208 @@
 =============================================================================================================================
-                           WECHRISTIAN - COMPLETE HOW-TO GUIDE: EVENTS & NEW EVENTS
+                           WECHRISTIAN - COMPLETE HOW-TO GUIDE: CHURCH EVENTS & CONVENTIONS
+                             EXHAUSTIVE GUIDE FOR EVERY TAB, SCREEN, FIELD & ACTION
 =============================================================================================================================
 
 
-HOW TO MANAGE EVENTS FROM THE ADMIN DASHBOARD (AdminEventList.tsx)
-=================================================================
+HOW TO CREATE, PROMOTE & MANAGE CHURCH EVENTS FROM THE ADMIN DASHBOARD
+======================================================================
 
-1. Accessing Events
--------------------
-From the main Admin Dashboard, scroll to the "Events & Celebrations" section and tap "Events".
-- Hero Header: Displays your total event count, upcoming events count, a "Back" button, and a "+ New" button.
-- Tapping "+ New" directly opens the "New Event" editor.
-
-
-2. Live Event Counters & Filter Tabs
-------------------------------------
-At the top of the Events screen, three interactive cards allow you to instantly filter your church calendar:
-- "Published" (Green): Shows all currently published and active events visible to your congregation.
-- "Upcoming" (Red): Shows all future scheduled church services, prayer meetings, and special conventions.
-- "Past Events" (Navy): Shows all completed services and events for historical records.
-
-
-3. Event Card Information & Actions
------------------------------------
-Every event in the list displays a rich summary card:
-- Banner Thumbnail: Displays the uploaded event poster or banner image (with fallback theme color).
-- Event Title: Shows both English title and Telugu title.
-- Date & Time:
-  * Calendar Date: Formatted clearly in `DD-MM-YYYY` format with red calendar icon.
-  * Time Window: Formatted in standard 12-hour format with AM/PM (e.g., `09:30 AM — 01:00 PM`).
-- Venue / Location: Displays the church hall, auditorium, or village location with map pin.
-- Status Badge: Displays `PUBLISHED` (green badge) or `DRAFT` (amber badge).
-- Actions:
-  * "Edit": Opens the event with all its fields loaded into the New Event editor.
-  * "Del" (Trash Icon): Opens the deletion confirmation dialog.
-
-
-4. Recurring Event Deletion Safety
-----------------------------------
-When deleting a recurring event (such as a weekly Sunday service):
-- The system recognizes that it is part of a recurring series.
-- You are offered two safe choices:
-  1. "Only this event": Deletes only that specific date occurrence.
-  2. "This and future events": Deletes this and all subsequent future occurrences while preserving past records!
-- A confirmation toast appears once the event is safely removed from Firestore.
-
+1. Starting the Process
+-----------------------
+From the main Admin Dashboard, look under the "Events & Celebrations" category:
+- You will see the "Events" card with a calendar badge.
+- Tapping "Events" opens the Church Events Management Center (`AdminEventList.tsx`).
+- In addition, you have companion modules:
+  * "New Event" (`AdminEventEditor.tsx`): The complete event creation, RSVP setup, and promotional studio.
+  * "Pastor Event" (`PastorEventDashboard.tsx`): Confidential itinerary management for the Senior Pastor's external ministerial invitations.
 
 
 =============================================================================================================================
+2. EVENT LIST SCREEN (AdminEventList.tsx) - CALENDAR ARCHIVE & METRICS
+=============================================================================================================================
 
+When you open the Events tab, you land on the Events Management Center:
 
+A. Header Statistics Bar:
+   - "Upcoming Events": Total scheduled church conventions, camps, and revivals awaiting their date.
+   - "Past Events": Complete historical register of past church gatherings.
 
-HOW TO CREATE & PUBLISH IN "NEW EVENT" (AdminEventEditor.tsx)
-============================================================
+B. Filter Pills:
+   - `Upcoming`: Displays all future events sorted chronologically (soonest first).
+   - `Past`: Displays completed events and conventions.
+   - `Published`: Shows all live events visible to church believers.
 
-1. Accessing New Event
-----------------------
-You can open the editor in two ways:
-- Tap the "+ New" button at the top of the "Events" screen.
-- Tap the "New Event" card on the Admin Dashboard under "Events & Celebrations".
+C. Event Card Details:
+   - Promotional Banner Poster: 16:9 high-resolution flyer image.
+   - Event Title: Displayed boldly in English and Telugu.
+   - Date Badge (Calendar icon): Shows event date formatted as DD-MM-YYYY (e.g., "15-10-2026").
+   - Time Badge (Clock icon): Start and end times formatted in 12-hour AM/PM (e.g., "06:30 PM - 09:30 PM").
+   - Location / Venue Badge (MapPin icon): Physical church auditorium or venue address.
+   - Registered Attendees Pill (Users icon): Displays live count of member RSVPs (e.g., "👥 142 Registered").
 
-
-2. Section 1: Event Details
----------------------------
-- Event Title — English (Required *):
-  * The primary name of the event (e.g., "Easter Resurrection Sunday Service", "Youth Revival Camp 2026", "All Night Prayer").
-- Event Title — Telugu (Optional):
-  * Telugu title for local believers (e.g., "ఈస్టర్ పునరుత్థాన ఆరాధన", "యువజన పునరుజ్జీవ సభలు").
-- Event Type Dropdown:
-  * Sunday Service · ఆదివారం సేవ
-  * Bible study · బైబిల్ అధ్యయనం
-  * Women's Fasting Prayer · మహిళల ఉపవాస ప్రార్థన
-  * Prayer Meeting · ప్రార్థన సభ
-  * Youth Event · యువత కార్యక్రమం
-  * Women's Ministry · స్త్రీల మంత్రిత్వం
-  * Fasting Prayer · ఉపవాస ప్రార్థన
-  * Special Service · ప్రత్యేక సేవ
-  * Conference · సదస్సు
-  * Outreach · సేవా కార్యక్రమం
-  * Other · ఇతర
-- Description (English & Telugu):
-  * Detailed schedule, guest pastors, choir specials, fasting details, or theme scriptures.
-
-
-3. Section 2: Date & Schedule (One-Time or Automated Recurring)
-----------------------------------------------------------------
-- Start Date & End Date (Required *):
-  * Tap the calendar field to pick start and end dates via the native calendar picker.
-  * Supports multi-day conventions, camps, and single-day services.
-- Start Time & End Time (Required *):
-  * Tap to select start time (e.g., `09:30 AM`) and closing time (e.g., `12:30 PM`).
-- Recurring Options (Smart Automation):
-  * "One-time event": Standard single event.
-  * "Every Sunday": Automatically generates every Sunday service for your church!
-  * "Every week (specify day)": Generates weekly cottage prayer or choir practice.
-  * "First Sunday of every month": Perfect for monthly communion or blessing services.
-  * "Monthly (same date)": Generates monthly recurring fasting prayer.
-- Recurrence Duration:
-  * Select how far in advance to generate: For 1 month, 2 months, 3 months, 6 months, or 1 year.
-  * The system automatically generates and batches all future calendar dates into the database with a linked `recurringGroupId`.
-
-
-4. Section 3: Venue & Location
-------------------------------
-- Venue Name — English (Required *): (e.g., "Main Sanctuary", "Bethel Prayer Hall", "Calvary Camp Grounds").
-- Venue Name — Telugu: (e.g., "ప్రధాన ఆరాధన మందిరం").
-- Full Address: Street address, area, and city. This connects directly to the "View on Maps" button in the member app!
-- Event Mode: Select between "In person", "Online", or "Hybrid".
-
-
-4. Section 4: Event Banner & Poster
------------------------------------
-- Pick from Gallery / Files: Upload high-resolution 16:9 banner posters directly to Cloud Storage.
-- Paste Image URL: Or paste a direct public image link (CDN, web link, JPG, PNG, WEBP).
-- Full 16:9 Live Preview: Shows the widescreen poster preview with loading spinner, validation, "Change", and "Remove" controls.
-
-
-5. Section 5: Automated Push Notifications
-------------------------------------------
-- "Notify members when published" (Toggle):
-  * When switched ON, publishing the event automatically broadcasts a rich push notification to all congregation members with the title, date, time, and venue!
-- "Send reminder 1 day before" (Toggle): Sends an automatic reminder 24 hours prior.
-- "Send reminder 1 hour before" (Toggle): Sends an urgent 60-minute reminder so believers don't miss service.
-
-
-6. Section 6: Saving & Publishing
----------------------------------
-- "Save as Draft": Saves the event in draft mode. Only visible to church admins; members cannot see it yet.
-- "Publish Event": Instantly publishes the event to the church app, updates the church calendar, and broadcasts push notifications!
-- Success Modal: Gives two fast options: "View Event List" or "Create Another".
-
+D. Action Buttons on Each Event Card:
+   - View Attendees (Tap Attendees Count): Opens `EventAttendeesScreen` displaying the full attendee roster!
+   - Edit Event (Pencil icon): Loads the event into the editor to update dates, banners, or capacity.
+   - Delete Event (Trash icon):
+     * Single Event: Deletes the selected meeting.
+     * Recurring Event: Prompts whether to delete "Only this event" or "All future recurring events".
+     * Shows a confirmation toast upon successful removal.
 
 
 =============================================================================================================================
+3. NEW EVENT STUDIO (AdminEventEditor.tsx) - COMPLETE FIELD-BY-FIELD GUIDE
+=============================================================================================================================
+
+When you tap "+ New Event" or edit an existing gathering, the Event Studio opens. It is organized into 9 comprehensive sections:
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 1: EVENT TITLE & BILINGUAL DETAILS
+-----------------------------------------------------------------------------------------------------------------------------
+- `Event Title (English)` (Required):
+  * Primary promotional title (e.g., "Annual Holy Spirit Revival Convention 2026").
+- `Event Title (Telugu)` (Optional but recommended):
+  * Title in Telugu script (e.g., "వార్షిక పరిశుద్ధాత్మ పునరుజ్జీవన సదస్సు 2026").
+- `Description / Purpose (English)`:
+  * Full convention schedule, guest speaker lineup, fasting prayer timings, meal arrangements.
+- `Description / Purpose (Telugu)`:
+  * Telugu explanation of the spiritual theme and blessing.
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 2: 11 CHURCH EVENT TYPES (DROPDOWN)
+-----------------------------------------------------------------------------------------------------------------------------
+Categorize your event under standard church gatherings:
+1. `Sunday Service · ఆదివారం సేవ`
+2. `Bible study · బైబిల్ అధ్యయనం`
+3. `Women's Fasting Prayer · మహిళల ఉపవాస ప్రార్థన`
+4. `Prayer Meeting · ప్రార్థన సభ`
+5. `Youth Event · యువత కార్యక్రమం`
+6. `Women's Ministry · స్త్రీల మంత్రిత్వం`
+7. `Fasting Prayer · ఉపవాస ప్రార్థన`
+8. `Special Service · ప్రత్యేక సేవ` (Communion, Watchnight, New Year)
+9. `Conference · సదస్సు` (Annual Leadership Summit, Pastor's Meet)
+10. `Outreach · సేవా కార్యక్రమం` (Gospel Crusades, Medical Camp, Village Ministry)
+11. `Other · ఇతర` (Custom church celebration)
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 3: SCHEDULE, DATES & MULTI-DAY RECURRENCE
+-----------------------------------------------------------------------------------------------------------------------------
+- `Start Date` (Date Picker): Day the convention begins (`DateTimePickerModal`).
+- `End Date` (Date Picker): Day the convention concludes (for 3-day or week-long revivals).
+- `Start Time` (Time Picker): Opening session timing (e.g., "06:30 PM").
+- `End Time` (Time Picker): Closing benediction timing (e.g., "09:30 PM").
+- `Recurring Event Options`:
+  * "One time event" (Standard conference)
+  * "Every Sunday" (Automates Sunday service creation)
+  * "Every week" (Weekly prayer cell)
+  * "First Sunday of every month" (Monthly Communion / Fasting service)
+  * "Monthly (same date)"
+- `Recurrence Duration`: Auto-generates meetings for: 1 Month, 2 Months, 3 Months, 6 Months, or 1 Year.
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 4: VENUE, LOCATION & MAP INTEGRATION
+-----------------------------------------------------------------------------------------------------------------------------
+- `Meeting Mode`:
+  * "In person": Physical church gathering.
+  * "Online": Virtual meeting via Zoom / Google Meet / YouTube Live.
+  * "Hybrid": Simultaneous physical service with online broadcast.
+- `Venue Name (English)`: e.g., "Bethesda Prayer City Auditorium".
+- `Venue Name (Telugu)`: e.g., "బెతెస్థా ప్రార్థన మందిరం".
+- `Physical Street Address`: Complete address with street, colony, city, and pin code.
+  * In the mobile app, members can tap the address to open Google Maps for turn-by-turn driving directions!
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 5: PROMOTIONAL COVER POSTER / BANNER
+-----------------------------------------------------------------------------------------------------------------------------
+- `Upload Custom Banner Poster`:
+  * Tap the image picker to upload a high-resolution 16:9 banner flyer from your phone gallery.
+  * Uploads to Firebase Storage under `churches/{churchId}/events/banners/`.
+- `Preset Banner Colors`: Pick a fallback color theme (Crimson, Deep Navy, Royal Emerald, Royal Gold) if no graphic banner is attached.
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 6: RSVP, ATTENDEE CAPACITY & LOGISTICS
+-----------------------------------------------------------------------------------------------------------------------------
+Control registrations and logistics for large conventions:
+- `Enable Member RSVP (Toggle)`:
+  * When enabled, members see a "Register for Event" button in the app.
+- `Public Attendee List (Toggle)`:
+  * Public: Members can see friends and fellow believers attending.
+  * Private: Only pastors and ushers can see the registration list.
+- `Cap Attendance / Seat Limit (Toggle)`:
+  * If the auditorium has limited seating (e.g., 500 seats), set the maximum limit.
+  * When full, the app shows "House Full / Registrations Closed".
+- `Target Audience`:
+  * "All members", "Youth only", "Women only", or "Leaders / Volunteers only".
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 7: AUTOMATED REMINDERS & PUSH BROADCAST
+-----------------------------------------------------------------------------------------------------------------------------
+- `Notify on Publish (Toggle)`:
+  * When enabled, publishing the event instantly sends a push broadcast to all member devices:
+    "📢 New Church Event: [Event Title] on [Date] at [Venue]. Tap to register!"
+- `1-Day Prior Reminder (Toggle)`:
+  * Sends an automated reminder 24 hours before the event starts.
+- `1-Hour Prior Reminder (Toggle)`:
+  * Sends a final notification 60 minutes before start time so believers leave home on time.
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 8: PUBLICATION STATUS & SAVING
+-----------------------------------------------------------------------------------------------------------------------------
+- `Publish now — Visible to all members`: Goes live immediately in the church calendar.
+- `Schedule — Auto-publish`: Automatically becomes visible on a future release date.
+- `Draft — Not visible to members`: Kept private for church planning committee review.
+
+Action Buttons:
+- "Save Event" (Primary Green Button): Validates entries, uploads assets, and saves to Firestore.
+- "Cancel / Back": Safely returns to the events list without saving.
 
 
+=============================================================================================================================
+4. EVENT ATTENDEES TRACKER (EventAttendeesScreen.tsx)
+=============================================================================================================================
 
-HOW CONGREGATION MEMBERS EXPERIENCE EVENTS IN THE APP (EventsScreen.tsx & EventDetailsScreen.tsx)
-=================================================================================================
-
-1. Events Screen (`EventsScreen.tsx`)
-------------------------------------
-- Filter Tabs: Members can switch between "This Week", "Upcoming", and "Past".
-- Urgency Badges: Shows dynamic relative time pills:
-  * `TODAY` (Bright Red)
-  * `TOMORROW` (Vibrant Blue)
-  * `YESTERDAY` (Slate)
-- Event Card: Displays the banner picture, bilingual title, start time, end time, and location pin.
-- Tap to Open: Tapping any card opens the comprehensive Event Details Hub.
-
-
-2. Dynamic Live Status Engine (`EventDetailsScreen.tsx`)
---------------------------------------------------------
-The event details screen dynamically changes based on the exact current time:
-
-A. UPCOMING Service (Before start time):
-   - Shows blue `UPCOMING` badge.
-   - Displays a locked countdown card: "Event Has Not Started Yet — Scheduled for [Date] at [Time]".
-   - Informs members: "The recording will be available here after the event ends."
-
-B. LIVE NOW Service (During service hours):
-   - Shows flashing red `● LIVE NOW` badge with live radio icon.
-   - Displays a bold red banner: "This event is happening RIGHT NOW!"
-   - Shows high-visibility "● JOIN LIVE STREAM" button.
-   - Tapping opens the church's YouTube live stream directly!
-
-C. COMPLETED Service (After service finishes):
-   - Shows green `COMPLETED` badge.
-   - Automated Video Detection: Automatically connects with the church's YouTube channel, locates the sermon recording for that event date, and embeds the YouTube video player right inside the app!
-   - Members who missed Sunday service can watch the full recorded sermon replay without leaving the app!
+Tapping the "👥 Registered" count on any event card opens the Attendee Roster:
+- `Live Headcount`: Total registered believers, total adults, and total children.
+- `Member Roster`:
+  * Believer Name and profile avatar.
+  * Mobile phone number with one-tap Call and WhatsApp buttons.
+  * Registration timestamp.
+  * Special Logistics notes (e.g., "Needs dormitory stay", "Vegetarian food requested").
+- `Export Roster`: One-click export to Excel / CSV for reception registration desks!
 
 
-3. Pastoral Connection & Interaction
-------------------------------------
-- Location & Navigation:
-  * Displays full address with a one-tap "View on Maps →" button that launches Google Maps navigation directly to the church entrance.
-- Bilingual Date Translation:
-  * Displays date in English and Telugu (e.g., "మార్చి 15, 2026").
-- RSVP ("I AM INTERESTED"):
-  * Members tap the bottom action button to confirm their attendance.
-- Share Button:
-  * Tapping the top share icon launches the native phone share sheet to share the event invitation via WhatsApp, Telegram, or SMS.
+=============================================================================================================================
+5. PASTOR EVENT DASHBOARD (PastorEventDashboard.tsx)
+=============================================================================================================================
 
+Accessible under "Pastor Event" in the Admin Dashboard:
+- Designed exclusively for the Senior Pastor's external ministerial travels and guest speaking invitations.
+- Fields:
+  * Host Church / Organization Name.
+  * Host Pastor Contact & Phone.
+  * City, State & Country.
+  * Preaching Itinerary & Dates.
+  * Flight / Train Booking details.
+  * Hotel Accommodation & Driver information.
+  * Confidential Honorarium notes.
+- Kept 100% confidential and hidden from general congregation view.
+
+
+=============================================================================================================================
+6. HOW CONGREGATION MEMBERS EXPERIENCE EVENTS IN THE APP
+=============================================================================================================================
+
+When church believers open the "Events" tab on their mobile app:
+1. Visual Event Calendar:
+   - High-resolution banners, dates, and countdown timers (e.g., "Starting in 3 Days").
+2. One-Tap RSVP:
+   - Tap "I Will Attend" to confirm their seat.
+3. Turn-by-Turn GPS Navigation:
+   - Tap the venue address to launch Google Maps directly to the event parking lot.
+4. Add to Personal Phone Calendar:
+   - Believers can sync the event to their Google or Apple Calendar with alarms.
+5. WhatsApp Sharing:
+   - Forward the event poster with registration links to friends and family.
+
+=============================================================================================================================
+                                                 END OF EVENTS MANUAL
 =============================================================================================================================

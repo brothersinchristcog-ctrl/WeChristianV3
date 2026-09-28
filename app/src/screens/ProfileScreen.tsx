@@ -404,7 +404,6 @@ export default function ProfileScreen({ navigation }: any) {
 
           {/* Name + Greeting */}
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 20, color: '#a78bfa', fontStyle: 'italic', fontWeight: '400', marginBottom: 2 }}>{t('profile.welcomeBack')}</Text>
             <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', lineHeight: 28 }}>
               {member?.firstName ? `${member.firstName} ${member.lastName || ''}` : member?.name || user?.displayName || 'Beloved Member'}
             </Text>
@@ -794,33 +793,48 @@ export default function ProfileScreen({ navigation }: any) {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.langList}>
-              {languages.map((lang) => (
-                <TouchableOpacity 
-                  key={lang.code}
-                  style={[
-                    styles.langItem, 
-                    language === lang.code && styles.langItemActive
-                  ]}
-                  onPress={() => {
-                    setLanguage(lang.code);
-                    setTimeout(() => setIsLanguageModalVisible(false), 200);
-                  }}
-                >
-                  <View>
-                    <Text style={[
-                      styles.langName,
-                      language === lang.code && styles.langTextActive
-                    ]}>{lang.nativeName}</Text>
-                    <Text style={styles.langNative}>{lang.name}</Text>
-                  </View>
-                  {language === lang.code && (
-                    <Check size={20} color="#1a2d5a" />
-                  )}
-                </TouchableOpacity>
-              ))}
-              <View style={{ height: 20 }} />
-            </View>
+            <ScrollView style={{ maxHeight: 400 }} showsVerticalScrollIndicator={false} bounces={false}>
+              <View style={styles.langList}>
+                {languages.map((lang) => (
+                  <TouchableOpacity 
+                    key={lang.code}
+                    style={[
+                      styles.langItem, 
+                      language === lang.code && styles.langItemActive
+                    ]}
+                    onPress={() => {
+                      setLanguage(lang.code);
+                      setTimeout(() => setIsLanguageModalVisible(false), 200);
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={[
+                        { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center' },
+                        language === lang.code
+                          ? { backgroundColor: '#1a2d5a' }
+                          : { backgroundColor: '#f1f5f9' }
+                      ]}>
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: language === lang.code ? '#fff' : '#64748b' }}>
+                          {lang.nativeName.charAt(0)}
+                        </Text>
+                      </View>
+                      <View>
+                        <Text style={[
+                          styles.langName,
+                          language === lang.code && styles.langTextActive
+                        ]}>{lang.nativeName}</Text>
+                        <Text style={styles.langNative}>{lang.name}</Text>
+                      </View>
+                    </View>
+                    {language === lang.code && (
+                      <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#1a2d5a', justifyContent: 'center', alignItems: 'center' }}>
+                        <Check size={14} color="#fff" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
           </View>
         </View>
       )}
@@ -1172,13 +1186,14 @@ const styles = StyleSheet.create({
   versionTxt: { textAlign: 'center', fontSize: 11, color: '#cbd5e1', marginTop: 40 },
 
   // Language Modal
-  langList: { gap: 12 },
+  langList: { gap: 6 },
   langItem: { 
     flexDirection: 'row', 
     alignItems: 'center', 
     justifyContent: 'space-between', 
-    padding: 18, 
-    borderRadius: 15, 
+    paddingVertical: 10,
+    paddingHorizontal: 14, 
+    borderRadius: 12, 
     backgroundColor: '#f8fafc',
     borderWidth: 1.5,
     borderColor: '#e2e8f0'
@@ -1187,9 +1202,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#eff6ff', 
     borderColor: '#1a2d5a' 
   },
-  langName: { fontSize: 16, fontWeight: '700', color: '#1e293b' },
+  langName: { fontSize: 15, fontWeight: '700', color: '#1e293b' },
   langTextActive: { color: '#1a2d5a' },
-  langNative: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  langNative: { fontSize: 11, color: '#64748b', marginTop: 1 },
 
   // Notification Modal
   notifyList: { gap: 16 },

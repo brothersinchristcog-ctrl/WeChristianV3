@@ -1089,7 +1089,7 @@ export default function SubscriptionTab({ member }: { member?: any }) {
               <TextInput
                 value={voucherCodeInput}
                 onChangeText={(text) => setVoucherCodeInput(text.toUpperCase())}
-                placeholder="e.g. WC-2026-7ABC"
+                placeholder="e.g. 7K8N2XP"
                 placeholderTextColor="#64748b"
                 autoCapitalize="characters"
                 autoCorrect={false}

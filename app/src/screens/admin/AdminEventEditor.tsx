@@ -375,9 +375,21 @@ export default function AdminEventEditor() {
         try {
           const { getFirestore } = require('@react-native-firebase/firestore');
           const churchId = await FirestoreService.getChurchId();
-          await FirestoreService.createNotificationBroadcast({
+           const formatDisplayDate = (d: string) => {
+              try {
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const parts = d.split('-');
+                if (parts.length === 3 && parts[0].length === 4) {
+                  return `${parseInt(parts[2])} ${months[parseInt(parts[1]) - 1]} ${parts[0]}`;
+                }
+                return d;
+              } catch { return d; }
+            };
+            const displayDate = formatDisplayDate(sfDate);
+            const displayEndDate = formatDisplayDate(sfEndDate);
+           await FirestoreService.createNotificationBroadcast({
             title: `📅 New Event: ${titleEn}`,
-            content: `Join us for "${titleEn}" from ${sfDate} to ${sfEndDate} at ${startTime}${venueEn ? ` · ${venueEn}` : ''}. ${descEn ? descEn.substring(0, 100) : ''}`,
+            content: `Join us for "${titleEn}" from ${displayDate} to ${displayEndDate} at ${startTime}${venueEn ? ` · ${venueEn}` : ''}. ${descEn ? descEn.substring(0, 100) : ''}`,
             type: eventType,
             date: sfDate,
             endDate: sfEndDate,

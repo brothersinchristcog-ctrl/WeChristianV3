@@ -1,0 +1,544 @@
+================================================================================
+WECHRISTIAN ADMIN DASHBOARD - CELEBRATIONS SYSTEM MANUAL
+================================================================================
+Document: CELEBRATIONS_GUIDE.txt
+Module: Celebrations (Birthdays, Wedding & Baptism Anniversaries)
+Platform: WeChristian Mobile & Admin Ecosystem
+Location: app/src/screens/admin/AdminCelebrations*.tsx
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1.  MODULE OVERVIEW & PASTORAL PURPOSE
+2.  NAVIGATION & SCREEN STATE MACHINE
+3.  CELEBRATIONS DASHBOARD (AdminCelebrations.tsx)
+    3.1 Header & Hero Navigation
+    3.2 "This Season" Stats Card (Total, Today, This Week)
+    3.3 Date Range Filter Buttons (Today, Upcoming, Week, Month, Past, All)
+    3.4 Category Filter Pills (All, Birthday, Wedding, Baptism)
+    3.5 Embedded Member List Container
+4.  MEMBER CELEBRATION DIRECTORY (AdminCelebrationsList.tsx)
+    4.1 Search Engine & Dynamic Matching
+    4.2 Member Card Anatomy (Photo, Name, Age Milestone, Tag)
+    4.3 "Auto-Send All" Mass Push Broadcast Engine
+    4.4 Confirmation & Success Modal Dialogs
+5.  MEMBER CELEBRATION PROFILE (AdminCelebrationsMemberDetails.tsx)
+    5.1 Large Profile Avatar & Milestone Badge
+    5.2 Information Grid (Celebration Date, Turning Age, Ministry, Family)
+    5.3 WhatsApp & Phone Routing (Direct vs Parent Reference for Kids)
+    5.4 "Prepare Wish" Initiation Action
+6.  PERSONALIZE WISH STUDIO (AdminCelebrationsPersonalize.tsx)
+    6.1 Layout Toggle (Theme & Circle Photo vs Full Photo)
+    6.2 Quick Customization Cards (Theme, Photo, Bible Verse)
+    6.3 Card Overlays (Title Overlay & Name Overlay)
+    6.4 Auto-Generated Greeting Message & Custom Text Editor
+    6.5 "Preview Greeting" Action
+7.  THEME LIBRARY & DESIGN STUDIO
+    7.1 Built-in Theme Catalog (AdminCelebrationsThemePicker.tsx)
+    7.2 Custom Theme Designer (AdminCelebrationsCustomTheme.tsx)
+    7.3 30-Preset Palette & Custom Image Upload (Firebase Storage)
+    7.4 Theme Persistence & Long-Press Deletion
+8.  SCRIPTURE BLESSING PICKER (AdminCelebrationsVersePicker.tsx)
+    8.1 Bilingual Toggle: English vs Telugu (తెలుగు)
+    8.2 Birthday Blessings Library (30 English & 30 Telugu Verses)
+    8.3 Wedding Anniversary Library (30 English & 30 Telugu Verses)
+    8.4 Baptism Anniversary Library (30 English & 30 Telugu Verses)
+9.  PHOTO SELECTION & CROPPING (AdminCelebrationsPhotoPicker.tsx)
+    9.1 Member Profile Picture Direct Fetch
+    9.2 Custom Gallery Upload with 4:5 Aspect Ratio
+10. GREETING CARD PREVIEW & DISPATCH
+    10.1 Card Visual Layout & SVG Frame (AdminCelebrationsPreview.tsx)
+    10.2 WhatsApp Delivery Studio (AdminCelebrationsWhatsAppPreview.tsx)
+    10.3 High-Resolution ViewShot Snapshot Engine
+    10.4 4-Tier WhatsApp Dispatch Pipeline (Regular & Business)
+    10.5 In-App Push Notification Broadcast Dispatch
+11. GREETING CONFIRMATION & FEEDBACK (AdminCelebrationsConfirm.tsx)
+    11.1 Animated Spring Checkmark
+    11.2 Clipboard & Gallery Backup Confirmation
+    11.3 Return to Dashboard Action
+12. DATABASE SCHEMA & FIRESTORE INTEGRATION
+13. TROUBLESHOOTING & FREQUENTLY ASKED QUESTIONS
+
+================================================================================
+1. MODULE OVERVIEW & PASTORAL PURPOSE
+================================================================================
+The Celebrations module in WeChristian is an intelligent pastoral care system that 
+empowers church leaders to never miss a member's milestone.
+
+Core Milestone Categories Supported:
+1. Birthdays: Celebrating every member's gift of life, with automatic age milestone 
+   computation (e.g., "Turning 25 yrs old").
+2. Wedding Anniversaries: Honoring holy matrimony and blessed marriages across church 
+   families, grouping married couples together.
+3. Baptism Anniversaries: Celebrating spiritual rebirth, water baptism, and faith 
+   milestones within the parish.
+
+Dual Operational Modes:
+* Fast Automation ("Auto-Send All"): On busy mornings (e.g., Sunday before service), 
+  the Pastor or secretary can tap "Auto-Send All" to dispatch blessings to all 
+  celebrating members in a single click.
+* Deep Personalization ("Prepare Wish"): When giving personal pastoral attention, 
+  leaders can design a stunning, branded graphic greeting card, attach bilingual 
+  Scripture blessings (Telugu or English), and send it with personalized greetings 
+  directly to WhatsApp or Push Notifications.
+
+================================================================================
+2. NAVIGATION & SCREEN STATE MACHINE
+================================================================================
+The Celebrations module runs on a centralized state-machine architecture inside 
+`AdminCelebrations.tsx` controlling the following sequential views:
+
+[Celebrations Tile in Admin Dashboard]
+           |
+           v
+    'dashboard' (Root timeline, metrics, filters, member list)
+           |
+     (Tap Member)
+           |
+           v
+     'details' (Member profile, turning age, parent reference phone)
+           |
+    (Tap "Prepare Wish")
+           |
+           v
+   'personalize' <---------------------------------------------------+
+      |      |      |      |                                         |
+      |      |      |      +---> 'photoPicker' (Upload custom photo) -+
+      |      |      |                                                |
+      |      |      +----------> 'versePicker' (English / Telugu) ---+
+      |      |                                                       |
+      |      +-----------------> 'themePicker' (Select theme) -------+
+      |                                |                             |
+      |                                +---> 'customTheme' ----------+
+      v
+   'preview' (Full-screen digital banner preview)
+      |
+      v
+  'whatsapp' (WhatsApp bubble simulation, ViewShot snapshot & multi-share)
+      |
+      +---> Send via WhatsApp (Native intent / deeplink)
+      +---> Send via Push Notification (Firestore broadcast)
+      |
+      v
+   'confirm' (Animated celebration checkmark, gallery & clipboard notice)
+
+================================================================================
+3. CELEBRATIONS DASHBOARD (AdminCelebrations.tsx)
+================================================================================
+The primary control deck showing upcoming milestones and celebration statistics.
+
+3.1 Header & Hero Navigation
+----------------------------
+* Back Button: Left chevron button returning to the main Admin Dashboard (`setActiveTab(0)`).
+* Header Titles: Bold "Celebrations" title with subtitle "Manage birthdays & anniversaries".
+
+3.2 "This Season" Stats Card
+----------------------------
+A high-contrast card displaying real-time metrics across all church records:
+* TOTAL RECORDS: Total number of celebrations recorded in the database.
+* TODAY: Total number of members celebrating a milestone today.
+* THIS WEEK: Total number of members celebrating within the next 7 days.
+Automatically parses `dob`, `anniversaryDate`, and `baptismDate` fields to detect 
+dates falling within the rolling 7-day window.
+
+3.3 Date Range Filter Buttons
+-----------------------------
+A horizontal scrolling bar offering 6 instant filter views:
+1. "Today": Shows only members celebrating on the current date. Automatically enables 
+   the "Auto-Send All" button.
+2. "Upcoming": Shows all future celebrations starting from tomorrow.
+3. "Week": Shows celebrations occurring in the next 7 calendar days.
+4. "Month": Shows celebrations occurring within the current calendar month.
+5. "Past": Shows completed celebrations earlier in the year.
+6. "All": Shows all celebration records across the entire year.
+
+3.4 Category Filter Pills
+-------------------------
+Horizontal pills with distinct color-coding to isolate milestone types:
+* "Birthday" (Warm Gold: `#F3E4B6` bg, `#B88A2E` text)
+* "Wedding Anniversary" (Royal Lavender: `#E2E5F2` bg, `#455490` text)
+* "Baptism Anniversary" (Mint Emerald: `#DDF1E7` bg, `#358B6D` text)
+Tapping any category filters the list. Tapping the active category resets to "All".
+
+3.5 Embedded Member List Container
+----------------------------------
+Embeds the dynamic `AdminCelebrationsList` component, passing the active date filter, 
+category filter, and member selection callback.
+
+================================================================================
+4. MEMBER CELEBRATION DIRECTORY (AdminCelebrationsList.tsx)
+================================================================================
+Displays the filtered list of members celebrating milestones.
+
+4.1 Search Engine & Dynamic Matching
+------------------------------------
+* Search Input Box: Located at top with search icon. Real-time text filtering 
+  matching member first name, middle name, or surname.
+* Result Counter: Displays total count (e.g., "5 members found").
+
+4.2 Member Card Anatomy
+-----------------------
+Each member card is rendered with rich metadata:
+* Avatar Component:
+  - If a valid photo URL exists (`profilePhoto`, `photoUrl`, `ProfilePhoto`, etc.), 
+    renders the high-resolution profile picture with error handling.
+  - If no photo exists, generates a colored circular badge using the member's 
+    two-letter uppercase initials and a deterministic color hash (`#734062`, `#1A4F5B`, 
+    `#42518E`, `#D97736`).
+* Member Full Name: Bold heading truncated cleanly if long.
+* Milestone Tag: Colored badge displaying `BIRTHDAY`, `WEDDING ANNIVERSARY`, or 
+  `BAPTISM ANNIVERSARY`.
+* Metadata String: Date string (e.g., "Jul 15") and calculated age milestone 
+  (e.g., "• 28 yrs").
+
+4.3 "Auto-Send All" Mass Push Broadcast Engine
+----------------------------------------------
+* Only visible when the "Today" date filter is active and at least one member is celebrating.
+* Button: Deep blue pill button with paper-airplane Send icon: "Auto-Send All".
+* When tapped, iterates through all celebrating members today and dispatches an 
+  individualized in-app celebration push broadcast to each member's registered device.
+
+4.4 Confirmation & Success Modal Dialogs
+----------------------------------------
+* Confirmation Modal:
+  - Heading: "Confirm Auto-Send"
+  - Body: "Are you sure you want to automatically send push notifications to all X 
+    members celebrating today?"
+  - Buttons: "Cancel" (dismisses) and "Send to All" (executes loop with loading indicator).
+* Success Modal:
+  - Animated emerald checkmark icon.
+  - Heading: "Success!"
+  - Body: "Automated wishes sent to X members!"
+  - "Done" button to dismiss.
+
+================================================================================
+5. MEMBER CELEBRATION PROFILE (AdminCelebrationsMemberDetails.tsx)
+================================================================================
+The inspection screen loaded when tapping any member from the directory.
+
+5.1 Large Profile Avatar & Milestone Badge
+------------------------------------------
+* Prominent circular avatar centered on the screen with crisp border.
+* Category pill badge (e.g., "Wedding Anniversary" or "Birthday").
+* Large member name heading.
+
+5.2 Information Grid
+--------------------
+Four organized metric cards:
+1. CELEBRATION DATE: Formatted date (e.g., "October 14").
+2. TURNING: Calculated milestone age (e.g., "32 yrs old").
+3. MINISTRY: Member's church department or ministry group (e.g., "Worship Team", 
+   "Youth Ministry", or "General").
+4. FAMILY: Member's household family grouping.
+
+5.3 WhatsApp & Phone Routing (Direct vs Parent Reference)
+---------------------------------------------------------
+A dedicated card displaying the contact number:
+* Adult Members: Displays their direct mobile number. Tapping initiates a phone call.
+* Child / Youth Members (Crucial Pastoral Feature):
+  - In church databases, young children often do not have personal smartphones.
+  - If `isReferencePhone` is true, displays: `[Parent Phone] (Parent Reference)`.
+  - Displays a pastoral notice: "📞 Birthday wishes will be sent to the parent's number".
+  - Guarantees that young children receive their birthday cards through their parents!
+
+5.4 "Prepare Wish" Initiation Action
+------------------------------------
+* Large golden-navy primary button with Gift icon: "Prepare Wish".
+* Initializes default greeting messages and navigates to the Personalize Studio.
+
+================================================================================
+6. PERSONALIZE WISH STUDIO (AdminCelebrationsPersonalize.tsx)
+================================================================================
+The creative workspace where the custom digital greeting card is tailored.
+
+6.1 Layout Toggle
+-----------------
+Allows leaders to choose between two presentation layouts:
+1. "Theme & Circle Photo" (Default): Uses a designer colored/gradient theme with 
+   the member's photo positioned in an elegant circular frame.
+2. "Only Photo": Uses a full-bleed photo covering the entire card background with 
+   a semi-transparent gradient overlay for text readability.
+
+6.2 Quick Customization Cards
+-----------------------------
+Three navigation tiles allowing the leader to swap card components:
+1. "Choose Theme": Shows active theme name (e.g., "Royal Blue" or "Custom Theme"). 
+   Opens the Theme Library.
+2. "Photo": Shows photo status ("Use member's profile picture" or "Custom photo selected"). 
+   Opens the Photo Picker.
+3. "Bible Verse": Shows selected Scripture reference (e.g., "Jeremiah 29:11"). 
+   Opens the Bilingual Verse Picker.
+
+6.3 Card Overlays (Optional)
+----------------------------
+* Title Overlay: Custom header text rendered on the graphic card (e.g., "Happy 50th Birthday!").
+* Name Overlay: Custom name rendered on the graphic card (e.g., "Pastor David & Sister Sarah").
+
+6.4 Auto-Generated Greeting Message & Custom Text Editor
+--------------------------------------------------------
+Pre-populates an affectionate Christian greeting tailored to the milestone:
+* Birthday Default: "Dear [Name], wishing you a joy-filled birthday surrounded by 
+  God's love and grace. May this new year of life be your best yet!"
+* Wedding Anniversary Default: "Dear [Name], wishing you a joyful Wedding Anniversary! 
+  May God continue to bless your marriage with love, peace, and happiness."
+* Baptism Anniversary Default: "Dear [Name], happy Baptism Anniversary! May you continue 
+  to grow in faith and walk in God's grace."
+* Multi-line text area allowing full editing, addition of personal memories, or Telugu text.
+
+6.5 "Preview Greeting" Action
+-----------------------------
+Tapping "Preview Greeting" compiles all visual elements and advances to the 
+full-screen preview.
+
+================================================================================
+7. THEME LIBRARY & DESIGN STUDIO
+================================================================================
+Provides a versatile library of pre-designed celebration cards plus a custom theme creator.
+
+7.1 Built-in Theme Catalog (AdminCelebrationsThemePicker.tsx)
+-------------------------------------------------------------
+A 2-column visual grid of 10 curated celebration themes:
+1. Floral Celebration (`#EAC259` / Gold)
+2. Golden Blessings (`#F3E4B6` / Champagne Gold)
+3. Royal Blue (`#8A9ED1` & `#1E2A63` / Deep Blue)
+4. Church Worship (`#9A71CA` / Royal Purple)
+5. Elegant White (`#F8F9FA` / Cream Linen)
+6. Balloons (`#F58A8A` / Festive Coral)
+7. Minimal Modern (`#DAD4CA` / Stone Neutral)
+8. Cross & Bible (`#14A39A` / Teal Cross)
+9. Family Celebration (`#F3A67D` / Warm Peach)
+10. Children's Theme (`#68CAE8` / Sky Blue)
+
+7.2 Custom Theme Designer (AdminCelebrationsCustomTheme.tsx)
+------------------------------------------------------------
+Allows churches to design custom branded celebration templates:
+* Theme Name Input: Enter a name (e.g., "Youth Fellowship Anniversary").
+* Background Color Selector: Opens a palette of 30 curated modern HEX colors.
+* Custom Background Image Uploader:
+  - Tap upload box to select an image from the device gallery.
+  - Automatically crops to 4:3 landscape / portrait format.
+  - Uploads directly to Firebase Storage (`churches/{churchId}/themes/custom_{timestamp}.jpg`).
+* Automatic Church Sync:
+  - Saves the new theme into the church's Firestore document (`customThemes` array).
+  - All administrators in the church immediately get access to the custom theme!
+
+7.3 Theme Persistence & Long-Press Deletion
+-------------------------------------------
+* Custom themes appear at the top of the Theme Picker grid.
+* Long-Press Deletion: Admins can long-press any custom theme card to prompt a 
+  destructive confirmation dialog to delete it from Firestore and local state.
+
+================================================================================
+8. SCRIPTURE BLESSING PICKER (AdminCelebrationsVersePicker.tsx)
+================================================================================
+A comprehensive theological blessing library curated for each specific milestone.
+
+8.1 Bilingual Toggle: English vs Telugu (తెలుగు)
+------------------------------------------------
+A dedicated top toggle switch:
+* "English": Loads authentic English Standard Version / NIV Scripture blessings.
+* "తెలుగు (Telugu)": Loads complete Telugu Bible verses formatted natively in Telugu script.
+
+8.2 Birthday Blessings Library (30 English & 30 Telugu Verses)
+--------------------------------------------------------------
+Key highlights:
+* Jeremiah 29:11 / యిర్మీయా 29:11 ("For I know the plans I have for you...")
+* Psalm 20:4 / కీర్తనలు 20:4 ("May he give you the desire of your heart...")
+* Numbers 6:24-26 / సంఖ్యాకాండము 6:24-26 ("The Lord bless you and keep you...")
+* Psalm 91:11 / కీర్తనలు 91:11 ("He will command his angels concerning you...")
+* Proverbs 3:5-6 / సామెతలు 3:5-6 ("Trust in the Lord with all your heart...")
+* Isaiah 40:31 / యెషయా 40:31 ("Those who hope in the Lord will renew their strength...")
+* Psalm 65:11 / కీర్తనలు 65:11 ("You crown the year with your bounty...")
+* Psalm 139:14 / కీర్తనలు 139:14 ("I am fearfully and wonderfully made...")
+
+8.3 Wedding Anniversary Library (30 English & 30 Telugu Verses)
+----------------------------------------------------------------
+Key highlights:
+* Genesis 2:24 / ఆదికాండము 2:24 ("...and they shall become one flesh.")
+* Ecclesiastes 4:12 / ప్రసంగి 4:12 ("A cord of three strands is not quickly broken.")
+* 1 Corinthians 13:4-7 ("Love is patient, love is kind... always perseveres.")
+* Ephesians 4:2-3 ("Be completely humble and gentle; bearing with one another in love.")
+* Proverbs 18:22 ("He who finds a wife finds a good thing and obtains favor...")
+* Joshua 24:15 ("As for me and my house, we will serve the Lord.")
+* Matthew 19:6 ("What God has joined together, let no one separate.")
+
+8.4 Baptism Anniversary Library (30 English & 30 Telugu Verses)
+---------------------------------------------------------------
+Key highlights:
+* Romans 6:4 ("We were therefore buried with him through baptism into death...")
+* 2 Corinthians 5:17 ("If anyone is in Christ, the new creation has come...")
+* Galatians 3:27 ("All of you who were baptized into Christ have clothed yourselves...")
+* Acts 2:38 ("Repent and be baptized... for the forgiveness of your sins.")
+* Isaiah 43:1 ("Fear not, for I have redeemed you; I have called you by name...")
+* Ezekiel 36:26 ("I will give you a new heart and put a new spirit in you.")
+
+Tapping any verse highlights its card with an indigo border and attaches it to the wish.
+
+================================================================================
+9. PHOTO SELECTION & CROPPING (AdminCelebrationsPhotoPicker.tsx)
+================================================================================
+Gives pastors flexibility in choosing the ideal photo for the greeting card:
+* "Tap to upload a custom photo": Opens device gallery via `expo-image-picker` with 
+  an enforced 4:5 portrait aspect ratio crop tool.
+* "Use [Member's] Profile Picture": Instantly pulls the member's verified church 
+  profile photo without needing to re-upload. If no profile photo exists, prompts an 
+  informative notification.
+
+================================================================================
+10. GREETING CARD PREVIEW & DISPATCH
+================================================================================
+Where the visual banner is rendered and dispatched to external channels.
+
+10.1 Card Visual Layout & SVG Frame (AdminCelebrationsPreview.tsx)
+------------------------------------------------------------------
+* Top Navigation: Back and Edit buttons.
+* Graphic Frame (400 x 500 ratio):
+  - Church Name Banner (e.g., "Grace Community Church" or "WeChristian").
+  - Circular framed photo with triple white border (or full photo background).
+  - Milestone Category Title (e.g., "Happy Birthday").
+  - Member Name in bold typography.
+  - Heartfelt greeting message.
+  - Scripture blessing in italics with reference citation.
+  - Signature footer: "Sent with love".
+* Action Buttons:
+  - "Edit": Returns to Personalize screen for quick adjustments.
+  - "Continue": Advances to the WhatsApp Delivery Studio.
+
+10.2 WhatsApp Delivery Studio (AdminCelebrationsWhatsAppPreview.tsx)
+--------------------------------------------------------------------
+Simulates an exact WhatsApp chat conversation thread:
+* WhatsApp Contact Bar: Shows member's profile avatar, name, and telephone number.
+* Simulated Chat Bubble:
+  - Shows the complete generated graphic greeting card inside the message bubble.
+  - Formatted WhatsApp text caption:
+    "Praise the Lord!
+     [Personalized Greeting Message]
+     "[Scripture Verse]" — [Scripture Reference]
+     With Love ❤️
+     [Church Name]"
+  - Timestamp with double-check (✓✓) delivery receipt mark.
+
+10.3 High-Resolution ViewShot Snapshot Engine
+---------------------------------------------
+When tapping "Send" or "WhatsApp":
+1. `ViewShot.capture()` renders the card frame off-screen at full native pixel resolution.
+2. Generates an uncompressed high-resolution PNG image stored in the app's cache directory.
+3. Automatically saves a copy to the mobile device's native Media Library / Photo Gallery 
+   so the church always has an archive of cards sent.
+4. Automatically copies the complete caption text to the device Clipboard as a 
+   guaranteed backup.
+
+10.4 4-Tier WhatsApp Dispatch Pipeline
+--------------------------------------
+The system utilizes a 4-tier fallback mechanism to guarantee delivery:
+* Tier 1: Direct WhatsApp Intent (`Share.shareSingle` with `Share.Social.WHATSAPP` or 
+  `WHATSAPPBUSINESS`):
+  - Detects if standard WhatsApp (`com.whatsapp`) or WhatsApp Business (`com.whatsapp.w4b`) 
+    is installed on Android.
+  - Dispatches both the card image AND the pre-filled text caption directly into 
+    the member's chat thread.
+* Tier 2: Native System Share Chooser (`Share.open`):
+  - If direct single intent fails, opens the native OS sharing sheet with image + caption.
+* Tier 3: Expo Sharing (`Sharing.shareAsync`):
+  - If native share fails, uses Expo's file sharing bridge.
+* Tier 4: Universal Deeplink Fallback (`https://wa.me/[phone]?text=[encodedText]`):
+  - If image sharing is blocked or refused, opens WhatsApp web/app deeplink with the 
+    complete formatted message text pre-loaded in the composer.
+
+10.5 In-App Push Notification Broadcast Dispatch
+------------------------------------------------
+Beside the WhatsApp button is the "Send Push" button:
+1. Uploads the greeting card image to Firebase Storage (`celebrations/image_{timestamp}.jpg`).
+2. Calls `FirestoreService.createNotificationBroadcast()` targeting the specific member's 
+   phone number and device token.
+3. Triggers an in-app celebration alert on the member's smartphone with the card banner.
+
+================================================================================
+11. GREETING CONFIRMATION & FEEDBACK (AdminCelebrationsConfirm.tsx)
+================================================================================
+The final success screen providing visual confirmation of wish dispatch.
+
+11.1 Animated Spring Checkmark
+------------------------------
+* Large circular green checkmark badge animated via React Native `Animated.spring` 
+  with custom tension and friction for a delightful bounce effect.
+
+11.2 Clipboard & Gallery Backup Confirmation
+--------------------------------------------
+* Heading: "Greeting Sent!"
+* Message: "Your [category] wish for [Member Name] has been prepared & sent via WhatsApp."
+* Information Banner:
+  "📸 Card saved to Gallery | 📋 Message copied to clipboard"
+  (Ensures that even if the leader accidentally leaves WhatsApp, the card image is in 
+   their Photos app and the text can be pasted anywhere!).
+
+11.3 Return to Dashboard Action
+-------------------------------
+* "Back to Celebrations" button with Home icon. Returns to the primary Celebrations dashboard.
+
+================================================================================
+12. DATABASE SCHEMA & FIRESTORE INTEGRATION
+================================================================================
+Celebrations data is aggregated from members and church collections in Firestore:
+
+1. Member Document Date Fields:
+   - `dob` / `Birthdate`: Member's birth date (format: "YYYY-MM-DD" or "MM/DD/YYYY").
+   - `anniversaryDate` / `Anniversary_Date__c`: Marriage wedding anniversary.
+   - `baptismDate` / `Baptism_Date__c`: Water baptism spiritual milestone.
+
+2. Phone Routing Fields:
+   - `phone` / `MobilePhone`: Primary member smartphone number.
+   - `referencePhone`: Parent or guardian phone number for child accounts.
+   - `isReferencePhone`: Boolean flag indicating child account routing.
+
+3. Custom Themes Storage:
+   - Path: `churches/{churchId}`
+   - Field: `customThemes` (Array of objects)
+   - Object Structure:
+     {
+       id: "custom_1727500000000",
+       title: "Youth Anniversary",
+       color: "#1E2A63",
+       imageUrl: "https://firebasestorage.googleapis.com/.../custom_xxx.jpg",
+       isCustom: true
+     }
+
+4. Celebration Notification Broadcasts:
+   - Collection: `notification_broadcasts`
+   - Payload:
+     {
+       title: "🎂 Happy Birthday, John Doe!",
+       content: "Praise the Lord!...",
+       date: "October 14",
+       type: "celebration",
+       targetChurchId: "church_123",
+       targetPhone: "+919876543210",
+       imageUrl: "https://firebasestorage...",
+       silent: false
+     }
+
+================================================================================
+13. TROUBLESHOOTING & FREQUENTLY ASKED QUESTIONS
+================================================================================
+1. Why did the birthday wish send to the parent instead of the child?
+   - In WeChristian, kids and youth without personal mobile numbers have their 
+     household parent's number flagged as `referencePhone`. The app intentionally 
+     routes wishes to parents so children never miss out on church blessings.
+
+2. What if WhatsApp is not installed on the tablet or device?
+   - The app detects this and gracefully falls back to the system share dialog, 
+     direct web link (`wa.me`), or in-app Push Notifications.
+
+3. Can I use Telugu Bible verses on the card?
+   - Yes! Tap the Bible Verse card in the Personalize Studio and switch the top 
+     toggle from "English" to "తెలుగు (Telugu)". Over 90 curated Telugu Scripture 
+     verses are pre-translated and ready to use.
+
+4. Where are captured card images stored on my phone?
+   - Cards are automatically saved to your phone's native Gallery / Camera Roll 
+     under the album "WeChristian" or "Pictures".
+
+================================================================================
+END OF CELEBRATIONS GUIDE
+================================================================================

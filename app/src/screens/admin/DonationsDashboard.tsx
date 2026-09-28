@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react'; // Force TS Refresh
+import React, { useState, useEffect, useContext, useRef } from 'react'; // Force TS Refresh
 import { 
   StyleSheet, 
   View, 
@@ -408,12 +408,20 @@ export default function AdminDonationDashboard() {
     }
   };
 
+  const isPrintingRef = useRef(false);
+
   const handlePrint = async (don: ChurchDonation) => {
+    if (isPrintingRef.current) return;
+    isPrintingRef.current = true;
     try {
       const html = generateInvoiceHtml(don);
       await Print.printAsync({ html });
     } catch (e: any) {
-      Alert.alert('Print Error', e?.message || 'Unknown error');
+      if (!e?.message?.includes('Another print request')) {
+        Alert.alert('Print Error', e?.message || 'Unknown error');
+      }
+    } finally {
+      isPrintingRef.current = false;
     }
   };
 
@@ -570,11 +578,17 @@ export default function AdminDonationDashboard() {
   };
 
   const handlePrintCategory = async (category: string, dons: ChurchDonation[]) => {
+    if (isPrintingRef.current) return;
+    isPrintingRef.current = true;
     try {
       const html = generateCategoryInvoiceHtml(category, dons);
       await Print.printAsync({ html });
-    } catch (error) {
-      console.log('Print failed', error);
+    } catch (error: any) {
+      if (!error?.message?.includes('Another print request')) {
+        console.log('Print failed', error);
+      }
+    } finally {
+      isPrintingRef.current = false;
     }
   };
 

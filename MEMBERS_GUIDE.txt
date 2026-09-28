@@ -1,134 +1,179 @@
 =============================================================================================================================
                            WECHRISTIAN - COMPLETE HOW-TO GUIDE: MEMBERS MANAGEMENT
+                             EXHAUSTIVE GUIDE FOR EVERY TAB, SCREEN, FIELD & ACTION
 =============================================================================================================================
 
 
-HOW TO MANAGE & ADD MEMBERS FROM THE ADMIN DASHBOARD
-===================================================
+HOW TO MANAGE, REGISTER & ORGANIZE CHURCH MEMBERS FROM THE ADMIN DASHBOARD
+==========================================================================
 
 1. Starting the Process
 -----------------------
-From the main Admin Dashboard, tap on the "Members" section.
-- You will see the Members Dashboard displaying your total church membership count, active members, and inactive members.
-- At the top right corner, tap the Options menu (⋮) to reveal the Member Options:
-  * "Add From Contacts": Directly accesses your phone's contact list to select and bulk-add multiple church members into your church database at once.
-  * "Add Member": Opens the manual registration form to add an individual member with full profile details.
-
-
-2. Adding a New Member (Member Registration Form)
-------------------------------------------------
-When you tap "+ Add Member", the modal opens with the following fields:
-
-A. Full Name (Required):
-   - The member's full legal or church name (e.g., "Daniel Raju" or "Mary Margaret").
-
-B. Phone Number (Required):
-   - 10-digit mobile phone number (e.g., "9876543210").
-   - This serves as their primary login credential and church communication number.
-
-C. City / Village / Area (Recommended):
-   - The member's residential village, town, or neighborhood (e.g., "Guntur", "Kakinada", "Old Town", "Sector 4").
-   - This allows pastors to filter members by area for cottage prayer meetings or pastoral home visits!
-
-D. User Role / Access Level:
-   - "Member": Standard congregation member with access to sermons, songs, prayers, and events.
-   - "Admin": Co-pastor or church media coordinator with full admin dashboard privileges.
-
-
-3. Spiritual & Family Milestones (Celebration Dates)
----------------------------------------------------
-These dates feed directly into the WeChristian automated Church Celebrations module:
-
-- Date of Birth (DOB):
-  * Tap the calendar icon to pick their birthday.
-  * On their birthday, the app automatically greets them, alerts the pastor to pray, and lets members wish them in the celebrations chat!
-
-- Baptism Date:
-  * Record the exact spiritual milestone date when the member was baptized in water.
-
-- Wedding Anniversary Date:
-  * For married members, record their marriage date to celebrate their anniversary each year with pastoral blessings.
-
-
-4. Search, Filtering & Village Grouping
----------------------------------------
-A. Live Search Bar:
-   - Search instantly by member name, phone number, village/city, or email.
-
-B. Status Filter Pills:
-   - "All": Displays complete church directory.
-   - "Active": Shows members who regularly use the church app and attend services.
-   - "Inactive": Highlights members who haven't opened the app recently so pastoral care teams can follow up.
-
-C. Village / Area Dropdown:
-   - Filter your entire congregation by their specific village or neighborhood. Perfect for organizing localized fellowship groups and area prayer cells!
-
-
-5. Member Card Actions & Household Family Tree
-----------------------------------------------
-Each member card in the dashboard provides rich, one-tap pastoral tools:
-
-- Direct Contact Buttons:
-  * Phone Icon: Initiates an instant phone call (`tel:...`) directly from the dashboard.
-  * WhatsApp Icon: Opens WhatsApp to send an encouraging message or prayer scripture directly to their chat.
-
-- Expandable Details:
-  * Tap any member card to reveal their full profile: Birthday, Baptism date, Anniversary date, Village, and last app login time.
-
-- Household & Family Linking:
-  * The system automatically links members belonging to the same family or household, allowing pastors to see parents, spouses, and children together!
-
-
-6. Role Management (Promoting & Demoting Admins)
------------------------------------------------
-Pastors can delegate administrative duties to associate pastors, youth leaders, or media teams:
-- Promote to Admin: Tap the 3 dots on a member card and select "Promote to Admin". They immediately receive access to the Admin Dashboard.
-- Remove Admin Role: Select "Remove Admin Role" to safely revert their permissions back to a regular member at any time.
-
-
-7. Adding Members via "Add From Contacts" (InviteMembersModal.tsx)
------------------------------------------------------------------
-Tapping "Add From Contacts" from the Member Options menu allows you to bulk-import church members straight from your phonebook without typing each name and number manually:
-
-A. Phonebook Permission & Loading:
-   - The app asks for contacts permission once, then instantly loads all contacts from your device with valid phone numbers.
-
-B. Search & Multi-Selection:
-   - Search: Type any name or phone number in the search bar to locate specific believers.
-   - Select All / Deselect All: One-tap buttons to quickly select all filtered contacts.
-   - Selection Counter: Shows the live count of selected contacts (e.g., "12 Selected").
-
-C. Automatic Database Import & Duplicate Protection:
-   - When you proceed, WeChristian automatically adds every selected contact directly into your church's database in Firestore.
-   - Duplicate Check: Compares phone numbers against existing members so no duplicate records are created.
-   - Real-Time Sync: The dashboard's Total Members count updates immediately with the newly added members.
-
-D. Sending Welcome Message (SMS / WhatsApp):
-   - Send SMS: Sends a personalized SMS message with the church app link and church code.
-   - WhatsApp: Opens WhatsApp with a pre-formatted message welcoming them to the church app with login instructions using their registered mobile number.
-
+From the main Admin Dashboard, look under the "Community & Members" category:
+- You will see the "Members" card featuring a full-width hero layout with a congregation users icon.
+- Tapping "Members" opens the Church Members Directory & Pastoral Care Center (`AdminMembers.tsx`).
+- Here pastors, church administrators, and elders oversee the church roll, track app usage, link household family trees, promote assistant leaders, and broadcast invitations.
 
 
 =============================================================================================================================
+2. MEMBERS DASHBOARD OVERVIEW & SCREEN LAYOUT (AdminMembers.tsx)
+=============================================================================================================================
+
+When you open the Members section, you are greeted with real-time membership intelligence:
+
+A. Header Statistics Bar:
+   - "Total Members": The total number of enrolled believers in the church directory.
+   - "Active Members": Believers who regularly use the church app, attend services, and participate in church life.
+   - "Inactive Members": Members who haven't opened the church app recently (highlights follow-up pastoral visits).
+   - "App Installed Count": Tracks how many members have downloaded and logged into the mobile church app.
+
+B. Top Header Options Menu (⋮ Icon at Top Right):
+   - "Add Member": Opens the manual registration form to add an individual member with full profile details.
+   - "Add From Contacts": Opens the Phonebook Bulk Importer to select and add multiple members straight from your device contacts.
+   - "Export Members (CSV / Excel)": Downloads your entire church directory for offline backups and annual reporting.
 
 
+=============================================================================================================================
+3. SEARCH, FILTERS & VILLAGE / AREA GROUPING
+=============================================================================================================================
 
-HOW MEMBERS USE THE MEMBERS DIRECTORY IN THE APP (MembersScreen.tsx)
-====================================================================
+Manage even large congregations of thousands of believers with high-speed filters:
 
-1. Family Profile & Household Tree
-----------------------------------
-When a member opens the "Members" or "Family" section in the app:
-- They can view their primary profile and manage their immediate household.
-- Tap "+ Add Family Member" to register their spouse, children, or elderly parents.
+A. Real-Time Search Bar:
+   - Instant search as you type across:
+     * Member Full Name
+     * 10-Digit Mobile Phone Number
+     * Residential Village / Town / Area
+     * Email Address
 
-2. Relationship Tagging
------------------------
-When adding family members, members can select their exact relationship:
-- Husband, Wife, Father, Mother, Son, Daughter, Brother, Sister, Grandfather, Grandmother, etc.
+B. Status Filter Pills:
+   - `All`: Complete church directory in alphabetical order.
+   - `Active`: Believers who actively use the church app.
+   - `Inactive`: Believers who need a phone call or pastoral home visit.
 
-3. Pastoral Care Connection
----------------------------
-- Congregation members can quickly view church elders, pastoral staff, and emergency prayer team contacts to request prayer or pastoral visitation when needed.
+C. Village / Area Dropdown Filter:
+   - Automatically parses all unique villages and neighborhoods from member profiles (e.g., "Guntur", "Kakinada", "Old Town", "Sector 4").
+   - Selecting a village filters the list to show only families residing in that area!
+   - Ideal for organizing localized cottage prayer cells, fasting prayer homes, and area visitation routes.
 
+
+=============================================================================================================================
+4. ADDING A NEW MEMBER (+ Add Member Form) - COMPLETE FIELD-BY-FIELD GUIDE
+=============================================================================================================================
+
+When you tap "+ Add Member" or edit an existing believer, the Member Registration Form opens:
+
+-----------------------------------------------------------------------------------------------------------------------------
+A. Personal Information:
+-----------------------------------------------------------------------------------------------------------------------------
+- `Full Name` (Required):
+  * The member's full legal or church baptismal name (e.g., "Daniel Raju", "Mary Margaret").
+- `Mobile Phone Number` (Required):
+  * 10-digit mobile number (e.g., "9876543210").
+  * Serves as their primary login credential for the church mobile app.
+  * Protected by automatic duplicate checking so no member is registered twice!
+- `City / Village / Colony / Area` (Recommended):
+  * The member's residential town, village, or neighborhood.
+  * Powers the localized Village Filter across the church system.
+
+-----------------------------------------------------------------------------------------------------------------------------
+B. Administrative Role & Permissions:
+-----------------------------------------------------------------------------------------------------------------------------
+- `User Role / Access Level` (Dropdown):
+  * "Member": Standard congregation believer with access to sermons, hymnal, daily promises, celebrations, and prayers.
+  * "Admin": Co-pastor, church secretary, or media director with full access to the Admin Dashboard and all church management modules.
+
+-----------------------------------------------------------------------------------------------------------------------------
+C. Spiritual & Family Milestones (Automated Celebrations Feeder):
+-----------------------------------------------------------------------------------------------------------------------------
+These dates feed directly into the WeChristian automated Church Celebrations module:
+- `Date of Birth (DOB)` (Date Picker):
+  * Tap the calendar icon to select their birthday (`DateTimePickerModal`).
+  * On their birthday, the app automatically greets them, alerts the pastor to pray, and enables church members to bless them!
+- `Water Baptism Date` (Date Picker):
+  * Records the exact spiritual milestone when the believer was baptized in water.
+- `Wedding Anniversary Date` (Date Picker):
+  * For married believers, record their marriage anniversary to celebrate each year with pastoral blessings.
+
+Action Buttons:
+- "Save Member" (Green Button): Validates phone number and name, saves to Firestore, and updates live church counts.
+- "Cancel" (X Icon): Closes the form.
+
+
+=============================================================================================================================
+5. MEMBER CARD ANATOMY & ONE-TAP PASTORAL TOOLS
+=============================================================================================================================
+
+Every member card in the church directory provides rich, one-tap pastoral oversight:
+
+A. Visual Profile Header:
+   - Member Profile Photo: Displays uploaded photo or clean fallback initials avatar with church theme colors.
+   - Full Name in bold typography.
+   - Phone Number and Residential Village.
+   - Status Badge: Green ("Active"), Gray ("Inactive"), or Gold ("Admin").
+
+B. One-Tap Pastoral Contact Buttons:
+   - Call Icon (Green Button): Initiates an immediate phone call (`tel:...`) directly from the dashboard.
+   - WhatsApp Icon (Green WhatsApp Button): Opens WhatsApp with an instant chat window to send encouraging scriptures or pastoral check-ins.
+
+C. Expandable Profile Details (Tap to Expand):
+   - Tapping any member card reveals their complete spiritual profile:
+     * Date of Birth (DOB) and age calculation.
+     * Wedding Anniversary Date.
+     * Water Baptism Date.
+     * App Status: "App Installed" (with last active timestamp) vs "Not Yet Installed".
+
+D. Household Family Tree & Linked Relatives:
+   - WeChristian automatically links believers belonging to the same family or household!
+   - Tapping "View Family" expands the household list showing spouse, children, and parents linked under that family ID.
+
+E. Role Management (Promoting & Revoking Admins):
+   - Tap the 3 dots (⋮) on any member card:
+     * "Promote to Admin": Promotes a trusted elder, youth leader, or associate pastor to Admin status. They immediately receive Admin Dashboard privileges!
+     * "Remove Admin Role": Safely reverts permissions back to standard member status at any time.
+
+F. Delete Member (Trash Icon):
+   - Opens a custom confirmation dialog: *"Are you sure you want to delete [Member Name] from the church roll?"*.
+   - Safely removes the member record and updates congregation statistics.
+
+
+=============================================================================================================================
+6. ADDING MEMBERS VIA "ADD FROM CONTACTS" (InviteMembersModal.tsx)
+=============================================================================================================================
+
+Tapping "Add From Contacts" from the top menu allows pastors to bulk-import church members straight from their smartphone address book without manual typing:
+
+A. Phonebook Permission & High-Speed Loading:
+   - Asks for device contact permission once, then instantly loads all contacts from your phone with valid mobile numbers.
+
+B. Search & Multi-Selection:
+   - Live Search: Type any name or phone number to quickly locate church believers in your contacts.
+   - "Select All" / "Deselect All": One-tap buttons to select hundreds of contacts at once.
+   - Selection Counter: Shows live count (e.g., "45 Contacts Selected").
+
+C. Automatic Import & Duplicate Protection:
+   - When you proceed, WeChristian automatically adds every selected contact into your church's database in Firestore.
+   - Duplicate Guard: Compares phone numbers against existing members so existing members are NEVER duplicated!
+   - Real-Time Sync: The dashboard's Total Members count updates immediately.
+
+D. Sending Welcome Message (SMS / WhatsApp):
+   - "Send SMS": Dispatches a personalized SMS message with your church app link and unique church code.
+   - "WhatsApp": Opens WhatsApp with a pre-formatted invitation message welcoming them to the church app with login instructions!
+
+
+=============================================================================================================================
+7. HOW CONGREGATION MEMBERS USE THE DIRECTORY IN THE APP (MembersScreen.tsx)
+=============================================================================================================================
+
+When church believers open the "Members" or "Family" section on their phone:
+1. Family Profile & Household Tree:
+   - Members view their personal profile and manage their immediate household.
+   - Tap "+ Add Family Member" to register their spouse, children, or elderly parents.
+2. Relationship Tagging:
+   - Members can tag family roles: Husband, Wife, Father, Mother, Son, Daughter, Brother, Sister, Grandfather, Grandmother.
+3. Pastoral Care Connection:
+   - Believers can view church pastoral staff, elders, and emergency prayer team contacts to request prayer or pastoral visitation when needed.
+
+=============================================================================================================================
+                                                 END OF MEMBERS MANUAL
 =============================================================================================================================
