@@ -155,12 +155,17 @@ export default function EventDetailsScreen({ route, navigation }: any) {
     if (!dateStr) return '';
     try {
       if (dateStr.includes('-') && dateStr.split('-').length === 3) {
-        const [y, m, d] = dateStr.split('-').map(Number);
-        const dt = new Date(y, m - 1, d);
-        return dt.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        const parts = dateStr.split('-').map(Number);
+        let dt: Date;
+        if (dateStr.split('-')[0].length === 4) {
+          dt = new Date(parts[0], parts[1] - 1, parts[2]);
+        } else {
+          dt = new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+        return dt.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
       }
       const d = new Date(dateStr);
-      return d.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      return d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     } catch { return dateStr; }
   };
 
@@ -169,8 +174,12 @@ export default function EventDetailsScreen({ route, navigation }: any) {
     try {
       let d = new Date();
       if (dateStr.includes('-') && dateStr.split('-').length === 3) {
-        const [year, month, day] = dateStr.split('-').map(Number);
-        d = new Date(year, month - 1, day);
+        const parts = dateStr.split('-').map(Number);
+        if (dateStr.split('-')[0].length === 4) {
+          d = new Date(parts[0], parts[1] - 1, parts[2]);
+        } else {
+          d = new Date(parts[2], parts[1] - 1, parts[0]);
+        }
       } else {
         d = new Date(dateStr);
       }
@@ -395,25 +404,59 @@ export default function EventDetailsScreen({ route, navigation }: any) {
             ) : null}
           </View>
 
-          {/* Schedule Badges: Full English & Telugu Date + Start & End Time */}
+          {/* Schedule Badges: Start Date, End Date, Start Time, and End Time */}
           <View style={styles.badgeRow}>
-            <View style={styles.dateBadge}>
-              <View style={styles.badgeIconCircle}>
-                <Calendar size={18} color="#1a2d5a" />
+            {/* Dates Card */}
+            <View style={styles.scheduleCard}>
+              <View style={styles.scheduleCardHeader}>
+                <View style={styles.badgeIconCircle}>
+                  <Calendar size={18} color="#1a2d5a" />
+                </View>
+                <Text style={styles.scheduleCardTitle}>EVENT DATES · ప్రారంభం & ముగింపు తేదీలు</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.badgeValue}>{formatDate(event.date)}</Text>
-                <Text style={styles.badgeSubValue}>{formatTeluguDate(event.date)}</Text>
+
+              <View style={styles.scheduleGrid}>
+                <View style={styles.scheduleCol}>
+                  <Text style={styles.scheduleLabel}>START DATE · ప్రారంభ తేదీ</Text>
+                  <Text style={styles.scheduleValue}>{formatDate(event.date)}</Text>
+                  {formatTeluguDate(event.date) ? (
+                    <Text style={styles.scheduleSubValue}>{formatTeluguDate(event.date)}</Text>
+                  ) : null}
+                </View>
+
+                <View style={styles.scheduleDivider} />
+
+                <View style={styles.scheduleCol}>
+                  <Text style={styles.scheduleLabel}>END DATE · ముగింపు తేదీ</Text>
+                  <Text style={styles.scheduleValue}>{formatDate(event.endDate || event.date)}</Text>
+                  {formatTeluguDate(event.endDate || event.date) ? (
+                    <Text style={styles.scheduleSubValue}>{formatTeluguDate(event.endDate || event.date)}</Text>
+                  ) : null}
+                </View>
               </View>
             </View>
 
-            <View style={styles.timeBadge}>
-              <View style={[styles.badgeIconCircle, { backgroundColor: '#fee2e2' }]}>
-                <Clock size={18} color="#dc2626" />
+            {/* Times Card */}
+            <View style={[styles.scheduleCard, { backgroundColor: '#fef2f2', borderColor: '#fee2e2' }]}>
+              <View style={styles.scheduleCardHeader}>
+                <View style={[styles.badgeIconCircle, { backgroundColor: '#fee2e2' }]}>
+                  <Clock size={18} color="#dc2626" />
+                </View>
+                <Text style={[styles.scheduleCardTitle, { color: '#991b1b' }]}>TIMING WINDOW · సమయం</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.timeValue}>{formatTime(event.startTime)} – {formatTime(event.endTime)}</Text>
-                <Text style={styles.badgeSubValue}>Event Duration · సమయం</Text>
+
+              <View style={styles.scheduleGrid}>
+                <View style={styles.scheduleCol}>
+                  <Text style={[styles.scheduleLabel, { color: '#991b1b' }]}>START TIME · ప్రారంభం</Text>
+                  <Text style={[styles.scheduleTimeValue, { color: '#dc2626' }]}>{formatTime(event.startTime)}</Text>
+                </View>
+
+                <View style={[styles.scheduleDivider, { backgroundColor: '#fecaca' }]} />
+
+                <View style={styles.scheduleCol}>
+                  <Text style={[styles.scheduleLabel, { color: '#991b1b' }]}>END TIME · ముగింపు</Text>
+                  <Text style={[styles.scheduleTimeValue, { color: '#dc2626' }]}>{formatTime(event.endTime)}</Text>
+                </View>
               </View>
             </View>
           </View>
@@ -735,7 +778,66 @@ const styles = StyleSheet.create({
   titleEn: { fontSize: 24, fontWeight: '900', color: '#1a2d5a', marginBottom: 6, letterSpacing: -0.5 },
   titleTe: { fontSize: 17, color: '#64748b', fontWeight: '600' },
   
-  badgeRow: { gap: 10, marginBottom: 24 },
+  badgeRow: { gap: 12, marginBottom: 24 },
+  scheduleCard: {
+    backgroundColor: '#fffbeb',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: '#fef3c7',
+    padding: 14,
+  },
+  scheduleCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  scheduleCardTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    letterSpacing: 0.8,
+  },
+  scheduleGrid: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  scheduleCol: {
+    flex: 1,
+  },
+  scheduleDivider: {
+    width: 1,
+    backgroundColor: '#fde68a',
+    marginHorizontal: 10,
+    alignSelf: 'stretch',
+  },
+  scheduleLabel: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#64748b',
+    letterSpacing: 0.5,
+    marginBottom: 3,
+  },
+  scheduleValue: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    lineHeight: 18,
+  },
+  scheduleSubValue: {
+    fontSize: 10.5,
+    fontWeight: '600',
+    color: '#78716c',
+    marginTop: 2,
+  },
+  scheduleTimeValue: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#dc2626',
+  },
   dateBadge: { 
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: '#fffbeb', padding: 14, borderRadius: 18,

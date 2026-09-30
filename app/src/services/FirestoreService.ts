@@ -129,6 +129,7 @@ export interface ScheduleEvent {
   title: string;
   titleTelugu?: string;
   date: string;
+  endDate?: string;
   time?: string;
   startTime: string;
   endTime: string;
@@ -140,6 +141,8 @@ export interface ScheduleEvent {
   image: string;
   bannerUrl?: string;
   youtubeId?: string;
+  eventType?: string;
+  type?: string;
 }
 
 export interface Sermon {
@@ -238,6 +241,12 @@ class FirestoreService {
     const id = await this.getChurchId();
     if (!id) throw new Error('Church ID not set');
     return firestore().collection('churches').doc(id).collection(collectionName);
+  }
+
+  async getChurchDoc() {
+    const id = await this.getChurchId();
+    if (!id) return null;
+    return firestore().collection('churches').doc(id);
   }
 
   // ─── STRICT DUPLICATE CHECK FOR CHURCH ───
@@ -2572,8 +2581,42 @@ class FirestoreService {
 
   async query(soql: string): Promise<any> { return null; }
   extractYoutubeId(url: string): string { return url; }
-  async getDashboardStats(): Promise<any> { return { members: 0, promises: 0 }; }
   async getEventMetadata(eventId: string): Promise<any> { return null; }
+
+  async getCustomEventTypes(): Promise<{ label: string; value: string }[]> {
+    try {
+      const churchDoc = await this.getChurchDoc();
+      if (!churchDoc) return [];
+      const snap = await churchDoc.get();
+      const data = snap.data();
+      if (Array.isArray(data?.customEventTypes)) {
+        return data.customEventTypes.map((item: any) => 
+          typeof item === 'string' ? { label: item, value: item } : item
+        );
+      }
+      return [];
+    } catch (e) {
+      console.warn('Error fetching custom event types:', e);
+      return [];
+    }
+  }
+
+  async saveCustomEventType(newType: { label: string; value: string } | string): Promise<void> {
+    try {
+      const churchDoc = await this.getChurchDoc();
+      if (!churchDoc) return;
+      const { FieldValue } = require('@react-native-firebase/firestore');
+      const itemToSave = typeof newType === 'string' ? { label: newType, value: newType } : newType;
+      await churchDoc.set({
+        customEventTypes: FieldValue.arrayUnion(itemToSave)
+      }, { merge: true });
+    } catch (e) {
+      console.warn('Error saving custom event type:', e);
+    }
+  }
+
+  async getDashboardStats(): Promise<any> { return { members: 0, promises: 0 }; }
+
   async searchMembers(query: string): Promise<any[]> {
     try {
       const col = await this.getCollection('members');

@@ -2420,6 +2420,7 @@ export default function HomeScreen() {
                             <Calendar size={11} color="#1a2d5a" />
                             <Text style={styles.badgeTextMain}>
                               {new Date(item.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                              {item.endDate && item.endDate !== item.date ? ` – ${new Date(item.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
                             </Text>
                           </View>
                         </View>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -18,6 +18,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
+import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import {
   Calendar,
@@ -35,8 +36,11 @@ import {
   CalendarDays,
   AlertCircle,
   Trash2,
-  X
+  X,
+  Plus,
+  Sparkles
 } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { AppAlert } from '../../components/CustomAlert';
 
@@ -44,7 +48,7 @@ import FirestoreService from '../../services/FirestoreService';
 
 const { width, height } = Dimensions.get('window');
 
-const EVENT_TYPES = [
+const DEFAULT_EVENT_TYPES = [
   { label: 'Sunday Service · ఆదివారం సేవ', value: 'Sunday Service' },
   { label: 'Bible study · బైబిల్ అధ్యయనం', value: 'Bible study' },
   { label: "Women's Fasting Prayer · మహిళల ఉపవాస ప్రార్థన", value: "Women's Fasting Prayer" },
@@ -92,13 +96,70 @@ export default function AdminEventEditor() {
   const [descEn, setDescEn] = useState('');
   const [descTe, setDescTe] = useState('');
 
+  // Custom Event Types State
+  const [customTypes, setCustomTypes] = useState<{ label: string; value: string }[]>([]);
+  const [showNewTypeModal, setShowNewTypeModal] = useState(false);
+  const [newTypeNameEn, setNewTypeNameEn] = useState('');
+  const [newTypeNameTe, setNewTypeNameTe] = useState('');
+
+  const allEventTypes = React.useMemo(() => {
+    const list = [...DEFAULT_EVENT_TYPES];
+    customTypes.forEach(ct => {
+      if (!list.some(item => item.value.toLowerCase() === ct.value.toLowerCase())) {
+        list.push(ct);
+      }
+    });
+    if (editingData?.type && !list.some(t => t.value.toLowerCase() === editingData.type.toLowerCase())) {
+      list.push({ label: editingData.type, value: editingData.type });
+    } else if (editingData?.eventType && !list.some(t => t.value.toLowerCase() === editingData.eventType.toLowerCase())) {
+      list.push({ label: editingData.eventType, value: editingData.eventType });
+    }
+    return list;
+  }, [customTypes, editingData]);
 
   const today = new Date();
   const todayStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
   const [date, setDate] = useState(todayStr);
   const [endDate, setEndDate] = useState(todayStr);
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [startTime, setStartTime] = useState('09:00 AM');
+  const [endTime, setEndTime] = useState('12:00 PM');
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [errorModal, setErrorModal] = useState<{
+    visible: boolean;
+    titleEn: string;
+    titleTe?: string;
+    messageEn: string;
+    messageTe?: string;
+    hintEn?: string;
+    hintTe?: string;
+    timeDetails?: {
+      date: string;
+      startTime: string;
+      endTime: string;
+    };
+  } | null>(null);
+
+  const isSameDayTimeIssue = useMemo(() => {
+    if (!date || !endDate || !startTime || !endTime) return false;
+    if (date.trim() !== endDate.trim()) return false;
+    const parseMins = (t: string) => {
+      try {
+        const c = t.toUpperCase().replace(/\s+/g, '').replace(/[\u202F\u00A0]/g, '');
+        const isPM = c.includes('PM');
+        const isAM = c.includes('AM');
+        let [h, m] = c.replace('AM', '').replace('PM', '').split(':').map(Number);
+        if (isNaN(h)) h = 0;
+        if (isNaN(m)) m = 0;
+        if (isPM && h < 12) h += 12;
+        if (isAM && h === 12) h = 0;
+        return h * 60 + m;
+      } catch {
+        return 0;
+      }
+    };
+    return parseMins(endTime) <= parseMins(startTime);
+  }, [date, endDate, startTime, endTime]);
+
   const [recurring, setRecurring] = useState('');
   const [recurrenceDuration, setRecurrenceDuration] = useState(1);
   const [publishStatus, setPublishStatus] = useState('Published');
@@ -161,6 +222,31 @@ export default function AdminEventEditor() {
       } catch (err) {
         console.warn('⚠️ [AdminEventEditor] Metadata Discovery Failed:', err);
       }
+
+      // Load custom event types from storage & Firestore
+      try {
+        const local = await AsyncStorage.getItem('@church_custom_event_types');
+        let combined: { label: string; value: string }[] = [];
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed)) combined = parsed;
+        }
+        try {
+          const remote = await FirestoreService.getCustomEventTypes();
+          if (Array.isArray(remote) && remote.length > 0) {
+            remote.forEach(r => {
+              if (!combined.some(c => c.value.toLowerCase() === r.value.toLowerCase())) {
+                combined.push(r);
+              }
+            });
+          }
+        } catch (_) {}
+        if (combined.length > 0) {
+          setCustomTypes(combined);
+        }
+      } catch (err) {
+        console.warn('⚠️ [AdminEventEditor] Custom Event Types Load Failed:', err);
+      }
     };
 
     discoverMetadata();
@@ -197,9 +283,9 @@ export default function AdminEventEditor() {
       setVenueEn(editingData.location || '');
       setVenueTe(editingData.locationTe || '');
       setAddress(editingData.address || '');
-      setStartTime(formatFromSFTime(editingData.startTime));
-      setEndTime(formatFromSFTime(editingData.endTime || '10:00 AM'));
-      setEventType(editingData.type || 'Sunday Service');
+      setStartTime(formatFromSFTime(editingData.startTime || '09:00 AM'));
+      setEndTime(formatFromSFTime(editingData.endTime || '12:00 PM'));
+      setEventType(editingData.type || editingData.eventType || 'Sunday Service');
       setMode(editingData.mode || 'In person');
       setRsvpEnabled(editingData.rsvpEnabled ?? true);
       setRsvpPublic(editingData.rsvpPublic ?? true);
@@ -211,6 +297,41 @@ export default function AdminEventEditor() {
       setBannerColor(editingData.bannerColor || '#c0392b');
     }
   }, [editingData]);
+
+  const handleAddNewEventType = async () => {
+    const trimmedEn = newTypeNameEn.trim();
+    const trimmedTe = newTypeNameTe.trim();
+    if (!trimmedEn) {
+      AppAlert.alert('Required Field · అవసరమైన వివరాలు', 'Please enter a name for the new Event Type.\nదయచేసి ఈవెంట్ రకం పేరును నమోదు చేయండి.', undefined, 'error');
+      return;
+    }
+
+    const newLabel = trimmedTe ? `${trimmedEn} · ${trimmedTe}` : trimmedEn;
+    const newEntry = { label: newLabel, value: trimmedEn };
+
+    const exists = allEventTypes.some(t => t.value.toLowerCase() === trimmedEn.toLowerCase());
+    if (exists) {
+      setEventType(trimmedEn);
+      setShowNewTypeModal(false);
+      setNewTypeNameEn('');
+      setNewTypeNameTe('');
+      return;
+    }
+
+    const updatedCustom = [...customTypes, newEntry];
+    setCustomTypes(updatedCustom);
+    setEventType(trimmedEn);
+    setShowNewTypeModal(false);
+    setNewTypeNameEn('');
+    setNewTypeNameTe('');
+
+    try {
+      await AsyncStorage.setItem('@church_custom_event_types', JSON.stringify(updatedCustom));
+      await FirestoreService.saveCustomEventType(newEntry);
+    } catch (e) {
+      console.warn('Failed saving custom event type:', e);
+    }
+  };
 
   const uploadImageToCloud = async (localUri: string): Promise<string> => {
     try {
@@ -261,34 +382,115 @@ export default function AdminEventEditor() {
 
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const reportError = (
+    titleEn: string,
+    titleTe: string,
+    messageEn: string,
+    messageTe?: string,
+    hintEn?: string,
+    hintTe?: string,
+    timeDetails?: { date: string; startTime: string; endTime: string }
+  ) => {
+    setValidationError(messageEn);
+    setErrorModal({
+      visible: true,
+      titleEn,
+      titleTe,
+      messageEn,
+      messageTe,
+      hintEn,
+      hintTe,
+      timeDetails
+    });
+  };
+
   const handleSave = async (status: 'Published' | 'Draft') => {
     if (!titleEn || !titleEn.trim()) {
-      AppAlert.alert('Required Field · అవసరమైన వివరాలు', 'Please enter an event title in English.\nదయచేసి కార్యక్రమం పేరును నమోదు చేయండి.', undefined, 'error');
+      reportError('Required Field', 'అవసరమైన వివరాలు', 'Please enter an event title in English.', 'దయచేసి కార్యక్రమం పేరును నమోదు చేయండి.');
       return;
     }
+    if (!date || !date.trim()) {
+      reportError('Required Field', 'అవసరమైన వివరాలు', 'Please select a Start Date.', 'దయచేసి ప్రారంభ తేదీని ఎంచుకోండి.');
+      return;
+    }
+    if (!endDate || !endDate.trim()) {
+      reportError('Required Field', 'అవసరమైన వివరాలు', 'Please select an End Date.', 'దయచేసి ముగింపు తేదీని ఎంచుకోండి.');
+      return;
+    }
+    if (!startTime || !startTime.trim()) {
+      reportError('Required Field', 'అవసరమైన వివరాలు', 'Please select a Start Time.', 'దయచేసి ప్రారంభ సమయాన్ని ఎంచుకోండి.');
+      return;
+    }
+    if (!endTime || !endTime.trim()) {
+      reportError('Required Field', 'అవసరమైన వివరాలు', 'Please select an End Time.', 'దయచేసి ముగింపు సమయాన్ని ఎంచుకోండి.');
+      return;
+    }
+
+    const cleanDate = (date || '').trim();
+    const cleanEndDate = (endDate || '').trim();
+
+    let sfDate = cleanDate;
+    if (cleanDate.includes('-')) {
+      const parts = cleanDate.split('-');
+      if (parts[0].length === 2) {
+        sfDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
+
+    let sfEndDate = cleanEndDate;
+    if (cleanEndDate.includes('-')) {
+      const parts = cleanEndDate.split('-');
+      if (parts[0].length === 2) {
+        sfEndDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
+
+    if (sfEndDate < sfDate) {
+      reportError('Invalid Date Range', 'చెల్లని తేదీ పరిధి', 'End Date cannot be before Start Date.', 'ముగింపు తేదీ ప్రారంభ తేదీ కంటే ముందు ఉండకూడదు.');
+      return;
+    }
+
+    const parseTimeToMinutes = (timeStr: string): number => {
+      if (!timeStr) return 0;
+      try {
+        const cleanStr = timeStr.toUpperCase().replace(/\s+/g, '').replace(/[\u202F\u00A0]/g, '');
+        const isPM = cleanStr.includes('PM');
+        const isAM = cleanStr.includes('AM');
+        const timePart = cleanStr.replace('AM', '').replace('PM', '');
+        let [hours, minutes] = timePart.split(':').map(Number);
+        if (isNaN(hours)) hours = 0;
+        if (isNaN(minutes)) minutes = 0;
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+      } catch {
+        return 0;
+      }
+    };
+
+    if (sfEndDate === sfDate) {
+      const startMins = parseTimeToMinutes(startTime);
+      const endMins = parseTimeToMinutes(endTime);
+      if (endMins <= startMins) {
+        reportError(
+          'Adjust Event End Time',
+          'ఈవెంట్ ముగింపు సమయాన్ని సర్దుబాటు చేయండి',
+          `End Time (${endTime}) is earlier than Start Time (${startTime}) on the same date (${cleanDate}).`,
+          'ఒకే రోజున ముగింపు సమయం ప్రారంభ సమయం కంటే ముందు ఉండకూడదు.',
+          'If this event continues past midnight into tomorrow morning, please change the End Date to the next day.',
+          'ఈవెంట్ అర్ధరాత్రి దాటితే, దయచేసి ముగింపు తేదీని మరుసటి రోజుకు మార్చండి.',
+          { date: cleanDate, startTime, endTime }
+        );
+        return;
+      }
+    }
+
+    setValidationError(null);
+    setErrorModal(null);
 
     const executeSave = async (updateMode?: 'single' | 'future') => {
       setPublishStatus(status);
       setLoading(true);
-      
-      const cleanDate = (date || '').trim();
-      const cleanEndDate = (endDate || '').trim();
-
-      let sfDate = cleanDate;
-      if (cleanDate.includes('-')) {
-        const parts = cleanDate.split('-');
-        if (parts[0].length === 2) {
-          sfDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-        }
-      }
-
-      let sfEndDate = cleanEndDate;
-      if (cleanEndDate.includes('-')) {
-        const parts = cleanEndDate.split('-');
-        if (parts[0].length === 2) {
-          sfEndDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
-        }
-      }
 
     const formatToSFTime = (timeStr: string) => {
       if (!timeStr) return null;
@@ -439,36 +641,158 @@ export default function AdminEventEditor() {
     setEditingData(null);
   };
 
-  const SuccessModal = () => (
-    <Modal visible={showSuccess} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <View style={styles.successCard}>
-          <View style={styles.successIconOuter}>
-            <View style={styles.successIconInner}>
-              <CheckCircle2 size={40} color="#fff" />
+  const SuccessModal = () => {
+    const isPublished = publishStatus === 'Published';
+    return (
+      <Modal visible={showSuccess} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.successCard}>
+            {/* Top Close Button */}
+            <TouchableOpacity 
+              style={styles.successCloseBtn} 
+              onPress={() => { setShowSuccess(false); resetForm(); setTabByName?.('Events'); }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <X size={18} color="#64748b" />
+            </TouchableOpacity>
+
+            {/* Status Pill */}
+            <View style={[styles.successPill, { backgroundColor: isPublished ? '#ecfdf5' : '#eff6ff', borderColor: isPublished ? '#a7f3d0' : '#bfdbfe', marginTop: 10 }]}>
+              <Sparkles size={13} color={isPublished ? '#059669' : '#1d4ed8'} style={{ marginRight: 6 }} />
+              <Text style={[styles.successPillTxt, { color: isPublished ? '#065f46' : '#1e40af' }]}>
+                {isPublished ? 'PUBLISHED TO CHURCH APP' : 'SAVED AS DRAFT'}
+              </Text>
             </View>
+
+            {/* Title & Bilingual Subtitle */}
+            <Text style={styles.successTitle}>
+              {isPublished ? 'Event Published! 🎉' : 'Event Saved! 📝'}
+            </Text>
+            <Text style={styles.successTeluguTitle}>
+              {isPublished ? 'కార్యక్రమం విజయవంతంగా ప్రచురించబడింది!' : 'ఈవెంట్ డ్రాఫ్ట్‌గా సేవ్ చేయబడింది!'}
+            </Text>
+
+            {/* Event Summary Card */}
+            <View style={styles.successSummaryBox}>
+              <Text style={styles.successEventTitle} numberOfLines={2}>
+                {titleEn}{titleTe ? ` · ${titleTe}` : ''}
+              </Text>
+              
+              <View style={styles.summaryDivider} />
+
+              <View style={styles.summaryRow}>
+                <Calendar size={13} color="#1a2d5a" style={styles.summaryIcon} />
+                <Text style={styles.summaryLabel}>Date:</Text>
+                <Text style={styles.summaryVal}>
+                  {date === endDate || !endDate ? date : `${date} → ${endDate}`}
+                </Text>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Clock size={13} color="#b91c1c" style={styles.summaryIcon} />
+                <Text style={styles.summaryLabel}>Time:</Text>
+                <Text style={styles.summaryVal}>{startTime} – {endTime}</Text>
+              </View>
+
+              {venueEn ? (
+                <View style={styles.summaryRow}>
+                  <MapPin size={13} color="#059669" style={styles.summaryIcon} />
+                  <Text style={styles.summaryLabel}>Venue:</Text>
+                  <Text style={styles.summaryVal} numberOfLines={1}>{venueEn}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Action Buttons */}
+            <TouchableOpacity 
+              activeOpacity={0.88}
+              style={styles.successBtnPrimary} 
+              onPress={() => { setShowSuccess(false); resetForm(); setTabByName?.('Events'); }}
+            >
+              <LinearGradient
+                colors={['#1a2d5a', '#2b4c8c']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.successBtnGradient}
+              >
+                <Text style={styles.successBtnPrimaryTxt}>View Church Events →</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              activeOpacity={0.7}
+              style={styles.successBtnSecondary} 
+              onPress={() => { setShowSuccess(false); resetForm(); }}
+            >
+              <Plus size={15} color="#1a2d5a" style={{ marginRight: 6 }} />
+              <Text style={styles.successBtnSecondaryTxt}>Create Another Event</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.successTitle}>Event {publishStatus === 'Published' ? 'Published' : 'Saved'}!</Text>
-          <Text style={styles.successSub}>
-            Your event "{titleEn}" has been successfully {publishStatus === 'Published' ? 'published to all members' : 'saved as a draft'}.
-          </Text>
-
-          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); setTabByName?.('Events'); }}>
-            <Text style={styles.successBtnPrimaryTxt}>View Event List</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.successBtnSecondary} onPress={() => { setShowSuccess(false); resetForm(); }}>
-            <Text style={styles.successBtnSecondaryTxt}>Create Another</Text>
-          </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
+
+  const ValidationErrorModal = () => {
+    if (!errorModal || !errorModal.visible) return null;
+
+    return (
+      <Modal visible={errorModal.visible} transparent animationType="fade">
+        <View style={styles.errorModalOverlay}>
+          <View style={styles.errorCard}>
+            {/* Top Close Button */}
+            <TouchableOpacity 
+              style={styles.errorCloseBtn} 
+              onPress={() => setErrorModal(null)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <X size={18} color="#94a3b8" />
+            </TouchableOpacity>
+
+            {/* Clean, Refined Icon */}
+            <View style={styles.errorIconCircle}>
+              <AlertCircle size={26} color="#d97706" />
+            </View>
+
+            {/* Clear Single Title */}
+            <Text style={styles.errorTitle}>{errorModal.titleEn}</Text>
+
+            {/* Crisp Message */}
+            <Text style={styles.errorMessageText}>{errorModal.messageEn}</Text>
+
+            {/* Optional Clean Hint */}
+            {errorModal.hintEn ? (
+              <View style={styles.errorHintBox}>
+                <Text style={styles.errorHintText}>💡 {errorModal.hintEn}</Text>
+              </View>
+            ) : null}
+
+            {/* Action Button */}
+            <TouchableOpacity 
+              activeOpacity={0.88}
+              style={styles.errorActionBtn} 
+              onPress={() => setErrorModal(null)}
+            >
+              <LinearGradient
+                colors={['#1a2d5a', '#2b4c8c']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.errorBtnGradient}
+              >
+                <Text style={styles.errorActionBtnTxt}>Got It</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <SuccessModal />
+      <ValidationErrorModal />
 
       <View style={styles.hero}>
         <View style={styles.heroTitleRow}>
@@ -504,16 +828,30 @@ export default function AdminEventEditor() {
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Event Type</Text>
             <TouchableOpacity style={styles.inputWrap} onPress={() => setShowTypeDropdown(!showTypeDropdown)}>
-              <Text style={styles.inputText}>{EVENT_TYPES.find((t: any) => t.value === eventType)?.label || eventType || 'Select Type'}</Text>
+              <Text style={styles.inputText}>{allEventTypes.find((t: any) => t.value === eventType)?.label || eventType || 'Select Type'}</Text>
               <ChevronDown size={14} color="#374151" />
             </TouchableOpacity>
             {showTypeDropdown && (
               <View style={styles.dropdownMenu}>
-                {EVENT_TYPES.map(t => (
-                  <TouchableOpacity key={t.value} style={[styles.dropdownItem, eventType === t.value && styles.dropdownItemActive]} onPress={() => { setEventType(t.value); setShowTypeDropdown(false); }}>
-                    <Text style={[styles.dropdownItemTxt, eventType === t.value && styles.dropdownItemTxtActive]}>{t.label}</Text>
+                <ScrollView nestedScrollEnabled style={{ maxHeight: 260 }}>
+                  {allEventTypes.map(t => (
+                    <TouchableOpacity key={t.value} style={[styles.dropdownItem, eventType === t.value && styles.dropdownItemActive]} onPress={() => { setEventType(t.value); setShowTypeDropdown(false); }}>
+                      <Text style={[styles.dropdownItemTxt, eventType === t.value && styles.dropdownItemTxtActive]}>{t.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity 
+                    style={[styles.dropdownItem, styles.dropdownItemNew]} 
+                    onPress={() => { 
+                      setShowTypeDropdown(false); 
+                      setNewTypeNameEn('');
+                      setNewTypeNameTe('');
+                      setShowNewTypeModal(true); 
+                    }}
+                  >
+                    <Plus size={16} color="#A67C3D" style={{ marginRight: 8 }} />
+                    <Text style={styles.dropdownItemNewTxt}>New Event Type...</Text>
                   </TouchableOpacity>
-                ))}
+                </ScrollView>
               </View>
             )}
           </View>
@@ -563,13 +901,27 @@ export default function AdminEventEditor() {
               </TouchableOpacity>
             </View>
             <View style={[styles.fGroup, { flex: 1 }]}>
-              <Text style={styles.fLabel}>End Time</Text>
+              <Text style={styles.fLabel}>End Time <Text style={{color:'#c0392b'}}>*</Text></Text>
               <TouchableOpacity style={styles.inputWrap} onPress={() => setEndTimeVisibility(true)}>
                 <Text style={styles.inputText}>{endTime || '12:00 PM'}</Text>
                 <Clock size={14} color="#374151" />
               </TouchableOpacity>
             </View>
           </View>
+
+          {isSameDayTimeIssue && (
+            <View style={styles.scheduleTipBox}>
+              <Info size={14} color="#0369a1" style={{ marginTop: 2, marginRight: 8 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.scheduleTipTxt}>
+                  💡 <Text style={{ fontWeight: '700' }}>Schedule Guidance:</Text> End Time ({endTime}) is earlier than Start Time ({startTime}) on the same date. If this event runs past midnight, please set the <Text style={{ fontWeight: '700' }}>End Date</Text> to the next day.
+                </Text>
+                <Text style={styles.scheduleTipTe}>
+                  ఈవెంట్ అర్ధరాత్రి దాటి జరిగితే, దయచేసి ముగింపు తేదీని మరుసటి రోజుగా ఎంచుకోండి.
+                </Text>
+              </View>
+            </View>
+          )}
 
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Recurring</Text>
@@ -617,7 +969,7 @@ export default function AdminEventEditor() {
           </View>
 
           <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Venue Name — English <Text style={{color:'#c0392b'}}>*</Text></Text>
+            <Text style={styles.fLabel}>Venue Name — English</Text>
             <TextInput style={styles.input} placeholder="e.g. Main Auditorium" value={venueEn} onChangeText={setVenueEn} />
           </View>
 
@@ -784,6 +1136,7 @@ export default function AdminEventEditor() {
         onConfirm={(d) => {
           setDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`);
           setDatePickerVisibility(false);
+          setValidationError(null);
         }}
         onCancel={() => setDatePickerVisibility(false)}
       />
@@ -794,6 +1147,7 @@ export default function AdminEventEditor() {
         onConfirm={(d) => {
           setEndDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`);
           setEndDatePickerVisibility(false);
+          setValidationError(null);
         }}
         onCancel={() => setEndDatePickerVisibility(false)}
       />
@@ -808,6 +1162,7 @@ export default function AdminEventEditor() {
           h = h % 12 || 12;
           setStartTime(`${String(h).padStart(2, '0')}:${m} ${ampm}`);
           setStartTimeVisibility(false);
+          setValidationError(null);
         }}
         onCancel={() => setStartTimeVisibility(false)}
       />
@@ -821,9 +1176,82 @@ export default function AdminEventEditor() {
           h = h % 12 || 12;
           setEndTime(`${String(h).padStart(2, '0')}:${m} ${ampm}`);
           setEndTimeVisibility(false);
+          setValidationError(null);
         }}
         onCancel={() => setEndTimeVisibility(false)}
       />
+
+      {/* Modal for Creating New Event Type */}
+      <Modal visible={showNewTypeModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.newTypeCard}>
+            <View style={styles.newTypeHeader}>
+              <View style={styles.newTypeIconWrap}>
+                <Plus size={20} color="#1a2d5a" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.newTypeTitle}>Create New Event Type</Text>
+                <Text style={styles.newTypeSub}>కొత్త ఈవెంట్ రకాన్ని జోడించండి</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => {
+                  setShowNewTypeModal(false);
+                  setNewTypeNameEn('');
+                  setNewTypeNameTe('');
+                }} 
+                style={styles.newTypeCloseBtn}
+              >
+                <X size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.newTypeBody}>
+              <View style={styles.newTypeField}>
+                <Text style={styles.newTypeLabel}>Event Type Name (English) <Text style={{ color: '#c0392b' }}>*</Text></Text>
+                <TextInput
+                  style={styles.newTypeInput}
+                  placeholder="e.g. Youth Camp, VBS, Fellowship"
+                  placeholderTextColor="#9ca3af"
+                  value={newTypeNameEn}
+                  onChangeText={setNewTypeNameEn}
+                  autoFocus
+                />
+              </View>
+
+              <View style={styles.newTypeField}>
+                <Text style={styles.newTypeLabel}>Event Type Name (Telugu — Optional)</Text>
+                <TextInput
+                  style={[styles.newTypeInput, styles.teIn]}
+                  placeholder="ఉదా: వేసవి బైబిల్ పాఠశాల"
+                  placeholderTextColor="#9ca3af"
+                  value={newTypeNameTe}
+                  onChangeText={setNewTypeNameTe}
+                />
+              </View>
+            </View>
+
+            <View style={styles.newTypeActions}>
+              <TouchableOpacity 
+                style={styles.newTypeCancelBtn} 
+                onPress={() => {
+                  setShowNewTypeModal(false);
+                  setNewTypeNameEn('');
+                  setNewTypeNameTe('');
+                }}
+              >
+                <Text style={styles.newTypeCancelTxt}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.newTypeSubmitBtn} 
+                onPress={handleAddNewEventType}
+              >
+                <Text style={styles.newTypeSubmitTxt}>Add & Select</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
     </View>
   );
@@ -832,6 +1260,34 @@ export default function AdminEventEditor() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#EDE8DC' },
   scroll: { padding: 14, paddingBottom: 100 },
+
+  validationErrorCard: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fca5a5',
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    elevation: 3,
+    shadowColor: '#ef4444',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  validationErrorTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#991b1b',
+    marginBottom: 4,
+  },
+  validationErrorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#b91c1c',
+    lineHeight: 17,
+  },
 
   hero: { 
     backgroundColor: '#1a2d5a', 
@@ -939,6 +1395,113 @@ const styles = StyleSheet.create({
   dropdownItemActive: { backgroundColor: '#1a2d5a' },
   dropdownItemTxt: { fontSize: 13, color: '#1e293b' },
   dropdownItemTxtActive: { color: '#fff', fontWeight: '700' },
+  dropdownItemNew: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fffdf5',
+    borderTopWidth: 1.5,
+    borderTopColor: '#f1e6cf',
+    paddingVertical: 12,
+  },
+  dropdownItemNewTxt: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#8C6428',
+  },
+
+  // New Type Modal
+  newTypeCard: {
+    backgroundColor: '#fff',
+    width: '90%',
+    maxWidth: 440,
+    borderRadius: 20,
+    padding: 22,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  newTypeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  newTypeIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#eef2ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newTypeTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1a2d5a',
+  },
+  newTypeSub: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  newTypeCloseBtn: {
+    padding: 4,
+  },
+  newTypeBody: {
+    marginVertical: 16,
+    gap: 14,
+  },
+  newTypeField: {
+    gap: 6,
+  },
+  newTypeLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  newTypeInput: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0f172a',
+  },
+  newTypeActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  newTypeCancelBtn: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  newTypeCancelTxt: {
+    color: '#475569',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  newTypeSubmitBtn: {
+    flex: 1.5,
+    backgroundColor: '#1a2d5a',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  newTypeSubmitTxt: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
 
   modeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   modeBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0' },
@@ -1074,16 +1637,284 @@ const styles = StyleSheet.create({
   modalConfirm: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: '#1a2d5a', borderRadius: 8 },
   modalConfirmTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
 
-  // Success Modal
-  successCard: { backgroundColor: '#fff', width: '85%', borderRadius: 24, padding: 25, alignItems: 'center' },
-  successIconOuter: { backgroundColor: '#F0FDF4', borderRadius: 50, padding: 10, marginBottom: 20 },
-  successIconInner: { backgroundColor: '#22c55e', borderRadius: 40, padding: 15 },
-  successTitle: { fontSize: 22, fontWeight: '800', color: '#1a2d5a', marginBottom: 10 },
-  successSub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 25, lineHeight: 22 },
-  successBtnPrimary: { backgroundColor: '#1a2d5a', width: '100%', paddingVertical: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10 },
-  successBtnPrimaryTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  successBtnSecondary: { width: '100%', paddingVertical: 15, alignItems: 'center' },
-  successBtnSecondaryTxt: { color: '#1a2d5a', fontWeight: '700', fontSize: 15 },
+  // Success Modal (Premium & Beautiful)
+  successCard: { 
+    backgroundColor: '#fff', 
+    width: '90%', 
+    maxWidth: 380,
+    borderRadius: 28, 
+    paddingTop: 32,
+    paddingBottom: 24,
+    paddingHorizontal: 22, 
+    alignItems: 'center',
+    position: 'relative',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 25,
+    shadowOffset: { width: 0, height: 10 },
+  },
+  successCloseBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  successIconPulse: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#ecfdf5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 6,
+    borderColor: '#d1fae5',
+  },
+  successIconOuter: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    overflow: 'hidden',
+  },
+  successIconGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  successPillTxt: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  successTitle: { 
+    fontSize: 21, 
+    fontWeight: '800', 
+    color: '#0f172a', 
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  successTeluguTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#059669',
+    marginTop: 3,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  successSummaryBox: {
+    width: '100%',
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 18,
+  },
+  successEventTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: '#e2e8f0',
+    marginVertical: 10,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  summaryIcon: {
+    marginRight: 6,
+  },
+  summaryLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#64748b',
+    width: 48,
+  },
+  summaryVal: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1e293b',
+    flex: 1,
+  },
+  successBtnPrimary: { 
+    width: '100%', 
+    borderRadius: 14, 
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    marginBottom: 10,
+  },
+  successBtnGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successBtnPrimaryTxt: { 
+    color: '#fff', 
+    fontWeight: '800', 
+    fontSize: 14.5,
+    letterSpacing: 0.3,
+  },
+  successBtnSecondary: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%', 
+    paddingVertical: 12, 
+    borderRadius: 14,
+    backgroundColor: '#f1f5f9',
+  },
+  successBtnSecondaryTxt: { 
+    color: '#1a2d5a', 
+    fontWeight: '700', 
+    fontSize: 13.5,
+  },
+
+  // Validation Error Modal (Custom & Beautiful)
+  errorModalOverlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(15, 23, 42, 0.65)', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    padding: 16,
+  },
+  errorCard: { 
+    backgroundColor: '#fff', 
+    width: '88%', 
+    maxWidth: 340,
+    borderRadius: 22, 
+    paddingTop: 24,
+    paddingBottom: 20,
+    paddingHorizontal: 22, 
+    alignItems: 'center',
+    position: 'relative',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  errorCloseBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  errorIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#fef3c7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  errorTitle: { 
+    fontSize: 18, 
+    fontWeight: '800', 
+    color: '#0f172a', 
+    textAlign: 'center',
+    marginBottom: 6,
+    letterSpacing: -0.2,
+  },
+  errorMessageText: {
+    fontSize: 13.5,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 19,
+    fontWeight: '500',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  errorHintBox: {
+    width: '100%',
+    backgroundColor: '#fffbeb',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  errorHintText: {
+    fontSize: 12,
+    color: '#92400e',
+    textAlign: 'center',
+    lineHeight: 17,
+    fontWeight: '500',
+  },
+  errorActionBtn: { 
+    width: '100%', 
+    borderRadius: 12, 
+    overflow: 'hidden',
+  },
+  errorBtnGradient: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorActionBtnTxt: { 
+    color: '#fff', 
+    fontWeight: '700', 
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
+
+  scheduleTipBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  scheduleTipTxt: {
+    fontSize: 12,
+    color: '#1e40af',
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  scheduleTipTe: {
+    fontSize: 11,
+    color: '#2563eb',
+    marginTop: 3,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+
   sectionHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 16 },
   sectionHeaderText: { fontFamily: 'Outfit-Bold', fontSize: 14, fontWeight: '700' }
 });
