@@ -9,69 +9,37 @@ import {
   Dimensions,
   Alert,
   Modal,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
-import { ChevronLeft, Share2, BookMarked, Settings, Search, CheckCircle2 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as Clipboard from 'expo-clipboard';
+import { ArrowLeft, ChevronLeft, Share2, BookMarked, Settings, Search, CheckCircle2, Copy, Play, Square, Volume2 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Speech from 'expo-speech';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
+import { BibleService } from '../services/BibleService';
 
 const { width } = Dimensions.get('window');
 
-const BOOK_MAP: any = {
-  // OT
-  'Genesis': 1, 'Exodus': 2, 'Leviticus': 3, 'Numbers': 4, 'Deuteronomy': 5,
-  'Joshua': 6, 'Judges': 7, 'Ruth': 8, '1 Samuel': 9, '2 Samuel': 10,
-  '1 Kings': 11, '2 Kings': 12, '1 Chronicles': 13, '2 Chronicles': 14, 'Ezra': 15,
-  'Nehemiah': 16, 'Esther': 17, 'Job': 18, 'Psalms': 19, 'Proverbs': 20,
-  'Ecclesiastes': 21, 'Song of Solomon': 22, 'Isaiah': 23, 'Jeremiah': 24, 'Lamentations': 25,
-  'Ezekiel': 26, 'Daniel': 27, 'Hosea': 28, 'Joel': 29, 'Amos': 30,
-  'Obadiah': 31, 'Jonah': 32, 'Micah': 33, 'Nahum': 34, 'Habakkuk': 35,
-  'Zephaniah': 36, 'Haggai': 37, 'Zechariah': 38, 'Malachi': 39,
-  // NT
-  'Matthew': 40, 'Mark': 41, 'Luke': 42, 'John': 43, 'Acts': 44,
-  'Romans': 45, '1 Corinthians': 46, '2 Corinthians': 47, 'Galatians': 48, 'Ephesians': 49,
-  'Philippians': 50, 'Colossians': 51, '1 Thessalonians': 52, '2 Thessalonians': 53, '1 Timothy': 54,
-  '2 Timothy': 55, 'Titus': 56, 'Philemon': 57, 'Hebrews': 58, 'James': 59,
-  '1 Peter': 60, '2 Peter': 61, '1 John': 62, '2 John': 63, '3 John': 64,
-  'Jude': 65, 'Revelation': 66,
-  // Telugu
-  'ఆదికాండము': 1, 'నిర్గమకాండము': 2, 'లేవీయకాండము': 3, 'సంఖ్యాకాండము': 4, 'ద్వితీయోపదేశకాండము': 5,
-  'యెహోషువ': 6, 'న్యాయాధిపతులు': 7, 'రూతు': 8, '1 సమూయేలు': 9, '2 సమూయేలు': 10,
-  '1 రాజులు': 11, '2 రాజులు': 12, '1 దినవృత్తాంతములు': 13, '2 దినవృత్తాంతములు': 14, 'ఎజ్రా': 15,
-  'నెహెమ్యా': 16, 'ఎస్తేరు': 17, 'యోబు': 18, 'కీర్తనల గ్రంథము': 19, 'సామెతలు': 20,
-  'ప్రసంగి': 21, 'పరమగీతము': 22, 'యెషయా': 23, 'యిర్మియా': 24, 'విలాపవాక్యములు': 25,
-  'యెహెజ్కేలు': 26, 'దానియేలు': 27, 'హోషేయ': 28, 'యోవేలు': 29, 'ఆమోసు': 30,
-  'ఓబద్యా': 31, 'యోనా': 32, 'మీకా': 33, 'నహూము': 34, 'హబక్కూకు': 35,
-  'జెఫన్యా': 36, 'హగ్గయి': 37, 'జెకర్యా': 38, 'మలాకీ': 39,
-  'మత్తయి సువార్త': 40, 'మార్కు సువార్త': 41, 'లూకా సువార్త': 42, 'యోహాను సువార్త': 43, 'అపొస్తలుల కార్యములు': 44,
-  'రోమీయులకు వ్రాసిన పత్రిక': 45, '1 కొరింథీయులకు': 46, '2 కొరింథీయులకు': 47, 'గలతీయులకు': 48, 'ఎఫెసీయులకు': 49,
-  'ఫిలిప్పీయులకు': 50, 'కొలొస్సయులకు': 51, '1 థెస్సలొనీకయులకు': 52, '2 థెస్సలొనీకయులకు': 53, '1 తిమోతికి': 54,
-  '2 తిమోతికి': 55, 'తీతుకు': 56, 'ఫిలేమోనుకు': 57, 'హెబ్రీయులకు': 58, 'యాకోబు': 59,
-  '1 పేతురు': 60, '2 పేతురు': 61, '1 యోహాను': 62, '2 యోహాను': 63, '3 యోహాను': 64,
-  'యూదా': 65, 'ప్రకటన గ్రంథము': 66
-};
-
-const ENGLISH_NAMES = [
-  'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 'Joshua', 'Judges', 'Ruth', '1 Samuel', '2 Samuel',
-  '1 Kings', '2 Kings', '1 Chronicles', '2 Chronicles', 'Ezra', 'Nehemiah', 'Esther', 'Job', 'Psalms', 'Proverbs',
-  'Ecclesiastes', 'Song of Solomon', 'Isaiah', 'Jeremiah', 'Lamentations', 'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos',
-  'Obadiah', 'Jonah', 'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai', 'Zechariah', 'Malachi',
-  'Matthew', 'Mark', 'Luke', 'John', 'Acts', 'Romans', '1 Corinthians', '2 Corinthians', 'Galatians', 'Ephesians',
-  'Philippians', 'Colossians', '1 Thessalonians', '2 Thessalonians', '1 Timothy', '2 Timothy', 'Titus', 'Philemon', 'Hebrews', 'James',
-  '1 Peter', '2 Peter', '1 John', '2 John', '3 John', 'Jude', 'Revelation'
-];
-
-// Local Telugu Bible Data Fallback
-const LOCAL_TELUGU_BIBLE: any = require('../../assets/telugu_bible.json');
-
 export default function BibleReaderScreen({ route, navigation }: any) {
-  const { bookName, chapter, lang, targetVerse } = route.params;
+  const { bookName, chapter, lang: paramLang, bookIndex: paramBookIndex, targetVerse } = route.params || {};
   const { isDark } = useTheme();
+  const { language, t } = useLanguage();
+  const activeLang = paramLang || language;
+
+  const bookIndex = paramBookIndex !== undefined ? paramBookIndex : BibleService.getBookIndex(bookName);
+  const localizedBookName = BibleService.getBookName(bookIndex, activeLang);
+  const englishBookName = BibleService.getBookName(bookIndex, 'en');
+  const totalChapters = BibleService.getChapterCount(bookIndex);
+
   const [verses, setVerses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successModalType, setSuccessModalType] = useState<'saved' | 'copied'>('saved');
   const [showVerseOptionsModal, setShowVerseOptionsModal] = useState(false);
   const [selectedVerseItem, setSelectedVerseItem] = useState<any>(null);
 
@@ -85,12 +53,30 @@ export default function BibleReaderScreen({ route, navigation }: any) {
   const scrollViewRef = React.useRef<ScrollView>(null);
   const [verseLayouts, setVerseLayouts] = useState<{ [key: number]: number }>({});
 
-  // Derive English name and total chapters
-  const bookIndex = (BOOK_MAP[bookName] || 1) - 1;
-  const englishBookName = ENGLISH_NAMES[bookIndex] || bookName;
-  const totalChapters = LOCAL_TELUGU_BIBLE?.Book?.[bookIndex]?.Chapter?.length || 150;
+  // Audio state
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingVerse, setSpeakingVerse] = useState<number | null>(null);
+  const isSpeakingRef = React.useRef(false);
+  const currentVerseIndexRef = React.useRef(0);
+  
+  // Voice selection state
+  const [selectedVoice, setSelectedVoice] = useState<'male' | 'female'>('female');
+  const selectedVoiceRef = React.useRef<'male' | 'female'>('female');
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
 
   React.useEffect(() => {
+    selectedVoiceRef.current = selectedVoice;
+  }, [selectedVoice]);
+
+  React.useEffect(() => {
+    // Load voice preference
+    AsyncStorage.getItem('@BibleVoicePref').then(stored => {
+      if (stored) {
+        setSelectedVoice(stored as any);
+        selectedVoiceRef.current = stored as any;
+      }
+    });
+
     fetchVerses();
     setVerseLayouts({});
     // Exit selection mode when chapter changes
@@ -113,7 +99,13 @@ export default function BibleReaderScreen({ route, navigation }: any) {
       }
     };
     checkReadStatus();
-  }, [bookName, chapter, lang, bookIndex]);
+    
+    return () => {
+      // Cleanup speech on unmount or chapter change
+      isSpeakingRef.current = false;
+      Speech.stop();
+    };
+  }, [bookName, chapter, activeLang, bookIndex]);
 
   React.useEffect(() => {
     if (targetVerse && verseLayouts[targetVerse] !== undefined) {
@@ -128,66 +120,9 @@ export default function BibleReaderScreen({ route, navigation }: any) {
     try {
       setLoading(true);
       setError(null);
-
-      // 1. Check Local Fallback for Telugu First (Simple & Robust)
-      if (lang === 'Telugu') {
-        const bIndex = (BOOK_MAP[bookName] || 1) - 1;
-        if (LOCAL_TELUGU_BIBLE && LOCAL_TELUGU_BIBLE.Book && LOCAL_TELUGU_BIBLE.Book[bIndex]) {
-          const bookData = LOCAL_TELUGU_BIBLE.Book[bIndex];
-          if (bookData.Chapter && bookData.Chapter[chapter - 1]) {
-            console.log(`📖 Loading ${bookName} Chapter ${chapter} from local JSON...`);
-            const chapterData = bookData.Chapter[chapter - 1].Verse;
-            const formattedVerses = chapterData.map((v: any, i: number) => ({
-              verse: i + 1,
-              text: v.Verse
-            }));
-            setVerses(formattedVerses);
-            setLoading(false);
-            return;
-          }
-        }
-      }
-
-      // 2. Otherwise, use API (Primary for English, Fallback for Telugu)
-      const bookId = BOOK_MAP[bookName] || 1;
-      const versions = lang === 'English' ? ['KJV', 'ASV'] : ['TELBSI', 'BSITEL', 'TEL'];
-      
-      let data = null;
-      let lastError = null;
-
-      for (const v of versions) {
-        try {
-          const url = `https://bolls.life/get-text/${v}/${bookId}/${chapter}/`;
-          console.log(`🔗 Fetching from API (${v}):`, url);
-          
-          const response = await fetch(url, {
-            headers: { 'Accept': 'application/json' }
-          });
-          
-          if (response.ok) {
-            const result = await response.json();
-            if (result && Array.isArray(result) && result.length > 0) {
-              // Strip Strong's numbers, <sup> translator notes, and any other HTML tags
-              data = result.map((item: any) => ({
-                ...item,
-                text: item.text ? item.text
-                  .replace(/<S>\d*<\/S>/gi, '') // Remove Strongs
-                  .replace(/<sup[^>]*>.*?<\/sup>/gi, '') // Remove translator notes
-                  .replace(/<[^>]+>/g, '') // Strip any other stray HTML tags (<i>, <b>, etc.)
-                  .replace(/\s{2,}/g, ' ') // Clean up double spaces
-                  .trim() : item.text
-              }));
-              break;
-            }
-          }
-        } catch (e: any) {
-          lastError = e.message;
-        }
-      }
-
-      if (!data) {
-        throw new Error('Scripture not available offline. Please check your internet connection.');
-      }
+      const storedVersion = await AsyncStorage.getItem('@BibleEnglishVersion');
+      const prefEngVersion = storedVersion || 'KJV';
+      const data = await BibleService.fetchChapterVerses(bookIndex, chapter, activeLang, prefEngVersion);
       setVerses(data);
     } catch (error: any) {
       console.error('❌ Bible Load Error:', error);
@@ -195,6 +130,65 @@ export default function BibleReaderScreen({ route, navigation }: any) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const startSpeech = async () => {
+    isSpeakingRef.current = true;
+    setIsSpeaking(true);
+    currentVerseIndexRef.current = 0;
+    speakVerse(0);
+  };
+
+  const speakVerse = (index: number) => {
+    if (!isSpeakingRef.current || index >= verses.length) {
+      isSpeakingRef.current = false;
+      setIsSpeaking(false);
+      setSpeakingVerse(null);
+      return;
+    }
+    
+    currentVerseIndexRef.current = index;
+    const v = verses[index];
+    setSpeakingVerse(v.verse);
+    
+    // Auto-scroll to the speaking verse
+    if (verseLayouts[v.verse] !== undefined) {
+      scrollViewRef.current?.scrollTo({
+        y: Math.max(0, verseLayouts[v.verse] - 20),
+        animated: true
+      });
+    }
+
+    const textToSpeak = v.text;
+    const speechLang = BibleService.getTTSLanguageCode(activeLang);
+    const currentVoice = selectedVoiceRef.current;
+    
+    // 0.55 pitch guarantees a deep, masculine sound
+    const pitchValue = currentVoice === 'male' ? 0.55 : 1.1; 
+    
+    Speech.speak(textToSpeak, {
+      language: speechLang,
+      rate: currentVoice === 'male' ? 0.65 : 0.75, // Slower, more contemplative reading speed
+      pitch: pitchValue,
+      onDone: () => {
+        if (isSpeakingRef.current) {
+          speakVerse(index + 1);
+        }
+      },
+      onError: (e) => {
+        console.log('Speech error:', e);
+        if (isSpeakingRef.current) {
+          speakVerse(index + 1);
+        }
+      }
+    });
+  };
+
+  const stopSpeech = async () => {
+    isSpeakingRef.current = false;
+    await Speech.stop();
+    setIsSpeaking(false);
+    setSpeakingVerse(null);
   };
 
   const handleVerseLongPress = (item: any) => {
@@ -266,11 +260,51 @@ export default function BibleReaderScreen({ route, navigation }: any) {
 
       setSavedVerseCount(sortedVerseNums.length);
       cancelSelection();
+      setSuccessModalType('saved');
       setShowSuccessModal(true);
     } catch (e) {
       console.error(e);
       Alert.alert('Error', 'Failed to save verses.');
     }
+  };
+
+  const copyMultipleVerses = async () => {
+    if (selectedVerses.size === 0) return;
+    try {
+      const sortedVerseNums = Array.from(selectedVerses).map(Number).sort((a, b) => a - b);
+      const isContiguous = sortedVerseNums.every((v, i) => i === 0 || v === sortedVerseNums[i - 1] + 1);
+      const rangeLabel = isContiguous && sortedVerseNums.length > 1
+        ? `${sortedVerseNums[0]}-${sortedVerseNums[sortedVerseNums.length - 1]}`
+        : sortedVerseNums.join(',');
+      
+      const content = sortedVerseNums
+        .map(vNum => {
+          const v = verses.find((v: any) => Number(v.verse) === vNum);
+          return v ? `[${vNum}] ${v.text}` : '';
+        })
+        .filter(Boolean)
+        .join('\n');
+
+      const ref = `${englishBookName} ${chapter}:${rangeLabel}`;
+      const textToCopy = `"${content}"\n- ${ref}`;
+      
+      await Clipboard.setStringAsync(textToCopy);
+      setSavedVerseCount(sortedVerseNums.length);
+      cancelSelection();
+      setSuccessModalType('copied');
+      setShowSuccessModal(true);
+    } catch (e) {
+      console.error(e);
+      Alert.alert('Error', 'Failed to copy verses.');
+    }
+  };
+
+  const copyVerseToClipboard = async (item: any) => {
+    setShowVerseOptionsModal(false);
+    const ref = `${englishBookName} ${chapter}:${item.verse}`;
+    const textToCopy = `"${item.text}" - ${ref}`;
+    await Clipboard.setStringAsync(textToCopy);
+    Alert.alert('✅ Copied!', `${ref} copied to clipboard.`);
   };
 
   const saveToSermonNotes = async (item: any) => {
@@ -296,6 +330,8 @@ export default function BibleReaderScreen({ route, navigation }: any) {
 
       notes.unshift(newNote);
       await AsyncStorage.setItem('@SermonPersonalNotes', JSON.stringify(notes));
+      setSavedVerseCount(1);
+      setSuccessModalType('saved');
       setShowSuccessModal(true);
     } catch (e) {
       console.error(e);
@@ -308,19 +344,31 @@ export default function BibleReaderScreen({ route, navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Navy Blue Header */}
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft color="#fff" size={28} />
-          </TouchableOpacity>
-          <View style={styles.titleInfo}>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft color="#fff" size={24} />
+        </TouchableOpacity>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 12 }}>
             <Text style={styles.headerTitle}>
-              {lang === 'Telugu' ? `${englishBookName} · ${bookName}` : englishBookName}
+              {activeLang === 'en' ? englishBookName : `${englishBookName} · ${localizedBookName}`}
             </Text>
-            <Text style={styles.headerSub}>Chapter {chapter} · అధ్యాయం {chapter}</Text>
+            <Text style={styles.headerSub}>
+              {t('bible.chapters')} {chapter}
+            </Text>
           </View>
         </View>
-      </View>
+
+        <TouchableOpacity onPress={() => setShowVoiceModal(true)} style={{ zIndex: 10, padding: 5 }}>
+          <Volume2 color="#fff" size={24} />
+        </TouchableOpacity>
+      </LinearGradient>
 
       <ScrollView 
         ref={scrollViewRef}
@@ -330,13 +378,15 @@ export default function BibleReaderScreen({ route, navigation }: any) {
         <View style={styles.readerContent}>
           {loading ? (
             <View style={styles.loadingContainer}>
-               <Text style={{ color: '#1a2d5a', fontWeight: '700' }}>Loading verses... పరిశుద్ధ గ్రంథం లోడ్ అవుతోంది...</Text>
+               <Text style={{ color: '#1a2d5a', fontWeight: '700' }}>
+                 {t('bible.readNow')}...
+               </Text>
             </View>
           ) : error ? (
             <View style={styles.loadingContainer}>
                <Text style={{ color: '#c0392b', fontWeight: '700', textAlign: 'center' }}>{error}</Text>
                <TouchableOpacity style={styles.retryBtn} onPress={fetchVerses}>
-                 <Text style={styles.retryText}>Tap to Retry · మళ్ళీ ప్రయత్నించండి</Text>
+                 <Text style={styles.retryText}>Tap to Retry</Text>
                </TouchableOpacity>
             </View>
           ) : (
@@ -405,14 +455,31 @@ export default function BibleReaderScreen({ route, navigation }: any) {
                   key={index}
                   activeOpacity={0.6}
                   onLongPress={() => handleVerseLongPress(item)}
-                  style={styles.verseRow}
+                  style={[
+                    styles.verseRow,
+                    speakingVerse === item.verse && { backgroundColor: isDark ? 'rgba(250, 204, 21, 0.1)' : 'rgba(250, 204, 21, 0.15)', borderRadius: 8, marginHorizontal: -4, paddingHorizontal: 4, paddingVertical: 4 }
+                  ]}
                   onLayout={(e) => {
                     const y = e.nativeEvent.layout.y;
                     setVerseLayouts(prev => ({...prev, [item.verse]: y}));
                   }}
                 >
                   <Text style={[styles.verseNumber, { color: isDark ? '#94a3b8' : '#1a2d5a' }]}>{item.verse}</Text>
-                  <Text style={[styles.verseText, { color: isDark ? '#e2e8f0' : '#1e293b' }]}>
+                  <Text style={[
+                  styles.verseText,
+                  // Default text color
+                  { color: isDark ? '#f8fafc' : '#334155' },
+                  // Highlighted text AND background color
+                  speakingVerse === item.verse && { 
+                    backgroundColor: isDark ? 'rgba(250, 204, 21, 0.25)' : 'rgba(250, 204, 21, 0.35)', 
+                    color: isDark ? '#ffffff' : '#000000', // Change text color!
+                    borderRadius: 8, 
+                    marginHorizontal: -4, 
+                    paddingHorizontal: 4, 
+                    paddingVertical: 4,
+                    fontWeight: '800' // Make it bold so it stands out even more
+                  }
+                ]}>
                     {item.text}
                   </Text>
                 </TouchableOpacity>
@@ -440,7 +507,6 @@ export default function BibleReaderScreen({ route, navigation }: any) {
                       progress = progress.filter((item: string) => item !== key);
                       await AsyncStorage.setItem('@BibleReadProgress', JSON.stringify(progress));
                       setIsChapterRead(false);
-                      // Optional: Alert.alert('Success', 'Chapter unmarked as read.');
                     } else {
                       if (!progress.includes(key)) {
                         progress.push(key);
@@ -470,51 +536,83 @@ export default function BibleReaderScreen({ route, navigation }: any) {
         <View style={{ height: 100 }} />
       </ScrollView>
 
+      {/* Floating Audio Button */}
+      {!selectionMode && !loading && verses.length > 0 && (
+        <TouchableOpacity
+          style={[styles.audioFab, isSpeaking && styles.audioFabActive]}
+          onPress={isSpeaking ? stopSpeech : startSpeech}
+        >
+          {isSpeaking ? (
+            <Square color="#fff" size={24} fill="#fff" />
+          ) : (
+            <Play color="#fff" size={24} fill="#fff" style={{ marginLeft: 3 }} />
+          )}
+        </TouchableOpacity>
+      )}
+
       {/* Bottom Bar — switches between nav and selection action bar */}
       {selectionMode ? (
-        <View style={[styles.selectionBar, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
+        <LinearGradient 
+          colors={['#2b52a1', '#1a3673']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.selectionBar}
+        >
           <TouchableOpacity style={styles.selectionCancelBtn} onPress={cancelSelection}>
-            <Text style={[styles.selectionCancelTxt, { color: isDark ? '#94a3b8' : '#64748b' }]}>Cancel</Text>
+            <Text style={[styles.selectionCancelTxt, { color: '#fff' }]}>Cancel</Text>
           </TouchableOpacity>
           <View style={styles.selectionCountBox}>
-            <Text style={[styles.selectionCountTxt, { color: isDark ? '#e2e8f0' : '#1a2d5a' }]}>
+            <Text style={[styles.selectionCountTxt, { color: '#fff' }]}>
               {selectedVerses.size} verse{selectedVerses.size !== 1 ? 's' : ''} selected
             </Text>
           </View>
-          <TouchableOpacity
-            style={[styles.selectionSaveBtn, selectedVerses.size === 0 && { opacity: 0.4 }]}
-            onPress={saveMultipleVersesToNotes}
-            disabled={selectedVerses.size === 0}
-          >
-            <BookMarked color="#fff" size={16} />
-            <Text style={styles.selectionSaveTxt}>Save</Text>
-          </TouchableOpacity>
-        </View>
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity
+              style={[styles.selectionSaveBtn, { backgroundColor: 'rgba(255,255,255,0.15)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', paddingHorizontal: 14, paddingVertical: 8 }, selectedVerses.size === 0 && { opacity: 0.4 }]}
+              onPress={copyMultipleVerses}
+              disabled={selectedVerses.size === 0}
+            >
+              <Copy color="#fff" size={18} />
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.selectionSaveBtn, selectedVerses.size === 0 && { opacity: 0.4 }]}
+              onPress={saveMultipleVersesToNotes}
+              disabled={selectedVerses.size === 0}
+            >
+              <BookMarked color="#fff" size={15} />
+              <Text style={styles.selectionSaveTxt}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
       ) : (
-        <View style={[styles.bottomBar, { backgroundColor: isDark ? '#1e293b' : '#fff' }]}>
+        <LinearGradient 
+          colors={['#2b52a1', '#1a3673']}
+          start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+          style={styles.bottomBar}
+        >
           <TouchableOpacity 
-            style={[styles.barAction, chapter <= 1 && { opacity: 0.3 }, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]} 
-            onPress={() => chapter > 1 && navigation.push('BibleReader', { bookName, chapter: chapter - 1, lang })}
+            style={[styles.barAction, chapter <= 1 && { opacity: 0.3 }, { backgroundColor: 'transparent' }]} 
+            onPress={() => chapter > 1 && navigation.push('BibleReader', { bookIndex, bookName: localizedBookName, chapter: chapter - 1, lang: activeLang })}
             disabled={chapter <= 1}
           >
-            <ChevronLeft color={isDark ? '#e2e8f0' : '#1a2d5a'} size={24} />
+            <ChevronLeft color="#fff" size={24} />
           </TouchableOpacity>
           <TouchableOpacity 
             style={styles.barMain}
-            onPress={() => navigation.navigate('BibleChapters', { bookName, lang })}
+            onPress={() => navigation.navigate('BibleChapters', { bookIndex, bookName: localizedBookName, lang: activeLang })}
           >
-            <Text style={[styles.barMainTxt, { color: isDark ? '#e2e8f0' : '#1a2d5a' }]}>
-              Chapter {chapter} of {totalChapters}
+            <Text style={[styles.barMainTxt, { color: '#fff' }]}>
+              {t('bible.chapters')} {chapter} / {totalChapters}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity 
-            style={[styles.barAction, chapter >= totalChapters && { opacity: 0.3 }, { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}
-            onPress={() => chapter < totalChapters && navigation.push('BibleReader', { bookName, chapter: chapter + 1, lang })}
+            style={[styles.barAction, chapter >= totalChapters && { opacity: 0.3 }, { backgroundColor: 'transparent' }]}
+            onPress={() => chapter < totalChapters && navigation.push('BibleReader', { bookIndex, bookName: localizedBookName, chapter: chapter + 1, lang: activeLang })}
             disabled={chapter >= totalChapters}
           >
-            <ChevronLeft color={isDark ? '#e2e8f0' : '#1a2d5a'} size={24} style={{ transform: [{ rotate: '180deg' }] }} />
+            <ChevronLeft color="#fff" size={24} style={{ transform: [{ rotate: '180deg' }] }} />
           </TouchableOpacity>
-        </View>
+        </LinearGradient>
       )}
 
       {/* Verse Options Modal */}
@@ -557,9 +655,17 @@ export default function BibleReaderScreen({ route, navigation }: any) {
               </View>
             )}
 
-            {/* Action Button */}
+            {/* Action Buttons */}
             <TouchableOpacity
               style={styles.optionsActionBtn}
+              onPress={() => selectedVerseItem && copyVerseToClipboard(selectedVerseItem)}
+            >
+              <Copy color="#ffffff" size={18} />
+              <Text style={styles.optionsActionBtnTxt}>Copy Verse</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.optionsActionBtn, { backgroundColor: isDark ? '#1e3a5f' : '#1a2d5a', marginTop: 10 }]}
               onPress={() => selectedVerseItem && saveToSermonNotes(selectedVerseItem)}
             >
               <BookMarked color="#ffffff" size={18} />
@@ -577,6 +683,42 @@ export default function BibleReaderScreen({ route, navigation }: any) {
         </TouchableOpacity>
       </Modal>
 
+      {/* Voice Settings Modal */}
+      <Modal visible={showVoiceModal} transparent={true} animationType="slide">
+        <TouchableOpacity style={styles.optionsOverlay} activeOpacity={1} onPress={() => setShowVoiceModal(false)}>
+          <View style={[styles.optionsSheet, { backgroundColor: isDark ? '#1e293b' : '#ffffff' }]}>
+            <View style={styles.optionsHandle} />
+            <Text style={[styles.modalTitle, { color: isDark ? '#f8fafc' : '#0f172a', marginBottom: 20 }]}>Select Voice</Text>
+            
+            <View style={{ gap: 12 }}>
+              <TouchableOpacity
+                style={[styles.optionsActionBtn, selectedVoice === 'female' ? { backgroundColor: '#1a2d5a' } : { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}
+                onPress={() => {
+                  setSelectedVoice('female');
+                  AsyncStorage.setItem('@BibleVoicePref', 'female');
+                  setShowVoiceModal(false);
+                }}
+              >
+                <Image source={require('../../assets/voice_female.png')} style={{ width: 32, height: 32, borderRadius: 16 }} />
+                <Text style={[styles.optionsActionBtnTxt, selectedVoice !== 'female' && { color: isDark ? '#f8fafc' : '#334155' }]}>Female Voice (Standard)</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionsActionBtn, selectedVoice === 'male' ? { backgroundColor: '#1a2d5a' } : { backgroundColor: isDark ? '#334155' : '#f1f5f9' }]}
+                onPress={() => {
+                  setSelectedVoice('male');
+                  AsyncStorage.setItem('@BibleVoicePref', 'male');
+                  setShowVoiceModal(false);
+                }}
+              >
+                <Image source={require('../../assets/voice_male.png')} style={{ width: 32, height: 32, borderRadius: 16 }} />
+                <Text style={[styles.optionsActionBtnTxt, selectedVoice !== 'male' && { color: isDark ? '#f8fafc' : '#334155' }]}>Male Voice (Deep)</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Beautiful Success Modal */}
       <Modal
         visible={showSuccessModal}
@@ -589,31 +731,39 @@ export default function BibleReaderScreen({ route, navigation }: any) {
               <CheckCircle2 color="#10b981" size={50} />
             </View>
             <Text style={[styles.modalTitle, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
-              {savedVerseCount > 1 ? `${savedVerseCount} Verses Saved!` : 'Verse Saved!'}
+              {successModalType === 'copied' 
+                ? (savedVerseCount > 1 ? `${savedVerseCount} Verses Copied!` : 'Verse Copied!')
+                : (savedVerseCount > 1 ? `${savedVerseCount} Verses Saved!` : 'Verse Saved!')}
             </Text>
             <Text style={[styles.modalDesc, { color: isDark ? '#94a3b8' : '#64748b' }]}>
-              {savedVerseCount > 1
-                ? `${savedVerseCount} verses have been added to your Sermon Notes as one entry.`
-                : 'This verse has been successfully added to your Sermon Notes.'}
+              {successModalType === 'copied'
+                ? 'The selected verses have been copied to your clipboard.'
+                : (savedVerseCount > 1
+                  ? `${savedVerseCount} verses have been added to your Sermon Notes as one entry.`
+                  : 'This verse has been successfully added to your Sermon Notes.')}
             </Text>
             
             <View style={styles.modalActions}>
               <TouchableOpacity 
-                style={[styles.modalBtn, styles.modalBtnSecondary]} 
+                style={[styles.modalBtn, successModalType === 'copied' ? styles.modalBtnPrimary : styles.modalBtnSecondary]} 
                 onPress={() => setShowSuccessModal(false)}
               >
-                <Text style={styles.modalBtnSecondaryTxt}>Continue Reading</Text>
+                <Text style={successModalType === 'copied' ? styles.modalBtnPrimaryTxt : styles.modalBtnSecondaryTxt}>
+                  {successModalType === 'copied' ? 'OK' : 'Continue Reading'}
+                </Text>
               </TouchableOpacity>
               
-              <TouchableOpacity 
-                style={[styles.modalBtn, styles.modalBtnPrimary]} 
-                onPress={() => {
-                  setShowSuccessModal(false);
-                  navigation.navigate('MemberNotes');
-                }}
-              >
-                <Text style={styles.modalBtnPrimaryTxt}>View Notes</Text>
-              </TouchableOpacity>
+              {successModalType === 'saved' && (
+                <TouchableOpacity 
+                  style={[styles.modalBtn, styles.modalBtnPrimary]} 
+                  onPress={() => {
+                    setShowSuccessModal(false);
+                    navigation.navigate('MemberNotes');
+                  }}
+                >
+                  <Text style={styles.modalBtnPrimaryTxt}>View Notes</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
@@ -625,21 +775,21 @@ export default function BibleReaderScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    backgroundColor: '#1a2d5a',
     paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 16,
     paddingBottom: 20,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center' },
-  backBtn: { marginRight: 12 },
-  titleInfo: {},
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800' },
-  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600' },
+  backBtn: { zIndex: 10, padding: 5 },
+  titleInfo: { alignItems: 'center' },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
+  headerSub: { color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: '600', marginTop: 2 },
   headerRight: { flexDirection: 'row', flexWrap: 'wrap', gap: 15 },
   headerIcon: { padding: 4 },
 
@@ -736,8 +886,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5
   },
   
-  // Legacy (kept for safety)
-
   // Multi-verse selection styles
   selectedVerseLight: {
     backgroundColor: 'rgba(26, 45, 90, 0.08)',
@@ -777,7 +925,7 @@ const styles = StyleSheet.create({
   // Selection action bar
   selectionBar: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 50,
     left: 20,
     right: 20,
     height: 60,
@@ -839,7 +987,7 @@ const styles = StyleSheet.create({
 
   bottomBar: {
     position: 'absolute',
-    bottom: 30,
+    bottom: 50,
     left: 20,
     right: 20,
     height: 60,
@@ -1038,5 +1186,25 @@ const styles = StyleSheet.create({
   optionsCancelTxt: {
     fontSize: 15,
     fontWeight: '600'
+  },
+  audioFab: {
+    position: 'absolute',
+    right: 24,
+    bottom: 130, // Increased to float above the bottom navigation bar
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#1a3673',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: 15,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 10, // Increased elevation for a stronger floating effect
+    zIndex: 1000,
+  },
+  audioFabActive: {
+    backgroundColor: '#ef4444',
   }
 });

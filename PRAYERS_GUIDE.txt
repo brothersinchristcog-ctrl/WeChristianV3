@@ -1,0 +1,152 @@
+=============================================================================================================================
+                           WECHRISTIAN - COMPLETE HOW-TO GUIDE: PRAYER REQUESTS & MODERATION
+                             EXHAUSTIVE GUIDE FOR EVERY TAB, SCREEN, FIELD & ACTION
+=============================================================================================================================
+
+
+HOW TO MODERATE, RESPOND & MANAGE PRAYER REQUESTS FROM THE ADMIN DASHBOARD
+==========================================================================
+
+1. Starting the Process
+-----------------------
+From the main Admin Dashboard, look under the "Community & Members" category:
+- You will see the "Prayers" card with a deep royal purple badge and heart icon.
+- Tapping "Prayers" opens the Church Prayer Moderation & Pastoral Intercession Center (`AdminPrayerModeration.tsx`).
+- Here pastors, elders, and intercessory prayer leaders review member petitions, respond privately, publish to the public Prayer Wall, and generate fasting prayer lists.
+
+
+=============================================================================================================================
+2. PRAYER DASHBOARD TABS & SCREEN LAYOUT (AdminPrayerModeration.tsx)
+=============================================================================================================================
+
+When you open the Prayers section, you have 3 status tabs across the top:
+
+A. "Pending" Tab (Needs Pastoral Attention):
+   - Displays all newly submitted prayer petitions from congregation members.
+   - Requires pastoral review before going public, protecting church privacy.
+
+B. "Processed" Tab (Answered & Approved):
+   - Displays requests that have been reviewed and approved to the live church Prayer Wall, or prayer requests that received a pastoral response.
+
+C. "Closed" Tab (Archived & Answered):
+   - Houses resolved prayer matters, completed fasting prayer items, and answered praise reports.
+
+D. Header Options Menu (⋮ Icon at Top Right):
+   - "+ Create Prayer Request": Allows pastors to submit a prayer request on behalf of a member, church corporate, or ministry.
+   - "Download Prayers (PDF)": Exports all active prayer requests into a clean, printable prayer bulletin for Tuesday/Friday fasting prayer services!
+
+
+=============================================================================================================================
+3. CREATING A PRAYER REQUEST FROM ADMIN (+ New Prayer Form)
+=============================================================================================================================
+
+When pastors take phone calls, home visit requests, or hospital visitation notes, they can record the request directly into the church system:
+
+-----------------------------------------------------------------------------------------------------------------------------
+A. Member Search & Linking:
+-----------------------------------------------------------------------------------------------------------------------------
+- `Search Member Name or Phone`:
+  * Type at least 3 letters of the member's name or mobile number.
+  * Displays matching church members with their profile pictures.
+  * Tapping the member automatically links the petition to their household profile!
+
+-----------------------------------------------------------------------------------------------------------------------------
+B. Post As Identity (Privacy Control):
+-----------------------------------------------------------------------------------------------------------------------------
+- Choose who the prayer request is submitted under:
+  * `Pastor's Name` (e.g., "Pastor Daniel Raju"): For pastoral petitions.
+  * `Church — Corporate`: For church-wide items (e.g., Land purchase, Youth revival, Building fund).
+  * `Anonymous`: Protects delicate family matters or confidential medical emergencies.
+
+-----------------------------------------------------------------------------------------------------------------------------
+C. Prayer Categories:
+-----------------------------------------------------------------------------------------------------------------------------
+- Select from 5 targeted intercessory categories:
+  * `Pray for me` (Personal spiritual growth, exams, job interviews)
+  * `Pray for my family` (Marital peace, children's salvation, domestic harmony)
+  * `Pray for healing` (Sickness, surgeries, hospitalizations, recovery)
+  * `Pray for peace and strength` (Bereavement, depression, grief, trials)
+  * `Other (if necessary)` (Financial deliverance, court cases, travel mercies)
+
+-----------------------------------------------------------------------------------------------------------------------------
+D. Prayer Petition Text:
+-----------------------------------------------------------------------------------------------------------------------------
+- `Prayer Details (Telugu)`: Enter the petition in Telugu script for local believers.
+- `Prayer Details (English)`: English translation or summary.
+
+Action Buttons:
+- "Submit Prayer Request": Saves the record and syncs across the intercessory database.
+- "Cancel" (X Icon): Closes the modal.
+
+
+=============================================================================================================================
+4. PRAYER CARD ANATOMY & MODERATION ACTIONS
+=============================================================================================================================
+
+Every prayer card in the moderation list provides complete pastoral oversight:
+
+A. Requester Information Header:
+   - Member Profile Photo / Avatar.
+   - Member Name (or "Anonymous Believer").
+   - Submission Timestamp (e.g., "Today at 10:15 AM" or "2 days ago").
+   - Category Badge (e.g., Green for Healing, Purple for Family).
+
+B. The Petition Text:
+   - The member's exact written plea for prayer.
+
+C. Intercessory Counter ("Pray Count"):
+   - Displays the live count of church believers who tapped "I Prayed" (e.g., "🙏 24 Believers Interceded").
+   - Tap the count to view the exact names of church members who prayed!
+
+D. Pastoral Response Box:
+   - A dedicated text input field: *"Write a pastoral encouragement or Bible promise..."*
+   - Pastors can type a personal blessing (e.g., *"We are standing in agreement with you. Isaiah 53:5. God will heal you!"*).
+
+E. Pastoral Action Buttons:
+   1. "Approve & Make Public" (Green Checkmark):
+      - Attaches the pastor's response and pushes the prayer request live to the Congregation Prayer Wall!
+      - All church members can now see it, pray, and tap "I Prayed".
+   2. "Respond Privately" (Shield / Lock Icon):
+      - Sends the pastor's prayer response directly to the member's private inbox.
+      - Keeps the petition confidential (does NOT post to public wall). Perfect for sensitive family or health struggles.
+   3. "I Prayed (Amen)" (Prayer Hands Icon):
+      - Records the pastor's personal intercession, incrementing the live prayer count and notifying the member.
+   4. "Close Request" (Checkmark Box):
+      - Marks the prayer as resolved or answered, transferring it cleanly into the "Closed" archive.
+   5. "Delete Request" (Trash Icon):
+      - Prompts a confirmation alert to permanently remove spam, duplicates, or resolved confidential items.
+
+
+=============================================================================================================================
+5. DOWNLOADING FASTING PRAYER BULLETIN (PDF EXPORT)
+=============================================================================================================================
+
+At the top right corner, tap the ⋮ Options Menu -> "Download Prayers (PDF)":
+- The system automatically generates an official church prayer sheet:
+  * Official Church Name & Logo at the top.
+  * Formatted table of all active prayer requests grouped by Category (Healing, Family, Salvation).
+  * Date, Requester Name, and specific prayer points.
+  * Formatted specifically for printing on A4 paper.
+- One-Tap Share:
+  * Opens the native print sheet or shares directly as a PDF document on WhatsApp to the church intercessory prayer warrior team!
+
+
+=============================================================================================================================
+6. HOW CONGREGATION MEMBERS USE THE PRAYER WALL IN THE APP
+=============================================================================================================================
+
+When church believers open the "Prayers" tab on their mobile app:
+1. Community Prayer Wall:
+   - Members scroll through approved church petitions and intercede together as one body of Christ.
+2. "I Prayed" Button:
+   - Tapping "I Prayed" sends an instant notification of encouragement to the person who requested prayer!
+3. Submitting Private Requests:
+   - Members can check "Keep Confidential" when submitting, ensuring only the Senior Pastor and pastoral staff can see their request.
+4. Viewing Pastoral Responses:
+   - When the pastor writes a response scripture or word of blessing, the member receives a notification and sees the pastor's note highlighted on their card.
+5. Answered Praises:
+   - When God answers prayer, members can update their request with a "Praise Report" testimony to glorify God and strengthen the congregation!
+
+=============================================================================================================================
+                                                 END OF PRAYER MANUAL
+=============================================================================================================================

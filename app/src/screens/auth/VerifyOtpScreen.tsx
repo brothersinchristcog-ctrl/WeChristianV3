@@ -53,6 +53,19 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
       const { firestore, FieldValue } = require('../../services/firebaseConfig');
 
       if (result?.user && isSignUp && formData && activeChurchId) {
+        setStatus('Checking existing memberships...');
+        
+        // Prevent duplicate active memberships
+        const globalCheck = await FirestoreService.getGlobalUser(result.user.uid);
+        if (globalCheck && globalCheck.primaryChurchId && globalCheck.primaryChurchId !== activeChurchId) {
+          Alert.alert(
+            'Membership Active', 
+            'You are currently an active member of another church. You must leave or be removed from your previous church before joining a new one.'
+          );
+          setLoading(false);
+          return;
+        }
+
         setStatus('Creating your member profile...');
         
         // Global users collection is no longer used. Members are strictly stored in the church.
@@ -93,19 +106,19 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
         }
       }
 
+      let hasLinked = false;
       if (result?.user && contactId && !isSignUp) {
         setStatus('Linking church profile...');
         try {
           await FirestoreService.syncMember(activeChurchId || '', contactId, result.user.uid);
-
-          // Global users collection is no longer used.
+          hasLinked = true;
         } catch (syncError) {
           console.error('❌ Sync failed:', syncError);
         }
       }
 
       // After OTP confirmed: if user has no primaryChurchId yet
-      if (result?.user) {
+      if (result?.user && !hasLinked) {
         const globalUser = await FirestoreService.getGlobalUser(result.user.uid);
         
         if (!globalUser?.primaryChurchId) {
@@ -116,6 +129,12 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
           }
         }
         // If primaryChurchId exists, AuthContext will detect the signed-in user and navigate to Main automatically
+      }
+      
+      if (hasLinked) {
+        // Keep loading state active while AuthContext processes the login
+        setStatus('Loading dashboard...');
+        return; // Return here, finally block will run but that's okay.
       }
     } catch (error: any) {
       console.error('❌ Error:', error.code);

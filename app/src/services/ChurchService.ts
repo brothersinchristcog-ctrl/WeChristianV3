@@ -9,11 +9,23 @@ export interface ChurchTheme {
   bannerUrl?: string;
 }
 
+export interface ServiceTiming {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  note?: string;
+}
+
 export interface ChurchDetails {
   id: string;
   name: string;
+  pastorName?: string;
+  adminName?: string;
   churchCode: string;
+  isActive?: boolean;
   createdBy?: string;
+  createdAt?: any;
   tagline?: string;
   subdomain: string;
   contactEmail: string;
@@ -23,6 +35,7 @@ export interface ChurchDetails {
   theme: ChurchTheme;
   whatsappIntegrationEnabled?: boolean;
   automatedWhatsappWishesEnabled?: boolean;
+  useWeChristianDailyPromise?: boolean;
   automatedWeCelebrationTemplate?: {
     themeId?: string;
     themeColor?: string;
@@ -74,6 +87,14 @@ export interface ChurchDetails {
   // Multi-branch
   isParentOrganization?: boolean;
   parentChurchId?: string;
+
+  // Service Timings
+  serviceTimings?: ServiceTiming[];
+
+  // Registered Location Coordinates (for attendance geofencing)
+  latitude?: number;
+  longitude?: number;
+  attendanceRadiusMeters?: number;
 }
 
 class ChurchService {
@@ -99,13 +120,53 @@ class ChurchService {
   async getAllChurches(): Promise<ChurchDetails[]> {
     try {
       const snapshot = await firestore().collection('churches').orderBy('name').get();
-      return snapshot.docs.map(doc => ({
+      const churches = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as ChurchDetails[];
+
+      // Fetch live member count dynamically for each church
+      const churchesWithCounts = await Promise.all(churches.map(async (church) => {
+        try {
+          const countSnap = await firestore().collection('churches').doc(church.id).collection('members').count().get();
+          return { ...church, memberCount: countSnap.data().count };
+        } catch (e) {
+          return church;
+        }
+      }));
+
+      return churchesWithCounts;
     } catch (error) {
       console.error('Error fetching all churches:', error);
       return [];
+    }
+  }
+
+  /**
+   * Fetch all unique subscription tiers from all churches
+   */
+  async getAvailableTiers(): Promise<string[]> {
+    try {
+      const snapshot = await firestore().collection('churches').get();
+      const tiers = new Set<string>();
+      
+      // Default standard tiers
+      tiers.add('free');
+      tiers.add('premium');
+      tiers.add('expired');
+
+      snapshot.docs.forEach(doc => {
+        const data = doc.data();
+        const tier1 = data.subscription?.tier;
+        const tier2 = data.subscriptionTier;
+        if (tier1 && typeof tier1 === 'string') tiers.add(tier1.toLowerCase());
+        if (tier2 && typeof tier2 === 'string') tiers.add(tier2.toLowerCase());
+      });
+
+      return Array.from(tiers).sort();
+    } catch (error) {
+      console.error('Error fetching available tiers:', error);
+      return ['expired', 'free', 'premium'];
     }
   }
 
@@ -149,11 +210,137 @@ class ChurchService {
    */
   async createChurch(data: Omit<ChurchDetails, 'id'>): Promise<string> {
     try {
-      const docRef = await firestore().collection('churches').add(data);
+      // Check for duplicate mobile number
+      if (data.contactPhone) {
+        const digitsOnly = data.contactPhone.replace(/\D/g, '');
+        const last10Digits = digitsOnly.slice(-10);
+        const v1 = `+91${last10Digits}`;
+        const v2 = last10Digits;
+        const v3 = `0${last10Digits}`;
+        const v4 = data.contactPhone.trim();
+        const variants = Array.from(new Set([v1, v2, v3, v4]));
+
+        const duplicateQuery = await firestore()
+          .collection('churches')
+          .where('contactPhone', 'in', variants)
+          .get();
+          
+        if (!duplicateQuery.empty) {
+          throw new Error('DUPLICATE_CHURCH_PHONE');
+        }
+      }
+
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 60);
+
+      const churchData = {
+        ...data,
+        isActive: true,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+        subscription: {
+          status: 'trialing',
+          tier: 'free',
+          trialEndsAt: trialEndsAt.toISOString(),
+          validUntil: trialEndsAt.toISOString()
+        }
+      };
+      
+      const docRef = await firestore().collection('churches').add(churchData);
+
+      this.notifySuperAdminsNewChurchRegistration({
+        churchId: docRef.id,
+        name: data.name,
+        pastorName: data.pastorName || data.adminName,
+        contactPhone: data.contactPhone,
+        contactEmail: data.contactEmail,
+      }).catch(err => console.warn('Non-fatal error notifying super admins:', err));
+
       return docRef.id;
     } catch (error) {
       console.error('Error creating church:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Notify all platform Super Admins when a new church is registered
+   */
+  async notifySuperAdminsNewChurchRegistration(details: {
+    churchId: string;
+    name: string;
+    pastorName?: string;
+    contactPhone?: string;
+    contactEmail?: string;
+    city?: string;
+  }) {
+    try {
+      const regDate = new Date();
+      const dateFormatted = regDate.toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+      const timeFormatted = regDate.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+      const dateTimeStr = `${dateFormatted} at ${timeFormatted}`;
+
+      const title = '🏛️ New Church Registered';
+      const body = `"${details.name}" was registered on ${dateTimeStr}.${details.pastorName ? ` Pastor/Admin: ${details.pastorName}` : ''}`;
+
+      // 1. Fetch all Super Admins from platform_admins collection
+      const adminsSnapshot = await firestore().collection('platform_admins').get();
+      if (adminsSnapshot.empty) {
+        console.log('ℹ️ No platform super admins found in Firestore to notify.');
+        return;
+      }
+
+      const adminIds = adminsSnapshot.docs.map(doc => doc.id);
+
+      // 2. Write notifications in batch for all Super Admins
+      const batch = firestore().batch();
+      
+      for (const adminId of adminIds) {
+        const notifRef = firestore()
+          .collection('users')
+          .doc(adminId)
+          .collection('notifications')
+          .doc();
+
+        batch.set(notifRef, {
+          type: 'new_church',
+          title,
+          body,
+          churchId: details.churchId,
+          churchName: details.name,
+          pastorName: details.pastorName || '',
+          contactPhone: details.contactPhone || '',
+          registrationDateTime: dateTimeStr,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+          read: false,
+        });
+      }
+
+      // Also record in central platform_notifications
+      const centralRef = firestore().collection('platform_notifications').doc();
+      batch.set(centralRef, {
+        type: 'new_church',
+        title,
+        body,
+        churchId: details.churchId,
+        churchName: details.name,
+        pastorName: details.pastorName || '',
+        contactPhone: details.contactPhone || '',
+        registrationDateTime: dateTimeStr,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+      console.log(`✅ Stored new church registration notification for ${adminIds.length} super admin(s)`);
+    } catch (err) {
+      console.warn('⚠️ Error notifying super admins of new church registration:', err);
     }
   }
 
@@ -246,6 +433,86 @@ class ChurchService {
       console.error('Error updating church secrets:', error);
       return false;
     }
+  }
+  /**
+   * SuperAdmin: Update specific church settings
+   */
+  async updateChurchSettings(churchId: string, data: any): Promise<void> {
+    try {
+      await firestore().collection('churches').doc(churchId).update(data);
+    } catch (error) {
+      console.error('Error updating church settings:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * SuperAdmin: Set custom subscription expiry date
+   */
+  async setSubscriptionExpiry(churchId: string, date: Date): Promise<void> {
+    try {
+      await firestore().collection('churches').doc(churchId).update({
+        'subscription.validUntil': date.toISOString(),
+        'subscription.status': 'active'
+      });
+    } catch (error) {
+      console.error('Error setting subscription expiry:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * SuperAdmin: Extend subscription by N years
+   */
+  async extendSubscription(churchId: string, years: number): Promise<void> {
+    try {
+      const church = await this.getChurchDetails(churchId);
+      if (!church) throw new Error('Church not found');
+      
+      let currentExpiry = church.subscription?.validUntil ? new Date(church.subscription.validUntil) : new Date();
+      if (currentExpiry < new Date()) {
+        currentExpiry = new Date();
+      }
+      currentExpiry.setFullYear(currentExpiry.getFullYear() + years);
+      
+      await firestore().collection('churches').doc(churchId).update({
+        'subscription.validUntil': currentExpiry.toISOString(),
+        'subscription.status': 'active'
+      });
+    } catch (error) {
+      console.error('Error extending subscription:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Check if a church's subscription is dynamically expired
+   */
+  isSubscriptionExpired(church: ChurchDetails | null | undefined): boolean {
+    if (!church) return false;
+    
+    // 1. If manually deactivated or marked expired
+    if (church.isActive === false || church.subscription?.status === 'expired') {
+      return true;
+    }
+
+    // 2. Check dynamic validity date
+    if (church.subscription?.validUntil) {
+      const validUntil = new Date(church.subscription.validUntil).getTime();
+      if (validUntil < Date.now()) {
+        return true;
+      }
+    }
+
+    // 3. Check trial expiration
+    if (church.subscription?.status === 'trialing' && church.subscription?.trialEndsAt) {
+      const trialEndsAt = new Date(church.subscription.trialEndsAt).getTime();
+      if (trialEndsAt < Date.now()) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
 

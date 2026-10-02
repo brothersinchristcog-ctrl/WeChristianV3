@@ -14,8 +14,10 @@ import {
   Platform 
 } from 'react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   ChevronLeft, 
+  ArrowLeft,
   Share2, 
   Play, 
   Clock, 
@@ -26,6 +28,7 @@ import {
 } from 'lucide-react-native';
 import FirestoreService from '../services/FirestoreService';
 import { useChurch } from '../context/ChurchContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
@@ -45,6 +48,7 @@ export default function SermonVideoScreen({ navigation, route }: any) {
   const [playing, setPlaying] = useState(false);
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
   const { activeChurch } = useChurch();
+  const { t } = useLanguage();
   const insets = useSafeAreaInsets();
 
   // Initial load from params or fetch
@@ -59,7 +63,8 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           youtubeId: p.youtubeId,
           date: p.date,
           duration: p.duration || '',
-          pastor: p.pastor || 'Brother Y. Rajesh'
+          pastor: p.pastor || 'Pastor',
+          thumbnailUrl: p.thumbnailUrl || p.imageUrl || '',
         }));
       setVideos(data);
       
@@ -72,7 +77,7 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           youtubeId: sermonData.youtubeId || '',
           date: sermonData.date || 'Today',
           duration: sermonData.duration || '',
-          pastor: sermonData.pastor || 'Brother Y. Rajesh'
+          pastor: sermonData.pastor || 'Pastor'
         });
       } else if (data.length > 0) {
         setActiveVideo(data[0]);
@@ -118,16 +123,24 @@ export default function SermonVideoScreen({ navigation, route }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* ── Page Header ── */}
-      <View style={[styles.pageHeader, { paddingTop: Platform.OS === 'ios' ? insets.top || 50 : insets.top || 20 }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={20} color="#aac4e8" />
-          <Text style={styles.backBtnTxt}>Back</Text>
-        </TouchableOpacity>
-        <View style={styles.titleCol}>
-          <Text style={styles.pageTitle}>Sermon Video</Text>
-          <Text style={styles.pageSub}>ప్రసంగం</Text>
-        </View>
-        <View style={{ width: 60 }} />
+      <View style={{ backgroundColor: '#000' }}>
+        <LinearGradient 
+          colors={['#2b52a1', '#1a3673']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.pageHeader}
+        >
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+            <ArrowLeft size={24} color="#fff" />
+          </TouchableOpacity>
+          
+          <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+            <View style={styles.headerCenter}>
+              <Text style={styles.pageTitle}>{t('sermons.videoTitle')}</Text>
+              <Text style={styles.pageSub}>{t('sermons.title')}</Text>
+            </View>
+          </View>
+        </LinearGradient>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
@@ -144,48 +157,48 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           ) : (
             <View style={{ height: width * 0.56, justifyContent: 'center', alignItems: 'center', backgroundColor: '#111827' }}>
               <Video size={40} color="#374151" />
-              <Text style={{ color: '#9CA3AF', marginTop: 10, fontSize: 12, fontWeight: '600' }}>No Video Link Available</Text>
+              <Text style={{ color: '#9CA3AF', marginTop: 10, fontSize: 12, fontWeight: '600' }}>{t('sermons.noVideoLink')}</Text>
             </View>
           )}
         </View>
 
         {/* ── Video Details ── */}
         <View style={styles.videoDetails}>
-          <Text style={styles.videoTitle}>{activeVideo?.title || 'Sermon'}</Text>
+          <Text style={styles.videoTitle}>{activeVideo?.title || t('home.exploreSermons')}</Text>
           <View style={styles.metaRow}>
             <View style={styles.metaItem}>
               <Play size={12} color="#c0392b" fill="#c0392b" />
-              <Text style={styles.metaTxt}>Featured Teaching</Text>
+              <Text style={styles.metaTxt}>{t('sermons.featuredTeaching')}</Text>
             </View>
             <View style={styles.metaItem}>
               <Clock size={12} color="#9CA3AF" />
-              <Text style={styles.metaTxt}>{activeVideo?.date || 'Today'}</Text>
+              <Text style={styles.metaTxt}>{activeVideo?.date || t('common.today')}</Text>
             </View>
           </View>
 
           <View style={styles.pastorCard}>
             <View style={styles.pastorAv}><Text style={styles.pastorAvTxt}>P</Text></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.pastorName}>{activeVideo?.pastor || 'Brother Y. Rajesh'}</Text>
-              <Text style={styles.pastorRole}>Main Speaker</Text>
+              <Text style={styles.pastorName}>{activeVideo?.pastor || t('sermons.pastor')}</Text>
+              <Text style={styles.pastorRole}>{t('sermons.mainSpeaker')}</Text>
             </View>
             <TouchableOpacity style={styles.subBtn} onPress={handleSubscribe}>
-              <Text style={styles.subBtnTxt}>Subscribe</Text>
+              <Text style={styles.subBtnTxt}>{t('sermons.subscribe')}</Text>
             </TouchableOpacity>
           </View>
 
           <TouchableOpacity style={styles.shareBtn} onPress={handleShare}>
             <Share2 size={16} color="#fff" />
-            <Text style={styles.shareBtnTxt}>Share this message</Text>
+            <Text style={styles.shareBtnTxt}>{t('sermons.shareThisMessage')}</Text>
           </TouchableOpacity>
         </View>
 
         {/* ── Archive ── */}
-        <Text style={styles.secLbl}>PAST SERMONS</Text>
+        <Text style={styles.secLbl}>{t('sermons.pastSermons')}</Text>
         <View style={styles.archiveList}>
           {videos.filter(v => v.id !== activeVideo?.id).length === 0 ? (
             <View style={{ padding: 20, alignItems: 'center' }}>
-              <Text style={{ color: '#9CA3AF', fontSize: 12, fontStyle: 'italic' }}>No other past video sermons available.</Text>
+              <Text style={{ color: '#9CA3AF', fontSize: 12, fontStyle: 'italic' }}>{t('sermons.noPastSermons')}</Text>
             </View>
           ) : (
             videos.filter(v => v.id !== activeVideo?.id).map((video) => (
@@ -196,7 +209,7 @@ export default function SermonVideoScreen({ navigation, route }: any) {
               >
                 <View style={styles.thumbBox}>
                   <Image 
-                    source={{ uri: `https://img.youtube.com/vi/${extractYoutubeId(video.youtubeId)}/mqdefault.jpg` }} 
+                    source={{ uri: video.thumbnailUrl || `https://img.youtube.com/vi/${extractYoutubeId(video.youtubeId)}/mqdefault.jpg` }} 
                     style={styles.thumb} 
                   />
                   <View style={styles.playIcon}><Play size={10} color="#fff" fill="#fff" /></View>
@@ -222,18 +235,20 @@ const styles = StyleSheet.create({
   
   // Header
   pageHeader: {
-    backgroundColor: '#1a2d5a',
-    paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
+    paddingHorizontal: 20,
+    paddingBottom: 30,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4, minWidth: 60 },
-  backBtnTxt: { color: '#aac4e8', fontSize: 13, fontWeight: '500' },
-  titleCol: { flex: 1, alignItems: 'center' },
-  pageTitle: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  pageSub: { color: '#aac4e8', fontSize: 9.5, marginTop: 1 },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 24 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8, marginBottom: 8 },
+  pageTitle: { color: '#fff', fontSize: 20, fontWeight: '800', marginBottom: 2 },
+  pageSub: { color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: '500' },
 
   scroll: { paddingBottom: 40 },
 

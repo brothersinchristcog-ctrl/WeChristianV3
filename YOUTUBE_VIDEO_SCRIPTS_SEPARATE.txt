@@ -1,0 +1,420 @@
+=============================================================================================================================
+           WECHRISTIAN - COMPLETE YOUTUBE VIDEO SCRIPTS (DASHBOARD LISTS + EDITORS)
+=============================================================================================================================
+
+This document contains TWO complete, full-length YouTube video recording scripts.
+Each video covers BOTH the Dashboard List View AND the New Creation Editor:
+
+- VIDEO 1: "PROMISES" DASHBOARD LIST + "NEW PROMISE" EDITOR (Complete Video Script)
+- VIDEO 2: "SERMONS" DASHBOARD LIST + "NEW SERMON" EDITOR (Complete Video Script)
+
+
+=============================================================================================================================
+        VIDEO 1: COMPLETE GUIDE TO DAILY PROMISES (DASHBOARD LIST + NEW PROMISE)
+=============================================================================================================================
+
+[ YOUTUBE TITLE ]
+Complete Guide to Daily Promises in WeChristian: Dashboard, Calendar & New Promise Creation
+
+[ YOUTUBE DESCRIPTION BOX ]
+Master the Daily Promises feature in the WeChristian Church Platform!
+In this complete tutorial, we cover:
+PART 1: The "Promises" Dashboard Screen
+- Overview of past, present, and scheduled promises
+- Using the 3 interactive stat filter cards (Published, Drafts, Missing)
+- How to check missing calendar dates in the current month and quick-add promises
+- Managing existing promises (Play, Edit, Delete)
+
+PART 2: Creating a New Promise (Editor Walkthrough)
+- Setting the Promise Date & choosing from 10 church-themed background gradients
+- Entering English and Telugu scriptures using the built-in Holy Bible picker
+- Writing pastoral devotional commentary and reflections
+- Uploading custom 16:9 thumbnail graphics (clean image display)
+- Attaching YouTube video devotions
+- Setting Pastor attribution
+- Understanding Publish Status: Publish Now (Green) vs Scheduled (Amber) vs Save as Draft (Slate)
+- Sending automatic push notifications & seeing real-time updates on the Member Home Screen
+
+Timestamps:
+0:00 - Introduction & Video Overview
+0:45 - PART 1: The "Promises" Dashboard Screen
+1:30 - The 3 Stat Cards: Published, Drafts & Missing
+2:20 - The Missing Calendar Grid & Quick-Add Feature
+3:15 - Today's Hero Card & Managing Existing Promises (Edit & Delete)
+4:00 - PART 2: Opening the "New Promise" Editor
+4:40 - Step 1: Promise Date & Background Theme Gradients
+5:45 - Step 2: English Verse & Built-In Bible Picker
+6:50 - Step 3: Telugu Verse & Built-In Telugu Bible Picker
+7:50 - Step 4: Pastoral Devotional Note
+8:30 - Step 5: Custom 16:9 Thumbnail Upload
+9:15 - Step 6: YouTube Devotional Video Link & Duration
+10:00 - Step 7: Pastor Name & The 3-Card Publish Status
+11:15 - Step 8: Saving, Push Notification Broadcast & Live Member App Demo
+12:30 - Conclusion & Outro
+
+-----------------------------------------------------------------------------------------------------------------------------
+VIDEO 1 SPOKEN SCRIPT (READ ALOUD WHILE RECORDING YOUR SCREEN)
+-----------------------------------------------------------------------------------------------------------------------------
+
+---
+[0:00 - 0:45] INTRODUCTION
+---
+(Action: Show the WeChristian Admin Dashboard, then transition to the Member App Home Screen displaying the Daily Promise Hero Card.)
+
+"Hello pastors, church leaders, and media administrators! Welcome back to WeChristian.
+The Daily Promise is one of the most beloved features of the WeChristian app. Every single day, your congregation receives an inspiring scripture verse, devotional commentary, beautiful visual graphics, and video devotions right on their mobile phones.
+
+In this video, I am going to give you a complete, step-by-step walkthrough of the entire Daily Promises system. We will first explore the 'Promises' Dashboard where you manage your calendar, check missing dates, and edit existing promises. Then, we will walk through the 'New Promise' Editor to show you how to create, design, and publish a daily promise from scratch. Let's get started!"
+
+
+---
+[0:45 - 1:30] PART 1: THE "PROMISES" DASHBOARD SCREEN
+---
+(Action: From Admin Dashboard, click on 'Promises'. Show the top header: '< Back', 'Daily Promises' title, and '+ New' button.)
+
+"To open the Promises system, go to your Admin Dashboard and click on 'Promises'.
+At the top, you have your clean header bar:
+- The '< Back' button returns you to the main dashboard.
+- The title displays 'Daily Promises' with the current month.
+- And on the right is the '+ New' button, which we'll use in a moment to create a new promise."
+
+
+---
+[1:30 - 2:20] THE 3 STAT CARDS: PUBLISHED, DRAFTS & MISSING
+---
+(Action: Click on the 'Published' card to filter the list. Then click 'Drafts'. Then click 'Missing' to reveal the calendar grid.)
+
+"Right below the header, you will see three interactive summary cards:
+
+Card 1: 'Published' (in moss green). This shows the total number of promises currently live for your members. Tapping this card filters the list to show only published promises in reverse-chronological order.
+
+Card 2: 'Drafts' (in gold/slate). This shows the number of unfinished or unreleased drafts. Tapping it lets you immediately locate your draft work so you can edit or publish them.
+
+Card 3: 'Missing' (in terracotta red). This is a smart calendar assistant! It automatically calculates how many days in the current month are missing a promise. Tapping it activates the Missing Dates view!"
+
+
+---
+[2:20 - 3:15] THE MISSING CALENDAR GRID & QUICK-ADD FEATURE
+---
+(Action: Point to the calendar grid showing the days of the month. Highlight an empty day with the '+ Add' button.)
+
+"When you tap 'Missing', the screen shows you a full calendar grid of the current month.
+Any date that already has a promise shows a green checkmark. Any date that does not have a promise is highlighted with a dashed box and a '+ Add' button!
+If you tap '+ Add' on any missing day—for example, the 20th—the New Promise editor opens with that exact date pre-selected for you! This makes planning your monthly church devotions completely effortless."
+
+
+---
+[3:15 - 4:00] TODAY'S HERO CARD & MANAGING PROMISES (EDIT & DELETE)
+---
+(Action: Show Today's Promise card. Point to the Edit icon and the Delete icon.)
+
+"On the main list, today's active promise is featured right at the top in a highlighted hero card with the scripture reference, English and Telugu previews, and thumbnail.
+Below that, you have your Upcoming Promises and your Past Promises Archive.
+Every card has two quick actions:
+- Tap the pencil 'Edit' icon to make changes at any time.
+- Tap the trash 'Delete' icon to remove an entry, with a safe confirmation popup."
+
+
+---
+[4:00 - 4:40] PART 2: OPENING THE "NEW PROMISE" EDITOR
+---
+(Action: Tap the '+ New' button in the top-right corner to open AdminPromiseEditor.)
+
+"Now, let's create a brand-new Daily Promise!
+Click the '+ New' button in the top-right corner. This brings you into the New Promise Editor with a fresh, clean form."
+
+
+---
+[4:40 - 5:45] STEP 1: PROMISE DATE & BACKGROUND THEME GRADIENTS
+---
+(Action: Tap the Promise Date to show the calendar picker. Then click through the 10 color swatches below and show the live preview card updating.)
+
+"Step 1: The Schedule & Theme Section.
+First is the Promise Date. It defaults to today. If you want to schedule a promise for a future day, simply tap the date to pick any date from the calendar.
+Right below is the Background Theme. You have 10 curated church-themed color swatches—Deep Navy, Royal Purple, Forest Green, Burgundy, Amber Gold, Teal, Pink, Indigo, Gray, and Dark.
+Clicking any color instantly sets the background gradient for the promise card. You can see a live preview card right on your screen showing you exactly how the card will look to members!"
+
+
+---
+[5:45 - 6:50] STEP 2: ENGLISH VERSE & BUILT-IN BIBLE PICKER
+---
+(Action: Type 'John 3:16', then tap 'Select from Bible'. Demonstrate selecting book, chapter, and verse.)
+
+"Step 2: English Promise.
+Enter your Verse Reference—for example, 'John 3:16' or 'Jeremiah 29:11'—and type or paste the verse text.
+Even better, tap 'Select from Bible' to open our built-in Holy Bible picker! You can browse any book from Genesis to Revelation, choose the chapter and verse, and the complete scripture text is inserted automatically without typing!"
+
+
+---
+[6:50 - 7:50] STEP 3: TELUGU VERSE & BUILT-IN TELUGU BIBLE PICKER
+---
+(Action: Show the Telugu section. Type reference 'యోహాను 3:16' and demonstrate the Telugu Bible picker.)
+
+"Step 3: Telugu Promise.
+WeChristian fully supports bilingual ministry. Enter the Telugu reference—such as 'యోహాను 3:16'—and the Telugu verse.
+Just like with English, you can tap the Telugu Bible picker to select from all 66 books of the Telugu Holy Bible with authentic regional book spellings. Both English and Telugu verses will be displayed side-by-side in the app!"
+
+
+---
+[7:50 - 8:30] STEP 4: PASTORAL DEVOTIONAL NOTE
+---
+(Action: Type a brief message into the Devotional Note box.)
+
+"Step 4: Devotional Note.
+In this multi-line text box, the pastor or devotional writer can share a practical reflection, a real-life application, or a daily prayer point for the church congregation."
+
+
+---
+[8:30 - 9:15] STEP 5: CUSTOM 16:9 THUMBNAIL UPLOAD
+---
+(Action: Tap 'Upload custom thumbnail' and pick an image from the gallery.)
+
+"Step 5: Daily Promise Thumbnail.
+If your church media team designed a custom 16:9 graphic banner, you don't even have to use our gradient themes. Simply tap 'Upload custom thumbnail', select the image from your phone or computer, and it uploads directly to Firebase Cloud Storage. Our system preserves your clean artwork with zero overlays!"
+
+
+---
+[9:15 - 10:00] STEP 6: YOUTUBE DEVOTIONAL VIDEO LINK & DURATION
+---
+(Action: Type video title 'Morning Manna with Pastor', duration '12 min', and paste a YouTube URL.)
+
+"Step 6: YouTube Devotional Video.
+If your pastor recorded a morning video devotion, enter the Video Title—for example, 'Morning Manna with Pastor David'—enter the Duration, such as '12 min', and paste the full YouTube link or video ID. Members can watch the devotion directly inside the app!"
+
+
+---
+[10:00 - 11:15] STEP 7: PASTOR NAME & THE 3-CARD PUBLISH STATUS
+---
+(Action: Enter pastor name, then click on 'Publish Now', then 'Scheduled', then 'Save as Draft'.)
+
+"Step 7: Pastor Name and Publish Status.
+Add your Pastor's name for attribution.
+Now, look at the Publish Status section. You have 3 clear options:
+Option 1: 'Publish Now' — in green. This makes the promise live immediately on the Member App Home Screen.
+Option 2: 'Scheduled' — in amber. This keeps the promise hidden and automatically publishes it at 12:00 AM midnight on the selected Promise Date.
+Option 3: 'Save as Draft' — in slate gray. This saves the promise privately in your dashboard so you can finish it later. It is completely hidden from members."
+
+
+---
+[11:15 - 12:30] STEP 8: SAVING, PUSH NOTIFICATIONS & LIVE MEMBER DEMO
+---
+(Action: Tap 'Save & Publish Now'. Show the loading dialog, then the success modal. Switch to the Member App Home Screen to show the promise card updating live.)
+
+"Step 8: Final Actions and What Happens Next.
+If you tap 'Save as Draft', it saves quietly with no notifications.
+When you tap 'Save & Publish Now':
+First, a saving progress indicator appears.
+Second, our Celebratory Success Modal pops up confirming your save.
+Third—THE MAGIC STEP: An automated Push Notification broadcast is immediately sent to all church members' phones:
+'📖 Daily Promise: [Reference]'.
+And fourth: when members open the app, today's promise updates in real time right on their Home Screen hero carousel!
+That is the complete walkthrough of the Daily Promises module in WeChristian!"
+
+
+
+=============================================================================================================================
+         VIDEO 2: COMPLETE GUIDE TO SERMONS (DASHBOARD LIST + NEW SERMON)
+=============================================================================================================================
+
+[ YOUTUBE TITLE ]
+Complete Guide to Sermons in WeChristian: Catalog, Categories & New Sermon Creation
+
+[ YOUTUBE DESCRIPTION BOX ]
+Master the Sermons feature in the WeChristian Church Platform!
+In this complete tutorial, we cover:
+PART 1: The "Sermons" Dashboard Screen
+- Overview of all church sermons and sermon series
+- The 4 interactive stat filter cards: Published, Scheduled, Drafts, and Series Grouping
+- Filtering sermons by category series (Sunday Service, Bible Study, Youth Meeting, etc.)
+- Playing sermon videos and audio directly from the list
+- Managing existing sermons (Edit and Delete)
+
+PART 2: Creating a New Sermon (Editor Walkthrough)
+- Entering English & Telugu sermon titles, Pastor name, date, duration, and scripture
+- Selecting categories & using the powerful new "+ New" Category Creator
+- Adding YouTube video URLs and uploading custom 16:9 thumbnails
+- Previewing lock-screen push notifications
+- Understanding Publish Status: Publish Now vs Scheduled vs Save as Draft
+- Dynamic footer buttons & status-reactive Floating Action Button (FAB)
+- Sending automatic push notifications & real-time updates on the Member Home Screen ("Latest Sermon")
+
+Timestamps:
+0:00 - Introduction & Video Overview
+0:45 - PART 1: The "Sermons" Dashboard Screen
+1:35 - The 4 Stat Cards: Published, Scheduled, Drafts & Series
+2:30 - Category Filter Chips & Playing Sermons
+3:20 - Sermon Card Badges & Managing Sermons (Edit & Delete)
+4:05 - PART 2: Opening the "New Sermon" Editor
+4:45 - Step 1: Sermon Info (English & Telugu Titles, Pastor, Date, Duration, Scripture)
+5:50 - Step 2: Sermon Category & The "+ New" Category Creator
+7:15 - Step 3: Media & Details (YouTube URL, Custom 16:9 Thumbnail, Description)
+8:25 - Step 4: Push Notification Toggle & Lock-Screen Preview Card
+9:15 - Step 5: Publish Status (Publish Now vs Scheduled vs Draft)
+10:20 - Step 6: Adaptive Footer Buttons & Floating Action Button (FAB)
+11:00 - Step 7: Saving, Push Notification Broadcast & Real-Time Home Screen Demo
+12:15 - Conclusion & Outro
+
+-----------------------------------------------------------------------------------------------------------------------------
+VIDEO 2 SPOKEN SCRIPT (READ ALOUD WHILE RECORDING YOUR SCREEN)
+-----------------------------------------------------------------------------------------------------------------------------
+
+---
+[0:00 - 0:45] INTRODUCTION
+---
+(Action: Show the Admin Dashboard, then transition to the Member App Sermons Screen and the Home Screen "Latest Sermon" card.)
+
+"Hello pastors and church media team! Welcome to the WeChristian tutorial on Sermon Management.
+The sermon library is the spiritual archive of your church. It gives your congregation 24/7 access to Sunday messages, Bible studies, and special conferences, whether they missed a service or want to re-watch a life-changing sermon.
+
+In this video, I will show you everything you need to know about the Sermons module in WeChristian. We will first explore the 'Sermons' Dashboard where you manage your sermon library, filter by series, and edit messages. Then, we will walk step-by-step through the 'New Sermon' Editor, including our brand-new feature that lets you create custom categories on the fly! Let's get started!"
+
+
+---
+[0:45 - 1:35] PART 1: THE "SERMONS" DASHBOARD SCREEN
+---
+(Action: From Admin Dashboard, click on 'Sermons'. Show top header: '< Back', 'Sermons' title showing total count and series count, and '+ New' button.)
+
+"To open the sermon catalog, click on 'Sermons' from your Admin Dashboard.
+Take a look at the top header bar:
+- The '< Back' button takes you back to your main admin menu.
+- The title displays 'Sermons' along with your total sermon count and active series—for example, '18 total · 6 series'.
+- And on the right is the '+ New' button, which opens the sermon editor to add new messages."
+
+
+---
+[1:35 - 2:30] THE 4 STAT CARDS: PUBLISHED, SCHEDULED, DRAFTS & SERIES
+---
+(Action: Click on 'Published' card to filter list. Then click 'Scheduled'. Then click 'Drafts'. Then click 'Series'.)
+
+"Right below the header is our four-card stats bar. Every single one of these cards is an interactive filter:
+
+Card 1: 'Published' (in emerald green). Tapping it shows only sermons that are live on the Member App.
+Card 2: 'Scheduled' (in amber). Tapping it shows sermons queued to auto-publish on a future date.
+Card 3: 'Drafts' (in slate gray). Tapping it shows private drafts hidden from members.
+Card 4: 'Series' (in navy blue). Tapping it groups your entire library into organized series sections!"
+
+
+---
+[2:30 - 3:20] CATEGORY FILTER CHIPS & PLAYING SERMONS
+---
+(Action: Scroll horizontally across the category chips. Tap 'Sunday Service'. Then tap the play button on a sermon thumbnail.)
+
+"Below the stats bar is our horizontal Category Filter Row.
+You have 'All', plus pills for every ministry category: Sunday Service, Bible Study, Youth Meeting, Special Messages, and any custom categories created by your church!
+Tapping any chip instantly filters your list to show only sermons from that series.
+On any sermon card, you can tap the play button right on the thumbnail to watch the YouTube video or listen to the sermon audio immediately!"
+
+
+---
+[3:20 - 4:05] SERMON CARD BADGES & MANAGING SERMONS (EDIT & DELETE)
+---
+(Action: Point to the series badges, YouTube badge, and status badges. Then point to Edit and Delete buttons.)
+
+"Every sermon card gives you full details at a glance:
+- The English title and Telugu title.
+- Pastor name, sermon date, duration, and scripture.
+- Category badges and media badges.
+- And the status badge: green for 'Published', amber for 'Scheduled', and slate for 'Draft'.
+On the right side of every card:
+- Tap 'Edit' to open the sermon in the editor.
+- Tap 'Del' to delete a sermon, with a safe confirmation dialog."
+
+
+---
+[4:05 - 4:45] PART 2: OPENING THE "NEW SERMON" EDITOR
+---
+(Action: Tap the '+ New' button in the top-right corner to open AdminSermonEditor.)
+
+"Now, let's create a brand-new sermon!
+Tap the '+ New' button in the top-right corner. This opens up the clean, modern Sermon Editor."
+
+
+---
+[4:45 - 5:50] STEP 1: SERMON INFO (TITLES, PASTOR, DATE, DURATION, SCRIPTURE)
+---
+(Action: Type English Title 'Walking in Faith Through Trials', Telugu Title 'విశ్వాసములో నడుచుకొనుట', Pastor name, Date, Duration '45 min', and Scripture 'James 1:2-4'.)
+
+"Step 1: The Sermon Information Card.
+- Title — English: Enter your main title, such as 'Walking in Faith Through Trials'.
+- Title — Telugu: Enter the title in Telugu for your regional language congregation members—for example, 'విశ్వాసములో నడుచుకొనుట'.
+- Pastor Name: Enter the speaker's name. It automatically defaults to your church pastor, such as 'Pastor Daniel Raju'.
+- Sermon Date: The date the message was preached or is scheduled for. It defaults to today; tap it to pick any date from the calendar.
+- Duration: Enter the length of the sermon—for example, '45 min' or '1 hour 15 min'.
+- Scripture Reference: Enter the Bible passage covered, such as 'James 1:2-4'."
+
+
+---
+[5:50 - 7:15] STEP 2: SERMON CATEGORIES & THE "+ NEW" CATEGORY CREATOR
+---
+(Action: Tap 'Sunday Service', then tap 'Bible Study'. Then zoom in on the dashed '[+ New]' button. Tap it, type 'Miracle Night', and tap 'Create Category'.)
+
+"Step 2: Sermon Category.
+Here, you can choose which ministry series this sermon belongs to—such as Sunday Service, Bible Study, Youth Meeting, Women's Fasting Prayer, Second Saturday Prayer, or Revival Meeting. You can select one or multiple categories for a single sermon! Selected categories highlight in dark navy with a golden checkmark.
+
+Now, take a look at this special feature: What if your church has a special program that isn't in this list? For example, an 'Annual Convention', a 'Miracle Night', or 'VBS'?
+Simply tap this dashed button that says '+ New'.
+A popup opens—type your new category name and tap 'Create Category'.
+Watch what happens: the system automatically saves this category to your church database, selects it for this sermon, saves it for all future sermons, and displays it to your members in the app with its own unique color badge!"
+
+
+---
+[7:15 - 8:25] STEP 3: MEDIA & DETAILS (YOUTUBE URL, CUSTOM 16:9 THUMBNAIL, DESCRIPTION)
+---
+(Action: Paste a YouTube link. Show the YouTube thumbnail auto-populating. Tap 'Upload custom thumbnail' and pick an image. Then fill in the description.)
+
+"Step 3: Media & Details.
+- YouTube Video URL: Paste the full YouTube video link or the 11-character video ID. It supports standard videos, short links, or live streams.
+- Thumbnail: When you paste a YouTube link, the app will automatically fetch the YouTube high-definition thumbnail. However, if your media team created a custom 16:9 banner, tap 'Upload custom thumbnail' to select your image from your gallery. It uploads directly to your church's cloud storage.
+- Description: In this multi-line box, you can write an outline, study notes, key Bible references, or announcements for the sermon."
+
+
+---
+[8:25 - 9:15] STEP 4: PUSH NOTIFICATION TOGGLE & LOCK-SCREEN PREVIEW CARD
+---
+(Action: Show the toggles and point to the live notification preview card with the church logo and 'New Sermon 🎙️'.)
+
+"Step 4: Push Notification section.
+You can toggle 'Notify members when published' and 'Auto-send immediately on publish'.
+Notice the live Notification Preview card right here: it shows you the exact notification alert that your members will see popping up on their phone lock-screens the moment this sermon goes live!"
+
+
+---
+[9:15 - 10:20] STEP 5: PUBLISH STATUS (PUBLISH NOW vs SCHEDULED vs DRAFT)
+---
+(Action: Click on 'Publish Now', then 'Scheduled', then 'Save as Draft'.)
+
+"Step 5: Publish Status. You have 3 interactive cards:
+Option 1: 'Publish Now' — in green. This makes the sermon live immediately on the Member App Home Screen under 'Latest Sermon' and in the Sermons Library.
+Option 2: 'Scheduled' — in amber. This queues the sermon to auto-publish on the Sermon Date you set earlier. It stays hidden until that date.
+Option 3: 'Save as Draft' — in slate gray. This keeps the sermon privately stored in your Admin panel, completely invisible to members, so you can edit it later."
+
+
+---
+[10:20 - 11:00] STEP 6: ADAPTIVE FOOTER BUTTONS & FLOATING ACTION BUTTON (FAB)
+---
+(Action: Switch between status cards and show how the bottom buttons and the floating action button dynamically change color and text.)
+
+"Step 6: Notice how the action buttons at the bottom dynamically adapt to your choice:
+- If you select 'Publish Now', the primary button turns solid green: 'Save & Publish Now', with a matching green send icon on the floating action button.
+- If you select 'Scheduled', it becomes 'Save & Schedule' in navy blue with a clock icon.
+- If you select 'Draft', it becomes 'Save as Draft' in slate gray with a floppy disk icon."
+
+
+---
+[11:00 - 12:15] STEP 7: SAVING, PUSH NOTIFICATIONS & REAL-TIME HOME SCREEN DEMO
+---
+(Action: Tap 'Save & Publish Now'. Show the loading dialog, then the Celebratory Success Modal. Click 'View Sermons List'. Then switch to the Member App Home Screen to show the 'Latest Sermon' card updating in real time.)
+
+"Step 7: Final Actions and What Happens Next.
+If you tap 'Save as Draft', the sermon is saved silently with no notifications sent.
+When you tap 'Save & Publish Now':
+First, a saving progress indicator syncs your sermon details with the cloud.
+Second, our Celebratory Success Modal appears with a full summary card and a 'View Sermons List' button.
+Third—THE MAGIC STEP: An automated Push Notification broadcast is immediately sent to all church members' phones:
+'🎧 New Sermon: [Title] — New sermon [Title] by [Pastor] is now available. Watch/listen now!'
+And fourth: when members open the app, the Home Screen 'Latest Sermon' card updates in real time with the new thumbnail, English title, Telugu title, pastor name, and date! Members can tap it to start watching instantly.
+That is the complete walkthrough of the Sermons module in WeChristian. Thank you for watching, and God bless you!"
+
+=============================================================================================================================
+                                      END OF SCRIPTS
+=============================================================================================================================

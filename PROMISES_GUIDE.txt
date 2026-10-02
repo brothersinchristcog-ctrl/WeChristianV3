@@ -1,0 +1,204 @@
+=============================================================================================================================
+                           WECHRISTIAN - COMPLETE HOW-TO GUIDE: DAILY PROMISES MODULE
+                             EXHAUSTIVE GUIDE FOR EVERY TAB, SCREEN, FIELD & ACTION
+=============================================================================================================================
+
+
+HOW TO MANAGE, SCHEDULE & DESIGN DAILY PROMISES FROM THE ADMIN DASHBOARD
+========================================================================
+
+1. Starting the Process
+-----------------------
+From the main Admin Dashboard, look under the "Content Management" category:
+- You will see the "Promises" card with a deep teal badge and holy book icon.
+- Tapping "Promises" opens the Daily Promises Management Center (`AdminPromiseList.tsx`).
+- In addition, you have two companion tabs:
+  * "New Promise" (`AdminPromiseEditor.tsx`): Opens the full-featured promise creation and graphic design studio.
+  * "Schedule" (`AdminPromiseCalendar.tsx`): Opens the 365-day calendar grid tracking missing and scheduled promises across the entire year.
+
+
+=============================================================================================================================
+2. PROMISE LIST SCREEN (AdminPromiseList.tsx) - ARCHIVE & TRACKING
+=============================================================================================================================
+
+When you open the Promises tab, you land on the Promises Dashboard:
+
+A. Header Statistics Bar:
+   - "Published": Total scriptures currently live and visible to church members.
+   - "Draft": Promises saved as working drafts that are not yet visible to believers.
+   - "Missing Dates": Live counter alerting the pastor how many upcoming calendar days this month are missing daily scripture promises!
+
+B. Filter Pills:
+   - "All": Displays complete promise archive in chronological order.
+   - "Published": Filters exclusively live published scriptures.
+   - "Draft": Shows only draft scriptures that need review before release.
+   - "Missing": Filters calendar days with no assigned scripture, allowing the pastor to tap any missing day to schedule it immediately!
+
+C. Today's Promise Hero Card:
+   - Features a prominent gold border highlighting the active scripture for today.
+   - Displays the Telugu Month & Day (e.g., "సెప్టెంబర్ 28"), the Telugu Verse, English Verse, and Reference.
+   - Quick Action Buttons:
+     * "Edit" (Pencil icon): Directly loads the promise into the design studio.
+     * "Preview" (Eye icon): Shows how the scripture card looks to congregation members.
+
+D. Upcoming & Past Promise Sections:
+   - "Upcoming Promises": Lists upcoming scheduled scriptures awaiting their calendar date.
+   - "Past Archives": Chronological history of past daily scriptures.
+
+
+=============================================================================================================================
+3. NEW PROMISE STUDIO (AdminPromiseEditor.tsx) - COMPLETE FIELD-BY-FIELD GUIDE
+=============================================================================================================================
+
+When you tap "+ New Promise" or edit an existing entry, the Promise Studio opens. It is organized into 9 clear sections:
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 1: LIVE THUMBNAIL VISUAL PREVIEW
+-----------------------------------------------------------------------------------------------------------------------------
+Located at the very top of the editor. As you type, pick colors, or select fonts, this card updates in REAL-TIME:
+- Header Row: Church Logo + Church Name ("We Christian" or your church name) + Current Date.
+- Center Scripture Text: Rendered in your selected Telugu font, size, weight, and color.
+- Reference Badge: Book, Chapter, and Verse reference (e.g., "యెషయా 40:31").
+- Footer: Pastor contact phone number and church blessing tagline.
+- Action Buttons above the Preview:
+  * "Share Poster" (Send icon): Captures the live card as a high-resolution JPEG flyer and opens WhatsApp to share!
+  * "Save to Gallery": Downloads the generated image directly to your phone's photo gallery.
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 2: CALENDAR DATE PICKER
+-----------------------------------------------------------------------------------------------------------------------------
+- `Promise Date` (Required):
+  * Tap the calendar field to open the full Month & Year Navigator.
+  * You can schedule promises days, weeks, or months in advance.
+  * The selected date automatically calculates and displays the proper Telugu date header (e.g., "అక్టోబర్ 05").
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 3: BUILT-IN TELUGU BIBLE SELECTOR (ONE-TAP SCRIPTURE IMPORT)
+-----------------------------------------------------------------------------------------------------------------------------
+Instead of typing long Telugu Bible verses manually, the editor includes a built-in offline Telugu Bible:
+- Step 1: Tap "Select Book" -> Dropdown opens with all 66 Old & New Testament Telugu book names (e.g., 'ఆదికాండము', 'కీర్తనలు', 'యోహాను సువార్త').
+- Step 2: Tap "Select Chapter" -> Number selector for all chapters in that book.
+- Step 3: Tap "Select Verse" -> Number selector for the exact verse.
+- Result: The app INSTANTLY pulls the authentic Telugu scripture text and fills both the Telugu Verse and Reference fields automatically!
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 4: AI PROMISE GENERATOR (WAND / SPARKLES TOOL)
+-----------------------------------------------------------------------------------------------------------------------------
+For busy pastors preparing messages:
+- Tap the "AI Scripture Assistant" (Sparkles icon).
+- Enter any spiritual theme or pastoral topic (e.g., "Peace in Anxiety", "Healing", "Financial Breakthrough", "New Year Blessing").
+- Tap "Generate Promise":
+  * The AI searches the Bible for the most powerful promise matching that topic.
+  * Automatically populates the English reference, English verse, Telugu reference, Telugu verse, and a short pastoral reflection!
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 5: SCRIPTURE & DEVOTIONAL TEXT INPUT FIELDS
+-----------------------------------------------------------------------------------------------------------------------------
+A. Telugu Scripture Fields (Primary for South Indian Congregations):
+   - `Telugu Reference` (Required): e.g., "యిర్మియా 29:11" or "కీర్తనలు 23:1".
+   - `Telugu Verse Text` (Required): The full promise text in Telugu script.
+   - `Telugu Devotional Reflection (Optional)`: 2-3 sentences of pastoral encouragement or practical application.
+
+B. English Scripture Fields:
+   - `English Reference` (Required): e.g., "Jeremiah 29:11" or "Psalm 23:1".
+   - `English Verse Text` (Required): The full promise text in English (KJV / NIV / ESV).
+   - `English Devotional Note (Optional)`: English reflection for bilingual church members and youth.
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 6: TYPOGRAPHY & TELUGU FONT STUDIO
+-----------------------------------------------------------------------------------------------------------------------------
+Customize the exact look and feel of the Telugu text on the promise poster:
+- `Font Family Selector`: Choose between 11 authentic Telugu typography fonts:
+  * Suranna (Classic, elegant serif - Recommended)
+  * Gidugu (Modern, clean)
+  * Gurajada (Traditional poetic font)
+  * Mallanna, Mandali, NTR, Peddana, Ramabhadra, Ramaraja, TenaliRamakrishna, Timmana
+- `Font Size Stepper`: Increase (+) or decrease (-) text size (Presets: 9.0 to 18.0) to fit long or short verses perfectly.
+- `Font Weight`: Toggle between Normal (400), Semi-Bold (600), Bold (700), or Extra Bold (800).
+- `Italics`: Toggle italic styling on/off.
+- `Text Alignment`: Align Left, Center, or Right.
+- `Text Vertical Position`: Place text at the Top, Center, or Bottom of the poster.
+- `Text Color Palette`: Pick from curated text colors (Pure White, Warm Gold, Sunburst Yellow, Soft Cyan, Pearl Pink) or enter a custom Hex code.
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 7: BACKGROUND ARTWORK & COLOR PALETTES
+-----------------------------------------------------------------------------------------------------------------------------
+Choose what appears behind the scripture text:
+A. Mode 1: Curated Spiritual Wallpapers (Default):
+   - Browse the built-in library of high-resolution Christian themes (Sunrises, Open Bibles, Cross on the Hill, Peaceful Waters, Praying Hands).
+   - Tap any wallpaper to apply it instantly to the preview.
+
+B. Mode 2: Custom Photo Upload:
+   - Tap "Upload Custom Image" to pick a photo from your phone gallery (e.g., church altar, choir, Sunday service photo).
+   - Includes automatic brightness darkening so white text remains 100% legible over any photo!
+
+C. Mode 3: Solid Color Themes:
+   - Select rich, deep colors: Royal Navy, Deep Emerald, Imperial Purple, Rich Crimson, Dark Chocolate, Midnight Slate.
+
+D. Mode 4: Dual-Tone Gradients:
+   - Choose smooth modern gradients: Ocean Blue to Purple, Emerald to Teal, Sunset Coral to Ruby.
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 8: AUDIO BLESSING & VIDEO DEVOTIONAL INTEGRATION
+-----------------------------------------------------------------------------------------------------------------------------
+Enhance the scripture beyond static text with multimedia:
+- `YouTube Devotional URL (Optional)`:
+  * Paste a YouTube video or Shorts link of the pastor sharing a 2-minute morning message.
+  * The app automatically extracts the video ID and embeds a playable video right under the promise!
+- `Video Title`: e.g., "Morning Manna with Pastor Daniel".
+- `Preacher / Pastor Name`: Identifies the speaker.
+- `Duration`: e.g., "3:45 Min".
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 9: PUBLICATION STATUS & SAVING
+-----------------------------------------------------------------------------------------------------------------------------
+Choose how and when the promise goes live:
+- `Draft — Save only, not visible`: Saves your progress. Visible only to admins for editing.
+- `Scheduled — Auto-publish at midnight`: Default setting. The app automatically publishes the scripture at 12:00 AM on that calendar date!
+- `Publish now — Live immediately`: Instantly pushes the scripture to all members' home screens immediately.
+
+Action Buttons:
+- "Save Promise" (Primary Green Button): Validates fields and saves to Firestore cloud database.
+- "Cancel / Back": Safely returns to the promises list.
+
+
+=============================================================================================================================
+4. SCHEDULE CALENDAR VIEW (AdminPromiseCalendar.tsx)
+=============================================================================================================================
+
+Tapping the "Schedule" card in the Admin Dashboard opens the 365-Day Annual Promise Calendar:
+- Monthly Grid: Displays every day of the month with quick status badges.
+- Visual Color Coding:
+  * Green Box: The date has an active scripture scheduled and ready to publish.
+  * Yellow Box: The date has a draft saved but not yet finalized.
+  * Red Box / Warning: Missing scripture! Alerts pastors that congregation members have no promise assigned for that morning.
+- Quick Jump: Tap any date on the calendar to instantly open the New Promise editor pre-set to that date!
+
+
+=============================================================================================================================
+5. HOW CONGREGATION MEMBERS EXPERIENCE PROMISES IN THE APP
+=============================================================================================================================
+
+When a church believer opens the WeChristian mobile app:
+1. First Thing They See (Home Screen Hero):
+   - Today's Daily Promise appears right at the top of the home screen as a holy devotional greeting.
+2. Telugu & English Switching:
+   - A single-tap language toggle lets members switch between Telugu script and English text instantly.
+3. Audio / Video Playback:
+   - If the pastor attached a YouTube video or voice blessing, members see a "Watch Morning Message" button that plays smoothly inside the app.
+4. WhatsApp Sharing:
+   - Members can tap the WhatsApp Share icon on the card to forward the spiritual promise card to their family, friends, and church prayer groups with church branding attached!
+5. Daily Archive:
+   - Members can tap "Previous Promises" to browse past days and meditate on God's Word throughout the week.
+
+=============================================================================================================================
+                                                 END OF PROMISES MANUAL
+=============================================================================================================================

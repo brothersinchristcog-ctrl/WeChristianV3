@@ -1,0 +1,214 @@
+================================================================================
+           WECHRISTIAN ADMIN DASHBOARD - ABOUT US EDITOR MANUAL
+================================================================================
+Screen Component : AdminAboutUsEditor.tsx
+Route Tab Name   : "About Us" (AdminDashboard Administration Card)
+Icon             : Building2 / Info
+Target Database  : Firestore path: `churches/{churchId}/settings/about`
+Permission Level : Church Administrator / Senior Leadership
+Theme & Canvas   : Deep Navy (#1a2d5a), Warm Gold (#BE9A3A), Cream (#FAF8F0)
+================================================================================
+
+[TABLE OF CONTENTS]
+1. Module Overview & Brand Identity Function
+2. Dual-Mode Architecture: Live View Mode vs. Interactive Edit Mode
+3. Core Information Schema & Form Field Breakdown
+   - Church Name
+   - Church Subtitle & Fellowship Affiliation
+   - Church Description & Congregational History
+   - Our Mission Statement Card
+   - Our Vision Statement Card
+4. Live Preview & Member-Facing Display Mapping
+5. Firestore Storage Structure & Document Lifecycle
+6. Validation Rules & Unsaved Change Safeguards
+7. Multi-Branch About Us Inheritance
+8. Best Practices for Church Bio & Statement Writing
+
+================================================================================
+1. MODULE OVERVIEW & BRAND IDENTITY FUNCTION
+================================================================================
+The "About Us" module (AdminAboutUsEditor) governs how a church introduces its
+spiritual heritage, core doctrines, and vision to new visitors, prospective
+members, and the wider community.
+
+When a believer downloads the WeChristian app and views the church's profile,
+the content authored in this editor is rendered inside the member's About screen:
+  - Establishes theological alignment and denominational background.
+  - Articulates the driving purpose behind the church's community outreach.
+  - Inspires trust through transparent mission and vision statements.
+
+The editor is specifically engineered with an intuitive dual-mode workflow:
+administrators can inspect how their profile appears to the congregation in
+"View Mode" and toggle into "Edit Mode" with a single tap.
+
+================================================================================
+2. DUAL-MODE ARCHITECTURE: LIVE VIEW MODE VS. INTERACTIVE EDIT MODE
+================================================================================
+To prevent accidental edits and keyboard obstructions, the screen operates in
+two distinct states:
+
+State 1: VIEW MODE (Default when content exists)
+  - Header: Displays an `[Edit]` button with a golden pencil icon.
+  - Banner: Sky blue ribbon reading "Preview — tap Edit to make changes".
+  - Cards: Formatted, read-only parchment cards styling the description,
+    mission, and vision in premium church typography.
+  - Safety: All inputs are locked; scrolling is completely fluid.
+
+State 2: EDIT MODE (Triggered via `[Edit]`, or automatically on new churches)
+  - Header: Displays a `[View]` button to cancel and return to preview.
+  - Banner: Amber ribbon reading "Editing — tap Save to update".
+  - Inputs: Multi-line text areas with clear field hints and character guides.
+  - Actions: Sticky action bar with `[Cancel]` and `[Save Changes]` buttons.
+
+================================================================================
+3. CORE INFORMATION SCHEMA & FORM FIELD BREAKDOWN
+================================================================================
+The editor manages five foundational brand pillars:
+
+1. ⛪ Church Name (`churchName`)
+   - Type: Single-line Text Input
+   - Purpose: The primary ecclesiastical name displayed at the top of the About
+     screen and across global app banners.
+   - Example: "Church of GOD", "Brothers in Christ Fellowship"
+   - Fallback: Defaults to `activeChurch.name` if unset.
+
+2. 🏷️ Church Subtitle (`churchSubtitle`)
+   - Type: Single-line Text Input
+   - Purpose: Sub-name, regional affiliation, or congregational motto shown
+     directly beneath the church name.
+   - Example: "Central Headquarters - Guntur", "Living Waters Ministry"
+
+3. 📖 Church Description (`description`)
+   - Type: Multi-line Text Area (5 lines visible, auto-expanding)
+   - Purpose: The main narrative introduction to the church. Covers how the
+     church was founded, its historical milestones, senior pastoral lineage,
+     weekly worship spirit, and welcome message to newcomers.
+   - Fallback: Defaults to `activeChurch.aboutUs` if unset.
+
+4. 🎯 Our Mission (`mission`)
+   - Type: Multi-line Text Area (4 lines visible)
+   - UI Rendering: In View Mode, framed in a warm amber card band (`#fef3c7`)
+     with a golden target icon (`Target`).
+   - Purpose: Answers "WHAT WE DO TODAY". Focuses on practical outreach,
+     gospel proclamation, evangelism, youth discipleship, and community care.
+   - Example: "To proclaim the uncompromised Gospel of Jesus Christ, disciple
+     believers through systematic Bible teaching, and extend Christ's love
+     through charitable works across our state."
+
+5. 🔭 Our Vision (`vision`)
+   - Type: Multi-line Text Area (4 lines visible)
+   - UI Rendering: In View Mode, framed in a royal purple card band (`#ede9fe`)
+     with a purple eye icon (`Eye`).
+   - Purpose: Answers "WHERE WE ARE GOING TOMORROW". Focuses on spiritual growth,
+     church planting, generational legacy, and eternal kingdom impact.
+   - Example: "To establish a spiritually empowered generation of believers,
+     plant self-sustaining rural congregations, and equip every family to be a
+     beacon of light in their community."
+
+================================================================================
+4. LIVE PREVIEW & MEMBER-FACING DISPLAY MAPPING
+================================================================================
+The View Mode reflects the exact card structure seen on member devices:
+
+  +--------------------------------------------------------------------------+
+  | [Info] Church Description                                                |
+  | ------------------------------------------------------------------------ |
+  | Founded in 1984 under the guidance of the Holy Spirit, our church has     |
+  | stood as a pillar of truth and apostolic teaching for over 40 years...   |
+  +--------------------------------------------------------------------------+
+  | [Target] Our Mission (Amber Tinted Header)                               |
+  | ------------------------------------------------------------------------ |
+  | To preach the gospel of grace, bring healing to the brokenhearted, and   |
+  | equip believers for impactful ministry in daily life.                    |
+  +--------------------------------------------------------------------------+
+  | [Eye] Our Vision (Purple Tinted Header)                                  |
+  | ------------------------------------------------------------------------ |
+  | A thriving, multi-generational community of worshippers reflecting       |
+  | Christ's kingdom through love, integrity, and faith.                     |
+  +--------------------------------------------------------------------------+
+
+================================================================================
+5. FIRESTORE STORAGE STRUCTURE & DOCUMENT LIFECYCLE
+================================================================================
+Path: `settings/about` (Within church-scoped subcollection)
+Document Format:
+
+```json
+{
+  "churchName": "Brothers in Christ Fellowship",
+  "churchSubtitle": "A Gateway to Heaven",
+  "description": "Welcome to Brothers in Christ. We are a family of believers dedicated to biblical truth, heartfelt worship, and mutual encouragement in Christ Jesus.",
+  "mission": "To preach the gospel, make disciples of all nations, and demonstrate God's love through practical service.",
+  "vision": "Transforming communities by the power of the Holy Spirit and raising a righteous generation.",
+  "updatedAt": "2026-09-28T09:15:00Z"
+}
+```
+
+Save Operation Details:
+  ```typescript
+  const col = await firestoreService.getCollection('settings');
+  await col.doc('about').set({
+    ...draft,
+    updatedAt: firestore.FieldValue.serverTimestamp(),
+  });
+  ```
+  - Uses `set()` to perform an atomic upsert.
+  - Automatically appends Firestore server timestamp for audit tracking.
+
+================================================================================
+6. VALIDATION RULES & UNSAVED CHANGE SAFEGUARDS
+================================================================================
+When the admin taps `[Save Changes]`:
+  1. Church Name Validation:
+     ```typescript
+     if (!draft.churchName.trim()) {
+       Alert.alert('Validation', 'Church name cannot be empty.');
+       return;
+     }
+     ```
+  2. Description Validation:
+     ```typescript
+     if (!draft.description.trim()) {
+       Alert.alert('Validation', 'Description cannot be empty.');
+       return;
+     }
+     ```
+  3. Discard Protection:
+     Tapping `[Cancel]` or toggling back to `[View]` restores the `draft` state
+     from the original `data` snapshot without saving.
+  4. Visual Feedback:
+     During the save operation, the button is disabled, displays an inline
+     activity indicator, and presents a confirmation alert:
+     "✅ Saved: About Us content updated successfully!"
+
+================================================================================
+7. MULTI-BRANCH ABOUT US INHERITANCE
+================================================================================
+For satellite campuses operating under a parent church:
+  - If a branch has not yet authored a custom About Us record, the editor
+    seamlessly falls back to the parent church's name and general description:
+    ```typescript
+    churchName: d.churchName || activeChurch?.name || '',
+    description: d.description || activeChurch?.aboutUs || '',
+    ```
+  - This guarantees that new branch profiles are never blank for worshippers.
+  - The branch pastor can customize their local narrative whenever ready without
+    affecting the parent church's record.
+
+================================================================================
+8. BEST PRACTICES FOR CHURCH BIO & STATEMENT WRITING
+================================================================================
+1. Keep the Description Warm and Welcoming:
+   Avoid overly bureaucratic or dry legal language. Frame the text as a personal
+   letter from the pastoral team welcoming a seeker into God's family.
+
+2. Distinct Mission vs. Vision:
+   - Mission = Active, present verbs (Preaching, Teaching, Serving, Loving).
+   - Vision = Aspirational future state (A city transformed, families restored).
+
+3. Mention Meeting Atmosphere:
+   Newcomers appreciate knowing what to expect (e.g. "We gather for vibrant
+   Telugu worship, verse-by-verse scripture expository sermons, and warm fellowship.").
+================================================================================
+                     END OF ABOUT US EDITOR MANUAL
+================================================================================

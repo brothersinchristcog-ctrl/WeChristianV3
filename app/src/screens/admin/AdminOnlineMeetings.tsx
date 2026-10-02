@@ -492,12 +492,12 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
     paddingHorizontal: 22,
-    paddingTop: 40, // Increased top padding to match other screens if not inside a navigation header
-    paddingBottom: 24,
+    paddingTop: 40,
+    paddingBottom: 16,
     overflow: 'visible',
     position: 'relative'
   },
-  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 0 },
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: serifFont, fontWeight: '600', letterSpacing: -0.5, marginBottom: 0 },
   newBtn: { backgroundColor: '#FCD34D', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3 },
   newBtnTxt: { color: colors.ink, fontSize: 12, fontWeight: '700' },
@@ -505,11 +505,11 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 16 },
 
   // Stats Grid
-  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10, marginTop: 10 },
-  statBox: { flex: 1, backgroundColor: colors.paper, borderRadius: 10, paddingVertical: 14, alignItems: 'center', elevation: 2, shadowColor: colors.ink, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, borderWidth: 1, borderColor: 'rgba(21,28,51,0.05)', position: 'relative' },
+  statsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8, marginTop: 8 },
+  statBox: { flex: 1, backgroundColor: colors.paper, borderRadius: 10, paddingVertical: 8, alignItems: 'center', elevation: 2, shadowColor: colors.ink, shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, borderWidth: 1, borderColor: 'rgba(21,28,51,0.05)', position: 'relative' },
   statNotch: { position: 'absolute', top: -1, width: 20, height: 3, borderBottomLeftRadius: 3, borderBottomRightRadius: 3 },
-  statIcon: { marginBottom: 6, opacity: 0.8 },
-  num: { fontFamily: serifFont, fontSize: 24, fontWeight: '600', marginBottom: 4 },
+  statIcon: { marginBottom: 2, opacity: 0.8 },
+  num: { fontFamily: serifFont, fontSize: 20, fontWeight: '600', marginBottom: 0 },
   statLabel: { fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: colors.inkSoft, fontWeight: '600' },
 
   // Sections

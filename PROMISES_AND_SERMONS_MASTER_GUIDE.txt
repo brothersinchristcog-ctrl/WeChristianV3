@@ -1,0 +1,172 @@
+=============================================================================================================================
+                          WECHRISTIAN - COMPLETE HOW-TO GUIDE: PROMISES & SERMONS
+=============================================================================================================================
+
+
+HOW TO CREATE A PROMISE FROM THE ADMIN DASHBOARD
+==================================================
+
+1. Starting the Process
+-----------------------
+From the main Admin Dashboard, navigate to the "Promises" section and tap the "+ New" button in the top-right corner. This opens the Promise Editor with a fresh, blank form.
+
+
+2. Schedule & Theme Section
+---------------------------
+- Promise Date (Required): Defaults to today's date. Tapping the date opens a calendar grid where you can pick any past date (for archive entry) or future date (for scheduled entry).
+- Visual Theme & Background:
+  * Curated Color & Gradients: Choose from 10 church-themed swatches (Deep Navy, Royal Purple, Forest Green, Burgundy, Amber Gold, Teal, Indigo, etc.) to set the background gradient for the promise card.
+  * Live Preview Card: Displays exactly how the verse text and styling will appear on church members' phones in the 16:9 format.
+
+
+3. English Promise
+------------------
+- Verse Reference (Required): Book, chapter, and verse (e.g., "John 3:16" or "Jeremiah 29:11").
+- Verse Text (Required): Type or paste the English scripture text.
+- Built-In Bible Picker: Tap "Select from Bible" to easily choose any book, chapter, and verse from the complete Old or New Testament without typing manually.
+- Devotional Note (Optional): The Pastor's devotional thought, practical life application, or a short encouraging message for the day.
+
+
+4. Telugu Promise
+-----------------
+- Verse Reference (Optional): Telugu reference (e.g., "యోహాను 3:16" or "యిర్మియా 29:11").
+- Verse Text (Required): The full scripture text in Telugu.
+- Built-In Telugu Bible Picker: Tap to select from all 66 books of the Telugu Holy Bible with authentic regional book names.
+- Devotional Note (Optional): Pastor's commentary or prayer points written in Telugu.
+
+
+5. Daily Promise Thumbnail
+--------------------------
+- Upload Custom Thumbnail: Tapping "Upload custom thumbnail" opens your device gallery. You can pick a custom 16:9 designed graphic.
+- Clean Image Preservation: Uploaded custom photos are saved directly to Firebase Cloud Storage and displayed cleanly as-is without any unwanted overlays.
+
+
+6. YouTube Link (Optional Video Devotion)
+-----------------------------------------
+- YouTube Video URL: Paste the full YouTube link (e.g., https://youtube.com/watch?v=... or https://youtu.be/...) OR the 11-character video ID.
+- Video Title: The title of the devotion (e.g., "Morning Manna with Pastor David").
+- Duration: Video length (e.g., "12 min").
+
+
+7. Pastor & Publish Status
+--------------------------
+- Pastor Name: Credit the pastor or speaker giving the devotional (e.g., "Rev. Dr. P. Samuel").
+- Publish Status (3 Interactive Cards):
+  1. Publish Now (Green Card):
+     - Becomes live on the Member App Home Screen hero carousel immediately.
+  2. Scheduled (Amber Card):
+     - Auto-publishes at 12:00 AM midnight on the selected "Promise Date".
+  3. Save as Draft (Slate Card):
+     - Saved privately in the database. Completely invisible to members until published.
+
+
+8. Final Actions & What Happens Next
+------------------------------------
+A. Save as Draft:
+- Tapping "Save as Draft" saves your work privately without notifying members.
+
+B. Save & Publish:
+- Tapping "Save & Publish Now" executes the live release.
+- THE MAGIC STEP: An automated Push Notification broadcast is sent instantly to all church members' phones with the title:
+  "📖 Daily Promise: [Reference]" and body: "[Verse Text] — [Reference]".
+- Full-Screen Loading: A progress popup displays: "Saving & Publishing Daily Promise…".
+- Celebratory Success Modal: Displays a glowing green badge, confirmation text, summary card, and a "View Promises List" button.
+- REAL-TIME LIVE SYNC: The Member App Home Screen updates immediately with the new promise card in real-time.
+
+
+
+=============================================================================================================================
+
+
+
+HOW TO CREATE A SERMON FROM THE ADMIN DASHBOARD
+===============================================
+
+1. Starting the Process
+-----------------------
+From the main Admin Dashboard, navigate to the "Sermons" section and tap the "+ New" button in the top-right corner. This opens the Sermon Editor screen.
+
+
+2. Sermon Info (Blue Card)
+--------------------------
+- Title — English (Required): The main display title (e.g., "Walking in Faith Through Trials").
+- Title — Telugu (Optional): Telugu title for regional language congregation members (e.g., "విశ్వాసములో నడుచుకొనుట").
+- Pastor / Speaker Name (Required): The name of the speaker (defaults to your church pastor, e.g., "Pastor Daniel Raju").
+- Sermon Date: The date the message was preached or is scheduled for. Defaults to today; tap to modify via calendar.
+- Duration: Length of the sermon (e.g., "45 min" or "1:15:00").
+- Scripture Reference: The foundational scripture passage (e.g., "James 1:2-4").
+
+
+3. Sermon Category & "+ New" Option (Blue Card)
+-----------------------------------------------
+- Categories List: Select all categories that apply to this message:
+  * Sunday Service
+  * Bible Study
+  * Youth Meeting
+  * Women's Fasting Prayer
+  * Second Saturday Prayer
+  * All-Night Prayer
+  * Revival Meeting
+  * Special Messages
+  * Shorts / Testimonies
+  Selected categories highlight in dark navy with a golden checkmark.
+
+- THE "+ New" CATEGORY CREATOR:
+  * Want to add a new category not in the list? (e.g., "Convention 2026", "Miracle Night", "VBS", "Cottage Prayer").
+  * Tap the dashed [+ New] button.
+  * A modal opens: enter the category name and tap "Create Category".
+  * It instantly saves the category to the church database, auto-selects it for this sermon, makes it available for all future sermons, and shows it to Members in their category filter bar with an auto-assigned color pill.
+
+
+4. Media & Details (Red Banner)
+-------------------------------
+- YouTube Video URL: Paste the full YouTube video link (e.g., https://www.youtube.com/watch?v=...), short link (https://youtu.be/...), or live stream ID.
+- Custom Thumbnail (16:9 Landscape Banner):
+  * Tap "Upload custom thumbnail" to pick a high-resolution JPG or PNG graphic from your device gallery.
+  * It uploads securely to Firebase Cloud Storage under your church's folder.
+  * Auto-Fallback: If no custom image is uploaded, the app automatically fetches the official YouTube high-quality thumbnail.
+- Description: Multi-line field for an outline, summary notes, key points, or announcements related to the sermon.
+
+
+5. Push Notification (Yellow Banner)
+------------------------------------
+- "Notify members when published" (Toggle Switch): Ensures members receive an alert when the sermon goes live.
+- "Auto-send immediately on publish" (Toggle Switch): Dispatches notification immediately upon saving.
+- Notification Preview: Displays a live lock-screen preview card showing how the notification will look on members' phones ("New Sermon 🎙️").
+
+
+6. Publish Status (3 Interactive Cards)
+---------------------------------------
+Select one of the 3 status options:
+
+1. Publish Now (Green Card `#10B981`):
+   - Goes live immediately on the Member App Home Screen ("Latest Sermon") and Sermons Library.
+   - Status badge shows a green radio checkmark.
+
+2. Scheduled (Amber Card `#F59E0B`):
+   - Queued to auto-publish on the specified Sermon Date.
+   - Remains hidden from regular members until the scheduled date arrives.
+
+3. Save as Draft (Slate Card `#64748B`):
+   - Saved privately in the Admin panel.
+   - Completely invisible to members. Perfect for drafting sermon notes or preparing upcoming series before publishing.
+
+
+7. Final Actions & What Happens Next
+------------------------------------
+A. Save as Draft (White Button):
+- Saves the sermon quietly with status set to "Draft".
+- No push notifications are sent. Stored under the "Drafts" filter in Admin Sermon List.
+
+B. Publish (Green / Navy Button):
+- If "Publish Now" is selected:
+  * The bottom button reads: [ Save & Publish Now ] in solid green.
+  * THE MAGIC STEP: The app automatically sends a Push Notification broadcast to all church members:
+    "🎧 New Sermon: [Title] — New sermon '[Title]' by [Pastor] is now available. Watch/listen now!"
+- If "Scheduled" is selected:
+  * The button reads: [ Save & Schedule ] in solid navy.
+- Full-Screen Loading: A saving dialog appears ("Publishing Sermon… Syncing with Member View…").
+- Celebratory Success Modal: Displays a triple-ring glowing badge, status pill, sermon details card (Title, Pastor, Scripture, Status), a primary "View Sermons List" button, and a "Keep Editing" option.
+- REAL-TIME HOME SCREEN UPDATE: The Member App Home Screen "Latest Sermon" card updates immediately with the new sermon title, Telugu title, pastor name, formatted date, duration, and thumbnail artwork!
+
+=============================================================================================================================

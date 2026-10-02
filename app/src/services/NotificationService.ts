@@ -1,4 +1,4 @@
-import { Platform, PermissionsAndroid, Linking } from 'react-native';
+import { Platform, PermissionsAndroid, Linking, Alert } from 'react-native';
 import { messaging, firestore, auth } from './firebaseConfig';
 
 class NotificationService {
@@ -122,40 +122,38 @@ class NotificationService {
           nav.navigate('AttendanceScreen');
           break;
         case 'birthday':
-          break;
-        case 'invoice':
-          nav.navigate('AdminRoot', { targetTab: 'Expense', highlightInvoiceId: id });
-          break;
-        case 'promise':
-          nav.navigate('Updates');
-          break;
-        case 'attendance':
-          nav.navigate('AttendanceScreen');
-          break;
-        case 'birthday':
         case 'anniversary':
         case 'baptism':
         case 'celebration':
         case 'emergency':
           nav.navigate('Updates', { highlightId: id, highlightType: type });
           break;
-        case 'youtube_live':
-          {
-            const liveUrl = remoteMessage.data?.url || 'https://www.youtube.com/@Brothersinchristfellowship/live';
-            Linking.openURL(liveUrl).catch((err: any) => {
-              console.error("Couldn't open live stream URL", err);
-            });
-          }
+        case 'youtube_live': {
+          const liveUrl = remoteMessage.data && remoteMessage.data.url ? remoteMessage.data.url : 'https://www.youtube.com/@Brothersinchristfellowship/live';
+          Linking.openURL(liveUrl).catch(function(err) {
+            console.error("Couldn't open live stream URL", err);
+          });
           break;
+        }
         case 'LIVE_CELEBRATION':
           nav.navigate('LiveCelebrationsChat', {});
           break;
+        case 'new_church':
+          nav.navigate('AdminRoot', { targetTab: 'App Admin' });
+          break;
+        case 'prayer_request_admin':
+        case 'prayer_request':
+        case 'prayer':
+          nav.navigate('AdminRoot', { targetTab: 'Prayers' });
+          break;
+        case 'prayer_request_public':
+          nav.navigate('PrayerWall', { tab: 'public_requests' });
+          break;
         default:
-          // Fallback: navigate to Updates if it has a broadcast ID
           if (id) {
             nav.navigate('Updates', { highlightId: id, highlightType: type });
           } else {
-            console.log('❓ Unknown notification type, staying on current screen');
+            console.log('Unknown notification type, staying on current screen');
           }
       }
     } catch (e) {
@@ -170,10 +168,20 @@ class NotificationService {
     });
   }
 
-  // Subscribe user to a specific church topic for isolated notifications
   async subscribeToChurchTopic(churchId: string) {
     if (!churchId) return;
     try {
+      // Check permission first to prevent silent failures on fresh installs (especially iOS APNS)
+      const authStatus = await messaging().hasPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        
+      if (!enabled) {
+        console.log(`⚠️ Cannot subscribe to church_${churchId} yet: Permissions not granted.`);
+        return;
+      }
+
       const topicName = `church_${churchId}`;
       await messaging().subscribeToTopic(topicName);
       console.log(`📡 Subscribed to FCM topic: ${topicName}`);
@@ -194,14 +202,82 @@ class NotificationService {
     }
   }
 
+  // Subscribe Admin users to church admin alerts (e.g. Prayer Requests, Mod Alerts)
+  async subscribeToChurchAdminTopic(churchId: string) {
+    if (!churchId) return;
+    try {
+      const authStatus = await messaging().hasPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      if (!enabled) return;
+
+      const topicName = `church_${churchId}_admin`;
+      await messaging().subscribeToTopic(topicName);
+      console.log(`📡 Subscribed to FCM admin topic: ${topicName}`);
+    } catch (error) {
+      console.error(`❌ Failed to subscribe to topic church_${churchId}_admin:`, error);
+    }
+  }
+
+  // Unsubscribe Admin from church admin alerts (on logout or church switch)
+  async unsubscribeFromChurchAdminTopic(churchId: string) {
+    if (!churchId) return;
+    try {
+      const topicName = `church_${churchId}_admin`;
+      await messaging().unsubscribeFromTopic(topicName);
+      console.log(`🔌 Unsubscribed from FCM admin topic: ${topicName}`);
+    } catch (error) {
+      console.error(`❌ Failed to unsubscribe from topic church_${churchId}_admin:`, error);
+    }
+  }
+
+  // Subscribe Super Admin users to platform-wide alerts
+  async subscribeToSuperAdminTopic() {
+    try {
+      const authStatus = await messaging().hasPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      if (!enabled) return;
+      await messaging().subscribeToTopic('platform_super_admins');
+      console.log('📡 Subscribed to FCM topic: platform_super_admins');
+    } catch (error) {
+      console.error('❌ Failed to subscribe to platform_super_admins topic:', error);
+    }
+  }
+
+  // Unsubscribe Super Admin from platform-wide alerts (on logout)
+  async unsubscribeFromSuperAdminTopic() {
+    try {
+      await messaging().unsubscribeFromTopic('platform_super_admins');
+      console.log('🔌 Unsubscribed from FCM topic: platform_super_admins');
+    } catch (error) {
+      console.error('❌ Failed to unsubscribe from platform_super_admins topic:', error);
+    }
+  }
+
   // Handle notifications when the app is open (foreground)
-  // NOTE: FCM already shows a system heads-up notification on Android even when the app is in foreground.
-  // Do NOT show an Alert here — that would cause a double notification (system tray + in-app popup).
-  // Navigation on tap is handled by onNotificationOpenedApp in RootNavigator.
   setupForegroundListener(navigation?: any) {
     return messaging().onMessage(async remoteMessage => {
-      // Only log — do not show Alert (system notification already shown by FCM)
-      console.log('⚡ Foreground push received (system notification already shown):', remoteMessage?.notification?.title);
+      console.log('⚡ Foreground push received:', remoteMessage?.notification?.title);
+      const title = remoteMessage?.notification?.title || 'New Notification';
+      const body = remoteMessage?.notification?.body || '';
+
+      Alert.alert(
+        title,
+        body,
+        [
+          { text: 'Dismiss', style: 'cancel' },
+          {
+            text: 'View',
+            onPress: () => {
+              this.handleNotificationNavigation(remoteMessage, navigation);
+            },
+          },
+        ],
+        { cancelable: true }
+      );
     });
   }
 }

@@ -1,0 +1,288 @@
+================================================================================
+WECHRISTIAN ADMIN DASHBOARD - ONLINE MEETINGS SYSTEM MANUAL
+================================================================================
+Document: ONLINE_MEETINGS_GUIDE.txt
+Module: Online Meetings, Live Classes & Webcasts (AdminOnlineMeetings)
+Platform: WeChristian Mobile & Admin Ecosystem
+Location: app/src/screens/admin/AdminOnlineMeetings*.tsx
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1.  MODULE OVERVIEW & VIRTUAL MINISTRY ARCHITECTURE
+2.  NAVIGATION & TWO-SCREEN ARCHITECTURE
+3.  ONLINE MEETINGS DASHBOARD (AdminOnlineMeetings.tsx)
+    3.1 Header Navigation & Back Controls
+    3.2 Real-Time Stats Grid (Upcoming, Live Now, Completed, Total Classes)
+    3.3 Status Filter Tabs (All, Upcoming, Live, Completed)
+    3.4 Meeting Feed & Card Anatomy
+4.  CREATING & SCHEDULING A MEETING (AdminOnlineMeetingEditor.tsx)
+    4.1 Meeting Title & Curriculum Description
+    4.2 Automated Google Meet Space Generator (OAuth & Google Meet API)
+    4.3 Manual Platform Links (Zoom, YouTube Live, MS Teams)
+    4.4 Date & Time Pickers (Start & End Time Configuration)
+    4.5 Bible Book Focus & Curriculum Scripture
+    4.6 Host / Teacher / Speaker Assignment
+5.  MEETING DETAIL VIEW & PASTORAL ACTION CONTROLS
+    5.1 Scheduled Meeting Detail Card (Date, Time, Scripture, Host)
+    5.2 "Start Class & Open Meet" Action
+    5.3 Automated Church-Wide Live Broadcast Push Alert
+    5.4 Cancel Class Action & Member Notice
+    5.5 Delete Class Record Flow
+6.  REAL-TIME LIVE ATTENDANCE TRACKER
+    6.1 Live Attendance Counter (attendees.length)
+    6.2 Real-Time Attendee Roster & Member Avatars
+    6.3 Automated Check-in via Member App Integration
+7.  DATABASE SCHEMA & FIRESTORE INTEGRATION
+8.  ONLINE MINISTRY BEST PRACTICES & STREAMING GUIDELINES
+
+================================================================================
+1. MODULE OVERVIEW & VIRTUAL MINISTRY ARCHITECTURE
+================================================================================
+The Online Meetings module provides church leadership with a centralized broadcast 
+and virtual classroom hub for conducting remote ministry beyond the physical church walls.
+
+Common Use Cases:
+* Mid-Week Online Bible Studies & Discipleship Classes
+* Early Morning & Night Prayer Lines
+* Youth Ministry Webinars & Q&A Panels
+* Virtual Sunday School for Children
+* Sunday Worship Webcasts for Sick or Traveling Congregation Members
+
+Key Innovations:
+* Native Google Meet Generator: Administrators can generate an official Google Meet 
+  video space directly inside the app with a single tap through Google Sign-In OAuth, 
+  without copying and pasting links.
+* Universal Video Support: Full compatibility with Zoom, YouTube Live streams, 
+  Microsoft Teams, Google Meet, or custom RTMP web links.
+* Automated Church Broadcasts: Tapping "Start Class" dispatches an instant push notification 
+  to every registered church member's smartphone: "🔴 Live Now: [Class Title] — Tap to join!".
+* Real-Time Attendance Roster: Pastors can see exactly which church members are currently 
+  present in the virtual classroom.
+
+================================================================================
+2. NAVIGATION & TWO-SCREEN ARCHITECTURE
+================================================================================
+Located in the Admin Dashboard under "Online Meetings & Media":
+
+[Admin Dashboard Grid]
+       |
+       +---> [Online Meetings Tile] (VideoIcon)
+       |         |
+       |         +---> [AdminOnlineMeetings] (Live dashboard, stats, meeting detail)
+       |
+       +---> [New Online Meeting Tile] (VideoIcon)
+                 |
+                 +---> [AdminOnlineMeetingEditor] (Schedule meeting & generate Meet links)
+
+* Header Navigation: Left chevron button returning to the Admin Dashboard (`setActiveTab(0)`). 
+  When inspecting an individual meeting, the back button returns to the meetings list.
+
+================================================================================
+3. ONLINE MEETINGS DASHBOARD (AdminOnlineMeetings.tsx)
+================================================================================
+3.1 Header Navigation & Back Controls
+-------------------------------------
+* Deep royal navy header with white typography: "Online Meetings".
+* Left chevron back button for seamless navigation.
+
+3.2 Real-Time Stats Grid
+------------------------
+Four high-visibility metric cards calculating real-time status against the current time:
+1. "UPCOMING": Total count of future scheduled meetings.
+2. "LIVE NOW": Active meetings currently in session (`startTime <= now <= endTime`). 
+   Renders in vibrant emerald green with an active pulse indicator.
+3. "COMPLETED": Past meetings whose end time has elapsed.
+4. "TOTAL CLASSES": Cumulative historical tally of all online sessions.
+
+3.3 Status Filter Tabs
+----------------------
+A horizontal pill bar allowing quick filtering:
+* "All": Shows all scheduled, active, and completed meetings.
+* "Upcoming": Shows future sessions sorted chronologically.
+* "Live": Isolates meetings currently broadcasting.
+* "Completed": Displays past archives.
+
+3.4 Meeting Feed & Card Anatomy
+-------------------------------
+Each meeting card in the list provides complete operational details:
+* Live Status Pill: `🔴 LIVE NOW` (Emerald), `UPCOMING` (Blue), or `COMPLETED` (Slate).
+* Title: e.g., "Wednesday Evening Discipleship Class".
+* Description: Brief summary of the lesson or sermon outline.
+* Date & Time Badge: e.g., "Wednesday, October 14 • 07:00 PM - 08:30 PM".
+* Host Teacher: e.g., "Host: Rev. Dr. P. Johnson".
+* Bible Focus: e.g., "Book of Romans — Chapter 8".
+* Tapping any card opens its detailed pastoral management view.
+
+================================================================================
+4. CREATING & SCHEDULING A MEETING (AdminOnlineMeetingEditor.tsx)
+================================================================================
+Accessible via the "New Online Meeting" dashboard tile or tapping edit on an existing meeting.
+
+4.1 Meeting Title & Description
+-------------------------------
+* Title Input (Required): e.g., "Youth Faith & Purpose Webinar".
+* Description Input: Agenda, study questions, or preparation instructions for members.
+
+4.2 Automated Google Meet Space Generator (OAuth Integration)
+-------------------------------------------------------------
+* "Generate Google Meet Link" Button with Google Meet icon:
+  1. Initiates Google Sign-In OAuth flow (`@react-native-google-signin/google-signin`).
+  2. Acquires authorized Google OAuth access token with scope:
+     `https://www.googleapis.com/auth/meetings.space.created`
+  3. Calls Google Meet REST API (`POST https://meet.googleapis.com/v2/spaces`) 
+     with open access configuration.
+  4. Receives unique `meetingUri` (e.g., `https://meet.google.com/abc-defg-hij`).
+  5. Automatically populates the Meeting Link input and displays an animated toast: 
+     "Link Generated! Google Meet link successfully created."
+
+4.3 Manual Platform Links (Zoom, YouTube Live, MS Teams)
+--------------------------------------------------------
+* If the church hosts services on Zoom or YouTube:
+  - Leaders can paste any valid web link directly into the "Meeting Link" text input:
+    - Zoom: `https://us04web.zoom.us/j/1234567890?pwd=...`
+    - YouTube Live: `https://www.youtube.com/watch?v=...`
+    - Microsoft Teams: `https://teams.microsoft.com/l/meetup-join/...`
+
+4.4 Date & Time Pickers
+-----------------------
+* Meeting Date: Tap date box to open calendar modal (`DateTimePickerModal`).
+* Start Time: Set start time (e.g., "07:00 PM").
+* End Time: Set conclusion time (e.g., "08:30 PM").
+
+4.5 Bible Book Focus & Curriculum Scripture
+-------------------------------------------
+* Text input to specify the Scripture focus (e.g., "Ephesians", "Gospel of John").
+* Highlighted on member mobile devices so families can open their Bibles in advance.
+
+4.6 Host / Teacher / Speaker Assignment
+---------------------------------------
+* Specify the minister or elder facilitating the meeting. Defaults to the logged-in pastor.
+
+4.7 Save & Publish Action
+-------------------------
+* Tapping "Save Class / Meeting":
+  - Commits the record to Firestore under the church's `online_meetings` collection.
+  - Automatically notifies church members in their mobile app schedule.
+  - Navigates back to the Online Meetings dashboard.
+
+================================================================================
+5. MEETING DETAIL VIEW & PASTORAL ACTION CONTROLS
+================================================================================
+When selecting any meeting from the dashboard, a comprehensive detail view opens:
+
+5.1 Scheduled Meeting Detail Card
+---------------------------------
+* Dark navy card (`#22304F`) displaying:
+  - Meeting Title & Description
+  - Calendar Date (e.g., "Wednesday, October 14, 2026")
+  - Time Window (e.g., "7:00 PM - 8:30 PM")
+  - Scripture Reference (e.g., "Romans 8:1-17")
+  - Host / Facilitator Name
+
+5.2 "Start Class & Open Meet" Action
+------------------------------------
+* Large emerald green action button with Play icon: `Start Class & Open Meet`.
+* Only active for upcoming or live meetings.
+* Tapping this button triggers two simultaneous actions:
+  1. Launches the meeting link directly in the device's Google Meet, Zoom, or YouTube app.
+  2. Automated Push Broadcast (explained below).
+
+5.3 Automated Church-Wide Live Broadcast Push Alert
+---------------------------------------------------
+Upon tapping "Start Class", the system writes a notification to the church's broadcast queue:
+* Notification Title: `🔴 Live Now: [Meeting Title]`
+* Notification Body: `The online meeting has started. Tap to join!`
+* Payload: Attached direct video URL.
+* All congregation members receive an audible chime on their smartphones; tapping the 
+  alert immediately opens their video app and joins the meeting room!
+
+5.4 Cancel Class Action
+-----------------------
+* Red outline button with X-Circle icon: `Cancel Class`.
+* Prompts confirmation: "Are you sure you want to cancel this class?".
+* Updates meeting status to `cancelled`, alerting members that the class will not take place.
+
+5.5 Delete Class Record
+-----------------------
+* Ghost button with Trash icon: `Delete Class Record`.
+* Permanently purges the class and all associated attendee logs from Firestore.
+
+================================================================================
+6. REAL-TIME LIVE ATTENDANCE TRACKER
+================================================================================
+A real-time pastoral attendance monitoring tool situated at the bottom of the detail view.
+
+6.1 Live Attendance Counter
+---------------------------
+* Displays: `Live Attendance (X)` updating in real time as members join.
+
+6.2 Real-Time Attendee Roster & Member Avatars
+----------------------------------------------
+* As congregation members tap "Join Meeting" in their mobile app:
+  1. The app registers their attendance in the meeting's `attendees` subcollection.
+  2. The admin dashboard receives an instant Firestore `onSnapshot` update.
+  3. Displays a vertical list showing:
+     - Member avatar circle with name initial (e.g., `[D]` for Daniel).
+     - Full legal member name (e.g., "Bro. K. Daniel").
+* Allows pastors to take roll call, acknowledge attendees by name, and follow up 
+  with absent members.
+
+================================================================================
+7. DATABASE SCHEMA & FIRESTORE INTEGRATION
+================================================================================
+Online Meetings data is stored in the church's subcollections in Firestore:
+
+1. Subcollection: `churches/{churchId}/online_meetings`
+Field               | Type             | Description
+--------------------+------------------+------------------------------------------------
+id                  | string           | Unique meeting document auto-ID
+title               | string           | Class or meeting title
+description         | string           | Agenda, study notes, or context
+meetingLink         | string           | Full Google Meet, Zoom, or YouTube URL
+startTime           | timestamp        | Exact scheduled start timestamp
+endTime             | timestamp        | Exact scheduled end timestamp
+bibleBook           | string           | Scripture focus (e.g., 'Romans')
+teacher             | string           | Host or teacher name
+status              | string           | 'scheduled' | 'live' | 'completed' | 'cancelled'
+createdAt           | timestamp        | Creation timestamp
+
+2. Subcollection: `churches/{churchId}/online_meetings/{meetingId}/attendees`
+Field               | Type             | Description
+--------------------+------------------+------------------------------------------------
+id                  | string           | Member document ID
+name                | string           | Member full name
+joinedAt            | timestamp        | Exact time member clicked join in mobile app
+
+3. Collection: `churches/{churchId}/broadcasts`
+Triggered automatically on "Start Class":
+{
+  title: "🔴 Live Now: Wednesday Bible Study",
+  content: "The online meeting has started. Tap to join!",
+  type: "online_meeting",
+  targetChurchId: "church_123",
+  meetingId: "meeting_456",
+  url: "https://meet.google.com/abc-defg-hij",
+  createdAt: serverTimestamp()
+}
+
+================================================================================
+8. ONLINE MINISTRY BEST PRACTICES & STREAMING GUIDELINES
+================================================================================
+1. Test Links in Advance:
+   - Always click the generated Google Meet or Zoom link 15 minutes before scheduled 
+     start time to verify audio and video settings.
+2. Leverage the Push Notification Broadcast:
+   - Use the "Start Class & Open Meet" button inside the app rather than launching Meet 
+     externally, as this automatically sends the instant reminder push notification to members.
+3. Bible Focus Setting:
+   - Always enter the Bible Book focus so congregation members can prepare their physical 
+     scriptures or read the chapter before joining.
+4. Attendance Follow-Up:
+   - Review the Live Attendance roster after the meeting ends to identify regular attendees 
+     and reach out to members who were unable to connect.
+
+================================================================================
+END OF ONLINE MEETINGS SYSTEM MANUAL
+================================================================================

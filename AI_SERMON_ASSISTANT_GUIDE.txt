@@ -1,0 +1,364 @@
+================================================================================
+WECHRISTIAN ADMIN DASHBOARD - AI SERMON ASSISTANT SYSTEM MANUAL
+================================================================================
+Document: AI_SERMON_ASSISTANT_GUIDE.txt
+Module: AI Sermon Assistant (Outline, Scripture & Exegesis Generator)
+Platform: WeChristian Mobile & Admin Ecosystem
+Location: app/src/screens/admin/AISermonAssistant.tsx
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1.  MODULE OVERVIEW & THEOLOGICAL PURPOSE
+2.  NAVIGATION & SCREEN ARCHITECTURE
+3.  STEP 1: SELECTING A STARTING POINT
+    3.1 Category Selector (Life Events, Spiritual Topics, Sermon History)
+    3.2 Life Events Catalog (17 Bilingual Situations)
+    3.3 Spiritual & Biblical Topics Catalog (28 Theological Themes)
+4.  STEP 2: CONTEXT & CUSTOMIZATION CONTROLS
+    4.1 Additional Topic / Focus Input
+    4.2 Audience Targeting (8 Profiles)
+    4.3 Language Selection (English, Telugu, Hindi, Tamil, Kannada)
+    4.4 Duration Configuration (10 min to 60 min)
+5.  SERMON GENERATION ENGINE & PROGRESSIVE FEEDBACK
+    5.1 AI Generation Pipeline (AIService.generateSermon)
+    5.2 5-Stage Animated Preparation Status Indicator
+6.  SERMON STRUCTURE & INTERACTIVE FORMATTING
+    6.1 Title Card & AI Badge
+    6.2 Section Header & Quick-Jump Navigation Bar
+    6.3 Point-by-Point Expository Breakdown
+    6.4 Bible Reference Badges & Scripture Quotes
+    6.5 Practical Takeaways & Closing Altar Call Prayer
+7.  REAL-TIME SERMON REFINEMENT CHIPS (AI MODIFIERS)
+    7.1 Regenerate Fresh Outline
+    7.2 Expand Intro
+    7.3 More Verses (Scriptural Enrichment)
+    7.4 Add Point (Expand Main Message)
+    7.5 Simplify Language
+    7.6 More Detail (Stories & Depth)
+    7.7 Preaching Style (Passionate & Engaging)
+    7.8 Translate to Telugu
+8.  OUTPUT ACTIONS, EXPORTS & SOCIAL SHARING
+    8.1 Copy to Clipboard with Animated Banner
+    8.2 WhatsApp Share Direct Integration
+    8.3 Plain Text Document Export & System Share
+9.  SERMON VAULT & HISTORY MANAGEMENT
+    9.1 Real-Time History Search Engine
+    9.2 Full-Screen Sermon Reader Modal
+    9.3 Sermon Text Editor & Firestore Sync
+    9.4 Deletion with Destructive Confirmation
+10. DATABASE SCHEMA & FIRESTORE INTEGRATION
+11. BEST PRACTICES & PASTORAL GUIDELINES
+
+================================================================================
+1. MODULE OVERVIEW & THEOLOGICAL PURPOSE
+================================================================================
+The AI Sermon Assistant is a dedicated theological copilot engineered to assist pastors, 
+preachers, and ministry leaders in outlining, structuring, and drafting Bible-based 
+sermons with exceptional speed and theological depth.
+
+Key Principles:
+* Scripture Centricity: Scripture citations remain uncompromised and distinguished from 
+  AI commentary.
+* Cultural & Linguistic Authenticity: Built from the ground up to support Telugu (`తెలుగు`) 
+  ministry alongside English, Hindi, Tamil, and Kannada.
+* Situational Relevance: Equips pastors for sudden pastoral duties (e.g., unexpected 
+  funeral, hospital prayer, wedding blessing, thanksgiving meeting) with tailored 
+  Scripture references and pastoral words.
+* Reversible AI Refinement: Features one-tap AI modifier chips to instantly rewrite, 
+  expand, or simplify sermon points without losing the original outline.
+
+================================================================================
+2. NAVIGATION & SCREEN ARCHITECTURE
+================================================================================
+Located under the "AI Ministry Tools" section of the Admin Dashboard:
+
+[Admin Dashboard Grid] 
+       |
+       +---> [AI Sermon Assistant Tile] (Sparkles Icon)
+                 |
+                 +---> [AISermonAssistant Screen]
+                           |
+                           +---> Tab 1: 'life' (Life Events / Situations)
+                           |
+                           +---> Tab 2: 'topic' (Spiritual / Biblical Topics)
+                           |
+                           +---> Tab 3: 'history' (Saved Sermon Library)
+                                     |
+                                     +---> [View Sermon Modal]
+                                     +---> [Edit Sermon Modal]
+                                     +---> [Download & Share File]
+
+================================================================================
+3. STEP 1: SELECTING A STARTING POINT
+================================================================================
+The assistant provides three starting categories selectable via top gradient pill tabs:
+
+3.1 Category Selector
+---------------------
+* "Life Events / Situations": Focuses on pastoral rites, family milestones, and crises.
+* "Spiritual / Biblical Topics": Focuses on doctrinal, devotional, and theological preaching.
+* "Sermon History": Accesses the church's historical repository of generated sermons.
+
+3.2 Life Events Catalog (17 Bilingual Situations)
+-------------------------------------------------
+Each situation is represented as an interactive grid tile with a custom icon:
+1.  Birthday - పుట్టినరోజు (Gift icon)
+2.  Wedding - వివాహం (Heart icon)
+3.  Wedding Anniversary - వివాహ వార్షికోత్సవం (HeartHandshake icon)
+4.  Baptism - బాప్తిస్మం (Droplets icon)
+5.  Sick / Healing - అనారోగ్యం / స్వస్థత (HeartPulse icon)
+6.  Funeral / Death - మరణం (CloudRain icon)
+7.  Family Function - కుటుంబ వేడుక (Users icon)
+8.  Church Anniversary - సంఘ వార్షికోత్సవం (Building2 icon)
+9.  Thanksgiving - కృతజ్ఞతా కూడిక (Utensils icon)
+10. Graduation - పట్టభద్రోత్సవం (GraduationCap icon)
+11. Retirement - పదవీ విరమణ (Briefcase icon)
+12. New Beginning - నూతన ప్రారంభం (Sunrise icon)
+13. Crisis - సంక్షోభం (AlertTriangle icon)
+14. Loss - నష్టం (HeartOff icon)
+15. Failure - వైఫల్యం (TrendingDown icon)
+16. Success - విజయం (TrendingUp icon)
+17. Other - ఇతర (MoreHorizontal icon)
+
+3.3 Spiritual & Biblical Topics Catalog (28 Theological Themes)
+---------------------------------------------------------------
+1.  Joy - ఆనందం (Smile icon)
+2.  Peace - సమాధానం (Wind icon)
+3.  Fear - భయం (ShieldAlert icon)
+4.  Faith - విశ్వాసం (Star icon)
+5.  Hope - నిరీక్షణ (Anchor icon)
+6.  Love - ప్రేమ (Heart icon)
+7.  Wisdom - జ్ఞానం (Lightbulb icon)
+8.  Prayer - ప్రార్థన (Sparkles icon)
+9.  Healing - స్వస్థత (HeartPulse icon)
+10. Grace - కృప (Gift icon)
+11. Forgiveness - క్షమాపణ (HeartHandshake icon)
+12. Salvation - రక్షణ (LifeBuoy icon)
+13. Obedience - విధేయత (CheckCircle2 icon)
+14. Holiness - పరిశుద్ధత (Crown icon)
+15. Patience - సహనం (Hourglass icon)
+16. Strength - బలం (Mountain icon)
+17. Courage - ధైర్యం (Shield icon)
+18. Trust - నమ్మకం (Lock icon)
+19. Purpose - ఉద్దేశ్యం (Compass icon)
+20. Family - కుటుంబం (Home icon)
+21. Father - తండ్రి (User icon)
+22. Mother - తల్లి (User icon)
+23. Children - పిల్లలు (Baby icon)
+24. Friends - స్నేహితులు (Users icon)
+25. Relationships - సంబంధాలు (Link icon)
+26. Care - శ్రద్ధ (Heart icon)
+27. Leadership - నాయకత్వం (Flag icon)
+28. Life - జీవితం (Leaf icon)
+29. Other - ఇతర (MoreHorizontal icon)
+
+================================================================================
+4. STEP 2: CONTEXT & CUSTOMIZATION CONTROLS
+================================================================================
+Fine-tunes the output to match the specific congregation and service length.
+
+4.1 Additional Topic / Focus Input
+----------------------------------
+* TextInput field: "e.g. Love and Commitment" or "Walking in God's Unshakable Peace".
+* Allows entering custom sermon themes, sermon series titles, or specific Scripture chapters.
+
+4.2 Audience Targeting (8 Profiles)
+-----------------------------------
+Horizontal selection pills:
+1. Congregation (General all-member Sunday worship service)
+2. Youth (Engaging, practical, addressing modern challenges)
+3. Children (Story-driven, simple vocabulary, memorable takeaways)
+4. Families (Household harmony, marriage, parenting)
+5. Men (Leadership, godly character, integrity)
+6. Women (Faith, encouragement, virtuous lifestyle)
+7. Seniors (Comfort, eternal hope, legacy of faith)
+8. Leaders (Pastoral duty, servant leadership, ministry excellence)
+
+4.3 Language Selection
+----------------------
+Supports 5 major Indian and global languages:
+* English
+* Telugu (తెలుగు)
+* Hindi (हिन्दी)
+* Tamil (தமிழ்)
+* Kannada (ಕನ್ನಡ)
+
+4.4 Duration Configuration
+--------------------------
+Adjusts outline depth and point count:
+* 10 min: Concise outline with 2 key points (ideal for cottage prayers).
+* 20 min: Focused message with 3 points.
+* 30 min: Standard Sunday morning sermon (3-4 points with illustrations).
+* 45 min: Detailed expository preaching (4 points with theological commentary).
+* 60 min: Comprehensive convention / seminar layout.
+
+================================================================================
+5. SERMON GENERATION ENGINE & PROGRESSIVE FEEDBACK
+================================================================================
+5.1 AI Generation Pipeline
+--------------------------
+* Tapping the gradient button "Generate Sermon":
+  1. Compiles the full prompt payload including category, audience, length, and language.
+  2. Dispatches to `AIService.generateSermon`.
+  3. Sends request authenticated with the church's API credentials.
+  4. Automatically stores generated outline into Firestore history.
+
+5.2 5-Stage Animated Preparation Status Indicator
+-------------------------------------------------
+While waiting (approximately 10-12 seconds), the UI rotates through 5 informative 
+pastoral status steps:
+1. "Connecting to AI Sermon Assistant..."
+2. "Searching Scriptures & Bible references..."
+3. "Structuring sermon points & insights..."
+4. "Adding pastoral applications & prayer..."
+5. "Finalizing [Language] sermon..."
+
+================================================================================
+6. SERMON STRUCTURE & INTERACTIVE FORMATTING
+================================================================================
+Generated sermons are parsed into structured, distinct visual blocks:
+
+6.1 Title Card & AI Badge
+-------------------------
+* High-contrast card with golden badge: `★ AI SERMON OUTLINE`.
+* Formatted bold sermon title (e.g., "దేవుని నిరీక్షణలో నడుచుట - Walking in Divine Hope").
+
+6.2 Section Header & Quick-Jump Navigation Bar
+----------------------------------------------
+A horizontal navigation bar pinned above the sermon text allowing one-tap scrolling 
+directly to specific sections:
+* [Introduction] (Indigo pill) ➔ Jumps to opening hook & background
+* [Key Scriptures] (Purple pill) ➔ Jumps to primary Scripture readings
+* [Main Message] (Violet pill) ➔ Jumps to sermon body & expository points
+* [Takeaways] (Amber pill) ➔ Jumps to life application & practical steps
+* [Closing Prayer] (Emerald pill) ➔ Jumps to benediction & altar call
+
+6.3 Point-by-Point Expository Breakdown
+---------------------------------------
+* Each sermon point is rendered with a dedicated badge (e.g., `Point 1`, `Point 2`, `Point 3`).
+* Includes bold key truth statement followed by contextual analysis.
+
+6.4 Bible Reference Badges & Scripture Quotes
+---------------------------------------------
+* Purple badge card: `BIBLE BOOK & CHAPTER • వాక్య ఆధారం`.
+* Highlights specific Bible references (e.g., "రోమీయులకు 8:28 / Romans 8:28").
+* Scripture quotations are encased in reverent italic cards.
+
+6.5 Practical Takeaways & Closing Altar Call Prayer
+---------------------------------------------------
+* Amber Card: `PRACTICAL TAKEAWAY • ఆచరణాత్మక సత్యం` with practical action steps.
+* Emerald Card: Closing pastoral prayer and altar call invitation ready for the preacher 
+  to lead the congregation in prayer.
+
+================================================================================
+7. REAL-TIME SERMON REFINEMENT CHIPS (AI MODIFIERS)
+================================================================================
+Located directly beneath the sermon display. Pastors can tap any modifier chip to 
+instantly rewrite or adjust the sermon while keeping the same core theme:
+
+1. "Regenerate" (RefreshCw icon):
+   - Re-generates a completely new sermon structure from scratch.
+2. "Expand Intro" (AlignLeft icon):
+   - Instructs AI: "Please expand the introduction to be more detailed and engaging."
+3. "More Verses" (BookMarked icon):
+   - Instructs AI: "Please include more relevant Bible verses and scriptures throughout."
+4. "Add Point" (ListPlus icon):
+   - Instructs AI: "Please add one additional major point to the sermon outline."
+5. "Simplify" (Minimize icon):
+   - Instructs AI: "Please simplify the language so it is easier for a general audience."
+6. "More Detail" (Maximize icon):
+   - Instructs AI: "Please expand on all points with more detail, stories, and depth."
+7. "Preaching Style" (Mic icon):
+   - Instructs AI: "Please rewrite this in a more passionate and engaging preaching style."
+8. "Telugu" (Globe icon):
+   - Instructs AI: "Please translate the entire sermon to Telugu."
+
+================================================================================
+8. OUTPUT ACTIONS, EXPORTS & SOCIAL SHARING
+================================================================================
+8.1 Copy to Clipboard
+---------------------
+* Tapping "Copy":
+  - Copies entire sermon text to mobile clipboard via `expo-clipboard`.
+  - Displays an animated green checkmark notification: "Sermon copied to clipboard!".
+
+8.2 WhatsApp Share Direct Integration
+-------------------------------------
+* Tapping "WhatsApp" (Green border with WhatsApp icon):
+  - Automatically opens WhatsApp share intent with full sermon text pre-loaded in 
+    the chat composer.
+  - Allows instant sharing with associate pastors, translation teams, or worship leaders.
+
+8.3 Plain Text Document Export & System Share
+---------------------------------------------
+* Saves sermon as a timestamped UTF-8 `.txt` file in device storage:
+  `[Sermon_Title]_[Timestamp].txt`
+* Automatically opens system sharing dialog allowing file export via Email, Google Drive, 
+  Bluetooth, or AirDrop.
+
+================================================================================
+9. SERMON VAULT & HISTORY MANAGEMENT
+================================================================================
+Switching to the "Sermon History" tab opens the church's digital sermon archive:
+
+9.1 Real-Time History Search Engine
+-----------------------------------
+* Search bar dynamically filters saved sermons by:
+  - Title or Topic
+  - Bible Reference (e.g., "John 3:16" or "యోహాను")
+  - Sermon Body Text keywords
+
+9.2 Full-Screen Sermon Reader Modal
+-----------------------------------
+* Tapping any historical sermon card opens the full-screen reader modal.
+* Displays creation date, Scripture reference badge, and structured blocks.
+* Bottom bar provides quick "Copy" and "Download" buttons.
+
+9.3 Sermon Text Editor & Firestore Sync
+---------------------------------------
+* Tapping "Edit" opens a full-screen text editor modal.
+* Preachers can edit the title, adjust points, add personal illustrations, and save.
+* Automatically updates Firestore document and syncs across all devices.
+
+9.4 Deletion with Destructive Confirmation
+------------------------------------------
+* Tapping the red Trash icon prompts a native alert:
+  "Delete Sermon: Are you sure you want to delete '[Title]'? This action cannot be undone."
+* Confirmed deletion purges the sermon from Firestore.
+
+================================================================================
+10. DATABASE SCHEMA & FIRESTORE INTEGRATION
+================================================================================
+Sermon records are stored in the Firestore collection `ai_sermons`:
+
+Field                 | Type             | Description
+----------------------+------------------+----------------------------------------------
+id                    | string           | Unique document identifier
+churchId              | string           | Associated church ID
+title                 | string           | Sermon outline title
+topic                 | string           | User-entered focus topic or selected situation
+category              | string           | 'life' | 'topic'
+language              | string           | 'Telugu' | 'English' | 'Hindi' | etc.
+generatedSermonText   | string           | Complete markdown formatted sermon outline
+bibleRef              | string           | Primary Scripture reference citation
+status                | string           | 'generated' | 'edited'
+createdAt             | timestamp        | Firestore server timestamp
+
+================================================================================
+11. BEST PRACTICES & PASTORAL GUIDELINES
+================================================================================
+1. The AI as an Assistant, Not a Preacher:
+   - The AI Sermon Assistant is designed to break writer's block and organize thoughts. 
+     Pastors should always bathe their preparation in personal prayer and study.
+2. Scripture Verification:
+   - Always verify Scripture passages with your physical Holy Bible or the app's 
+     built-in Bible reader before preaching.
+3. Language Switching:
+   - If preaching a bilingual service, generate the outline in English first, review 
+     the structure, and then tap the "Telugu" modifier chip to obtain the Telugu version.
+
+================================================================================
+END OF AI SERMON ASSISTANT GUIDE
+================================================================================

@@ -1,0 +1,232 @@
+================================================================================
+          WECHRISTIAN - DONATIONS (GIVING) & EXPENSE (FINANCE) GUIDE
+                           PIN-TO-PIN STEP-BY-STEP
+================================================================================
+
+================================================================================
+PART 1: THE DONATIONS (GIVING) SYSTEM
+================================================================================
+
+The Donations system connects Church Members with Church Leadership.
+Members can give tithes, offerings, and pledges digitally or via direct UPI.
+Admins can monitor live collections, review manual UPI receipts, record cash
+tithes, and generate official 80G tax receipts.
+
+--------------------------------------------------------------------------------
+1. MEMBER GIVING FLOW (Step-by-Step)
+--------------------------------------------------------------------------------
+
+STEP 1: OPENING THE GIVING SCREEN
+  • Member taps "Give / కానుక" from:
+    - Quick Access Grid on Home Screen
+    - Bottom Navigation bar
+    - Profile Menu
+  • The screen loads the active church's name, logo, theme colors, and bank
+    details dynamically.
+
+STEP 2: SELECTING CATEGORY & AMOUNT
+  • Select Purpose/Category:
+    - Tithe (దశమభాగం)
+    - Offering (కానుక)
+    - Missions (సేవా నిధి)
+    - Building Fund (నిర్మాణ నిధి)
+    - Special (ప్రత్యేక కానుక)
+    - Others (ఇతర) -> Prompts for custom offering/event name
+  • Select Amount:
+    - Quick chips: ₹50, ₹100, ₹500, ₹1,000, ₹5,000
+    - Or type any custom amount in the input box (Min ₹1)
+
+STEP 3: CHOOSING PAYMENT METHOD
+
+  METHOD A: ONLINE VIA RAZORPAY (Instant & Automatic)
+    1. Member selects "Razorpay / Cards / NetBanking" and taps "Proceed to Give".
+    2. App creates a pending record in Firestore: churches/{churchId}/donations
+    3. Cloud Function 'createRazorpayDonationOrderV6' generates an official order.
+    4. Razorpay Checkout opens with church branding, donor name, phone & email.
+    5. Member pays via UPI, Card, NetBanking, or Wallet.
+    6. Cloud Function 'verifyRazorpayDonationV6' verifies the payment signature.
+    7. Status becomes "Confirmed / Success" immediately.
+    8. Church Admins receive an instant push notification alert.
+    9. Member sees a confirmation success screen with Transaction ID.
+
+  METHOD B: DIRECT UPI / PHONEPE / QR (Manual Verification)
+    1. Member selects "UPI / PhonePe / Direct QR".
+    2. Screen shows the church's exact UPI ID (e.g. church@sbi) and PhonePe number.
+    3. Member copies UPI ID, opens GPay/PhonePe/Paytm, and pays directly.
+    4. Member takes a screenshot of the successful transfer.
+    5. Member taps "Attach Payment Receipt / Screenshot" on Giving Screen.
+    6. App uploads image to Firebase Storage: donations/receipts/...
+    7. Donation record is saved in Firestore with status "Pending Verification".
+    8. Push notification is sent to Church Admins to verify.
+    9. Member sees message: "Receipt submitted. Pending verification."
+
+STEP 4: MEMBER GIVING HISTORY & RECEIPTS
+  • Member goes to Profile -> Giving History.
+  • Views total amount given and full list of transactions.
+  • Taps any transaction to open official digital receipt:
+    - Church Name, Logo, Address
+    - Donor Name & Phone
+    - Receipt No. & Transaction Ref ID
+    - Payment Mode, Date, Category
+  • Taps "Download Receipt" to save to device gallery or "Share" to WhatsApp.
+
+
+--------------------------------------------------------------------------------
+2. ADMIN DONATIONS DASHBOARD & MANAGEMENT (Step-by-Step)
+--------------------------------------------------------------------------------
+Accessed under: Admin View -> Tab: "Donations" (DonationsDashboard.tsx)
+
+STEP 1: LIVE FINANCIAL DASHBOARD & METRICS
+  • Total Collections card: Real-time aggregated amount.
+  • Period Filters: Today, This Week, This Month, This Year, Custom Range, All Time.
+  • Category Breakdown: Tithes, Offering, Building Fund, Missionary, Special.
+  • Shows exact donor count and total collection per category.
+
+STEP 2: REVIEWING & APPROVING PENDING UPI RECEIPTS
+  1. When members submit UPI screenshots, a badge appears in Admin View.
+  2. Admin opens "Pending Review" queue.
+  3. Displays donor name, phone number, amount, date, and screenshot preview.
+  4. Admin cross-checks against bank statement:
+     - APPROVE: Marks status "Verified / Approved". Member's history updates.
+     - REJECT: Rejects with notes if payment not received.
+
+STEP 3: RECORDING IN-PERSON CASH / OFFLINE TITHES
+  1. Admin taps the floating "+" button.
+  2. Donor Search: Autocomplete dropdown searches church members as you type.
+  3. Select Category: Tithes, Offering, Missionary, Building, Other.
+  4. Enter Amount (₹) and Date.
+  5. Select Payment Method: Cash, Cheque, Bank Transfer, or UPI.
+  6. Add optional notes (e.g. envelope number, cheque number).
+  7. Tap "Save Donation" -> Immediately synced to church records.
+
+STEP 4: GENERATING & EXPORTING OFFICIAL PDF RECEIPTS
+  • Single Receipt: Tap any donation -> Receipt Preview -> Generate PDF with
+    church letterhead and 80G tax info -> Print or Share via WhatsApp.
+  • Category/Audit Statements: Select date range and export full statement.
+
+
+================================================================================
+PART 2: THE EXPENSE & FINANCE SYSTEM
+================================================================================
+
+The Expense system provides church leaders complete ledger control over
+church expenditures, vendor bills, provisions, and invoice generation.
+Accessed under: Admin View -> Tab: "Expense" (AdminFinanceDashboard.tsx)
+
+--------------------------------------------------------------------------------
+1. EXPENSE DASHBOARD & METRICS
+--------------------------------------------------------------------------------
+  • Total Expenses: Net church expenditure in chosen period.
+  • Total Invoices: Total value of vendor bills recorded.
+  • Pending Payments: Unpaid vendor dues / pending reimbursements.
+  • Period Filters: Today, This Week, This Month, This Year, Custom Range.
+  • Category Breakdown:
+    - Sunday Service
+    - Youth Meeting
+    - Bible Study
+    - Church Maintenance
+    - Women's Prayer
+    - Outreach / Gospel Missions
+    - Custom categories added by church
+
+--------------------------------------------------------------------------------
+2. RECORDING AN EXPENSE (Pin-to-Pin Steps)
+--------------------------------------------------------------------------------
+STEP 1: Tap "+ Add Expense" or go to "Editor" subtab.
+
+STEP 2: Select Ministry Category (Sunday Service, Maintenance, Outreach, etc.).
+
+STEP 3: Select Line Items from Pre-Populated Church Groups:
+  • General Church Items:
+    Water, Snacks, Tea, Flowers, Sound System, Décor, Transport, Printing,
+    Electricity, Stationery, Cleaning Supplies, Musical Instruments, Honorarium.
+  • Vegetables:
+    Tomato, Onion, Potato, Carrot, Chilli, Garlic, Ginger, Beans, Lemon, etc.
+  • Groceries & Provisions (for Love Feasts & Community Meals):
+    Rice, Sugar, Salt, Cooking Oil, Dal, Spices, Wheat/Atta, Milk, Tea/Coffee.
+  • Custom Items:
+    Type any custom item name and add it instantly.
+
+STEP 4: Specify Quantity & Price per item:
+  • Enter Quantity (e.g. 5 kgs, 2 units, 10 bottles)
+  • Enter Unit Price (₹)
+  • System automatically calculates: Subtotal = Quantity × Unit Price
+
+STEP 5: Vendor & Payment Information:
+  • Vendor Name: e.g. "Sri Rama Sound & Lights", "Metro Supermarket"
+  • Expense Date: Date picker for current or past dates
+  • Payment Method: Cash, UPI, Cheque, Bank Transfer, Card
+  • Payment Status: 'Paid' (settled) or 'Pending' (unpaid credit)
+  • Attach Physical Bill/Receipt: Upload photo of paper bill from camera/gallery
+  • Notes: Add reference or balance payment notes
+
+STEP 6: Tap "Save Expense":
+  • Saved under churches/{churchId}/expenses.
+  • Immediately updates church outflow metrics and budget breakdown.
+
+--------------------------------------------------------------------------------
+3. INVOICES & BILLING MANAGEMENT
+--------------------------------------------------------------------------------
+  • Create formal church invoices for contractors, vendors, or branches.
+  • Specify Invoice No., Issue Date, Due Date, Vendor, Tax (GST), and Discounts.
+  • Generates high-resolution branded PDF invoice with:
+    - Church Name, Logo, Address, Contact Details
+    - Itemized table with rates and quantities
+    - Bank details & QR code for payment
+  • One-touch buttons to Print (wireless) or Share (WhatsApp/Email).
+
+--------------------------------------------------------------------------------
+4. AUDIT & MULTI-SELECTION STATEMENTS
+--------------------------------------------------------------------------------
+  • Multi-select multiple expense entries for bulk deletion or combined reporting.
+  • Filter by ministry category to generate monthly audit statements for
+    church committee or board reviews.
+
+
+================================================================================
+PART 3: CHURCH BANKING & GATEWAY CONFIGURATION
+================================================================================
+Configured under: Admin View -> Church Settings -> Financial Details
+
+  • UPI ID (VPA): Displayed on member giving screen (e.g. church@sbi).
+  • PhonePe Number: Church merchant number for quick UPI transfers.
+  • Bank Account Name: Legal church name printed on receipts and invoices.
+  • Account No. & IFSC: Bank details printed on invoice footers.
+  • Razorpay Key & Secret: Credentials for automated online card/UPI payments.
+  • 80G / 12A Registration: Tax exemption number printed on donor receipts.
+
+
+================================================================================
+PART 4: FIRESTORE DATA COLLECTIONS
+================================================================================
+
+1. churches/{churchId}/donations/{donationId}
+   - amount: number (e.g. 1000)
+   - donationType: string ('Tithe', 'Offering', 'Building', etc.)
+   - date: string ('2026-09-17')
+   - donorName: string ('Rajesh Kumar')
+   - donorPhone: string ('+919876543210')
+   - paymentMethod: 'Razorpay' | 'UPI/PhonePe' | 'Cash' | 'Cheque'
+   - status: 'Confirmed' | 'Pending Verification' | 'Rejected'
+   - receiptUrl: string (Storage URL of uploaded UPI screenshot)
+   - razorpay_payment_id: string
+
+2. churches/{churchId}/expenses/{expenseId}
+   - category: string ('Sunday Service', 'Church Maintenance', etc.)
+   - date: string ('2026-09-17')
+   - vendorName: string ('City Supermarket')
+   - paymentMethod: 'Cash' | 'UPI' | 'Cheque' | 'Bank Transfer'
+   - status: 'Paid' | 'Pending'
+   - lineItems: { [itemName]: { qty: string, price: string } }
+   - totalAmount: number
+   - receiptUrl: string (scanned paper bill photo)
+
+3. churches/{churchId}/invoices/{invoiceId}
+   - invoiceNumber: string ('INV-2026-0042')
+   - vendorName: string
+   - issueDate: string
+   - dueDate: string
+   - items: Array<{ description, quantity, rate, amount }>
+   - subtotal, tax, total
+   - status: 'Paid' | 'Pending' | 'Overdue'
+================================================================================

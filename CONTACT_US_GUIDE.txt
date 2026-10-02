@@ -1,0 +1,244 @@
+================================================================================
+          WECHRISTIAN ADMIN DASHBOARD - CONTACT US EDITOR MANUAL
+================================================================================
+Screen Component : AdminContactUsEditor.tsx
+Route Tab Name   : "Contact Us" (AdminDashboard Administration Card)
+Icon             : PhoneCall
+Target Database  : Firestore path: `churches/{churchId}/settings/contact`
+Permission Level : Church Administrator / Secretariat
+Theme & Canvas   : Deep Navy (#1a2d5a), Gold (#BE9A3A), Parchment (#FAF8F0)
+================================================================================
+
+[TABLE OF CONTENTS]
+1. Module Overview & Pastoral Communication Hub
+2. Dual-Mode Interface: Member Preview vs. Administrative Editor
+3. Dynamic Field Structure & Input Management
+   - Church Physical Address & Directions
+   - Multi-Phone Number List (Dynamic Array with Phone-Pad)
+   - Multi-Email Directory (Dynamic Array with Email Keyboard)
+   - Official Social Media & WhatsApp Direct Links
+4. Live View Mode & Interactive Click-to-Action Previews
+5. Dynamic Array Operations (Add, Edit, Remove Rows)
+6. Validation Safeguards & Data Cleaning Logic
+7. Firestore Schema & Synchronization Architecture
+8. Practical Church Helpline & Emergency Support Setup Tips
+
+================================================================================
+1. MODULE OVERVIEW & PASTORAL COMMUNICATION HUB
+================================================================================
+The "Contact Us" module (AdminContactUsEditor) empowers church administrators to
+maintain an accurate, always-available communication bridge between leadership
+and the congregation.
+
+Whether a church member is facing a medical emergency, requesting urgent home
+prayer, seeking counseling, or a newcomer is navigating to Sunday service,
+the details managed in this module provide instant 1-tap resolution:
+  - 1-Tap Phone Dialing: Tapping any listed phone number directly opens the
+    native phone dialer.
+  - 1-Tap Email Composition: Tapping an email pre-addresses a new message in
+    the user's email client.
+  - Direct WhatsApp Messaging: Connects members directly to pastoral care via
+    WhatsApp without requiring them to manually save phone numbers.
+  - Official Social Verification: Links worshippers directly to verified YouTube,
+    Instagram, and Facebook pages, protecting them from fake channels.
+
+================================================================================
+2. DUAL-MODE INTERFACE: MEMBER PREVIEW VS. ADMINISTRATIVE EDITOR
+================================================================================
+The screen employs the standardized WeChristian dual-mode navigation pattern:
+
+  - Fixed Header (`#1a2d5a`): Features back navigation, "Contact Us" title,
+    subtext "CHURCH COMPANION", a manual `RefreshCw` button, and the
+    interactive `[Edit] / [View]` toggle.
+  - View Mode: Shows cards formatted with badges, phone counts, and colored
+    action icons just as members experience them.
+  - Edit Mode: Exposes dynamic array controls (`[+ Add Phone Number]`,
+    `[+ Add Email Address]`, and delete trash icons) with form persistence.
+
+================================================================================
+3. DYNAMIC FIELD STRUCTURE & INPUT MANAGEMENT
+================================================================================
+The module manages four essential communication pillars:
+
+1. 📍 Church Physical Address (`address`)
+   - Type: Multi-line Text Area (3 lines visible, auto-expanding)
+   - Instructions: Enter full street address, landmark, city, state, and pin code.
+   - Example: "Door No. 12-45/1, Main Road, Beside RTC Bus Stand, Arundalpet,
+     Guntur, Andhra Pradesh - 522002"
+   - Validation: Required field. Cannot be left blank.
+
+2. 📞 Multi-Phone Number List (`phoneNumbers[]`)
+   - Type: Dynamic string array rendered as individual input rows.
+   - Keyboard: `keyboardType="phone-pad"` for rapid dialing entry.
+   - Management:
+     * `[+ Add Phone Number]`: Appends an empty row to the list.
+     * `[Trash2]` button: Deletes that specific line item. Disabled when only
+       one phone number remains, ensuring at least one contact is retained.
+   - Validation: Strips empty rows upon saving. Ensures at least one valid
+     phone number exists.
+
+3. ✉️ Multi-Email Directory (`emails[]`)
+   - Type: Dynamic string array rendered as individual input rows.
+   - Keyboard: `keyboardType="email-address"`, `autoCapitalize="none"`.
+   - Examples: `info@church.org`, `pastorcare@church.org`, `giving@church.org`.
+   - Management:
+     * `[+ Add Email Address]`: Appends an empty row.
+     * `[Trash2]` button: Deletes row (disabled if only 1 remains).
+     * Automatic trimming of whitespace and empty rows on save.
+
+4. 🌐 Official Social Media & WhatsApp Links (`socialLinks`)
+   - YouTube (`socialLinks.youtube`):
+     * Input with red YouTube badge icon.
+     * Value: Direct URL to the church's YouTube channel or live stream broadcast.
+     * Example: `https://www.youtube.com/@BrothersInChrist`
+   - Instagram (`socialLinks.instagram`):
+     * Input with magenta Instagram badge icon.
+     * Value: Direct profile URL.
+     * Example: `https://instagram.com/wechristianchurch`
+   - Facebook (`socialLinks.facebook`):
+     * Input with blue Facebook badge icon.
+     * Value: Church Facebook page URL.
+     * Example: `https://facebook.com/churchofgod`
+   - WhatsApp Number (`socialLinks.whatsapp`):
+     * Input with green WhatsApp badge icon.
+     * Keyboard: `keyboardType="phone-pad"`.
+     * Instructions: Enter full number with country code without plus sign
+       (e.g., `918374331432`). Members tapping WhatsApp will be redirected to
+       a direct chat conversation with pastoral care.
+
+================================================================================
+4. LIVE VIEW MODE & INTERACTIVE CLICK-TO-ACTION PREVIEWS
+================================================================================
+In View Mode, the interface showcases how contact information is organized:
+
+  +--------------------------------------------------------------------------+
+  | [MapPin] Church Address                                                  |
+  | ------------------------------------------------------------------------ |
+  | Door No. 12-45/1, Main Road, Beside RTC Bus Stand, Guntur - 522002       |
+  +--------------------------------------------------------------------------+
+  | [Phone] Phone Numbers                                      Count: [ 2 ]  |
+  | ------------------------------------------------------------------------ |
+  |  (📞)  Call: +91 83743 31432                                            |
+  |  (📞)  Call: +91 93927 23536                                            |
+  +--------------------------------------------------------------------------+
+  | [Mail] Email Addresses                                     Count: [ 2 ]  |
+  | ------------------------------------------------------------------------ |
+  |  (✉️)  Email: wechristianapp@gmail.com                                   |
+  |  (✉️)  Email: pastor@brothersinchrist.org                               |
+  +--------------------------------------------------------------------------+
+  | [Link] Social Links                                                      |
+  | ------------------------------------------------------------------------ |
+  |  [▶ YouTube]          [📸 Instagram]          [f Facebook]               |
+  +--------------------------------------------------------------------------+
+
+================================================================================
+5. DYNAMIC ARRAY OPERATIONS (ADD, EDIT, REMOVE ROWS)
+================================================================================
+The state management inside `AdminContactUsEditor.tsx` utilizes immutable array
+transforms:
+
+  Adding a Row:
+  ```typescript
+  const addPhone = () => setDraft(p => ({ 
+    ...p, 
+    phoneNumbers: [...p.phoneNumbers, ''] 
+  }));
+  ```
+
+  Updating a Specific Row:
+  ```typescript
+  const updatePhone = (idx: number, val: string) => {
+    const a = [...draft.phoneNumbers];
+    a[idx] = val;
+    setDraft(p => ({ ...p, phoneNumbers: a }));
+  };
+  ```
+
+  Removing a Row (with single-row guard):
+  ```typescript
+  const removePhone = (idx: number) => {
+    if (draft.phoneNumbers.length === 1) return;
+    setDraft(p => ({
+      ...p,
+      phoneNumbers: p.phoneNumbers.filter((_, i) => i !== idx)
+    }));
+  };
+  ```
+
+================================================================================
+6. VALIDATION SAFEGUARDS & DATA CLEANING LOGIC
+================================================================================
+When the administrator clicks `[Save Changes]`:
+
+  1. Physical Address Check:
+     ```typescript
+     if (!draft.address.trim()) {
+       Alert.alert('Validation', 'Church address cannot be empty.');
+       return;
+     }
+     ```
+
+  2. Array Pruning (Filtering Out Accidental Blank Rows):
+     ```typescript
+     const cleanedPhones = draft.phoneNumbers.filter(p => p.trim() !== '');
+     const cleanedEmails = draft.emails.filter(e => e.trim() !== '');
+     ```
+
+  3. Mandatory Contact Check:
+     ```typescript
+     if (cleanedPhones.length === 0) {
+       Alert.alert('Validation', 'Please add at least one phone number.');
+       return;
+     }
+     ```
+
+  4. Atomic Persistence:
+     Both state and Firestore document receive only the sanitized, cleaned data
+     arrays, preventing empty rows from cluttering the mobile app.
+
+================================================================================
+7. FIRESTORE SCHEMA & SYNCHRONIZATION ARCHITECTURE
+================================================================================
+Path: `settings/contact` (Scoped per active church)
+
+```json
+{
+  "churchName": "Brothers in Christ Fellowship",
+  "churchSubtitle": "A Gateway to Heaven",
+  "address": "Opp. Old Bus Stand, Guntur, AP - 522001",
+  "phoneNumbers": [
+    "+91 83743 31432",
+    "+91 93927 23536"
+  ],
+  "emails": [
+    "wechristianapp@gmail.com",
+    "contact@brothersinchrist.org"
+  ],
+  "socialLinks": {
+    "youtube": "https://www.youtube.com/@WeChristianApp",
+    "instagram": "https://instagram.com/wechristianapp",
+    "facebook": "https://facebook.com/wechristianapp",
+    "whatsapp": "918374331432"
+  },
+  "updatedAt": "2026-09-28T09:20:00Z"
+}
+```
+
+================================================================================
+8. PRACTICAL CHURCH HELPLINE & EMERGENCY SUPPORT SETUP TIPS
+================================================================================
+1. Dedicate a Primary Pastoral Helpline:
+   List the church's official 24/7 prayer helpline as the very first phone number
+   in the list, as it appears at the top of the member screen.
+
+2. Verify WhatsApp Country Code:
+   Always ensure the WhatsApp number includes the full international code without
+   spaces or special characters (e.g. `919848022338` for India).
+
+3. Keep Physical Landmarks Clear:
+   Church buildings can sometimes be difficult for first-time visitors to locate
+   on GPS. Including prominent landmarks (e.g., "Opposite RTC Bus Depot, 2nd Floor")
+   in the address field significantly eases transit.
+================================================================================
+                    END OF CONTACT US EDITOR MANUAL
+================================================================================

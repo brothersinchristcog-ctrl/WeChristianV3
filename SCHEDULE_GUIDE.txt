@@ -1,0 +1,235 @@
+================================================================================
+           WECHRISTIAN ADMIN DASHBOARD - SCHEDULE & CALENDAR MANUAL
+================================================================================
+Screen Component : AdminPromiseCalendar.tsx
+Route Tab Name   : "Schedule" (AdminDashboard Administration Card)
+Icon             : CalendarClock
+Target Database  : Firestore collection: `promises`
+Permission Level : Church Administrator / Content Moderator
+Theme & Canvas   : Deep Navy (#1a2d5a), Parchment (#EDE8DC), White (#FFFFFF)
+================================================================================
+
+[TABLE OF CONTENTS]
+1. Module Overview & Ministry Purpose
+2. Visual Interface & Month Header
+3. Monthly Calendar Matrix & Layout Calculation
+4. Color-Coded Day Status Taxonomy
+5. 1-Tap Date Jump & Direct Promise Editing Workflow
+6. Trailing Alignment & Responsive Percentage Grid
+7. Data Retrieval & Month Caching Architecture
+8. Legend & Visual Indicator Reference
+9. Synchronization With Daily Promise Carousel
+10. Admin Tips for Proactive Ministry Content Scheduling
+
+================================================================================
+1. MODULE OVERVIEW & MINISTRY PURPOSE
+================================================================================
+The "Schedule" module (AdminPromiseCalendar) is the visual master planner for
+a church's daily spiritual touchpoint: the Daily Promise. 
+
+In the WeChristian ecosystem, thousands of believers start their day by opening
+the mobile app to read God's daily word, accompanied by Telugu audio, biblical
+commentaries, and custom graphic banners. If a date is missing its promise,
+members receive fallback content or an unpopulated feed.
+
+The Schedule calendar solves this by giving church leadership a bird's-eye view
+of the entire month at a single glance:
+  - Instantly reveals gaps where no promise has been scheduled ("Missing" in red).
+  - Highlights drafts in preparation ("Draft" in amber).
+  - Validates scheduled and published promises ("OK" in vibrant green).
+  - Gives prominent visual priority to today's date with a glowing golden border.
+  - Allows 1-tap navigation to instantly create or edit any date's promise.
+
+================================================================================
+2. VISUAL INTERFACE & MONTH HEADER
+================================================================================
+The screen features a clean header and a prominent calendar card:
+
+  +--------------------------------------------------------------------------+
+  | [Back] | Promise Calendar                                                |  <- Hero Navy Header
+  |          October 2026                                                    |
+  +--------------------------------------------------------------------------+
+  |  +--------------------------------------------------------------------+  |
+  |  |  October 2026                              Tap any date to edit    |  |  <- Card Subheader
+  |  |  ----------------------------------------------------------------  |  |
+  |  |  SUN   MON   TUE   WED   THU   FRI   SAT                           |  |  <- Day Headers
+  |  |                                                                    |  |
+  |  |  [   ] [   ] [   ] [ 1 ] [ 2 ] [ 3 ] [ 4 ]                         |  |  <- Grid Cells with
+  |  |                    Pub   Pub   Dft   Miss                          |  |     Color Badges
+  |  |                                                                    |  |
+  |  |  [ 5 ] [ 6 ] [ 7 ] [ 8 ] [ 9 ] [10 ] [11 ]                         |  |
+  |  |  Pub   Pub   Pub   Pub  [TODAY] Miss Miss                          |  |
+  |  |                         (Gold)                                     |  |
+  |  +--------------------------------------------------------------------+  |
+  |                                                                          |
+  |  [Green] Published   [Amber] Draft   [Rose] Missing   [Gold] Today       |  <- Legend Bar
+  +--------------------------------------------------------------------------+
+
+================================================================================
+3. MONTHLY CALENDAR MATRIX & LAYOUT CALCULATION
+================================================================================
+To dynamically generate an accurate calendar grid for any month without
+external heavy calendar dependencies, `AdminPromiseCalendar.tsx` executes
+native JavaScript date mathematics:
+
+  1. First Day Offset:
+     ```typescript
+     const firstDay = new Date(year, month, 1).getDay();
+     ```
+     Yields an integer (0 for Sunday, 1 for Monday... 6 for Saturday).
+     The UI renders `firstDay` empty placeholder cells (`calDay` with no text)
+     to shift day 1 to its exact weekday column.
+
+  2. Days In Month:
+     ```typescript
+     const daysInMonth = new Date(year, month + 1, 0).getDate();
+     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+     ```
+     Calculates whether the month has 28, 29, 30, or 31 days and maps over them.
+
+  3. Trailing Cell Alignment:
+     ```typescript
+     const totalGridCells = firstDay + daysInMonth;
+     const trailingEmptyDays = totalGridCells % 7 === 0 ? 0 : 7 - (totalGridCells % 7);
+     ```
+     Renders invisible empty placeholder cells at the end of the month so the
+     final row maintains equal cell widths under `flexWrap: 'wrap'` and
+     `justifyContent: 'space-between'`.
+
+================================================================================
+4. COLOR-CODED DAY STATUS TAXONOMY
+================================================================================
+Every cell in the calendar evaluates the promise list retrieved from Firestore
+matching the date string formatted as `YYYY-MM-DD`:
+
+  Status       Badge Text  Background  Border     Text Color Meaning
+  ------------ ----------- ----------- ---------- ---------- ------------------
+  Published    "OK"        #EDF7F1     #A3D9B8    #1A5C38    Promise is live
+                                                             and visible.
+  Scheduled    "OK"        #EDF7F1     #A3D9B8    #1A5C38    Promise is locked
+                                                             for auto-publish.
+  Draft        "Draft"     #FEFBF0     #F5DFA0    #7C4A00    Content saved but
+                                                             not published.
+  Missing      "Missing"   #FEF3F3     #F5B8B8    #991B1B    No promise saved
+                                                             for this date!
+  Today        "Today"     #FFFBEB     #F59E0B    #B45309    Current active
+                           (Gold tint) (2px Gold) (Deep Gold) calendar date.
+
+Special Highlight on Today:
+  Today's cell features an elevated drop shadow (`elevation: 4`, `shadowRadius: 4`)
+  and a double-thickness golden border (`borderWidth: 2`), making it instantly
+  distinguishable even in a packed 31-day month.
+
+================================================================================
+5. 1-TAP DATE JUMP & DIRECT PROMISE EDITING WORKFLOW
+================================================================================
+Tapping any date cell initiates a seamless transition directly into the promise
+authoring studio:
+
+  ```typescript
+  onPress={() => { 
+    setEditingData(promise || { date: dStr }); 
+    if (setTabByName) {
+      setTabByName('New Promise');
+    } else {
+      setActiveTab(3); // Fallback to AdminPromiseEditor
+    }
+  }}
+  ```
+
+  Scenario A: Tapping a "Missing" Date (e.g. October 18)
+    1. System packages `{ date: '2026-10-18' }` into `setEditingData`.
+    2. Switches tab to `AdminPromiseEditor`.
+    3. The editor initializes with the target date pre-selected as October 18, 2026.
+    4. Admin selects scripture, writes title/explanation, picks poster theme,
+       and hits Save.
+    5. Upon returning to Schedule, October 18 instantly flips from Rose to Green!
+
+  Scenario B: Tapping an Existing "Draft" or "Published" Date
+    1. System packages the full existing promise document into `setEditingData`.
+    2. Switches tab to `AdminPromiseEditor`.
+    3. All existing text, audio URL, Telugu fonts, and bible verses load into the
+       editor fields.
+    4. Admin makes changes or approves draft for publishing.
+
+================================================================================
+6. TRAILING ALIGNMENT & RESPONSIVE PERCENTAGE GRID
+================================================================================
+Mobile devices have diverse screen resolutions (from compact 360px phones to
+600px+ foldables and tablets).
+
+To prevent broken row wraps, `AdminPromiseCalendar` uses strict percentage math:
+  - Header Width: `13.5%` per weekday (`7 * 13.5% = 94.5%`, remaining 5.5%
+    auto-spaced via `space-between`).
+  - Cell Width: `13.5%` with `height: 52px`.
+  - Border Radius: `10px` with centered alignment.
+  - Trailing cells render with `opacity: 0` to preserve mathematical grid structure.
+
+================================================================================
+7. DATA RETRIEVAL & MONTH CACHING ARCHITECTURE
+================================================================================
+When the calendar screen mounts, it queries Firestore for promises belonging to
+the active month:
+
+  ```typescript
+  const now = new Date();
+  const data = await FirestoreService.getCalendarData(
+    now.getFullYear(), 
+    now.getMonth() + 1
+  );
+  ```
+
+  Firestore Query Logic:
+    - Filters by active church ID: `churchId == activeChurch.id`
+    - Date string range filter:
+      `date >= '2026-10-01'` and `date <= '2026-10-31'`
+    - Orders by date ascending.
+  
+  Returns an array of promise objects containing:
+    `id`, `date`, `title`, `verse`, `reference`, `status`, `thumbnailUrl`.
+
+================================================================================
+8. LEGEND & VISUAL INDICATOR REFERENCE
+================================================================================
+Positioned directly beneath the calendar card, the interactive legend provides
+instant color clarity to new administrative staff:
+
+  [🟩 Published]   - Confirmed live on member mobile apps.
+  [🟨 Draft]       - Under review; not yet visible to members.
+  [🟥 Missing]     - Urgent action needed; day has no spiritual promise.
+  [⭐ Today]       - Current active date benchmark.
+
+================================================================================
+9. SYNCHRONIZATION WITH DAILY PROMISE CAROUSEL
+================================================================================
+In `AdminChurchSettings`, churches have the option:
+  `Use WeChristian Daily Promise` (YES / NO)
+
+  - If YES: The app displays the centralized WeChristian 4-time verse carousel
+    (Morning, Afternoon, Evening, Night).
+  - If NO: The app strictly uses the church's custom promise scheduled in this
+    calendar for that date.
+
+Even when centralized verses are enabled, scheduled custom promises are featured
+prominently in the church's Daily Spiritual Feed, making calendar maintenance
+essential for church member engagement.
+
+================================================================================
+10. ADMIN TIPS FOR PROACTIVE MINISTRY CONTENT SCHEDULING
+================================================================================
+1. The "Month-Ahead" Routine:
+   Pastors and media teams should open the Schedule calendar on the 25th of
+   every month and batch-schedule promises for the upcoming 30 days.
+
+2. Using AI Sermon Assistant With Schedule:
+   Key themes from Sunday sermons can be broken into 5 daily promise thoughts
+   for the upcoming week using the AI Sermon Assistant, and scheduled directly
+   across Monday to Friday in the calendar.
+
+3. Monitoring Missed Days:
+   Glance at the calendar every Friday afternoon. If Saturday or Sunday cells
+   show in Rose ("Missing"), tap them immediately to ensure weekend worshippers
+   receive their morning promise without delay.
+================================================================================
+                      END OF SCHEDULE & CALENDAR MANUAL
+================================================================================

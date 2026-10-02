@@ -25,7 +25,7 @@ interface ChurchProfile {
   };
   givingDetails?: {
     upiId: string;
-    phonepeNumber: string;
+    razorpayLink?: string;
   };
 }
 
@@ -73,7 +73,7 @@ export default function GivingPage() {
       alert('Please enter a valid amount.');
       return;
     }
-    // Mobile handles PhonePe intent here. For Web, we can show an alert or a UPI QR code modal.
+    // Mobile handles Razorpay intent here. For Web, we can show an alert or a UPI QR code modal.
     alert('Payment integration is handled via the mobile app. Please use the bank transfer details below for web donations.');
   };
 
