@@ -18,6 +18,7 @@ import FirestoreService from '../../services/FirestoreService';
 import AttendanceService from '../../services/AttendanceService';
 import { useChurch } from '../../context/ChurchContext';
 import { AdminTabContext } from '../../context/AdminTabContext';
+import firestore from '@react-native-firebase/firestore';
 
 const COLORS = {
   ink: '#1a2d5a',
@@ -173,6 +174,22 @@ export default function AdminAttendance() {
 
       if (editingRequestId) {
         await FirestoreService.updateAttendanceRequest(editingRequestId, data);
+        if (churchId) {
+          await firestore()
+            .collection('churches')
+            .doc(churchId)
+            .collection('events')
+            .doc(editingRequestId)
+            .set({
+              title: title.trim(),
+              name: title.trim(),
+              description: description.trim(),
+              date: dateStr,
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+            }, { merge: true })
+            .catch(() => {});
+        }
         setAlertConfig({
           visible: true,
           title: 'Updated',
@@ -180,8 +197,31 @@ export default function AdminAttendance() {
           type: 'success'
         });
       } else {
-        await FirestoreService.createAttendanceRequest(data);
+        const newReqId = await FirestoreService.createAttendanceRequest(data);
         
+        // Also mirror to church events collection with the exact same ID
+        if (churchId && newReqId) {
+          await firestore()
+            .collection('churches')
+            .doc(churchId)
+            .collection('events')
+            .doc(newReqId)
+            .set({
+              title: title.trim(),
+              name: title.trim(),
+              description: description.trim(),
+              date: dateStr,
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+              location: activeChurch?.address || churchName,
+              status: 'Open',
+              type: 'service',
+              attendanceRequestId: newReqId,
+              createdAt: firestore.FieldValue.serverTimestamp(),
+            }, { merge: true })
+            .catch(() => {});
+        }
+
         await FirestoreService.createNotificationBroadcast({
           title: 'Attendance Request',
           content: `Are you attending ${title.trim()} today? (Open until ${formatTime(endTime)})`,
@@ -248,6 +288,15 @@ export default function AdminAttendance() {
           onPress: async () => {
             try {
               await FirestoreService.deleteAttendanceRequest(id);
+              if (churchId) {
+                await firestore()
+                  .collection('churches')
+                  .doc(churchId)
+                  .collection('events')
+                  .doc(id)
+                  .delete()
+                  .catch(() => {});
+              }
               loadHistory();
               setAlertConfig({
                 visible: true,

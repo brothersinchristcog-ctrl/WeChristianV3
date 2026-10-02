@@ -337,6 +337,48 @@ export default function AttendanceScreen({ navigation, route }: any) {
         (r.memberId === memberId || (user?.uid && r.memberId === user.uid)) &&
         r.status !== 'Absent'
       );
+
+      // Also check recent attendanceRequests responses for this member
+      try {
+        const reqSnap = await firestore()
+          .collection('churches')
+          .doc(churchId)
+          .collection('attendanceRequests')
+          .limit(10)
+          .get();
+
+        for (const reqDoc of reqSnap.docs) {
+          const respDoc = await firestore()
+            .collection('churches')
+            .doc(churchId)
+            .collection('attendanceRequests')
+            .doc(reqDoc.id)
+            .collection('responses')
+            .doc(memberId)
+            .get()
+            .catch(() => null);
+
+          const isDocExisting = respDoc && (typeof (respDoc as any).exists === 'function' ? (respDoc as any).exists() : Boolean((respDoc as any).exists));
+          if (isDocExisting && respDoc) {
+            const respData = respDoc.data();
+            if (respData?.status === 'Present' || respData?.response === 'Yes') {
+              if (!cleanRecords.some(r => r.eventId === reqDoc.id)) {
+                cleanRecords.push({
+                  id: respDoc.id,
+                  eventId: reqDoc.id,
+                  eventName: respData.eventName || reqDoc.data()?.title || 'Church Service',
+                  memberId,
+                  memberName: respData.memberName || memberName,
+                  status: 'Present',
+                  timestamp: respData.respondedAt || respData.submittedAt || new Date(),
+                  churchId,
+                } as AttendanceRecord);
+              }
+            }
+          }
+        }
+      } catch (e) {}
+
       setAttendanceRecords(cleanRecords);
     } catch (e) {
       console.error('[AttendanceScreen] Error fetching attendance history:', e);
@@ -520,12 +562,15 @@ export default function AttendanceScreen({ navigation, route }: any) {
     try {
       const items: EventItem[] = [];
 
-      // 1. Fetch church events concurrently for fast loading
-      const [eventsSnap, fsEvents] = await Promise.all([
+      // 1. Fetch church events & attendance requests concurrently for fast loading
+      const [eventsSnap, fsEvents, attRequestsSnap] = await Promise.all([
         churchId 
           ? firestore().collection('churches').doc(churchId).collection('events').get().catch(() => ({ docs: [] }))
           : Promise.resolve({ docs: [] }),
-        FirestoreService.getEvents().catch(() => [])
+        FirestoreService.getEvents().catch(() => []),
+        churchId
+          ? firestore().collection('churches').doc(churchId).collection('attendanceRequests').get().catch(() => ({ docs: [] }))
+          : Promise.resolve({ docs: [] })
       ]);
 
       const rawEvents: any[] = [];
@@ -537,6 +582,28 @@ export default function AttendanceScreen({ navigation, route }: any) {
           rawEvents.push(fe);
         }
       });
+
+      // Include Attendance Requests so any attendance request created in Admin Dashboard
+      // is immediately visible as an event for members to scan and mark attendance!
+      if (attRequestsSnap && 'docs' in attRequestsSnap) {
+        attRequestsSnap.docs.forEach((doc: any) => {
+          const reqData = doc.data();
+          const existing = rawEvents.find(r => 
+            r.id === doc.id || 
+            ((r.title || r.name)?.trim().toLowerCase() === (reqData.title)?.trim().toLowerCase() && r.date === reqData.date)
+          );
+          if (existing) {
+            existing.attendanceRequestId = doc.id;
+          } else {
+            rawEvents.push({
+              id: doc.id,
+              isAttendanceRequest: true,
+              ...reqData,
+              location: reqData.location || (activeChurch as any)?.address || churchName,
+            });
+          }
+        });
+      }
 
       // 2. Process events
       (rawEvents || []).forEach(ev => {
@@ -552,7 +619,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
           dateStr,
           timeStr,
           dateObj,
-          location: (ev as any).venueEn || ev.location || '',
+          location: (ev as any).venueEn || ev.location || (activeChurch as any)?.address || churchName,
           status: 'Open',
           presentCount: ev.presentCount || ev.attendeeCount || 0,
         });
@@ -581,14 +648,26 @@ export default function AttendanceScreen({ navigation, route }: any) {
         Promise.all(
           todayItems.map(async (item) => {
             try {
-              const snap = await firestore()
-                .collection('churches')
-                .doc(churchId)
-                .collection('events')
-                .doc(item.id)
-                .collection('attendees')
-                .get();
-              return { id: item.id, count: snap.size };
+              const [snap, respSnap] = await Promise.all([
+                firestore()
+                  .collection('churches')
+                  .doc(churchId)
+                  .collection('events')
+                  .doc(item.id)
+                  .collection('attendees')
+                  .get()
+                  .catch(() => ({ size: 0 })),
+                firestore()
+                  .collection('churches')
+                  .doc(churchId)
+                  .collection('attendanceRequests')
+                  .doc(item.id)
+                  .collection('responses')
+                  .where('status', '==', 'Present')
+                  .get()
+                  .catch(() => ({ size: 0 }))
+              ]);
+              return { id: item.id, count: Math.max(snap.size, respSnap.size) };
             } catch (e) {
               return null;
             }
