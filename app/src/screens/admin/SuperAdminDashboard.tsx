@@ -565,16 +565,44 @@ export default function SuperAdminDashboard({ navigation }: any) {
       {/* Tab Bar */}
       <View style={styles.tabBar}>
         <TouchableOpacity style={[styles.tab, activeTab === 'churches' && styles.tabActive]} onPress={() => setActiveTab('churches')}>
-          <Text style={[styles.tabText, activeTab === 'churches' && styles.tabTextActive]}>Churches</Text>
+          <Text 
+            style={[styles.tabText, activeTab === 'churches' && styles.tabTextActive]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
+            Churches
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'vouchers' && styles.tabActive]} onPress={() => setActiveTab('vouchers')}>
-          <Text style={[styles.tabText, activeTab === 'vouchers' && styles.tabTextActive]}>Vouchers</Text>
+          <Text 
+            style={[styles.tabText, activeTab === 'vouchers' && styles.tabTextActive]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
+            Vouchers
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'songs' && styles.tabActive]} onPress={() => setActiveTab('songs')}>
-          <Text style={[styles.tabText, activeTab === 'songs' && styles.tabTextActive]}>Songs</Text>
+          <Text 
+            style={[styles.tabText, activeTab === 'songs' && styles.tabTextActive]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
+            Songs
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.tab, activeTab === 'verses' && styles.tabActive]} onPress={() => setActiveTab('verses')}>
-          <Text style={[styles.tabText, activeTab === 'verses' && styles.tabTextActive]}>Verses</Text>
+          <Text 
+            style={[styles.tabText, activeTab === 'verses' && styles.tabTextActive]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
+            Verses
+          </Text>
         </TouchableOpacity>
       </View>
 
