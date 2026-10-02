@@ -40,8 +40,9 @@ export const pushMeetingLive = onDocumentCreated('churches/{churchId}/online_mee
     }
 });
 /**
- * 🙏 NOTIFY ADMIN OF PUBLIC PRAYER REQUEST
- * Triggered when a new prayer request is created.
+ * 🙏 MANDATORY NOTIFICATION: ADMIN NOTIFIED OF EVERY PRAYER REQUEST
+ * Triggered automatically whenever a member submits a prayer request in Firestore.
+ * Always notifies church admins (public or private), clearly showing which specific member submitted it.
  */
 export const pushPrayerRequestAdmin = onDocumentCreated('churches/{churchId}/prayerRequests/{prayerId}', async (event) => {
     const snap = event.data;
@@ -49,22 +50,138 @@ export const pushPrayerRequestAdmin = onDocumentCreated('churches/{churchId}/pra
         return;
     const prayer = snap.data();
     const churchId = event.params.churchId;
-    if (prayer.isPublic === true) {
-        const payload = {
-            notification: {
-                title: `🙏 Pending Prayer Request`,
-                body: `${prayer.name || 'A member'} has requested community prayer. Please review and approve.`,
-            },
-            data: { type: 'prayer_request_admin', churchId: churchId },
-            // Send to admin topic (Assuming church_{id}_admin exists, else we can fall back to general church alerts or specific admin tokens, but for now we'll target church_{id}_admin)
-            topic: `church_${churchId}_admin`,
-        };
+    const prayerId = event.params.prayerId;
+    const db = getFirestore();
+    const messaging = getMessaging();
+    // 1. Identify the specific submitting member's name
+    let memberName = (prayer.name || prayer.memberName || prayer.authorName || '').trim();
+    if (!memberName || memberName.toLowerCase() === 'faithful member' || memberName.toLowerCase() === 'church member') {
+        const memberId = prayer.uid || prayer.authorId || prayer.contactId;
+        if (memberId) {
+            try {
+                const mSnap = await db.collection('churches').doc(churchId).collection('members').doc(memberId).get();
+                if (mSnap.exists && mSnap.data()?.name) {
+                    memberName = mSnap.data().name;
+                }
+                else {
+                    const uSnap = await db.collection('users').doc(memberId).get();
+                    if (uSnap.exists && (uSnap.data()?.name || uSnap.data()?.displayName)) {
+                        memberName = uSnap.data().name || uSnap.data().displayName;
+                    }
+                }
+            }
+            catch (err) {
+                console.warn('Could not resolve member name from Firestore:', err);
+            }
+        }
+    }
+    if (!memberName) {
+        memberName = 'A Church Member';
+    }
+    // 2. Extract request excerpt
+    const rawText = (prayer.request || prayer.text || prayer.requestEn || '').trim();
+    const excerpt = rawText.length > 80 ? `${rawText.substring(0, 80)}...` : rawText;
+    // 3. Formulate clear notification title and body identifying member and request
+    const title = `🙏 New Prayer Request: ${memberName}`;
+    const body = excerpt
+        ? `${memberName} submitted a prayer request: "${excerpt}"`
+        : `${memberName} has submitted a new prayer request. Please review in the Admin Dashboard.`;
+    // 4. Query all admins for this church to collect direct device tokens
+    const adminTokens = [];
+    const adminUids = [];
+    try {
+        const membersSnap = await db.collection('churches').doc(churchId).collection('members').get();
+        membersSnap.forEach(doc => {
+            const m = doc.data();
+            const role = String(m.userType || '').toLowerCase();
+            const isAdmin = role.includes('admin') || role.includes('pastor') || role.includes('super');
+            if (isAdmin) {
+                adminUids.push(doc.id);
+                if (m.fcmToken && typeof m.fcmToken === 'string' && m.fcmToken.trim().length > 10) {
+                    adminTokens.push(m.fcmToken.trim());
+                }
+            }
+        });
+        // Also check church doc for direct admin/pastor UIDs
+        const churchDoc = await db.collection('churches').doc(churchId).get();
+        if (churchDoc.exists) {
+            const cData = churchDoc.data();
+            const ownerUids = [cData?.adminUid, cData?.createdBy, cData?.pastorUid].filter(Boolean);
+            for (const uid of ownerUids) {
+                if (!adminUids.includes(uid)) {
+                    adminUids.push(uid);
+                }
+            }
+        }
+        // Check users collection for any admin tokens not captured
+        for (const uid of adminUids) {
+            try {
+                const uSnap = await db.collection('users').doc(uid).get();
+                const uData = uSnap.data();
+                if (uData?.fcmToken && typeof uData.fcmToken === 'string' && uData.fcmToken.trim().length > 10) {
+                    const t = uData.fcmToken.trim();
+                    if (!adminTokens.includes(t)) {
+                        adminTokens.push(t);
+                    }
+                }
+            }
+            catch (e) { }
+        }
+    }
+    catch (lookupErr) {
+        console.error('Error fetching admin tokens for prayer request notification:', lookupErr);
+    }
+    const notificationData = {
+        type: 'prayer_request_admin',
+        churchId: churchId,
+        prayerId: prayerId,
+        memberName: memberName,
+        click_action: 'FLUTTER_NOTIFICATION_CLICK',
+    };
+    // 5. Direct multicast push to admin devices
+    const uniqueTokens = Array.from(new Set(adminTokens));
+    if (uniqueTokens.length > 0) {
         try {
-            await getMessaging().send(payload);
+            const sendRes = await messaging.sendEachForMulticast({
+                notification: { title, body },
+                data: notificationData,
+                tokens: uniqueTokens,
+            });
+            console.log(`✅ Sent prayer request notification to ${sendRes.successCount} admin devices (${sendRes.failureCount} failed).`);
         }
-        catch (error) {
-            console.error('Error sending prayer admin notification:', error);
+        catch (pushErr) {
+            console.error('Error sending multicast prayer admin notification:', pushErr);
         }
+    }
+    // 6. Broadcast to church admin topic church_{churchId}_admin
+    try {
+        await messaging.send({
+            notification: { title, body },
+            data: notificationData,
+            topic: `church_${churchId}_admin`,
+        });
+        console.log(`✅ Broadcasted prayer request notification to topic: church_${churchId}_admin`);
+    }
+    catch (topicErr) {
+        console.error('Error sending to church admin topic:', topicErr);
+    }
+    // 7. Write in-app notification record to churches/{churchId}/notifications
+    try {
+        await db.collection('churches').doc(churchId).collection('notifications').add({
+            type: 'prayer_request_admin',
+            title,
+            body,
+            memberName: memberName,
+            prayerId: prayerId,
+            requestExcerpt: excerpt,
+            category: prayer.category || '',
+            isPublic: prayer.isPublic ?? false,
+            read: false,
+            createdAt: FieldValue.serverTimestamp(),
+        });
+    }
+    catch (dbErr) {
+        console.error('Error writing in-app notification document:', dbErr);
     }
 });
 /**

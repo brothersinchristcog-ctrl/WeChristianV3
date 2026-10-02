@@ -8,8 +8,9 @@ export declare const pushMeetingLive: import("firebase-functions/core").CloudFun
     meetingId: string;
 }>>;
 /**
- * 🙏 NOTIFY ADMIN OF PUBLIC PRAYER REQUEST
- * Triggered when a new prayer request is created.
+ * 🙏 MANDATORY NOTIFICATION: ADMIN NOTIFIED OF EVERY PRAYER REQUEST
+ * Triggered automatically whenever a member submits a prayer request in Firestore.
+ * Always notifies church admins (public or private), clearly showing which specific member submitted it.
  */
 export declare const pushPrayerRequestAdmin: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
     churchId: string;

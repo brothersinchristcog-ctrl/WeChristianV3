@@ -141,6 +141,14 @@ class NotificationService {
         case 'new_church':
           nav.navigate('AdminRoot', { targetTab: 'App Admin' });
           break;
+        case 'prayer_request_admin':
+        case 'prayer_request':
+        case 'prayer':
+          nav.navigate('AdminRoot', { targetTab: 'Prayers' });
+          break;
+        case 'prayer_request_public':
+          nav.navigate('PrayerWall', { tab: 'public_requests' });
+          break;
         default:
           if (id) {
             nav.navigate('Updates', { highlightId: id, highlightType: type });
@@ -191,6 +199,36 @@ class NotificationService {
       console.log(`🔌 Unsubscribed from FCM topic: ${topicName}`);
     } catch (error) {
       console.error(`❌ Failed to unsubscribe from topic church_${churchId}:`, error);
+    }
+  }
+
+  // Subscribe Admin users to church admin alerts (e.g. Prayer Requests, Mod Alerts)
+  async subscribeToChurchAdminTopic(churchId: string) {
+    if (!churchId) return;
+    try {
+      const authStatus = await messaging().hasPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      if (!enabled) return;
+
+      const topicName = `church_${churchId}_admin`;
+      await messaging().subscribeToTopic(topicName);
+      console.log(`📡 Subscribed to FCM admin topic: ${topicName}`);
+    } catch (error) {
+      console.error(`❌ Failed to subscribe to topic church_${churchId}_admin:`, error);
+    }
+  }
+
+  // Unsubscribe Admin from church admin alerts (on logout or church switch)
+  async unsubscribeFromChurchAdminTopic(churchId: string) {
+    if (!churchId) return;
+    try {
+      const topicName = `church_${churchId}_admin`;
+      await messaging().unsubscribeFromTopic(topicName);
+      console.log(`🔌 Unsubscribed from FCM admin topic: ${topicName}`);
+    } catch (error) {
+      console.error(`❌ Failed to unsubscribe from topic church_${churchId}_admin:`, error);
     }
   }
 

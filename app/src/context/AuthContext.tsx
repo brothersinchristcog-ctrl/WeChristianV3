@@ -202,6 +202,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   setMember(combinedMember);
                   AsyncStorage.setItem('@cached_member', JSON.stringify(combinedMember));
 
+                  // Subscribe Admin users to church admin notification topic (e.g. Prayer Requests)
+                  const isAdminUser = String(combinedMember?.userType || '').toUpperCase().includes('ADMIN') ||
+                                      String(combinedMember?.userType || '').toUpperCase().includes('PASTOR') ||
+                                      String(combinedMember?.userType || '').toUpperCase().includes('SUPER');
+                  if (isAdminUser && globalUser.primaryChurchId) {
+                    require('../services/NotificationService').default.subscribeToChurchAdminTopic(globalUser.primaryChurchId);
+                  }
+
                   // 📡 Real-time listener on this member's church profile 📡
                   // Cancels any previous listener first.
                   if (memberListenerRef.current) memberListenerRef.current();
@@ -225,6 +233,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
                           const next = { ...prev, ...updated, id: globalUser.uid, churchId: globalUser.primaryChurchId } as AppMember;
                           AsyncStorage.setItem('@cached_member', JSON.stringify(next));
+
+                          const nextIsAdminUser = String(next?.userType || '').toUpperCase().includes('ADMIN') ||
+                                                  String(next?.userType || '').toUpperCase().includes('PASTOR') ||
+                                                  String(next?.userType || '').toUpperCase().includes('SUPER');
+                          if (nextIsAdminUser && globalUser.primaryChurchId) {
+                            require('../services/NotificationService').default.subscribeToChurchAdminTopic(globalUser.primaryChurchId);
+                          }
+
                           return next;
                         });
                         console.log('✅ [Auth] Member profile updated in real-time:', updated.userType);
@@ -279,6 +295,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const notifSvc = require('../services/NotificationService').default;
           notifSvc.unsubscribeFromSuperAdminTopic().catch(() => {});
+          if (member?.churchId) {
+            notifSvc.unsubscribeFromChurchAdminTopic(member.churchId).catch(() => {});
+          }
         } catch (_) {}
         AsyncStorage.removeItem('@cached_member');
       }

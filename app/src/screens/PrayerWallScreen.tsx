@@ -154,7 +154,7 @@ const PrayerForm = ({
 };
 
 export default function PrayerWallScreen({ navigation, route }: any) {
-  const { user } = useAuth();
+  const { user, member: authMember } = useAuth();
   const { isDark, toggleTheme, colors } = useTheme();
   const { t } = useLanguage();
   const [member, setMember] = useState<AppMember | null>(null);
@@ -241,17 +241,23 @@ export default function PrayerWallScreen({ navigation, route }: any) {
       return;
     }
 
+    const submitterName = (member?.name || authMember?.name || user?.displayName || '').trim() || 'Church Member';
+    const submitterPhone = user?.phoneNumber || member?.phone || authMember?.phone || '';
+    const submitterId = member?.id || authMember?.id || user?.uid || null;
+
     setIsSubmitting(true);
     try {
       await FirestoreService.submitPrayerRequest({
-        name: member?.name || user?.displayName || 'Faithful Member',
-        phone: user?.phoneNumber || '',
-        contactId: member?.id || null,
+        name: submitterName,
+        memberName: submitterName,
+        authorName: submitterName,
+        phone: submitterPhone,
+        contactId: submitterId,
         request: prayerInput,
         category: category,
         isAnonymous: false,
-        uid: user?.uid || null,
-        type: 'public',
+        uid: user?.uid || submitterId,
+        type: isPublic ? 'public' : 'private',
         isPublic: isPublic
       });
       

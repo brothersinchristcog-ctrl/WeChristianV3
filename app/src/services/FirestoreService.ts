@@ -1690,10 +1690,14 @@ class FirestoreService {
       const col = await this.getCollection('prayerRequests');
       const textVal = data.text || data.request || data.requestEn || '';
       const textTeVal = data.textTe || data.requestTe || '';
-      const authorIdVal = data.authorId || data.contactId || null;
+      const authorIdVal = data.authorId || data.contactId || data.uid || null;
+      const memberNameVal = data.name || data.memberName || data.authorName || 'Church Member';
       
-      await col.add({
+      const docRef = await col.add({
         ...data,
+        name: memberNameVal,
+        memberName: memberNameVal,
+        authorName: memberNameVal,
         text: textVal,
         request: textVal,
         requestEn: textVal,
@@ -1701,11 +1705,33 @@ class FirestoreService {
         requestTe: textTeVal,
         authorId: authorIdVal,
         contactId: authorIdVal,
+        uid: data.uid || authorIdVal,
         isPublic: data.isPublic ?? false,
         isAnswered: data.isAnswered ?? false,
         prayCount: data.prayCount ?? 0,
         createdAt: FieldValue.serverTimestamp()
       });
+
+      // Write direct notification to churches/{churchId}/notifications to guarantee Admin notification visibility
+      try {
+        const notifCol = await this.getCollection('notifications');
+        const excerpt = textVal.length > 80 ? `${textVal.substring(0, 80)}...` : textVal;
+        await notifCol.add({
+          type: 'prayer_request_admin',
+          title: `🙏 New Prayer Request: ${memberNameVal}`,
+          body: excerpt ? `${memberNameVal} submitted a prayer request: "${excerpt}"` : `${memberNameVal} submitted a new prayer request.`,
+          memberName: memberNameVal,
+          prayerId: docRef.id,
+          requestExcerpt: excerpt,
+          category: data.category || '',
+          isPublic: data.isPublic ?? false,
+          read: false,
+          createdAt: FieldValue.serverTimestamp()
+        });
+      } catch (notifErr) {
+        console.warn('⚠️ Could not write admin notification doc directly:', notifErr);
+      }
+
       return true;
     } catch (error) {
       throw error;
