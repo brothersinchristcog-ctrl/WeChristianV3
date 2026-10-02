@@ -23,6 +23,7 @@ import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronLeft,
   Calendar,
@@ -50,6 +51,7 @@ import {
   AlertCircle,
   Sparkles,
   PieChart,
+  Trash2,
 } from 'lucide-react-native';
 
 import AttendanceService, { AttendanceRecord } from '../../services/AttendanceService';
@@ -106,6 +108,7 @@ type TimelineFilter = 'All' | 'Upcoming' | 'Past';
 type MemberReportFilter = 'Absent' | 'Present' | 'Guests' | 'All';
 
 export default function AdminAttendance() {
+  const insets = useSafeAreaInsets();
   const { setActiveTab } = useContext(AdminTabContext);
   const { activeChurch } = useChurch();
 
@@ -134,9 +137,61 @@ export default function AdminAttendance() {
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>('All');
   const [searchEventQuery, setSearchEventQuery] = useState('');
 
-  // Official Church QR Code Modal
-  const [showQRModal, setShowQRModal] = useState(false);
+  // Unified QR Code Modal (Supports Church permanent QR and Event-specific QR)
+  interface QRModalState {
+    visible: boolean;
+    type: 'church' | 'event';
+    event?: EventItemWithStats;
+  }
+  const [qrModalState, setQrModalState] = useState<QRModalState>({
+    visible: false,
+    type: 'church',
+  });
   const qrRef = useRef<any>(null);
+
+  const openChurchQRModal = () => {
+    setQrModalState({
+      visible: true,
+      type: 'church',
+    });
+  };
+
+  const openEventQRModal = (event: EventItemWithStats) => {
+    setQrModalState({
+      visible: true,
+      type: 'event',
+      event,
+    });
+  };
+
+  const closeQRModal = () => {
+    setQrModalState(prev => ({ ...prev, visible: false }));
+  };
+
+  // Delete Event States
+  const [eventToDelete, setEventToDelete] = useState<EventItemWithStats | null>(null);
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+  const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+
+  const confirmDeleteEvent = async (deleteMode?: 'single' | 'future') => {
+    if (!eventToDelete?.id) return;
+    try {
+      setIsDeletingEvent(true);
+      await FirestoreService.deleteEvent(eventToDelete.id, deleteMode);
+      setEventsList(prev => prev.filter(e => e.id !== eventToDelete.id));
+      if (selectedEvent?.id === eventToDelete.id) {
+        setSelectedEvent(null);
+      }
+      setEventToDelete(null);
+      setShowDeleteSuccess(true);
+      setTimeout(() => setShowDeleteSuccess(false), 2500);
+    } catch (err: any) {
+      Alert.alert('Delete Failed', err?.message || 'Could not delete event.');
+      setEventToDelete(null);
+    } finally {
+      setIsDeletingEvent(false);
+    }
+  };
 
   // ─── Initial Load ────────────────────────────────────────────────────────
   useEffect(() => {
@@ -539,7 +594,7 @@ export default function AdminAttendance() {
     });
   };
 
-  // ─── Church QR Code Save & Share ──────────────────────────────────────────
+  // ─── QR Code Save & Share (Supports Church and Event QR) ─────────────────
   const handleSaveQR = async () => {
     if (qrRef.current) {
       qrRef.current.toDataURL(async (data: string) => {
@@ -550,7 +605,11 @@ export default function AdminAttendance() {
             return;
           }
 
-          const filename = `church-${(churchCode || 'attendance').toLowerCase()}-qr.png`;
+          const isEvent = qrModalState.type === 'event' && qrModalState.event;
+          const cleanName = isEvent
+            ? (qrModalState.event!.title || 'event').toLowerCase().replace(/[^a-z0-9]/g, '-')
+            : (churchCode || 'church').toLowerCase();
+          const filename = `${cleanName}-attendance-qr.png`;
           const filepath = FileSystem.documentDirectory + filename;
           await FileSystem.writeAsStringAsync(filepath, data, {
             encoding: FileSystem.EncodingType.Base64,
@@ -558,10 +617,14 @@ export default function AdminAttendance() {
 
           await MediaLibrary.saveToLibraryAsync(filepath);
 
+          const successMsg = isEvent
+            ? `QR Code for "${qrModalState.event!.title}" saved to gallery!`
+            : 'Church QR Code saved to gallery!';
+
           if (Platform.OS === 'android') {
-            ToastAndroid.show('Church QR Code saved to gallery', ToastAndroid.SHORT);
+            ToastAndroid.show(successMsg, ToastAndroid.SHORT);
           } else {
-            Alert.alert('Saved', 'Church QR Code saved to gallery successfully.');
+            Alert.alert('Saved', successMsg);
           }
         } catch {
           Alert.alert('Error', 'Failed to save QR Code.');
@@ -574,16 +637,23 @@ export default function AdminAttendance() {
     if (qrRef.current) {
       qrRef.current.toDataURL(async (data: string) => {
         try {
-          const filename = `church-${(churchCode || 'attendance').toLowerCase()}-qr.png`;
+          const isEvent = qrModalState.type === 'event' && qrModalState.event;
+          const cleanName = isEvent
+            ? (qrModalState.event!.title || 'event').toLowerCase().replace(/[^a-z0-9]/g, '-')
+            : (churchCode || 'church').toLowerCase();
+          const filename = `${cleanName}-attendance-qr.png`;
           const filepath = FileSystem.documentDirectory + filename;
           await FileSystem.writeAsStringAsync(filepath, data, {
             encoding: FileSystem.EncodingType.Base64,
           });
 
           if (await Sharing.isAvailableAsync()) {
+            const shareTitle = isEvent
+              ? `${qrModalState.event!.title} - Attendance QR Code`
+              : `${churchName} Attendance QR Code`;
             await Sharing.shareAsync(filepath, {
               mimeType: 'image/png',
-              dialogTitle: `${churchName} Attendance QR Code`,
+              dialogTitle: shareTitle,
             });
           }
         } catch {
@@ -591,6 +661,144 @@ export default function AdminAttendance() {
         }
       });
     }
+  };
+
+  // ─── Render Unified QR Modal ──────────────────────────────────────────────
+  const renderQRModal = () => {
+    const isEvent = qrModalState.type === 'event' && qrModalState.event;
+    const qrValue = isEvent
+      ? AttendanceService.generateAttendanceQRPayload(churchId, churchName, churchCode, qrModalState.event!.id, qrModalState.event!.title)
+      : AttendanceService.generateAttendanceQRPayload(churchId, churchName, churchCode);
+
+    return (
+      <Modal visible={qrModalState.visible} transparent animationType="fade" onRequestClose={closeQRModal}>
+        <View style={styles.qrModalOverlay}>
+          <View style={styles.qrModalCard}>
+            <View style={styles.qrModalHeader}>
+              <View style={{ flex: 1 }}>
+                <View style={[styles.qrTypeBadge, isEvent && styles.qrTypeBadgeEvent]}>
+                  <Text style={[styles.qrTypeBadgeTxt, isEvent && styles.qrTypeBadgeTxtEvent]}>
+                    {isEvent ? '📅 Event Attendance QR' : '🏛️ Church Permanent QR'}
+                  </Text>
+                </View>
+                <Text style={styles.qrModalTitle} numberOfLines={1}>
+                  {isEvent ? qrModalState.event!.title : churchName}
+                </Text>
+                <Text style={styles.qrModalSub} numberOfLines={1}>
+                  {isEvent 
+                    ? `${qrModalState.event!.dateStr} · ${qrModalState.event!.timeStr}`
+                    : `Permanent Church Code: ${churchCode || 'Active'}`}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={closeQRModal} style={styles.qrModalCloseBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.qrWrapper}>
+              <QRCode
+                value={qrValue}
+                size={210}
+                getRef={(ref: any) => {
+                  qrRef.current = ref;
+                }}
+              />
+            </View>
+
+            <Text style={styles.qrHintTxt}>
+              {isEvent
+                ? `Members can scan this QR code to mark attendance directly for "${qrModalState.event!.title}".`
+                : `Permanent church QR code. Members can scan this code to check in to any service at ${churchName}.`}
+            </Text>
+
+            <View style={styles.qrActionButtons}>
+              <TouchableOpacity style={styles.qrSaveBtn} onPress={handleSaveQR}>
+                <Download size={16} color="#1A2D5A" />
+                <Text style={styles.qrSaveBtnTxt}>Save to Gallery</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.qrShareBtn} onPress={handleShareQR}>
+                <Share2 size={16} color="#FFFFFF" />
+                <Text style={styles.qrShareBtnTxt}>Share</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  // ─── Render Delete Confirmation Modal ──────────────────────────────────────
+  const renderDeleteModal = () => {
+    if (!eventToDelete) return null;
+
+    const isRecurring = !!(eventToDelete as any).recurringGroupId;
+
+    return (
+      <Modal transparent animationType="fade" visible onRequestClose={() => setEventToDelete(null)}>
+        <View style={styles.deleteModalOverlay}>
+          <View style={styles.deleteModalCard}>
+            <View style={styles.deleteIconOuter}>
+              <View style={styles.deleteIconInner}>
+                <Trash2 size={26} color="#FFFFFF" />
+              </View>
+            </View>
+            <Text style={styles.deleteModalTitle}>Delete Event?</Text>
+            <Text style={styles.deleteModalDesc}>
+              {isRecurring
+                ? 'You are deleting a recurring event. Do you want to delete only this specific occurrence, or this and all future occurrences?'
+                : `Are you sure you want to delete "${eventToDelete.title}"? This action cannot be undone.`}
+            </Text>
+            {isRecurring ? (
+              <View style={{ gap: 10, width: '100%' }}>
+                <TouchableOpacity 
+                  style={[styles.deleteConfirmBtn, { backgroundColor: '#DC2626' }]} 
+                  onPress={() => confirmDeleteEvent('single')}
+                  disabled={isDeletingEvent}
+                >
+                  {isDeletingEvent ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.deleteConfirmBtnTxt}>Only this event</Text>
+                  )}
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.deleteConfirmBtn, { backgroundColor: '#DC2626' }]} 
+                  onPress={() => confirmDeleteEvent('future')}
+                  disabled={isDeletingEvent}
+                >
+                  <Text style={styles.deleteConfirmBtnTxt}>This and future events</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.deleteCancelBtn} onPress={() => setEventToDelete(null)}>
+                  <Text style={styles.deleteCancelBtnTxt}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.deleteButtonsRow}>
+                <TouchableOpacity 
+                  style={styles.deleteCancelBtn} 
+                  onPress={() => setEventToDelete(null)}
+                  disabled={isDeletingEvent}
+                >
+                  <Text style={styles.deleteCancelBtnTxt}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.deleteConfirmBtn} 
+                  onPress={() => confirmDeleteEvent('single')}
+                  disabled={isDeletingEvent}
+                >
+                  {isDeletingEvent ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.deleteConfirmBtnTxt}>Delete</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+    );
   };
 
   // ─── SVG Donut Chart Renderer ─────────────────────────────────────────────
@@ -758,42 +966,33 @@ export default function AdminAttendance() {
       <View style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#1A2D5A" />
 
-        {/* Top Header */}
-        <LinearGradient colors={['#1A2D5A', '#253B73']} style={styles.headerGradient}>
-          <View style={styles.reportNavRow}>
-            <TouchableOpacity
-              style={styles.backBtn}
-              onPress={() => setSelectedEvent(null)}
-              activeOpacity={0.8}
-            >
-              <ArrowLeft size={18} color="#FFFFFF" />
-              <Text style={styles.backBtnTxt}>All Events</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.refreshIconBtn}
-              onPress={handleRefreshSelectedEvent}
-              activeOpacity={0.7}
-            >
-              <RefreshCw size={16} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-
-          <Text style={styles.reportEventTitle} numberOfLines={2}>
-            {selectedEvent.title}
-          </Text>
-
-          <View style={styles.reportMetaRow}>
-            <View style={styles.reportMetaItem}>
-              <Calendar size={13} color="#FCD34D" style={{ marginRight: 5 }} />
-              <Text style={styles.reportMetaTxt}>{selectedEvent.dateStr}</Text>
+        {/* ── Hero Header (Consistent with AdminTabs like AdminEventList, AdminMembers) ── */}
+        <View style={[styles.hero, { paddingTop: Math.max(insets.top, 12) }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1, marginRight: 8 }}>
+              <TouchableOpacity onPress={() => setSelectedEvent(null)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+              </TouchableOpacity>
+              <Text style={[styles.heroTitle, { marginHorizontal: 10, opacity: 0.4 }]}>|</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.heroTitle} numberOfLines={1}>{selectedEvent.title}</Text>
+                <Text style={[styles.heroSub, { marginTop: 2 }]} numberOfLines={1}>
+                  {selectedEvent.dateStr} · {selectedEvent.timeStr}
+                </Text>
+              </View>
             </View>
-            <View style={styles.reportMetaItem}>
-              <Clock size={13} color="#FCD34D" style={{ marginRight: 5 }} />
-              <Text style={styles.reportMetaTxt}>{selectedEvent.timeStr}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity style={styles.newBtn} onPress={() => openEventQRModal(selectedEvent)}>
+                <QrCode size={16} color="#1a2d5a" />
+                <Text style={styles.newBtnTxt}>Event QR</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.heroRefreshBtn} onPress={handleRefreshSelectedEvent}>
+                <RefreshCw size={15} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView
           style={styles.scrollArea}
@@ -1034,6 +1233,8 @@ export default function AdminAttendance() {
 
           <View style={{ height: 40 }} />
         </ScrollView>
+
+        {renderQRModal()}
       </View>
     );
   }
@@ -1045,76 +1246,26 @@ export default function AdminAttendance() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1A2D5A" />
 
-      {/* ── Hero Header ── */}
-      <LinearGradient colors={['#1A2D5A', '#253B73']} style={styles.heroGradient}>
-        <View style={styles.heroHeaderRow}>
-          <TouchableOpacity
-            onPress={() => setActiveTab(0)}
-            style={styles.heroBackBtn}
-            activeOpacity={0.8}
-          >
-            <ChevronLeft size={20} color="#FFFFFF" />
-            <Text style={styles.heroBackTxt}>Dashboard</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.heroQrBtn}
-            onPress={() => setShowQRModal(true)}
-            activeOpacity={0.85}
-          >
-            <QrCode size={15} color="#1A2D5A" />
-            <Text style={styles.heroQrBtnTxt}>Church QR</Text>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.heroMainTitle}>Attendance Reports</Text>
-        <Text style={styles.heroSubTitle}>
-          Event-wise statistics, charts & absentee pastoral follow-up
-        </Text>
-      </LinearGradient>
-
-      {/* ── Church QR Code Modal ── */}
-      <Modal visible={showQRModal} transparent animationType="fade">
-        <View style={styles.qrModalOverlay}>
-          <View style={styles.qrModalCard}>
-            <View style={styles.qrModalHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.qrModalTitle}>{churchName}</Text>
-                <Text style={styles.qrModalSub}>Official Attendance QR Code</Text>
-              </View>
-              <TouchableOpacity onPress={() => setShowQRModal(false)} style={styles.qrModalCloseBtn}>
-                <X size={20} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.qrWrapper}>
-              <QRCode
-                value={AttendanceService.generateAttendanceQRPayload(churchId, churchName, churchCode)}
-                size={210}
-                getRef={(ref: any) => {
-                  qrRef.current = ref;
-                }}
-              />
-            </View>
-
-            <Text style={styles.qrHintTxt}>
-              Members can scan this QR code with the WeChristian app to check in.
-            </Text>
-
-            <View style={styles.qrActionButtons}>
-              <TouchableOpacity style={styles.qrSaveBtn} onPress={handleSaveQR}>
-                <Download size={16} color="#1A2D5A" />
-                <Text style={styles.qrSaveBtnTxt}>Save to Gallery</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity style={styles.qrShareBtn} onPress={handleShareQR}>
-                <Share2 size={16} color="#FFFFFF" />
-                <Text style={styles.qrShareBtnTxt}>Share</Text>
-              </TouchableOpacity>
+      {/* ── Hero Header (Consistent with AdminTabs like AdminEventList, AdminMembers) ── */}
+      <View style={[styles.hero, { paddingTop: Math.max(insets.top, 12) }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View>
+              <Text style={styles.heroTitle}>Attendance</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]}>{eventsList.length} total · Reports & Stats</Text>
             </View>
           </View>
+          <TouchableOpacity style={styles.newBtn} onPress={openChurchQRModal}>
+            <QrCode size={16} color="#1a2d5a" />
+            <Text style={styles.newBtnTxt}>Church QR</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </View>
 
       {/* ── Main Content ── */}
       <ScrollView
@@ -1153,7 +1304,7 @@ export default function AdminAttendance() {
           />
           {searchEventQuery.length > 0 && (
             <TouchableOpacity onPress={() => setSearchEventQuery('')}>
-              <X size={15} color="#94A3B8" />
+              <X size={16} color="#94A3B8" />
             </TouchableOpacity>
           )}
         </View>
@@ -1180,13 +1331,11 @@ export default function AdminAttendance() {
               const isToday = event.status === 'Today';
 
               return (
-                <TouchableOpacity
+                <View
                   key={event.id}
                   style={[styles.eventReportCard, isToday && styles.eventReportCardToday]}
-                  onPress={() => handleSelectEvent(event)}
-                  activeOpacity={0.85}
                 >
-                  {/* Top Badge & Date */}
+                  {/* Top Badge & Date & Delete */}
                   <View style={styles.eventCardTop}>
                     <View style={[
                       styles.statusPill,
@@ -1200,7 +1349,16 @@ export default function AdminAttendance() {
                       </Text>
                     </View>
 
-                    <Text style={styles.eventCardDate}>{event.dateStr}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <Text style={styles.eventCardDate}>{event.dateStr}</Text>
+                      <TouchableOpacity
+                        style={styles.cardDeleteBtn}
+                        onPress={() => setEventToDelete(event)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Trash2 size={16} color="#DC2626" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   {/* Title & Time */}
@@ -1228,12 +1386,27 @@ export default function AdminAttendance() {
                     </View>
                   </View>
 
-                  {/* View Report Link */}
-                  <View style={styles.viewReportAction}>
-                    <Text style={styles.viewReportActionTxt}>View Report & Charts</Text>
-                    <ChevronLeft size={16} color={COLORS.ink} style={{ transform: [{ rotate: '180deg' }] }} />
+                  {/* Bottom Action Row: View Report & Event QR */}
+                  <View style={styles.eventCardActionsRow}>
+                    <TouchableOpacity
+                      style={styles.cardQrBtn}
+                      onPress={() => openEventQRModal(event)}
+                      activeOpacity={0.8}
+                    >
+                      <QrCode size={14} color="#1A2D5A" style={{ marginRight: 5 }} />
+                      <Text style={styles.cardQrBtnTxt}>Event QR</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.cardReportBtn}
+                      onPress={() => handleSelectEvent(event)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.cardReportBtnTxt}>View Report & Charts</Text>
+                      <ChevronLeft size={15} color="#FFFFFF" style={{ transform: [{ rotate: '180deg' }], marginLeft: 4 }} />
+                    </TouchableOpacity>
                   </View>
-                </TouchableOpacity>
+                </View>
               );
             })}
           </View>
@@ -1241,6 +1414,24 @@ export default function AdminAttendance() {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {renderQRModal()}
+      {renderDeleteModal()}
+
+      {/* Delete Success Toast Modal */}
+      {showDeleteSuccess && (
+        <View style={styles.deleteToastOverlay}>
+          <View style={styles.deleteToastCard}>
+            <View style={styles.deleteToastIcon}>
+              <Trash2 size={20} color="#DC2626" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.deleteToastTitle}>Event Deleted</Text>
+              <Text style={styles.deleteToastSub}>The event has been permanently removed.</Text>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -1270,114 +1461,257 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
 
-  // ── Hero Header ──
-  heroGradient: {
-    paddingHorizontal: 18,
-    paddingTop: Platform.OS === 'ios' ? 44 : 20,
-    paddingBottom: 22,
+  // ── Hero Header (Consistent with AdminTabs like AdminEventList, AdminMembers) ──
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 24,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6,
   },
-  heroHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  heroBackBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  heroBackTxt: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  heroQrBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FCD34D',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-  },
-  heroQrBtnTxt: {
-    color: '#1A2D5A',
-    fontSize: 12.5,
-    fontWeight: '800',
-  },
-  heroMainTitle: {
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center' },
+  heroTitle: {
+    color: '#fff',
     fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    letterSpacing: -0.3,
+    fontWeight: '600',
+    letterSpacing: -0.5,
   },
-  heroSubTitle: {
+  heroSub: {
+    color: '#AEB8D4',
     fontSize: 13,
-    color: 'rgba(255, 255, 255, 0.85)',
-    marginTop: 4,
   },
-
-  // ── Report Detail Header ──
-  headerGradient: {
-    paddingHorizontal: 18,
-    paddingTop: Platform.OS === 'ios' ? 44 : 20,
-    paddingBottom: 20,
-  },
-  reportNavRow: {
+  newBtn: { 
+    backgroundColor: '#C9A84C', 
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
+    gap: 5,
+    paddingHorizontal: 14, 
+    paddingVertical: 9, 
+    borderRadius: 12,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 18,
-  },
-  backBtnTxt: {
-    color: '#FFFFFF',
+  newBtnTxt: {
+    color: '#1a2d5a',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
-  refreshIconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  heroRefreshBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  reportEventTitle: {
-    fontSize: 22,
-    fontWeight: '800',
+
+  // ── Event Card Actions (Event QR, View Report, Delete) ──
+  cardDeleteBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  eventCardActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.borderLight,
+  },
+  cardQrBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  cardQrBtnTxt: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#1A2D5A',
+  },
+  cardReportBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A2D5A',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+  },
+  cardReportBtnTxt: {
+    fontSize: 12.5,
+    fontWeight: '700',
     color: '#FFFFFF',
+  },
+
+  // ── Unified QR Modal Badges ──
+  qrTypeBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    marginBottom: 6,
+  },
+  qrTypeBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  qrTypeBadgeEvent: {
+    backgroundColor: '#FAF5FF',
+    borderColor: '#E9D5FF',
+  },
+  qrTypeBadgeTxtEvent: {
+    color: '#7E22CE',
+  },
+
+  // ── Delete Confirmation Modal ──
+  deleteModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  deleteModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+  deleteIconOuter: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  deleteIconInner: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#DC2626',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 8,
+    textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
-  reportMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 16,
-    marginTop: 8,
+  deleteModalDesc: {
+    fontSize: 13.5,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 19,
   },
-  reportMetaItem: {
+  deleteButtonsRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    gap: 10,
+    width: '100%',
   },
-  reportMetaTxt: {
-    color: '#FCD34D',
-    fontSize: 12.5,
+  deleteCancelBtn: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+  },
+  deleteCancelBtnTxt: {
+    color: '#64748B',
+    fontSize: 14,
     fontWeight: '600',
+  },
+  deleteConfirmBtn: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: '#DC2626',
+  },
+  deleteConfirmBtnTxt: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  deleteToastOverlay: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    right: 20,
+    zIndex: 9999,
+    alignItems: 'center',
+  },
+  deleteToastCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 10,
+    elevation: 6,
+    borderLeftWidth: 4,
+    borderLeftColor: '#DC2626',
+  },
+  deleteToastIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteToastTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  deleteToastSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 1,
   },
 
   // ── Filters & Search ──
