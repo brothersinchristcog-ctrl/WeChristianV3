@@ -18,7 +18,8 @@ import {
   RefreshControl,
   Animated,
   Easing,
-  Vibration
+  Vibration,
+  KeyboardAvoidingView
 } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { 
@@ -3208,16 +3209,34 @@ export default function AttendanceScreen({ navigation, route }: any) {
       {/* ────────────────────────────────────────────────────────────────────────
           ATTENDANCE MARKED CONFIRMATION SCREEN (Matches Screenshot 2)
           ──────────────────────────────────────────────────────────────────────── */}
-      <Modal visible={scanResultModal.visible} animationType="slide" statusBarTranslucent onRequestClose={() => setScanResultModal(prev => ({ ...prev, visible: false }))}>
-        <View style={styles.confirmScreenContainer}>
+      <Modal 
+        visible={scanResultModal.visible} 
+        animationType="slide" 
+        statusBarTranslucent 
+        onRequestClose={() => setScanResultModal(prev => ({ ...prev, visible: false }))}
+      >
+        <KeyboardAvoidingView 
+          style={styles.confirmScreenContainer}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" translucent />
 
           <ScrollView 
+            style={styles.confirmScrollView}
             contentContainerStyle={[
               styles.confirmScrollWrap, 
-              { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 28 }
+              { 
+                paddingTop: Math.max(insets.top, 24) + 16, 
+                paddingBottom: Math.max(insets.bottom, 24) + 80,
+                flexGrow: 1,
+              }
             ]}
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled={true}
+            bounces={true}
+            alwaysBounceVertical={true}
+            overScrollMode="always"
           >
             {/* Big Green Circle with Checkmark */}
             <View style={styles.confirmIconCircle}>
@@ -3528,7 +3547,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* ────────────────────────────────────────────────────────────────────────
@@ -5109,9 +5128,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  confirmScrollView: {
+    flex: 1,
+    width: '100%',
+  },
   confirmScrollWrap: {
     alignItems: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
+    flexGrow: 1,
   },
   confirmFamilyCard: {
     backgroundColor: '#FFFFFF',
