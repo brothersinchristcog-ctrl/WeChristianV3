@@ -17,10 +17,11 @@ import {
   Switch
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Save, Palette, Image as ImageIcon, Link, DollarSign, Building2, Plus, Trash2, Plug, Info, Edit2, Clock } from 'lucide-react-native';
+import { ChevronLeft, Save, Palette, Image as ImageIcon, Link, DollarSign, Building2, Plus, Trash2, Plug, Info, Edit2, Clock, MapPin, Navigation } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import ChurchService, { ChurchDetails, ServiceTiming } from '../../services/ChurchService';
+import LocationService from '../../services/LocationService';
 import { useChurch } from '../../context/ChurchContext';
 import { useAuth } from '../../context/AuthContext';
 import { AdminTabContext } from '../../context/AdminTabContext';
@@ -74,10 +75,49 @@ export default function AdminChurchSettings({ navigation }: any) {
     setSecrets(prev => ({ ...prev, [field]: value }));
   };
 
+  const [acquiringLocation, setAcquiringLocation] = useState(false);
+
+  const handleUseCurrentLocation = async () => {
+    setAcquiringLocation(true);
+    try {
+      const loc = await LocationService.getCurrentLocation();
+      if (!loc.success || !loc.coords) {
+        setAlertConfig({
+          visible: true,
+          title: 'Location Error',
+          message: loc.error || 'Failed to get current GPS location.',
+          type: 'error',
+        });
+        return;
+      }
+      setForm(prev => ({
+        ...prev,
+        latitude: Number(loc.coords!.latitude.toFixed(6)),
+        longitude: Number(loc.coords!.longitude.toFixed(6)),
+        attendanceRadiusMeters: 100,
+      }));
+      setAlertConfig({
+        visible: true,
+        title: 'Church Location Set',
+        message: `Registered GPS Coordinates:\nLatitude: ${loc.coords.latitude.toFixed(6)}\nLongitude: ${loc.coords.longitude.toFixed(6)}\n\nAttendance Radius: 100 meters\n\nPlease tap 'Save' at the top right to save these settings.`,
+        type: 'success',
+      });
+    } catch (e: any) {
+      setAlertConfig({
+        visible: true,
+        title: 'Error',
+        message: e?.message || 'Could not fetch device location.',
+        type: 'error',
+      });
+    } finally {
+      setAcquiringLocation(false);
+    }
+  };
+
   const updateField = (section: keyof ChurchDetails, field: string, value: any) => {
     setForm(prev => {
       const newForm = { ...prev };
-      if (section === 'name' || section === 'tagline' || section === 'contactEmail' || section === 'contactPhone' || section === 'address' || section === 'aboutUs') {
+      if (section === 'name' || section === 'tagline' || section === 'contactEmail' || section === 'contactPhone' || section === 'address' || section === 'aboutUs' || section === 'latitude' || section === 'longitude') {
         (newForm as any)[section] = value;
       } else {
         newForm[section] = { ...(newForm[section] as any || {}), [field]: value } as any;
@@ -412,6 +452,62 @@ export default function AdminChurchSettings({ navigation }: any) {
 
               <Text style={styles.label}>Address</Text>
               <TextInput style={[styles.input, styles.textArea, !isEditing && styles.inputDisabled]} multiline numberOfLines={2} value={form.address} onChangeText={v => updateField('address' as any, '', v)} editable={isEditing} />
+
+              {/* ── Church GPS Location & 100m Attendance Geofence ── */}
+              <View style={[styles.sectionHeaderRow, { marginTop: 18, marginBottom: 8 }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                  <MapPin size={17} color={primaryColor} />
+                  <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>Location (100m Radius)</Text>
+                </View>
+                {isEditing && (
+                  <TouchableOpacity
+                    onPress={handleUseCurrentLocation}
+                    disabled={acquiringLocation}
+                    style={[styles.addBtn, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}
+                    activeOpacity={0.75}
+                  >
+                    {acquiringLocation ? (
+                      <ActivityIndicator size="small" color="#16A34A" />
+                    ) : (
+                      <>
+                        <Navigation size={13} color="#16A34A" />
+                        <Text style={[styles.addBtnTxt, { color: '#16A34A' }]}>Use Current Location</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <Text style={styles.geofenceExplainerTxt}>
+                Members can only scan and mark attendance when physically within 100 meters of these registered coordinates.
+              </Text>
+
+              <View style={styles.latLngRow}>
+                <View style={{ flex: 1, marginRight: 8 }}>
+                  <Text style={styles.label}>Latitude</Text>
+                  <TextInput
+                    style={[styles.input, !isEditing && styles.inputDisabled]}
+                    value={form.latitude !== undefined && form.latitude !== null ? String(form.latitude) : ''}
+                    onChangeText={v => updateField('latitude' as any, '', v ? parseFloat(v) : undefined)}
+                    placeholder="e.g. 15.208545"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="numeric"
+                    editable={isEditing}
+                  />
+                </View>
+                <View style={{ flex: 1, marginLeft: 8 }}>
+                  <Text style={styles.label}>Longitude</Text>
+                  <TextInput
+                    style={[styles.input, !isEditing && styles.inputDisabled]}
+                    value={form.longitude !== undefined && form.longitude !== null ? String(form.longitude) : ''}
+                    onChangeText={v => updateField('longitude' as any, '', v ? parseFloat(v) : undefined)}
+                    placeholder="e.g. 78.116505"
+                    placeholderTextColor="#94a3b8"
+                    keyboardType="numeric"
+                    editable={isEditing}
+                  />
+                </View>
+              </View>
 
               <Text style={styles.label}>Contact Phone</Text>
               <TextInput style={[styles.input, !isEditing && styles.inputDisabled]} value={form.contactPhone} onChangeText={v => updateField('contactPhone' as any, '', v)} keyboardType="phone-pad" editable={isEditing} />
@@ -1084,5 +1180,17 @@ const styles = StyleSheet.create({
   },
   churchCodeBtnTxt: {
     fontSize: 13, fontWeight: '800', color: '#1a2d5a'
+  },
+  geofenceExplainerTxt: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 17,
+    marginBottom: 10,
+    marginTop: -4,
+  },
+  latLngRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
 });

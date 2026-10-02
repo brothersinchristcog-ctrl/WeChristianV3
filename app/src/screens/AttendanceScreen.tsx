@@ -42,6 +42,7 @@ import {
   Zap,
   Keyboard,
   MapPin,
+  MapPinOff,
   AlertCircle,
   Users
 } from 'lucide-react-native';
@@ -53,6 +54,7 @@ import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
 import * as ImagePicker from 'expo-image-picker';
 import AttendanceService, { AttendanceRecord } from '../services/AttendanceService';
+import LocationService, { Coordinates } from '../services/LocationService';
 import QRDecoderService from '../services/QRDecoderService';
 import FirestoreService from '../services/FirestoreService';
 import { useAuth } from '../context/AuthContext';
@@ -153,6 +155,20 @@ export default function AttendanceScreen({ navigation, route }: any) {
   const [showInvalidQrModal, setShowInvalidQrModal] = useState(false);
   const [invalidQrMessage, setInvalidQrMessage] = useState('');
 
+  // 100-Meter Geofence Location Verification State
+  const [userLocation, setUserLocation] = useState<{ coords: Coordinates; timestamp: number } | null>(null);
+  const [locationErrorModal, setLocationErrorModal] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    distanceText?: string;
+  }>({
+    visible: false,
+    title: 'Outside Church Location',
+    message: '',
+    distanceText: undefined,
+  });
+
   // Immediately-marked event IDs (local set for instant UI response after scan)
   const [markedEventIds, setMarkedEventIds] = useState<Set<string>>(new Set());
 
@@ -248,6 +264,19 @@ export default function AttendanceScreen({ navigation, route }: any) {
       );
       loop.start();
       return () => loop.stop();
+    }
+  }, [showLiveScanner]);
+
+  // Warm up device GPS location when scanner is opened
+  useEffect(() => {
+    if (showLiveScanner) {
+      LocationService.getCurrentLocation()
+        .then(res => {
+          if (res.success && res.coords) {
+            setUserLocation({ coords: res.coords, timestamp: Date.now() });
+          }
+        })
+        .catch(() => {});
     }
   }, [showLiveScanner]);
 
@@ -1349,6 +1378,88 @@ export default function AttendanceScreen({ navigation, route }: any) {
 
       const targetChurchId = qr.churchId || churchId;
       const targetChurchName = qr.churchName || churchName;
+
+      // ─── 100-METER CHURCH LOCATION VALIDATION ────────────────────────────
+      setIsDecoding(true);
+      setDecodingMessage('Verifying church location...');
+
+      // 1. Resolve church document to retrieve registered latitude and longitude
+      let churchToValidate: any = activeChurch;
+      if (!LocationService.getChurchCoordinates(churchToValidate) && targetChurchId) {
+        try {
+          const churchSnap = await firestore().collection('churches').doc(targetChurchId).get();
+          if (churchSnap.exists()) {
+            churchToValidate = { id: churchSnap.id, ...churchSnap.data() };
+          }
+        } catch {}
+      }
+
+      const churchCoords = LocationService.getChurchCoordinates(churchToValidate);
+
+      if (!churchCoords) {
+        setIsDecoding(false);
+        setHasScanned(false);
+        try { Vibration.vibrate(500); } catch {}
+        setLocationErrorModal({
+          visible: true,
+          title: 'Church Location Not Registered',
+          message: `The church "${targetChurchName}" has not registered its GPS coordinates yet.\n\nPlease ask your church administrator or pastor to set the church location in Church Settings to enable location-based attendance.`,
+          distanceText: undefined,
+        });
+        return;
+      }
+
+      // 2. Obtain member's current GPS location
+      let memberCoords = (userLocation && Date.now() - userLocation.timestamp < 12000)
+        ? userLocation.coords
+        : null;
+
+      if (!memberCoords) {
+        const locResult = await LocationService.getCurrentLocation();
+        if (!locResult.success || !locResult.coords) {
+          setIsDecoding(false);
+          setHasScanned(false);
+          try { Vibration.vibrate(500); } catch {}
+          setLocationErrorModal({
+            visible: true,
+            title: 'Location Verification Required',
+            message: locResult.error || 'Please enable GPS / Location services on your phone to verify that you are within 100 meters of the church.',
+            distanceText: undefined,
+          });
+          return;
+        }
+        memberCoords = locResult.coords;
+        setUserLocation({ coords: memberCoords, timestamp: Date.now() });
+      }
+
+      // 3. Compute distance between member and church
+      const distanceMeters = LocationService.calculateDistanceInMeters(
+        memberCoords.latitude,
+        memberCoords.longitude,
+        churchCoords.latitude,
+        churchCoords.longitude
+      );
+
+      const roundedDist = Math.round(distanceMeters);
+
+      // 4. Strict 100-meter radius validation
+      if (roundedDist > 100) {
+        setIsDecoding(false);
+        setHasScanned(false);
+        try { Vibration.vibrate(600); } catch {}
+
+        const displayDist = roundedDist >= 1000
+          ? `${(roundedDist / 1000).toFixed(1)} km`
+          : `${roundedDist} meters`;
+
+        setLocationErrorModal({
+          visible: true,
+          title: 'Outside Church Location',
+          message: `You are approximately ${displayDist} away from ${targetChurchName}.\n\nTo mark attendance, you must be physically within 100 meters of the registered church location.`,
+          distanceText: displayDist,
+        });
+        return;
+      }
 
       // Determine target event:
       // - If user tapped on a specific event card → always use that event (whether Church QR or Event QR)
@@ -2466,6 +2577,12 @@ export default function AttendanceScreen({ navigation, route }: any) {
 
                 {/* Bottom Mask with Instructions & Quick Actions */}
                 <View style={[styles.scannerOverlayBottom, { paddingBottom: insets.bottom + 24 }]}>
+                  {/* Geofence Indicator Pill */}
+                  <View style={styles.scannerGeofencePill}>
+                    <MapPin size={13} color="#60A5FA" strokeWidth={2.4} style={{ marginRight: 5 }} />
+                    <Text style={styles.scannerGeofenceTxt}>100m Church Geofence Active</Text>
+                  </View>
+
                   <View style={styles.scannerInstructionWrap}>
                     <Text style={styles.scannerInstructionMain}>
                       {hasScanned 
@@ -2478,6 +2595,68 @@ export default function AttendanceScreen({ navigation, route }: any) {
               </View>
             </View>
           )}
+        </View>
+      </Modal>
+
+      {/* ────────────────────────────────────────────────────────────────────────
+          LOCATION / GEOFENCE ERROR MODAL (100-meter Radius Restriction)
+          ──────────────────────────────────────────────────────────────────────── */}
+      <Modal
+        visible={locationErrorModal.visible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => {
+          setLocationErrorModal(prev => ({ ...prev, visible: false }));
+          setHasScanned(false);
+          setIsDecoding(false);
+        }}
+      >
+        <View style={styles.invalidQrOverlay}>
+          <View style={styles.invalidQrCard}>
+            {/* Amber/Red Circular Icon with MapPinOff */}
+            <View style={[styles.invalidQrIconWrap, { backgroundColor: '#FEF2F2' }]}>
+              <MapPinOff size={34} color="#EF4444" strokeWidth={2.4} />
+            </View>
+
+            {/* Title */}
+            <Text style={styles.invalidQrTitle}>{locationErrorModal.title}</Text>
+
+            {/* Distance badge if outside radius */}
+            {Boolean(locationErrorModal.distanceText) && (
+              <View style={styles.geofenceDistanceBadge}>
+                <MapPin size={13} color="#DC2626" strokeWidth={2.4} style={{ marginRight: 5 }} />
+                <Text style={styles.geofenceDistanceBadgeTxt}>
+                  {locationErrorModal.distanceText} from church
+                </Text>
+              </View>
+            )}
+
+            {/* Description */}
+            <Text style={styles.invalidQrMsg}>
+              {locationErrorModal.message}
+            </Text>
+
+            {/* Geofence Rule Notice */}
+            <View style={styles.geofenceRuleBox}>
+              <Text style={styles.geofenceRuleTxt}>
+                ⚠️ Scanning Rule: Attendance can only be marked when you are physically within 100 meters of the registered church location.
+              </Text>
+            </View>
+
+            {/* Dismiss Button */}
+            <TouchableOpacity
+              style={styles.invalidQrBtn}
+              onPress={() => {
+                setLocationErrorModal(prev => ({ ...prev, visible: false }));
+                setHasScanned(false);
+                setIsDecoding(false);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.invalidQrBtnTxt}>Got It</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </Modal>
 
@@ -4665,5 +4844,54 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 15,
     fontWeight: '600',
+  },
+  scannerGeofencePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(96, 165, 250, 0.3)',
+  },
+  scannerGeofenceTxt: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#BFDBFE',
+  },
+  geofenceDistanceBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    marginBottom: 12,
+  },
+  geofenceDistanceBadgeTxt: {
+    color: '#DC2626',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  geofenceRuleBox: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginBottom: 20,
+    width: '100%',
+  },
+  geofenceRuleTxt: {
+    color: '#B45309',
+    fontSize: 11.5,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 16,
   },
 });

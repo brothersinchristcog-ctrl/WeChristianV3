@@ -90,7 +90,13 @@
         }
       ],
       "./withRazorpayPatch.js",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow We Christian to access your location to verify attendance at the church."
+        }
+      ]
     ],
     "extra": {
       "eas": {

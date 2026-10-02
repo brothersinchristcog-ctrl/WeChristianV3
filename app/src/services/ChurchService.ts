@@ -90,6 +90,11 @@ export interface ChurchDetails {
 
   // Service Timings
   serviceTimings?: ServiceTiming[];
+
+  // Registered Location Coordinates (for attendance geofencing)
+  latitude?: number;
+  longitude?: number;
+  attendanceRadiusMeters?: number;
 }
 
 class ChurchService {
