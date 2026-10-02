@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   StyleSheet, 
   View, 
@@ -183,8 +184,34 @@ export default function AttendanceScreen({ navigation, route }: any) {
     distanceText: undefined,
   });
 
-  // Immediately-marked event IDs (local set for instant UI response after scan)
+  // Immediately-marked event IDs (local set for instant UI response after scan and persisted locally)
   const [markedEventIds, setMarkedEventIds] = useState<Set<string>>(new Set());
+
+  const markEventAsAttendedLocally = useCallback((evId: string) => {
+    if (!evId) return;
+    setMarkedEventIds(prev => {
+      if (prev.has(evId)) return prev;
+      const next = new Set([...prev, evId]);
+      if (churchId && memberId) {
+        AsyncStorage.setItem(`@attended_events_${churchId}_${memberId}`, JSON.stringify(Array.from(next))).catch(() => {});
+      }
+      return next;
+    });
+  }, [churchId, memberId]);
+
+  useEffect(() => {
+    if (!churchId || !memberId) return;
+    AsyncStorage.getItem(`@attended_events_${churchId}_${memberId}`).then((cached: string | null) => {
+      if (cached) {
+        try {
+          const ids: string[] = JSON.parse(cached);
+          if (Array.isArray(ids) && ids.length > 0) {
+            setMarkedEventIds(prev => new Set([...prev, ...ids]));
+          }
+        } catch {}
+      }
+    }).catch(() => {});
+  }, [churchId, memberId]);
 
   // QR Code View Modal (for admin/sharing)
   const [showQRModal, setShowQRModal] = useState(false);
@@ -352,13 +379,29 @@ export default function AttendanceScreen({ navigation, route }: any) {
   };
 
   const fetchMemberAttendance = async () => {
-    if (!churchId || !memberId) return;
+    if (!churchId || (!memberId && !user?.uid)) return;
+    const targetMemberId = memberId || user?.uid || '';
+    const altMemberId = user?.uid && user.uid !== targetMemberId ? user.uid : '';
+    const cleanMyPhone = (memberPhone || user?.phoneNumber || '').replace(/\D/g, '').slice(-10);
+
     try {
-      const records = await AttendanceService.getMemberAttendanceHistory(churchId, memberId);
-      const cleanRecords = (records || []).filter(r => 
-        (r.memberId === memberId || (user?.uid && r.memberId === user.uid)) &&
-        r.status !== 'Absent'
-      );
+      const [records1, records2] = await Promise.all([
+        AttendanceService.getMemberAttendanceHistory(churchId, targetMemberId, cleanMyPhone),
+        altMemberId ? AttendanceService.getMemberAttendanceHistory(churchId, altMemberId, cleanMyPhone) : Promise.resolve([])
+      ]);
+
+      const combined = [...(records1 || []), ...(records2 || [])];
+      const seenKeys = new Set<string>();
+      const cleanRecords: AttendanceRecord[] = [];
+
+      combined.forEach(r => {
+        if (!r || r.status === 'Absent') return;
+        const key = `${r.eventId || ''}_${r.id || ''}`;
+        if (!seenKeys.has(key)) {
+          seenKeys.add(key);
+          cleanRecords.push(r);
+        }
+      });
 
       // Also check recent attendanceRequests responses for this member
       try {
@@ -369,37 +412,64 @@ export default function AttendanceScreen({ navigation, route }: any) {
           .limit(10)
           .get();
 
+        const checkIds = [targetMemberId, altMemberId].filter(Boolean);
         for (const reqDoc of reqSnap.docs) {
-          const respDoc = await firestore()
-            .collection('churches')
-            .doc(churchId)
-            .collection('attendanceRequests')
-            .doc(reqDoc.id)
-            .collection('responses')
-            .doc(memberId)
-            .get()
-            .catch(() => null);
+          for (const cId of checkIds) {
+            const respDoc = await firestore()
+              .collection('churches')
+              .doc(churchId)
+              .collection('attendanceRequests')
+              .doc(reqDoc.id)
+              .collection('responses')
+              .doc(cId)
+              .get()
+              .catch(() => null);
 
-          const isDocExisting = respDoc && (typeof (respDoc as any).exists === 'function' ? (respDoc as any).exists() : Boolean((respDoc as any).exists));
-          if (isDocExisting && respDoc) {
-            const respData = respDoc.data();
-            if (respData?.status === 'Present' || respData?.response === 'Yes') {
-              if (!cleanRecords.some(r => r.eventId === reqDoc.id)) {
-                cleanRecords.push({
-                  id: respDoc.id,
-                  eventId: reqDoc.id,
-                  eventName: respData.eventName || reqDoc.data()?.title || 'Church Service',
-                  memberId,
-                  memberName: respData.memberName || memberName,
-                  status: 'Present',
-                  timestamp: respData.respondedAt || respData.submittedAt || new Date(),
-                  churchId,
-                } as AttendanceRecord);
+            const isDocExisting = respDoc && (typeof (respDoc as any).exists === 'function' ? (respDoc as any).exists() : Boolean((respDoc as any).exists));
+            if (isDocExisting && respDoc) {
+              const respData = respDoc.data();
+              if (respData?.status === 'Present' || respData?.response === 'Yes') {
+                if (!cleanRecords.some(r => r.eventId === reqDoc.id)) {
+                  cleanRecords.push({
+                    id: respDoc.id,
+                    eventId: reqDoc.id,
+                    eventName: respData.eventName || reqDoc.data()?.title || 'Church Service',
+                    memberId: targetMemberId,
+                    memberName: respData.memberName || memberName,
+                    status: 'Present',
+                    timestamp: respData.respondedAt || respData.submittedAt || new Date(),
+                    churchId,
+                  } as AttendanceRecord);
+                }
               }
             }
           }
         }
       } catch (e) {}
+
+      // Ensure markedEventIds are registered for all verified attendance records
+      cleanRecords.forEach(r => {
+        if (r.eventId) {
+          markEventAsAttendedLocally(r.eventId);
+        }
+      });
+
+      // Also preserve any event already marked in session / locally
+      markedEventIds.forEach(mEvId => {
+        if (!cleanRecords.some(r => r.eventId === mEvId)) {
+          const ev = allEvents.find(e => e.id === mEvId);
+          cleanRecords.push({
+            id: `local_${mEvId}`,
+            eventId: mEvId,
+            eventName: ev?.title || 'Church Event',
+            memberId: targetMemberId,
+            memberName,
+            status: 'Present',
+            timestamp: new Date(),
+            churchId,
+          } as AttendanceRecord);
+        }
+      });
 
       setAttendanceRecords(cleanRecords);
     } catch (e) {
@@ -668,6 +738,10 @@ export default function AttendanceScreen({ navigation, route }: any) {
       });
 
       if (churchId && todayItems.length > 0) {
+        const cleanMyPhone = (memberPhone || user?.phoneNumber || '').replace(/\D/g, '').slice(-10);
+        const myName = (memberName || '').trim().toLowerCase();
+        const myIds = new Set([memberId, user?.uid, (member as any)?.sfContactId, (member as any)?.accountId].filter(Boolean));
+
         Promise.all(
           todayItems.map(async (item) => {
             try {
@@ -679,7 +753,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
                   .doc(item.id)
                   .collection('attendees')
                   .get()
-                  .catch(() => ({ size: 0 })),
+                  .catch(() => ({ size: 0, docs: [] })),
                 firestore()
                   .collection('churches')
                   .doc(churchId)
@@ -688,8 +762,72 @@ export default function AttendanceScreen({ navigation, route }: any) {
                   .collection('responses')
                   .where('status', '==', 'Present')
                   .get()
-                  .catch(() => ({ size: 0 }))
+                  .catch(() => ({ size: 0, docs: [] }))
               ]);
+
+              let isAttendedByMe = false;
+              let userAttendeeRecord: any = null;
+
+              if (snap && 'docs' in snap && Array.isArray((snap as any).docs)) {
+                for (const doc of (snap as any).docs) {
+                  const d = doc.data();
+                  const dId = d.memberId || doc.id;
+                  const dPhone = d.memberPhone ? String(d.memberPhone).replace(/\D/g, '').slice(-10) : '';
+                  const dName = (d.memberName || '').trim().toLowerCase();
+
+                  if (
+                    (dId && myIds.has(dId)) ||
+                    (cleanMyPhone && dPhone && cleanMyPhone === dPhone) ||
+                    (myName && dName && (myName === dName || myName.includes(dName) || dName.includes(myName)))
+                  ) {
+                    isAttendedByMe = true;
+                    userAttendeeRecord = {
+                      id: doc.id,
+                      memberId: d.memberId || memberId,
+                      memberName: d.memberName || memberName,
+                      status: 'Present',
+                      timestamp: d.timestamp || d.scannedAt || new Date(),
+                      churchId,
+                      eventId: item.id,
+                      eventName: item.title,
+                    };
+                    break;
+                  }
+                }
+              }
+
+              if (!isAttendedByMe && respSnap && 'docs' in respSnap && Array.isArray((respSnap as any).docs)) {
+                for (const doc of (respSnap as any).docs) {
+                  const d = doc.data();
+                  const dId = d.memberId || doc.id;
+                  const dPhone = d.memberPhone ? String(d.memberPhone).replace(/\D/g, '').slice(-10) : '';
+                  if ((dId && myIds.has(dId)) || (cleanMyPhone && dPhone && cleanMyPhone === dPhone)) {
+                    isAttendedByMe = true;
+                    userAttendeeRecord = {
+                      id: doc.id,
+                      memberId: d.memberId || memberId,
+                      memberName: d.memberName || memberName,
+                      status: 'Present',
+                      timestamp: d.respondedAt || d.submittedAt || new Date(),
+                      churchId,
+                      eventId: item.id,
+                      eventName: item.title,
+                    };
+                    break;
+                  }
+                }
+              }
+
+              if (isAttendedByMe) {
+                markEventAsAttendedLocally(item.id);
+                if (userAttendeeRecord) {
+                  setAttendanceRecords(prev => {
+                    if (prev.some(r => r.eventId === item.id)) return prev;
+                    return [userAttendeeRecord as AttendanceRecord, ...prev];
+                  });
+                }
+              }
+
               return { id: item.id, count: Math.max(snap.size, respSnap.size) };
             } catch (e) {
               return null;
@@ -721,19 +859,32 @@ export default function AttendanceScreen({ navigation, route }: any) {
   const isEventAttendanceMarked = (event: EventItem) => {
     if (!event || !event.id) return false;
 
-    // 1. Instant check — marked after a scan in the current session
+    // 1. Instant check — marked after a scan in the current session or stored locally
     if (markedEventIds.has(event.id)) return true;
+
+    const myIds = new Set([memberId, user?.uid, (member as any)?.sfContactId, (member as any)?.accountId].filter(Boolean));
+    const cleanMyPhone = (memberPhone || user?.phoneNumber || '').replace(/\D/g, '').slice(-10);
+    const myName = (memberName || '').trim().toLowerCase();
 
     // 2. Strict check: MUST match a verified record for THIS member and THIS exact eventId
     return attendanceRecords.some(r => {
       // Must be present
       if (r.status === 'Absent') return false;
 
-      // Must belong to this member
-      if (r.memberId && r.memberId !== memberId && r.memberId !== user?.uid) return false;
-
       // Check specific eventId strictly: MUST match this event's unique ID
-      return Boolean(r.eventId && r.eventId === event.id);
+      if (!r.eventId || r.eventId !== event.id) return false;
+
+      // Match member identity by ID, phone, or name
+      if (r.memberId && myIds.has(r.memberId)) return true;
+      const rPhone = r.memberPhone ? String(r.memberPhone).replace(/\D/g, '').slice(-10) : '';
+      if (cleanMyPhone && rPhone && cleanMyPhone === rPhone) return true;
+      const rName = (r.memberName || '').trim().toLowerCase();
+      if (myName && rName && (myName === rName || myName.includes(rName) || rName.includes(myName))) return true;
+
+      // If record is already in this member's filtered list and has no conflicting id
+      if (!r.memberId && !rPhone) return true;
+
+      return false;
     });
   };
 
@@ -741,6 +892,10 @@ export default function AttendanceScreen({ navigation, route }: any) {
   const enrichedEvents = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+    const cleanMyPhone = (memberPhone || user?.phoneNumber || '').replace(/\D/g, '').slice(-10);
+    const myName = (memberName || '').trim().toLowerCase();
+    const myIds = new Set([memberId, user?.uid, (member as any)?.sfContactId, (member as any)?.accountId].filter(Boolean));
 
     return allEvents.map(ev => {
       const isMarked = isEventAttendanceMarked(ev);
@@ -754,8 +909,14 @@ export default function AttendanceScreen({ navigation, route }: any) {
 
       const matchedRecord = attendanceRecords.find(r => {
         if (r.status === 'Absent') return false;
-        if (r.memberId && r.memberId !== memberId && r.memberId !== user?.uid) return false;
-        return r.eventId && ev.id && r.eventId === ev.id;
+        if (!r.eventId || !ev.id || r.eventId !== ev.id) return false;
+        if (r.memberId && myIds.has(r.memberId)) return true;
+        const rPhone = r.memberPhone ? String(r.memberPhone).replace(/\D/g, '').slice(-10) : '';
+        if (cleanMyPhone && rPhone && cleanMyPhone === rPhone) return true;
+        const rName = (r.memberName || '').trim().toLowerCase();
+        if (myName && rName && (myName === rName || myName.includes(rName) || rName.includes(myName))) return true;
+        if (!r.memberId && !rPhone) return true;
+        return false;
       });
 
       return {
@@ -1884,12 +2045,12 @@ export default function AttendanceScreen({ navigation, route }: any) {
       const formattedDate = nowObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       const formattedTime = nowObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
 
-      // Instantly mark the event in local state so UI reflects check-in without waiting
+      // Instantly mark the event in local state & persistent storage so UI reflects check-in without waiting
       if (targetEventId) {
-        setMarkedEventIds(prev => new Set([...prev, targetEventId]));
+        markEventAsAttendedLocally(targetEventId);
       }
       if (selectedEventForScan?.id) {
-        setMarkedEventIds(prev => new Set([...prev, selectedEventForScan.id]));
+        markEventAsAttendedLocally(selectedEventForScan.id);
       }
 
       const scannedMemberId = qr.memberId || memberId;
@@ -2243,15 +2404,20 @@ export default function AttendanceScreen({ navigation, route }: any) {
           !isMarked && styles.featuredCardPendingBorder
         ]}
       >
-        {/* Top row badge: Only shown when pending */}
-        {!isMarked && (
-          <View style={styles.cardBadgeRow}>
+        {/* Top row badge */}
+        <View style={styles.cardBadgeRow}>
+          {isMarked ? (
+            <View style={styles.attendanceCompletedBadge}>
+              <CheckCircle2 size={13} color="#15803D" strokeWidth={2.5} />
+              <Text style={styles.attendanceCompletedBadgeTxt}>Attendance Marked</Text>
+            </View>
+          ) : (
             <View style={styles.attendanceOpenBadge}>
               <View style={styles.orangeDot} />
               <Text style={styles.attendanceOpenTxt}>Attendance open · Pending</Text>
             </View>
-          </View>
-        )}
+          )}
+        </View>
 
         {/* Title & Info */}
         <Text style={styles.featuredCardTitle} numberOfLines={2}>{eventItem.title}</Text>
@@ -2494,7 +2660,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
             <View style={styles.eventsListWrap}>
               {thisWeekEvents.map((item, idx) => {
                 const isPast = item.dateObj < new Date();
-                const isPresent = item.myStatus === 'Present';
+                const isPresent = item.myStatus === 'Present' || isEventAttendanceMarked(item);
                 const startsIn = !isPast ? getStartsInText(item.dateObj) : null;
 
                 return (
@@ -2504,7 +2670,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
                       <Text style={styles.eventRowSubtitle}>{formatShortDateTime(item.dateObj)}</Text>
                     </View>
 
-                    {isPast ? (
+                    {isPast || isPresent ? (
                       <View style={[styles.statusBadge, isPresent ? styles.presentBadge : styles.absentBadge]}>
                         <Text style={[styles.statusBadgeTxt, isPresent ? styles.presentBadgeTxt : styles.absentBadgeTxt]}>
                           {isPresent ? 'Present' : 'Absent'}
@@ -3561,7 +3727,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
                 style={styles.confirmDoneBtn}
                 onPress={() => {
                   if (scanResultModal.eventId) {
-                    setMarkedEventIds(prev => new Set([...prev, scanResultModal.eventId!]));
+                    markEventAsAttendedLocally(scanResultModal.eventId);
                   }
                   setScanResultModal(prev => ({ ...prev, visible: false, alreadyMarked: true }));
                 }}

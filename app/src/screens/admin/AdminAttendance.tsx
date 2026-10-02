@@ -108,6 +108,72 @@ interface EventItemWithStats {
 type TimelineFilter = 'All' | 'Upcoming' | 'Past';
 type MemberReportFilter = 'Absent' | 'Present' | 'Guests' | 'All';
 
+const formatAdminDisplayTime = (timeRaw?: string, startTime?: any, endTime?: any, fallbackDateObj?: Date): string => {
+  const parseSingle = (val: any): string => {
+    if (!val) return '';
+    if (typeof val === 'string') {
+      const trimmed = val.trim();
+      if (!trimmed) return '';
+      // If already formatted like "10:30 AM" or "10:30 PM"
+      if (/^\d{1,2}:\d{2}\s*(AM|PM|am|pm)$/i.test(trimmed)) {
+        return trimmed.toUpperCase();
+      }
+      // If military/24-hour time like "10:30" or "10:30:00"
+      if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(trimmed)) {
+        const parts = trimmed.split(':');
+        const h = parseInt(parts[0], 10);
+        const m = parts[1];
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return `${h12}:${m} ${ampm}`;
+      }
+      // If ISO string or date string, try new Date
+      const d = new Date(trimmed);
+      if (!isNaN(d.getTime())) {
+        const res = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        if (!res.includes('Invalid')) return res;
+      }
+      return trimmed;
+    }
+    if (val?.toDate && typeof val.toDate === 'function') {
+      try {
+        const d = val.toDate();
+        if (!isNaN(d.getTime())) {
+          return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        }
+      } catch {}
+    }
+    if (val instanceof Date && !isNaN(val.getTime())) {
+      const res = val.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      if (!res.includes('Invalid')) return res;
+    }
+    return '';
+  };
+
+  const s = parseSingle(startTime);
+  const e = parseSingle(endTime);
+
+  if (s && e && !s.includes('Invalid') && !e.includes('Invalid')) {
+    return `${s} - ${e}`;
+  }
+  if (s && !s.includes('Invalid')) {
+    return s;
+  }
+  if (timeRaw && typeof timeRaw === 'string') {
+    const rawTrimmed = timeRaw.trim();
+    if (!rawTrimmed.includes('Invalid')) {
+      const parsedRaw = parseSingle(rawTrimmed);
+      if (parsedRaw && !parsedRaw.includes('Invalid')) return parsedRaw;
+      return rawTrimmed;
+    }
+  }
+  if (fallbackDateObj && !isNaN(fallbackDateObj.getTime())) {
+    const fallbackStr = fallbackDateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    if (!fallbackStr.includes('Invalid') && fallbackStr !== '12:00 AM') return fallbackStr;
+  }
+  return 'Service Time';
+};
+
 export default function AdminAttendance() {
   const insets = useSafeAreaInsets();
   const { setActiveTab } = useContext(AdminTabContext);
@@ -282,21 +348,7 @@ export default function AdminAttendance() {
             });
           } catch {}
 
-          if (ev.startTime || ev.time) {
-            try {
-              const s = ev.startTime ? new Date(ev.startTime) : dateObj;
-              const sFormatted = s.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-              if (ev.endTime) {
-                const e = new Date(ev.endTime);
-                const eFormatted = e.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-                timeStr = `${sFormatted} - ${eFormatted}`;
-              } else {
-                timeStr = sFormatted;
-              }
-            } catch {
-              timeStr = ev.time || 'All Day';
-            }
-          }
+          timeStr = formatAdminDisplayTime(ev.time, ev.startTime, ev.endTime, dateObj);
 
           // Pre-fetch count of attendees
           let presentCount = 0;

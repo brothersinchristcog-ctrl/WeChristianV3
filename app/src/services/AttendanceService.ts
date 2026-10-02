@@ -573,27 +573,130 @@ class AttendanceService {
   /**
    * Fetches full attendance history for a specific member under their church.
    */
-  public async getMemberAttendanceHistory(churchId: string, memberId: string): Promise<AttendanceRecord[]> {
+  public async getMemberAttendanceHistory(churchId: string, memberId: string, memberPhone?: string): Promise<AttendanceRecord[]> {
     if (!churchId || !memberId) return [];
 
     try {
-      // 1. Fetch from church attendance records without composite index requirement
-      const snap = await firestore()
-        .collection('churches')
-        .doc(churchId)
-        .collection('attendanceRecords')
-        .where('memberId', '==', memberId)
-        .limit(60)
-        .get();
-
       const list: AttendanceRecord[] = [];
-      snap.forEach((doc) => {
-        const d = doc.data();
-        list.push({
-          id: doc.id,
-          ...d,
-        } as AttendanceRecord);
-      });
+      const seenEventIds = new Set<string>();
+
+      // 1. Fetch from church attendance records without composite index requirement
+      try {
+        const snap = await firestore()
+          .collection('churches')
+          .doc(churchId)
+          .collection('attendanceRecords')
+          .where('memberId', '==', memberId)
+          .limit(60)
+          .get();
+
+        snap.forEach((doc) => {
+          const d = doc.data();
+          if (d.eventId) seenEventIds.add(d.eventId);
+          list.push({
+            id: doc.id,
+            ...d,
+          } as AttendanceRecord);
+        });
+      } catch (recErr) {
+        console.warn('[AttendanceService] Note querying attendanceRecords:', recErr);
+      }
+
+      // 2. ALSO check event attendees subcollections directly
+      // This ensures attendees stored under churches/{churchId}/events/{eventId}/attendees/{memberId}
+      // are always retrieved even if attendanceRecords collection write had delay or restriction.
+      try {
+        const eventsSnap = await firestore()
+          .collection('churches')
+          .doc(churchId)
+          .collection('events')
+          .limit(25)
+          .get();
+
+        const cleanPhone = memberPhone ? String(memberPhone).replace(/\D/g, '').slice(-10) : '';
+
+        for (const evDoc of eventsSnap.docs) {
+          if (seenEventIds.has(evDoc.id)) continue;
+          const evData = evDoc.data();
+
+          // Check direct doc by memberId
+          const attendeeDoc = await firestore()
+            .collection('churches')
+            .doc(churchId)
+            .collection('events')
+            .doc(evDoc.id)
+            .collection('attendees')
+            .doc(memberId)
+            .get()
+            .catch(() => null);
+
+          const isDocExisting = attendeeDoc && (
+            (typeof (attendeeDoc as any).exists === 'function' ? (attendeeDoc as any).exists() : Boolean((attendeeDoc as any).exists)) ||
+            attendeeDoc.data() !== undefined
+          );
+
+          if (isDocExisting && attendeeDoc) {
+            const aData = attendeeDoc.data();
+            if (aData && aData.status !== 'Absent') {
+              seenEventIds.add(evDoc.id);
+              list.push({
+                id: attendeeDoc.id,
+                memberId: aData.memberId || memberId,
+                memberName: aData.memberName || 'Member',
+                memberPhone: aData.memberPhone || '',
+                photoUrl: aData.photoUrl || '',
+                status: 'Present',
+                timestamp: aData.timestamp || aData.scannedAt || new Date(),
+                method: aData.method || 'QR_SCAN',
+                churchId,
+                eventId: evDoc.id,
+                eventName: aData.eventName || evData?.title || evData?.name || 'Church Event',
+                isGuest: Boolean(aData.isGuest),
+              } as AttendanceRecord);
+              continue;
+            }
+          }
+
+          // Fallback: If cleanPhone is available, check attendees by phone
+          if (cleanPhone) {
+            try {
+              const phoneSnap = await firestore()
+                .collection('churches')
+                .doc(churchId)
+                .collection('events')
+                .doc(evDoc.id)
+                .collection('attendees')
+                .where('memberPhone', '==', cleanPhone)
+                .limit(1)
+                .get();
+
+              if (!phoneSnap.empty) {
+                const doc = phoneSnap.docs[0];
+                const aData = doc.data();
+                if (aData && aData.status !== 'Absent') {
+                  seenEventIds.add(evDoc.id);
+                  list.push({
+                    id: doc.id,
+                    memberId: aData.memberId || memberId,
+                    memberName: aData.memberName || 'Member',
+                    memberPhone: aData.memberPhone || '',
+                    photoUrl: aData.photoUrl || '',
+                    status: 'Present',
+                    timestamp: aData.timestamp || aData.scannedAt || new Date(),
+                    method: aData.method || 'QR_SCAN',
+                    churchId,
+                    eventId: evDoc.id,
+                    eventName: aData.eventName || evData?.title || evData?.name || 'Church Event',
+                    isGuest: Boolean(aData.isGuest),
+                  } as AttendanceRecord);
+                }
+              }
+            } catch {}
+          }
+        }
+      } catch (evErr) {
+        console.warn('[AttendanceService] Note querying event attendees subcollection:', evErr);
+      }
 
       // Sort descending in memory
       list.sort((a, b) => {
