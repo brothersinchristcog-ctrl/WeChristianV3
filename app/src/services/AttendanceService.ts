@@ -9,11 +9,15 @@ export interface AttendanceRecord {
   photoUrl?: string;
   status?: 'Present' | 'Absent';
   timestamp?: any;
-  method?: 'QR_SCAN' | 'ADMIN_MANUAL' | 'SELF_CHECKIN';
+  method?: 'QR_SCAN' | 'ADMIN_MANUAL' | 'SELF_CHECKIN' | 'GUEST_CHECKIN';
   churchId?: string;
   eventId?: string;
   eventName?: string;
   scannedAt?: string;
+  isGuest?: boolean;
+  guestName?: string;
+  invitedByMemberId?: string;
+  invitedByMemberName?: string;
 }
 
 export interface AttendanceQRPayload {
@@ -300,6 +304,10 @@ class AttendanceService {
           churchId,
           eventId,
           eventName: d.eventName || '',
+          isGuest: Boolean(d.isGuest || (d.memberName && d.memberName.includes('(Guest)')) || doc.id.startsWith('guest_')),
+          guestName: d.guestName || (d.memberName ? d.memberName.replace(' (Guest)', '').trim() : ''),
+          invitedByMemberId: d.invitedByMemberId || '',
+          invitedByMemberName: d.invitedByMemberName || '',
         });
       });
 
@@ -411,9 +419,26 @@ class AttendanceService {
     memberName: string;
     memberPhone?: string;
     photoUrl?: string;
-    method?: 'QR_SCAN' | 'ADMIN_MANUAL' | 'SELF_CHECKIN';
+    method?: 'QR_SCAN' | 'ADMIN_MANUAL' | 'SELF_CHECKIN' | 'GUEST_CHECKIN';
+    isGuest?: boolean;
+    guestName?: string;
+    invitedByMemberId?: string;
+    invitedByMemberName?: string;
   }): Promise<{ success: boolean; alreadyMarked?: boolean; message?: string }> {
-    const { churchId, eventId = 'general_service', eventName = 'General Service', memberId, memberName, memberPhone, photoUrl, method = 'QR_SCAN' } = params;
+    const { 
+      churchId, 
+      eventId = 'general_service', 
+      eventName = 'General Service', 
+      memberId, 
+      memberName, 
+      memberPhone, 
+      photoUrl, 
+      method = 'QR_SCAN',
+      isGuest,
+      guestName,
+      invitedByMemberId,
+      invitedByMemberName,
+    } = params;
 
     if (!churchId || !memberId) {
       return { success: false, message: 'Missing church or member identifier.' };
@@ -438,7 +463,7 @@ class AttendanceService {
         };
       }
 
-      const recordData = {
+      const recordData: any = {
         memberId,
         memberName: memberName || 'Member',
         memberPhone: memberPhone || '',
@@ -452,8 +477,32 @@ class AttendanceService {
         scannedAt: new Date().toISOString(),
       };
 
-      let anySuccess = false;
-      let lastError: any = null;
+      if (isGuest) {
+        recordData.isGuest = true;
+        recordData.guestName = guestName || (memberName ? memberName.replace(' (Guest)', '').trim() : '');
+        recordData.invitedByMemberId = invitedByMemberId || '';
+        recordData.invitedByMemberName = invitedByMemberName || '';
+      }
+
+      const responseData: any = {
+        memberId,
+        memberName: memberName || 'Member',
+        response: 'Yes',
+        status: 'Present',
+        method,
+        submittedAt: firestore.FieldValue.serverTimestamp(),
+        respondedAt: firestore.FieldValue.serverTimestamp(),
+        photoUrl: photoUrl || '',
+        churchId,
+        eventName,
+      };
+
+      if (isGuest) {
+        responseData.isGuest = true;
+        responseData.guestName = guestName || (memberName ? memberName.replace(' (Guest)', '').trim() : '');
+        responseData.invitedByMemberId = invitedByMemberId || '';
+        responseData.invitedByMemberName = invitedByMemberName || '';
+      }
 
       // Concurrent parallel writes for ultra-fast performance
       await Promise.allSettled([
@@ -473,18 +522,7 @@ class AttendanceService {
           .doc(eventId)
           .collection('responses')
           .doc(memberId)
-          .set({
-            memberId,
-            memberName: memberName || 'Member',
-            response: 'Yes',
-            status: 'Present',
-            method,
-            submittedAt: firestore.FieldValue.serverTimestamp(),
-            respondedAt: firestore.FieldValue.serverTimestamp(),
-            photoUrl: photoUrl || '',
-            churchId,
-            eventName,
-          }, { merge: true })
+          .set(responseData, { merge: true })
           .catch(() => {})
       ]);
 
@@ -492,6 +530,43 @@ class AttendanceService {
     } catch (error: any) {
       console.error('[AttendanceService] Error recording attendance:', error);
       return { success: false, message: error?.message || 'Failed to record attendance.' };
+    }
+  }
+
+  /**
+   * Removes an attendee or guest from an event and attendance response list.
+   */
+  public async removeAttendee(params: {
+    churchId: string;
+    eventId: string;
+    memberId: string;
+  }): Promise<{ success: boolean }> {
+    const { churchId, eventId, memberId } = params;
+    if (!churchId || !eventId || !memberId) return { success: false };
+
+    try {
+      await Promise.allSettled([
+        firestore()
+          .collection('churches')
+          .doc(churchId)
+          .collection('events')
+          .doc(eventId)
+          .collection('attendees')
+          .doc(memberId)
+          .delete(),
+        firestore()
+          .collection('churches')
+          .doc(churchId)
+          .collection('attendanceRequests')
+          .doc(eventId)
+          .collection('responses')
+          .doc(memberId)
+          .delete(),
+      ]);
+      return { success: true };
+    } catch (e) {
+      console.warn('[AttendanceService] Error removing attendee:', e);
+      return { success: false };
     }
   }
 

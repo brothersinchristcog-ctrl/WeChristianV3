@@ -44,7 +44,10 @@ import {
   MapPin,
   MapPinOff,
   AlertCircle,
-  Users
+  Users,
+  UserPlus,
+  Plus,
+  Trash2
 } from 'lucide-react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult, type BarcodeType } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -90,6 +93,8 @@ interface UnifiedMember {
   profilePicture?: string;
   firstName?: string;
   lastName?: string;
+  isGuest?: boolean;
+  guestOf?: string;
 }
 
 interface FamilyMemberItem {
@@ -99,6 +104,13 @@ interface FamilyMemberItem {
   relation?: string;
   checked: boolean;
   alreadyMarked: boolean;
+  loading?: boolean;
+}
+
+interface GuestItem {
+  id: string;
+  name: string;
+  invitedByName?: string;
   loading?: boolean;
 }
 
@@ -189,6 +201,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
     scannedMemberName?: string;
     familyMembers: FamilyMemberItem[];
     familyLoading: boolean;
+    guests: GuestItem[];
   }>({
     visible: false,
     churchName: '',
@@ -200,7 +213,14 @@ export default function AttendanceScreen({ navigation, route }: any) {
     scannedMemberName: '',
     familyMembers: [],
     familyLoading: false,
+    guests: [],
   });
+
+  // Guest Attendance States
+  const [guestNameInput, setGuestNameInput] = useState('');
+  const [isAddingGuest, setIsAddingGuest] = useState(false);
+  const [showRosterGuestInput, setShowRosterGuestInput] = useState(false);
+  const [rosterGuestNameInput, setRosterGuestNameInput] = useState('');
 
   // Custom Church Toast Notification (Shows current church logo & message)
   const [toastConfig, setToastConfig] = useState<{
@@ -1032,11 +1052,16 @@ export default function AttendanceScreen({ navigation, route }: any) {
         }
       });
 
-      // Add attendees not in roster
+      // Add attendees not in roster (including guests and visitors)
       attendees.forEach(a => {
         const mId = a.memberId || a.id;
         if (mId && !unified.some(u => u.id === mId)) {
           const isMe = mId === memberId || (user?.uid && mId === user.uid);
+          const isGuest = Boolean(
+            (a as any).isGuest || 
+            mId.startsWith('guest_') || 
+            (a.memberName && a.memberName.includes('(Guest)'))
+          );
           const phoneToUse = a.memberPhone || (isMe ? (user?.phoneNumber || member?.phone) : '');
           const cleanPhone = phoneToUse ? String(phoneToUse).replace(/\D/g, '').slice(-10) : '';
 
@@ -1061,7 +1086,9 @@ export default function AttendanceScreen({ navigation, route }: any) {
             name: cleanName,
             status: 'Present',
             timestamp: a.timestamp,
-            profilePicture: resolvedPhoto,
+            profilePicture: isGuest ? undefined : resolvedPhoto,
+            isGuest,
+            guestOf: (a as any).invitedByMemberName,
           });
         }
       });
@@ -1395,6 +1422,242 @@ export default function AttendanceScreen({ navigation, route }: any) {
     }));
   };
 
+  // ─── Fetch Guests & Visitors for an Event ─────────────────────────────────
+  const fetchGuestsForEvent = async (
+    targetChurchId: string,
+    targetEventId: string,
+    hostMemberId: string
+  ): Promise<GuestItem[]> => {
+    try {
+      if (!targetChurchId || !targetEventId) return [];
+      const snap = await firestore()
+        .collection('churches')
+        .doc(targetChurchId)
+        .collection('events')
+        .doc(targetEventId)
+        .collection('attendees')
+        .get();
+
+      const guests: GuestItem[] = [];
+      snap.forEach(d => {
+        const data = d.data();
+        const isGuest = Boolean(data.isGuest || d.id.startsWith('guest_') || (data.memberName && data.memberName.includes('(Guest)')));
+        const isMyGuest = data.invitedByMemberId === hostMemberId || !data.invitedByMemberId;
+        if (isGuest && (isMyGuest || !hostMemberId)) {
+          guests.push({
+            id: d.id,
+            name: data.guestName || (data.memberName ? data.memberName.replace(' (Guest)', '').trim() : 'Guest'),
+            invitedByName: data.invitedByMemberName || memberName,
+          });
+        }
+      });
+      return guests;
+    } catch (e) {
+      console.warn('[AttendanceScreen] Error fetching guests:', e);
+      return [];
+    }
+  };
+
+  // ─── Add Guest Check-in Handler ───────────────────────────────────────────
+  const handleAddGuest = async (customGuestName?: string, overrideEventId?: string, overrideEventName?: string) => {
+    const rawName = (customGuestName || guestNameInput).trim();
+    if (!rawName) {
+      Alert.alert('Guest Name Required', 'Please enter your guest\'s full name.');
+      return;
+    }
+
+    const targetChurchId = churchId || activeChurch?.id || '';
+    const targetEventId = overrideEventId || scanResultModal.eventId || selectedEventForList?.id || activeEvent?.id || todayEvents[0]?.id || 'general_service';
+    const targetEventName = overrideEventName || scanResultModal.eventName || selectedEventForList?.title || 'Church Service';
+    const hostMemberId = memberId || user?.uid || 'guest_host';
+    const hostMemberName = memberName || 'Member';
+
+    const guestId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const guestDisplayName = `${rawName} (Guest)`;
+
+    setIsAddingGuest(true);
+    setGuestNameInput('');
+    setRosterGuestNameInput('');
+    setShowRosterGuestInput(false);
+
+    // 1. Optimistically update modal guest list
+    setScanResultModal(prev => ({
+      ...prev,
+      guests: [
+        ...prev.guests,
+        {
+          id: guestId,
+          name: rawName,
+          invitedByName: hostMemberName,
+        }
+      ]
+    }));
+
+    // 2. Optimistically update total present count across events
+    setAllEvents(prev =>
+      prev.map(ev => {
+        if (ev.id === targetEventId) {
+          const curr = ev.presentCount || 0;
+          return {
+            ...ev,
+            presentCount: curr + 1,
+          };
+        }
+        return ev;
+      })
+    );
+
+    // 3. Optimistically add to attendanceRecords
+    setAttendanceRecords(prev => [
+      {
+        id: guestId,
+        memberId: guestId,
+        memberName: guestDisplayName,
+        churchId: targetChurchId,
+        eventId: targetEventId,
+        eventName: targetEventName,
+        status: 'Present',
+        timestamp: new Date(),
+        method: 'GUEST_CHECKIN',
+        isGuest: true,
+        guestName: rawName,
+        invitedByMemberId: hostMemberId,
+        invitedByMemberName: hostMemberName,
+      },
+      ...prev,
+    ]);
+
+    // 4. Optimistically add to attendeesList if attendees modal is open
+    setAttendeesList(prev => [
+      {
+        id: guestId,
+        name: guestDisplayName,
+        status: 'Present',
+        timestamp: new Date(),
+        isGuest: true,
+        guestOf: hostMemberName,
+      },
+      ...prev,
+    ]);
+
+    try {
+      await AttendanceService.recordAttendance({
+        churchId: targetChurchId,
+        eventId: targetEventId,
+        eventName: targetEventName,
+        memberId: guestId,
+        memberName: guestDisplayName,
+        method: 'GUEST_CHECKIN',
+        isGuest: true,
+        guestName: rawName,
+        invitedByMemberId: hostMemberId,
+        invitedByMemberName: hostMemberName,
+      });
+
+      showChurchToast(`Guest "${rawName}" added to attendance!`);
+    } catch (err) {
+      console.warn('[AttendanceScreen] Error recording guest attendance:', err);
+      // Revert optimistic updates
+      setScanResultModal(prev => ({
+        ...prev,
+        guests: prev.guests.filter(g => g.id !== guestId)
+      }));
+      setAllEvents(prev =>
+        prev.map(ev => {
+          if (ev.id === targetEventId) {
+            const curr = ev.presentCount || 0;
+            return {
+              ...ev,
+              presentCount: Math.max(0, curr - 1),
+            };
+          }
+          return ev;
+        })
+      );
+      setAttendeesList(prev => prev.filter(a => a.id !== guestId));
+      Alert.alert('Error', 'Unable to add guest. Please try again.');
+    } finally {
+      setIsAddingGuest(false);
+    }
+  };
+
+  // ─── Remove Guest Handler ─────────────────────────────────────────────────
+  const handleRemoveGuest = async (guestId: string, guestName: string) => {
+    const targetChurchId = churchId || activeChurch?.id || '';
+    const targetEventId = scanResultModal.eventId || selectedEventForList?.id || activeEvent?.id || todayEvents[0]?.id || 'general_service';
+
+    // Optimistically update
+    setScanResultModal(prev => ({
+      ...prev,
+      guests: prev.guests.filter(g => g.id !== guestId)
+    }));
+    setAllEvents(prev =>
+      prev.map(ev => {
+        if (ev.id === targetEventId) {
+          const curr = ev.presentCount || 0;
+          return {
+            ...ev,
+            presentCount: Math.max(0, curr - 1),
+          };
+        }
+        return ev;
+      })
+    );
+    setAttendeesList(prev => prev.filter(a => a.id !== guestId));
+    setAttendanceRecords(prev => prev.filter(r => r.id !== guestId && r.memberId !== guestId));
+
+    try {
+      await AttendanceService.removeAttendee({
+        churchId: targetChurchId,
+        eventId: targetEventId,
+        memberId: guestId,
+      });
+      showChurchToast(`Guest "${guestName}" removed`);
+    } catch (err) {
+      console.warn('[AttendanceScreen] Error removing guest:', err);
+    }
+  };
+
+  // ─── Open Guest & Household Manager for Any Event ────────────────────────
+  const handleOpenGuestModalForEvent = async (eventItem: EventItem) => {
+    const targetChurchId = churchId || activeChurch?.id || '';
+    const targetEventId = eventItem.id;
+    const formattedDate = eventItem.dateStr || formatFullDate(eventItem.dateObj);
+    const formattedTime = eventItem.timeStr || formatShortDateTime(eventItem.dateObj);
+
+    setScanResultModal({
+      visible: true,
+      churchName: churchName,
+      eventName: eventItem.title,
+      eventId: targetEventId,
+      date: formattedDate,
+      time: formattedTime,
+      alreadyMarked: true,
+      scannedMemberId: memberId,
+      scannedMemberName: memberName,
+      familyMembers: [],
+      familyLoading: true,
+      guests: [],
+    });
+
+    try {
+      const [famsRes, guestsRes] = await Promise.allSettled([
+        fetchFamilyMembersForScannedMember(targetChurchId, targetEventId, memberId, (member as any)?.accountId),
+        fetchGuestsForEvent(targetChurchId, targetEventId, memberId)
+      ]);
+      const fams = famsRes.status === 'fulfilled' ? famsRes.value : [];
+      const guests = guestsRes.status === 'fulfilled' ? guestsRes.value : [];
+      setScanResultModal(prev => ({
+        ...prev,
+        familyMembers: fams,
+        familyLoading: false,
+        guests,
+      }));
+    } catch {
+      setScanResultModal(prev => ({ ...prev, familyLoading: false }));
+    }
+  };
+
   // ─── QR Code Scanner & Check-in Execution ──────────────────────────────────
   const handleBarcodeScanned = async ({ data, preParsed }: { data: string; preParsed?: any }) => {
     try {
@@ -1632,7 +1895,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
       // Turn off any decoding overlay immediately
       setIsDecoding(false);
 
-      // Instantly show Success Confirmation Modal with family members loading
+      // Instantly show Success Confirmation Modal with family members & guests loading
       setScanResultModal({
         visible: true,
         churchName: targetChurchName,
@@ -1645,24 +1908,29 @@ export default function AttendanceScreen({ navigation, route }: any) {
         scannedMemberName,
         familyMembers: [],
         familyLoading: true,
+        guests: [],
       });
 
-      // Fetch family members in background
-      fetchFamilyMembersForScannedMember(targetChurchId, targetEventId, scannedMemberId, scannedAccountId)
-        .then(fams => {
-          setScanResultModal(prev => ({
-            ...prev,
-            familyMembers: fams,
-            familyLoading: false,
-          }));
-        })
-        .catch(err => {
-          console.warn('[AttendanceScreen] Error fetching family members:', err);
-          setScanResultModal(prev => ({
-            ...prev,
-            familyLoading: false,
-          }));
-        });
+      // Fetch family members & guests in background
+      Promise.allSettled([
+        fetchFamilyMembersForScannedMember(targetChurchId, targetEventId, scannedMemberId, scannedAccountId),
+        fetchGuestsForEvent(targetChurchId, targetEventId, scannedMemberId)
+      ]).then(([famsRes, guestsRes]) => {
+        const fams = famsRes.status === 'fulfilled' ? famsRes.value : [];
+        const loadedGuests = guestsRes.status === 'fulfilled' ? guestsRes.value : [];
+        setScanResultModal(prev => ({
+          ...prev,
+          familyMembers: fams,
+          familyLoading: false,
+          guests: loadedGuests,
+        }));
+      }).catch(err => {
+        console.warn('[AttendanceScreen] Error fetching family members or guests:', err);
+        setScanResultModal(prev => ({
+          ...prev,
+          familyLoading: false,
+        }));
+      });
 
       // Record attendance in Firestore in background without blocking the UI
       AttendanceService.recordAttendance({
@@ -1957,6 +2225,15 @@ export default function AttendanceScreen({ navigation, route }: any) {
                 <CheckCircle2 size={17} color="#15803D" strokeWidth={2.5} />
                 <Text style={styles.attendanceCompletedBtnTxt}>Attended</Text>
               </View>
+
+              <TouchableOpacity
+                style={styles.guestActionBtn}
+                onPress={() => handleOpenGuestModalForEvent(eventItem)}
+                activeOpacity={0.75}
+              >
+                <UserPlus size={15} color="#6D28D9" strokeWidth={2.2} />
+                <Text style={styles.guestActionBtnTxt}>+ Guest</Text>
+              </TouchableOpacity>
 
               <TouchableOpacity
                 style={styles.eyeBtn}
@@ -2341,13 +2618,23 @@ export default function AttendanceScreen({ navigation, route }: any) {
                     {/* Bottom Row: X present & View list button */}
                     <View style={styles.eventCardBottomRow}>
                       <Text style={styles.presentCountTxt}>{ev.presentCount || 0} present</Text>
-                      <TouchableOpacity
-                        style={styles.viewListBtn}
-                        onPress={() => handleOpenAttendeesList(ev)}
-                        activeOpacity={0.75}
-                      >
-                        <Text style={styles.viewListBtnTxt}>View list</Text>
-                      </TouchableOpacity>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <TouchableOpacity
+                          style={styles.guestSmallBtn}
+                          onPress={() => handleOpenGuestModalForEvent(ev)}
+                          activeOpacity={0.75}
+                        >
+                          <UserPlus size={13} color="#6D28D9" strokeWidth={2.2} />
+                          <Text style={styles.guestSmallBtnTxt}>+ Guest</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.viewListBtn}
+                          onPress={() => handleOpenAttendeesList(ev)}
+                          activeOpacity={0.75}
+                        >
+                          <Text style={styles.viewListBtnTxt}>View list</Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   </View>
                 );
@@ -2399,7 +2686,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
             )}
           </View>
 
-          {/* Search bar */}
+          {/* Search bar & Add Guest */}
           <View style={styles.rosterSearchWrap}>
             <View style={styles.searchBox}>
               <Search size={18} color="#64748B" style={{ marginRight: 10 }} />
@@ -2411,7 +2698,57 @@ export default function AttendanceScreen({ navigation, route }: any) {
                 onChangeText={setAttendeesSearch}
               />
             </View>
+            <TouchableOpacity
+              style={styles.rosterAddGuestBtn}
+              onPress={() => setShowRosterGuestInput(prev => !prev)}
+              activeOpacity={0.8}
+            >
+              <UserPlus size={15} color="#6D28D9" strokeWidth={2.2} />
+              <Text style={styles.rosterAddGuestBtnTxt}>+ Guest</Text>
+            </TouchableOpacity>
           </View>
+
+          {/* Quick Add Guest input banner in roster */}
+          {showRosterGuestInput && (
+            <View style={styles.rosterGuestInputBanner}>
+              <View style={styles.addGuestInputWrap}>
+                <UserPlus size={15} color="#94A3B8" style={{ marginRight: 8 }} />
+                <TextInput
+                  style={styles.addGuestInput}
+                  placeholder="Guest's full name..."
+                  placeholderTextColor="#94A3B8"
+                  value={rosterGuestNameInput}
+                  onChangeText={setRosterGuestNameInput}
+                  returnKeyType="done"
+                  onSubmitEditing={() => {
+                    if (rosterGuestNameInput.trim() && selectedEventForList) {
+                      handleAddGuest(rosterGuestNameInput, selectedEventForList.id, selectedEventForList.title);
+                    }
+                  }}
+                  editable={!isAddingGuest}
+                />
+              </View>
+              <TouchableOpacity
+                style={[
+                  styles.addGuestBtn,
+                  (!rosterGuestNameInput.trim() || isAddingGuest) && styles.addGuestBtnDisabled
+                ]}
+                onPress={() => {
+                  if (rosterGuestNameInput.trim() && selectedEventForList) {
+                    handleAddGuest(rosterGuestNameInput, selectedEventForList.id, selectedEventForList.title);
+                  }
+                }}
+                disabled={!rosterGuestNameInput.trim() || isAddingGuest}
+                activeOpacity={0.8}
+              >
+                {isAddingGuest ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.addGuestBtnTxt}>Add</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Filter Pills: All | Present | Absent */}
           <View style={styles.rosterPillRow}>
@@ -2463,24 +2800,39 @@ export default function AttendanceScreen({ navigation, route }: any) {
                     />
 
                     <View style={{ flex: 1 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
                         <Text style={styles.attendeeName} numberOfLines={1}>{item.name}</Text>
                         {isMe && (
                           <View style={styles.youBadge}>
                             <Text style={styles.youBadgeTxt}>You</Text>
                           </View>
                         )}
+                        {item.isGuest && (
+                          <View style={styles.guestPillBadge}>
+                            <Text style={styles.guestPillBadgeTxt}>Guest</Text>
+                          </View>
+                        )}
                       </View>
+                      {item.isGuest && item.guestOf ? (
+                        <Text style={styles.guestOfTxt}>Brought by {item.guestOf}</Text>
+                      ) : null}
                       {isPresent && time ? (
                         <Text style={styles.attendeeTime}>{time}</Text>
                       ) : null}
                     </View>
 
-                    <View style={[styles.statusBadge, isPresent ? styles.presentBadge : styles.absentBadge]}>
-                      <Text style={[styles.statusBadgeTxt, isPresent ? styles.presentBadgeTxt : styles.absentBadgeTxt]}>
-                        {item.status}
-                      </Text>
-                    </View>
+                    {item.isGuest ? (
+                      <View style={[styles.statusBadge, styles.guestStatusBadge]}>
+                        <Check size={11} color="#6D28D9" strokeWidth={2.5} style={{ marginRight: 3 }} />
+                        <Text style={[styles.statusBadgeTxt, styles.guestStatusBadgeTxt]}>Present</Text>
+                      </View>
+                    ) : (
+                      <View style={[styles.statusBadge, isPresent ? styles.presentBadge : styles.absentBadge]}>
+                        <Text style={[styles.statusBadgeTxt, isPresent ? styles.presentBadgeTxt : styles.absentBadgeTxt]}>
+                          {item.status}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 );
               }}
@@ -3056,6 +3408,105 @@ export default function AttendanceScreen({ navigation, route }: any) {
                   ))}
                 </View>
               )}
+            </View>
+
+            {/* ── Guest & Visitor Attendance Card ── */}
+            <View style={styles.confirmGuestCard}>
+              <View style={styles.confirmFamilyHeaderRow}>
+                <View style={styles.confirmGuestIconWrap}>
+                  <UserPlus size={18} color="#6D28D9" strokeWidth={2.2} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.confirmGuestTitle}>Guests & Visitors</Text>
+                  <Text style={styles.confirmFamilySub}>Add friends or family visiting with you</Text>
+                </View>
+                {scanResultModal.guests && scanResultModal.guests.length > 0 && (
+                  <View style={styles.guestCountBadge}>
+                    <Text style={styles.guestCountBadgeTxt}>
+                      {scanResultModal.guests.length} {scanResultModal.guests.length === 1 ? 'Guest' : 'Guests'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {/* Add Guest Input Row */}
+              <View style={styles.addGuestInputRow}>
+                <View style={styles.addGuestInputWrap}>
+                  <UserPlus size={16} color="#94A3B8" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.addGuestInput}
+                    placeholder="Enter guest's full name..."
+                    placeholderTextColor="#94A3B8"
+                    value={guestNameInput}
+                    onChangeText={setGuestNameInput}
+                    returnKeyType="done"
+                    onSubmitEditing={() => handleAddGuest()}
+                    editable={!isAddingGuest}
+                  />
+                  {guestNameInput.length > 0 && (
+                    <TouchableOpacity onPress={() => setGuestNameInput('')} style={{ padding: 4 }}>
+                      <X size={14} color="#94A3B8" />
+                    </TouchableOpacity>
+                  )}
+                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.addGuestBtn,
+                    (!guestNameInput.trim() || isAddingGuest) && styles.addGuestBtnDisabled
+                  ]}
+                  onPress={() => handleAddGuest()}
+                  disabled={!guestNameInput.trim() || isAddingGuest}
+                  activeOpacity={0.8}
+                >
+                  {isAddingGuest ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <>
+                      <Plus size={15} color="#FFFFFF" strokeWidth={2.5} style={{ marginRight: 4 }} />
+                      <Text style={styles.addGuestBtnTxt}>Add</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* List of Added Guests */}
+              {scanResultModal.guests && scanResultModal.guests.length > 0 ? (
+                <View style={styles.guestListWrap}>
+                  {scanResultModal.guests.map((g) => (
+                    <View key={g.id} style={styles.guestRowItem}>
+                      <View style={styles.guestRowLeft}>
+                        <View style={styles.guestAvatar}>
+                          <Text style={styles.guestAvatarTxt}>
+                            {g.name?.charAt(0)?.toUpperCase() || 'G'}
+                          </Text>
+                        </View>
+                        <View style={{ marginLeft: 10, flex: 1 }}>
+                          <Text style={styles.guestNameTxt} numberOfLines={1}>
+                            {g.name} (Guest)
+                          </Text>
+                          <Text style={styles.guestSubTxt}>
+                            Present · Guest of {scanResultModal.scannedMemberName || memberName}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={styles.guestPresentBadge}>
+                          <Check size={11} color="#059669" strokeWidth={2.5} style={{ marginRight: 3 }} />
+                          <Text style={styles.guestPresentBadgeTxt}>Present</Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.guestRemoveBtn}
+                          onPress={() => handleRemoveGuest(g.id, g.name)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        >
+                          <Trash2 size={14} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
             </View>
 
             {/* Action Buttons */}
@@ -4844,6 +5295,244 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: '#94A3B8',
     fontStyle: 'italic',
+  },
+
+  // ── Guest & Visitor Attendance Styles ──
+  confirmGuestCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    width: '100%',
+    maxWidth: 380,
+    marginBottom: 24,
+    elevation: 2,
+    shadowColor: '#000000',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  confirmGuestIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#F5F3FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmGuestTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  guestCountBadge: {
+    backgroundColor: '#F5F3FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+  },
+  guestCountBadgeTxt: {
+    color: '#6D28D9',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  addGuestInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  addGuestInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+  },
+  addGuestInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#0F172A',
+    paddingVertical: 0,
+  },
+  addGuestBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#6D28D9',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    height: 44,
+  },
+  addGuestBtnDisabled: {
+    backgroundColor: '#C4B5FD',
+  },
+  addGuestBtnTxt: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '700',
+  },
+  guestListWrap: {
+    gap: 8,
+    marginTop: 10,
+  },
+  guestRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#EDE9FE',
+    backgroundColor: '#FAF5FF',
+  },
+  guestRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  guestAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#DDD6FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  guestAvatarTxt: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#6D28D9',
+  },
+  guestNameTxt: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  guestSubTxt: {
+    fontSize: 11,
+    color: '#6D28D9',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  guestPresentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  guestPresentBadgeTxt: {
+    color: '#15803D',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  guestRemoveBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 4,
+  },
+  guestActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+  },
+  guestActionBtnTxt: {
+    color: '#6D28D9',
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  guestSmallBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  guestSmallBtnTxt: {
+    color: '#6D28D9',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  guestPillBadge: {
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  guestPillBadgeTxt: {
+    color: '#6D28D9',
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  guestOfTxt: {
+    fontSize: 11,
+    color: '#6D28D9',
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
+  guestStatusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F3FF',
+    borderColor: '#DDD6FE',
+    borderWidth: 1,
+  },
+  guestStatusBadgeTxt: {
+    color: '#6D28D9',
+    fontWeight: '700',
+  },
+  rosterAddGuestBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    paddingHorizontal: 12,
+    height: 42,
+    borderRadius: 12,
+  },
+  rosterAddGuestBtnTxt: {
+    color: '#6D28D9',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  rosterGuestInputBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 24,
+    marginBottom: 12,
   },
 
   // ── Invalid QR Modal (matches Screenshot 2) ──
