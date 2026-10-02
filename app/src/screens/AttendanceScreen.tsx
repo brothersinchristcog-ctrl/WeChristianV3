@@ -1302,6 +1302,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
 
   // ─── Toggle Family Member Attendance (Checkbox handler) ───────────────────
   const handleToggleFamilyAttendance = async (famId: string) => {
+    if (scanResultModal.alreadyMarked) return;
     const fam = scanResultModal.familyMembers.find(f => f.id === famId);
     if (!fam || fam.loading) return;
 
@@ -1463,6 +1464,19 @@ export default function AttendanceScreen({ navigation, route }: any) {
     const rawName = (customGuestName || guestNameInput).trim();
     if (!rawName) {
       Alert.alert('Guest Name Required', 'Please enter your guest\'s full name.');
+      return;
+    }
+
+    if (scanResultModal.alreadyMarked) {
+      Alert.alert('Session Finalized', 'Attendance for this event has already been recorded.');
+      return;
+    }
+
+    const isDuplicate = scanResultModal.guests.some(
+      g => g.name.trim().toLowerCase() === rawName.toLowerCase()
+    );
+    if (isDuplicate) {
+      Alert.alert('Guest Already Added', `"${rawName}" has already been added to this attendance session.`);
       return;
     }
 
@@ -2227,15 +2241,6 @@ export default function AttendanceScreen({ navigation, route }: any) {
               </View>
 
               <TouchableOpacity
-                style={styles.guestActionBtn}
-                onPress={() => handleOpenGuestModalForEvent(eventItem)}
-                activeOpacity={0.75}
-              >
-                <UserPlus size={15} color="#6D28D9" strokeWidth={2.2} />
-                <Text style={styles.guestActionBtnTxt}>+ Guest</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
                 style={styles.eyeBtn}
                 onPress={() => handleOpenAttendeesList(eventItem)}
                 activeOpacity={0.75}
@@ -2618,23 +2623,13 @@ export default function AttendanceScreen({ navigation, route }: any) {
                     {/* Bottom Row: X present & View list button */}
                     <View style={styles.eventCardBottomRow}>
                       <Text style={styles.presentCountTxt}>{ev.presentCount || 0} present</Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <TouchableOpacity
-                          style={styles.guestSmallBtn}
-                          onPress={() => handleOpenGuestModalForEvent(ev)}
-                          activeOpacity={0.75}
-                        >
-                          <UserPlus size={13} color="#6D28D9" strokeWidth={2.2} />
-                          <Text style={styles.guestSmallBtnTxt}>+ Guest</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.viewListBtn}
-                          onPress={() => handleOpenAttendeesList(ev)}
-                          activeOpacity={0.75}
-                        >
-                          <Text style={styles.viewListBtnTxt}>View list</Text>
-                        </TouchableOpacity>
-                      </View>
+                      <TouchableOpacity
+                        style={styles.viewListBtn}
+                        onPress={() => handleOpenAttendeesList(ev)}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={styles.viewListBtnTxt}>View list</Text>
+                      </TouchableOpacity>
                     </View>
                   </View>
                 );
@@ -2686,69 +2681,19 @@ export default function AttendanceScreen({ navigation, route }: any) {
             )}
           </View>
 
-          {/* Search bar & Add Guest */}
+          {/* Search bar */}
           <View style={styles.rosterSearchWrap}>
             <View style={styles.searchBox}>
               <Search size={18} color="#64748B" style={{ marginRight: 10 }} />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search members"
+                placeholder="Search attendees"
                 placeholderTextColor="#94a3b8"
                 value={attendeesSearch}
                 onChangeText={setAttendeesSearch}
               />
             </View>
-            <TouchableOpacity
-              style={styles.rosterAddGuestBtn}
-              onPress={() => setShowRosterGuestInput(prev => !prev)}
-              activeOpacity={0.8}
-            >
-              <UserPlus size={15} color="#6D28D9" strokeWidth={2.2} />
-              <Text style={styles.rosterAddGuestBtnTxt}>+ Guest</Text>
-            </TouchableOpacity>
           </View>
-
-          {/* Quick Add Guest input banner in roster */}
-          {showRosterGuestInput && (
-            <View style={styles.rosterGuestInputBanner}>
-              <View style={styles.addGuestInputWrap}>
-                <UserPlus size={15} color="#94A3B8" style={{ marginRight: 8 }} />
-                <TextInput
-                  style={styles.addGuestInput}
-                  placeholder="Guest's full name..."
-                  placeholderTextColor="#94A3B8"
-                  value={rosterGuestNameInput}
-                  onChangeText={setRosterGuestNameInput}
-                  returnKeyType="done"
-                  onSubmitEditing={() => {
-                    if (rosterGuestNameInput.trim() && selectedEventForList) {
-                      handleAddGuest(rosterGuestNameInput, selectedEventForList.id, selectedEventForList.title);
-                    }
-                  }}
-                  editable={!isAddingGuest}
-                />
-              </View>
-              <TouchableOpacity
-                style={[
-                  styles.addGuestBtn,
-                  (!rosterGuestNameInput.trim() || isAddingGuest) && styles.addGuestBtnDisabled
-                ]}
-                onPress={() => {
-                  if (rosterGuestNameInput.trim() && selectedEventForList) {
-                    handleAddGuest(rosterGuestNameInput, selectedEventForList.id, selectedEventForList.title);
-                  }
-                }}
-                disabled={!rosterGuestNameInput.trim() || isAddingGuest}
-                activeOpacity={0.8}
-              >
-                {isAddingGuest ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.addGuestBtnTxt}>Add</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
 
           {/* Filter Pills: All | Present | Absent */}
           <View style={styles.rosterPillRow}>
@@ -3365,7 +3310,44 @@ export default function AttendanceScreen({ navigation, route }: any) {
                 <View style={styles.famEmptyWrap}>
                   <Text style={styles.famEmptyTxt}>No registered family members for this household.</Text>
                 </View>
+              ) : scanResultModal.alreadyMarked ? (
+                /* Locked / Read-Only View Once Attendance Recorded */
+                <View style={styles.famListWrap}>
+                  {scanResultModal.familyMembers.filter(f => f.checked).length === 0 ? (
+                    <View style={styles.famEmptyWrap}>
+                      <Text style={styles.famEmptyTxt}>No family members were added for this attendance session.</Text>
+                    </View>
+                  ) : (
+                    scanResultModal.familyMembers
+                      .filter(f => f.checked)
+                      .map((fam) => (
+                        <View
+                          key={fam.id}
+                          style={[styles.famRowItem, styles.famRowItemChecked]}
+                        >
+                          <View style={styles.famRowLeft}>
+                            <View style={styles.famCheckboxChecked}>
+                              <Check size={13} color="#FFFFFF" strokeWidth={3} />
+                            </View>
+                            <View style={{ marginLeft: 10, flex: 1 }}>
+                              <Text style={[styles.famNameTxt, styles.famNameTxtChecked]} numberOfLines={1}>
+                                {fam.name}
+                              </Text>
+                              <Text style={styles.famRelationTxt}>
+                                {fam.relation ? `${fam.relation} · Family Member` : 'Family Member'}
+                              </Text>
+                            </View>
+                          </View>
+                          <View style={styles.famPresentBadge}>
+                            <Check size={11} color="#15803D" strokeWidth={2.5} style={{ marginRight: 3 }} />
+                            <Text style={styles.famPresentBadgeTxt}>Present</Text>
+                          </View>
+                        </View>
+                      ))
+                  )}
+                </View>
               ) : (
+                /* Active First-Time Scan: Selectable Checkboxes */
                 <View style={styles.famListWrap}>
                   {scanResultModal.familyMembers.map((fam) => (
                     <TouchableOpacity
@@ -3418,7 +3400,9 @@ export default function AttendanceScreen({ navigation, route }: any) {
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.confirmGuestTitle}>Guests & Visitors</Text>
-                  <Text style={styles.confirmFamilySub}>Add friends or family visiting with you</Text>
+                  <Text style={styles.confirmFamilySub}>
+                    {scanResultModal.alreadyMarked ? 'Guests recorded for this session' : 'Add friends or family visiting with you'}
+                  </Text>
                 </View>
                 {scanResultModal.guests && scanResultModal.guests.length > 0 && (
                   <View style={styles.guestCountBadge}>
@@ -3429,45 +3413,47 @@ export default function AttendanceScreen({ navigation, route }: any) {
                 )}
               </View>
 
-              {/* Add Guest Input Row */}
-              <View style={styles.addGuestInputRow}>
-                <View style={styles.addGuestInputWrap}>
-                  <UserPlus size={16} color="#94A3B8" style={{ marginRight: 8 }} />
-                  <TextInput
-                    style={styles.addGuestInput}
-                    placeholder="Enter guest's full name..."
-                    placeholderTextColor="#94A3B8"
-                    value={guestNameInput}
-                    onChangeText={setGuestNameInput}
-                    returnKeyType="done"
-                    onSubmitEditing={() => handleAddGuest()}
-                    editable={!isAddingGuest}
-                  />
-                  {guestNameInput.length > 0 && (
-                    <TouchableOpacity onPress={() => setGuestNameInput('')} style={{ padding: 4 }}>
-                      <X size={14} color="#94A3B8" />
-                    </TouchableOpacity>
-                  )}
+              {/* Add Guest Input Row: ONLY available during initial scan session */}
+              {!scanResultModal.alreadyMarked && (
+                <View style={styles.addGuestInputRow}>
+                  <View style={styles.addGuestInputWrap}>
+                    <UserPlus size={16} color="#94A3B8" style={{ marginRight: 8 }} />
+                    <TextInput
+                      style={styles.addGuestInput}
+                      placeholder="Enter guest's full name..."
+                      placeholderTextColor="#94A3B8"
+                      value={guestNameInput}
+                      onChangeText={setGuestNameInput}
+                      returnKeyType="done"
+                      onSubmitEditing={() => handleAddGuest()}
+                      editable={!isAddingGuest}
+                    />
+                    {guestNameInput.length > 0 && (
+                      <TouchableOpacity onPress={() => setGuestNameInput('')} style={{ padding: 4 }}>
+                        <X size={14} color="#94A3B8" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <TouchableOpacity
+                    style={[
+                      styles.addGuestBtn,
+                      (!guestNameInput.trim() || isAddingGuest) && styles.addGuestBtnDisabled
+                    ]}
+                    onPress={() => handleAddGuest()}
+                    disabled={!guestNameInput.trim() || isAddingGuest}
+                    activeOpacity={0.8}
+                  >
+                    {isAddingGuest ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <>
+                        <Plus size={15} color="#FFFFFF" strokeWidth={2.5} style={{ marginRight: 4 }} />
+                        <Text style={styles.addGuestBtnTxt}>Add</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity
-                  style={[
-                    styles.addGuestBtn,
-                    (!guestNameInput.trim() || isAddingGuest) && styles.addGuestBtnDisabled
-                  ]}
-                  onPress={() => handleAddGuest()}
-                  disabled={!guestNameInput.trim() || isAddingGuest}
-                  activeOpacity={0.8}
-                >
-                  {isAddingGuest ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <Plus size={15} color="#FFFFFF" strokeWidth={2.5} style={{ marginRight: 4 }} />
-                      <Text style={styles.addGuestBtnTxt}>Add</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
+              )}
 
               {/* List of Added Guests */}
               {scanResultModal.guests && scanResultModal.guests.length > 0 ? (
@@ -3495,16 +3481,22 @@ export default function AttendanceScreen({ navigation, route }: any) {
                           <Check size={11} color="#059669" strokeWidth={2.5} style={{ marginRight: 3 }} />
                           <Text style={styles.guestPresentBadgeTxt}>Present</Text>
                         </View>
-                        <TouchableOpacity
-                          style={styles.guestRemoveBtn}
-                          onPress={() => handleRemoveGuest(g.id, g.name)}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        >
-                          <Trash2 size={14} color="#EF4444" />
-                        </TouchableOpacity>
+                        {!scanResultModal.alreadyMarked && (
+                          <TouchableOpacity
+                            style={styles.guestRemoveBtn}
+                            onPress={() => handleRemoveGuest(g.id, g.name)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Trash2 size={14} color="#EF4444" />
+                          </TouchableOpacity>
+                        )}
                       </View>
                     </View>
                   ))}
+                </View>
+              ) : scanResultModal.alreadyMarked ? (
+                <View style={styles.famEmptyWrap}>
+                  <Text style={styles.famEmptyTxt}>No guests were added for this session.</Text>
                 </View>
               ) : null}
             </View>
@@ -3513,7 +3505,12 @@ export default function AttendanceScreen({ navigation, route }: any) {
             <View style={styles.confirmButtonsWrap}>
               <TouchableOpacity 
                 style={styles.confirmDoneBtn}
-                onPress={() => setScanResultModal(prev => ({ ...prev, visible: false }))}
+                onPress={() => {
+                  if (scanResultModal.eventId) {
+                    setMarkedEventIds(prev => new Set([...prev, scanResultModal.eventId!]));
+                  }
+                  setScanResultModal(prev => ({ ...prev, visible: false, alreadyMarked: true }));
+                }}
                 activeOpacity={0.85}
               >
                 <Text style={styles.confirmDoneBtnTxt}>Done</Text>

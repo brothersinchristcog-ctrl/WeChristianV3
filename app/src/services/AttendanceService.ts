@@ -9,7 +9,7 @@ export interface AttendanceRecord {
   photoUrl?: string;
   status?: 'Present' | 'Absent';
   timestamp?: any;
-  method?: 'QR_SCAN' | 'ADMIN_MANUAL' | 'SELF_CHECKIN' | 'GUEST_CHECKIN';
+  method?: 'QR_SCAN' | 'ADMIN_MANUAL' | 'SELF_CHECKIN' | 'GUEST_CHECKIN' | 'FAMILY_CHECKIN';
   churchId?: string;
   eventId?: string;
   eventName?: string;
