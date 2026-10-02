@@ -698,12 +698,14 @@ export default function SubscriptionTab({ member }: { member?: any }) {
             </View>
             <Text style={{ color: '#f8fafc', fontSize: 20, fontWeight: '600', marginBottom: 16, marginTop: 4, width: '70%' }} numberOfLines={2} adjustsFontSizeToFit>{activeChurch?.name || 'Church of GOD'}</Text>
             
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={{ color: '#64748b', fontSize: 28, textDecorationLine: 'line-through', marginRight: 12 }}>₹999</Text>
-              <Text style={{ color: '#10b981', fontSize: 42, fontWeight: '800', marginRight: 12 }}>₹199</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', rowGap: 4, marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', marginRight: 10 }}>
+                <Text style={{ color: '#64748b', fontSize: 26, textDecorationLine: 'line-through', marginRight: 10 }}>₹999</Text>
+                <Text style={{ color: '#10b981', fontSize: 38, fontWeight: '800' }}>₹199</Text>
+              </View>
               <View>
-                <Text style={{ color: '#10b981', fontSize: 14, fontWeight: '500' }}>/ year (INR)</Text>
-                <Text style={{ color: '#10b981', fontSize: 12, marginTop: 2 }}>₹199 billed yearly</Text>
+                <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '600' }}>/ year (INR)</Text>
+                <Text style={{ color: '#6ee7b7', fontSize: 11.5, marginTop: 1 }}>₹199 billed yearly</Text>
               </View>
             </View>
 
@@ -851,51 +853,103 @@ export default function SubscriptionTab({ member }: { member?: any }) {
                   </View>
                 </View>
               ) : (
-                <View key={`${h.id}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 16, borderBottomWidth: i === arr.length - 1 ? 0 : 1, borderBottomColor: '#E4DDC8' }}>
-                  <Text style={{ color: '#C4B896', fontSize: 12, width: 22, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                    {String((subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0)) - i).padStart(2, '0')}
-                  </Text>
-                  <View style={{ width: 36, height: 36, backgroundColor: '#F1EADA', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
-                    <CreditCard size={16} color="#C98A3E" />
+                <View key={`${h.id}-${i}`} style={{
+                  backgroundColor: '#FFFFFF',
+                  borderRadius: 16,
+                  padding: 16,
+                  marginBottom: 16,
+                  borderWidth: 1,
+                  borderColor: '#E4DDC8',
+                  elevation: 2,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: 0.06,
+                  shadowRadius: 4,
+                }}>
+                  {/* Top Row: # Index, Icon, Plan Name, Amount & Status */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
+                      <Text style={{ color: '#9A8F72', fontSize: 12, fontWeight: '700', marginRight: 8, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                        #{String((subscriptionHistory.length + (isPaymentSuccessful ? 1 : 0)) - i).padStart(2, '0')}
+                      </Text>
+                      <View style={{ width: 32, height: 32, backgroundColor: '#F1EADA', borderRadius: 8, alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                        <CreditCard size={16} color="#C98A3E" />
+                      </View>
+                      <Text style={{ color: '#1F3B3D', fontSize: 15, fontWeight: '700', flexShrink: 1, textTransform: 'capitalize' }}>
+                        {h.plan} Plan
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={{ color: '#1F3B3D', fontSize: 17, fontWeight: '800' }}>₹{h.amount}</Text>
+                      <View style={{ 
+                        backgroundColor: h.status === 'active' ? '#d1fae5' : (h.status === 'cancelled' ? '#fee2e2' : '#fef3c7'), 
+                        paddingHorizontal: 7, 
+                        paddingVertical: 2, 
+                        borderRadius: 6, 
+                        marginTop: 3 
+                      }}>
+                        <Text style={{ 
+                          color: h.status === 'active' ? '#059669' : (h.status === 'cancelled' ? '#dc2626' : '#d97706'), 
+                          fontSize: 9.5, 
+                          fontWeight: '800', 
+                          letterSpacing: 0.4 
+                        }}>
+                          {h.status.toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontWeight: '500' }}>{h.plan} Plan</Text>
-                    <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 4, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                      Date: {h.paidAt 
-                        ? ((h.paidAt as any).toDate 
-                            ? (h.paidAt as any).toDate() 
-                            : ((h.paidAt as any).seconds 
-                                ? new Date((h.paidAt as any).seconds * 1000) 
-                                : new Date(h.paidAt as any))
-                          ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
-                        : 'N/A'}
-                    </Text>
-                    <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 2, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                      Txn ID: {h.id?.slice(0,18) || 'N/A'}
-                    </Text>
-                    <Text style={{ color: '#9A8F72', fontSize: 11.5, marginTop: 2 }}>
-                      Name: {member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}
-                    </Text>
+
+                  {/* Details Card */}
+                  <View style={{ backgroundColor: '#F9F8F6', borderRadius: 10, padding: 10, marginBottom: 12, borderWidth: 1, borderColor: '#EDE7D9' }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <Text style={{ color: '#8c826a', fontSize: 11.5, fontWeight: '500' }}>Billed to</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 12, fontWeight: '700' }}>
+                        {member?.firstName || user?.displayName?.split(' ')[0] || 'Member'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
+                      <Text style={{ color: '#8c826a', fontSize: 11.5, fontWeight: '500' }}>Transaction ID</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 12, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                        {h.id?.slice(0, 20) || 'N/A'}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ color: '#8c826a', fontSize: 11.5, fontWeight: '500' }}>Date</Text>
+                      <Text style={{ color: '#1F3B3D', fontSize: 12, fontWeight: '700' }}>
+                        {h.paidAt 
+                          ? ((h.paidAt as any).toDate 
+                              ? (h.paidAt as any).toDate() 
+                              : ((h.paidAt as any).seconds 
+                                  ? new Date((h.paidAt as any).seconds * 1000) 
+                                  : new Date(h.paidAt as any))
+                            ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) 
+                          : 'N/A'}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={{ alignItems: 'flex-end', marginRight: 12 }}>
-                    <Text style={{ color: '#1F3B3D', fontSize: 14.5, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
-                      ₹{h.amount}
-                    </Text>
-                    <Text style={{ color: h.status === 'active' ? '#4F7A55' : (h.status === 'cancelled' ? '#ef4444' : '#C98A3E'), fontSize: 10.5, fontWeight: '600', letterSpacing: 0.3, marginTop: 4 }}>
-                      {h.status.toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', gap: 8 }}>
-                    <TouchableOpacity onPress={() => {
-                      setSelectedInvoice(h);
-                    }} style={{ padding: 10, backgroundColor: '#E4DDC8', borderRadius: 8 }}>
-                      <Eye size={16} color="#1F3B3D" />
+
+                  {/* Actions Row */}
+                  <View style={{ flexDirection: 'row', gap: 8, justifyContent: 'flex-end', alignItems: 'center' }}>
+                    <TouchableOpacity 
+                      onPress={() => setSelectedInvoice(h)} 
+                      style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#F1EADA', borderRadius: 8 }}
+                    >
+                      <Eye size={14} color="#1F3B3D" style={{ marginRight: 5 }} />
+                      <Text style={{ color: '#1F3B3D', fontSize: 12, fontWeight: '600' }}>View</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => downloadPdfReceipt(h)} style={{ padding: 10, backgroundColor: '#10b981', borderRadius: 8 }}>
-                      <Download size={16} color="#ffffff" />
+                    <TouchableOpacity 
+                      onPress={() => downloadPdfReceipt(h)} 
+                      style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 12, backgroundColor: '#10b981', borderRadius: 8 }}
+                    >
+                      <Download size={14} color="#ffffff" style={{ marginRight: 5 }} />
+                      <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '600' }}>Receipt</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteHistoryItem(h)} style={{ padding: 10, backgroundColor: '#fee2e2', borderRadius: 8 }}>
-                      <Trash2 size={16} color="#ef4444" />
+                    <TouchableOpacity 
+                      onPress={() => handleDeleteHistoryItem(h)} 
+                      style={{ paddingVertical: 8, paddingHorizontal: 10, backgroundColor: '#fee2e2', borderRadius: 8, alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <Trash2 size={15} color="#ef4444" />
                     </TouchableOpacity>
                   </View>
                 </View>

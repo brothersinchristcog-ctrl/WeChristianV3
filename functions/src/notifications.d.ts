@@ -28,4 +28,11 @@ export declare const pushPrayerRequestApproved: import("firebase-functions/core"
  * Cron Job: Runs every minute to check if any online meeting is starting now (or within 5 minutes)
  */
 export declare const monitorMeetingLive: import("firebase-functions/v2/scheduler").ScheduleFunction;
+/**
+ * 🏛️ NOTIFY SUPER ADMINS OF NEW CHURCH REGISTRATION
+ * Triggered automatically when a new church document is created in Firestore.
+ */
+export declare const pushNewChurchRegistered: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+}>>;
 //# sourceMappingURL=notifications.d.ts.map

@@ -138,6 +138,9 @@ class NotificationService {
         case 'LIVE_CELEBRATION':
           nav.navigate('LiveCelebrationsChat', {});
           break;
+        case 'new_church':
+          nav.navigate('AdminRoot', { targetTab: 'App Admin' });
+          break;
         default:
           if (id) {
             nav.navigate('Updates', { highlightId: id, highlightType: type });
@@ -188,6 +191,31 @@ class NotificationService {
       console.log(`🔌 Unsubscribed from FCM topic: ${topicName}`);
     } catch (error) {
       console.error(`❌ Failed to unsubscribe from topic church_${churchId}:`, error);
+    }
+  }
+
+  // Subscribe Super Admin users to platform-wide alerts
+  async subscribeToSuperAdminTopic() {
+    try {
+      const authStatus = await messaging().hasPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      if (!enabled) return;
+      await messaging().subscribeToTopic('platform_super_admins');
+      console.log('📡 Subscribed to FCM topic: platform_super_admins');
+    } catch (error) {
+      console.error('❌ Failed to subscribe to platform_super_admins topic:', error);
+    }
+  }
+
+  // Unsubscribe Super Admin from platform-wide alerts (on logout)
+  async unsubscribeFromSuperAdminTopic() {
+    try {
+      await messaging().unsubscribeFromTopic('platform_super_admins');
+      console.log('🔌 Unsubscribed from FCM topic: platform_super_admins');
+    } catch (error) {
+      console.error('❌ Failed to unsubscribe from platform_super_admins topic:', error);
     }
   }
 

@@ -25,6 +25,7 @@ export interface ChurchDetails {
   churchCode: string;
   isActive?: boolean;
   createdBy?: string;
+  createdAt?: any;
   tagline?: string;
   subdomain: string;
   contactEmail: string;
@@ -230,6 +231,7 @@ class ChurchService {
       const churchData = {
         ...data,
         isActive: true,
+        createdAt: firestore.FieldValue.serverTimestamp(),
         subscription: {
           status: 'trialing',
           tier: 'free',
@@ -239,10 +241,101 @@ class ChurchService {
       };
       
       const docRef = await firestore().collection('churches').add(churchData);
+
+      this.notifySuperAdminsNewChurchRegistration({
+        churchId: docRef.id,
+        name: data.name,
+        pastorName: data.pastorName || data.adminName,
+        contactPhone: data.contactPhone,
+        contactEmail: data.contactEmail,
+      }).catch(err => console.warn('Non-fatal error notifying super admins:', err));
+
       return docRef.id;
     } catch (error) {
       console.error('Error creating church:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Notify all platform Super Admins when a new church is registered
+   */
+  async notifySuperAdminsNewChurchRegistration(details: {
+    churchId: string;
+    name: string;
+    pastorName?: string;
+    contactPhone?: string;
+    contactEmail?: string;
+    city?: string;
+  }) {
+    try {
+      const regDate = new Date();
+      const dateFormatted = regDate.toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+      const timeFormatted = regDate.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+      const dateTimeStr = `${dateFormatted} at ${timeFormatted}`;
+
+      const title = '🏛️ New Church Registered';
+      const body = `"${details.name}" was registered on ${dateTimeStr}.${details.pastorName ? ` Pastor/Admin: ${details.pastorName}` : ''}`;
+
+      // 1. Fetch all Super Admins from platform_admins collection
+      const adminsSnapshot = await firestore().collection('platform_admins').get();
+      if (adminsSnapshot.empty) {
+        console.log('ℹ️ No platform super admins found in Firestore to notify.');
+        return;
+      }
+
+      const adminIds = adminsSnapshot.docs.map(doc => doc.id);
+
+      // 2. Write notifications in batch for all Super Admins
+      const batch = firestore().batch();
+      
+      for (const adminId of adminIds) {
+        const notifRef = firestore()
+          .collection('users')
+          .doc(adminId)
+          .collection('notifications')
+          .doc();
+
+        batch.set(notifRef, {
+          type: 'new_church',
+          title,
+          body,
+          churchId: details.churchId,
+          churchName: details.name,
+          pastorName: details.pastorName || '',
+          contactPhone: details.contactPhone || '',
+          registrationDateTime: dateTimeStr,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+          read: false,
+        });
+      }
+
+      // Also record in central platform_notifications
+      const centralRef = firestore().collection('platform_notifications').doc();
+      batch.set(centralRef, {
+        type: 'new_church',
+        title,
+        body,
+        churchId: details.churchId,
+        churchName: details.name,
+        pastorName: details.pastorName || '',
+        contactPhone: details.contactPhone || '',
+        registrationDateTime: dateTimeStr,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
+
+      await batch.commit();
+      console.log(`✅ Stored new church registration notification for ${adminIds.length} super admin(s)`);
+    } catch (err) {
+      console.warn('⚠️ Error notifying super admins of new church registration:', err);
     }
   }
 

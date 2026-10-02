@@ -8,7 +8,8 @@ import ChurchService, { ChurchDetails } from '../../services/ChurchService';
 import FirestoreService from '../../services/FirestoreService';
 import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Shield, X, Image as ImageIcon, Search, Mail, Phone, Settings, Check, UploadCloud, ChevronLeft, Save, FileText, Music, Pencil, MapPin, AlertCircle, Trash2, User } from 'lucide-react-native';
+import { Plus, Shield, X, Image as ImageIcon, Search, Mail, Phone, Settings, Check, UploadCloud, ChevronLeft, Save, FileText, Music, Pencil, MapPin, AlertCircle, Trash2, User, Calendar, ChevronDown } from 'lucide-react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -48,6 +49,11 @@ export default function SuperAdminDashboard({ navigation }: any) {
   const loading = activeTab === 'churches' ? churchesLoading : activeTab === 'songs' ? songsLoading : false;
   
   const [searchQuery, setSearchQuery] = useState('');
+  type ChurchDateFilter = 'all' | 'today' | 'yesterday' | 'week' | 'month' | 'year' | 'custom';
+  const [selectedDateFilter, setSelectedDateFilter] = useState<ChurchDateFilter>('all');
+  const [customStartDate, setCustomStartDate] = useState<Date | null>(null);
+  const [customEndDate, setCustomEndDate] = useState<Date | null>(null);
+  const [pickerMode, setPickerMode] = useState<'start' | 'end' | null>(null);
   
   const [selectedSongs, setSelectedSongs] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -416,13 +422,109 @@ export default function SuperAdminDashboard({ navigation }: any) {
   // --- Renderers ---
   const query = (searchQuery || '').toLowerCase().trim();
 
-  const filteredChurches = churches.filter(c => 
-    (c.name || '').toLowerCase().includes(query) || 
-    (c.subdomain || '').toLowerCase().includes(query) ||
-    (c.address || '').toLowerCase().includes(query) ||
-    (c.pastorName || '').toLowerCase().includes(query) ||
-    (c.adminName || '').toLowerCase().includes(query)
-  );
+  const getChurchRegistrationDate = (c: any): Date | null => {
+    if (c.createdAt) {
+      if (typeof c.createdAt.toDate === 'function') return c.createdAt.toDate();
+      if (c.createdAt.seconds) return new Date(c.createdAt.seconds * 1000);
+      const d = new Date(c.createdAt);
+      if (!isNaN(d.getTime())) return d;
+    }
+    if (c.subscription?.trialEndsAt) {
+      const end = new Date(c.subscription.trialEndsAt);
+      if (!isNaN(end.getTime())) {
+        const start = new Date(end);
+        start.setDate(start.getDate() - 60);
+        return start;
+      }
+    }
+    return null;
+  };
+
+  const matchesDateFilter = (c: ChurchDetails, filter: ChurchDateFilter) => {
+    if (filter === 'all') return true;
+    const regDate = getChurchRegistrationDate(c);
+    if (!regDate) return false;
+
+    const now = new Date();
+
+    if (filter === 'today') {
+      return (
+        regDate.getDate() === now.getDate() &&
+        regDate.getMonth() === now.getMonth() &&
+        regDate.getFullYear() === now.getFullYear()
+      );
+    }
+
+    if (filter === 'yesterday') {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return (
+        regDate.getDate() === yesterday.getDate() &&
+        regDate.getMonth() === yesterday.getMonth() &&
+        regDate.getFullYear() === yesterday.getFullYear()
+      );
+    }
+
+    if (filter === 'week') {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday start of week
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+      return regDate >= startOfWeek && regDate < endOfWeek;
+    }
+
+    if (filter === 'month') {
+      return (
+        regDate.getMonth() === now.getMonth() &&
+        regDate.getFullYear() === now.getFullYear()
+      );
+    }
+
+    if (filter === 'year') {
+      return regDate.getFullYear() === now.getFullYear();
+    }
+
+    if (filter === 'custom') {
+      if (!customStartDate && !customEndDate) return true;
+      if (customStartDate) {
+        const start = new Date(customStartDate);
+        start.setHours(0, 0, 0, 0);
+        if (regDate < start) return false;
+      }
+      if (customEndDate) {
+        const end = new Date(customEndDate);
+        end.setHours(23, 59, 59, 999);
+        if (regDate > end) return false;
+      }
+      return true;
+    }
+
+    return true;
+  };
+
+  const filteredChurches = churches.filter(c => {
+    const matchesSearch = 
+      (c.name || '').toLowerCase().includes(query) || 
+      (c.subdomain || '').toLowerCase().includes(query) ||
+      (c.address || '').toLowerCase().includes(query) ||
+      (c.pastorName || '').toLowerCase().includes(query) ||
+      (c.adminName || '').toLowerCase().includes(query);
+    if (!matchesSearch) return false;
+    return matchesDateFilter(c, selectedDateFilter);
+  });
+
+  const churchFilterCounts = {
+    all: churches.length,
+    today: churches.filter(c => matchesDateFilter(c, 'today')).length,
+    yesterday: churches.filter(c => matchesDateFilter(c, 'yesterday')).length,
+    week: churches.filter(c => matchesDateFilter(c, 'week')).length,
+    month: churches.filter(c => matchesDateFilter(c, 'month')).length,
+    year: churches.filter(c => matchesDateFilter(c, 'year')).length,
+    custom: churches.filter(c => matchesDateFilter(c, 'custom')).length,
+  };
 
   const masterSongsWithIndex = masterSongs.map((s, index) => ({ ...s, absoluteIndex: index }));
   const filteredSongs = masterSongsWithIndex.filter((s) => {
@@ -501,13 +603,160 @@ export default function SuperAdminDashboard({ navigation }: any) {
       </View>
 
       {activeTab === 'churches' && (
-        <View style={styles.actionRow}>
-          <Text style={[styles.listCountText, { marginBottom: 0 }]}>{filteredChurches.length} churches</Text>
-          <TouchableOpacity style={[styles.btnAction, { backgroundColor: '#3b82f6' }]} onPress={handleScanDuplicates}>
-            <Search size={16} color="#ffffff" style={{ marginRight: 6 }} />
-            <Text style={[styles.btnActionText, { color: '#ffffff' }]}>Scan Duplicates</Text>
-          </TouchableOpacity>
-        </View>
+        <>
+          <View style={styles.actionRow}>
+            <Text style={[styles.listCountText, { marginBottom: 0 }]}>{filteredChurches.length} churches</Text>
+            <TouchableOpacity style={[styles.btnAction, { backgroundColor: '#3b82f6' }]} onPress={handleScanDuplicates}>
+              <Search size={16} color="#ffffff" style={{ marginRight: 6 }} />
+              <Text style={[styles.btnActionText, { color: '#ffffff' }]}>Scan Duplicates</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Registration Date Filter Pills */}
+          <View style={{ marginHorizontal: 20, marginBottom: 12 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20, gap: 8 }}>
+              {[
+                { id: 'all', label: 'All', count: churchFilterCounts.all },
+                { id: 'today', label: 'Today', count: churchFilterCounts.today },
+                { id: 'yesterday', label: 'Yesterday', count: churchFilterCounts.yesterday },
+                { id: 'week', label: 'This Week', count: churchFilterCounts.week },
+                { id: 'month', label: 'This Month', count: churchFilterCounts.month },
+                { id: 'year', label: 'This Year', count: churchFilterCounts.year },
+                { id: 'custom', label: 'Custom Range', count: churchFilterCounts.custom },
+              ].map(tab => {
+                const isSelected = selectedDateFilter === tab.id;
+                return (
+                  <TouchableOpacity
+                    key={tab.id}
+                    onPress={() => {
+                      setSelectedDateFilter(tab.id as any);
+                      if (tab.id === 'custom' && !customStartDate && !customEndDate) {
+                        setPickerMode('start');
+                      }
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 14,
+                      paddingVertical: 7,
+                      borderRadius: 20,
+                      backgroundColor: isSelected ? '#f0b429' : '#1e293b',
+                      borderWidth: 1,
+                      borderColor: isSelected ? '#f0b429' : '#334155',
+                    }}
+                  >
+                    <Text style={{
+                      color: isSelected ? '#1a1200' : '#94a3b8',
+                      fontWeight: isSelected ? '700' : '600',
+                      fontSize: 13,
+                    }}>
+                      {tab.label}
+                    </Text>
+                    <View style={{
+                      marginLeft: 6,
+                      paddingHorizontal: 6,
+                      paddingVertical: 1,
+                      borderRadius: 10,
+                      backgroundColor: isSelected ? 'rgba(0,0,0,0.15)' : '#0f172a',
+                    }}>
+                      <Text style={{
+                        color: isSelected ? '#1a1200' : '#f0b429',
+                        fontWeight: '700',
+                        fontSize: 11,
+                      }}>
+                        {tab.count}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Custom Date Range Picker Bar */}
+          {selectedDateFilter === 'custom' && (
+            <View style={{
+              marginHorizontal: 20,
+              marginBottom: 14,
+              backgroundColor: '#141b30',
+              borderRadius: 14,
+              padding: 12,
+              borderWidth: 1,
+              borderColor: '#2d3b66',
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Calendar size={14} color="#f0b429" style={{ marginRight: 6 }} />
+                  <Text style={{ color: '#f8fafc', fontSize: 13, fontWeight: '700' }}>Select Date Range</Text>
+                </View>
+                {(customStartDate || customEndDate) && (
+                  <TouchableOpacity 
+                    onPress={() => {
+                      setCustomStartDate(null);
+                      setCustomEndDate(null);
+                    }}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, backgroundColor: '#1e293b', borderRadius: 6 }}
+                  >
+                    <X size={12} color="#94a3b8" style={{ marginRight: 4 }} />
+                    <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600' }}>Clear Range</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                {/* Start Date Button */}
+                <TouchableOpacity
+                  onPress={() => setPickerMode('start')}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#1b2340',
+                    borderWidth: 1,
+                    borderColor: customStartDate ? '#f0b429' : '#334155',
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                  }}
+                >
+                  <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '600', marginBottom: 2 }}>START DATE</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ color: customStartDate ? '#f8fafc' : '#64748b', fontSize: 12.5, fontWeight: '600' }}>
+                      {customStartDate 
+                        ? customStartDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                        : 'Tap to pick'}
+                    </Text>
+                    <ChevronDown size={14} color="#64748b" />
+                  </View>
+                </TouchableOpacity>
+
+                <Text style={{ color: '#64748b', fontSize: 12, fontWeight: '700' }}>to</Text>
+
+                {/* End Date Button */}
+                <TouchableOpacity
+                  onPress={() => setPickerMode('end')}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#1b2340',
+                    borderWidth: 1,
+                    borderColor: customEndDate ? '#f0b429' : '#334155',
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                  }}
+                >
+                  <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '600', marginBottom: 2 }}>END DATE</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Text style={{ color: customEndDate ? '#f8fafc' : '#64748b', fontSize: 12.5, fontWeight: '600' }}>
+                      {customEndDate 
+                        ? customEndDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                        : 'Tap to pick'}
+                    </Text>
+                    <ChevronDown size={14} color="#64748b" />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </>
       )}
       {activeTab === 'songs' && (
         <View style={styles.actionRow}>
@@ -629,6 +878,20 @@ export default function SuperAdminDashboard({ navigation }: any) {
                           <Text style={styles.churchAddress} numberOfLines={1} ellipsizeMode="tail">{item.address}</Text>
                         </View>
                       ) : null}
+                      {(() => {
+                        const regDate = getChurchRegistrationDate(item);
+                        if (!regDate) return null;
+                        const dateStr = regDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                        const timeStr = regDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                        return (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                            <Calendar size={10} color="#38bdf8" style={{ marginRight: 4 }} />
+                            <Text style={{ fontSize: 11, color: '#38bdf8', fontWeight: '600' }}>
+                              Registered: {dateStr}, {timeStr}
+                            </Text>
+                          </View>
+                        );
+                      })()}
                     </View>
                   </View>
                   
@@ -693,6 +956,31 @@ export default function SuperAdminDashboard({ navigation }: any) {
                 </TouchableOpacity>
               );
             }}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 48, paddingHorizontal: 24 }}>
+                <Calendar size={42} color="#475569" style={{ marginBottom: 12 }} />
+                <Text style={{ color: '#f8fafc', fontSize: 16, fontWeight: '700', marginBottom: 6 }}>
+                  No Churches Found
+                </Text>
+                <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', lineHeight: 18 }}>
+                  {selectedDateFilter === 'all' 
+                    ? (query ? `No churches match "${searchQuery}"` : 'No churches have been registered yet.')
+                    : selectedDateFilter === 'custom'
+                      ? (customStartDate && customEndDate
+                          ? `No churches registered between ${customStartDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} and ${customEndDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}.`
+                          : 'Please select a start and end date to filter churches.')
+                      : `No churches were registered ${selectedDateFilter === 'today' ? 'today' : selectedDateFilter === 'yesterday' ? 'yesterday' : selectedDateFilter === 'week' ? 'during this week' : selectedDateFilter === 'month' ? 'during this month' : 'this year'}.`}
+                </Text>
+                {selectedDateFilter !== 'all' && (
+                  <TouchableOpacity 
+                    onPress={() => setSelectedDateFilter('all')}
+                    style={{ marginTop: 16, paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#1e293b', borderRadius: 8, borderWidth: 1, borderColor: '#334155' }}
+                  >
+                    <Text style={{ color: '#f0b429', fontWeight: '700', fontSize: 13 }}>View All Churches</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            }
           />
         ) : (
           <View style={styles.songsView}>
@@ -1054,6 +1342,27 @@ export default function SuperAdminDashboard({ navigation }: any) {
           </View>
         </View>
       </Modal>
+
+      <DateTimePickerModal
+        isVisible={pickerMode !== null}
+        mode="date"
+        date={pickerMode === 'start' ? (customStartDate || new Date()) : (customEndDate || (customStartDate || new Date()))}
+        maximumDate={pickerMode === 'start' && customEndDate ? customEndDate : new Date()}
+        minimumDate={pickerMode === 'end' && customStartDate ? customStartDate : undefined}
+        onConfirm={(date) => {
+          if (pickerMode === 'start') {
+            setCustomStartDate(date);
+            setPickerMode(null);
+            if (!customEndDate || customEndDate < date) {
+              setTimeout(() => setPickerMode('end'), 350);
+            }
+          } else if (pickerMode === 'end') {
+            setCustomEndDate(date);
+            setPickerMode(null);
+          }
+        }}
+        onCancel={() => setPickerMode(null)}
+      />
 
     </View>
   );

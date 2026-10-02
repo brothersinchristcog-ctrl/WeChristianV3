@@ -78,7 +78,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Check Super Admin Status
           try {
             const adminDoc = await firestore().collection('platform_admins').doc(userState.uid).get();
-            setIsPlatformSuperAdmin(adminDoc.exists);
+            const isAdmin = typeof (adminDoc as any).exists === 'function' ? (adminDoc as any).exists() : Boolean((adminDoc as any).exists);
+            setIsPlatformSuperAdmin(isAdmin);
+            if (isAdmin) {
+              const notifSvc = require('../services/NotificationService').default;
+              notifSvc.subscribeToSuperAdminTopic().catch(() => {});
+            }
           } catch (err) {
             console.warn('⚠️ [Auth] Failed to check platform admin status', err);
             setIsPlatformSuperAdmin(false);
@@ -271,6 +276,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         setMember(null);
         setIsPlatformSuperAdmin(false);
+        try {
+          const notifSvc = require('../services/NotificationService').default;
+          notifSvc.unsubscribeFromSuperAdminTopic().catch(() => {});
+        } catch (_) {}
         AsyncStorage.removeItem('@cached_member');
       }
       

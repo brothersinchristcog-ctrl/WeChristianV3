@@ -1,7 +1,7 @@
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { getMessaging } from 'firebase-admin/messaging';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 /**
  * 🔔 SEND MEETING NOTIFICATION
@@ -186,3 +186,114 @@ export const monitorMeetingLive = onSchedule('* * * * *', async (event) => {
     console.error('Error in checkOnlineMeetings cron job:', error);
   }
 });
+
+/**
+ * 🏛️ NOTIFY SUPER ADMINS OF NEW CHURCH REGISTRATION
+ * Triggered automatically when a new church document is created in Firestore.
+ */
+export const pushNewChurchRegistered = onDocumentCreated('churches/{churchId}', async (event) => {
+  const snap = event.data;
+  if (!snap) return;
+
+  const church = snap.data();
+  const churchId = event.params.churchId;
+  const churchName = church.name || 'A New Church';
+
+  const regDate = church.createdAt?.toDate ? church.createdAt.toDate() : new Date();
+  const dateFormatted = regDate.toLocaleDateString('en-US', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Kolkata',
+  });
+  const timeFormatted = regDate.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata',
+  });
+  const dateTimeStr = `${dateFormatted} at ${timeFormatted}`;
+
+  const title = '🏛️ New Church Registered';
+  const pastorInfo = church.pastorName || church.adminName ? ` (Pastor: ${church.pastorName || church.adminName})` : '';
+  const body = `"${churchName}"${pastorInfo} was registered on ${dateTimeStr}.`;
+
+  const db = getFirestore();
+  const messaging = getMessaging();
+
+  try {
+    // 1. Query all platform super admins
+    const adminsSnapshot = await db.collection('platform_admins').get();
+    if (adminsSnapshot.empty) {
+      console.log('ℹ️ No platform super admins found in Firestore.');
+      return;
+    }
+
+    const adminIds = adminsSnapshot.docs.map(d => d.id);
+    const tokens: string[] = [];
+
+    for (const adminId of adminIds) {
+      const userSnap = await db.collection('users').doc(adminId).get();
+      const data = userSnap.data();
+      if (data?.fcmToken && typeof data.fcmToken === 'string') {
+        tokens.push(data.fcmToken);
+      }
+    }
+
+    // 2. Multicast push to Super Admin devices
+    if (tokens.length > 0) {
+      const payload = {
+        notification: { title, body },
+        data: {
+          type: 'new_church',
+          churchId,
+          churchName,
+          registrationDate: dateTimeStr,
+        },
+        tokens,
+        android: {
+          priority: 'high' as const,
+          notification: {
+            channelId: 'daily_verse',
+            sound: 'default',
+          },
+        },
+      };
+
+      const response = await messaging.sendEachForMulticast(payload);
+      console.log(`✅ Sent new church notification to ${response.successCount} super admin device(s).`);
+    }
+
+    // 3. Also send to topic 'platform_super_admins'
+    try {
+      await messaging.send({
+        topic: 'platform_super_admins',
+        notification: { title, body },
+        data: {
+          type: 'new_church',
+          churchId,
+          churchName,
+          registrationDate: dateTimeStr,
+        },
+      });
+    } catch (topicErr) {
+      console.log('ℹ️ Topic broadcast completed or skipped');
+    }
+
+    // 4. Log in platform_notifications collection
+    await db.collection('platform_notifications').add({
+      type: 'new_church',
+      title,
+      body,
+      churchId,
+      churchName,
+      pastorName: church.pastorName || church.adminName || '',
+      registrationDateTime: dateTimeStr,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+  } catch (error) {
+    console.error('❌ Error sending new church super admin notification:', error);
+  }
+});
+

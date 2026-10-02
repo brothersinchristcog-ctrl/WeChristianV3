@@ -42,7 +42,8 @@ import {
   Zap,
   Keyboard,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  Users
 } from 'lucide-react-native';
 import { CameraView, useCameraPermissions, type BarcodeScanningResult, type BarcodeType } from 'expo-camera';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -87,6 +88,16 @@ interface UnifiedMember {
   profilePicture?: string;
   firstName?: string;
   lastName?: string;
+}
+
+interface FamilyMemberItem {
+  id: string;
+  name: string;
+  phone?: string;
+  relation?: string;
+  checked: boolean;
+  alreadyMarked: boolean;
+  loading?: boolean;
 }
 
 export default function AttendanceScreen({ navigation, route }: any) {
@@ -142,9 +153,8 @@ export default function AttendanceScreen({ navigation, route }: any) {
   const [showInvalidQrModal, setShowInvalidQrModal] = useState(false);
   const [invalidQrMessage, setInvalidQrMessage] = useState('');
 
-  // Immediately-marked event IDs and Titles (local sets for instant UI response after scan)
+  // Immediately-marked event IDs (local set for instant UI response after scan)
   const [markedEventIds, setMarkedEventIds] = useState<Set<string>>(new Set());
-  const [markedEventTitles, setMarkedEventTitles] = useState<Set<string>>(new Set());
 
   // QR Code View Modal (for admin/sharing)
   const [showQRModal, setShowQRModal] = useState(false);
@@ -155,15 +165,25 @@ export default function AttendanceScreen({ navigation, route }: any) {
     visible: boolean;
     churchName: string;
     eventName: string;
+    eventId?: string;
     date: string;
     time: string;
     alreadyMarked?: boolean;
+    scannedMemberId?: string;
+    scannedMemberName?: string;
+    familyMembers: FamilyMemberItem[];
+    familyLoading: boolean;
   }>({
     visible: false,
     churchName: '',
     eventName: '',
+    eventId: '',
     date: '',
     time: '',
+    scannedMemberId: '',
+    scannedMemberName: '',
+    familyMembers: [],
+    familyLoading: false,
   });
 
   // Custom Church Toast Notification (Shows current church logo & message)
@@ -239,16 +259,18 @@ export default function AttendanceScreen({ navigation, route }: any) {
   const loadScreenData = async () => {
     setLoading(true);
     try {
+      // Parallel fetch of events and member attendance
       await Promise.all([
         fetchChurchEvents(),
-        fetchMemberAttendance(),
-        fetchUserPhotos()
+        fetchMemberAttendance()
       ]);
     } catch (err) {
       console.error('[AttendanceScreen] Error loading data:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      // Fetch user photos in background without blocking screen render
+      fetchUserPhotos().catch(() => {});
     }
   };
 
@@ -282,15 +304,11 @@ export default function AttendanceScreen({ navigation, route }: any) {
     if (!churchId || !memberId) return;
     try {
       const records = await AttendanceService.getMemberAttendanceHistory(churchId, memberId);
-      setAttendanceRecords(prev => {
-        const combined = [...records];
-        prev.forEach(p => {
-          if (!combined.some(c => c.id === p.id || (c.eventId && c.eventId === p.eventId && c.status === p.status))) {
-            combined.push(p);
-          }
-        });
-        return combined;
-      });
+      const cleanRecords = (records || []).filter(r => 
+        (r.memberId === memberId || (user?.uid && r.memberId === user.uid)) &&
+        r.status !== 'Absent'
+      );
+      setAttendanceRecords(cleanRecords);
     } catch (e) {
       console.error('[AttendanceScreen] Error fetching attendance history:', e);
     }
@@ -473,39 +491,28 @@ export default function AttendanceScreen({ navigation, route }: any) {
     try {
       const items: EventItem[] = [];
 
-      // 1. Fetch church events from Firestore
-      let rawEvents: any[] = [];
-      if (churchId) {
-        try {
-          const eventsSnap = await firestore()
-            .collection('churches')
-            .doc(churchId)
-            .collection('events')
-            .get();
-          rawEvents = eventsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } catch (e) {
-          console.warn('[AttendanceScreen] Error fetching church events subcollection:', e);
+      // 1. Fetch church events concurrently for fast loading
+      const [eventsSnap, fsEvents] = await Promise.all([
+        churchId 
+          ? firestore().collection('churches').doc(churchId).collection('events').get().catch(() => ({ docs: [] }))
+          : Promise.resolve({ docs: [] }),
+        FirestoreService.getEvents().catch(() => [])
+      ]);
+
+      const rawEvents: any[] = [];
+      if (eventsSnap && 'docs' in eventsSnap) {
+        eventsSnap.docs.forEach((doc: any) => rawEvents.push({ id: doc.id, ...doc.data() }));
+      }
+      (fsEvents || []).forEach(fe => {
+        if (!rawEvents.some(r => r.id === fe.id)) {
+          rawEvents.push(fe);
         }
-      }
+      });
 
-      // Also merge any events from FirestoreService so no events are omitted
-      try {
-        const fsEvents = await FirestoreService.getEvents();
-        (fsEvents || []).forEach(fe => {
-          if (!rawEvents.some(r => r.id === fe.id)) {
-            rawEvents.push(fe);
-          }
-        });
-      } catch (e) {
-        // ignore
-      }
-
-      const attendanceRequests = await FirestoreService.getAttendanceRequests().catch(() => []);
-
-      // Process standard events
+      // 2. Process events
       (rawEvents || []).forEach(ev => {
         const dateObj = parseEventDateTime(ev);
-        if (!dateObj) return; // Do NOT default to today if date is missing or invalid!
+        if (!dateObj) return;
 
         const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         const timeStr = formatEventTimeString(ev.time, ev.startTime, ev.endTime);
@@ -518,35 +525,32 @@ export default function AttendanceScreen({ navigation, route }: any) {
           dateObj,
           location: (ev as any).venueEn || ev.location || '',
           status: 'Open',
-          presentCount: 0,
+          presentCount: ev.presentCount || ev.attendeeCount || 0,
         });
       });
 
-      // Process attendance requests if any
-      (attendanceRequests || []).forEach(req => {
-        if (!items.some(i => i.id === req.id)) {
-          const dateObj = parseEventDateTime(req);
-          if (!dateObj) return; // Do NOT default to today if date is missing!
+      // Sort by date ascending
+      items.sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime());
 
-          const timeStr = formatEventTimeString(req.time, req.startTime, req.endTime);
+      // Set events immediately so UI displays without delay!
+      setAllEvents(items);
 
-          items.push({
-            id: req.id,
-            title: req.title || 'Church Service',
-            dateStr: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-            timeStr,
-            dateObj,
-            location: '',
-            status: 'Open',
-            presentCount: req.yesCount || 0,
-          });
-        }
+      // Fast background live count fetch for today's active events (never blocks UI)
+      const now = new Date();
+      const todayY = now.getFullYear();
+      const todayM = now.getMonth();
+      const todayD = now.getDate();
+      const todayItems = items.filter(i => {
+        return (
+          i.dateObj.getFullYear() === todayY &&
+          i.dateObj.getMonth() === todayM &&
+          i.dateObj.getDate() === todayD
+        );
       });
 
-      // Dynamically fetch live attendee count for each event from Firestore in parallel
-      if (churchId && items.length > 0) {
-        await Promise.all(
-          items.map(async (item) => {
+      if (churchId && todayItems.length > 0) {
+        Promise.all(
+          todayItems.map(async (item) => {
             try {
               const snap = await firestore()
                 .collection('churches')
@@ -555,132 +559,73 @@ export default function AttendanceScreen({ navigation, route }: any) {
                 .doc(item.id)
                 .collection('attendees')
                 .get();
-              if (!snap.empty) {
-                item.presentCount = snap.size;
-              } else if (item.presentCount === 0) {
-                // Also check if attendanceRequests responses exist
-                const respSnap = await firestore()
-                  .collection('churches')
-                  .doc(churchId)
-                  .collection('attendanceRequests')
-                  .doc(item.id)
-                  .collection('responses')
-                  .where('response', '==', 'Yes')
-                  .get()
-                  .catch(() => null);
-                if (respSnap && !respSnap.empty) {
-                  item.presentCount = respSnap.size;
-                }
-              }
+              return { id: item.id, count: snap.size };
             } catch (e) {
-              // Keep default presentCount
+              return null;
             }
           })
-        );
+        ).then(counts => {
+          const countMap = new Map<string, number>();
+          counts.forEach(c => {
+            if (c) countMap.set(c.id, c.count);
+          });
+          if (countMap.size > 0) {
+            setAllEvents(prev =>
+              prev.map(ev => {
+                if (countMap.has(ev.id)) {
+                  return { ...ev, presentCount: countMap.get(ev.id)! };
+                }
+                return ev;
+              })
+            );
+          }
+        }).catch(() => {});
       }
-
-      setAllEvents(items);
     } catch (e) {
       console.error('[AttendanceScreen] Error fetching church events:', e);
     }
   };
 
-  // Check if member has already taken attendance for a specific event
+  // Check if member has been SCANNED and marked Present for a specific event
   const isEventAttendanceMarked = (event: EventItem) => {
-    if (!event) return false;
+    if (!event || !event.id) return false;
 
-    // Instant local check — set immediately after successful scan
-    if (event.id && markedEventIds.has(event.id)) return true;
-    if (event.title && markedEventTitles.has(event.title.toLowerCase().trim())) return true;
-    if (event.myStatus === 'Present') return true;
+    // 1. Instant check — marked after a scan in the current session
+    if (markedEventIds.has(event.id)) return true;
 
-    // Direct check in attendance records by eventId or by eventName
-    if (attendanceRecords.some(r => {
+    // 2. Strict check: MUST match a verified record for THIS member and THIS exact eventId
+    return attendanceRecords.some(r => {
+      // Must be present
       if (r.status === 'Absent') return false;
-      if (event.id && r.eventId === event.id) return true;
-      if (event.title && r.eventName && r.eventName.toLowerCase().trim() === event.title.toLowerCase().trim()) return true;
-      return false;
-    })) {
-      return true;
-    }
 
-    const now = new Date();
-    const isTodayEvent = event.dateObj &&
-      event.dateObj.getFullYear() === now.getFullYear() &&
-      event.dateObj.getMonth() === now.getMonth() &&
-      event.dateObj.getDate() === now.getDate();
+      // Must belong to this member
+      if (r.memberId && r.memberId !== memberId && r.memberId !== user?.uid) return false;
 
-    if (isTodayEvent) {
-      const todayY = now.getFullYear();
-      const todayM = now.getMonth();
-      const todayD = now.getDate();
-
-      return attendanceRecords.some(r => {
-        if (!r.timestamp && !r.scannedAt) return false;
-        const recDate = r.timestamp?.toDate 
-          ? r.timestamp.toDate() 
-          : (r.timestamp?.seconds ? new Date(r.timestamp.seconds * 1000) : new Date(r.timestamp || r.scannedAt));
-        
-        const isSameDay = recDate &&
-          recDate.getFullYear() === todayY &&
-          recDate.getMonth() === todayM &&
-          recDate.getDate() === todayD &&
-          r.status !== 'Absent';
-
-        if (isSameDay) {
-          if (r.eventId && r.eventId === event.id) return true;
-          if (r.eventName && event.title && r.eventName.toLowerCase().trim() === event.title.toLowerCase().trim()) return true;
-
-          // If record is general or has any today's attendance under this church
-          if (!r.eventId || r.eventId === 'general_service' || !r.eventName || r.eventName === 'General Church Attendance' || r.eventName === 'Church Service') {
-            return true;
-          }
-        }
-        return false;
-      });
-    }
-
-    return false;
+      // Check specific eventId strictly: MUST match this event's unique ID
+      return Boolean(r.eventId && r.eventId === event.id);
+    });
   };
 
-  // Associate member check-ins with events & include member's general check-ins
+  // Associate member check-ins with events
   const enrichedEvents = useMemo(() => {
     const now = new Date();
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
 
-    const mapped: EventItem[] = allEvents.map(ev => {
-      // Check if user has an attendance record matching this event
-      const matchedRecord = attendanceRecords.find(r => {
-        if (r.eventId && r.eventId === ev.id) return true;
-        if (r.eventName && ev.title && r.eventName.toLowerCase().trim() === ev.title.toLowerCase().trim()) return true;
-
-        // If it's a general record without specific eventId
-        if (!r.eventId || r.eventId === 'general_service') {
-          if (r.timestamp) {
-            const rDate = r.timestamp?.toDate 
-              ? r.timestamp.toDate() 
-              : (r.timestamp?.seconds ? new Date(r.timestamp.seconds * 1000) : new Date(r.timestamp));
-            const isSameDay = rDate.getFullYear() === ev.dateObj.getFullYear() &&
-              rDate.getMonth() === ev.dateObj.getMonth() &&
-              rDate.getDate() === ev.dateObj.getDate();
-            
-            const sameDayEvents = allEvents.filter(other => 
-              other.dateObj.getFullYear() === ev.dateObj.getFullYear() &&
-              other.dateObj.getMonth() === ev.dateObj.getMonth() &&
-              other.dateObj.getDate() === ev.dateObj.getDate()
-            );
-            return isSameDay && sameDayEvents.length === 1;
-          }
-        }
-        return false;
-      });
+    return allEvents.map(ev => {
+      const isMarked = isEventAttendanceMarked(ev);
 
       let myStatus: 'Present' | 'Absent' | 'Upcoming' = 'Upcoming';
-      if (matchedRecord) {
+      if (isMarked) {
         myStatus = 'Present';
       } else if (ev.dateObj < startOfToday) {
         myStatus = 'Absent';
       }
+
+      const matchedRecord = attendanceRecords.find(r => {
+        if (r.status === 'Absent') return false;
+        if (r.memberId && r.memberId !== memberId && r.memberId !== user?.uid) return false;
+        return r.eventId && ev.id && r.eventId === ev.id;
+      });
 
       return {
         ...ev,
@@ -688,45 +633,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
         myTimestamp: matchedRecord?.timestamp || matchedRecord?.scannedAt,
       };
     });
-
-    // Also include any attendance record for this member that didn't match a scheduled event
-    // (e.g. general service QR check-ins, ad-hoc events)
-    attendanceRecords.forEach(r => {
-      const alreadyCovered = mapped.some(ev => {
-        if (r.eventId && ev.id === r.eventId) return true;
-        if (r.timestamp) {
-          const rDate = r.timestamp?.toDate 
-            ? r.timestamp.toDate() 
-            : (r.timestamp?.seconds ? new Date(r.timestamp.seconds * 1000) : new Date(r.timestamp));
-          return rDate.getFullYear() === ev.dateObj.getFullYear() &&
-            rDate.getMonth() === ev.dateObj.getMonth() &&
-            rDate.getDate() === ev.dateObj.getDate();
-        }
-        return false;
-      });
-
-      if (!alreadyCovered && r.status !== 'Absent') {
-        const rDate = r.timestamp?.toDate 
-          ? r.timestamp.toDate() 
-          : (r.timestamp?.seconds ? new Date(r.timestamp.seconds * 1000) : new Date(r.timestamp || r.scannedAt || Date.now()));
-
-        mapped.push({
-          id: r.id || `rec_${rDate.getTime()}`,
-          title: r.eventName || 'Church Service',
-          dateStr: rDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          timeStr: rDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-          dateObj: rDate,
-          location: '',
-          status: 'Open',
-          presentCount: 1,
-          myStatus: 'Present',
-          myTimestamp: r.timestamp || r.scannedAt,
-        });
-      }
-    });
-
-    return mapped;
-  }, [allEvents, attendanceRecords, churchName]);
+  }, [allEvents, attendanceRecords, markedEventIds]);
 
   // Today's events: ONLY events happening today, sorted with PENDING events FIRST!
   const todayEvents = useMemo(() => {
@@ -1141,6 +1048,245 @@ export default function AttendanceScreen({ navigation, route }: any) {
     handleBarcodeScanned({ data, preParsed: payload });
   };
 
+  // ─── Fetch Family / Household Members for Scanned Member ─────────────────
+  const fetchFamilyMembersForScannedMember = async (
+    targetChurchId: string,
+    targetEventId: string,
+    scannedMId: string,
+    scannedAccId?: string
+  ): Promise<FamilyMemberItem[]> => {
+    try {
+      if (!targetChurchId || !scannedMId) return [];
+
+      let householdId = scannedAccId;
+      if (!householdId) {
+        try {
+          const memDoc = await firestore()
+            .collection('churches')
+            .doc(targetChurchId)
+            .collection('members')
+            .doc(scannedMId)
+            .get();
+          if (memDoc && (memDoc.data() !== undefined || (typeof (memDoc as any).exists === 'function' ? (memDoc as any).exists() : (memDoc as any).exists === true))) {
+            householdId = memDoc.data()?.accountId || scannedMId;
+          } else {
+            householdId = scannedMId;
+          }
+        } catch {
+          householdId = scannedMId;
+        }
+      }
+
+      const rawContacts: any[] = [];
+
+      // 1. Query by household accountId
+      if (householdId) {
+        const snap1 = await firestore()
+          .collection('churches')
+          .doc(targetChurchId)
+          .collection('members')
+          .where('accountId', '==', householdId)
+          .get()
+          .catch(() => null);
+        if (snap1 && !snap1.empty) {
+          snap1.forEach(d => rawContacts.push({ id: d.id, ...d.data() }));
+        }
+      }
+
+      // 2. Query where accountId is the scanned member's ID if different
+      if (scannedMId && scannedMId !== householdId) {
+        const snap2 = await firestore()
+          .collection('churches')
+          .doc(targetChurchId)
+          .collection('members')
+          .where('accountId', '==', scannedMId)
+          .get()
+          .catch(() => null);
+        if (snap2 && !snap2.empty) {
+          snap2.forEach(d => {
+            if (!rawContacts.some(c => c.id === d.id)) {
+              rawContacts.push({ id: d.id, ...d.data() });
+            }
+          });
+        }
+      }
+
+      // Filter out the scanned member themselves
+      const familyOnly = rawContacts.filter(c => c.id !== scannedMId && (c as any).Id !== scannedMId);
+
+      // Check current attendance status for each family member under targetEventId
+      const familyWithStatus: FamilyMemberItem[] = await Promise.all(
+        familyOnly.map(async (f) => {
+          const fId = f.id || (f as any).Id;
+          const fName = f.name || (f as any).Name || `${f.firstName || (f as any).FirstName || ''} ${f.lastName || (f as any).LastName || ''}`.trim() || 'Family Member';
+          const fPhone = f.phone || (f as any).MobilePhone || '';
+          const fRelation = f.relation || f.relationship || (f as any).User_Type__c || 'Family Member';
+
+          let isMarked = false;
+          if (targetEventId && targetEventId !== 'general_service') {
+            try {
+              const attDoc = await firestore()
+                .collection('churches')
+                .doc(targetChurchId)
+                .collection('events')
+                .doc(targetEventId)
+                .collection('attendees')
+                .doc(fId)
+                .get();
+              if (attDoc && (attDoc.data() !== undefined || (typeof (attDoc as any).exists === 'function' ? (attDoc as any).exists() : (attDoc as any).exists === true))) {
+                if (attDoc.data()?.status !== 'Absent') {
+                  isMarked = true;
+                }
+              }
+            } catch {}
+          }
+
+          if (!isMarked) {
+            const rec = attendanceRecords.find(r => r.memberId === fId && r.eventId === targetEventId && r.status !== 'Absent');
+            if (rec) isMarked = true;
+          }
+
+          return {
+            id: fId,
+            name: fName,
+            phone: fPhone,
+            relation: fRelation,
+            checked: isMarked,
+            alreadyMarked: isMarked,
+            loading: false,
+          };
+        })
+      );
+
+      return familyWithStatus;
+    } catch (e) {
+      console.error('[AttendanceScreen] Error fetching family members:', e);
+      return [];
+    }
+  };
+
+  // ─── Toggle Family Member Attendance (Checkbox handler) ───────────────────
+  const handleToggleFamilyAttendance = async (famId: string) => {
+    const fam = scanResultModal.familyMembers.find(f => f.id === famId);
+    if (!fam || fam.loading) return;
+
+    const willCheck = !fam.checked;
+    const targetChurchId = churchId || activeChurch?.id || '';
+    const targetEventId = scanResultModal.eventId || activeEvent?.id || todayEvents[0]?.id || 'general_service';
+    const targetEventName = scanResultModal.eventName || 'Church Service';
+
+    // Optimistically update checkbox state in modal
+    setScanResultModal(prev => ({
+      ...prev,
+      familyMembers: prev.familyMembers.map(f =>
+        f.id === famId ? { ...f, checked: willCheck, loading: true } : f
+      ),
+    }));
+
+    // Optimistically update total present count across events
+    setAllEvents(prev =>
+      prev.map(ev => {
+        if (ev.id === targetEventId) {
+          const curr = ev.presentCount || 0;
+          return {
+            ...ev,
+            presentCount: willCheck ? curr + 1 : Math.max(0, curr - 1),
+          };
+        }
+        return ev;
+      })
+    );
+
+    // Optimistically update attendanceRecords list
+    if (willCheck) {
+      setAttendanceRecords(prev => [
+        {
+          id: `rec_fam_${famId}_${Date.now()}`,
+          memberId: famId,
+          memberName: fam.name,
+          churchId: targetChurchId,
+          eventId: targetEventId,
+          eventName: targetEventName,
+          status: 'Present',
+          timestamp: new Date(),
+          method: 'QR_SCAN',
+        },
+        ...prev,
+      ]);
+    } else {
+      setAttendanceRecords(prev =>
+        prev.filter(r => !(r.memberId === famId && (r.eventId === targetEventId || !r.eventId)))
+      );
+    }
+
+    try {
+      if (willCheck) {
+        // Record presence in Firestore
+        await AttendanceService.recordAttendance({
+          churchId: targetChurchId,
+          eventId: targetEventId,
+          eventName: targetEventName,
+          memberId: famId,
+          memberName: fam.name,
+          memberPhone: fam.phone,
+          method: 'QR_SCAN',
+        });
+      } else {
+        // Unmark presence in Firestore
+        if (targetChurchId && targetEventId) {
+          await Promise.allSettled([
+            firestore()
+              .collection('churches')
+              .doc(targetChurchId)
+              .collection('events')
+              .doc(targetEventId)
+              .collection('attendees')
+              .doc(famId)
+              .delete(),
+            firestore()
+              .collection('churches')
+              .doc(targetChurchId)
+              .collection('attendanceRequests')
+              .doc(targetEventId)
+              .collection('responses')
+              .doc(famId)
+              .delete(),
+          ]);
+        }
+      }
+    } catch (err) {
+      console.warn('[AttendanceScreen] Error toggling family attendance:', err);
+      // Revert state on error
+      setScanResultModal(prev => ({
+        ...prev,
+        familyMembers: prev.familyMembers.map(f =>
+          f.id === famId ? { ...f, checked: !willCheck, loading: false } : f
+        ),
+      }));
+      setAllEvents(prev =>
+        prev.map(ev => {
+          if (ev.id === targetEventId) {
+            const curr = ev.presentCount || 0;
+            return {
+              ...ev,
+              presentCount: willCheck ? Math.max(0, curr - 1) : curr + 1,
+            };
+          }
+          return ev;
+        })
+      );
+      return;
+    }
+
+    // Stop loading indicator on success
+    setScanResultModal(prev => ({
+      ...prev,
+      familyMembers: prev.familyMembers.map(f =>
+        f.id === famId ? { ...f, loading: false } : f
+      ),
+    }));
+  };
+
   // ─── QR Code Scanner & Check-in Execution ──────────────────────────────────
   const handleBarcodeScanned = async ({ data, preParsed }: { data: string; preParsed?: any }) => {
     try {
@@ -1258,25 +1404,18 @@ export default function AttendanceScreen({ navigation, route }: any) {
       if (selectedEventForScan?.id) {
         setMarkedEventIds(prev => new Set([...prev, selectedEventForScan.id]));
       }
-      if (targetEventName) {
-        setMarkedEventTitles(prev => new Set([...prev, targetEventName.toLowerCase().trim()]));
-      }
-      if (selectedEventForScan?.title) {
-        setMarkedEventTitles(prev => new Set([...prev, selectedEventForScan.title.toLowerCase().trim()]));
-      }
-      todayEvents.forEach(e => {
-        if (e.id === targetEventId || (targetEventName && e.title.toLowerCase().trim() === targetEventName.toLowerCase().trim())) {
-          setMarkedEventIds(prev => new Set([...prev, e.id]));
-          setMarkedEventTitles(prev => new Set([...prev, e.title.toLowerCase().trim()]));
-        }
-      });
+
+      const scannedMemberId = qr.memberId || memberId;
+      const scannedMemberName = qr.memberName || qr.name || (qr.memberId ? 'Member' : memberName);
+      const scannedMemberPhone = qr.memberPhone || qr.phone || memberPhone;
+      const scannedAccountId = qr.accountId || (member as any)?.accountId || (member as any)?.id || scannedMemberId;
 
       // Optimistically update attendance records in state so UI reflects check-in instantly
       setAttendanceRecords(prev => [
         {
           id: `rec_${Date.now()}`,
-          memberId,
-          memberName,
+          memberId: scannedMemberId,
+          memberName: scannedMemberName,
           churchId: targetChurchId,
           eventId: targetEventId,
           eventName: targetEventName,
@@ -1287,27 +1426,62 @@ export default function AttendanceScreen({ navigation, route }: any) {
         ...prev,
       ]);
 
+      // Optimistically update event presentCount across all events
+      setAllEvents(prev =>
+        prev.map(ev => {
+          if (ev.id === targetEventId) {
+            return {
+              ...ev,
+              presentCount: (ev.presentCount || 0) + 1,
+            };
+          }
+          return ev;
+        })
+      );
+
       // Turn off any decoding overlay immediately
       setIsDecoding(false);
 
-      // Instantly show Success Confirmation Modal!
+      // Instantly show Success Confirmation Modal with family members loading
       setScanResultModal({
         visible: true,
         churchName: targetChurchName,
         eventName: targetEventName,
+        eventId: targetEventId,
         date: formattedDate,
         time: formattedTime,
         alreadyMarked: false,
+        scannedMemberId,
+        scannedMemberName,
+        familyMembers: [],
+        familyLoading: true,
       });
+
+      // Fetch family members in background
+      fetchFamilyMembersForScannedMember(targetChurchId, targetEventId, scannedMemberId, scannedAccountId)
+        .then(fams => {
+          setScanResultModal(prev => ({
+            ...prev,
+            familyMembers: fams,
+            familyLoading: false,
+          }));
+        })
+        .catch(err => {
+          console.warn('[AttendanceScreen] Error fetching family members:', err);
+          setScanResultModal(prev => ({
+            ...prev,
+            familyLoading: false,
+          }));
+        });
 
       // Record attendance in Firestore in background without blocking the UI
       AttendanceService.recordAttendance({
         churchId: targetChurchId,
         eventId: targetEventId,
         eventName: targetEventName,
-        memberId,
-        memberName,
-        memberPhone,
+        memberId: scannedMemberId,
+        memberName: scannedMemberName,
+        memberPhone: scannedMemberPhone,
         method: 'QR_SCAN',
       }).then(recordResult => {
         if (recordResult?.alreadyMarked) {
@@ -2479,22 +2653,32 @@ export default function AttendanceScreen({ navigation, route }: any) {
       {/* ────────────────────────────────────────────────────────────────────────
           ATTENDANCE MARKED CONFIRMATION SCREEN (Matches Screenshot 2)
           ──────────────────────────────────────────────────────────────────────── */}
-      <Modal visible={scanResultModal.visible} animationType="slide" statusBarTranslucent>
+      <Modal visible={scanResultModal.visible} animationType="slide" statusBarTranslucent onRequestClose={() => setScanResultModal(prev => ({ ...prev, visible: false }))}>
         <View style={styles.confirmScreenContainer}>
           <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" translucent />
 
-          <View style={[styles.confirmContentWrap, { paddingTop: insets.top + 30, paddingBottom: insets.bottom + 28 }]}>
+          <ScrollView 
+            contentContainerStyle={[
+              styles.confirmScrollWrap, 
+              { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 28 }
+            ]}
+            showsVerticalScrollIndicator={false}
+          >
             {/* Big Green Circle with Checkmark */}
             <View style={styles.confirmIconCircle}>
               <Check size={42} color="#16A34A" strokeWidth={3} />
             </View>
 
             {/* Title & Subtitle */}
-            <Text style={styles.confirmMainTitle}>You're marked present</Text>
+            <Text style={styles.confirmMainTitle}>
+              {scanResultModal.scannedMemberName && scanResultModal.scannedMemberName !== memberName
+                ? `${scanResultModal.scannedMemberName} is marked present`
+                : "You're marked present"}
+            </Text>
             <Text style={styles.confirmSubTitle}>
               {scanResultModal.alreadyMarked 
-                ? 'Thank you! Your attendance was already recorded.'
-                : 'Thank you! Your attendance has been recorded.'}
+                ? 'Thank you! Attendance was already recorded.'
+                : 'Thank you! Attendance has been recorded.'}
             </Text>
 
             {/* Details Card */}
@@ -2519,6 +2703,103 @@ export default function AttendanceScreen({ navigation, route }: any) {
               </View>
             </View>
 
+            {/* Household & Family Members Attendance Card */}
+            <View style={styles.confirmFamilyCard}>
+              <View style={styles.confirmFamilyHeaderRow}>
+                <View style={styles.confirmFamilyIconWrap}>
+                  <Users size={18} color="#1E3A8A" strokeWidth={2.2} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.confirmFamilyTitle}>Household Attendance</Text>
+                  <Text style={styles.confirmFamilySub}>Select family members to mark present</Text>
+                </View>
+              </View>
+
+              {/* Scanned Member */}
+              <Text style={styles.confirmSectionLabel}>SCANNED MEMBER</Text>
+              <View style={styles.scannedMemberRow}>
+                <View style={styles.scannedMemberLeft}>
+                  <View style={styles.famCheckboxChecked}>
+                    <Check size={13} color="#FFFFFF" strokeWidth={3} />
+                  </View>
+                  <View style={{ marginLeft: 10, flex: 1 }}>
+                    <Text style={styles.scannedMemberNameTxt} numberOfLines={1}>
+                      {scanResultModal.scannedMemberName || memberName}
+                    </Text>
+                    <Text style={styles.scannedMemberTag}>Present · Checked In</Text>
+                  </View>
+                </View>
+                <View style={styles.famPresentBadge}>
+                  <Check size={11} color="#15803D" strokeWidth={2.5} style={{ marginRight: 3 }} />
+                  <Text style={styles.famPresentBadgeTxt}>Present</Text>
+                </View>
+              </View>
+
+              {/* Family Members Section */}
+              <View style={styles.confirmDivider} />
+              <View style={styles.confirmFamilyHeaderRow}>
+                <Text style={styles.confirmSectionLabel}>FAMILY MEMBERS</Text>
+                {scanResultModal.familyMembers.length > 0 && (
+                  <Text style={styles.confirmFamilyCountTxt}>
+                    {scanResultModal.familyMembers.filter(f => f.checked).length} of {scanResultModal.familyMembers.length} present
+                  </Text>
+                )}
+              </View>
+
+              {scanResultModal.familyLoading ? (
+                <View style={styles.famLoadingWrap}>
+                  <ActivityIndicator size="small" color="#059669" />
+                  <Text style={styles.famLoadingTxt}>Checking for family members...</Text>
+                </View>
+              ) : scanResultModal.familyMembers.length === 0 ? (
+                <View style={styles.famEmptyWrap}>
+                  <Text style={styles.famEmptyTxt}>No registered family members for this household.</Text>
+                </View>
+              ) : (
+                <View style={styles.famListWrap}>
+                  {scanResultModal.familyMembers.map((fam) => (
+                    <TouchableOpacity
+                      key={fam.id}
+                      style={[styles.famRowItem, fam.checked && styles.famRowItemChecked]}
+                      onPress={() => handleToggleFamilyAttendance(fam.id)}
+                      activeOpacity={0.75}
+                    >
+                      <View style={styles.famRowLeft}>
+                        {fam.checked ? (
+                          <View style={styles.famCheckboxChecked}>
+                            <Check size={13} color="#FFFFFF" strokeWidth={3} />
+                          </View>
+                        ) : (
+                          <View style={styles.famCheckboxUnchecked} />
+                        )}
+                        <View style={{ marginLeft: 10, flex: 1 }}>
+                          <Text style={[styles.famNameTxt, fam.checked && styles.famNameTxtChecked]} numberOfLines={1}>
+                            {fam.name}
+                          </Text>
+                          <Text style={styles.famRelationTxt}>
+                            {fam.relation ? `${fam.relation} · Family Member` : 'Family Member'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {fam.loading ? (
+                        <ActivityIndicator size="small" color="#059669" />
+                      ) : fam.checked ? (
+                        <View style={styles.famPresentBadge}>
+                          <Check size={11} color="#15803D" strokeWidth={2.5} style={{ marginRight: 3 }} />
+                          <Text style={styles.famPresentBadgeTxt}>Present</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.famAbsentBadge}>
+                          <Text style={styles.famAbsentBadgeTxt}>Tap to mark</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
+
             {/* Action Buttons */}
             <View style={styles.confirmButtonsWrap}>
               <TouchableOpacity 
@@ -2540,7 +2821,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
                 <Text style={styles.confirmViewBtnTxt}>View my attendance</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
 
@@ -4061,7 +4342,7 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     width: '100%',
     maxWidth: 380,
-    marginBottom: 36,
+    marginBottom: 16,
     elevation: 2,
     shadowColor: '#000000',
     shadowOpacity: 0.04,
@@ -4121,6 +4402,190 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     fontSize: 16,
     fontWeight: '700',
+  },
+  confirmScrollWrap: {
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  confirmFamilyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    width: '100%',
+    maxWidth: 380,
+    marginBottom: 24,
+    elevation: 2,
+    shadowColor: '#000000',
+    shadowOpacity: 0.04,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  confirmFamilyHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 10,
+  },
+  confirmFamilyIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  confirmFamilyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  confirmFamilySub: {
+    fontSize: 12.5,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  confirmSectionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    flex: 1,
+  },
+  confirmFamilyCountTxt: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#15803D',
+  },
+  scannedMemberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 14,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    marginBottom: 6,
+  },
+  scannedMemberLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  scannedMemberNameTxt: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  scannedMemberTag: {
+    fontSize: 11.5,
+    color: '#15803D',
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  famListWrap: {
+    gap: 8,
+    marginTop: 4,
+  },
+  famRowItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
+  },
+  famRowItemChecked: {
+    borderColor: '#BBF7D0',
+    backgroundColor: '#F0FDF4',
+  },
+  famRowLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  famCheckboxChecked: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    backgroundColor: '#16A34A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  famCheckboxUnchecked: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#94A3B8',
+    backgroundColor: '#FFFFFF',
+  },
+  famNameTxt: {
+    fontSize: 14.5,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  famNameTxtChecked: {
+    color: '#0F172A',
+    fontWeight: '700',
+  },
+  famRelationTxt: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  famPresentBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  famPresentBadgeTxt: {
+    color: '#15803D',
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  famAbsentBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  famAbsentBadgeTxt: {
+    color: '#64748B',
+    fontSize: 11.5,
+    fontWeight: '600',
+  },
+  famLoadingWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    gap: 8,
+  },
+  famLoadingTxt: {
+    fontSize: 13,
+    color: '#64748B',
+  },
+  famEmptyWrap: {
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  famEmptyTxt: {
+    fontSize: 12.5,
+    color: '#94A3B8',
+    fontStyle: 'italic',
   },
 
   // ── Invalid QR Modal (matches Screenshot 2) ──

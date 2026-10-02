@@ -26,6 +26,10 @@ export interface AttendanceQRPayload {
   timestamp?: number;
   type?: string;
   version?: string;
+  memberId?: string;
+  memberName?: string;
+  memberPhone?: string;
+  accountId?: string;
 }
 
 class AttendanceService {
@@ -76,10 +80,13 @@ class AttendanceService {
     try {
       const data = JSON.parse(trimmed);
 
-      // Strict Rule 1: Must be an official Church Attendance payload
+      // Strict Rule 1: Must be an official Church Attendance payload or Member payload
       const isOfficialAction = data && typeof data === 'object' && (
         data.action === 'WeChristian_Attendance' ||
-        data.action === 'ChurchOfGod_Attendance'
+        data.action === 'ChurchOfGod_Attendance' ||
+        data.action === 'WeChristian_Member' ||
+        data.action === 'Member_Checkin' ||
+        Boolean(data.memberId)
       );
 
       if (!isOfficialAction) {
@@ -92,8 +99,8 @@ class AttendanceService {
       const qrChurchId = String(data.churchId || data.church_id || '').trim();
       const qrChurchCode = String(data.churchCode || data.church_code || '').trim();
 
-      // Strict Rule 2: QR code MUST specify church identification
-      if (!qrChurchId && !qrChurchCode) {
+      // Strict Rule 2: QR code MUST specify church identification (or member check-in)
+      if (!qrChurchId && !qrChurchCode && !data.memberId) {
         return {
           valid: false,
           error: 'Invalid QR code: Missing church identification.',
@@ -164,6 +171,10 @@ class AttendanceService {
           timestamp: data.timestamp || Date.now(),
           type: data.type || 'attendance_checkin',
           version: data.version || '2.0',
+          memberId: data.memberId || data.id || data.sfContactId,
+          memberName: data.memberName || data.name || data.Name,
+          memberPhone: data.memberPhone || data.phone || data.MobilePhone,
+          accountId: data.accountId,
         },
         isLegacy: data.action === 'ChurchOfGod_Attendance',
       };
@@ -515,39 +526,6 @@ class AttendanceService {
         const tB = b.timestamp?.toMillis ? b.timestamp.toMillis() : (b.timestamp?.seconds ? b.timestamp.seconds * 1000 : new Date(b.timestamp || b.scannedAt || 0).getTime());
         return tB - tA;
       });
-
-      // 2. Also check attendanceRequests responses for backward compatibility
-      if (list.length === 0) {
-        try {
-          const reqSnap = await firestore()
-            .collection('churches')
-            .doc(churchId)
-            .collection('attendanceRequests')
-            .orderBy('createdAt', 'desc')
-            .limit(30)
-            .get();
-
-          for (const reqDoc of reqSnap.docs) {
-            const respDoc = await reqDoc.ref.collection('responses').doc(memberId).get();
-            if (respDoc.data() !== undefined) {
-              const d = respDoc.data()!;
-              list.push({
-                id: `${reqDoc.id}_${memberId}`,
-                memberId,
-                memberName: d.memberName || 'Member',
-                status: d.response === 'No' ? 'Absent' : 'Present',
-                timestamp: d.respondedAt || reqDoc.data()?.createdAt || null,
-                churchId,
-                eventId: reqDoc.id,
-                eventName: reqDoc.data()?.title || 'Service',
-                method: 'SELF_CHECKIN',
-              });
-            }
-          }
-        } catch {
-          // Silent fallback
-        }
-      }
 
       return list;
     } catch (error) {

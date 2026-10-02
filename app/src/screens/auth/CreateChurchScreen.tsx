@@ -22,6 +22,7 @@ import { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useChurch } from '../../context/ChurchContext';
 import { useAuth } from '../../context/AuthContext';
 import { firestore, FieldValue } from '../../services/firebaseConfig';
+import ChurchService from '../../services/ChurchService';
 import storage from '@react-native-firebase/storage';
 import auth from '@react-native-firebase/auth';
 import * as ImagePicker from 'expo-image-picker';
@@ -344,6 +345,16 @@ export default function CreateChurchScreen({ navigation }: Props) {
       }
 
       const docRef = await firestore().collection('churches').add(churchData);
+
+      // Notify Super Admins immediately about the new church registration
+      ChurchService.notifySuperAdminsNewChurchRegistration({
+        churchId: docRef.id,
+        name: form.name.trim(),
+        pastorName: pastorOrAdminName,
+        contactPhone: cleanNum,
+        contactEmail: form.contactEmail.trim(),
+        city: form.city.trim(),
+      }).catch((err: any) => console.warn('Super Admin notification non-fatal error:', err));
 
       if (currentUser) {
         // Global users collection is no longer used. We rely on the nested members collection to find the user's primary church.
