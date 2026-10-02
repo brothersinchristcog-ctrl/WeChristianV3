@@ -98,6 +98,8 @@ interface UnifiedMember {
   lastName?: string;
   isGuest?: boolean;
   guestOf?: string;
+  phone?: string;
+  accountId?: string;
 }
 
 interface FamilyMemberItem {
@@ -108,6 +110,8 @@ interface FamilyMemberItem {
   checked: boolean;
   alreadyMarked: boolean;
   loading?: boolean;
+  profilePicture?: string;
+  timestamp?: any;
 }
 
 interface GuestItem {
@@ -152,6 +156,12 @@ export default function AttendanceScreen({ navigation, route }: any) {
   const [attendeesFilter, setAttendeesFilter] = useState<AttendeesFilter>('All');
   const [attendeesSearch, setAttendeesSearch] = useState('');
   const [userPhotos, setUserPhotos] = useState<Record<string, string>>({});
+
+  // Attendees list: Member Family Popup state
+  const [familyModalMember, setFamilyModalMember] = useState<UnifiedMember | null>(null);
+  const [familyModalList, setFamilyModalList] = useState<FamilyMemberItem[]>([]);
+  const [familyModalLoading, setFamilyModalLoading] = useState(false);
+  const cachedChurchMembersRef = useRef<any[]>([]);
 
   // QR Scanning State
   const insets = useSafeAreaInsets();
@@ -1168,6 +1178,8 @@ export default function AttendanceScreen({ navigation, route }: any) {
         AttendanceService.getChurchMembers(churchId)
       ]);
 
+      cachedChurchMembersRef.current = churchMembers;
+
       const attendedMap = new Map<string, any>();
       attendees.forEach(a => {
         const id = a.memberId || a.id;
@@ -1212,6 +1224,8 @@ export default function AttendanceScreen({ navigation, route }: any) {
             profilePicture: resolvedPhoto,
             firstName: m.firstName || m.FirstName,
             lastName: m.lastName || m.LastName,
+            phone: phoneToUse,
+            accountId: m.accountId || (m as any)?.AccountId || (m as any)?.familyId || (m as any)?.HouseholdId || mId,
           });
         }
       });
@@ -1253,6 +1267,8 @@ export default function AttendanceScreen({ navigation, route }: any) {
             profilePicture: isGuest ? undefined : resolvedPhoto,
             isGuest,
             guestOf: (a as any).invitedByMemberName,
+            phone: phoneToUse,
+            accountId: (a as any).accountId || (a as any)?.AccountId || mId,
           });
         }
       });
@@ -1291,6 +1307,108 @@ export default function AttendanceScreen({ navigation, route }: any) {
 
   const presentCountInModal = attendeesList.filter(m => m.status === 'Present').length;
   const absentCountInModal = attendeesList.filter(m => m.status === 'Absent').length;
+
+  // ─── Open Family Members Popup for a specific person in Attendees list ────
+  const handleOpenFamilyPopup = async (item: UnifiedMember) => {
+    setFamilyModalMember(item);
+    setFamilyModalList([]);
+
+    if (item.isGuest) {
+      setFamilyModalLoading(false);
+      return;
+    }
+
+    setFamilyModalLoading(true);
+    const targetChurchId = churchId || activeChurch?.id || '';
+    const targetEventId = selectedEventForList?.id || '';
+
+    try {
+      // 1. Fetch via family resolver
+      const fams = await fetchFamilyMembersForScannedMember(
+        targetChurchId,
+        targetEventId,
+        item.id,
+        item.accountId
+      );
+
+      // 2. If no family found via query, check cached church roster
+      if (fams.length === 0 && cachedChurchMembersRef.current.length > 0) {
+        const targetAccId = item.accountId || item.id;
+        const localMatches = cachedChurchMembersRef.current.filter((m: any) => {
+          const mId = m.id || m.Id;
+          if (mId === item.id) return false;
+          const accId = m.accountId || m.AccountId || m.familyId || m.HouseholdId;
+          return (accId && accId === targetAccId) || (accId && accId === item.id);
+        });
+
+        if (localMatches.length > 0) {
+          const mapped = await Promise.all(
+            localMatches.map(async (m: any) => {
+              const mId = m.id || m.Id;
+              let isMarked = false;
+              let markTimestamp: any = null;
+              if (targetEventId && targetChurchId) {
+                try {
+                  const attDoc = await firestore()
+                    .collection('churches')
+                    .doc(targetChurchId)
+                    .collection('events')
+                    .doc(targetEventId)
+                    .collection('attendees')
+                    .doc(mId)
+                    .get();
+                  if (attDoc && attDoc.data()?.status !== 'Absent') {
+                    isMarked = true;
+                    markTimestamp = attDoc.data()?.timestamp || attDoc.data()?.scannedAt;
+                  }
+                } catch {}
+              }
+
+              if (!isMarked) {
+                const rec = attendanceRecords.find(r => r.memberId === mId && r.eventId === targetEventId && r.status !== 'Absent');
+                if (rec) {
+                  isMarked = true;
+                  markTimestamp = rec.timestamp;
+                }
+              }
+
+              const mPhone = m.phone || m.MobilePhone || '';
+              const mCleanPhone = mPhone ? String(mPhone).replace(/\D/g, '').slice(-10) : '';
+              const possiblePhotos = [
+                m.profilePhoto,
+                m.photoURL,
+                m.profilePicture,
+                mCleanPhone ? userPhotos[mCleanPhone] : null,
+                userPhotos[mId]
+              ];
+              const resolvedPhoto = possiblePhotos.find(
+                p => typeof p === 'string' && p.trim() !== '' && p !== 'null' && p !== 'undefined'
+              );
+
+              return {
+                id: mId,
+                name: m.name || m.Name || `${m.firstName || ''} ${m.lastName || ''}`.trim() || 'Family Member',
+                phone: mPhone,
+                relation: m.relation || m.relationship || (m as any).User_Type__c || 'Family Member',
+                checked: isMarked,
+                alreadyMarked: isMarked,
+                profilePicture: resolvedPhoto,
+                timestamp: markTimestamp,
+              };
+            })
+          );
+          setFamilyModalList(mapped);
+          return;
+        }
+      }
+
+      setFamilyModalList(fams);
+    } catch (err) {
+      console.error('[AttendanceScreen] Error loading family popup:', err);
+    } finally {
+      setFamilyModalLoading(false);
+    }
+  };
 
   // ─── Real-time Live Camera QR Detector ─────────────────────────────────────
   const handleQrDetected = (result: BarcodeScanningResult) => {
@@ -1422,6 +1540,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
           const fRelation = f.relation || f.relationship || (f as any).User_Type__c || 'Family Member';
 
           let isMarked = false;
+          let markTimestamp: any = null;
           if (targetEventId && targetEventId !== 'general_service') {
             try {
               const attDoc = await firestore()
@@ -1435,6 +1554,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
               if (attDoc && (attDoc.data() !== undefined || (typeof (attDoc as any).exists === 'function' ? (attDoc as any).exists() : (attDoc as any).exists === true))) {
                 if (attDoc.data()?.status !== 'Absent') {
                   isMarked = true;
+                  markTimestamp = attDoc.data()?.timestamp || attDoc.data()?.scannedAt;
                 }
               }
             } catch {}
@@ -1442,8 +1562,24 @@ export default function AttendanceScreen({ navigation, route }: any) {
 
           if (!isMarked) {
             const rec = attendanceRecords.find(r => r.memberId === fId && r.eventId === targetEventId && r.status !== 'Absent');
-            if (rec) isMarked = true;
+            if (rec) {
+              isMarked = true;
+              markTimestamp = rec.timestamp;
+            }
           }
+
+          const fCleanPhone = fPhone ? String(fPhone).replace(/\D/g, '').slice(-10) : '';
+          const possiblePhotos = [
+            f.profilePhoto,
+            f.photoURL,
+            f.photoUrl,
+            f.profilePicture,
+            fCleanPhone ? userPhotos[fCleanPhone] : null,
+            userPhotos[fId]
+          ];
+          const resolvedPhoto = possiblePhotos.find(
+            p => typeof p === 'string' && p.trim() !== '' && p !== 'null' && p !== 'undefined'
+          );
 
           return {
             id: fId,
@@ -1453,6 +1589,8 @@ export default function AttendanceScreen({ navigation, route }: any) {
             checked: isMarked,
             alreadyMarked: isMarked,
             loading: false,
+            profilePicture: resolvedPhoto,
+            timestamp: markTimestamp,
           };
         })
       );
@@ -2938,7 +3076,11 @@ export default function AttendanceScreen({ navigation, route }: any) {
                   : '';
 
                 return (
-                  <View style={styles.attendeeRow}>
+                  <TouchableOpacity 
+                    style={styles.attendeeRow}
+                    onPress={() => handleOpenFamilyPopup(item)}
+                    activeOpacity={0.7}
+                  >
                     <AttendeeAvatar
                       profilePicture={item.profilePicture}
                       name={item.name}
@@ -2980,12 +3122,168 @@ export default function AttendanceScreen({ navigation, route }: any) {
                         </Text>
                       </View>
                     )}
-                  </View>
+                    <ChevronRight size={16} color="#94A3B8" style={{ marginLeft: 6 }} />
+                  </TouchableOpacity>
                 );
               }}
             />
           )}
         </View>
+      </Modal>
+
+      {/* ────────────────────────────────────────────────────────────────────────
+          FAMILY MEMBERS POPUP MODAL (When clicking any person in Attendees list)
+          ──────────────────────────────────────────────────────────────────────── */}
+      <Modal
+        visible={Boolean(familyModalMember)}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setFamilyModalMember(null)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setFamilyModalMember(null)}
+        >
+          <TouchableOpacity 
+            activeOpacity={1} 
+            style={[styles.familyPopupCard, { paddingBottom: Math.max(insets.bottom, 16) + 12 }]}
+            onPress={e => e.stopPropagation()}
+          >
+            {/* Top Handle bar */}
+            <View style={styles.modalHandle} />
+
+            {/* Header with Member Info & Close button */}
+            <View style={styles.familyPopupHeader}>
+              <AttendeeAvatar
+                profilePicture={familyModalMember?.profilePicture}
+                name={familyModalMember?.name || 'Member'}
+                firstName={familyModalMember?.firstName}
+                lastName={familyModalMember?.lastName}
+              />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.familyPopupTitle} numberOfLines={1}>
+                  {familyModalMember?.name}
+                </Text>
+                <Text style={styles.familyPopupSub}>
+                  {familyModalMember?.isGuest 
+                    ? `Guest Attendee · ${familyModalMember.status}`
+                    : `Family Members · ${familyModalMember?.status || 'Member'}`}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.familyPopupCloseBtn}
+                onPress={() => setFamilyModalMember(null)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <X size={18} color="#475569" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Event Name Tag */}
+            <View style={styles.familyPopupEventBadge}>
+              <Calendar size={13} color="#1E293B" style={{ marginRight: 6 }} />
+              <Text style={styles.familyPopupEventText} numberOfLines={1}>
+                {selectedEventForList?.title || 'Event'} Attendance
+              </Text>
+            </View>
+
+            {/* Content: Loading / Empty / List */}
+            {familyModalLoading ? (
+              <View style={styles.familyPopupLoadingWrap}>
+                <ActivityIndicator size="large" color="#1a2d5a" />
+                <Text style={styles.familyPopupLoadingTxt}>Loading family members...</Text>
+              </View>
+            ) : familyModalMember?.isGuest ? (
+              <View style={styles.familyPopupEmptyWrap}>
+                <View style={styles.familyPopupEmptyIconCircle}>
+                  <Users size={28} color="#6D28D9" />
+                </View>
+                <Text style={styles.familyPopupEmptyTitle}>Guest Attendee</Text>
+                <Text style={styles.familyPopupEmptySub}>
+                  {familyModalMember?.guestOf 
+                    ? `Invited to this event by ${familyModalMember.guestOf}.` 
+                    : 'Registered as a guest attendee for this church event.'}
+                </Text>
+              </View>
+            ) : familyModalList.length === 0 ? (
+              <View style={styles.familyPopupEmptyWrap}>
+                <View style={styles.familyPopupEmptyIconCircle}>
+                  <Users size={28} color="#94A3B8" />
+                </View>
+                <Text style={styles.familyPopupEmptyTitle}>No Family Members Found</Text>
+                <Text style={styles.familyPopupEmptySub}>
+                  No other household or family members are currently linked to {familyModalMember?.name}'s church account.
+                </Text>
+              </View>
+            ) : (
+              <ScrollView 
+                style={styles.familyPopupScroll} 
+                contentContainerStyle={{ paddingVertical: 8 }}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.familyPopupCountRow}>
+                  <Text style={styles.familyPopupCountTxt}>
+                    {familyModalList.length} {familyModalList.length === 1 ? 'Family Member' : 'Family Members'}
+                  </Text>
+                  <Text style={styles.familyPopupPresentRatio}>
+                    {familyModalList.filter(f => f.checked || f.alreadyMarked).length} Present · {familyModalList.filter(f => !f.checked && !f.alreadyMarked).length} Absent
+                  </Text>
+                </View>
+
+                {familyModalList.map((fam, idx) => {
+                  const isPresent = fam.checked || fam.alreadyMarked;
+                  const timeStr = fam.timestamp 
+                    ? (fam.timestamp.toDate ? formatSimpleTime(fam.timestamp.toDate()) : formatSimpleTime(new Date(fam.timestamp))) 
+                    : '';
+
+                  return (
+                    <View key={fam.id || idx} style={styles.familyPopupMemberCard}>
+                      <AttendeeAvatar
+                        profilePicture={fam.profilePicture}
+                        name={fam.name}
+                      />
+                      <View style={{ flex: 1, marginLeft: 12, marginRight: 8 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                          <Text style={styles.familyPopupMemberName} numberOfLines={1}>{fam.name}</Text>
+                          {Boolean(fam.relation) && (
+                            <View style={styles.familyRelationPill}>
+                              <Text style={styles.familyRelationPillTxt}>{fam.relation}</Text>
+                            </View>
+                          )}
+                        </View>
+                        {Boolean(fam.phone) && (
+                          <Text style={styles.familyPopupMemberPhone}>{fam.phone}</Text>
+                        )}
+                        {isPresent && Boolean(timeStr) && (
+                          <Text style={styles.familyPopupMemberTime}>Marked at {timeStr}</Text>
+                        )}
+                      </View>
+
+                      {/* Status Badge */}
+                      <View style={[styles.statusBadge, isPresent ? styles.presentBadge : styles.absentBadge]}>
+                        {isPresent && <Check size={11} color="#15803D" strokeWidth={2.5} style={{ marginRight: 3 }} />}
+                        <Text style={[styles.statusBadgeTxt, isPresent ? styles.presentBadgeTxt : styles.absentBadgeTxt]}>
+                          {isPresent ? 'Present' : 'Absent'}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })}
+              </ScrollView>
+            )}
+
+            {/* Bottom Close Button */}
+            <TouchableOpacity
+              style={styles.familyPopupDoneBtn}
+              onPress={() => setFamilyModalMember(null)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.familyPopupDoneBtnTxt}>Close</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* ────────────────────────────────────────────────────────────────────────
@@ -5883,5 +6181,186 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     lineHeight: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalHandle: {
+    width: 44,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#CBD5E1',
+    alignSelf: 'center',
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  familyPopupCard: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 22,
+    paddingTop: 8,
+    maxHeight: '82%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 20,
+  },
+  familyPopupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  familyPopupTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0f172a',
+    fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif',
+  },
+  familyPopupSub: {
+    fontSize: 12.5,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  familyPopupCloseBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  familyPopupEventBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 12,
+  },
+  familyPopupEventText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  familyPopupLoadingWrap: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  familyPopupLoadingTxt: {
+    fontSize: 13.5,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  familyPopupEmptyWrap: {
+    paddingVertical: 36,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  familyPopupEmptyIconCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  familyPopupEmptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  familyPopupEmptySub: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  familyPopupScroll: {
+    maxHeight: 340,
+  },
+  familyPopupCountRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    marginBottom: 8,
+  },
+  familyPopupCountTxt: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  familyPopupPresentRatio: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#15803D',
+  },
+  familyPopupMemberCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  familyPopupMemberName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  familyRelationPill: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  familyRelationPillTxt: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#0369A1',
+    textTransform: 'capitalize',
+  },
+  familyPopupMemberPhone: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  familyPopupMemberTime: {
+    fontSize: 11,
+    color: '#15803D',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  familyPopupDoneBtn: {
+    backgroundColor: '#1a2d5a',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  familyPopupDoneBtnTxt: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });
