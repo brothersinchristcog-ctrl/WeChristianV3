@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 
-export const generateSermonV9 = onCall({ enforceAppCheck: false, secrets: ['GROQ_API_KEY'] }, async (request) => {
+export const generateSermonV9 = onCall({ enforceAppCheck: false }, async (request) => {
   const data = request.data;
   try {
     const { topic, category, language, churchId } = data;
@@ -86,7 +86,7 @@ Write one closing paragraph summarizing the heart of the sermon. Then write a sh
   }
 });
 
-export const generateContentImage = onCall({ enforceAppCheck: false, secrets: ['HUGGINGFACE_API_KEY'] }, async (request) => {
+export const generateContentImage = onCall({ enforceAppCheck: false }, async (request) => {
   try {
     const { prompt, churchId, orientation, style, contentType } = request.data;
     if (!prompt || !churchId) {

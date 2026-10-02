@@ -44,7 +44,7 @@ export const pushMeetingLive = onDocumentCreated('churches/{churchId}/online_mee
  * Triggered automatically whenever a member submits a prayer request in Firestore.
  * Always notifies church admins (public or private), clearly showing which specific member submitted it.
  */
-export const pushPrayerRequestAdmin = onDocumentCreated('churches/{churchId}/prayerRequests/{prayerId}', async (event) => {
+export const onPrayerRequestCreatedAdmin = onDocumentCreated('churches/{churchId}/prayerRequests/{prayerId}', async (event) => {
     const snap = event.data;
     if (!snap)
         return;

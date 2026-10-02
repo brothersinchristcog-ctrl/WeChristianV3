@@ -1732,6 +1732,41 @@ class FirestoreService {
         console.warn('⚠️ Could not write admin notification doc directly:', notifErr);
       }
 
+      // Also deliver immediate push notification to Admins via the live processBroadcastPushNotifications trigger
+      try {
+        const membersCol = await this.getCollection('members');
+        const membersSnap = await membersCol.get();
+        const excerpt = textVal.length > 80 ? `${textVal.substring(0, 80)}...` : textVal;
+        const bcastTitle = `🙏 New Prayer Request: ${memberNameVal}`;
+        const bcastBody = excerpt ? `${memberNameVal} submitted a prayer request: "${excerpt}"` : `${memberNameVal} submitted a new prayer request.`;
+
+        const adminPhones: string[] = [];
+        membersSnap.docs.forEach(doc => {
+          const m = doc.data();
+          const role = String(m.userType || '').toLowerCase();
+          if (role.includes('admin') || role.includes('pastor') || role.includes('super')) {
+            const p = m.phone || m.mobile;
+            if (p) adminPhones.push(p);
+          }
+        });
+
+        // Write a broadcast doc targeted at each admin's phone so processBroadcastPushNotifications delivers instant push
+        const bcastCol = await this.getCollection('broadcasts');
+        const uniqueAdminPhones = Array.from(new Set(adminPhones));
+        for (const phone of uniqueAdminPhones) {
+          await bcastCol.add({
+            title: bcastTitle,
+            content: bcastBody,
+            type: 'prayer_request_admin',
+            prayerId: docRef.id,
+            targetPhone: phone,
+            createdAt: FieldValue.serverTimestamp()
+          });
+        }
+      } catch (bcastErr) {
+        console.warn('⚠️ Could not trigger broadcast push:', bcastErr);
+      }
+
       return true;
     } catch (error) {
       throw error;

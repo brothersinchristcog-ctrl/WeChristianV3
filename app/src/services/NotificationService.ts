@@ -1,4 +1,4 @@
-import { Platform, PermissionsAndroid, Linking } from 'react-native';
+import { Platform, PermissionsAndroid, Linking, Alert } from 'react-native';
 import { messaging, firestore, auth } from './firebaseConfig';
 
 class NotificationService {
@@ -258,13 +258,26 @@ class NotificationService {
   }
 
   // Handle notifications when the app is open (foreground)
-  // NOTE: FCM already shows a system heads-up notification on Android even when the app is in foreground.
-  // Do NOT show an Alert here — that would cause a double notification (system tray + in-app popup).
-  // Navigation on tap is handled by onNotificationOpenedApp in RootNavigator.
   setupForegroundListener(navigation?: any) {
     return messaging().onMessage(async remoteMessage => {
-      // Only log — do not show Alert (system notification already shown by FCM)
-      console.log('⚡ Foreground push received (system notification already shown):', remoteMessage?.notification?.title);
+      console.log('⚡ Foreground push received:', remoteMessage?.notification?.title);
+      const title = remoteMessage?.notification?.title || 'New Notification';
+      const body = remoteMessage?.notification?.body || '';
+
+      Alert.alert(
+        title,
+        body,
+        [
+          { text: 'Dismiss', style: 'cancel' },
+          {
+            text: 'View',
+            onPress: () => {
+              this.handleNotificationNavigation(remoteMessage, navigation);
+            },
+          },
+        ],
+        { cancelable: true }
+      );
     });
   }
 }
