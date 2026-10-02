@@ -84,6 +84,7 @@ interface EventItem {
   presentCount?: number;
   myStatus?: 'Present' | 'Absent' | 'Upcoming';
   myTimestamp?: any;
+  requireEventQR?: boolean;
 }
 
 interface UnifiedMember {
@@ -643,6 +644,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
           location: (ev as any).venueEn || ev.location || (activeChurch as any)?.address || churchName,
           status: 'Open',
           presentCount: ev.presentCount || ev.attendeeCount || 0,
+          requireEventQR: ev.requireEventQR === true || (ev as any).requireEventQr === true,
         });
       });
 
@@ -1845,6 +1847,23 @@ export default function AttendanceScreen({ navigation, route }: any) {
         if (matched?.title) targetEventName = matched.title;
       }
 
+      // ─── Event QR Code Required Validation ──────────────────────────────
+      // If the admin enabled "Event QR Code Required" for this event,
+      // the permanent Church QR Code is blocked. Only the specific Event QR is allowed.
+      if (scannedIsChurchQR) {
+        const targetEv = allEvents.find(e => e.id === targetEventId) || todayEvents.find(e => e.id === targetEventId);
+        if (targetEv?.requireEventQR) {
+          setIsDecoding(false);
+          setHasScanned(false);
+          try { Vibration.vibrate(400); } catch {}
+          setInvalidQrMessage(
+            `Attendance for "${targetEventName}" requires scanning its specific Event QR Code.\n\nThe general Church QR Code cannot be used for this event.`
+          );
+          setShowInvalidQrModal(true);
+          return;
+        }
+      }
+
       // For Event QR (non-generic): verify it belongs to this church's event list
       if (!scannedIsChurchQR && allEvents.length > 0 && targetEventId !== 'general_service') {
         const exists = allEvents.some(e => e.id === targetEventId) || todayEvents.some(e => e.id === targetEventId);
@@ -2067,6 +2086,14 @@ export default function AttendanceScreen({ navigation, route }: any) {
       return;
     }
 
+    if (activeEvent?.requireEventQR) {
+      Alert.alert(
+        'Event QR Required',
+        `Attendance for "${activeEvent.title}" requires scanning its specific Event QR Code.`
+      );
+      return;
+    }
+
     const payload = AttendanceService.generateAttendanceQRPayload(
       churchId, 
       churchName, 
@@ -2082,6 +2109,14 @@ export default function AttendanceScreen({ navigation, route }: any) {
     const code = manualCodeInput.trim().toUpperCase();
     if (!code) {
       Alert.alert('Missing Code', 'Please enter your church code.');
+      return;
+    }
+
+    if (activeEvent?.requireEventQR) {
+      Alert.alert(
+        'Event QR Required',
+        `Attendance for "${activeEvent.title}" requires scanning its specific Event QR Code.`
+      );
       return;
     }
     setManualCodeModal(false);

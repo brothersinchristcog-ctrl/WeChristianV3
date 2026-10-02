@@ -38,7 +38,8 @@ import {
   Trash2,
   X,
   Plus,
-  Sparkles
+  Sparkles,
+  QrCode
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AdminTabContext } from '../../context/AdminTabContext';
@@ -88,6 +89,7 @@ export default function AdminEventEditor() {
   const { setActiveTab, editingData, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [loading, setLoading] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [requireEventQR, setRequireEventQR] = useState(false);
 
   // Form State
   const [titleEn, setTitleEn] = useState('');
@@ -293,6 +295,7 @@ export default function AdminEventEditor() {
       setPublishStatus(editingData.status || 'Published');
       setRecurring(editingData.recurring || 'One-time event');
       setRecurrenceDuration(editingData.recurrenceDuration || 1);
+      setRequireEventQR(editingData.requireEventQR === true || editingData.requireEventQr === true);
       setBannerUrl(editingData.bannerUrl || '');
       setBannerColor(editingData.bannerColor || '#c0392b');
     }
@@ -565,6 +568,7 @@ export default function AdminEventEditor() {
       image: bannerUrl,
       recurring: resolveValue('recurring', recurring),
       recurrenceDuration,
+      requireEventQR,
       notifyOnPublish, reminder1Day, reminder1Hour,
       rsvpCap: capAttendance ? 100 : 0,
       updateMode
@@ -638,6 +642,7 @@ export default function AdminEventEditor() {
     setDate(ds); setEndDate(ds);
     setStartTime('09:00 AM'); setEndTime('12:00 PM');
     setNotifyOnPublish(true); setReminder1Day(true); setReminder1Hour(false);
+    setRequireEventQR(false);
     setEditingData(null);
   };
 
@@ -1081,6 +1086,33 @@ export default function AdminEventEditor() {
               )}
             </View>
             <Text style={styles.fHint}>Supports JPG, PNG, WEBP, and direct cloud image URLs.</Text>
+          </View>
+        </View>
+
+        {/* ── Attendance & QR Check-In Settings ── */}
+        <View style={[styles.section, styles.secNavy]}>
+          <View style={styles.secHd}>
+            <View style={[styles.secHdPill, { backgroundColor: '#1a2d5a' }]}>
+              <QrCode size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>Attendance Check-In Settings</Text>
+          </View>
+
+          <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
+            <View style={{ flex: 1, paddingRight: 14 }}>
+              <Text style={styles.switchLabel}>Event QR Code Required</Text>
+              <Text style={[styles.fHint, { marginTop: 4, lineHeight: 16 }]}>
+                {requireEventQR
+                  ? 'Attendance for this event is allowed ONLY through its specific Event QR Code. The Church QR Code will NOT work.'
+                  : 'Church QR Code is allowed. Members can scan either the permanent Church QR or this Event QR to mark attendance.'}
+              </Text>
+            </View>
+            <Switch
+              value={requireEventQR}
+              onValueChange={setRequireEventQR}
+              trackColor={{ false: '#CBD5E1', true: '#1a2d5a' }}
+              thumbColor={requireEventQR ? '#C9A84C' : '#FFFFFF'}
+            />
           </View>
         </View>
 

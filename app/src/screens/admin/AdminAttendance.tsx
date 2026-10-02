@@ -102,6 +102,7 @@ interface EventItemWithStats {
   absentCount: number;
   turnoutPercent: number;
   status: 'Today' | 'Upcoming' | 'Past';
+  requireEventQR?: boolean;
 }
 
 type TimelineFilter = 'All' | 'Upcoming' | 'Past';
@@ -351,6 +352,7 @@ export default function AdminAttendance() {
             absentCount,
             turnoutPercent,
             status,
+            requireEventQR: ev.requireEventQR === true || (ev as any).requireEventQr === true,
           };
         })
       );
@@ -707,7 +709,9 @@ export default function AdminAttendance() {
 
             <Text style={styles.qrHintTxt}>
               {isEvent
-                ? `Members can scan this QR code to mark attendance directly for "${qrModalState.event!.title}".`
+                ? (qrModalState.event?.requireEventQR
+                    ? `⚠️ Attendance for "${qrModalState.event!.title}" strictly requires this Event QR Code. The general Church QR will NOT work.`
+                    : `Members can scan this QR code to mark attendance directly for "${qrModalState.event!.title}". (Church QR is also allowed)`)
                 : `Permanent church QR code. Members can scan this code to check in to any service at ${churchName}.`}
             </Text>
 
@@ -1337,16 +1341,30 @@ export default function AdminAttendance() {
                 >
                   {/* Top Badge & Date & Delete */}
                   <View style={styles.eventCardTop}>
-                    <View style={[
-                      styles.statusPill,
-                      isToday ? styles.statusPillToday : event.status === 'Upcoming' ? styles.statusPillUpcoming : styles.statusPillPast
-                    ]}>
-                      <Text style={[
-                        styles.statusPillTxt,
-                        isToday ? styles.statusPillTxtToday : event.status === 'Upcoming' ? styles.statusPillTxtUpcoming : styles.statusPillTxtPast
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+                      <View style={[
+                        styles.statusPill,
+                        isToday ? styles.statusPillToday : event.status === 'Upcoming' ? styles.statusPillUpcoming : styles.statusPillPast
                       ]}>
-                        {event.status}
-                      </Text>
+                        <Text style={[
+                          styles.statusPillTxt,
+                          isToday ? styles.statusPillTxtToday : event.status === 'Upcoming' ? styles.statusPillTxtUpcoming : styles.statusPillTxtPast
+                        ]}>
+                          {event.status}
+                        </Text>
+                      </View>
+
+                      {event.requireEventQR ? (
+                        <View style={styles.qrReqBadge}>
+                          <QrCode size={11} color="#6D28D9" style={{ marginRight: 3 }} />
+                          <Text style={styles.qrReqBadgeTxt}>Event QR Only</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.churchAllowedBadge}>
+                          <Building2 size={11} color="#047857" style={{ marginRight: 3 }} />
+                          <Text style={styles.churchAllowedBadgeTxt}>Church QR Allowed</Text>
+                        </View>
+                      )}
                     </View>
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -1522,6 +1540,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  qrReqBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1,
+    borderColor: '#DDD6FE',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  qrReqBadgeTxt: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#6D28D9',
+  },
+  churchAllowedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  churchAllowedBadgeTxt: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#047857',
   },
   eventCardActionsRow: {
     flexDirection: 'row',
