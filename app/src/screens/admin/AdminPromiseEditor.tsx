@@ -401,7 +401,7 @@ export default function AdminPromiseEditor() {
   const [thumbTextColor, setThumbTextColor] = useState<string>('#FFFFFF');
   const [thumbFontWeight, setThumbFontWeight] = useState<'400' | '600' | '700' | '800'>('800');
   const [thumbIsItalic, setThumbIsItalic] = useState<boolean>(false);
-  const [isTypographyExpanded, setIsTypographyExpanded] = useState<boolean>(true);
+  const [isTypographyExpanded, setIsTypographyExpanded] = useState<boolean>(false);
   const [fontsReady, setFontsReady] = useState<boolean>(false);
   const [customTextColorInput, setCustomTextColorInput] = useState<string>('');
   const [activeTextColorCategory, setActiveTextColorCategory] = useState<string>('All');
@@ -521,6 +521,8 @@ export default function AdminPromiseEditor() {
       setThumbTextColor('#FFFFFF');
       setThumbFontWeight('800');
       setThumbIsItalic(false);
+      setIsTypographyExpanded(false);
+      setIsColorPickerExpanded(false);
       setForm({
         date: (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })(),
         enRef: '',
@@ -1561,7 +1563,14 @@ export default function AdminPromiseEditor() {
               >
                 <View style={styles.typographyTitleRow}>
                   <Type size={16} color="#1a2d5a" />
-                  <Text style={styles.typographyHeaderTitle} numberOfLines={1}>తెలుగు ఫాంట్ & శైలి</Text>
+                  <Text 
+                    style={styles.typographyHeaderTitle} 
+                    numberOfLines={1}
+                    adjustsFontSizeToFit={true}
+                    minimumFontScale={0.85}
+                  >
+                    తెలుగు ఫాంట్ & శైలి (Telugu Font & Style)
+                  </Text>
                 </View>
 
                 <View style={styles.typographyHeaderRight}>
