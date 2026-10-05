@@ -109,6 +109,7 @@ export const ta: TranslationSchema = {
     quickMinistries: 'ஊழியங்கள்',
     quickSermonNotes: 'பிரசங்க குறிப்புகள்',
     quickBiblePlans: 'வேதாகம திட்டங்கள்',
+    quickBibleQuiz: 'வேதாகம வினாடி வினா',
     quickUpdates: 'செய்திகள்',
     quickYoutubeLive: 'யூடியூப் நேரலை',
     quickMembers: 'உறுப்பினர்கள்',

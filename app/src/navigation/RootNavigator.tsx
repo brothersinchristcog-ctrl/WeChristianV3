@@ -7,13 +7,14 @@ import { ActivityIndicator, View, Text, StyleSheet, Alert, Platform, TouchableOp
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import firestore from '@react-native-firebase/firestore';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Lock, AlertCircle, Crown, ShieldAlert, Sparkles } from 'lucide-react-native';
+import { Lock, AlertCircle, Crown, ShieldAlert } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ChurchProvider, useChurch } from '../context/ChurchContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { LanguageProvider, useLanguage } from '../context/LanguageContext';
+import { QuizLanguageProvider } from '../context/QuizLanguageContext';
 import Theme from '../theme/Theme';
 import AdminNavigator from './AdminNavigator'; 
 import NotificationService from '../services/NotificationService';
@@ -64,6 +65,15 @@ import AIAssistantModal from '../screens/admin/pastor_events/AIAssistantModal';
 import OnlineMeetingsScreen from '../screens/OnlineMeetingsScreen';
 import OnlineMeetingDetailScreen from '../screens/OnlineMeetingDetailScreen';
 import MemberGalleryNavigator from '../screens/gallery/MemberGalleryNavigator';
+
+// Bible Quiz Screens
+import BibleQuizHomeScreen from '../screens/quiz/BibleQuizHomeScreen';
+import BibleQuizLevelsScreen from '../screens/quiz/BibleQuizLevelsScreen';
+import BibleQuizStagesScreen from '../screens/quiz/BibleQuizStagesScreen';
+import BibleQuizDetailScreen from '../screens/quiz/BibleQuizDetailScreen';
+import BibleQuizPlayerScreen from '../screens/quiz/BibleQuizPlayerScreen';
+import BibleQuizResultScreen from '../screens/quiz/BibleQuizResultScreen';
+import BibleQuizReviewScreen from '../screens/quiz/BibleQuizReviewScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -803,6 +813,13 @@ function Navigation() {
             <Stack.Screen name="EventAttendees" component={EventAttendeesScreen} />
             <Stack.Screen name="LiveCelebrationsChat" component={renderPremium(LiveCelebrationsChat)} />
             <Stack.Screen name="VerseOfTheDay" component={renderPremium(VerseOfTheDayScreen)} />
+            <Stack.Screen name="BibleQuizHome" component={BibleQuizHomeScreen} />
+            <Stack.Screen name="BibleQuizLevels" component={BibleQuizLevelsScreen} />
+            <Stack.Screen name="BibleQuizStages" component={BibleQuizStagesScreen} />
+            <Stack.Screen name="BibleQuizDetail" component={BibleQuizDetailScreen} />
+            <Stack.Screen name="BibleQuizPlayer" component={BibleQuizPlayerScreen} />
+            <Stack.Screen name="BibleQuizResult" component={BibleQuizResultScreen} />
+            <Stack.Screen name="BibleQuizReview" component={BibleQuizReviewScreen} />
           </>
         ) : onboardingComplete ? (
           <>
@@ -836,6 +853,13 @@ function Navigation() {
             <Stack.Screen name="LiveCelebrationsChat" component={renderPremium(LiveCelebrationsChat)} />
             <Stack.Screen name="Gallery" component={renderPremium(MemberGalleryNavigator)} />
             <Stack.Screen name="VerseOfTheDay" component={renderPremium(VerseOfTheDayScreen)} />
+            <Stack.Screen name="BibleQuizHome" component={BibleQuizHomeScreen} />
+            <Stack.Screen name="BibleQuizLevels" component={BibleQuizLevelsScreen} />
+            <Stack.Screen name="BibleQuizStages" component={BibleQuizStagesScreen} />
+            <Stack.Screen name="BibleQuizDetail" component={BibleQuizDetailScreen} />
+            <Stack.Screen name="BibleQuizPlayer" component={BibleQuizPlayerScreen} />
+            <Stack.Screen name="BibleQuizResult" component={BibleQuizResultScreen} />
+            <Stack.Screen name="BibleQuizReview" component={BibleQuizReviewScreen} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
@@ -853,7 +877,9 @@ export default function RootNavigator() {
       <ChurchProvider>
         <ThemeProvider>
           <LanguageProvider>
-            <Navigation />
+            <QuizLanguageProvider>
+              <Navigation />
+            </QuizLanguageProvider>
           </LanguageProvider>
         </ThemeProvider>
       </ChurchProvider>

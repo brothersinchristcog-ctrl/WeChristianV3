@@ -46,6 +46,7 @@ import {
   Sunset,
   Moon,
   Award,
+  Trophy,
   Music,
   Image as ImageIcon,
   FileText,
@@ -2197,6 +2198,7 @@ export default function HomeScreen() {
             <GridItem isDark={isDark} icon={<Music size={26} color="#fff" />} label={t('home.quickSongs')} color="#0369a1" onPress={() => handleGuestProtectedNavigation('Songs')} />
             <GridItem isDark={isDark} icon={<FileText size={26} color="#fff" />} label={t('home.quickSermonNotes')} color="#854D0E" onPress={() => handleGuestProtectedNavigation('MemberNotes')} />
             <GridItem isDark={isDark} icon={<Award size={26} color="#fff" />} label={t('home.quickBiblePlans')} color="#374151" onPress={() => handleGuestProtectedNavigation('BiblePlans')} />
+            <GridItem isDark={isDark} icon={<Trophy size={26} color="#fff" />} label={t('home.quickBibleQuiz') || 'Bible Quiz'} color="#6366F1" onPress={() => navigation.navigate('BibleQuizHome')} />
 
             <GridItem isDark={isDark} icon={<Bell size={26} color="#fff" />} label={t('home.quickUpdates')} color="#0284c7" onPress={() => navigation.navigate('Updates')} />
             <GridItem 

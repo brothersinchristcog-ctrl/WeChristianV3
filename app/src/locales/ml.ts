@@ -109,6 +109,7 @@ export const ml: TranslationSchema = {
     quickMinistries: 'ശുശ്രൂഷകൾ',
     quickSermonNotes: 'പ്രസംഗ കുറിപ്പുകൾ',
     quickBiblePlans: 'ബൈബിൾ വായനാ പദ്ധതികൾ',
+    quickBibleQuiz: 'ബൈബിൾ ക്വിസ്',
     quickUpdates: 'അറിയിപ്പുകൾ',
     quickYoutubeLive: 'യൂട്യൂബ് ലൈവ്',
     quickMembers: 'അംഗങ്ങൾ',

@@ -170,6 +170,20 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
+    // 15. Bible Quizzes
+    match /bibleQuizzes/{quizId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+      match /{allChildren=**} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // 16. Quiz Attempts
+    match /quizAttempts/{attemptId} {
+      allow read, write: if isAuthenticated();
+    }
+
     // --- CHURCH-SCOPED COLLECTIONS (all data lives here) ---
     match /churches/{churchId} {
       // Helper: Is this user an admin for this specific church?
@@ -352,6 +366,17 @@ service cloud.firestore {
 
       // Attendance Records (Church-wide check-in logs)
       match /attendanceRecords/{recordId} {
+        allow read, write: if isAuthenticated();
+      }
+
+      // Bible Quizzes
+      match /bibleQuizzes/{quizId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Quiz Attempts (members can create their own attempts, everyone can read leaderboard)
+      match /quizAttempts/{attemptId} {
         allow read, write: if isAuthenticated();
       }
 

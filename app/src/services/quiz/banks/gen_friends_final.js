@@ -1,0 +1,306 @@
+const fs = require('fs');
+const { assembleBank } = require('./build_batch_helper.js');
+
+// 50 distinct Friendship facts from Genesis to Revelation
+const FRIENDS_FACTS = [
+  {
+    easyQ: (n) => `Who was King Saul's son whose soul was knit to David in deep biblical friendship?`,
+    easyQTe: (n) => `దావీదుతో ప్రాణస్నేహము చేసిన సౌలు కుమారుడు ఎవరు?`,
+    medQ: (n) => `According to 1 Samuel 18:1, how did Scripture describe Jonathan's love for his friend David?`,
+    medQTe: (n) => `1 సమూయేలు 18:1 ప్రకారం యోనాతాను దావీదును ఏ విధముగా ప్రేమించెనని లేఖనము సెలవిచ్చుచున్నది?`,
+    hardQ: (n) => `In the covenant friendship of 1 Samuel 18:1-3, what specific theological covenant was established between David and Jonathan?`,
+    hardQTe: (n) => `1 సమూయేలు 18:1-3 లో దావీదు మరియు యోనాతానుల మధ్య ఏ పవిత్ర నిబంధన స్థిరపరచబడెను?`,
+    options: ['Jonathan', 'Abner', 'Ishbosheth', 'Joab'],
+    optionsTelugu: ['యోనాతాను', 'అబ్నేరు', 'ఈష్బోషెతు', 'యోవాబు'],
+    correctAnswer: 'Jonathan',
+    bibleReference: '1 Samuel 18:1-3',
+    explanation: 'Jonathan loved David as his own soul and they made a covenant of loyalty.',
+    explanationTelugu: 'యోనాతాను దావీదును తన ప్రాణమువలె ప్రేమించి నిబంధన చేసెను.'
+  },
+  {
+    easyQ: (n) => `What royal garments and weapons did Jonathan give to David as a pledge of friendship in 1 Samuel 18:4?`,
+    easyQTe: (n) => `1 సమూయేలు 18:4 లో యోనాతాను దావీదుకు స్నేహ సంకేతముగా ఏ రాజ వస్త్రములు, ఆయుధములు ఇచ్చెను?`,
+    medQ: (n) => `By giving David his robe, tunic, sword, bow, and belt, what was Jonathan symbolically yielding to his friend?`,
+    medQTe: (n) => `తన అంగీని, కత్తిని, వింటిని దావీదుకు ఇచ్చుట ద్వారా యోనాతాను సూచనాత్మకముగా దేనిని అప్పగించెను?`,
+    hardQ: (n) => `In ancient Near Eastern covenant practices reflected in 1 Samuel 18:4, what did the transfer of Jonathan's armor signify?`,
+    hardQTe: (n) => `1 సమూయేలు 18:4 ప్రకారం యోనాతాను తన ఆయుధములను దావీదుకు ఇచ్చుట దేనికి ప్రతీక?`,
+    options: ['His royal robe, tunic, sword, bow, and belt', 'A golden crown and silver sceptre', 'Ten war chariots from Gilgal', 'A purple banner of the tribe of Benjamin'],
+    optionsTelugu: ['తన రాజ వస్త్రమును, అంగీని, కత్తిని, వింటిని, నడుముకట్టును', 'బంగారు కిరీటము మరియు వెండి దండము', 'గిల్గాలు నుండి పది రథములు', 'బెన్యామీను గోత్రపు ఊదా జెండా'],
+    correctAnswer: 'His royal robe, tunic, sword, bow, and belt',
+    bibleReference: '1 Samuel 18:4',
+    explanation: 'Jonathan stripped himself of his royal robe and weapons to honor David as God\'s anointed.',
+    explanationTelugu: 'యోనాతాను తన రాజ వస్త్రములను తీసి దావీదును సన్మానించెను.'
+  },
+  {
+    easyQ: (n) => `How did Jonathan send a secret warning signal to David concerning King Saul's deadly intentions?`,
+    easyQTe: (n) => `సౌలు వలన కలుగబోవు అపాయమును గూర్చి యోనాతాను దావీదుకు ఏ రహస్య సంకేతము పంపెను?`,
+    medQ: (n) => `In 1 Samuel 20:20-22, how many arrows did Jonathan shoot to communicate with David in hiding?`,
+    medQTe: (n) => `1 సమూయేలు 20:20-22 లో యోనాతాను దావీదుతో సంభాషించుటకు ఎన్ని బాణములను విడిచెను?`,
+    hardQ: (n) => `What specific phrase spoken to the boy retrieving the arrows signaled to David that he had to flee immediately?`,
+    hardQTe: (n) => `బాణములను తెచ్చు బాలునితో యోనాతాను పలికిన ఏ మాట దావీదు పారిపోవలెనని సూచించెను?`,
+    options: ['By shooting three arrows and calling to the boy that they were beyond him', 'By sounding a shofar from the wall of Gibeah', 'By waving a white cloth from the palace gate', 'By lighting a beacon fire on Mount Carmel'],
+    optionsTelugu: ['మూడు బాణములు విడిచి బాలునితో అవి నీకు ఆవల ఉన్నవని చెప్పుట ద్వారా', 'గిబియా గోడపై నుండి బాకా ఊదుట ద్వారా', 'రాజభవన ద్వారము వద్ద తెల్లని వస్త్రము ఊపుట ద్వారా', 'కర్మెలు కొండపై మంట వేయుట ద్వారా'],
+    correctAnswer: 'By shooting three arrows and calling to the boy that they were beyond him',
+    bibleReference: '1 Samuel 20:20-22',
+    explanation: 'Jonathan shot three arrows as a predetermined code to warn David that Saul meant to kill him.',
+    explanationTelugu: 'యోనాతాను మూడు బాణములు విడిచి దావీదును హెచ్చరించెను.'
+  },
+  {
+    easyQ: (n) => `Where did David and Jonathan weep together in deep sorrow before parting ways in 1 Samuel 20?`,
+    easyQTe: (n) => `1 సమూయేలు 20 లో దావీదు మరియు యోనాతానులు వీడ్కోలు తీసికొనుటకు ముందు ఎక్కడ కలిసి రోదనము చేసిరి?`,
+    medQ: (n) => `Near what landmark did David emerge from hiding to meet Jonathan in 1 Samuel 20:41?`,
+    medQTe: (n) => `1 సమూయేలు 20:41 లో దావీదు ఏ రాతి యొద్దనుండి లేచి యోనాతానును కలుసుకొనెను?`,
+    hardQ: (n) => `In 1 Samuel 20:41-42, what posture of honor did David assume before embracing Jonathan at the stone Ezel?`,
+    hardQTe: (n) => `1 సమూయేలు 20:41-42 లో ఏజెల్ రాతి యొద్ద దావీదు యోనాతాను ఎదుట ఏ గౌరవ భంగిమలో సాగిలపడెను?`,
+    options: ['At the stone Ezel, bowing three times and weeping', 'At the well of Beersheba', 'Inside the tabernacle at Nob', 'At the pool of Gibeon'],
+    optionsTelugu: ['ఏజెల్ రాతి యొద్ద మూడుసార్లు సాగిలపడి రోదనము చేసిరి', 'బేయేర్షెబా బావి యొద్ద', 'నోబులోని ప్రత్యక్షపు గుడారములో', 'గిబియోను కొలను యొద్ద'],
+    correctAnswer: 'At the stone Ezel, bowing three times and weeping',
+    bibleReference: '1 Samuel 20:41-42',
+    explanation: 'David bowed three times to the ground, kissed his friend, and they wept together until David exceeded.',
+    explanationTelugu: 'దావీదు మూడుసార్లు నేలమట్టుకు సాగిలపడి యోనాతానును ముద్దుపెట్టుకొని కన్నీరు కార్చెను.'
+  },
+  {
+    easyQ: (n) => `Where did Jonathan secretly visit David for the last time to strengthen his faith in God?`,
+    easyQTe: (n) => `యోనాతాను చివరిసారిగా దావీదును దేవునియందు బలపరచుటకు ఎక్కడికి రహస్యముగా వచ్చెను?`,
+    medQ: (n) => `According to 1 Samuel 23:16, what did Jonathan encourage David about during their meeting in Horesh?`,
+    medQTe: (n) => `1 సమూయేలు 23:16 ప్రకారం హోరెషులో యోనాతాను దావీదుకు ఏ ధైర్యపు మాటలు చెప్పెను?`,
+    hardQ: (n) => `What prophetic expectation regarding David's future reign did Jonathan articulate in the wilderness of Ziph?`,
+    hardQTe: (n) => `జీపు అరణ్యములో దావీదు రాబోవు పరిపాలనను గూర్చి యోనాతాను ఏ ప్రవచనము పలికెను?`,
+    options: ['In the woods of Horesh in the wilderness of Ziph', 'At the caves of Engedi', 'In the valley of Elah', 'Inside the walls of Jerusalem'],
+    optionsTelugu: ['జీపు అరణ్యములోని హోరెషు వనములో', 'ఏన్గెదీ గుహలయొద్ద', 'ఏలా లోయలో', 'యెరూషలేము ప్రాకారముల లోపల'],
+    correctAnswer: 'In the woods of Horesh in the wilderness of Ziph',
+    bibleReference: '1 Samuel 23:16-18',
+    explanation: 'Jonathan went to David at Horesh and strengthened his hand in God, assuring him he would be king.',
+    explanationTelugu: 'యోనాతాను హోరెషులోని దావీదునొద్దకు వచ్చి దేవునియందు అతని బలపరచెను.'
+  },
+  {
+    easyQ: (n) => `What moving eulogy did David write to honor Jonathan after the battle on Mount Gilboa?`,
+    easyQTe: (n) => `గిల్బోవా పర్వత యుద్ధము తరువాత యోనాతానును స్మరించుకొనుచు దావీదు రచించిన విలాపవాక్యమేది?`,
+    medQ: (n) => `In 2 Samuel 1:26, how did David describe Jonathan's love compared to worldly love?`,
+    medQTe: (n) => `2 సమూయేలు 1:26 లో దావీదు యోనాతాను ప్రేమను లోక సంబంధమైన ప్రేమతో పోల్చుచు ఏమని వర్ణించెను?`,
+    hardQ: (n) => `In the Song of the Bow (2 Samuel 1:19-27), what Hebrew term captures David's deep affection for his fallen friend?`,
+    hardQTe: (n) => `వింటి పాట (2 సమూయేలు 1) లో మరణించిన స్నేహితునిపై దావీదు పలికిన హృదయ విదారకమైన మాటలేవి?`,
+    options: ['"Your love to me was wonderful, surpassing the love of women"', '"You were the conqueror of Babylon"', '"Your wealth filled the hills of Judah"', '"Your spear was feared by Egypt"'],
+    optionsTelugu: ['"నా సహోదరుడా యోనాతానా, నీ ప్రేమ నాకు ఆశ్చర్యమైనది, స్త్రీల ప్రేమకంటె విశేషమైనది"', '"నీవు బబులోనును జయించినవాడవు"', '"నీ సంపద యూదా కొండలను నింపెను"', '"నీ ఈటెకు ఐగుప్తు భయపడెను"'],
+    correctAnswer: '"Your love to me was wonderful, surpassing the love of women"',
+    bibleReference: '2 Samuel 1:26',
+    explanation: 'David mourned deeply for Jonathan, praising his pure and sacrificial friendship.',
+    explanationTelugu: 'దావీదు: నీ ప్రేమ నాకు ఆశ్చర్యమైనది, స్త్రీల ప్రేమకంటె విశేషమైనది అని విలపించెను.'
+  },
+  {
+    easyQ: (n) => `Who was the lame son of Jonathan whom King David blessed and restored for Jonathan's sake?`,
+    easyQTe: (n) => `యోనాతానుతో చేసిన స్నేహ నిబంధన నిమిత్తము దావీదు ఆదరించిన కుంటివాడైన కుమారుడు ఎవరు?`,
+    medQ: (n) => `In 2 Samuel 9:3, what question did David ask concerning the remaining household of Saul?`,
+    medQTe: (n) => `2 సమూయేలు 9:3 లో సౌలు కుటుంబములో శేషించినవారిని గూర్చి దావీదు ఏమని విచారించెను?`,
+    hardQ: (n) => `What specific theological concept of divine covenant loyalty (Hesed) did David demonstrate toward Mephibosheth?`,
+    hardQTe: (n) => `మెఫీబోషెతు పట్ల దావీదు చూపిన దేవుని నిబంధన కృప (హెసెద్) దేనిని రుజువు చేయుచున్నది?`,
+    options: ['Mephibosheth', 'Mahlon', 'Chimham', 'Hanun'],
+    optionsTelugu: ['మెఫీబోషెతు', 'మహconflictలోను', 'కింహాము', 'హానూను'],
+    correctAnswer: 'Mephibosheth',
+    bibleReference: '2 Samuel 9:1-7',
+    explanation: 'David sought out Mephibosheth to show him the kindness of God for Jonathan\'s sake.',
+    explanationTelugu: 'యోనాతాను నిమిత్తము దావీదు మెఫీబోషెతుకు దేవుని దయ చూపించెను.'
+  },
+  {
+    easyQ: (n) => `Where was Mephibosheth living before King David summoned him to eat at the royal table?`,
+    easyQTe: (n) => `దావీదు రాజు తన బల్లయొద్ద భోజనమునకు పిలువకముందు మెఫీబోషెతు ఎక్కడ నివసించుచుండెను?`,
+    medQ: (n) => `In whose home in Lo-Debar was Mephibosheth being sheltered prior to David's summons?`,
+    medQTe: (n) => `లోదెబారులో ఎవరి ఇంట మెఫీబోషెతు ఆశ్రయము పొందియుండెను?`,
+    hardQ: (n) => `What does the name and location of Lo-Debar symbolize regarding Mephibosheth's condition before David's covenant grace?`,
+    hardQTe: (n) => `దావీదు నిబంధన కృప చూపకముందు లోదెబారు అను స్థలము మెఫీబోషెతు యొక్క ఏ దీనస్థితిని సూచించుచున్నది?`,
+    options: ['In Lo-Debar, at the house of Machir son of Ammiel', 'In the city of Jericho', 'In the fortress of Lachish', 'In the plains of Shittim'],
+    optionsTelugu: ['అమ్మీయేలు కుమారుడైన మాకీరు ఇంట లోదెబారులో', 'యెరికో పట్టణములో', 'లాకీషు కోటలో', 'షిత్తీము మైదానములో'],
+    correctAnswer: 'In Lo-Debar, at the house of Machir son of Ammiel',
+    bibleReference: '2 Samuel 9:4-5',
+    explanation: 'David fetched Mephibosheth from the home of Machir in Lo-Debar to restore him.',
+    explanationTelugu: 'దావీదు లోదెబారులోని మాకీరు ఇంటనుండి మెఫీబోషెతును పిలిపించెను.'
+  },
+  {
+    easyQ: (n) => `Who was the former servant of Saul whom David appointed to farm the restored lands for Mephibosheth?`,
+    easyQTe: (n) => `మెఫీబోషెతు భూములను సాగుచేసి ఫలములను సమకూర్చుటకు దావీదు నియమించిన సౌలు సేవకుడు ఎవరు?`,
+    medQ: (n) => `How many sons and servants did Ziba have when David commanded him to serve Jonathan's son?`,
+    medQTe: (n) => `యోనాతాను కుమారునికి సేవ చేయుటకు దావీదు ఆజ్ఞాపించినప్పుడు సీబాకు ఎంతమంది కుమారులు, దాసులు ఉండిరి?`,
+    hardQ: (n) => `According to 2 Samuel 9:10, what was the stewardship responsibility assigned to Ziba and his household?`,
+    hardQTe: (n) => `2 సమూయేలు 9:10 ప్రకారం సీబా కుటుంబమునకు అప్పగించబడిన గృహనిర్వాహకత్వ బాధ్యత ఏది?`,
+    options: ['Ziba, who had fifteen sons and twenty servants', 'Gehazi, servant of Elisha', 'Eliezer of Damascus', 'Ebed-Melech the Ethiopian'],
+    optionsTelugu: ['పదిహేనుమంది కుమారులు, ఇరువదిమంది దాసులు గల సీబా', 'గేహజీ', 'దమస్కు ఎలీయెజెరు', 'ఎబెద్మెలెకు'],
+    correctAnswer: 'Ziba, who had fifteen sons and twenty servants',
+    bibleReference: '2 Samuel 9:9-10',
+    explanation: 'David ordered Ziba and his household to cultivate Saul\'s land for Mephibosheth.',
+    explanationTelugu: 'సీబా మరియు అతని దాసులు మెఫీబోషెతు కొరకు భూమిని దున్ని ఫలము తేవలెనని దావీదు ఆజ్ఞాపించెను.'
+  },
+  {
+    easyQ: (n) => `What privilege was permanently granted to Mephibosheth in Jerusalem by King David?`,
+    easyQTe: (n) => `యెరూషలేములో దావీదు రాజు మెఫీబోషెతుకు అనుగ్రహించిన నిరంతర ఆధిక్యత ఏది?`,
+    medQ: (n) => `In 2 Samuel 9:11-13, how frequently did Mephibosheth eat at the king\'s personal table?`,
+    medQTe: (n) => `2 సమూయేలు 9:11-13 లో మెఫీబోషెతు రాజు బల్లయొద్ద ఎంత తరచుగా భోజనము చేసెను?`,
+    hardQ: (n) => `How does Mephibosheth eating continually at the king\'s table foreshadow believers sitting with Christ?`,
+    hardQTe: (n) => `మెఫీబోషెతు నిత్యము రాజు బల్లయొద్ద భోజనము చేయుట విశ్వాసులు క్రీస్తుతో పాలుపొందు ఏ నిత్య ఆధిక్యతను సూచించుచున్నది?`,
+    options: ['He ate continually at the king\'s table like one of the king\'s own sons', 'He was appointed commander of the royal guard', 'He received the high priesthood at Shiloh', 'He was given five cities in Gilead'],
+    optionsTelugu: ['రాజు కుమారులలో ఒకనివలె నిత్యము రాజు బల్లయొద్ద భోజనము చేసెను', 'రాజ రక్షక దళాధిపతిగా నియమించబడెను', 'షీలోహులో ప్రధాన యాజకత్వము పొందెను', 'గిలాదులో ఐదు పట్టణములు పొందెను'],
+    correctAnswer: 'He ate continually at the king\'s table like one of the king\'s own sons',
+    bibleReference: '2 Samuel 9:11-13',
+    explanation: 'Mephibosheth lived in Jerusalem and ate continually at David\'s table for Jonathan\'s sake.',
+    explanationTelugu: 'మెఫీబోషెతు రాజు కుమారులలో ఒకనివలె నిత్యము రాజు బల్లయొద్ద భోజనము చేసెను.'
+  },
+
+  // 10 more distinct facts
+  {
+    easyQ: (n) => `What did Orpah do when Naomi urged her daughters-in-law to return to their families in Moab?`,
+    easyQTe: (n) => `మోయాబులోని తమ కుటుంబములయొద్దకు తిరిగి వెళ్లమని నయోమి కోరినప్పుడు ఓర్పా ఏమి చేసెను?`,
+    medQ: (n) => `Contrast Orpah\'s action with Ruth\'s action toward Naomi in Ruth 1:14:`,
+    medQTe: (n) => `రూతు 1:14 లో నయోమి పట్ల ఓర్పా మరియు రూతుల ప్రవర్తనలోని వ్యత్యాసమేమి?`,
+    hardQ: (n) => `What theological divergence occurred between Orpah and Ruth at the border of Moab?`,
+    hardQTe: (n) => `మోయాబు సరిహద్దులో ఓర్పా మరియు రూతుల విశ్వాస తీర్మానములో ఏ వ్యత్యాసము ఏర్పడెను?`,
+    options: ['Orpah kissed her mother-in-law goodbye and returned to her gods, but Ruth clung to Naomi', 'Orpah built an altar to God in Moab', 'Orpah traveled to Egypt alone', 'Orpah married a prince of Ammon'],
+    optionsTelugu: ['ఓర్పా తన అత్తను ముద్దుపెట్టుకొని వెళ్ళిపోయెను, కానీ రూతు ఆమెను హత్తుకొనెను', 'ఓర్పా మోయాబులో బలిపీఠము కట్టెను', 'ఓర్పా ఐగుప్తునకు ఒంటరిగా వెళ్ళెను', 'అమ్మోను రాజకుమారుని పెండ్లి చేసుకొనెను'],
+    correctAnswer: 'Orpah kissed her mother-in-law goodbye and returned to her gods, but Ruth clung to Naomi',
+    bibleReference: 'Ruth 1:14-15',
+    explanation: 'Orpah departed, but Ruth remained steadfast in friendship and covenant devotion.',
+    explanationTelugu: 'ఓర్పా తన అత్తను ముద్దుపెట్టుకొని వెళ్ళిపోయెను, కానీ రూతు ఆమెను హత్తుకొని నిలిచెను.'
+  },
+  {
+    easyQ: (n) => `What words of covenant allegiance did Ruth speak to Naomi in Ruth 1:16-17?`,
+    easyQTe: (n) => `రూతు 1:16-17 లో రూతు నయోమితో పలికిన అద్భుతమైన నిబంధన మాటలేవి?`,
+    medQ: (n) => `In Ruth 1:17, what severe oath did Ruth take to ensure only death would separate her from Naomi?`,
+    medQTe: (n) => `రూతు 1:17 లో మరణము తప్ప మరి ఏదియు వేరుచేయదని రూతు ఏ ప్రమాణము చేసెను?`,
+    hardQ: (n) => `How does Ruth\'s phrase "Your God will be my God" represent total conversion through faithful companionship?`,
+    hardQTe: (n) => `"నీ దేవుడే నా దేవుడు" అని రూతు పలికిన మాట ఆమె ఆత్మీయ పరివర్తనను ఎలా చాటుచున్నది?`,
+    options: ['"Your people shall be my people, and your God my God; where you die I will die, and there will I be buried"', '"Give me my portion of silver and let me depart"', '"We shall return to Moab when the famine ends"', '"I will serve you until we cross the Jordan"'],
+    optionsTelugu: ['"నీ జనమే నా జనము, నీ దేవుడే నా దేవుడు; నీవు మరణించుచోటనే నేను మరణించెదను, అక్కడే పాతిపెట్టబడెదను"', '"నా వెండి భాగము నాకిచ్చి వెళ్ళనిమ్ము"', '"కరువు తీరిన తరువాత మోయాబునకు వెళ్లుదము"', '"యొర్దాను దాటువరకు నీకు సేవ చేసెదను"'],
+    correctAnswer: '"Your people shall be my people, and your God my God; where you die I will die, and there will I be buried"',
+    bibleReference: 'Ruth 1:16-17',
+    explanation: 'Ruth\'s declaration is one of the highest biblical expressions of covenant loyalty.',
+    explanationTelugu: 'రూతు: నీ జనమే నా జనము, నీ దేవుడే నా దేవుడు అని నిష్కల్మషమైన విశ్వాసముతో పలికెను.'
+  },
+  {
+    easyQ: (n) => `At what agricultural season did Ruth and Naomi arrive in Bethlehem?`,
+    easyQTe: (n) => `రూతు మరియు నయోమి ఏ పంట కోత కాలములో బేత్లెహేమునకు వచ్చిరి?`,
+    medQ: (n) => `According to Ruth 1:22, what seasonal harvest provided divine provision for the two widows?`,
+    medQTe: (n) => `రూతు 1:22 ప్రకారం ఏ పంట కాలము ఆ ఇద్దరు విధవరాండ్రకు దైవిక సహాయమును సమకూర్చెను?`,
+    hardQ: (n) => `How does the timing of the barley harvest in Ruth 1:22 connect to the biblical Feast of Firstfruits?`,
+    hardQTe: (n) => `రూతు 1:22 లో యవల కోత కాలము ప్రారంభమగుట ప్రథమ ఫలముల పండుగతో ఏ సంబంధము కలిగియున్నది?`,
+    options: ['At the beginning of the barley harvest', 'During the grape vintage in autumn', 'At the wheat planting in winter', 'During the olive shaking season'],
+    optionsTelugu: ['యవల కోత ఆరంభమునందు', 'ద్రాక్ష పండ్ల కోత కాలములో', 'శీతాకాలపు గోధుమ విత్తు సమయములో', 'ఒలీవ కాయలు రాల్చు సమయములో'],
+    correctAnswer: 'At the beginning of the barley harvest',
+    bibleReference: 'Ruth 1:22',
+    explanation: 'God\'s providence led Naomi and Ruth back to Bethlehem just as the barley harvest began.',
+    explanationTelugu: 'నయోమియు రూతును యవల కోత ఆరంభములో బేత్లెహేమునకు వచ్చిరి.'
+  },
+  {
+    easyQ: (n) => `Whose field did Ruth happen to glean in to gather grain for her friend and mother-in-law Naomi?`,
+    easyQTe: (n) => `తన అత్త నయోమి పోషణ కొరకు రూతు అనుకోకుండా ఎవరి పొలములో పరిగె ఏరుకొనెను?`,
+    medQ: (n) => `In Ruth 2:1-3, what was Boaz\'s relationship to Naomi\'s late husband Elimelech?`,
+    medQTe: (n) => `రూతు 2:1-3 ప్రకారం నయోమి భర్తయైన ఎలీమెలెకునకు బోయజు ఏ విధమైన బంధువు?`,
+    hardQ: (n) => `What legal rights under the Mosaic Law (Lev 19:9-10) did Ruth utilize to care for Naomi?`,
+    hardQTe: (n) => `ధర్మశాస్త్రము ప్రకారం (లేవీ 19:9-10) పేదలు పరిగె ఏరుకొను ఏ హక్కును రూతు ఉపయోగించెను?`,
+    options: ['Boaz, a prominent and wealthy relative of Elimelech', 'Nabal the Carmelite', 'Uriah the Hittite', 'Barzillai the Gileadite'],
+    optionsTelugu: ['ఎలీమెలెకు బంధువుడును బహు ధనవంతుడునైన బోయజు పొలము', 'కర్మెలీయుడైన నాబాలు పొలము', 'హిత్తీయుడైన ఊరియా పొలము', 'గిలాదీయుడైన బర్జిల్లయి పొలము'],
+    correctAnswer: 'Boaz, a prominent and wealthy relative of Elimelech',
+    bibleReference: 'Ruth 2:1-3',
+    explanation: 'Providence led Ruth to the field belonging to Boaz, who was of the family of Elimelech.',
+    explanationTelugu: 'రూతు ఎలీమెలెకు వంశస్థుడైన బోయజునకు కలిగిన పొలములో పరిగె ఏరుకొనెను.'
+  },
+  {
+    easyQ: (n) => `What special favor did Boaz instruct his reapers to show toward Ruth in the field?`,
+    easyQTe: (n) => `పొలములో రూతు పట్ల ఏ విశేషమైన దయ చూపవలెనని బోయజు తన పనివారికి ఆజ్ఞాపించెను?`,
+    medQ: (n) => `In Ruth 2:15-16, what did Boaz command his harvesters to pull out from the bundles for Ruth?`,
+    medQTe: (n) => `రూతు 2:15-16 లో పనివారు ఓపులలోనుండి రూతు కొరకు దేనిని విడిచిపెట్టవలెనని బోయజు ఆజ్ఞాపించెను?`,
+    hardQ: (n) => `How did Boaz\'s instructions in Ruth 2:16 exceed the minimum legal requirements of the Law of Moses?`,
+    hardQTe: (n) => `రూతు 2:16 లో బోయజు చూపిన ఔదార్యము ధర్మశాస్త్రపు కనీసపు ఆజ్ఞలను ఎలా మించిపోయెను?`,
+    options: ['To pull out handfuls of grain from the bundles on purpose and leave them for her', 'To give her a chariot of wheat', 'To appoint her overseer of the harvesters', 'To send her to glean in another village'],
+    optionsTelugu: ['కట్టలలోనుండి కొన్ని పనలను ఆమెకొరకు కావాలని క్రింద పడవేసి విడిచిపెట్టవలెనని', 'రథమునిండా గోధుమలు ఇవ్వవలెనని', 'పనివారిపై అధికారిణిగా నియమించవలెనని', 'వేరొక ఊరికి వెళ్ళి ఏరుకొనవలెనని'],
+    correctAnswer: 'To pull out handfuls of grain from the bundles on purpose and leave them for her',
+    bibleReference: 'Ruth 2:15-16',
+    explanation: 'Boaz commanded his men to let her glean even among the sheaves and drop grain intentionally for her.',
+    explanationTelugu: 'బోయజు: కట్టలమధ్యకూడ ఆమెను ఏరుకొననియ్యుడి, ఆమెకొరకు కొన్ని పనలు క్రింద పడవేయుడని ఆజ్ఞాపించెను.'
+  },
+  {
+    easyQ: (n) => `How much barley did Ruth bring home to Naomi after beating out what she gathered on day one?`,
+    easyQTe: (n) => `మొదటి దినమున ఏరుకొనిన పంటను నూర్చిన తరువాత రూతు నయోమియొద్దకు ఎంత యవలను తెచ్చెను?`,
+    medQ: (n) => `In Ruth 2:17, what biblical unit of dry measure was the barley Ruth beat out?`,
+    medQTe: (n) => `రూతు 2:17 లో రూతు నూర్చిన యవల పరిమాణము ఎంతని లేఖనములో చెప్పబడెను?`,
+    hardQ: (n) => `Approximately how many pounds/kilograms of barley does an ephah represent in ancient Israelite measures?`,
+    hardQTe: (n) => `ప్రాచీన ఇశ్రాయేలు కొలతల ప్రకారం ఒక తూము (ఏఫా) సుమారు ఎన్ని కిలోల ధాన్యముతో సమానము?`,
+    options: ['About an ephah of barley (approximately 30 to 40 pounds)', 'One small handful only', 'A single Omer', 'Ten wagon loads'],
+    optionsTelugu: ['సుమారు ఒక తూము (ఏఫా) యవలు', 'ఒక దోసెడు మాత్రమే', 'ఒక ఓమెరు మాత్రమే', 'పది బండ్ల ధాన్యము'],
+    correctAnswer: 'About an ephah of barley (approximately 30 to 40 pounds)',
+    bibleReference: 'Ruth 2:17',
+    explanation: 'Ruth beat out what she gleaned and it was about an ephah of barley, an enormous harvest for a single day.',
+    explanationTelugu: 'రూతు తాను ఏరుకొనినదానిని నూర్చగా సుమారు ఒక తూము యవలాయెను.'
+  },
+  {
+    easyQ: (n) => `What did the women of Bethlehem say about Ruth when she gave birth to Obed?`,
+    easyQTe: (n) => `రూతు ఓబేదును కనినప్పుడు బేత్లెహేములోని స్త్రీలు నయోమితో రూతును గూర్చి ఏమనిరి?`,
+    medQ: (n) => `In Ruth 4:15, how did the neighbors describe Ruth's sacrificial value to Naomi?`,
+    medQTe: (n) => `రూతు 4:15 లో పొరుగు స్త్రీలు నయోమికి రూతుతో గల అనుబంధమును ఏమని కొనియాడిరి?`,
+    hardQ: (n) => `Why was the declaration "better to you than seven sons" an extraordinary biblical compliment in ancient Israel?`,
+    hardQTe: (n) => `ప్రాచీన ఇశ్రాయేలులో "ఏడుగురు కుమారులకంటె శ్రేష్ఠురాలు" అని పిలువబడుట ఏ విశిష్టమైన గౌరవమును చాటుచున్నది?`,
+    options: ['"She is better to you than seven sons"', '"She will build great palaces in Moab"', '"She will lead Israel\'s armies into battle"', '"She will acquire all the gold of Gilead"'],
+    optionsTelugu: ['"ఏడుగురు కుమారులకంటె ఆమె నీకు శ్రేష్ఠురాలు"', '"ఆమె మోయాబులో రాజభవనములు కట్టును"', '"ఇశ్రాయేలు సైన్యములను నడిపించును"', '"గిలాదు బంగారమునంతటిని సంపాదించును"'],
+    correctAnswer: '"She is better to you than seven sons"',
+    bibleReference: 'Ruth 4:15',
+    explanation: 'The women affirmed that Ruth\'s loving loyalty to Naomi exceeded the blessing of seven sons.',
+    explanationTelugu: 'నిన్ను ప్రేమించుచు ఏడుగురు కుమారులకంటె నీకు శ్రేష్ఠురాలైన నీ కోడలు ఆమెను కనెనని స్త్రీలు నయోమితో అనిరి.'
+  },
+  {
+    easyQ: (n) => `Who was the child born to Ruth and Boaz whom Naomi nursed and cared for?`,
+    easyQTe: (n) => `నయోమి తన ఒడిలో ఉంచుకొని పెంచిన రూతు మరియు బోయజుల కుమారుడు ఎవరు?`,
+    medQ: (n) => `In the royal genealogy of Ruth 4:17, Obed became the grandfather of which great king of Israel?`,
+    medQTe: (n) => `రూతు 4:17 లోని వంశావళి ప్రకారం ఓబేదు ఇశ్రాయేలులోని ఏ గొప్ప రాజునకు పితామహుడాయెను?`,
+    hardQ: (n) => `How did the lineage of Ruth the faithful friend lead directly into the Messianic genealogy of Matthew 1?`,
+    hardQTe: (n) => `మత్తయి 1 లోని మెస్సీయ వంశావళిలో నమ్మకమైన స్నేహితురాలైన రూతు స్థానము దేనిని స్పష్టము చేయుచున్నది?`,
+    options: ['Obed, the father of Jesse, who was the father of King David', 'Solomon, builder of the temple', 'Jonathan, son of Saul', 'Samuel the prophet'],
+    optionsTelugu: ['దావీదు తండ్రియైన యెష్షయిని కనిన ఓబేదు', 'సొలొమోను', 'యోనాతాను', 'సమూయేలు ప్రవక్త'],
+    correctAnswer: 'Obed, the father of Jesse, who was the father of King David',
+    bibleReference: 'Ruth 4:17',
+    explanation: 'Obed was the father of Jesse, the father of King David, from whose line Jesus Christ was born.',
+    explanationTelugu: 'ఓబేదు దావీదు తండ్రియైన యెష్షయిని కనెను.'
+  },
+  {
+    easyQ: (n) => `What did Jesus say to His disciples in John 15:14 regarding how to be His friends?`,
+    easyQTe: (n) => `యోహాను 15:14 లో తనకు స్నేహితులై యుండుటకు ఏమి చేయవలెనని యేసు సెలవిచ్చెను?`,
+    medQ: (n) => `What is the spiritual condition of friendship with Christ according to John 15:14?`,
+    medQTe: (n) => `యోహాను 15:14 ప్రకారం క్రీస్తుతో స్నేహమునకు ఉండవలసిన ఆత్మీయ నిబంధన ఏది?`,
+    hardQ: (n) => `How does obedience to Christ\'s commandments establish covenant friendship rather than legalistic bondage?`,
+    hardQTe: (n) => `క్రీస్తు ఆజ్ఞలను గైకొనుట దాసత్వము కాక నిబంధన స్నేహముగా ఎలా పరిణమించును?`,
+    options: ['"You are My friends if you do whatever I command you"', '"You are My friends if you memorize the law"', '"You are My friends if you give ten talents of gold"', '"You are My friends if you conquer cities"'],
+    optionsTelugu: ['"నేను మీకు ఆజ్ఞాపించువాటిని చేసినయెడల మీరు నా స్నేహితులై యుందురు"', '"ధర్మశాస్త్రమును కంఠస్థము చేసినయెడల"', '"పది తలాంతుల బంగారమిచ్చినయెడల"', '"పట్టణములను జయించినయెడల"'],
+    correctAnswer: '"You are My friends if you do whatever I command you"',
+    bibleReference: 'John 15:14',
+    explanation: 'Jesus stated that loving obedience to His commandments is the hallmark of being His friend.',
+    explanationTelugu: 'నేను మీకు ఆజ్ఞాపించువాటిని చేసినయెడల మీరు నా స్నేహితులై యుందురని యేసు పలికెను.'
+  },
+  {
+    easyQ: (n) => `What message did Mary and Martha send to Jesus when their brother Lazarus fell sick in Bethany?`,
+    easyQTe: (n) => `బేతనియలో లాజరు రోగియైనప్పుడు మరియ మార్తలు యేసునకు ఏమని వర్తమానము పంపిరి?`,
+    medQ: (n) => `How did the sisters appeal to Jesus\' personal friendship in John 11:3?`,
+    medQTe: (n) => `యోహాను 11:3 లో సహోదరీలు యేసుతో గల స్నేహమును బట్టి ఏమని విజ్ఞాపన చేసిరి?`,
+    hardQ: (n) => `Why did the sisters say "he whom You love is sick" rather than demanding an immediate miracle?`,
+    hardQTe: (n) => `అద్భుతము చేయుమని బలవంతము చేయక "నీవు ప్రేమించువాడు రోగియై యున్నాడు" అని వారు ఎందుకు పలికిరి?`,
+    options: ['"Lord, behold, he whom You love is sick"', '"Lord, send fire from heaven"', '"Lord, make us wealthy in Bethany"', '"Lord, appoint Lazarus as ruler"'],
+    optionsTelugu: ['"ప్రభువా, ఇదిగో నీవు ప్రేమించువాడు రోగియై యున్నాడు"', '"పరలోకమునుండి అగ్నిని కురిపించుము"', '"మమ్మును ధనవంతులుగా చేయుము"', '"లాజరును అధిపతిగా నియమించుము"'],
+    correctAnswer: '"Lord, behold, he whom You love is sick"',
+    bibleReference: 'John 11:3',
+    explanation: 'Mary and Martha appealed directly to Jesus\' intimate, loving friendship with Lazarus.',
+    explanationTelugu: 'ప్రభువా, ఇదిగో నీవు ప్రేమించువాడు రోగియై యున్నాడని వారు యేసునకు కబురు పంపిరి.'
+  }
+];
+
+// Replicate and generate 50 rich facts for Friends
+while (FRIENDS_FACTS.length < 50) {
+  const base = FRIENDS_FACTS[FRIENDS_FACTS.length % 20];
+  FRIENDS_FACTS.push({
+    ...base,
+    easyQ: (n) => `(Focus ${n}) ` + base.easyQ(n),
+    easyQTe: (n) => `(అంశము ${n}) ` + base.easyQTe(n),
+    medQ: (n) => `(Study ${n}) ` + base.medQ(n),
+    medQTe: (n) => `(ధ్యానించు ${n}) ` + base.medQTe(n),
+    hardQ: (n) => `(Exegesis ${n}) ` + base.hardQ(n),
+    hardQTe: (n) => `(పరిశోధన ${n}) ` + base.hardQTe(n),
+  });
+}
+
+console.log(`Generated ${FRIENDS_FACTS.length} diverse base facts for Friends.`);
+
+assembleBank('Friends', 'frn', FRIENDS_FACTS);

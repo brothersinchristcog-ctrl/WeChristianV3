@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, ChevronLeft, Search, BookOpen, Globe } from 'lucide-react-native';
+import { ArrowLeft, ChevronLeft, Search, BookOpen, Globe, Award } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { BibleService, BIBLE_BOOKS, ALL_BOOKS_BY_LANG } from '../services/BibleService';
@@ -302,6 +302,35 @@ export default function BibleScreen({ navigation }: any) {
           </View>
           <View style={styles.quickJumpRight}>
             <Text style={styles.quickJumpBtnTxt}>{t('bible.readNow')} →</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
+      {/* Bible Quiz Banner Card */}
+      {!searchQuery && (
+        <TouchableOpacity
+          style={styles.bibleQuizCard}
+          activeOpacity={0.88}
+          onPress={() => navigation.navigate('BibleQuizHome')}
+        >
+          <View style={styles.bibleQuizCardLeft}>
+            <View style={styles.bibleQuizIconWrap}>
+              <Award size={20} color="#b45309" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.bibleQuizCardTitle}>Daily Bible Quiz</Text>
+                <View style={styles.quizNewBadge}>
+                  <Text style={styles.quizNewBadgeTxt}>NEW</Text>
+                </View>
+              </View>
+              <Text style={styles.bibleQuizCardSub}>
+                Test scripture knowledge & win badges
+              </Text>
+            </View>
+          </View>
+          <View style={styles.bibleQuizPlayBtn}>
+            <Text style={styles.bibleQuizPlayBtnTxt}>Play →</Text>
           </View>
         </TouchableOpacity>
       )}
@@ -656,5 +685,67 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     marginBottom: 6
-  }
+  },
+
+  bibleQuizCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 15,
+    borderWidth: 1.5,
+    borderColor: '#fde68a',
+    elevation: 2,
+    shadowColor: '#d97706',
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  bibleQuizCardLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  bibleQuizIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#fef3c7',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bibleQuizCardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1e293b',
+  },
+  quizNewBadge: {
+    backgroundColor: '#7c3aed',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  quizNewBadgeTxt: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#fff',
+  },
+  bibleQuizCardSub: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  bibleQuizPlayBtn: {
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  bibleQuizPlayBtnTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#fff',
+  },
 });

@@ -109,6 +109,7 @@ export const te: TranslationSchema = {
     quickMinistries: 'పరిచర్యలు',
     quickSermonNotes: 'వాక్య నోట్స్',
     quickBiblePlans: 'బైబిల్ ప్రణాళికలు',
+    quickBibleQuiz: 'బైబిల్ క్విజ్',
     quickUpdates: 'తాజా సమాచారం',
     quickYoutubeLive: 'యూట్యూబ్ లైవ్',
     quickMembers: 'సభ్యులు',

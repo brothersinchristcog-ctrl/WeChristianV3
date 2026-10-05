@@ -109,6 +109,7 @@ export const hi: TranslationSchema = {
     quickMinistries: 'मंत्रालय',
     quickSermonNotes: 'उपदेश नोट्स',
     quickBiblePlans: 'बाइबिल योजनाएं',
+    quickBibleQuiz: 'बाइबिल क्विज़',
     quickUpdates: 'अपडेट्स',
     quickYoutubeLive: 'यूट्यूब लाइव',
     quickMembers: 'सदस्य',

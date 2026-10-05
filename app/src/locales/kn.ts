@@ -109,6 +109,7 @@ export const kn: TranslationSchema = {
     quickMinistries: 'ಸೇವೆಗಳು',
     quickSermonNotes: 'ಉಪದೇಶದ ನೋಟ್ಸ್',
     quickBiblePlans: 'ಬೈಬಲ್ ಯೋಜನೆಗಳು',
+    quickBibleQuiz: 'ಬೈಬಲ್ ರಸಪ್ರಶ್ನೆ',
     quickUpdates: 'ಅಪ್‌ಡೇಟ್ಸ್',
     quickYoutubeLive: 'ಯೂಟ್ಯೂಬ್ ಲೈವ್',
     quickMembers: 'ಸದಸ್ಯರು',

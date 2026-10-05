@@ -107,6 +107,7 @@ export const en = {
     quickMinistries: 'Ministries',
     quickSermonNotes: 'Sermon Notes',
     quickBiblePlans: 'Bible Plans',
+    quickBibleQuiz: 'Bible Quiz',
     quickUpdates: 'Updates',
     quickYoutubeLive: 'YouTube Live',
     quickMembers: 'Members',

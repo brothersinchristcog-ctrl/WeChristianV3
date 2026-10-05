@@ -1,0 +1,10862 @@
+import { QuizQuestion, QuizDifficulty } from '../../../types/Quiz';
+
+export const CARE_EASY_FOUNDATION: QuizQuestion[] = [
+  {
+    "id": "car_e_s1_q01",
+    "order": 1,
+    "questionType": "single_choice",
+    "question": "According to 1 Peter 5:7, what should believers do with all their anxieties and cares?",
+    "questionTelugu": "1 పేతురు 5:7 ప్రకారం విశ్వాసులు తమ చింతలన్నిటిని ఏమి చేయవలెను?",
+    "options": [
+      "Cast all your care upon Him, for He cares for you",
+      "Hide your anxieties in sixty secret jars",
+      "Carry the burden alone through forty desert trials",
+      "Pay thirty silver coins to temple counselors"
+    ],
+    "optionsTelugu": [
+      "ఆయన మిమ్మునుగూర్చి చింతించుచున్నాడు గనుక మీ చింత యావత్తు ఆయనమీద వేయుడి",
+      "మీ చింతలను అరవై రహస్య పాత్రలలో దాచిపెట్టుడి",
+      "నలభై అరణ్య శ్రమలలో ఒంటరిగా ఆ భారమును మోయుడి",
+      "దేవాలయ సలహాదారులకు ముప్పది వెండి నాణెములు చెల్లించుడి"
+    ],
+    "correctAnswer": "Cast all your care upon Him, for He cares for you",
+    "bibleReference": "1 Peter 5:7",
+    "explanation": "Peter comforts believers to roll every anxiety upon God because He personally, tenderly cares for them.",
+    "explanationTelugu": "ఆయన మిమ్మునుగూర్చి చింతించుచున్నాడు గనుక మీ చింత యావత్తు ఆయనమీద వేయుడి.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q02",
+    "order": 2,
+    "questionType": "single_choice",
+    "question": "What does Jesus teach about the birds of the air in Matthew 6:26 to illustrate God's providential care?",
+    "questionTelugu": "మత్తయి 6:26 లో దేవుని పోషణ సంరక్షణను చాటుటకు ఆకాశ పక్షులను గూర్చి యేసు ఏమి చెప్పెను?",
+    "options": [
+      "They neither sow nor reap nor gather into barns, yet your Heavenly Father feeds them",
+      "They build forty grain storehouses in the trees",
+      "They fast seven months during severe desert drought",
+      "They purchase grain from the markets of Capernaum"
+    ],
+    "optionsTelugu": [
+      "అవి విత్తవు కోయవు కొట్లలో కూర్చుకొనవు; అయినను మీ పరలోకపు తండ్రి వాటిని పోషించుచున్నాడు",
+      "అవి చెట్లపై నలభై ధాన్యాగారములను నిర్మించును",
+      "తీవ్రమైన కరువులో అవి ఏడు నెలలు ఉపవాసముండును",
+      "కపెర్నహూము సంతలలో అవి ధాన్యమును కొనుగోలు చేయును"
+    ],
+    "correctAnswer": "They neither sow nor reap nor gather into barns, yet your Heavenly Father feeds them",
+    "bibleReference": "Matthew 6:26",
+    "explanation": "Jesus points out that our Heavenly Father faithfully feeds birds who cannot store food; how much more will He care for His children!",
+    "explanationTelugu": "ఆకాశ పక్షులను చూడుడి; అవి విత్తవు కోయవు కొట్లలో కూర్చుకొనవు; అయినను మీ పరలోకపు తండ్రి వాటిని పోషించుచున్నాడు; మీరు వాటికంటె బహు శ్రేష్ఠులు కారా?",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q03",
+    "order": 3,
+    "questionType": "single_choice",
+    "question": "How does Jesus illustrate God's tender care for clothing through the lilies of the field in Matthew 6:28-29?",
+    "questionTelugu": "మత్తయి 6:28-29 లో వస్త్రముల సంరక్షణను గూర్చి బోధించుటకు అడవి పువ్వులను యేసు ఎలా ఉదహరించెను?",
+    "options": [
+      "They neither toil nor spin; yet even Solomon in all his glory was not arrayed like one of these",
+      "They weave sixty garments of Egyptian linen",
+      "They trade in the royal bazaar of Tyre",
+      "They store forty bundles of purple wool"
+    ],
+    "optionsTelugu": [
+      "అవి కష్టపడవు వడకవు; అయినను తన సమస్త వైభవముతో కూడిన సొలొమోను సహితము వీటిలో ఒకదానివలెనైనను అలంకరింపబడలేదు",
+      "అవి ఐగుప్తు సన్నపు నారతో అరవై వస్త్రములను నేయును",
+      "అవి తీరు రాజ బజారులో వర్తకము చేయును",
+      "అవి నలభై కట్టల ఊదారంగు ఉన్నిని దాచిపెట్టును"
+    ],
+    "correctAnswer": "They neither toil nor spin; yet even Solomon in all his glory was not arrayed like one of these",
+    "bibleReference": "Matthew 6:28-29",
+    "explanation": "Jesus shows that God clothes wildflowers with greater majesty than King Solomon, proving He will surely clothe His faithful children.",
+    "explanationTelugu": "అడవి పువ్వులు ఏలాగు ఎదుగుచున్నవో ఆలోచించుడి. అవి కష్టపడవు వడకవు; అయినను తన సమస్త వైభవముతో కూడిన సొలొమోను సహితము వీటిలో ఒకదానివలెనైనను అలంకరింపబడలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q04",
+    "order": 4,
+    "questionType": "single_choice",
+    "question": "What intimate detail of God's watchful care is affirmed in Luke 12:7 regarding our very hairs?",
+    "questionTelugu": "లూకా 12:7 లో దేవుని సూక్ష్మమైన సంరక్షణను చాటుటకు మన తలవెండ్రుకలను గూర్చి ఏమి చెప్పబడినది?",
+    "options": [
+      "The very hairs of your head are all numbered; do not fear therefore; you are of more value than many sparrows",
+      "Your hairs are inspected forty days by temple priests",
+      "Your days are governed by the planetary signs of Babylon",
+      "Your body is left to the chance whims of nature"
+    ],
+    "optionsTelugu": [
+      "మీ తలవెండ్రుకలన్నియు లెక్కింపబడియున్నవి; భయపడకుడి, మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు",
+      "మీ వెండ్రుకలు నలభై దినములు యాజకులచేత పరిశోధింపబడును",
+      "మీ ఆయుష్షు బబులోను నక్షత్ర రాశులచేత నిర్ణయింపబడును",
+      "మీ శరీరము ప్రకృతి యాదృచ్ఛికతకు విడిచిపెట్టబడెను"
+    ],
+    "correctAnswer": "The very hairs of your head are all numbered; do not fear therefore; you are of more value than many sparrows",
+    "bibleReference": "Luke 12:7",
+    "explanation": "Jesus reassures us that God tracks the most minute details of our lives; even the hairs on our head are individually numbered.",
+    "explanationTelugu": "మీ తలవెండ్రుకలన్నియు లెక్కింపబడియున్నవి గనుక భయపడకుడి; మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q05",
+    "order": 5,
+    "questionType": "single_choice",
+    "question": "How does Jesus distinguish Himself as the Good Shepherd from a hired hand in John 10:11-13?",
+    "questionTelugu": "యోహాను 10:11-13 లో మంచి కాపరియైన యేసు కూలివానికంటె భిన్నముగా గొర్రెల విషయములో ఏ సంరక్షణను కనబరచును?",
+    "options": [
+      "The Good Shepherd gives His life for the sheep, but a hireling flees because he does not care about the sheep",
+      "The hireling trains sixty watchdogs to fight wolves",
+      "The shepherd shears the sheep forty times in spring",
+      "The hireling sells forty rams to pay palace taxes"
+    ],
+    "optionsTelugu": [
+      "మంచి కాపరి గొర్రెలకొరకు తన ప్రాణము పెట్టును; జీతగాడు గొర్రెలనుగూర్చి చింతింపక పారిపోవును",
+      "జీతగాడు తోడేళ్లతో పోరాడుటకు అరవై కావలి కుక్కలను పెంచును",
+      "కాపరి వసంతకాలములో నలభైసార్లు గొర్రెల బొచ్చును కత్తిరించును",
+      "జీతగాడు రాజపన్ను చెల్లించుటకు నలభై పొట్టేళ్లను అమ్మును"
+    ],
+    "correctAnswer": "The Good Shepherd gives His life for the sheep, but a hireling flees because he does not care about the sheep",
+    "bibleReference": "John 10:11-13",
+    "explanation": "Jesus contrasts His self-sacrificing pastoral care with the mercenary hireling who abandons the sheep when danger arrives.",
+    "explanationTelugu": "నేను గొర్రెలకు మంచి కాపరిని; మంచి కాపరి గొర్రెలకొరకు తన ప్రాణము పెట్టును. జీతగాడు కాపరికాడు గనుక తోడేలు వచ్చుట చూచి గొర్రెలను విడిచి పారిపోవును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q06",
+    "order": 6,
+    "questionType": "single_choice",
+    "question": "In the Parable of the Good Samaritan (Luke 10:34-35), what tender medical and lodging care did the Samaritan provide to the beaten traveler?",
+    "questionTelugu": "లూకా 10:34-35 లో మంచి సమరయుడు గాయపడిన బాటసారికి ఏ చికిత్సను మరియు సత్రపు ఆదరణను సమకూర్చెను?",
+    "options": [
+      "Bandaged his wounds, poured on oil and wine, brought him to an inn, and gave two denarii saying 'Take care of him'",
+      "Gave him forty lashes for walking alone to Jericho",
+      "Left him seven loaves of barley bread on the road",
+      "Carried him forty miles to the Roman barracks in Caesarea"
+    ],
+    "optionsTelugu": [
+      "గాయములను కట్టి, నూనెయు ద్రాక్షారసమును పోసి, సత్రమునకు తీసికొనిపోయి, రెండు దేనారములు ఇచ్చి 'ఇతనిని పరామర్శించుము' అనెను",
+      "యెరికో మార్గములో ఒంటరిగా నడిచినందుకు నలభై కొరడా దెబ్బలు కొట్టెను",
+      "దారిలో ఏడు యవల రొట్టెలను విడిచిపెట్టి వెళ్లిపోయెను",
+      "కైసరయలోని రోమా సైనిక శిబిరమునకు నలభై మైళ్లు మోసుకొనిపోయెను"
+    ],
+    "correctAnswer": "Bandaged his wounds, poured on oil and wine, brought him to an inn, and gave two denarii saying 'Take care of him'",
+    "bibleReference": "Luke 10:34-35",
+    "explanation": "The Samaritan bound the victim's wounds, transported him to an inn, paid for his lodging, and promised to cover any additional care costs.",
+    "explanationTelugu": "అతని గాయములను కట్టి, నూనెయు ద్రాక్షారసమును పోసి, తన స్వంత వాహనముమీద ఎక్కించి, ఒక సత్రమునకు తీసికొనిపోయి అతనిని పరామర్శించెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q07",
+    "order": 7,
+    "questionType": "single_choice",
+    "question": "What definition of pure and undefiled religion before God the Father is laid down in James 1:27?",
+    "questionTelugu": "యాకోబు 1:27 లో తండ్రియైన దేవునియెదుట పవిత్రమును నిష్కళంకమునైన భక్తి ఏదని నిర్వచింపబడినది?",
+    "options": [
+      "To visit orphans and widows in their trouble, and to keep oneself unspotted from the world",
+      "To offer sixty burnt offerings on the temple mount",
+      "To fast forty consecutive days in the desert caves",
+      "To memorize seven hundred verses of oral traditions"
+    ],
+    "optionsTelugu": [
+      "దిక్కులేని పిల్లలను విధవరాండ్రను వారి యిబ్బందిలో పరామర్శించుటయు, ఇహలోక మాలిన్యము తనకంటకుండా తన్నుతాను కాపాడుకొనుటయునై యున్నది",
+      "దేవాలయ పర్వతముపై అరవై దహనబలులను అర్పించుట",
+      "ఎడారి గుహలలో వరుసగా నలభై దినములు ఉపవాసముండుట",
+      "ఏడువందల పారంపర్యాచార వచనములను కంఠస్థము చేయుట"
+    ],
+    "correctAnswer": "To visit orphans and widows in their trouble, and to keep oneself unspotted from the world",
+    "bibleReference": "James 1:27",
+    "explanation": "Pure religion requires compassionate, hands-on care for vulnerable orphans and widows, alongside personal moral purity.",
+    "explanationTelugu": "తండ్రియైన దేవునియెదుట పవిత్రమును నిష్కళంకమునైన భక్తి యేదనగా-దిక్కులేని పిల్లలను విధవరాండ్రను వారి యిబ్బందిలో పరామర్శించుటయు, ఇహలోక మాలిన్యము తనకంటకుండా తన్ను కాపాడుకొనుటయునై యున్నది.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q08",
+    "order": 8,
+    "questionType": "single_choice",
+    "question": "What severe warning does Paul give in 1 Timothy 5:8 regarding someone who refuses to care for and provide for their own family?",
+    "questionTelugu": "1 తిమోతి 5:8 లో తన సొంత కుటుంబీకులను సంరక్షింపక విడిచిపెట్టువానిని గూర్చి పౌలు పలికిన కఠినమైన హెచ్చరిక ఏది?",
+    "options": [
+      "He has denied the faith and is worse than an unbeliever",
+      "He shall pay forty shekels to the local synagogue",
+      "He must fast seven weeks outside the camp of Israel",
+      "He shall be demoted to junior temple servant"
+    ],
+    "optionsTelugu": [
+      "అతడు విశ్వాసత్యాగము చేసినవాడై అవిశ్వాసికంటె చెడ్డవాడై యుండును",
+      "స్థానిక సమాజమందిరమునకు నలభై షెకెళ్ల జరిమానా చెల్లించవలెను",
+      "ఇశ్రాయేలు పాళెము వెలుపల ఏడు వారములు ఉపవాసముండవలెను",
+      "దేవాలయములో కనిష్ఠ సేవకునిగా తగ్గించబడవలెను"
+    ],
+    "correctAnswer": "He has denied the faith and is worse than an unbeliever",
+    "bibleReference": "1 Timothy 5:8",
+    "explanation": "Paul sternly states that anyone who fails to provide for their own household has denied the faith and is worse than an unbeliever.",
+    "explanationTelugu": "ఎవడైనను స్వకీయులను, విశేషముగా తన యింటివారిని సంరక్షింపకపోయినయెడల, వాడు విశ్వాసత్యాగము చేసినవాడై అవిశ్వాసికంటె చెడ్డవాడై యుండును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q09",
+    "order": 9,
+    "questionType": "single_choice",
+    "question": "What mutual care within the body of Christ is commanded in 1 Corinthians 12:25?",
+    "questionTelugu": "1 కొరింథీయులకు 12:25 లో క్రీస్తు శరీరమైన సంఘములో అవయవముల మధ్య ఏ సమాన సంరక్షణ ఉండవలెనని ఆజ్ఞాపించబడినది?",
+    "options": [
+      "That there should be no division in the body, but that the members should have the same care for one another",
+      "That wealthy members build forty private meeting halls",
+      "That eloquent speakers silence all weaker members",
+      "That elders collect thirty gold talents from every household"
+    ],
+    "optionsTelugu": [
+      "శరీరములో భేదము లేక, అవయవములు ఒకదానికొరకు ఒకటి సమానముగా చింతించునట్లు",
+      "ధనవంతులైన విశ్వాసులు నలభై ప్రత్యేక భవనములను నిర్మించుకొనునట్లు",
+      "గొప్ప ఉపన్యాసకులు బలహీనులను నిశ్శబ్దపరచునట్లు",
+      "పెద్దలు ప్రతి గృహమునుండి ముప్పది బంగారు నాణెములను వసూలు చేయునట్లు"
+    ],
+    "correctAnswer": "That there should be no division in the body, but that the members should have the same care for one another",
+    "bibleReference": "1 Corinthians 12:25",
+    "explanation": "Paul commands that in Christ's body there should be no faction, but all members should cherish and care for one another equally.",
+    "explanationTelugu": "శరీరములో భేదము లేక, అవయవములు ఒకదానికొరకు ఒకటి సమానముగా చింతించునట్లు దేవుడు శరీరమును అమర్చియున్నాడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q10",
+    "order": 10,
+    "questionType": "single_choice",
+    "question": "What daily burden of pastoral care did the apostle Paul mention amidst all his physical trials in 2 Corinthians 11:28?",
+    "questionTelugu": "2 కొరింథీయులకు 11:28 లో తన శారీరక శ్రమలన్నిటితోపాటు ప్రతిదినము పౌలుపై పడుచున్న ఆత్మీయ సంరక్షణ భారమేమి?",
+    "options": [
+      "My deep concern and care for all the churches",
+      "Managing forty commercial vineyards in Corinth",
+      "Appealing to Caesar for sixty silver grants",
+      "Constructing seven stone temples in Galatia"
+    ],
+    "optionsTelugu": [
+      "సమస్త సంఘములనుగూర్చిన చింతయు నన్ను రోజూ నెట్టుచున్న భారము",
+      "కొరింథులో నలభై ద్రాక్షతోటలను పర్యవేక్షించుట",
+      "కైసరునుండి అరవై వెండి విరాళములను కోరుట",
+      "గలతీయలో ఏడు రాతి దేవాలయములను నిర్మించుట"
+    ],
+    "correctAnswer": "My deep concern and care for all the churches",
+    "bibleReference": "2 Corinthians 11:28",
+    "explanation": "Beyond physical floggings and shipwrecks, Paul carried the daily emotional and spiritual weight of care for all the churches.",
+    "explanationTelugu": "ఇంకా చెప్పవలసినవి అనేకములున్నవి; అవియుగాక సంఘములన్నిటినిగూర్చిన చింతయు నన్ను ప్రతిదినము నెట్టుచున్న భారము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q11",
+    "order": 11,
+    "questionType": "single_choice",
+    "question": "What exceptional tribute did Paul pay to Timothy's pastoral care for the Philippian church in Philippians 2:20?",
+    "questionTelugu": "ఫిలిప్పీయులకు 2:20 లో ఫిలిప్పీ సంఘముయొక్క క్షేమమును గూర్చి యథార్థముగా చింతించు తిమోతిని పౌలు ఎలా ప్రశంసించెను?",
+    "options": [
+      "I have no one like-minded, who will sincerely care for your state",
+      "He brings sixty talents of Macedonian silver",
+      "He can speak thirty foreign dialects fluently",
+      "He commands four legions of Roman guards"
+    ],
+    "optionsTelugu": [
+      "మీ క్షేమమునుగూర్చి యథార్థముగా చింతించువాడు అతనివంటి మనస్సుగలవాడెవడును నాయొద్ద లేడు",
+      "అతడు మాసిదోనియనుండి అరవై వెండి తలాంతులను తెచ్చును",
+      "అతడు ముప్పది విదేశీ భాషలను అనర్గళముగా మాట్లాడగలడు",
+      "అతడు రోమా సైనికుల నాలుగు దళములను నడిపించును"
+    ],
+    "correctAnswer": "I have no one like-minded, who will sincerely care for your state",
+    "bibleReference": "Philippians 2:20",
+    "explanation": "Paul commended Timothy as uniquely devoted to caring sincerely for the spiritual well-being of the Philippians, unlike self-seeking workers.",
+    "explanationTelugu": "మీ క్షేమమునుగూర్చి యథార్థముగా చింతించుటకు అతనివంటి మనస్సుగలవాడెవడును నాయొద్ద లేడు; అందరును తమ సొంతకార్యములనే చూచుకొనుచున్నారు గాని యేసుక్రీస్తు కార్యములను చూచుకొనరు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q12",
+    "order": 12,
+    "questionType": "single_choice",
+    "question": "How did wealthy landowner Boaz show protective and generous care for the impoverished foreign widow Ruth in Ruth 2:8-9?",
+    "questionTelugu": "రూతు 2:8-9 లో పేదరాలైన అన్యదేశపు విధవరాలు రూతుకు ధనవంతుడైన బోయజు ఏ రక్షణ మరియు పోషణ సంరక్షణను ఇచ్చెను?",
+    "options": [
+      "Told her to stay in his fields, commanded young men not to touch her, and let her drink from their water vessels",
+      "Demanded forty sheaves of barley as tax",
+      "Drove her out to the borders of Moab",
+      "Confined her thirty days to the village gate"
+    ],
+    "optionsTelugu": [
+      "తన చేను విడిచి వెళ్లవద్దనియు, పనివారు ఆమెను ముట్టకూడదని ఆజ్ఞాపించి, వారు తోడు నీళ్లు తాగనిచ్చెను",
+      "పన్నుగా నలభై యవల మోపులను డిమాండ్ చేసెను",
+      "మోయాబు సరిహద్దులవరకు ఆమెను తరిమివేసెను",
+      "గ్రామ ద్వారమున ముప్పది దినములు ఆమెను బంధించెను"
+    ],
+    "correctAnswer": "Told her to stay in his fields, commanded young men not to touch her, and let her drink from their water vessels",
+    "bibleReference": "Ruth 2:8-9",
+    "explanation": "Boaz extended protective kindness to Ruth, providing water, safety from harassment, and permission to glean behind his reapers.",
+    "explanationTelugu": "బోయజు రూతును చూచి: నా కుమారీ, వినుము; వేరొక చేనిలో ఏరుకొనుటకు వెళ్లకుము, ఇచ్చటనే నా పనికత్తెలయొద్ద ఉండుము... నిన్ను ముట్టకూడదని పనివారికి ఆజ్ఞాపించితిని అనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q13",
+    "order": 13,
+    "questionType": "single_choice",
+    "question": "What loving covenant care did King David extend to Jonathan's crippled son Mephibosheth in 2 Samuel 9:7?",
+    "questionTelugu": "2 సమూయేలు 9:7 లో యోనాతాను కుమారుడైన కుంటి మెఫీబోషెతుకు దావీదు రాజు ఏ నిబంధన సంరక్షణను కనబరచెను?",
+    "options": [
+      "Restored all the land of Saul his grandfather, and said 'you shall eat bread at my table continually'",
+      "Assigned him forty days of solitary exile in Lo-Debar",
+      "Demanded sixty talents of silver from Jonathan's estate",
+      "Sent him into the Philistine garrison as a hostage"
+    ],
+    "optionsTelugu": [
+      "అతని పితరుడైన సౌలు భూమినంతటిని అతనికి తిరిగి ఇచ్చి, 'నీవు నిత్యము నా బల్లయొద్దనే భోజనము చేయుదువు' అనెను",
+      "లోదెబారులో నలభై దినములు ఏకాంత నిర్వాసన విధించెను",
+      "యోనాతాను ఆస్తినుండి అరవై వెండి తలాంతులను డిమాండ్ చేసెను",
+      "ఫిలిష్తీయుల కోటలోనికి బందీగా అతనిని పంపెను"
+    ],
+    "correctAnswer": "Restored all the land of Saul his grandfather, and said 'you shall eat bread at my table continually'",
+    "bibleReference": "2 Samuel 9:7",
+    "explanation": "David kept his covenant with Jonathan by restoring Saul's ancestral lands to Mephibosheth and seating him permanently at the royal table.",
+    "explanationTelugu": "దావీదు: భయపడవద్దు, నీ తండ్రియైన యోనాతాను నిమిత్తము నిశ్చయముగా నీకు ఉపకారము చేసెదను; నీ పితరుడైన సౌలు భూమినంతయు నీకు మరల ఇప్పించెదను, నీవు నిత్యము నా బల్లయొద్దనే భోజనము చేయుదువనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q14",
+    "order": 14,
+    "questionType": "single_choice",
+    "question": "How did the Shunammite woman and her husband show thoughtful care for the prophet Elisha in 2 Kings 4:9-10?",
+    "questionTelugu": "2 రాజులు 4:9-10 లో షూనేమీయురాలైన స్త్రీ మరియు ఆమె భర్త దైవజనుడైన ఎలీషా కొరకు ఏ శ్రద్ధాపూర్వక సంరక్షణను సిద్ధపరచిరి?",
+    "options": [
+      "Built a small upper room on the wall with a bed, table, chair, and lampstand so he could rest",
+      "Offered him forty chariot horses from Damascus",
+      "Gave him seventy pieces of gold every new moon",
+      "Built sixty altars around the borders of Shunem"
+    ],
+    "optionsTelugu": [
+      "గోడమీద ఒక చిన్న మేడగదిని కట్టి, అందులో మంచమును బల్లను పీటను దీపస్తంభమును ఉంచి అతడు విశ్రమించునట్లు చేసిరి",
+      "దమస్కునుండి నలభై రథపు గుఱ్ఱములను అతనికి కానుకగా ఇచ్చిరి",
+      "ప్రతి అమావాస్యకు డెబ్బై బంగారు నాణెములను సమర్పించిరి",
+      "షూనేము సరిహద్దుల చుట్టూ అరవై బలిపీఠములను కట్టిరి"
+    ],
+    "correctAnswer": "Built a small upper room on the wall with a bed, table, chair, and lampstand so he could rest",
+    "bibleReference": "2 Kings 4:9-10",
+    "explanation": "The generous Shunammite woman recognized Elisha as a holy man of God and built a furnished upper room for his care and rest.",
+    "explanationTelugu": "ఆమె తన భర్తతో: మనయొద్దకు వచ్చుచుండు ఈ మనుష్యుడు పరిశుద్ధుడైన దైవజనుడని నేను ఎరుగుదును; కాబట్టి గోడమీద ఒక చిన్న మేడగదిని కట్టి, అందులో అతనికొరకు ఒక మంచమును బల్లను పీటను దీపస్తంభమును ఉంచుదము అనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q15",
+    "order": 15,
+    "questionType": "single_choice",
+    "question": "How did God sustain the prophet Elijah at the brook Cherith during severe national drought in 1 Kings 17:4-6?",
+    "questionTelugu": "1 రాజులు 17:4-6 లో తీవ్రమైన కరవు కాలములో కెరీతు వాగుయొద్ద దేవుడు ఏలియాను ఏ అద్భుత రీతిలో పోషించి సంరక్షించెను?",
+    "options": [
+      "The ravens brought him bread and meat in the morning and evening, and he drank from the brook",
+      "Angels brought sixty golden goblets of wine daily",
+      "Merchants of Sidon supplied him with forty sacks of grain",
+      "He found dried figs stored in forty clay jars"
+    ],
+    "optionsTelugu": [
+      "కాకులు ఉదయమందును సాయంత్రమందును రొట్టెను మాంసమును అతనియొద్దకు తెచ్చెను, అతడు ఆ వాగు నీళ్లు తాగెను",
+      "దేవదూతలు ప్రతిదినము అరవై బంగారు పాత్రలలో ద్రాక్షారసమును తెచ్చిరి",
+      "సీదోను వర్తకులు అతనికి నలభై సంచుల ధాన్యమును సరఫరా చేసిరి",
+      "నలభై మట్టి కుండలలో నిల్వయుంచిన అంజూరపు పండ్లను అతడు కనుగొనెను"
+    ],
+    "correctAnswer": "The ravens brought him bread and meat in the morning and evening, and he drank from the brook",
+    "bibleReference": "1 Kings 17:4-6",
+    "explanation": "God commanded ravens to bring Elijah bread and meat twice daily, caring for his survival while hiding by the brook Cherith.",
+    "explanationTelugu": "కాకులు ఉదయమందు రొట్టెను మాంసమును, సాయంత్రమందు రొట్టెను మాంసమును అతనియొద్దకు తెచ్చుచుండెను; అతడు ఆ వాగు నీళ్లు తాగుచుండెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q16",
+    "order": 16,
+    "questionType": "single_choice",
+    "question": "How did God provide for Elijah and the impoverished widow of Zarephath in 1 Kings 17:14-16?",
+    "questionTelugu": "1 రాజులు 17:14-16 లో సారెపతు విధవరాలి ఇంట ఏలియాను మరియు ఆ కుటుంబాన్ని దేవుడు ఎలా ఆశ్చర్యకరముగా పోషించెను?",
+    "options": [
+      "The bin of flour was not used up, nor did the jar of oil run dry until the day the Lord sent rain",
+      "Forty bags of wheat arrived from the King of Tyre",
+      "Seven silver coins appeared daily under her hearth",
+      "She inherited sixty olive groves in Mount Carmel"
+    ],
+    "optionsTelugu": [
+      "యెహోవా దేశముమీద వర్షము కురిపించువరకు ఆ తొట్టిలోని పిండి అయిపోలేదు, ఆ బుడ్డిలోని నూనె తరిగిపోలేదు",
+      "తీరు రాజునుండి నలభై సంచుల గోధుమలు ఆమెకు చేరెను",
+      "ప్రతిదినము ఆమె పొయ్యి క్రింద ఏడు వెండి నాణెములు ప్రత్యక్షమాయెను",
+      "కర్మెలు పర్వతములో అరవై ఒలీవ తోటలను ఆమె స్వాస్థ్యముగా పొందెను"
+    ],
+    "correctAnswer": "The bin of flour was not used up, nor did the jar of oil run dry until the day the Lord sent rain",
+    "bibleReference": "1 Kings 17:14-16",
+    "explanation": "God faithfully replenished the widow's tiny jar of flour and cruse of oil day after day throughout the severe drought.",
+    "explanationTelugu": "యెహోవా ఏలియాద్వారా సెలవిచ్చిన మాటచొప్పున ఆ తొట్టిలోని పిండి అయిపోలేదు, ఆ బుడ్డిలోని నూనె తరిగిపోలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q17",
+    "order": 17,
+    "questionType": "single_choice",
+    "question": "What supernatural care did the Angel of the Lord provide to exhausted, despondent Elijah under the broom tree in 1 Kings 19:5-7?",
+    "questionTelugu": "1 రాజులు 19:5-7 లో బదరీ వృక్షము క్రింద అలసిపోయి మరణము కోరిన ఏలియాకు ప్రభువు దూత ఏ సంరక్షణను సమకూర్చెను?",
+    "options": [
+      "Touched him, provided a cake baked on coals and a jar of water, saying 'Arise and eat, because the journey is too great for you'",
+      "Rebuked him with forty severe curses for fleeing Jezebel",
+      "Sent forty chariots of fire to carry him instantly to Horeb",
+      "Commanded him to fast thirty days without food or water"
+    ],
+    "optionsTelugu": [
+      "అతనిని ముట్టి, నిప్పులమీద కాల్చబడిన అప్పమును నీళ్ల బుడ్డిని ఇచ్చి, 'ప్రయాణము నీ శక్తికి మించినది, లేచి భోజనము చేయుము' అనెను",
+      "యెజెబెలునకు భయపడి పారిపోయినందుకు నలభై కఠిన శాపములతో గద్దించెను",
+      "హోరేబునకు తక్షణమే తీసికొనిపోవుటకు నలభై అగ్ని రథములను పంపెను",
+      "అన్నపానములు లేకుండ ముప్పది దినములు ఉపవాసముండవలెనని ఆజ్ఞాపించెను"
+    ],
+    "correctAnswer": "Touched him, provided a cake baked on coals and a jar of water, saying 'Arise and eat, because the journey is too great for you'",
+    "bibleReference": "1 Kings 19:5-7",
+    "explanation": "God met Elijah's deep physical and emotional burnout with gentle nourishment, rest, and angelic refreshment.",
+    "explanationTelugu": "ఒక దూత అతనిని ముట్టి-నీవు లేచి భోజనము చేయుమని చెప్పెను. అతడు చూడగా నిప్పులమీద కాల్చబడిన అప్పమును నీళ్ల బుడ్డియు అతని తలయొద్ద ఉండెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q18",
+    "order": 18,
+    "questionType": "single_choice",
+    "question": "How did God care for weeping Hagar and dying Ishmael dying of thirst in the wilderness of Beersheba in Genesis 21:17-19?",
+    "questionTelugu": "ఆదికాండము 21:17-19 లో బెయేర్షెబా అరణ్యములో దాహముతో చనిపోవుచున్న ఇష్మాయేలును ఏడ్చుచున్న హాగరును దేవుడు ఎలా కాపాడెను?",
+    "options": [
+      "God heard the voice of the lad, opened her eyes, and she saw a well of water to fill the skin",
+      "Sent an army of seventy riders to transport them to Egypt",
+      "Rained manna around their bush for forty days",
+      "Turned the desert sand into solid silver coins"
+    ],
+    "optionsTelugu": [
+      "దేవుడు ఆ చిన్నవాని మొరను వినెను; ఆమె కన్నులు తెరవగా ఆమెకు నీళ్ల బావి కనబడెను, ఆమె వెళ్లి తిత్తిని నీళ్లతో నింపి చిన్నవానికి త్రాగించెను",
+      "ఐగుప్తునకు వారిని చేర్చుటకు డెబ్బైమంది గుర్రపు రౌతులను పంపెను",
+      "వారి పొద చుట్టూ నలభై దినములు మన్నాను కురిపించెను",
+      "ఎడారి ఇసుకను నికరమైన వెండి నాణెములుగా మార్చెను"
+    ],
+    "correctAnswer": "God heard the voice of the lad, opened her eyes, and she saw a well of water to fill the skin",
+    "bibleReference": "Genesis 21:17-19",
+    "explanation": "God heard Ishmael's weeping, comforted Hagar with covenant promises, and revealed a life-saving well of water.",
+    "explanationTelugu": "దేవుడు ఆ చిన్నవాని మొరను వినెను; దేవుడు ఆమె కన్నులు తెరవగా ఆమెకు నీళ్ల బావి కనబడెను; ఆమె వెళ్లి తిత్తిని నీళ్లతో నింపి ఆ చిన్నవానికి త్రాగించెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q19",
+    "order": 19,
+    "questionType": "single_choice",
+    "question": "What astonishing detail of daily physical care did God provide for Israel's clothes and sandals during 40 wilderness years in Deuteronomy 8:4 and 29:5?",
+    "questionTelugu": "ద్వితీయోపదేశకాండము 8:4 మరియు 29:5 ప్రకారం నలభై ఏండ్ల అరణ్య ప్రయాణములో ఇశ్రాయేలీయుల వస్త్రములు చెప్పుల విషయములో దేవుడు ఏ సంరక్షణ చేసెను?",
+    "options": [
+      "Your garments did not wear out on you, nor did your feet swell these forty years; your sandals did not wear out",
+      "They imported forty wagons of clothes from Babylon",
+      "They sheared sixty flocks of sheep every new moon",
+      "They purchased new sandals from Edomite merchants"
+    ],
+    "optionsTelugu": [
+      "ఈ నలభై సంవత్సరములు నీ ఒంటిమీది వస్త్రములు పాతగిలలేదు, నీ కాళ్లు వాచలేదు; నీ చెప్పులు అరిగిపోలేదు",
+      "బబులోనునుండి నలభై బండ్ల వస్త్రములను వారు దిగుమతి చేసికొనిరి",
+      "ప్రతి అమావాస్యకు అరవై గొర్రెల మందల బొచ్చును కత్తిరించిరి",
+      "ఎదోమీయుల వర్తకులనుండి నూతన చెప్పులను కొనుక్కొనిరి"
+    ],
+    "correctAnswer": "Your garments did not wear out on you, nor did your feet swell these forty years; your sandals did not wear out",
+    "bibleReference": "Deuteronomy 8:4; 29:5",
+    "explanation": "Throughout forty years in the harsh desert, God miraculously prevented their clothes from wearing out and kept their feet from swelling.",
+    "explanationTelugu": "ఈ నలభై సంవత్సరములు నీ ఒంటిమీది వస్త్రములు పాతగిలలేదు, నీ కాళ్లు వాచలేదు; మీ ఒంటిమీది బట్టలు పాతగిలలేదు, నీ చెప్పులు అరిగిపోలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q20",
+    "order": 20,
+    "questionType": "single_choice",
+    "question": "What timeless portrait of pastoral care opens the famous Psalm 23:1-2?",
+    "questionTelugu": "కీర్తన 23:1-2 లో దేవుని కాపరిత్వ సంరక్షణను గూర్చి పలికిన పరమ ప్రసిద్ధమైన వాక్యమేమి?",
+    "options": [
+      "The Lord is my shepherd; I shall not want. He makes me to lie down in green pastures; He leads me beside still waters",
+      "The king is my shield; I shall conquer forty nations",
+      "My wealth is my fortress; I shall store gold in seventy chests",
+      "The temple is my refuge; I shall fast thirty days"
+    ],
+    "optionsTelugu": [
+      "యెహోవా నా కాపరి, నాకు లేమి కలుగదు; పచ్చికగల చోట్లను ఆయన నన్ను పరుండజేయుచున్నాడు, శాంతికరమైన జలములయొద్ద నన్ను నడిపించుచున్నాడు",
+      "రాజు నా కేడెము, నేను నలభై దేశములను జయించెదను",
+      "నా సంపదయే నా కోట, డెబ్బై పెట్టెలలో బంగారమును దాచెదను",
+      "దేవాలయమే నా ఆశ్రయము, ముప్పది దినములు ఉపవాసముండెదను"
+    ],
+    "correctAnswer": "The Lord is my shepherd; I shall not want. He makes me to lie down in green pastures; He leads me beside still waters",
+    "bibleReference": "Psalm 23:1-2",
+    "explanation": "David testifies that under the Lord's caring shepherd-leadership, all spiritual, physical, and emotional needs are richly provided.",
+    "explanationTelugu": "యెహోవా నా కాపరి, నాకు లేమి కలుగదు. పచ్చికగల చోట్లను ఆయన నన్ను పరుండజేయుచున్నాడు, శాంతికరమైన జలములయొద్ద నన్ను నడిపించుచున్నాడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q21",
+    "order": 21,
+    "questionType": "single_choice",
+    "question": "What medical and restorative care does God perform in Psalm 147:3 for those who are crushed in spirit?",
+    "questionTelugu": "కీర్తన 147:3 లో నలిగిన హృదయము గలవారికి దేవుడు ఏ ఆదరణకరమైన వైద్యమును సంరక్షణను చేయును?",
+    "options": [
+      "He heals the brokenhearted and binds up their wounds",
+      "He builds forty stone walls around Jerusalem's gates",
+      "He demands sixty rams for broken vows",
+      "He counts forty days of penance for sinners"
+    ],
+    "optionsTelugu": [
+      "గుండె చెదరినవారిని ఆయన బాగుచేయును, వారి గాయములను కట్టును",
+      "యెరూషలేము ద్వారముల చుట్టూ నలభై రాతి గోడలను నిర్మించును",
+      "మీరిన మొక్కుబడులకొరకు అరవై పొట్టేళ్లను డిమాండ్ చేయును",
+      "పాపులకొరకు నలభై దినముల కఠిన శిక్షను లెక్కించును"
+    ],
+    "correctAnswer": "He heals the brokenhearted and binds up their wounds",
+    "bibleReference": "Psalm 147:3",
+    "explanation": "The Almighty God tenderly bandages the deepest emotional and spiritual wounds of all who are brokenhearted.",
+    "explanationTelugu": "గుండె చెదరినవారిని ఆయన బాగుచేయును, వారి గాయములను కట్టును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q22",
+    "order": 22,
+    "questionType": "single_choice",
+    "question": "How does Isaiah 40:11 describe the Shepherd-Lord gathering and carrying His vulnerable flock?",
+    "questionTelugu": "యెషయా 40:11 లో కాపరియైన ప్రభువు బలహీనమైన గొర్రెపిల్లలను ఎలా సమకూర్చి మోయునని వర్ణించబడినది?",
+    "options": [
+      "He will gather the lambs with His arm and carry them in His bosom, and gently lead those who are with young",
+      "He will drive them forty miles through the scorching sun",
+      "He will sell the weak lambs to foreign merchants",
+      "He will leave the nursing ewes behind in the wilderness"
+    ],
+    "optionsTelugu": [
+      "గొర్రెపిల్లలను తన బాహువుతో సమకూర్చి తన రొమ్మున ఎత్తికొని మోయును, పాలిచ్చువాటిని మెల్లగా నడిపించును",
+      "మండే ఎండలో నలభై మైళ్లు వాటిని తోలుకొనిపోవును",
+      "బలహీన గొర్రెపిల్లలను పరదేశీ వర్తకులకు అమ్మును",
+      "పాలిచ్చే గొర్రెలను అరణ్యములో వెనుక విడిచిపెట్టును"
+    ],
+    "correctAnswer": "He will gather the lambs with His arm and carry them in His bosom, and gently lead those who are with young",
+    "bibleReference": "Isaiah 40:11",
+    "explanation": "Isaiah pictures God as a gentle Shepherd who lifts fragile lambs to His chest and paces Himself to accommodate nursing mothers.",
+    "explanationTelugu": "ఆయన గొర్రెల కాపరివలె తన మందను మేపును, గొర్రెపిల్లలను తన బాహువుతో సమకూర్చి తన రొమ్మున ఎత్తికొని మోయును, పాలిచ్చువాటిని మెల్లగా నడిపించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q23",
+    "order": 23,
+    "questionType": "single_choice",
+    "question": "What lifelong promise of enduring care from youth to old age is given in Isaiah 46:4?",
+    "questionTelugu": "యెషయా 46:4 లో బాల్యమునుండి వృద్ధాప్యమువరకు విడువక కాపాడు దేవుని నిత్య వాగ్దానమేమి?",
+    "options": [
+      "Even to your old age, I am He, and even to gray hairs I will carry you! I have made, and I will bear; even I will carry, and will deliver you",
+      "You must carry your forty ancestral idols into exile",
+      "At age sixty your strength will be forgotten before God",
+      "Nations will cast off their elderly into desert ravines"
+    ],
+    "optionsTelugu": [
+      "మీ ముసలితనము వచ్చువరకు నేను మిమ్మును ఎత్తికొనువాడను నేనే; తలవెండ్రుకలు నెరయువరకు మిమ్మును ఎత్తికొనువాడను నేనే. నేనే చేసియున్నాను, నేనే భరించెదను, నేనే ఎత్తికొనెదను, నేనే రక్షించెదను",
+      "మీ పితరుల నలభై విగ్రహములను మీరే మోసుకొని నిర్వాసనమునకు పోవలెను",
+      "అరువై ఏండ్ల వయస్సులో మీ బలము దేవునియెదుట మరచిపోబడును",
+      "జాతులు తమ వృద్ధులను అరణ్య లోయలలోనికి త్రోసివేయును"
+    ],
+    "correctAnswer": "Even to your old age, I am He, and even to gray hairs I will carry you! I have made, and I will bear; even I will carry, and will deliver you",
+    "bibleReference": "Isaiah 46:4",
+    "explanation": "God pledges that His sustaining care does not expire with youth; He will faithfully carry and deliver His people into frail old age.",
+    "explanationTelugu": "మీ ముసలితనము వచ్చువరకు నేను మిమ్మును ఎత్తికొనువాడను నేనే; తలవెండ్రుకలు నెరయువరకు మిమ్మును ఎత్తికొనువాడను నేనే. నేనే చేసియున్నాను, నేనే భరించెదను, నేనే ఎత్తికొనెదను, నేనే రక్షించెదను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q24",
+    "order": 24,
+    "questionType": "single_choice",
+    "question": "What unforgettable comparison does God make in Isaiah 49:15-16 to guarantee His perpetual care?",
+    "questionTelugu": "యెషయా 49:15-16 లో తన ప్రజలను ఎన్నడును మరచిపోననుటకు స్త్రీ తన చంటిబిడ్డను మరచుటకంటె శ్రేష్ఠమైన ఏ ఉపమానమును దేవుడు పలికెను?",
+    "options": [
+      "Can a woman forget her nursing child? Yet I will not forget you. See, I have inscribed you on the palms of My hands",
+      "Can a king forget his forty golden war chariots?",
+      "Can a builder forget sixty stones of the foundation?",
+      "Can a merchant forget seventy bags of silver?"
+    ],
+    "optionsTelugu": [
+      "స్త్రీ తన గర్భమున పుట్టిన బిడ్డను కరుణింపకుండ తన చంటిపిల్లను మరచునా? వారైనను మరచుదురు గాని నేను నిన్ను మరువను; చూడుము, నా అరచేతులమీదనే నిన్ను చెక్కియున్నాను",
+      "రాజు తన నలభై బంగారు యుద్ధ రథములను మరచునా?",
+      "భవన నిర్మాణకుడు పునాదియందలి అరవై రాళ్లను మరచునా?",
+      "వర్తకుడు తన డెబ్బై సంచుల వెండిని మరచునా?"
+    ],
+    "correctAnswer": "Can a woman forget her nursing child? Yet I will not forget you. See, I have inscribed you on the palms of My hands",
+    "bibleReference": "Isaiah 49:15-16",
+    "explanation": "Even if a nursing mother could forget her baby, God will never forget His people, having indelibly engraved them on His palms.",
+    "explanationTelugu": "స్త్రీ తన గర్భమున పుట్టిన బిడ్డను కరుణింపకుండ తన చంటిపిల్లను మరచునా? వారైనను మరచుదురు గాని నేను నిన్ను మరువను. చూడుము, నా అరచేతులమీదనే నిన్ను చెక్కియున్నాను; నీ ప్రాకారములు నిత్యము నా యెదుట ఉన్నవి.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q25",
+    "order": 25,
+    "questionType": "single_choice",
+    "question": "What royal promise of complete material and spiritual supply is penned in Philippians 4:19?",
+    "questionTelugu": "ఫిలిప్పీయులకు 4:19 లో సమస్త అవసరతలను తీర్చు దేవుని వాగ్దానము ఏమని రాయబడినది?",
+    "options": [
+      "And my God shall supply all your need according to His riches in glory by Christ Jesus",
+      "Rome shall distribute forty measures of wheat to all citizens",
+      "The temple treasury will give fifty pieces of silver to the poor",
+      "The merchant ships of Tyre will replenish your stores"
+    ],
+    "optionsTelugu": [
+      "కాగా దేవుడు తన ఐశ్వర్యముచొప్పున క్రీస్తుయేసునందు మహిమలో మీ ప్రతి అవసరమును తీర్చును",
+      "రోమా ప్రభుత్వం పౌరులందరికీ నలభై కొలతల గోధుమలను పంచును",
+      "దేవాలయ ఖజానా పేదలకు ఏబది వెండి నాణెములను ఇచ్చును",
+      "తీరు వర్తక ఓడలు మీ గిడ్డంగులను సమకూర్చును"
+    ],
+    "correctAnswer": "And my God shall supply all your need according to His riches in glory by Christ Jesus",
+    "bibleReference": "Philippians 4:19",
+    "explanation": "Paul assures generous believers that God will abundantly supply every physical, financial, and spiritual need out of His boundless riches in Christ.",
+    "explanationTelugu": "కాగా దేవుడు తన ఐశ్వర్యముచొప్పున క్రీస్తుయేసునందు మహిమలో మీ ప్రతి అవసరమును తీర్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q26",
+    "order": 26,
+    "questionType": "single_choice",
+    "question": "What lesson from the ravens does Jesus give in Luke 12:24 regarding God's care?",
+    "questionTelugu": "లూకా 12:24 లో దేవుని పోషణ సంరక్షణను గ్రహించుటకు కాకులను గూర్చి యేసు ఏమని బోధించెను?",
+    "options": [
+      "Consider the ravens, for they neither sow nor reap; and God feeds them. Of how much more value are you than the birds?",
+      "They store forty bushels of grain in high trees",
+      "They purchase food from fifty merchant caravans",
+      "They migrate thirty days to Egypt for winter feasts"
+    ],
+    "optionsTelugu": [
+      "కాకులను విచారించి చూడుడి; అవి విత్తవు కోయవు, వాటికి గదియుండదు కొట్టునుండదు; అయినను దేవుడు వాటిని పోషించుచున్నాడు; మీరు పక్షులకంటె ఎంతో శ్రేష్ఠులు",
+      "అవి ఎత్తయిన చెట్లపై నలభై కొలతల ధాన్యమును దాచును",
+      "అవి ఏబది వర్తక బృందములవద్ద ఆహారమును కొనును",
+      "శీతాకాలపు విందులకొరకు అవి ఐగుప్తునకు ముప్పది దినములు ప్రయాణించును"
+    ],
+    "correctAnswer": "Consider the ravens, for they neither sow nor reap; and God feeds them. Of how much more value are you than the birds?",
+    "bibleReference": "Luke 12:24",
+    "explanation": "Jesus urges us to observe ravens, who have no barns yet are fed by God, proving our greater worth to the Father.",
+    "explanationTelugu": "కాకులను విచారించి చూడుడి; అవి విత్తవు కోయవు, వాటికి గదియుండదు కొట్టునుండదు; అయినను దేవుడు వాటిని పోషించుచున్నాడు; మీరు పక్షులకంటె ఎంతో శ్రేష్ఠులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q27",
+    "order": 27,
+    "questionType": "single_choice",
+    "question": "What peaceful remedy for all anxiety is prescribed in Philippians 4:6-7?",
+    "questionTelugu": "ఫిలిప్పీయులకు 4:6-7 లో సమస్త చింతలకు పరిష్కారముగా ఏ ప్రార్థనా విధానము చెప్పబడినది?",
+    "options": [
+      "Be anxious for nothing, but in everything by prayer and supplication, with thanksgiving, let your requests be made known to God",
+      "Pay forty silver coins to Roman officials for peace",
+      "Retreat into sixty days of solitary desert fasting",
+      "Chant thirty liturgical prayers before sunrise"
+    ],
+    "optionsTelugu": [
+      "దేనినిగూర్చియు చింతపడకుడి గాని ప్రతి విషయములోను ప్రార్థన విజ్ఞాపనములచేత కృతజ్ఞతాపూర్వకముగా మీ విన్నపములు దేవునికి తెలియజేయుడి",
+      "సమాధానము కొరకు రోమా అధికారులకు నలభై వెండి నాణెములను చెల్లించుడి",
+      "అరణ్యములో అరవై దినముల ఏకాంత ఉపవాసమునకు వెళ్లిపోవుడి",
+      "సూర్యోదయమునకు ముందు ముప్పది మంత్రములను జపించుడి"
+    ],
+    "correctAnswer": "Be anxious for nothing, but in everything by prayer and supplication, with thanksgiving, let your requests be made known to God",
+    "bibleReference": "Philippians 4:6-7",
+    "explanation": "Paul commands believers to trade anxiety for prayer with thanksgiving, receiving God's transcendent peace to guard their hearts.",
+    "explanationTelugu": "దేనినిగూర్చియు చింతపడకుడి గాని ప్రతి విషయములోను ప్రార్థన విజ్ఞాపనములచేత కృతజ్ఞతాపూర్వకముగా మీ విన్నపములు దేవునికి తెలియజేయుడి; అప్పుడు సమస్త బుద్ధికి మించిన దేవుని సమాధానము క్రీస్తుయేసునందు మీ హృదయములను మీ తలంపులను కావలియుండును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q28",
+    "order": 28,
+    "questionType": "single_choice",
+    "question": "What comforting shepherd-care dispels fear in the darkest trials according to Psalm 23:4?",
+    "questionTelugu": "కీర్తన 23:4 లో గాఢాంధకారపు లోయలో నడచినను భయపడకుండుటకు కాపరియైన దేవుని ఏ సంరక్షణ తోడైయుండును?",
+    "options": [
+      "Yea, though I walk through the valley of the shadow of death, I will fear no evil; for You are with me; Your rod and Your staff, they comfort me",
+      "The king's army of forty chariots will escort my path",
+      "A golden shield will protect me from thirty arrows",
+      "I will carry sixty torches of cedar wood through the dark"
+    ],
+    "optionsTelugu": [
+      "గాఢాంధకారపు లోయలో నేను సంచరించినను ఏ అపాయమునకు భయపడను, నీవు నాకు తోడైయుందువు; నీ దుడ్డుకఱ్ఱయు నీ దండమును నన్ను ఆదరించును",
+      "రాజుయొక్క నలభై రథముల సైన్యము నా మార్గములో కావలియుండును",
+      "బంగారు కేడెము నన్ను ముప్పది బాణములనుండి కాపాడును",
+      "చీకటిలో నడవడానికి అరవై దేవదారు దివిటీలను మోసెదను"
+    ],
+    "correctAnswer": "Yea, though I walk through the valley of the shadow of death, I will fear no evil; for You are with me; Your rod and Your staff, they comfort me",
+    "bibleReference": "Psalm 23:4",
+    "explanation": "David declares that even in mortality's deepest shadows, the Shepherd's personal presence, rod, and staff provide complete comfort and safety.",
+    "explanationTelugu": "గాఢాంధకారపు లోయలో నేను సంచరించినను ఏ అపాయమునకు భయపడను, నీవు నాకు తోడైయుందువు; నీ దుడ్డుకఱ్ఱయు నీ దండమును నన్ను ఆదరించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q29",
+    "order": 29,
+    "questionType": "single_choice",
+    "question": "What lavish banqueting care does God prepare for the psalmist in Psalm 23:5?",
+    "questionTelugu": "కీర్తన 23:5 లో శత్రువుల యెదుట భక్తునికొరకు దేవుడు ఏ సమృద్ధియైన సంరక్షణ బల్లను సిద్ధపరచును?",
+    "options": [
+      "You prepare a table before me in the presence of my enemies; You anoint my head with oil; my cup runs over",
+      "You build forty stone fortresses against Philistine archers",
+      "You give me seventy bags of silver from Damascus",
+      "You set forty guards at the gates of my estate"
+    ],
+    "optionsTelugu": [
+      "నా శత్రువుల యెదుట నీవు నాకు భోజనము సిద్ధపరచుదువు, నూనెతో నా తల అంటియున్నావు, నా గిన్నె నిండి పొర్లుచున్నది",
+      "ఫిలిష్తీయుల బాణములకు ఎదురుగా నలభై రాతి కోటలను కట్టుదువు",
+      "దమస్కునుండి డెబ్బై సంచుల వెండిని నాకు ఇచ్చుదువు",
+      "నా భవన ద్వారములయొద్ద నలభైమంది కావలివారిని ఉంచుదువు"
+    ],
+    "correctAnswer": "You prepare a table before me in the presence of my enemies; You anoint my head with oil; my cup runs over",
+    "bibleReference": "Psalm 23:5",
+    "explanation": "God honors His servant with a celebratory feast under the very gaze of his enemies, anointing his head and overflowing his cup.",
+    "explanationTelugu": "నా శత్రువుల యెదుట నీవు నాకు భోజనము సిద్ధపరచుదువు, నూనెతో నా తల అంటియున్నావు, నా గిన్నె నిండి పొర్లుచున్నది.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q30",
+    "order": 30,
+    "questionType": "single_choice",
+    "question": "What joyful certainty of lifelong covenant care closes Psalm 23:6?",
+    "questionTelugu": "కీర్తన 23:6 లో జీవితాంతము వెంటవచ్చు దేవుని సంరక్షణను గూర్చి పలికిన పరమ నిశ్చయత ఏది?",
+    "options": [
+      "Surely goodness and mercy shall follow me all the days of my life; and I will dwell in the house of the Lord forever",
+      "War and forty tribulations shall surround my house",
+      "I shall amass seventy horses in the stables of Megiddo",
+      "My fame shall conquer forty cities in the wilderness"
+    ],
+    "optionsTelugu": [
+      "నేను బ్రదుకు దినములన్నియు కృపాక్షేమములే నా వెంట వచ్చును; చిరకాలము యెహోవా మందిరములో నేను నివాసము చేసెదను",
+      "యుద్ధములు నలభై శ్రమలు నా గృహమును చుట్టుముట్టును",
+      "మెగిద్దో లాయములలో డెబ్బై గుఱ్ఱములను నేను కూడబెట్టుకొందును",
+      "నా కీర్తి అరణ్యములోని నలభై పట్టణములను జయించును"
+    ],
+    "correctAnswer": "Surely goodness and mercy shall follow me all the days of my life; and I will dwell in the house of the Lord forever",
+    "bibleReference": "Psalm 23:6",
+    "explanation": "David concludes with the triumphant confidence that God's goodness and loyal love will pursue him through life into eternity.",
+    "explanationTelugu": "నేను బ్రదుకు దినములన్నియు కృపాక్షేమములే నా వెంట వచ్చును; చిరకాలము యెహోవా మందిరములో నేను నివాసము చేసెదను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q31",
+    "order": 31,
+    "questionType": "single_choice",
+    "question": "What comforting personal ownership and care does God declare to Israel in Isaiah 43:1?",
+    "questionTelugu": "యెషయా 43:1 లో దేవుడు తన ప్రజలకు ఏ వ్యక్తిగత సంరక్షణ మరియు విమోచన అభయమును పలికెను?",
+    "options": [
+      "Fear not, for I have redeemed you; I have called you by your name; you are Mine",
+      "Pay forty talents of silver to the King of Assyria",
+      "Hide sixty days in the caves of the Dead Sea",
+      "Construct thirty watchtowers on Mount Gerizim"
+    ],
+    "optionsTelugu": [
+      "భయపడకుము, నేను నిన్ను విమోచించియున్నాను, పేరుపెట్టి నిన్ను పిలిచియున్నాను, నీవు నా సొత్తు",
+      "అష్షూరు రాజునకు నలభై తలాంతుల వెండిని చెల్లించుము",
+      "మృత సముద్రపు గుహలలో అరవై దినములు దాగియుండుము",
+      "గెరిజీము పర్వతముపై ముప్పది కావలి బురుజులను కట్టుము"
+    ],
+    "correctAnswer": "Fear not, for I have redeemed you; I have called you by your name; you are Mine",
+    "bibleReference": "Isaiah 43:1",
+    "explanation": "The Lord reassures His people: He has redeemed them, knows them intimately by name, and claims them forever as His personal possession.",
+    "explanationTelugu": "ఇప్పుడైతే యాకోబూ, నిన్ను సృజించిన యెహోవా, ఇశ్రాయేలూ, నిన్ను నిర్మించినవాడు ఈలాగు సెలవిచ్చుచున్నాడు-భయపడకుము, నేను నిన్ను విమోచించియున్నాను, పేరుపెట్టి నిన్ను పిలిచియున్నాను, నీవు నా సొత్తు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q32",
+    "order": 32,
+    "questionType": "single_choice",
+    "question": "In Matthew 10:29-31, how does the sale of two cheap sparrows prove God's sovereign care for believers?",
+    "questionTelugu": "మత్తయి 10:29-31 లో కాసుకు అమ్మబడు రెండు పిచ్చుకల ఉదాహరణ విశ్వాసులయెడల దేవుని సంరక్షణను ఎలా నిరూపించుచున్నది?",
+    "options": [
+      "Not one of them falls to the ground apart from your Father's will; do not fear therefore; you are of more value than many sparrows",
+      "Birds are governed by the planetary courses of Babylon",
+      "Sparrows buy forty measures of wheat from merchants",
+      "Two copper coins purchase fifty years of life"
+    ],
+    "optionsTelugu": [
+      "మీ తండ్రి సెలవులేకుండ వాటిలో ఒకటైనను నేలపడదు; కాబట్టి మీరు భయపడకుడి, మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు",
+      "పక్షులు బబులోను గ్రహచారములచేత నడిపింపబడును",
+      "పిచ్చుకలు వర్తకులవద్ద నలభై కొలతల ధాన్యమును కొనును",
+      "రెండు కాసులు ఏబది సంవత్సరముల ఆయుష్షును కొనును"
+    ],
+    "correctAnswer": "Not one of them falls to the ground apart from your Father's will; do not fear therefore; you are of more value than many sparrows",
+    "bibleReference": "Matthew 10:29-31",
+    "explanation": "Not a single sparrow falls without the Father knowing and permitting it; believers are infinitely more precious in His sight.",
+    "explanationTelugu": "రెండు పిచ్చుకలు కాసుకు అమ్మబడును గదా; అయినను మీ తండ్రి సెలవులేకుండ వాటిలో ఒకటైనను నేలపడదు. కాబట్టి మీరు భయపడకుడి, మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q33",
+    "order": 33,
+    "questionType": "single_choice",
+    "question": "What sweet promise of soul-rest and gentle care does Jesus give in Matthew 11:29-30?",
+    "questionTelugu": "మత్తయి 11:29-30 లో ఆత్మలకు విశ్రాంతినిచ్చుటకై తన కాడిని గూర్చి యేసు ఏమని వాగ్దానము చేసెను?",
+    "options": [
+      "Take My yoke upon you and learn from Me, for I am gentle and lowly in heart, and you will find rest for your souls",
+      "Fast forty days on Mount Sinai to earn peace",
+      "Carry sixty talents of temple stones to Jerusalem",
+      "Recite seventy traditional rabbinical prayers daily"
+    ],
+    "optionsTelugu": [
+      "నేను సాత్వికుడను దీనమనస్సు గలవాడను గనుక మీమీద నా కాడి ఎత్తికొని నాయొద్ద నేర్చుకొనుడి; అప్పుడు మీ ప్రాణములకు విశ్రాంతి దొరుకును",
+      "శాంతిని సంపాదించుటకు సీనాయి కొండపై నలభై దినములు ఉపవాసముండుడి",
+      "యెరూషలేమునకు అరవై తలాంతుల రాళ్లను మోసుకొనిరండి",
+      "ప్రతిదినము డెబ్బైమంది రబ్బీల పారంపర్యాచార ప్రార్థనలను వల్లెవేయండి"
+    ],
+    "correctAnswer": "Take My yoke upon you and learn from Me, for I am gentle and lowly in heart, and you will find rest for your souls",
+    "bibleReference": "Matthew 11:29-30",
+    "explanation": "Jesus invites the weary to wear His light, gentle yoke, finding deep soul-rest in His humble and gracious care.",
+    "explanationTelugu": "నేను సాత్వికుడను దీనమనస్సు గలవాడను గనుక మీమీద నా కాడి ఎత్తికొని నాయొద్ద నేర్చుకొనుడి; అప్పుడు మీ ప్రాణములకు విశ్రాంతి దొరుకును. ఏలయనగా నా కాడి సుళువుగాను నా భారము తేలికగాను ఉన్నది.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q34",
+    "order": 34,
+    "questionType": "single_choice",
+    "question": "To whom is the Lord especially close and caring according to Psalm 34:18?",
+    "questionTelugu": "కీర్తన 34:18 ప్రకారం యెహోవా ఎవరికి సమీపముగా ఉండి వారిని రక్షించును?",
+    "options": [
+      "The Lord is near to those who have a broken heart, and saves such as have a contrite spirit",
+      "The Lord stays forty cubits away from human sorrow",
+      "The Lord visits only forty kings in their palaces",
+      "The Lord assists those who amass seventy shields of bronze"
+    ],
+    "optionsTelugu": [
+      "విరిగిన హృదయముగలవారికి యెహోవా ఆసన్నుడు, నలిగిన మనస్సుగలవారిని ఆయన రక్షించును",
+      "మానవ దుఃఖమునకు నలభై మూరల దూరములో దేవుడు నిలుచును",
+      "రాజభవనములలోని నలభైమంది రాజులను మాత్రమే దేవుడు దర్శించును",
+      "డెబ్బై ఇత్తడి డాలులను కూడబెట్టుకొనువారికి దేవుడు సహాయము చేయును"
+    ],
+    "correctAnswer": "The Lord is near to those who have a broken heart, and saves such as have a contrite spirit",
+    "bibleReference": "Psalm 34:18",
+    "explanation": "God draws intimately near to those experiencing grief and heartache, tenderly rescuing those with a humble, contrite spirit.",
+    "explanationTelugu": "విరిగిన హృదయముగలవారికి యెహోవా ఆసన్నుడు, నలిగిన మనస్సుగలవారిని ఆయన రక్షించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q35",
+    "order": 35,
+    "questionType": "single_choice",
+    "question": "What reassuring deliverance is promised to the afflicted righteous in Psalm 34:19?",
+    "questionTelugu": "కీర్తన 34:19 లో శ్రమలనొందు నీతిమంతునికి ఏ విడుదల వాగ్దానము చేయబడినది?",
+    "options": [
+      "Many are the afflictions of the righteous, but the Lord delivers him out of them all",
+      "The righteous never experience forty days of adversity",
+      "The righteous buy forty houses in Jerusalem",
+      "The righteous defeat twenty armies with iron spears"
+    ],
+    "optionsTelugu": [
+      "నీతిమంతునికి కలుగు ఆపదలు అనేకములు, వాటన్నిటిలోనుండి యెహోవా వానిని విడిపించును",
+      "నీతిమంతుడు నలభై దినముల శ్రమను ఎన్నడును అనుభవింపడు",
+      "నీతిమంతుడు యెరూషలేములో నలభై ఇండ్లను కొనుక్కొనును",
+      "నీతిమంతుడు ఇనుప ఈటెలతో ఇరువది సైన్యములను ఓడించును"
+    ],
+    "correctAnswer": "Many are the afflictions of the righteous, but the Lord delivers him out of them all",
+    "bibleReference": "Psalm 34:19",
+    "explanation": "Scripture acknowledges that righteous believers face many trials, but promises that God faithfully delivers them from every single one.",
+    "explanationTelugu": "నీతిమంతునికి కలుగు ఆపదలు అనేకములు, వాటన్నిటిలోనుండి యెహోవా వానిని విడిపించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q36",
+    "order": 36,
+    "questionType": "single_choice",
+    "question": "What exact physical preservation is promised in Psalm 34:20 and fulfilled in Christ on the cross?",
+    "questionTelugu": "కీర్తన 34:20 లో ఎముకల సంరక్షణను గూర్చి పలికిన ప్రవచనము సిలువపై క్రీస్తునందు ఎలా నెరవేరెను?",
+    "options": [
+      "He guards all his bones; not one of them is broken",
+      "He gives him forty iron crutches for walking",
+      "He casts his bones into the valley of Hinnom",
+      "He heals his wounds with seventy days of plaster"
+    ],
+    "optionsTelugu": [
+      "ఆయన వాని ఎముకలన్నిటిని కాపాడును, వాటిలో ఒక్కటియైనను విరిగిపోదు",
+      "నడవడానికి అతనికి నలభై ఇనుప కర్రలను ఇచ్చును",
+      "అతని ఎముకలను హిన్నోము లోయలోనికి విసిరివేయును",
+      "డెబ్బై దినముల లేపనములతో అతని గాయములను మాన్పును"
+    ],
+    "correctAnswer": "He guards all his bones; not one of them is broken",
+    "bibleReference": "Psalm 34:20; John 19:36",
+    "explanation": "God watches over all his bones so that not a single one is broken, a promise fulfilled when Jesus died without broken bones on the cross.",
+    "explanationTelugu": "ఆయన వాని ఎముకలన్నిటిని కాపాడును, వాటిలో ఒక్కటియైనను విరిగిపోదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q37",
+    "order": 37,
+    "questionType": "single_choice",
+    "question": "What timeless invitation to roll burdens onto God is extended in Psalm 55:22?",
+    "questionTelugu": "కీర్తన 55:22 లో మన భారములను దేవునిపై వేయుటకు ఇవ్వబడిన అమూల్యమైన ఆహ్వానమేమి?",
+    "options": [
+      "Cast your burden on the Lord, and He shall sustain you; He shall never permit the righteous to be moved",
+      "Carry your burden forty miles through the valley of Rephaim",
+      "Give thirty silver pieces to temple porters to carry your loads",
+      "Hide your grief in forty secret tombs of Judah"
+    ],
+    "optionsTelugu": [
+      "నీ భారము యెహోవామీద మోపుము, ఆయన నిన్ను ఆదుకొనును; నీతిమంతుని ఎన్నడును కదలనీయడు",
+      "రెఫాయీము లోయలో నలభై మైళ్లు నీ భారమును మోసుకొనిపోవుము",
+      "నీ బరువులను మోయుటకు దేవాలయ కూలీలకు ముప్పది వెండి నాణెములు ఇమ్ము",
+      "యూదాలోని నలభై రహస్య సమాధులలో నీ దుఃఖమును దాచిపెట్టుము"
+    ],
+    "correctAnswer": "Cast your burden on the Lord, and He shall sustain you; He shall never permit the righteous to be moved",
+    "bibleReference": "Psalm 55:22",
+    "explanation": "Believers are urged to cast every overwhelming weight upon the Lord, who guarantees to sustain them and keep them unshakeable.",
+    "explanationTelugu": "నీ భారము యెహోవామీద మోపుము, ఆయన నిన్ను ఆదుకొనును; నీతిమంతుని ఎన్నడును కదలనీయడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q38",
+    "order": 38,
+    "questionType": "single_choice",
+    "question": "How does Psalm 68:5 describe God's special pastoral office toward the most vulnerable?",
+    "questionTelugu": "కీర్తన 68:5 లో దిక్కులేనివారి పక్షమున దేవునికున్న పరమ సంరక్షణ స్థానము ఎలా వర్ణించబడినది?",
+    "options": [
+      "A father of the fatherless, a defender of widows, is God in His holy habitation",
+      "A judge who demands forty bulls from orphans",
+      "A king who banishes widows forty leagues from Zion",
+      "A ruler who collects sixty talents of silver from the poor"
+    ],
+    "optionsTelugu": [
+      "దిక్కులేని పిల్లలకు తండ్రియు విధవరాండ్రకు న్యాయకర్తయునైన దేవుడు తన పరిశుద్ధ నివాసమందున్నాడు",
+      "అనాథలనుండి నలభై ఎద్దులను బలిగా కోరు న్యాయాధిపతి",
+      "సీయోనునుండి నలభై ఆమడల దూరమునకు విధవరాండ్రను వెళ్లగొట్టు రాజు",
+      "పేదలనుండి అరవై తలాంతుల వెండిని వసూలు చేయు పాలకుడు"
+    ],
+    "correctAnswer": "A father of the fatherless, a defender of widows, is God in His holy habitation",
+    "bibleReference": "Psalm 68:5",
+    "explanation": "God's holy residence does not detach Him from human sorrow; He sovereignly functions as Father to orphans and legal protector of widows.",
+    "explanationTelugu": "దిక్కులేని పిల్లలకు తండ్రియు విధవరాండ్రకు న్యాయకర్తయునైన దేవుడు తన పరిశుద్ధ నివాసమందున్నాడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q39",
+    "order": 39,
+    "questionType": "single_choice",
+    "question": "What three compassionate works of liberation and provision does God perform in Psalm 146:7?",
+    "questionTelugu": "కీర్తన 146:7 లో బాధపడువారికి, ఆకలిగొన్నవారికి, బంధింపబడినవారికి దేవుడు చేయు మూడు సంరక్షణ కార్యములేవి?",
+    "options": [
+      "Executes justice for the oppressed, gives food to the hungry, and gives freedom to the prisoners",
+      "Builds forty iron towers in the desert",
+      "Levies sixty talents on the poor",
+      "Demands thirty rams for ritual sacrifices"
+    ],
+    "optionsTelugu": [
+      "బాధపడువారికి న్యాయము తీర్చును, ఆకలిగొన్నవారికి ఆహారము నిచ్చును, బంధింపబడినవారిని విడుదల చేయును",
+      "ఎడారిలో నలభై ఇనుప గోపురములను నిర్మించును",
+      "పేదలపై అరవై తలాంతుల పన్ను విధించును",
+      "ఆచార బలులకొరకు ముప్పది పొట్టేళ్లను డిమాండ్ చేయును"
+    ],
+    "correctAnswer": "Executes justice for the oppressed, gives food to the hungry, and gives freedom to the prisoners",
+    "bibleReference": "Psalm 146:7",
+    "explanation": "The Lord acts as the supreme liberator and provider, upholding justice for the oppressed, feeding the starving, and freeing captives.",
+    "explanationTelugu": "ఆయన బాధపడువారికి న్యాయము తీర్చును, ఆకలిగొన్నవారికి ఆహారము నిచ్చును, యెహోవా బంధింపబడినవారిని విడుదల చేయును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q40",
+    "order": 40,
+    "questionType": "single_choice",
+    "question": "What healing and uplifting care does the Lord accomplish in Psalm 146:8?",
+    "questionTelugu": "కీర్తన 146:8 లో గ్రుడ్డివారికి మరియు కృంగిపోయినవారికి యెహోవా ఏ స్వస్థత సంరక్షణను అనుగ్రహించును?",
+    "options": [
+      "The Lord opens the eyes of the blind; the Lord raises those who are bowed down; the Lord loves the righteous",
+      "The Lord assigns forty days of penance to the blind",
+      "The Lord demands seventy shekels of silver for healing",
+      "The Lord leads the bowed down into sixty miles of exile"
+    ],
+    "optionsTelugu": [
+      "యెహోవా గ్రుడ్డివారి కన్నులు తెరచును, యెహోవా క్రుంగినవారిని లేవనెత్తును, యెహోవా నీతిమంతులను ప్రేమించును",
+      "గ్రుడ్డివారికి నలభై దినముల కఠిన శిక్షను విధించును",
+      "స్వస్థత కొరకు డెబ్బై వెండి షెకెళ్లను డిమాండ్ చేయును",
+      "క్రుంగినవారిని అరవై మైళ్ల నిర్వాసనలోనికి తోలుకొనిపోవును"
+    ],
+    "correctAnswer": "The Lord opens the eyes of the blind; the Lord raises those who are bowed down; the Lord loves the righteous",
+    "bibleReference": "Psalm 146:8",
+    "explanation": "The Lord opens blind eyes, lifts up all who are bent low under heavy trials, and sets His affectionate love on the righteous.",
+    "explanationTelugu": "యెహోవా గ్రుడ్డివారి కన్నులు తెరచును, యెహోవా క్రుంగినవారిని లేవనెత్తును, యెహోవా నీతిమంతులను ప్రేమించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q41",
+    "order": 41,
+    "questionType": "single_choice",
+    "question": "In Psalm 146:9, who does the Lord watch over and relieve with tender care?",
+    "questionTelugu": "కీర్తన 146:9 లో యెహోవా ఎవరిని కాపాడును మరియు ఎవరిని ఆదరించి లేవనెత్తును?",
+    "options": [
+      "The Lord watches over the strangers; He relieves the fatherless and widow; but the way of the wicked He turns upside down",
+      "The Lord demands forty talents of tax from foreign travelers",
+      "The Lord exiles thirty orphans to pagan nations",
+      "The Lord establishes seventy fortresses for rich landowners"
+    ],
+    "optionsTelugu": [
+      "యెహోవా పరదేశులను కాపాడును, ఆయన దిక్కులేనివారిని విధవరాండ్రను ఆదరించును; దుష్టుల మార్గమును ఆయన బోరగిలజేయును",
+      "విదేశీ ప్రయాణికులనుండి నలభై తలాంతుల పన్ను వసూలు చేయును",
+      "ముప్పదిమంది అనాథలను అన్యదేశములకు పారద్రోలును",
+      "భూస్వాములకొరకు డెబ్బై బలమైన కోటలను నిర్మించును"
+    ],
+    "correctAnswer": "The Lord watches over the strangers; He relieves the fatherless and widow; but the way of the wicked He turns upside down",
+    "bibleReference": "Psalm 146:9",
+    "explanation": "God guards resident foreigners, sustains vulnerable widows and orphans, and subverts the selfish plots of the wicked.",
+    "explanationTelugu": "యెహోవా పరదేశులను కాపాడును, ఆయన దిక్కులేనివారిని విధవరాండ్రను ఆదరించును; దుష్టుల మార్గమును ఆయన బోరగిలజేయును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q42",
+    "order": 42,
+    "questionType": "single_choice",
+    "question": "What warning does Jesus give in Matthew 18:10 concerning how we treat vulnerable 'little ones'?",
+    "questionTelugu": "మత్తయి 18:10 లో విశ్వాసులైన చిన్నవారిని తృణీకరింపకూడదని యేసు ఏ పరలోక సంరక్షణ సత్యమును హెచ్చరించెను?",
+    "options": [
+      "Take heed that you do not despise one of these little ones, for their angels always see the face of My Father in heaven",
+      "Little ones must fast forty days before entering the assembly",
+      "Children must pay twenty shekels to temple elders",
+      "These little ones must be trained in sixty Roman laws"
+    ],
+    "optionsTelugu": [
+      "ఈ చిన్నవారిలో ఒకనినైనను తృణీకరింపకుండ చూచుకొనుడి; వీరి దూతలు పరలోకమందున్న నా తండ్రి ముఖమును ఎల్లప్పుడును చూచుచున్నారు",
+      "చిన్నపిల్లలు సమాజములో చేరకముందు నలభై దినములు ఉపవాసముండవలెను",
+      "పిల్లలు దేవాలయ పెద్దలకు ఇరువది షెకెళ్లు చెల్లించవలెను",
+      "ఈ చిన్నవారు అరవై రోమా చట్టములలో తర్ఫీదు పొందవలెను"
+    ],
+    "correctAnswer": "Take heed that you do not despise one of these little ones, for their angels always see the face of My Father in heaven",
+    "bibleReference": "Matthew 18:10",
+    "explanation": "Jesus warns against looking down on vulnerable believers, revealing that their heavenly angels continually behold the Father's face.",
+    "explanationTelugu": "ఈ చిన్నవారిలో ఒకనినైనను తృణీకరింపకుండ చూచుకొనుడి; పరలోకమందు వారి దూతలు పరలోకమందున్న నా తండ్రి ముఖమును ఎల్లప్పుడును చూచుచున్నారని మీతో చెప్పుచున్నాను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q43",
+    "order": 43,
+    "questionType": "single_choice",
+    "question": "In Matthew 18:12-14, how does the shepherd search for a single straying sheep?",
+    "questionTelugu": "మత్తయి 18:12-14 లో తప్పిపోయిన ఒక్క గొర్రెను కాపరి ఎలా వెదకి ఆదరించును?",
+    "options": [
+      "He leaves the ninety-nine on the mountains and goes to search for the one that is straying; it is not the will of your Father that one of these little ones perish",
+      "He slaughters forty rams in anger against the straying sheep",
+      "He abandons the lost sheep to seventy desert predators",
+      "He demands sixty pieces of gold for finding the sheep"
+    ],
+    "optionsTelugu": [
+      "అతడు తొంబది తొమ్మిదింటిని కొండలమీద విడిచిపెట్టి, తప్పిపోయినదానిని వెదకవెళ్లును; ఈ చిన్నవారిలో ఒకడైనను నశించుట మీ పరలోకపు తండ్రి చిత్తము కాదు",
+      "తప్పిపోయిన గొర్రెపై కోపముతో నలభై పొట్టేళ్లను వధించును",
+      "ఎడారిలోని డెబ్బై క్రూరమృగములకు ఆ గొర్రెను విడిచిపెట్టును",
+      "గొర్రెను కనుగొన్నందుకు అరవై బంగారు నాణెములను అడుగును"
+    ],
+    "correctAnswer": "He leaves the ninety-nine on the mountains and goes to search for the one that is straying; it is not the will of your Father that one of these little ones perish",
+    "bibleReference": "Matthew 18:12-14",
+    "explanation": "The caring shepherd pursues the single wandering sheep, reflecting the Father's tender will that not a single little one perish.",
+    "explanationTelugu": "అతడు తొంబది తొమ్మిదింటిని కొండలమీద విడిచిపెట్టి, తప్పిపోయినదానిని వెదకవెళ్లును గదా? ఆలాగే ఈ చిన్నవారిలో ఒకడైనను నశించుట పరలోకమందున్న మీ తండ్రి చిత్తము కాదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q44",
+    "order": 44,
+    "questionType": "single_choice",
+    "question": "In the Parable of the Lost Coin (Luke 15:8-10), what diligent care does the woman exercise to recover what was lost?",
+    "questionTelugu": "లూకా 15:8-10 లో తప్పిపోయిన వెండి నాణెమును కనుగొనుటకు ఆ స్త్రీ ఏ శ్రద్ధాపూర్వక సంరక్షణను ప్రయత్నమును చేసెను?",
+    "options": [
+      "Lights a lamp, sweeps the house, and searches carefully until she finds it, rejoicing with friends",
+      "Builds forty stone walls around her courtyard",
+      "Demands thirty drachmas from her neighbors",
+      "Fasts forty days in mourning for her loss"
+    ],
+    "optionsTelugu": [
+      "దీపము వెలిగించి, యిల్లు ఊడ్చి, అది దొరుకువరకు శ్రద్ధగా వెదకును; అది దొరికినప్పుడు చెలికత్తెలను పిలిచి సంతోషించును",
+      "తన ఇంటి చుట్టూ నలభై రాతి గోడలను నిర్మించును",
+      "పొరుగువారినుండి ముప్పది వెండి నాణెములను డిమాండ్ చేయును",
+      "నాణెము పోయినందుకు నలభై దినములు దుఃఖముతో ఉపవాసముండును"
+    ],
+    "correctAnswer": "Lights a lamp, sweeps the house, and searches carefully until she finds it, rejoicing with friends",
+    "bibleReference": "Luke 15:8-10",
+    "explanation": "The woman lights a lamp and sweeps diligently until finding her lost coin, illustrating God's thorough, rejoicing care in recovering lost sinners.",
+    "explanationTelugu": "ఏ స్త్రీకైనను పది వెండి నాణెములుండగా వాటిలో ఒక నాణెము పోగొట్టుకొనినయెడల, ఆమె దీపము వెలిగించి, యిల్లు ఊడ్చి, అది దొరుకువరకు శ్రద్ధగా వెదకదా? అది దొరికినప్పుడు... నాతోకూడ సంతోషించుడని చెప్పును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q45",
+    "order": 45,
+    "questionType": "single_choice",
+    "question": "What tender domestic care did Jesus exercise from the cross for His mother Mary in John 19:26-27?",
+    "questionTelugu": "యోహాను 19:26-27 లో సిలువపై శ్రమలనొందుచున్న సమయములోను యేసు తన తల్లియైన మరియ సంరక్షణ కొరకు ఏ ఆజ్ఞను ఇచ్చెను?",
+    "options": [
+      "Said to His mother, 'Woman, behold your son!' and to the disciple, 'Behold your mother!' and from that hour he took her to his home",
+      "Commanded the Roman soldiers to pay her forty pieces of gold",
+      "Assigned seventy priests to guard her in Nazareth",
+      "Ordered forty days of public lamentation across Judea"
+    ],
+    "optionsTelugu": [
+      "తన తల్లితో-అమ్మా, యిదిగో నీ కుమారుడు అనియు, శిష్యునితో-యిదిగో నీ తల్లి అనియు చెప్పెను; ఆ గడియనుండి ఆ శిష్యుడు ఆమెను తన యింట చేర్చుకొనెను",
+      "రోమా సైనికులు ఆమెకు నలభై బంగారు నాణెములను చెల్లించవలెనని ఆజ్ఞాపించెను",
+      "నజరేతులో ఆమెకు కావలియుండుటకు డెబ్బైమంది యాజకులను నియమించెను",
+      "యూదయయంతటను నలభై దినముల బహిరంగ రోదనను విధించెను"
+    ],
+    "correctAnswer": "Said to His mother, 'Woman, behold your son!' and to the disciple, 'Behold your mother!' and from that hour he took her to his home",
+    "bibleReference": "John 19:26-27",
+    "explanation": "Even while dying for the world's sins, Jesus cared for His earthly mother, placing her into the lifelong familial custody of the apostle John.",
+    "explanationTelugu": "యేసు తన తల్లిని తాను ప్రేమించిన శిష్యుడును దగ్గర నిలుచుండుట చూచి-అమ్మా, యిదిగో నీ కుమారుడు అని తన తల్లితో చెప్పెను; తరువాత శిష్యుని చూచి-యిదిగో నీ తల్లి అని చెప్పెను. ఆ గడియనుండి ఆ శిష్యుడు ఆమెను తన యింట చేర్చుకొనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q46",
+    "order": 46,
+    "questionType": "single_choice",
+    "question": "In Acts 3:6, how did Peter and John care for the lame beggar at the Beautiful Gate of the temple?",
+    "questionTelugu": "అపొస్తలుల కార్యములు 3:6 లో శృంగారమను దేవాలయ ద్వారమునొద్ద కుంటిభిక్షకునికి పేతురు యోహానులు ఏ అద్భుత సంరక్షణ స్వస్థతను ఇచ్చిరి?",
+    "options": [
+      "Silver and gold I do not have, but what I do have I give you: In the name of Jesus Christ of Nazareth, rise up and walk",
+      "Gave him forty silver shekels from the temple treasury",
+      "Sent him into sixty days of quarantine outside Jerusalem",
+      "Offered him thirty loaves of barley bread"
+    ],
+    "optionsTelugu": [
+      "వెండిబంగారములు నాయొద్ద లేవు గాని నాకు కలిగినదే నీకిచ్చుచున్నాను; నజరేయుడైన యేసుక్రీస్తు నామమున నడువుము",
+      "దేవాలయ ఖజానానుండి నలభై వెండి షెకెళ్లను అతనికి ఇచ్చిరి",
+      "యెరూషలేము వెలుపల అరవై దినముల ఏకాంతవాసమునకు అతనిని పంపిరి",
+      "అతనికి ముప్పది యవల రొట్టెలను భిక్షగా సమర్పించిరి"
+    ],
+    "correctAnswer": "Silver and gold I do not have, but what I do have I give you: In the name of Jesus Christ of Nazareth, rise up and walk",
+    "bibleReference": "Acts 3:6",
+    "explanation": "Peter and John gave the lame man something far greater than money: total physical restoration and mobility in the powerful name of Jesus.",
+    "explanationTelugu": "అందుకు పేతురు-వెండిబంగారములు నాయొద్ద లేవు గాని నాకు కలిగినదే నీకిచ్చుచున్నాను; నజరేయుడైన యేసుక్రీస్తు నామమున నడువుమని చెప్పి, అతని కుడిచేయి పట్టుకొని లేవనెత్తెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q47",
+    "order": 47,
+    "questionType": "single_choice",
+    "question": "How did God honor the charitable care of Tabitha (Dorcas) through the apostle Peter in Acts 9:40-41?",
+    "questionTelugu": "అపొస్తలుల కార్యములు 9:40-41 లో విధవరాండ్రకు వస్త్రములు కుట్టిపెట్టిన దొర్కా దాతృత్వ సంరక్షణను దేవుడు పేతురు ద్వారా ఎలా ఘనపరిచెను?",
+    "options": [
+      "Peter knelt, prayed, and said 'Tabitha, arise!' and presented her alive to the saints and widows",
+      "Peter ordered forty days of funeral wailing in Joppa",
+      "Peter built seventy stone shrines in memory of Dorcas",
+      "Peter distributed her thirty garments to Roman soldiers"
+    ],
+    "optionsTelugu": [
+      "పేతురు మోకాళ్లూని ప్రార్థనచేసి-తబితా, లెమ్ము అనగా ఆమె కన్నులు తెరచెను; అతడు ఆమెను లేవనెత్తి పరిశుద్ధులను విధవరాండ్రను పిలిచి ఆమెను సజీవురాలిగా వారియెదుట నిలువబెట్టెను",
+      "యొప్పాలో నలభై దినముల అంత్యక్రియల రోదనను ఆజ్ఞాపించెను",
+      "దొర్కా జ్ఞాపకార్థము డెబ్బై రాతి సమాధులను కట్టించెను",
+      "ఆమె కుట్టిన ముప్పది వస్త్రములను రోమా సైనికులకు పంచిపెట్టెను"
+    ],
+    "correctAnswer": "Peter knelt, prayed, and said 'Tabitha, arise!' and presented her alive to the saints and widows",
+    "bibleReference": "Acts 9:40-41",
+    "explanation": "God raised the beloved philanthropist Tabitha from the dead through Peter's prayer, restoring her compassionate care to the weeping widows.",
+    "explanationTelugu": "పేతురు అందరిని వెలుపలికి పంపి, మోకాళ్లూని ప్రార్థనచేసి శవమువైపు తిరిగి-తబితా, లెమ్ము అని చెప్పెను; అప్పుడామె కన్నులు తెరచి పేతురును చూచి లేచి కూర్చుండెను. అతడు ఆమెకు చేయి యిచ్చి ఆమెను లేవనెత్తి... సజీవురాలిగా వారియెదుట నిలువబెట్టెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q48",
+    "order": 48,
+    "questionType": "single_choice",
+    "question": "What mutual care command is issued in Galatians 6:2 to fulfill Christ's law?",
+    "questionTelugu": "గలతీయులకు 6:2 లో క్రీస్తు ధర్మశాస్త్రమును నెరవేర్చుటకు ఏ పరస్పర సంరక్షణ ఆజ్ఞ ఇవ్వబడినది?",
+    "options": [
+      "Bear one another's burdens, and so fulfill the law of Christ",
+      "Impose forty days of penance upon struggling brothers",
+      "Avoid thirty brethren who suffer financial ruin",
+      "Carry forty weights of bronze to the temple"
+    ],
+    "optionsTelugu": [
+      "ఒకని భారములను ఒకడు భరించి, ఈలాగు క్రీస్తు నియమమును సంపూర్ణముగా నెరవేర్చుడి",
+      "శ్రమలలో ఉన్న సహోదరులపై నలభై దినముల కఠిన నియమములను మోపుడి",
+      "ఆర్థిక నష్టములో ఉన్న ముప్పదిమంది విశ్వాసులను దూరముగా ఉంచుడి",
+      "దేవాలయమునకు నలభై తలాంతుల ఇత్తడి బరువులను మోసుకొనిరండి"
+    ],
+    "correctAnswer": "Bear one another's burdens, and so fulfill the law of Christ",
+    "bibleReference": "Galatians 6:2",
+    "explanation": "Paul commands believers to shoulder one another's emotional, physical, and spiritual loads, thereby fulfilling Christ's law of love.",
+    "explanationTelugu": "ఒకని భారములను ఒకడు భరించి, ఈలాగు క్రీస్తు నియమమును సంపూర్ణముగా నెరవేర్చుడి.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q49",
+    "order": 49,
+    "questionType": "single_choice",
+    "question": "What piercing diagnostic question is asked in 1 John 3:17 regarding caring for a brother in need?",
+    "questionTelugu": "1 యోహాను 3:17 లో అక్కరలోనున్న సహోదరుని చూచి కనికరము చూపనివానిని గూర్చి అడిగిన సూటియైన ప్రశ్న ఏది?",
+    "options": [
+      "Whoever has this world's goods, and sees his brother in need, and shuts up his heart from him, how does the love of God abide in him?",
+      "Whoever gives forty pieces of silver to Caesar is righteous",
+      "Whoever builds sixty storehouses in Galilee fulfills the law",
+      "Whoever fasts thirty days replaces the need for charity"
+    ],
+    "optionsTelugu": [
+      "ఈ లోకపు జీవనసామగ్రి గలవాడైయుండి, తన సహోదరునికి లేమి కలుగుట చూచియు, అతనియెడల ఎంతమాత్రమును కనికరము చూపనివానియందు దేవుని ప్రేమ యేలాగు నిలుచును?",
+      "కైసరునకు నలభై వెండి నాణెములను ఇచ్చువాడే నీతిమంతుడు",
+      "గలీలయలో అరవై ధాన్యాగారములను కట్టువాడు ధర్మశాస్త్రమును నెరవేర్చును",
+      "ముప్పది దినములు ఉపవాసముండువాడు దానధర్మములతో పనిలేదు"
+    ],
+    "correctAnswer": "Whoever has this world's goods, and sees his brother in need, and shuts up his heart from him, how does the love of God abide in him?",
+    "bibleReference": "1 John 3:17",
+    "explanation": "John insists that true divine love cannot co-exist with a stingy heart that closes its wallet against a destitute Christian brother.",
+    "explanationTelugu": "ఈ లోకపు జీవనసామగ్రి గలవాడైయుండి, తన సహోదరునికి లేమి కలుగుట చూచియు, అతనియెడల ఎంతమాత్రమును కనికరము చూపనివానియందు దేవుని ప్రేమ యేలాగు నిలుచును?",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s1_q50",
+    "order": 50,
+    "questionType": "single_choice",
+    "question": "What ultimate consummation of divine pastoral care is promised in Revelation 21:4?",
+    "questionTelugu": "ప్రకటన 21:4 లో పరలోక నిత్యత్వములో దేవుడు తన ప్రజల కన్నీటి విషయములో చేయు ఆఖరి సంరక్షణ కార్యమేమి?",
+    "options": [
+      "God will wipe away every tear from their eyes; there shall be no more death, nor sorrow, nor crying. There shall be no more pain",
+      "He will establish forty iron fortresses in the new earth",
+      "He will collect sixty talents of gold tribute from nations",
+      "He will assign thirty years of labor in the celestial fields"
+    ],
+    "optionsTelugu": [
+      "ఆయన వారి కన్నుల ప్రతి భాష్పబిందువును తుడిచివేయును, ఇకమీదట మరణము ఉండదు, దుఃఖమైనను ఏడ్పైనను వేదనయైనను ఇకమీదట ఉండదు",
+      "నూతన భూమిపై నలభై ఇనుప కోటలను దేవుడు నిర్మించును",
+      "జాతులవద్దనుండి అరవై తలాంతుల బంగారు కప్పమును వసూలు చేయును",
+      "పరలోక పొలములలో ముప్పది సంవత్సరముల కాయకష్టమును విధించును"
+    ],
+    "correctAnswer": "God will wipe away every tear from their eyes; there shall be no more death, nor sorrow, nor crying. There shall be no more pain",
+    "bibleReference": "Revelation 21:4",
+    "explanation": "In the new creation, God personally wipes away every tear, banishing death, grief, crying, and pain forever.",
+    "explanationTelugu": "ఆయన వారి కన్నుల ప్రతి భాష్పబిందువును తుడిచివేయును, మరణము ఇకమీదట ఉండదు, దుఃఖమైనను ఏడ్పైనను వేదనయైనను ఇకమీదట ఉండదు; మొదటి సంగతులు గతించిపోయెను.",
+    "marks": 1
+  }
+];
+
+export const CARE_EASY_GROWTH: QuizQuestion[] = [
+  {
+    "id": "car_e_s2_q01",
+    "order": 1,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Exodus 22:21-24 on God's fierce care warning against mistreating widows and fatherless children?",
+    "questionTelugu": "నిర్గమకాండము 22:21-24 విధవరాండ్రను అనాథలను బాధింపకూడదనియు, వారి మొరను దేవుడు ఆలకించునను హెచ్చరిక గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"You shall not afflict any widow or fatherless child. If you afflict them in any way, and they cry at all to Me, I will surely hear their cry\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఏ విధవరాలినైనను దిక్కులేని పిల్లనైనను బాధపెట్టకూడదు; నీవు వారిని బాధపెట్టుటవలన వారు నాకు మొరపెట్టినయెడల నేను నిశ్చయముగా వారి మొరను వినెదను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"You shall not afflict any widow or fatherless child. If you afflict them in any way, and they cry at all to Me, I will surely hear their cry\"",
+    "bibleReference": "Exodus 22:22-23",
+    "explanation": "God stands as the active personal protector of the defenseless.",
+    "explanationTelugu": "దిక్కులేనివారిని బాధించువారికి దేవుడే స్వయముగా తీర్పు తీర్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q02",
+    "order": 2,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Leviticus 25:35 commanding care for a brother who has grown poor among you?",
+    "questionTelugu": "లేవీయకాండము 25:35 నీ సహోదరుడు దరిద్రుడైనయెడల వానికి సహాయముచేసి పోషింపవలెనను ఆజ్ఞ గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"If one of your brethren becomes poor, and falls into poverty among you, then you shall help him, like a stranger or a sojourner\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీ సహోదరుడు దరిద్రుడై నీయొద్ద నిలువలేకపోయినయెడల, పరదేశివలెను నివాసివలెను అతడు నీయొద్ద బ్రదుకునట్లు నీవు వానికి సహాయము చేయవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"If one of your brethren becomes poor, and falls into poverty among you, then you shall help him, like a stranger or a sojourner\"",
+    "bibleReference": "Leviticus 25:35",
+    "explanation": "Covenant brotherhood demands proactive financial and physical relief.",
+    "explanationTelugu": "బీదరికములో ఉన్న సహోదరునికి చేయూతనిచ్చి ఆదుకొను దైవిక ధర్మము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q03",
+    "order": 3,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Deuteronomy 15:7-8 commanding open-handed care for the poor brother?",
+    "questionTelugu": "ద్వితీయోపదేశకాండము 15:7-8 పేద సహోదరుని చూచి పిడికిలి బిగించక చేయి చాపి ఉదారముగా అప్పు ఇచ్చుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"You shall open your hand wide to him and willingly lend him sufficient for his need, whatever he needs\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వానియెడల నీ చెయ్యి విప్పి, వానికి కలిగిన కొదువనుబట్టి వానికి కావలసినదంతయు నిశ్చయముగా అప్పియ్యవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"You shall open your hand wide to him and willingly lend him sufficient for his need, whatever he needs\"",
+    "bibleReference": "Deuteronomy 15:8",
+    "explanation": "Generous care refuses to let hardhearted stinginess block relief.",
+    "explanationTelugu": "పేద సహోదరుని అక్కరలో కనికరముతో చేయి చాచి సహాయము చేయవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q04",
+    "order": 4,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Deuteronomy 24:19-21 leaving forgotten sheaves, olives, and grapes for the stranger, fatherless, and widow?",
+    "questionTelugu": "ద్వితీయోపదేశకాండము 24:19-21 చేనిలో మరచిపోయిన కంకులను ఒలీవ పండ్లను ద్రాక్షపండ్లను పరదేశులకు అనాథలకు విధవరాండ్రకు విడిచిపెట్టుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"When you reap your harvest in your field, and forget a sheaf... you shall not go back to get it; it shall be for the stranger, the fatherless, and the widow\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీ చేనిలో కోత కోయునప్పుడు చేనిలో ఒక మోపు మరచినయెడల, దాని తెచ్చుటకు తిరిగి వెళ్లకూడదు; నీ దేవుడైన యెహోవా నీ కార్యములన్నిటిలో నిన్ను ఆశీర్వదించునట్లు అది పరదేశికిని దిక్కులేనివానికిని విధవరాలికిని చెందవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"When you reap your harvest in your field, and forget a sheaf... you shall not go back to get it; it shall be for the stranger, the fatherless, and the widow\"",
+    "bibleReference": "Deuteronomy 24:19",
+    "explanation": "Institutionalizing systemic, dignified harvest welfare for the needy.",
+    "explanationTelugu": "పేదలు గౌరవముగా తిండి సంపాదించుకొనునట్లు ధర్మశాస్త్రములో ఏర్పాటుచేసిన దైవిక సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q05",
+    "order": 5,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding 1 Samuel 30:11-13 David's men caring for an abandoned Egyptian slave dying in a field?",
+    "questionTelugu": "1 సమూయేలు 30:11-13 పొలములో సొమ్మసిల్లిన ఐగుప్తీయుడైన దాసునికి ఆహారము నీళ్లు ఇచ్చి దావీదు సేవకులు బ్రదికించుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"They found an Egyptian in the field, and brought him to David; and they gave him bread and he ate, and they let him drink water... and his spirit revived\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారు పొలములో ఒక ఐగుప్తీయుని కనుగొని దావీదునొద్దకు అతనిని తోడుకొనివచ్చి, అతనికి భోజనము పెట్టగా అతడు తినెను, వారు అతనికి దాహమిచ్చిరి... అతడు తినిన తరువాత అతని ప్రాణము మరల వచ్చెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"They found an Egyptian in the field, and brought him to David; and they gave him bread and he ate, and they let him drink water... and his spirit revived\"",
+    "bibleReference": "1 Samuel 30:11-12",
+    "explanation": "Compassion to a starving slave unlocked vital military intelligence saving families.",
+    "explanationTelugu": "ఆపదలో ఉన్న దిక్కులేని దాసునికి చేసిన సంరక్షణ సమస్త కుటుంబాన్ని విడిపించుటకు దారితీసెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q06",
+    "order": 6,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding 2 Samuel 17:27-29 Barzillai, Shobi, and Machir bringing beds, basins, and food to weary David in the wilderness?",
+    "questionTelugu": "2 సమూయేలు 17:27-29 బర్జిల్లయి మరియు స్నేహితులు అరణ్యములో అలిసిన దావీదు సైన్యమునకు పరుపులు గిన్నెలు ఆహారము తెచ్చి ఆదరించుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Brought beds and basins, earthen vessels and wheat, barley and flour... for they said, 'The people are hungry and weary and thirsty in the wilderness'\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆ జనులు అరణ్యమందు ఆకలిగొని డస్సి దప్పిగొని యున్నారని చెప్పి, పరుపులను గిన్నెలను మంటి పాత్రలను గోధుమలను యవలను పిండిని వేయించిన ధాన్యమును... దావీదునకును అతనితోనున్న జనులకును భోజనము తెచ్చి ఇచ్చిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Brought beds and basins, earthen vessels and wheat, barley and flour... for they said, 'The people are hungry and weary and thirsty in the wilderness'\"",
+    "bibleReference": "2 Samuel 17:29",
+    "explanation": "Loyal, practical hospitality providing comfort to displaced refugees.",
+    "explanationTelugu": "శ్రమలో ఉన్న దావీదుకు వృద్ధుడైన బర్జిల్లయి చేసిన అద్భుతమైన ఆదరణ సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q07",
+    "order": 7,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding 1 Kings 18:4 Obadiah bravely hiding and feeding a hundred prophets of the Lord in caves?",
+    "questionTelugu": "1 రాజులు 18:4 యెజెబెలు ప్రవక్తలను చంపుచుండగా ఓబద్యా నూరుమంది ప్రవక్తలను గుహలలో దాచి అన్నపానములిచ్చి కాపాడుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"While Jezebel massacred the prophets of the Lord, Obadiah had taken one hundred prophets and hidden them, fifty to a cave, and fed them with bread and water\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"యెజెబెలు యెహోవా ప్రవక్తలను నిర్మూలము చేయుచుండగా ఓబద్యా నూరుమంది ప్రవక్తలను తీసికొని, ఒక గుహలో ఏబదేసి మందిగా దాచి, వారికి అన్నపానములిచ్చి పోషించెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"While Jezebel massacred the prophets of the Lord, Obadiah had taken one hundred prophets and hidden them, fifty to a cave, and fed them with bread and water\"",
+    "bibleReference": "1 Kings 18:4",
+    "explanation": "Heroic, sacrificial stewardship protecting God's servants at mortal risk.",
+    "explanationTelugu": "దుష్ట రాణి యెజెబెలుకు భయపడక ప్రాణము తెగించి ప్రవక్తలను పోషించిన ఓబద్యా భక్తి.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q08",
+    "order": 8,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding 2 Kings 4:38-41 Elisha purifying the poisonous stew to feed the sons of the prophets during famine?",
+    "questionTelugu": "2 రాజులు 4:38-41 కరువు కాలములో ప్రవక్తల శిష్యులకొరకు వండిన విషపు కూరలో పిండివేసి ఎలీషా దానిని బాగుచేయుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"So he said, 'Then bring some flour.' And he put it into the pot, and said, 'Pour it out, that they may eat.' And there was no harm in the pot\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అతడు-కొంచెము పిండి తెండని చెప్పి, దానిని ఆ కుండలో వేసి-జనులు తినునట్లు వడ్డించుడని చెప్పెను; అప్పుడు ఆ కుండలో ఏ విషమును లేకపోయెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"So he said, 'Then bring some flour.' And he put it into the pot, and said, 'Pour it out, that they may eat.' And there was no harm in the pot\"",
+    "bibleReference": "2 Kings 4:41",
+    "explanation": "Prophetic care ensuring that community members receive wholesome, life-sustaining food.",
+    "explanationTelugu": "ఆకలితో ఉన్న శిష్యులకొరకు విషపు కూరను పిండితో పవిత్రపరచిన దైవిక సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q09",
+    "order": 9,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding 2 Kings 4:42-44 Elisha multiplying twenty barley loaves to feed a hundred men with leftovers?",
+    "questionTelugu": "2 రాజులు 4:42-44 ఇరువది యవల రొట్టెలను నూరుమంది ఎదుట పెట్టి ఎలీషా తినిపించగా మిగిలిపోవుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"So he set it before them; and they ate and had some left over, according to the word of the Lord\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అతడు వారియెదుట దానిని పెట్టగా యెహోవా సెలవిచ్చిన మాటచొప్పున వారు తిని మిగిల్చిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"So he set it before them; and they ate and had some left over, according to the word of the Lord\"",
+    "bibleReference": "2 Kings 4:44",
+    "explanation": "Miraculous multiplication providing for the community's nutritional sustenance.",
+    "explanationTelugu": "దేవుని వాక్యముద్వారా అల్పమైన ఆహారమును నూరుమందికి సమృద్ధిగా విస్తరింపజేసిన సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q10",
+    "order": 10,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Job 29:12-16 Job remembering how he delivered the poor, the fatherless, and made the widow's heart sing?",
+    "questionTelugu": "యోబు 29:12-16 మొరపెట్టిన పేదలను దిక్కులేని పిల్లలను విడిపించి గ్రుడ్డివారికి కన్నులుగాను కుంటివారికి కాళ్లుగాను నిలిచిన యోబు గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Because I delivered the poor who cried out, the fatherless and the one who had no helper... I was eyes to the blind, and I was feet to the lame\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఏలయనగా మొరపెట్టిన దీనులను, దిక్కులేని తండ్రిలేనివారిని నేను రక్షించితిని... గ్రుడ్డివారికి కన్నులుగాను కుంటివారికి కాళ్లుగాను ఉంటిని\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Because I delivered the poor who cried out, the fatherless and the one who had no helper... I was eyes to the blind, and I was feet to the lame\"",
+    "bibleReference": "Job 29:12,15",
+    "explanation": "Righteous patriarchal leadership measured by protective advocacy for outcasts.",
+    "explanationTelugu": "పేదలకు అనాథలకు అండగా నిలిచి వారి హక్కులను కాపాడిన యోబు యొక్క ఆదర్శవంతమైన సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q11",
+    "order": 11,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Job 31:16-20 Job's covenant of personal charity warming the cold poor with the fleece of his sheep?",
+    "questionTelugu": "యోబు 31:16-20 పేదలకు తన గొర్రెల బొచ్చుతో వెచ్చదనం కల్పించి అనాథలతో తన ఆహారమును పంచుకొనిన యోబు గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"If I have seen anyone perish for lack of clothing... and if he were not warmed with the fleece of my sheep\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బట్టలేక నశించువానినైనను... నేను చూచినయెడల, నా గొర్రెల బొచ్చుతో వానికి వెచ్చదనము కలుగనందున వాడు నన్ను దీవించనియెడల...\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"If I have seen anyone perish for lack of clothing... and if he were not warmed with the fleece of my sheep\"",
+    "bibleReference": "Job 31:19-20",
+    "explanation": "True godliness clothes the naked and feeds the destitute from personal substance.",
+    "explanationTelugu": "పేదవారి చలిబాధను తీర్చి స్వయముగా అన్నవస్త్రములిచ్చిన యోబు దయార్ద్ర హృదయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q12",
+    "order": 12,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Psalm 41:1 pronouncing: 'Blessed is he who considers the poor; the Lord will deliver him in time of trouble'?",
+    "questionTelugu": "కీర్తన 41:1 'బీదలను పరామర్శించువాడు ధన్యుడు, ఆపత్కాలమందు యెహోవా వానిని తప్పించును' గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Blessed is he who considers the poor; the Lord will deliver him in time of trouble. The Lord will preserve him and keep him alive\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బీదలను పరామర్శించువాడు ధన్యుడు; ఆపత్కాలమందు యెహోవా వానిని తప్పించును. యెహోవా వానిని కాపాడి బ్రదికించును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Blessed is he who considers the poor; the Lord will deliver him in time of trouble. The Lord will preserve him and keep him alive\"",
+    "bibleReference": "Psalm 41:1",
+    "explanation": "Thoughtful, attentive consideration of the needy brings divine reciprocal deliverance.",
+    "explanationTelugu": "పేదలను దయతో కనిపెట్టి చూచువానికి ఆపత్కాలములో దేవుడే స్వయముగా విడుదలను ఇచ్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q13",
+    "order": 13,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Proverbs 14:31 on he who oppresses the poor reproaching his Maker, but he who honors Him having mercy on the needy?",
+    "questionTelugu": "సామెతలు 14:31 దరిద్రుని బాధింపక బీదలను కనికరించువాడు తన సృష్టికర్తను ఘనపరచును గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"He who oppresses the poor reproaches his Maker, but he who honors Him has mercy on the needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దరిద్రుని బాధించువాడు వాని సృష్టికర్తను నిందించువాడు; బీదలను కనికరించువాడు ఆయనను ఘనపరచువాడు\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"He who oppresses the poor reproaches his Maker, but he who honors Him has mercy on the needy\"",
+    "bibleReference": "Proverbs 14:31",
+    "explanation": "Social care for the poor is direct theological worship of their Creator.",
+    "explanationTelugu": "పేదవారిని ఆదరించుట సాక్షాత్తు వారి సృష్టికర్తయైన దేవుని ఘనపరచుటతో సమానము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q14",
+    "order": 14,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Proverbs 19:17 on he who has pity on the poor lending to the Lord, and He will pay back what he has given?",
+    "questionTelugu": "సామెతలు 19:17 బీదలను కనికరించువాడు యెహోవాకు అప్పిచ్చువాడు, ఆయన వానికి ప్రతిఫలమిచ్చును గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"He who has pity on the poor lends to the Lord, and He will pay back what he has given\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బీదలను కనికరించువాడు యెహోవాకు అప్పిచ్చువాడు; వాని ఉపకారమునకు ఆయన ప్రతిఫలమిచ్చును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"He who has pity on the poor lends to the Lord, and He will pay back what he has given\"",
+    "bibleReference": "Proverbs 19:17",
+    "explanation": "God sovereignly cosigns the debt of the impoverished, guaranteeing divine reimbursement.",
+    "explanationTelugu": "పేదలకు చేయు సహాయము దేవునికి ఇచ్చిన అప్పువంటిది; దేవుడే స్వయముగా దానికి ప్రతిఫలము నిచ్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q15",
+    "order": 15,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Proverbs 28:27 on he who gives to the poor not lacking, but he who hides his eyes having many curses?",
+    "questionTelugu": "సామెతలు 28:27 బీదలకిచ్చువానికి ఏమియు కొదువయుండదు, వారినుండి కన్నులు తిప్పుకొనువానికి శాపములు వచ్చును గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"He who gives to the poor will not lack, but he who hides his eyes will have many curses\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బీదలకిచ్చువానికి ఏమియు కొదువరాదు; వారిని చూడక తన కన్నులను మూసికొనువానికి శాపములు విస్తారముగా కలుగును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"He who gives to the poor will not lack, but he who hides his eyes will have many curses\"",
+    "bibleReference": "Proverbs 28:27",
+    "explanation": "Generous provision protects against personal lack, while turning a blind eye invites judgment.",
+    "explanationTelugu": "బీదలకు సహాయము చేయువారి గృహములో దైవిక సమృద్ధి నిరంతరము నిలుచును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q16",
+    "order": 16,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Proverbs 31:8-9 commanding kings to open their mouth for the speechless and plead the cause of the poor?",
+    "questionTelugu": "సామెతలు 31:8-9 నోరులేని మూగవారి పక్షమున న్యాయము తీర్చి పేదలకొరకు వాదించుమని రాజులకు ఆజ్ఞ గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Open your mouth for the speechless, in the cause of all who are appointed to die. Open your mouth, judge righteously, and plead the cause of the poor and needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దిక్కులేనివారందరి పక్షమున మూగవానికొరకు నీ నోరు తెరువుము; న్యాయముగా తీర్పుతీర్చుటకు నీ నోరు తెరువుము, దీనులయొక్కయు దరిద్రులయొక్కయు పక్షమున వ్యాజ్యెమాడుము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Open your mouth for the speechless, in the cause of all who are appointed to die. Open your mouth, judge righteously, and plead the cause of the poor and needy\"",
+    "bibleReference": "Proverbs 31:8-9",
+    "explanation": "Care requires active public advocacy for the disenfranchised and voiceless.",
+    "explanationTelugu": "న్యాయము దక్కని పేదలకొరకు నాయకులు ధైర్యముగా గళమెత్తి న్యాయము జరిగించవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q17",
+    "order": 17,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Proverbs 31:20 the virtuous woman opening her arms to the poor and extending hands to the needy?",
+    "questionTelugu": "సామెతలు 31:20 గుణవతియైన స్త్రీ దీనులకు తన చేయి చాచి దరిద్రులను ఆదరించుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"She extends her hand to the poor, yes, she reaches out her hands to the needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆమె దీనులకు తన చెయ్యి చాపును, దరిద్రులకు తన చేతులు చాపించును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"She extends her hand to the poor, yes, she reaches out her hands to the needy\"",
+    "bibleReference": "Proverbs 31:20",
+    "explanation": "Domestic industry and diligence enable joyful, generous philanthropic outreach.",
+    "explanationTelugu": "పరిశ్రమగల స్త్రీ తన సొంత సంపాదనతో పేదవారిని ఆదరించి పోషించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q18",
+    "order": 18,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Isaiah 58:6-7 the true fast: loosening bonds, sharing bread with the hungry, bringing homeless into house?",
+    "questionTelugu": "యెషయా 58:6-7 ఆకలిగొన్నవారికి నీ ఆహారము పెట్టుటయు, దిక్కులేని బీదలను నీ యింటికి చేర్చుకొనుటయు నిజమైన ఉపవాసము గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Is it not to share your bread with the hungry, and that you bring to your house the poor who are cast out; when you see the naked, that you cover him?\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీ ఆహారము ఆకలిగొన్నవారికి పెట్టుటయు, దిక్కులేని బీదలను నీ యింట చేర్చుకొనుటయు, వస్త్రహీనుడు నీకు కనబడినప్పుడు వానికి వస్త్రములిచ్చుటయు... ఇదియే గదా నాకు ఇష్టమైన ఉపవాసము?\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Is it not to share your bread with the hungry, and that you bring to your house the poor who are cast out; when you see the naked, that you cover him?\"",
+    "bibleReference": "Isaiah 58:7",
+    "explanation": "Authentic spiritual fasting is measured by direct material care for destitute human beings.",
+    "explanationTelugu": "ఆహారము మానివేయుట మాత్రమే కాక ఆకలిగొన్నవారికి అన్నంపెట్టుటయే నిజమైన దైవిక ఉపవాసము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q19",
+    "order": 19,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Ezekiel 16:49 Sodom's iniquity: pride, fullness of food, and abundance of idleness, neither strengthening the hand of the poor?",
+    "questionTelugu": "యెహెజ్కేలు 16:49 సొదొమ దోషము: గర్వము, ఆహార సమృద్ధి, బద్ధకము, పేదలను దరిద్రులను బలపరచకపోవుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Look, this was the iniquity of your sister Sodom: She and her daughter had pride, fullness of food, and abundance of idleness; neither did she strengthen the hand of the poor and needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఇదిగో నీ సహోదరియైన సొదొమ దోషమేదనగా, ఆమెయు ఆమె కుమార్తెలును గర్వమును ఆహార సమృద్ధియు నిర్విచారమైన సుఖమును కలిగియుండియు, దీనులను దరిద్రులను ఆదరింపకపోయిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Look, this was the iniquity of your sister Sodom: She and her daughter had pride, fullness of food, and abundance of idleness; neither did she strengthen the hand of the poor and needy\"",
+    "bibleReference": "Ezekiel 16:49",
+    "explanation": "Callous indifference to poverty is denounced as the foundational sin of Sodom.",
+    "explanationTelugu": "సమృద్ధి ఉన్నప్పుడు పేదలను ఆదుకోకుండా నిర్లక్ష్యము చేయుట దేవుని తీర్పును రప్పించు పాపము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q20",
+    "order": 20,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Ezekiel 34:2-4 rebuking the selfish shepherds of Israel who fed themselves and failed to care for the sick or bound the broken?",
+    "questionTelugu": "యెహెజ్కేలు 34:2-4 బలహీనమైనవాటిని బలపరచక, రోగము గలవాటిని స్వస్థపరచక తమ్మునుతాము మేపుకొను కాపరులను గద్దించుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"The weak you have not strengthened, nor have you healed the sick, nor bound up the broken, nor brought back what was driven away... but with force and cruelty you have ruled them\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బలహీనమైనవాటిని మీరు బలపరచలేదు, రోగముగలవాటిని మీరు స్వస్థపరచలేదు, గాయపడినవాటిని మీరు కట్టలేదు... బలాత్కారముతోను కఠినత్వముతోను మీరు వాటిని ఏలితిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"The weak you have not strengthened, nor have you healed the sick, nor bound up the broken, nor brought back what was driven away... but with force and cruelty you have ruled them\"",
+    "bibleReference": "Ezekiel 34:4",
+    "explanation": "Severe prophetic condemnation of self-serving leaders who neglect the care of the flock.",
+    "explanationTelugu": "సంఘ కాపరులు తమ స్వార్థము చూచుకొనక బలహీనులను రోగులను శ్రద్ధతో పరామర్శించవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q21",
+    "order": 21,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Matthew 25:35-36 'For I was hungry and you gave Me food; I was thirsty and you gave Me drink; I was a stranger and you took Me in'?",
+    "questionTelugu": "మత్తయి 25:35-36 'నేను ఆకలిగొంటిని నాకు భోజనము పెట్టితిరి, దప్పిగొంటిని దాహమిచ్చితిరి, పరదేశినై యుంటిని నన్ను చేర్చుకొంటిరి' గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"I was naked and you clothed Me; I was sick and you visited Me; I was in prison and you came to Me\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వస్త్రహీనుడనై యుంటిని నాకు బట్టలిచ్చితిరి, రోగినై యుంటిని నన్ను చూడవచ్చితిరి, చెరసాలలో ఉంటిని నాయొద్దకు వచ్చితిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"I was naked and you clothed Me; I was sick and you visited Me; I was in prison and you came to Me\"",
+    "bibleReference": "Matthew 25:35-36",
+    "explanation": "Jesus equates hands-on practical care for the suffering directly with serving Him.",
+    "explanationTelugu": "ఆపదలో ఉన్నవారికి చేయు ఉపచారము సాక్షాత్తు యేసుక్రీస్తు ప్రభువునకే చేసినట్లు లెక్క.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q22",
+    "order": 22,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Matthew 25:40 the King answering: 'Inasmuch as you did it to one of the least of these My brethren, you did it to Me'?",
+    "questionTelugu": "మత్తయి 25:40 రాజు పలుకును: 'మిక్కిలి అల్పులైన యీ నా సహోదరులలో ఒకనికి మీరు చేసితిరి గనుక నాకు చేసితిరి' గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"And the King will answer and say to them, 'Assuredly, I say to you, inasmuch as you did it to one of the least of these My brethren, you did it to Me'\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అందుకు రాజు-మిక్కిలి అల్పులైన యీ నా సహోదరులలో ఒకనికి మీరు చేసితిరి గనుక నాకు చేసితిరని నిశ్చయముగా మీతో చెప్పుచున్నానని వారితో చెప్పును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"And the King will answer and say to them, 'Assuredly, I say to you, inasmuch as you did it to one of the least of these My brethren, you did it to Me'\"",
+    "bibleReference": "Matthew 25:40",
+    "explanation": "Christ permanently identifies Himself with the poorest, weakest, and most vulnerable.",
+    "explanationTelugu": "కనిష్ట సహోదరునికి చేసిన చిన్న సహాయమును సైతం ప్రభువు తనకే చేసిన సేవగా అంగీకరించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q23",
+    "order": 23,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Mark 9:41 on giving a cup of water to drink in Christ's name not losing its reward?",
+    "questionTelugu": "మార్కు 9:41 మీరు క్రీస్తువారని నా నామమున గిన్నెడు నీళ్లు త్రాగనిచ్చువాడు తన ఫలము పోగొట్టుకొనడు గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"For whoever gives you a cup of water to drink in My name, because you belong to Christ, assuredly, I say to you, he will by no means lose his reward\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మీరు క్రీస్తువారని నా నామమున మీకు గిన్నెడు నీళ్లు త్రాగనిచ్చువాడు తన ఫలము పోగొట్టుకొనడని నిశ్చయముగా మీతో చెప్పుచున్నాను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"For whoever gives you a cup of water to drink in My name, because you belong to Christ, assuredly, I say to you, he will by no means lose his reward\"",
+    "bibleReference": "Mark 9:41",
+    "explanation": "Even the smallest act of physical care offered for Christ's sake earns eternal recompense.",
+    "explanationTelugu": "క్రీస్తు నామమున దాహమునకు గిన్నెడు నీళ్లిచ్చినను దానికి పరలోకమందు గొప్ప ప్రతిఫలముండును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q24",
+    "order": 24,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Luke 14:12-14 Jesus advising to invite the poor, crippled, lame, and blind to banquets who cannot repay you?",
+    "questionTelugu": "లూకా 14:12-14 నీవు విందు చేయునప్పుడు పేదలను అంగహీనులను కుంటివారిని గ్రుడ్డివారిని పిలువుము; వారు నీకు ప్రత్యుపకారము చేయలేరు గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"When you give a feast, invite the poor, the maimed, the lame, the blind. And you will be blessed, because they cannot repay you\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీవు విందు చేయునప్పుడు పేదలను అంగహీనులను కుంటివారిని గ్రుడ్డివారిని పిలువుము; వారు నీకు ప్రత్యుపకారము చేయనేరరు గనుక నీవు ధన్యుడవుదువు; నీతిమంతుల పునరుత్థానమందు నీకు ప్రతిఫలము కలుగును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"When you give a feast, invite the poor, the maimed, the lame, the blind. And you will be blessed, because they cannot repay you\"",
+    "bibleReference": "Luke 14:13-14",
+    "explanation": "Kingdom hospitality deliberately seeks those entirely incapable of social reciprocity.",
+    "explanationTelugu": "ప్రత్యుపకారము చేయలేని నిస్సహాయులకు భోజనము పెట్టుట పునరుత్థాన దినమున నిత్య బహుమానము తెచ్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q25",
+    "order": 25,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Acts 2:44-45 early believers having all things in common, selling possessions to divide to all as anyone had need?",
+    "questionTelugu": "అపొస్తలుల కార్యములు 2:44-45 ఆదిమ సంఘ విశ్వాసులు సమస్తమును ఉమ్మడిగా ఉంచుకొని, ప్రతివాని అక్కరకొలది పంచిపెట్టుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Now all who believed were together, and had all things in common, and sold their possessions and goods, and divided them among all, as anyone had need\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"విశ్వసించినవారందరును ఏకముగా ఉండి, తమకు కలిగినదంతయు ఉమ్మడిగా ఉంచుకొనిరి; వారు తమ చరస్థిరాస్తులను అమ్మి, అందరికిని వారి వారి అక్కరకొలది పంచిపెట్టిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Now all who believed were together, and had all things in common, and sold their possessions and goods, and divided them among all, as anyone had need\"",
+    "bibleReference": "Acts 2:44-45",
+    "explanation": "The explosive generosity of the early church eradicating poverty in their midst.",
+    "explanationTelugu": "పరిశుద్ధాత్మ కుమ్మరింపుతో ప్రారంభమైన సంఘములో ఎవరికిని ఏ కొదువ లేకుండ చూచుకొన్న పరస్పర సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q26",
+    "order": 26,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Acts 4:34-35 testifying: 'Nor was there anyone among them who lacked'?",
+    "questionTelugu": "అపొస్తలుల కార్యములు 4:34-35 'వారిలో ఎవనికిని ఏ కొదువయు లేకపోయెను' అను ఆశ్చర్యకరమైన సాక్ష్యము గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Nor was there anyone among them who lacked; for all who were possessors of lands or houses sold them, and brought the proceeds... and distributed to each as anyone had need\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారిలో ఎవనికిని ఏ కొదువయు లేకపోయెను; ఏలయనగా భూములు లేక యిండ్లు గలవారందరును వాటిని అమ్మి, అమ్మినవాటి వెల తెచ్చి అపొస్తలుల పాదములయొద్ద పెట్టుచుండిరి; వారు ప్రతివానికి వాని వాని అక్కరకొలది పంచిపెట్టిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Nor was there anyone among them who lacked; for all who were possessors of lands or houses sold them, and brought the proceeds... and distributed to each as anyone had need\"",
+    "bibleReference": "Acts 4:34-35",
+    "explanation": "Selfless community care systematically eliminated destitution from the fellowship.",
+    "explanationTelugu": "విశ్వాసుల త్యాగపూరిత సహకారము వలన ఆదిమ సంఘములో ఏ ఒక్కరును దరిద్రతలో మిగిలిపోలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q27",
+    "order": 27,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Acts 6:1-4 appointing seven deacons full of the Spirit to care for Hellenistic widows in the daily distribution?",
+    "questionTelugu": "అపొస్తలుల కార్యములు 6:1-4 అనుదిన విచారణలో గ్రీకు భాష మాట్లాడు విధవరాండ్ర సంరక్షణకొరకు ఆత్మపూర్ణులైన ఏడుగురు సేవకులను నియమించుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Therefore, brethren, seek out from among you seven men of good reputation, full of the Holy Spirit and wisdom, whom we may appoint over this business\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"సహోదరులారా, ఆత్మతోను జ్ఞానముతోను నిండుకొని మంచిపేరు పొందిన ఏడుగురు మనుష్యులను మీలో వెదకి చూడుడి; మేము వారిని ఈ పనికి నియమింతుము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Therefore, brethren, seek out from among you seven men of good reputation, full of the Holy Spirit and wisdom, whom we may appoint over this business\"",
+    "bibleReference": "Acts 6:3",
+    "explanation": "Institutionalizing organized, Spirit-led social care alongside Word ministry.",
+    "explanationTelugu": "సంఘములో విధవరాండ్ర అనుదిన పోషణ కొరకు దైవజనుల చేతులమీదుగా ఏర్పాటుచేసిన డీకన్ పరిచర్య.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q28",
+    "order": 28,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Acts 9:36-39 Tabitha (Dorcas) full of good works and charitable deeds, making tunics and garments for widows?",
+    "questionTelugu": "అపొస్తలుల కార్యములు 9:36-39 తబితా సత్కార్యములను ధర్మకార్యములను విస్తారముగా చేయుచు విధవరాండ్రకు అంగీలను వస్త్రములను కుట్టి ఆదరించుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"This woman was full of good works and charitable deeds which she did... and all the widows stood by him weeping, showing the tunics and garments which Dorcas had made\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఈమె సత్కార్యములను ధర్మకార్యములను విస్తారముగా చేసియుండెను... విధవరాండ్రందరును ఏడ్చుచు, దొర్కా తమతోకూడ ఉన్నప్పుడు కుట్టిన అంగీలను వస్త్రములను చూపిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"This woman was full of good works and charitable deeds which she did... and all the widows stood by him weeping, showing the tunics and garments which Dorcas had made\"",
+    "bibleReference": "Acts 9:36,39",
+    "explanation": "Practical sewing and clothing of impoverished widows leaving a legacy of holy love.",
+    "explanationTelugu": "విధవరాండ్రకు వస్త్రములు కుట్టిపెట్టి క్రీస్తు ప్రేమను చేతలలో చూపిన దొర్కా యొక్క ధన్య పరిచర్య.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q29",
+    "order": 29,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Acts 11:27-30 the church of Antioch sending relief to brethren in Judea during the great famine?",
+    "questionTelugu": "అపొస్తలుల కార్యములు 11:27-30 కరువు వచ్చినప్పుడు అంతియొకయ సంఘము యూదయలోని సహోదరులకొరకు ఉపశమన ధనమును పంపుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Then the disciples, each according to his ability, determined to send relief to the brethren dwelling in Judea\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అప్పుడు శిష్యులలో ప్రతివాడును తన తన శక్తికొలది యూదయయందు కాపురమున్న సహోదరుల కొరకు సహాయము పంపవలెనని నిర్ణయించుకొనిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Then the disciples, each according to his ability, determined to send relief to the brethren dwelling in Judea\"",
+    "bibleReference": "Acts 11:29",
+    "explanation": "Trans-regional disaster relief binding Gentile and Jewish believers into loving solidarity.",
+    "explanationTelugu": "కరువులో ఉన్న ఇతర ప్రాంత సహోదరులకు అంతియొకయ విశ్వాసులు ఉదారముగా పంపిన కరువు సహాయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q30",
+    "order": 30,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Acts 20:35 Paul charging the Ephesian elders: 'You must support the weak... It is more blessed to give than to receive'?",
+    "questionTelugu": "అపొస్తలుల కార్యములు 20:35 పౌలు ఎఫెసు పెద్దలకు ఆజ్ఞ: 'బలహీనులను ఆదరింపవలెను, పుచ్చుకొనుటకంటె ఇచ్చుట ధన్యము' గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"I have shown you in every way, by laboring like this, that you must support the weak. And remember the words of the Lord Jesus, that He said, 'It is more blessed to give than to receive'\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మీరును ఈలాగు శ్రమపడి బలహీనులను ఆదరింపవలెననియు, పుచ్చుకొనుటకంటె ఇచ్చుట ధన్యమని ప్రభువైన యేసు చెప్పిన మాటలను జ్ఞాపకము చేసికొనవలెననియు... మీకు చూపితిని\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"I have shown you in every way, by laboring like this, that you must support the weak. And remember the words of the Lord Jesus, that He said, 'It is more blessed to give than to receive'\"",
+    "bibleReference": "Acts 20:35",
+    "explanation": "Pastoral leadership prioritizes manual labor and financial sacrifice to support the weak.",
+    "explanationTelugu": "స్వయముగా శ్రమపడి బలహీనులను ఆదుకొనుటయే క్రైస్తవ పరిచర్యకు పరమోన్నత మాదిరి.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q31",
+    "order": 31,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Acts 28:1-2 the islanders of Malta showing unusual kindness, kindling a fire for shipwrecked Paul and travelers?",
+    "questionTelugu": "అపొస్తలుల కార్యములు 28:1-2 ఓడ బద్దలైనప్పుడు మెలితే ద్వీపవాసులు అసాధారణమైన దయ చూపించి చలికి అగ్ని రాజేసి ఆదరించుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"And the natives showed us unusual kindness; for they kindled a fire and made us all welcome, because of the rain that had fallen and because of the cold\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆ ద్వీపవాసులు మాకు చూపిన దయ ఇంతంత కాదు; ఏలయనగా అప్పుడు కురియుచున్న వర్షమునకును చలికిని వారు నిప్పు రాజేసి మమ్మునందరిని చేర్చుకొనిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"And the natives showed us unusual kindness; for they kindled a fire and made us all welcome, because of the rain that had fallen and because of the cold\"",
+    "bibleReference": "Acts 28:2",
+    "explanation": "Human hospitality from pagans providing life-saving warmth to frozen survivors.",
+    "explanationTelugu": "తీవ్రమైన చలిలో వర్షములో తడిసిన బాటసారులకు అగ్నిని రాజేసి సాంత్వన చేకూర్చిన ద్వీపవాసుల సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q32",
+    "order": 32,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Romans 12:13 instructing believers to distribute to the needs of the saints, given to hospitality?",
+    "questionTelugu": "రోమీయులకు 12:13 పరిశుద్ధుల అవసరములలో పాలుపంచుకొనుచు, అతిథిసత్కారము చేయుటకు ఆసక్తి చూపుడి గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Distributing to the needs of the saints, given to hospitality\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"పరిశుద్ధుల అవసరములలో పాలుపంచుకొనుచు, అతిథిసత్కారము చేయుటకు ఆసక్తి కలిగియుండుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Distributing to the needs of the saints, given to hospitality\"",
+    "bibleReference": "Romans 12:13",
+    "explanation": "Eager, joyful sharing of material wealth and opening of homes to travelers.",
+    "explanationTelugu": "తోటి విశ్వాసుల కొదువలను తీర్చుటలోను ఇండ్లలో అతిథులను చేర్చుకొనుటలోను ముందంజ వేయవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q33",
+    "order": 33,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Romans 15:25-27 on Macedonia and Achaia pleased to make a contribution for the poor saints in Jerusalem?",
+    "questionTelugu": "రోమీయులకు 15:25-27 యెరూషలేములోని పేద పరిశుద్ధులకొరకు మాసిదోనియ మరియు అకయ వారు సంతోషముగా చందా చేయుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"For it pleased those from Macedonia and Achaia to make a certain contribution for the poor among the saints who are in Jerusalem\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"యెరూషలేములోని పరిశుద్ధులలో ఉన్న బీదలకొరకు కొంత చందా చేయుటకు మాసిదోనియవారును అకయవారును ఇష్టపడిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"For it pleased those from Macedonia and Achaia to make a certain contribution for the poor among the saints who are in Jerusalem\"",
+    "bibleReference": "Romans 15:26",
+    "explanation": "Financial reciprocity: sharing material blessings with those who brought spiritual gospel riches.",
+    "explanationTelugu": "ఆత్మీయ మేళ్లను పొందిన అన్యజనులు యెరూషలేము పేదలకు భౌతిక ధనసహాయము చేయుట దైవిక బాధ్యత.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q34",
+    "order": 34,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding 1 Corinthians 16:1-2 on the collection for the saints, laying aside money on the first day of every week?",
+    "questionTelugu": "1 కొరింథీయులకు 16:1-2 ప్రతి ఆదివారమున తన సంపాదనకొలది కొంత ధనమును పేదల సహాయముకొరకు తీసియుంచుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"On the first day of the week let each one of you lay something aside, storing up as he may prosper\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నేను వచ్చినప్పుడు చందా కూర్చవలసి రాకుండునట్లు, ప్రతి ఆదివారమున మీలో ప్రతివాడును తన సంపాదనకొలది కొంత ధనమును తనయొద్ద నిలువజేయవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"On the first day of the week let each one of you lay something aside, storing up as he may prosper\"",
+    "bibleReference": "1 Corinthians 16:2",
+    "explanation": "Systematic, disciplined weekly giving for relief of impoverished believers.",
+    "explanationTelugu": "క్రమశిక్షణతో కూడిన ప్రతివారపు అర్పణలద్వారా పేద విశ్వాసుల అవసరతలను తీర్చు ఏర్పాటు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q35",
+    "order": 35,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding 2 Corinthians 8:1-4 the Macedonian churches pleading for the privilege of sharing in the ministry to the saints?",
+    "questionTelugu": "2 కొరింథీయులకు 8:1-4 మాసిదోనియ సంఘములు గొప్ప శ్రమలోను పేదరికములోను ఉన్నను ఉదారముగా సహాయము చేయుటకు బతిమాలుకొనుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"For I bear witness that according to their ability, yes, and beyond their ability, they were freely willing, imploring us with much urgency\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారు తమ శక్తికొలదియే గాక శక్తికి మించియు తమంతట తామే యిచ్చిరని సాక్ష్యమిచ్చుచున్నాను; పరిశుద్ధులకొరకైన పరిచర్యయందు పాలుపొందు కృపను మాకిమ్మని మిక్కిలిగా బతిమాలుకొనిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"For I bear witness that according to their ability, yes, and beyond their ability, they were freely willing, imploring us with much urgency\"",
+    "bibleReference": "2 Corinthians 8:3-4",
+    "explanation": "Radical, sacrificial giving overflowing out of severe trial and deep poverty.",
+    "explanationTelugu": "తీవ్రమైన కష్టములలో ఉన్నను ఇతరులకు సహాయము చేయు ఆధిక్యత కొరకు వేడుకొనిన మాసిదోనియ సంఘ ఆదర్శము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q36",
+    "order": 36,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding 2 Corinthians 9:6-7 on sowing bountifully and giving cheerily, for God loves a cheerful giver?",
+    "questionTelugu": "2 కొరింథీయులకు 9:6-7 సమృద్ధిగా విత్తువాడు సమృద్ధిగా కోయును; సంతోషముగా ఇచ్చువానిని దేవుడు ప్రేమించును గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"So let each one give as he purposes in his heart, not grudgingly or of necessity; for God loves a cheerful giver\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"సణుగుకొనకయు బలవంతముగా కాకయు ప్రతివాడును తన హృదయములో నిశ్చయించుకొనిన ప్రకారము ఇయ్యవలెను; దేవుడు ఉత్సాహముగా ఇచ్చువానిని ప్రేమించును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"So let each one give as he purposes in his heart, not grudgingly or of necessity; for God loves a cheerful giver\"",
+    "bibleReference": "2 Corinthians 9:7",
+    "explanation": "Grace transforms reluctant obligation into spontaneous, joyous generosity.",
+    "explanationTelugu": "విశ్వాసి చిరునవ్వుతో సంతోషముగా బీదలకు ఇచ్చునప్పుడు దేవుని ఆనందము వారిపై కుమ్మరింపబడును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q37",
+    "order": 37,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Galatians 2:10 the Jerusalem apostles urging Paul and Barnabas: 'Remember the poor, the very thing which I was eager to do'?",
+    "questionTelugu": "గలతీయులకు 2:10 యెరూషలేము అపొస్తలుల కోరిక: 'బీదలను జ్ఞాపకము చేసికొనుడి; ఆలాగు చేయుటకు నేనే ఆతురపడితిని' గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"They desired only that we should remember the poor, the very thing which I also was eager to do\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మేము బీదలను జ్ఞాపకము చేసికొనవలెనని మాత్రమే వారు కోరిరి; ఆలాగు చేయుటకు నేనును ఆతురపడితిని\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"They desired only that we should remember the poor, the very thing which I also was eager to do\"",
+    "bibleReference": "Galatians 2:10",
+    "explanation": "Apostolic consensus: gospel proclamation is inseparable from constant care for the impoverished.",
+    "explanationTelugu": "సువార్త సత్యమును కాపాడుటతోపాటు బీదలను ఆదుకొనుట అపొస్తలులందరి ఏకగ్రీవ నిర్ణయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q38",
+    "order": 38,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Galatians 6:2 commanding: 'Bear one another's burdens, and so fulfill the law of Christ'?",
+    "questionTelugu": "గలతీయులకు 6:2 'ఒకని భారములను ఒకడు భరించి, ఈలాగు క్రీస్తు నియమమును సంపూర్ణముగా నెరవేర్చుడి' గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Bear one another's burdens, and so fulfill the law of Christ\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఒకని భారములను ఒకడు భరించి, ఈలాగు క్రీస్తు నియమమును సంపూర్ణముగా నెరవేర్చుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Bear one another's burdens, and so fulfill the law of Christ\"",
+    "bibleReference": "Galatians 6:2",
+    "explanation": "Empathic, hands-on shoulder-to-shoulder assistance fulfills Christ's law of love.",
+    "explanationTelugu": "తోటి సహోదరుని ఆత్మీయ మరియు భౌతిక భారములను కలిసి మోయుటయే క్రీస్తు ఆజ్ఞను నెరవేర్చుట.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q39",
+    "order": 39,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Galatians 6:9-10 on not growing weary in doing good, especially to the household of faith?",
+    "questionTelugu": "గలతీయులకు 6:9-10 మేలుచేయుటయందు విసుకకయుందము, విశేషముగా విశ్వాసగృహమునకు చేరినవారికి మేలుచేయుదము గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Therefore, as we have opportunity, let us do good to all, especially to those who are of the household of faith\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"కాబట్టి మనకు సమయము దొరకినకొలది అందరియెడలను, విశేషముగా విశ్వాసగృహమునకు చేరినవారియెడలను మేలు చేయుదము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Therefore, as we have opportunity, let us do good to all, especially to those who are of the household of faith\"",
+    "bibleReference": "Galatians 6:10",
+    "explanation": "Prioritizing the sustained care of our brothers and sisters in the faith family.",
+    "explanationTelugu": "విసుగు చెందకుండా సమస్త ప్రజలకు, ప్రత్యేకముగా విశ్వాస కుటుంబ సభ్యులకు ఉపకారము చేయవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q40",
+    "order": 40,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Ephesians 4:28 commanding the former thief to labor with his hands that he may have something to give to him who has need?",
+    "questionTelugu": "ఎఫెసీయులకు 4:28 దొంగిలించినవాడు ఇకమీదట దొంగిలింపక అక్కరగలవానికి ఇచ్చుటకు స్వయముగా కష్టపడవలెను గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Let him who stole steal no longer, but rather let him labor, working with his hands what is good, that he may have something to give him who has need\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దొంగిలించువాడు ఇకమీదట దొంగిలింపక, అక్కరగలవానికి పంచిపెట్టుటకు వీలుకలుగునట్లు తన చేతులతో మంచిపని చేయుచు కష్టపడవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Let him who stole steal no longer, but rather let him labor, working with his hands what is good, that he may have something to give him who has need\"",
+    "bibleReference": "Ephesians 4:28",
+    "explanation": "Regeneration reverses destructive selfishness into diligent labor for philanthropic charity.",
+    "explanationTelugu": "స్వార్థముతో ఇతరులది దోచుకొనే స్థితినుండి కష్టపడి సంపాదించి పేదలకు పంచిపెట్టే స్థాయికి మార్పు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q41",
+    "order": 41,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Philippians 2:4 instructing: 'Let each of you look out not only for his own interests, but also for the interests of others'?",
+    "questionTelugu": "ఫిలిప్పీయులకు 2:4 'మీలో ప్రతివాడును తన సొంతకార్యములను మాత్రమే గాక ఇతరుల కార్యములను కూడ చూడవలెను' గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Let each of you look out not only for his own interests, but also for the interests of others\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మీలో ప్రతివాడును తన సొంతకార్యములను మాత్రమే గాక యితరుల కార్యములను కూడ చూడవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Let each of you look out not only for his own interests, but also for the interests of others\"",
+    "bibleReference": "Philippians 2:4",
+    "explanation": "The mind of Christ fundamentally de-centers the ego to care actively for others.",
+    "explanationTelugu": "కేవలము తన సొంత ప్రయోజనములనే కాక ఇతరుల అవసరతలను ఆత్మీయ క్షేమమును విచారించు మనస్సు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q42",
+    "order": 42,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Philippians 2:25-30 on Epaphroditus risking his life to minister to Paul's physical needs in prison?",
+    "questionTelugu": "ఫిలిప్పీయులకు 2:25-30 ఎపఫ్రొదితు తన ప్రాణమును సైతం లెక్కచేయక చెరసాలలో ఉన్న పౌలు అవసరతలను తీర్చుటకు పరిచర్య చేయుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Because for the work of Christ he came close to death, not regarding his life, to supply what was lacking in your service toward me\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నాకొరకైన మీ పరిచర్యలో ఉన్న కొదువను తీర్చుటకై అతడు తన ప్రాణమునైనను లక్ష్యపెట్టక, క్రీస్తుయొక్క పనినిమిత్తము చావునకు సిద్ధపడెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Because for the work of Christ he came close to death, not regarding his life, to supply what was lacking in your service toward me\"",
+    "bibleReference": "Philippians 2:30",
+    "explanation": "Sacrificial pastoral care that wades into danger and illness to nurse the saints.",
+    "explanationTelugu": "పౌలు సంరక్షణ నిమిత్తము ప్రాణాపాయకరమైన జబ్బునొందినను నమ్మకముగా సేవచేసిన ఎపఫ్రొదితు త్యాగము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q43",
+    "order": 43,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Philippians 4:10 on Paul rejoicing that their care for him had flourished again?",
+    "questionTelugu": "ఫిలిప్పీయులకు 4:10 పౌలుయెడల ఫిలిప్పీయుల సంరక్షణ చింత మరల చిగురించినందుకు ప్రభువునందు ఆనందించుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"I rejoiced in the Lord greatly that now at last your care for me has flourished again; though you surely did care, but you lacked opportunity\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నన్నుగూర్చిన మీ చింత మరల చిగురించినందున ప్రభువునందు బహుగా సంతోషించితిని; నిజముగా మీరు నన్నుగూర్చి చింతించుచుంటిరి గాని సమయము లేకపోయెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"I rejoiced in the Lord greatly that now at last your care for me has flourished again; though you surely did care, but you lacked opportunity\"",
+    "bibleReference": "Philippians 4:10",
+    "explanation": "Christian partnership faithfully reviving material support across seasons and distances.",
+    "explanationTelugu": "కాలవ్యవధి గడచినను పౌలుయెడల ఫిలిప్పీ సంఘము చూపిన విడువని ప్రేమ మరియు సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q44",
+    "order": 44,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Colossians 3:12 on putting on tender mercies, kindness, humility, meekness, and longsuffering?",
+    "questionTelugu": "కొలొస్సయులకు 3:12 జాలిగల మనస్సును, దయాళుత్వమును, వినయమును, సాత్వికమును, దీర్ఘశాంతమును ధరించుకొనుడి గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Therefore, as the elect of God, holy and beloved, put on tender mercies, kindness, humility, meekness, longsuffering\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"కావున దేవునిచేత ఏర్పరచబడినవారును పరిశుద్ధులును ప్రియులునైనవారికి తగినట్లు, మీరు జాలిగల మనస్సును, దయాళుత్వమును, వినయమును, సాత్వికమును, దీర్ఘశాంతమును ధరించుకొనుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Therefore, as the elect of God, holy and beloved, put on tender mercies, kindness, humility, meekness, longsuffering\"",
+    "bibleReference": "Colossians 3:12",
+    "explanation": "The wardrobe of the elect: compassionate visceral empathy in daily relationships.",
+    "explanationTelugu": "దేవుని ప్రజలుగా ఏర్పరచబడిన విశ్వాసులు పరస్పర జాలిని దయను వస్త్రమువలె ధరించుకొనవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q45",
+    "order": 45,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding 1 Thessalonians 2:7-8 on Paul being gentle among them, like a nursing mother cherishing her children?",
+    "questionTelugu": "1 థెస్సలొనీకయులకు 2:7-8 పాలిచ్చు తల్లి తన బిడ్డలను పోషించి లాలించునట్లు పౌలు వారిమధ్య సాధువుగా ప్రవర్తించుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"We were gentle among you, just as a nursing mother cherishes her own children. So, affectionately longing for you, we were well pleased to impart our own lives\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"పాలిచ్చు తల్లి తన సొంత బిడ్డలను లాలించునట్లు మేము మీమధ్య సాధువులమై యుంటిమి; మిమ్మును ఎంతగానో ప్రేమించి సువార్తను మాత్రమే కాక మా ప్రాణములను కూడ మీకిచ్చుటకు సిద్ధపడితిమి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"We were gentle among you, just as a nursing mother cherishes her own children. So, affectionately longing for you, we were well pleased to impart our own lives\"",
+    "bibleReference": "1 Thessalonians 2:7",
+    "explanation": "Pastoral nurture that breathes tender maternal affection, imparting life alongside truth.",
+    "explanationTelugu": "తల్లి తన బిడ్డలను లాలించునట్లు విశ్వాసులను ఆదరించి ప్రాణమిచ్చుటకు సిద్ధపడిన అపొస్తల ప్రేమ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q46",
+    "order": 46,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding 1 Thessalonians 5:14 charging: 'Comfort the fainthearted, uphold the weak, be patient with all'?",
+    "questionTelugu": "1 థెస్సలొనీకయులకు 5:14 'ధైర్యము చెడినవారిని ధైర్యపరచుడి, బలహీనులకు ఊతనియ్యుడి, అందరియెడల దీర్ఘశాంతము కలిగియుండుడి' గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Comfort the fainthearted, uphold the weak, be patient with all\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దిగులుపడినవారిని ధైర్యపరచుడి, బలహీనులకు ఊతనియ్యుడి, అందరియెడల దీర్ఘశాంతము కలిగియుండుడి అని మిమ్మును హెచ్చరించుచున్నాము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Comfort the fainthearted, uphold the weak, be patient with all\"",
+    "bibleReference": "1 Thessalonians 5:14",
+    "explanation": "Differentiated pastoral care: applying appropriate medicine to anxiety, weakness, and strife.",
+    "explanationTelugu": "ఆత్మీయముగా కుంగిపోయినవారిని లేవనెత్తి బలహీనులను పట్టుకొని ఆదరించు బాధ్యత.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q47",
+    "order": 47,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding 1 Timothy 5:3-4 on honoring widows who are really widows, and children learning first to show piety at home to requite their parents?",
+    "questionTelugu": "1 తిమోతి 5:3-4 నిజమైన విధవరాండ్రను సన్మానించుటయు, పిల్లలు తమ తల్లిదండ్రులకు ప్రత్యుపకారము చేయుట దేవునికి ఇష్టము గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Let them first learn to show piety at home and to repay their parents; for this is good and acceptable before God\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారు మొదట తమ యింటివారియెడల భక్తి కనబరచుటకును, తమ తల్లిదండ్రులకు ప్రత్యుపకారము చేయుటకును నేర్చుకొనవలెను; ఇది దేవుని దృష్టికి అనుకూలమై యున్నది\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Let them first learn to show piety at home and to repay their parents; for this is good and acceptable before God\"",
+    "bibleReference": "1 Timothy 5:4",
+    "explanation": "Repaying parental sacrifice through faithful care for elderly mothers and grandmothers.",
+    "explanationTelugu": "వృద్ధాప్యములో ఉన్న తల్లిదండ్రులకు సేవచేసి ప్రత్యుపకారము చేయుట దేవునికి ప్రీతికరమైన భక్తి.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q48",
+    "order": 48,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Philemon 1:17-18 on Paul telling Philemon to receive runaway slave Onesimus as myself, putting any debt on my account?",
+    "questionTelugu": "ఫిలేమోను 1:17-18 పారిపోయిన దాసుడైన ఒనేసిమును నన్ను చేర్చుకొనినట్లు చేర్చుకొనుము, వాని అప్పు నా ఖాతాలో వేయుమని పౌలు పూచీకత్తు ఇచ్చుట గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"If then you count me as a partner, receive him as you would me. But if he has wronged you or owes anything, put that on my account\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"కాబట్టి నీవు నన్ను నీతో పాలివానిగా ఎంచినయెడల నన్ను చేర్చుకొనినట్లు అతనిని చేర్చుకొనుము; అతడు నీకేదైన నష్టము కలుగజేసినను, నీకు అప్పియున్నను, అది నా లెక్కలో ఉంచుము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"If then you count me as a partner, receive him as you would me. But if he has wronged you or owes anything, put that on my account\"",
+    "bibleReference": "Philemon 1:17-18",
+    "explanation": "Sacrificial pastoral advocacy absorbing another's debt to restore broken relationships.",
+    "explanationTelugu": "ఒక బీద దాసుని విమోచన కొరకు తన సొంత ధనమును పూచీకత్తుగా పెట్టిన పౌలు అద్భుత సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q49",
+    "order": 49,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Hebrews 13:2-3 on not forgetting to entertain strangers, and remembering the prisoners as if chained with them?",
+    "questionTelugu": "హెబ్రీయులకు 13:2-3 ఆతిథ్యము చేయ మరవకుడి, బంధకములలో ఉన్నవారితో తామును బంధింపబడినట్లు వారిని జ్ఞాపకము చేసికొనుడి గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"Do not forget to entertain strangers, for by so doing some have unwittingly entertained angels. Remember the prisoners as if chained with them\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆతిథ్యము చేయ మరవకుడి; దానివలన కొందరు ఎరుగకయే దేవదూతలకు ఆతిథ్యమిచ్చిరి; బంధకములలో ఉన్నవారితో తామును బంధింపబడినట్టు వారిని జ్ఞాపకము చేసికొనుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Do not forget to entertain strangers, for by so doing some have unwittingly entertained angels. Remember the prisoners as if chained with them\"",
+    "bibleReference": "Hebrews 13:2-3",
+    "explanation": "Empathetic identification with persecuted, incarcerated brothers and sisters.",
+    "explanationTelugu": "చెరసాలలో ఉన్నవారి శ్రమలను తమ స్వంత శరీరములో అనుభవించునట్లు వారిని పరామర్శించవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s2_q50",
+    "order": 50,
+    "questionType": "single_choice",
+    "question": "What biblical principle or act of compassionate care is highlighted regarding Hebrews 13:16 commanding: 'Do not forget to do good and to share, for with such sacrifices God is well pleased'?",
+    "questionTelugu": "హెబ్రీయులకు 13:16 'ఉపకారమును ధర్మమును చేయ మరవకుడి; అట్టి యాగములు దేవునికి ఇష్టమైనవి' గూర్చి లేఖనములో ఇవ్వబడిన బోధ లేదా నిదర్శనమేమి?",
+    "options": [
+      "\"But do not forget to do good and to share, for with such sacrifices God is well pleased\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఉపకారమును ధర్మమును చేయ మరవకుడి; అట్టి యాగములు దేవునికి ఇష్టమైనవి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"But do not forget to do good and to share, for with such sacrifices God is well pleased\"",
+    "bibleReference": "Hebrews 13:16",
+    "explanation": "Tangible acts of benevolent sharing are recognized as sweet-smelling spiritual sacrifices.",
+    "explanationTelugu": "బీదలకు సహాయము చేయుటయు ధర్మము చేయుటయు దేవునికి ఎంతో ఇష్టమైన ఆత్మీయ బలులు.",
+    "marks": 1
+  }
+];
+
+export const CARE_EASY_MASTERY: QuizQuestion[] = [
+  {
+    "id": "car_e_s3_q01",
+    "order": 1,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Genesis 22:14 Abraham naming the mount Jehovah-Jireh: 'The Lord will provide'?",
+    "questionTelugu": "ఆదికాండము 22:14 అబ్రాహాము ఆ స్థలమునకు 'యెహోవా ఈరే' అని పేరు పెట్టుట: యెహోవా చూచుకొనును గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"And Abraham called the name of the place, The-Lord-Will-Provide; as it is said to this day, 'In the Mount of the Lord it shall be provided'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"అబ్రాహాము ఆ స్థలమునకు యెహోవా ఈరే అను పేరు పెట్టెను. కాబట్టి-యెహోవా పర్వతముమీద చూచుకొనును అని నేటివరకు చెప్పబడుచున్నది\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"And Abraham called the name of the place, The-Lord-Will-Provide; as it is said to this day, 'In the Mount of the Lord it shall be provided'\"",
+    "bibleReference": "Genesis 22:14",
+    "explanation": "God preemptively sees human desperate need and sovereignly provides the atoning substitute.",
+    "explanationTelugu": "మన రక్షణ అవసరతను ముందుగానే ఎరిగి బలిపశువును సిద్ధపరచిన యెహోవా ఈరే సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q02",
+    "order": 2,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Genesis 28:15 God's covenant pledge to fleeing Jacob: 'Behold, I am with you and will keep you wherever you go'?",
+    "questionTelugu": "ఆదికాండము 28:15 పారిపోవుచున్న యాకోబుకు దేవుని అభయము: 'నేను నీకు తోడైయుండి, నీవు వెళ్లు ప్రతి స్థలమందు నిన్ను కాపాడుదును' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"Behold, I am with you and will keep you wherever you go, and will bring you back to this land; for I will not leave you\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఇదిగో నేను నీకు తోడైయుండి, నీవు వెళ్లు ప్రతి స్థలమందు నిన్ను కాపాడుచు ఈ దేశమునకు నిన్ను మరల రప్పించెదను; నిన్ను విడువను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Behold, I am with you and will keep you wherever you go, and will bring you back to this land; for I will not leave you\"",
+    "bibleReference": "Genesis 28:15",
+    "explanation": "Unconditional covenant accompaniment guarding the wandering, flawed patriarch.",
+    "explanationTelugu": "దిక్కుతోచని స్థితిలో పారిపోవుచున్న యాకోబును విడువక నిరంతరము కాపాడిన దేవుని వాగ్దానము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q03",
+    "order": 3,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Genesis 48:15 Jacob testifying on his deathbed: 'The God who has fed me all my life long unto this day'?",
+    "questionTelugu": "ఆదికాండము 48:15 'నా పుట్టినది మొదలుకొని నేటివరకు నన్ను పోషించిన దేవుడు' అని యాకోబు సాక్ష్యమిచ్చుట గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"God, before whom my fathers Abraham and Isaac walked, the God who has fed me all my life long unto this day\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నా పితరులైన అబ్రాహామును ఇస్సాకును ఏ దేవుని సన్నిధిని నడచుకొనిరో, నేను పుట్టినది మొదలుకొని నేటివరకు ఏ దేవుడు నన్ను పోషించుచు వచ్చెనో ఆ దేవుడు...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"God, before whom my fathers Abraham and Isaac walked, the God who has fed me all my life long unto this day\"",
+    "bibleReference": "Genesis 48:15",
+    "explanation": "A centenarian looking back over a tumultuous life recognizing unbroken divine shepherd-care.",
+    "explanationTelugu": "తన జీవితమంతయు ప్రతి ఆపదలోను ఆహారమిచ్చి కాపాడిన దేవుని కాపరిత్వమును యాకోబు కొనియాడెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q04",
+    "order": 4,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Genesis 50:20-21 Joseph reassuring his terrified brothers: 'Do not be afraid; I will provide for you and your little ones'?",
+    "questionTelugu": "ఆదికాండము 50:20-21 'భయపడకుడి, నేను మిమ్మును మీ పిల్లలను పోషించెదను' అని యోసేపు తన అన్నలను ఓదార్చుట గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"Now therefore, do not be afraid; I will provide for you and your little ones. And he comforted them and spoke kindly to them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"కాబట్టి భయపడకుడి, నేను మిమ్మును మీ పిల్లలను పోషించెదను అని చెప్పి వారిని ఆదరించి వారితో ప్రేమగా మాటలాడెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Now therefore, do not be afraid; I will provide for you and your little ones. And he comforted them and spoke kindly to them\"",
+    "bibleReference": "Genesis 50:21",
+    "explanation": "Overcoming deep past trauma to extend restorative, lavish provision to former tormentors.",
+    "explanationTelugu": "కీడు చేసిన అన్నలను ద్వేషింపక కనికరముతో వారిని వారి పిల్లలను పోషించి ఆదరించిన యోసేపు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q05",
+    "order": 5,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Exodus 3:7-8 God declaring to Moses at the burning bush: 'I have surely seen the oppression of My people... and I know their sorrows'?",
+    "questionTelugu": "నిర్గమకాండము 3:7-8 'నేను నా ప్రజల శ్రమను నిశ్చయముగా చూచితిని, వారి దుఃఖములను నేను ఎరిగినవాడను' అని దేవుడు సెలవిచ్చుట గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"I have surely seen the oppression of My people who are in Egypt, and have heard their cry... for I know their sorrows. So I have come down to deliver them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను ఐగుప్తులోనున్న నా ప్రజల శ్రమను నిశ్చయముగా చూచితిని... వారి దుఃఖములు నాకు తెలిసేయున్నవి. కాబట్టి ఐగుప్తీయుల చేతిలోనుండి వారిని విడిపించుటకు నేను దిగివచ్చియున్నాను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I have surely seen the oppression of My people who are in Egypt, and have heard their cry... for I know their sorrows. So I have come down to deliver them\"",
+    "bibleReference": "Exodus 3:7",
+    "explanation": "God's compassionate heart is not numb to human agony; He sees, hears, feels, and intervenes.",
+    "explanationTelugu": "తన ప్రజల కన్నీటిని చూచి వారి బాధలను వ్యక్తిగతముగా ఎరిగి విడిపించుటకు దిగివచ్చిన దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q06",
+    "order": 6,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Exodus 15:26 the Lord revealing His covenant healer name: 'For I am the Lord who heals you (Yahweh Rophe)'?",
+    "questionTelugu": "నిర్గమకాండము 15:26 'నేను నిన్ను స్వస్థపరచు యెహోవాను' (యెహోవా రాఫా) అను స్వస్థత నిబంధన నామము గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"If you diligently heed the voice of the Lord your God... I will put none of the diseases on you... for I am the Lord who heals you\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ దేవుడైన యెహోవా వాక్యమును శ్రద్ధగా విని... నా ఆజ్ఞలన్నిటిని గైకొనినయెడల, నేను ఐగుప్తీయులమీదికి రప్పించిన రోగములలో ఏదియు నీమీదికి రానియ్యను; నిన్ను స్వస్థపరచు యెహోవాను నేనే\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"If you diligently heed the voice of the Lord your God... I will put none of the diseases on you... for I am the Lord who heals you\"",
+    "bibleReference": "Exodus 15:26",
+    "explanation": "God covenants to be the sovereign Physician guarding the physical wellness of His people.",
+    "explanationTelugu": "తన ప్రజల రోగములను గాయములను స్వస్థపరచే పరమ వైద్యుడైన యెహోవా రాఫా.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q07",
+    "order": 7,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Exodus 16:16-18 the divine regulation of manna: he who gathered much had nothing left over, and he who gathered little had no lack?",
+    "questionTelugu": "నిర్గమకాండము 16:16-18 మన్నా నియమము: ఎక్కువ కూర్చుకొనినవానికి ఏమియు మిగులలేదు, తక్కువ కూర్చుకొనినవానికి ఏమియు కొదువపడలేదు గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"So when they measured it by omers, he who gathered much had nothing over, and he who gathered little had no lack. Every man had gathered according to each one's need\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"వారు ఓమెరుతో దాని కొలిచినప్పుడు, ఎక్కువ కూర్చుకొనినవానికి ఏమియు మిగులలేదు, తక్కువ కూర్చుకొనినవానికి ఏమియు కొదువపడలేదు; ప్రతివాడును తన తన తిండికి తగినట్టుగా కూర్చుకొనెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"So when they measured it by omers, he who gathered much had nothing over, and he who gathered little had no lack. Every man had gathered according to each one's need\"",
+    "bibleReference": "Exodus 16:18",
+    "explanation": "Divine economics: sovereign egalitarian equity in daily bread provision.",
+    "explanationTelugu": "ప్రతివాని అవసరతకు తగినట్లు కొదువలేకుండ పోషించిన పరలోకపు మన్నా అద్భుతము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q08",
+    "order": 8,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Exodus 17:6 God commanding Moses to strike the rock at Horeb to bring forth living water for the thirsty multitude?",
+    "questionTelugu": "నిర్గమకాండము 17:6 హోరేబు బండను కొట్టుము, ప్రజలు తాగునట్లు అందులోనుండి నీళ్లు వచ్చునని దేవుడు ఆజ్ఞాపించుట గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"Behold, I will stand before you there on the rock in Horeb; and you shall strike the rock, and water will come out of it, that the people may drink\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఇదిగో అక్కడ హోరేబులోని బండమీద నేను నీకు ఎదురుగా నిలిచెదను; నీవు ఆ బండను కొట్టగా జనులు తాగునట్లు అందులోనుండి నీళ్లు బయలుదేరును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Behold, I will stand before you there on the rock in Horeb; and you shall strike the rock, and water will come out of it, that the people may drink\"",
+    "bibleReference": "Exodus 17:6",
+    "explanation": "The stricken rock typifying Christ struck for our sins, pouring forth the refreshing water of life.",
+    "explanationTelugu": "ఎండిన అరణ్యములో దాహము తీర్చుటకు బండనుండి సమృద్ధిగా నీటిని రప్పించిన దేవుని సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q09",
+    "order": 9,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Deuteronomy 1:30-31 Moses reminding Israel how the Lord carried them in the wilderness as a father carries his son?",
+    "questionTelugu": "ద్వితీయోపదేశకాండము 1:30-31 ఒకడు తన కుమారుని ఎత్తికొనునట్లు యెహోవా మిమ్మును ఎత్తికొని వచ్చెనను స్మరణ గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"In the wilderness where you saw how the Lord your God carried you, as a man carries his son, in all the way that you went until you came to this place\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఒకడు తన కుమారుని ఎత్తికొనునట్లు, మీరు ఈ స్థలమునకు వచ్చువరకు మీరు ప్రయాణముచేసిన మార్గమంతటిలో మీ దేవుడైన యెహోవా మిమ్మును ఎత్తికొని వచ్చెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"In the wilderness where you saw how the Lord your God carried you, as a man carries his son, in all the way that you went until you came to this place\"",
+    "bibleReference": "Deuteronomy 1:31",
+    "explanation": "Tender, paternal muscle carrying an exhausted child across treacherous desert terrain.",
+    "explanationTelugu": "తండ్రి బిడ్డను చంకనెత్తుకొని నడిపించినట్లు అరణ్య ప్రయాణమంతటిలో ప్రజలను మోసిన దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q10",
+    "order": 10,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Deuteronomy 2:7 on the Lord knowing your walking through this great wilderness, lacking nothing for forty years?",
+    "questionTelugu": "ద్వితీయోపదేశకాండము 2:7 ఈ గొప్ప అరణ్యములో నీ సంచారమును దేవుడు ఎరిగియున్నాడు, నలభై ఏండ్లు నీకు ఏ లోపము కలుగలేదు గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"For the Lord your God has blessed you in all the work of your hand; He knows your walking through this great wilderness. These forty years the Lord your God has been with you; you have lacked nothing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ దేవుడైన యెహోవా నీ చేతిపనులన్నిటిలోను నిన్ను ఆశీర్వదించెను; ఈ గొప్ప అరణ్యములో నీ సంచారమును ఆయన ఎరిగియున్నాడు; ఈ నలభై సంవత్సరములు నీ దేవుడైన యెహోవా నీకు తోడైయుండెను, నీకేమియు కొదువపడలేదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For the Lord your God has blessed you in all the work of your hand; He knows your walking through this great wilderness. These forty years the Lord your God has been with you; you have lacked nothing\"",
+    "bibleReference": "Deuteronomy 2:7",
+    "explanation": "God's providential GPS: tracking every footstep through uncharted barren wastelands.",
+    "explanationTelugu": "అరణ్య ప్రయాణములో ప్రతి అడుగును కనిపెట్టి నలభై ఏండ్లు ఏ కొదువలేకుండ పోషించిన పరమ తండ్రి.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q11",
+    "order": 11,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Deuteronomy 32:10-11 God finding Israel in a desert land, keeping him as the apple of His eye, as an eagle fluttering over its young?",
+    "questionTelugu": "ద్వితీయోపదేశకాండము 32:10-11 దేవుడు తన కనుపాపవలె అతనిని కాపాడెను, పక్షిరాజు తన గూడు రేపి పిల్లలపై తన్నుకొనునట్లు అతనిని మోసెను గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"He found him in a desert land... He encircled him, He instructed him, He kept him as the apple of His eye. As an eagle stirs up its nest... so the Lord alone did lead him\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"పాడుభూమిలోను... ఎడారిలోను ఆయన వానిని కనుగొనెను; ఆయన వానిని ఆవరించి పరామర్శించెను, తన కనుపాపవలె వానిని కాపాడెను. పక్షిరాజు తన గూడు రేపి, తన పిల్లలపై తన్నుకొనుచు... తన రెక్కలమీద వాటిని మోయునట్లు...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He found him in a desert land... He encircled him, He instructed him, He kept him as the apple of His eye. As an eagle stirs up its nest... so the Lord alone did lead him\"",
+    "bibleReference": "Deuteronomy 32:10-11",
+    "explanation": "The fierce, maternal tenderness of an eagle training and catching her falling eaglets.",
+    "explanationTelugu": "తన కనుపాపవలె కాపాడుచు పక్షిరాజువలె రెక్కలపై మోసి రక్షించిన దేవుని అద్భుత వాత్సల్యము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q12",
+    "order": 12,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Deuteronomy 33:27 proclaiming: 'The eternal God is your refuge, and underneath are the everlasting arms'?",
+    "questionTelugu": "ద్వితీయోపదేశకాండము 33:27 'శాశ్వతుడైన దేవుడు నీకు నివాసస్థలము, ఆయన నిత్యమైన బాహువులు నీ క్రింద ఉన్నవి' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"The eternal God is your refuge, and underneath are the everlasting arms; He will thrust out the enemy from before you\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"శాశ్వతుడైన దేవుడు నీకు నివాసస్థలము, ఆయన నిత్యమైన బాహువులు నీ క్రింద ఉన్నవి; ఆయన నీ యెదుటనుండి శత్రువును వెళ్లగొట్టును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The eternal God is your refuge, and underneath are the everlasting arms; He will thrust out the enemy from before you\"",
+    "bibleReference": "Deuteronomy 33:27",
+    "explanation": "No believer can fall beneath the safety net of God's indestructible everlasting arms.",
+    "explanationTelugu": "ఎంతటి అగాధములో పడిపోయినను విశ్వాసిని పట్టుకొని ఆదుకొను నిత్యమైన దైవిక బాహువులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q13",
+    "order": 13,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Ruth 2:12 Boaz blessing Ruth: 'Under whose wings you have come to take refuge'?",
+    "questionTelugu": "రూతు 2:12 'ఎవరి రెక్కలక్రింద ఆశ్రయము పొందుటకు నీవు వచ్చితివో ఆ దేవునివలన నీకు సంపూర్ణ బహుమానము కలుగును' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"The Lord repay your work, and a full reward be given you by the Lord God of Israel, under whose wings you have come for refuge\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవా నీవు చేసినదానికి ప్రతిఫలమిచ్చును గాక; ఇశ్రాయేలీయుల దేవుడైన యెహోవా రెక్కలక్రింద ఆశ్రయము పొందుటకు నీవు వచ్చితివి; ఆయనవలన నీకు సంపూర్ణ బహుమానము కలుగును గాక\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord repay your work, and a full reward be given you by the Lord God of Israel, under whose wings you have come for refuge\"",
+    "bibleReference": "Ruth 2:12",
+    "explanation": "The protective maternal wings of Yahweh sheltering foreign outcasts who trust in Him.",
+    "explanationTelugu": "దేవుని రెక్కల నీడలోనికి ఆశ్రయముకొరకు వచ్చిన పేద విధవరాలికి లభించిన సంపూర్ణ భద్రత.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q14",
+    "order": 14,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Psalm 34:10 affirming: 'The young lions lack and suffer hunger; but those who seek the Lord shall not lack any good thing'?",
+    "questionTelugu": "కీర్తన 34:10 'సింహపు పిల్లలు లేమిగలవై ఆకలిగొనును; యెహోవాను ఆశ్రయించువారికి ఏ మేలు కొదువై యుండదు' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"The young lions lack and suffer hunger; but those who seek the Lord shall not lack any good thing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"సింహపు పిల్లలు లేమిగలవై ఆకలిగొనును; యెహోవాను ఆశ్రయించువారికి ఏ మేలు కొదువై యుండదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The young lions lack and suffer hunger; but those who seek the Lord shall not lack any good thing\"",
+    "bibleReference": "Psalm 34:10",
+    "explanation": "Even the fiercest apex predators may starve, but humble believers under God's care lack nothing.",
+    "explanationTelugu": "బలముగల సింహములే ఆకలిగొనవచ్చును గాని దేవుని ఆశ్రయించు విశ్వాసులకు ఏ మేలు కొదువపడదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q15",
+    "order": 15,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Psalm 37:25 David testifying: 'I have been young, and now am old; yet I have not seen the righteous forsaken, nor his descendants begging bread'?",
+    "questionTelugu": "కీర్తన 37:25 'నేను చిన్నవాడనై యుంటిని ఇప్పుడు ముసలివాడనై యున్నాను; అయినను నీతిమంతుడు విడువబడుట గాని వాని సంతానము భిక్షమెత్తుకొనుట గాని నేను చూచియుండలేదు' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"I have been young, and now am old; yet I have not seen the righteous forsaken, nor his descendants begging bread\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను చిన్నవాడనై యుంటిని ఇప్పుడు ముసలివాడనై యున్నాను; అయినను నీతిమంతుడు విడువబడుట గాని వాని సంతానము భిక్షమెత్తుకొనుట గాని నేను చూచియుండలేదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I have been young, and now am old; yet I have not seen the righteous forsaken, nor his descendants begging bread\"",
+    "bibleReference": "Psalm 37:25",
+    "explanation": "Lifelong empirical testimony to God's generational fidelity providing bread for the righteous.",
+    "explanationTelugu": "తరతరములకు నీతిమంతులను వారి సంతానమును ఆకలిదప్పులలో విడువక కాపాడు దేవుని నమ్మకత్వము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q16",
+    "order": 16,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Psalm 68:19 proclaiming: 'Blessed be the Lord, who daily loads us with benefits, the God of our salvation!'?",
+    "questionTelugu": "కీర్తన 68:19 'ప్రభువు స్తుతింపబడును గాక, అనుదినము ఆయన మా భారము భరించుచున్నాడు, రక్షణకర్తయైన దేవుడే మా భారము భరించుచున్నాడు' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"Blessed be the Lord, who daily loads us with benefits, the God of our salvation! Selah\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ప్రభువు స్తుతింపబడును గాక, అనుదినము ఆయన మా భారము భరించుచున్నాడు; రక్షణకర్తయైన దేవుడే మా భారము భరించుచున్నాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Blessed be the Lord, who daily loads us with benefits, the God of our salvation! Selah\"",
+    "bibleReference": "Psalm 68:19",
+    "explanation": "Daily divine logistics: God faithfully carries our heavy loads every single dawn.",
+    "explanationTelugu": "ప్రతి ఉదయమున మన భారములను తానే స్వయముగా భరించి మోయు రక్షణకర్తయైన దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q17",
+    "order": 17,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Psalm 91:4 on God covering the believer with His feathers, and under His wings finding refuge?",
+    "questionTelugu": "కీర్తన 91:4 ఆయన తన రెక్కలతో నిన్ను కప్పును, ఆయన రెక్కలక్రింద నీకు ఆశ్రయము కలుగును గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"He shall cover you with His feathers, and under His wings you shall take refuge; His truth shall be your shield and buckler\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఆయన తన రెక్కలతో నిన్ను కప్పును, ఆయన రెక్కలక్రింద నీకు ఆశ్రయము కలుగును; ఆయన సత్యము కేడెమును డాలునై యున్నది\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He shall cover you with His feathers, and under His wings you shall take refuge; His truth shall be your shield and buckler\"",
+    "bibleReference": "Psalm 91:4",
+    "explanation": "Tender, feathery shelter protecting the believer from deadly plagues and terror.",
+    "explanationTelugu": "పక్షి తన పిల్లలను రెక్కలక్రింద దాచునట్లు శత్రువుల బాణములనుండి మనలను కాపాడు దైవిక సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q18",
+    "order": 18,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Psalm 107:9 on God satisfying the longing soul and filling the hungry soul with goodness?",
+    "questionTelugu": "కీర్తన 107:9 ఆయన ఆశగల ప్రాణమును తృప్తిపరచుచున్నాడు, ఆకలిగొన్నవారి ప్రాణమును మేలుతో నింపుచున్నాడు గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"For He satisfies the longing soul, and fills the hungry soul with goodness\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఏలయనగా ఆయన ఆశగల ప్రాణమును తృప్తిపరచుచున్నాడు, ఆకలిగొన్నవారి ప్రాణమును మేలుతో నింపుచున్నాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For He satisfies the longing soul, and fills the hungry soul with goodness\"",
+    "bibleReference": "Psalm 107:9",
+    "explanation": "Spiritual and physical hunger met completely in the generous banquets of divine grace.",
+    "explanationTelugu": "ఆత్మయందును శరీరమందును ఆకలిగొన్నవారిని తన పరిపూర్ణ మేళ్లతో తృప్తిపరచు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q19",
+    "order": 19,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Psalm 121:3-4 declaring: 'He who keeps you will not slumber. Behold, He who keeps Israel shall neither slumber nor sleep'?",
+    "questionTelugu": "కీర్తన 121:3-4 నిన్ను కాపాడువాడు కునుకడు, ఇశ్రాయేలును కాపాడువాడు కునుకడు నిద్రపోడు గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"He who keeps you will not slumber. Behold, He who keeps Israel shall neither slumber nor sleep\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ పాదము తొట్రిల్లనియ్యడు, నిన్ను కాపాడువాడు కునుకడు; ఇదిగో ఇశ్రాయేలును కాపాడువాడు కునుకడు నిద్రపోడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He who keeps you will not slumber. Behold, He who keeps Israel shall neither slumber nor sleep\"",
+    "bibleReference": "Psalm 121:3-4",
+    "explanation": "God's unwearied, sleepless sentinel-care guarding His children around the clock.",
+    "explanationTelugu": "రాత్రింబగళ్లు రెప్పవాల్చక మనలను కాపలాకాయు నిద్రపోని పరలోకపు రక్షకుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q20",
+    "order": 20,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Psalm 121:5-6 on the Lord being your keeper and your shade at your right hand from sun and moon?",
+    "questionTelugu": "కీర్తన 121:5-6 యెహోవాయే నిన్ను కాపాడువాడు, పగటివేళ ఎండయైనను రాత్రివేళ వెన్నెలయైనను నీకు హానిచేయదు గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"The Lord is your keeper; the Lord is your shade at your right hand. The sun shall not strike you by day, nor the moon by night\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవాయే నిన్ను కాపాడువాడు; నీ కుడిచేతిప్రక్కన యెహోవా నీకు నీడగా ఉండును. పగటివేళ ఎండయైనను రాత్రివేళ వెన్నెలయైనను నీకేమియు అపాయము చేయదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord is your keeper; the Lord is your shade at your right hand. The sun shall not strike you by day, nor the moon by night\"",
+    "bibleReference": "Psalm 121:5-6",
+    "explanation": "Cosmic environmental protection shielding the soul from unseen natural perils.",
+    "explanationTelugu": "పగటివేళ శ్రమల ఎండయైనను రాత్రివేళ భయములైనను మనకు తాకకుండా కాపాడు దైవిక నీడ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q21",
+    "order": 21,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Psalm 121:7-8 on the Lord preserving you from all evil, preserving your going out and coming in forever?",
+    "questionTelugu": "కీర్తన 121:7-8 యెహోవా ఏ హానియు రాకుండ నిన్ను కాపాడును, నీ రాకపోకలయందు నిన్ను కాపాడును గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"The Lord shall preserve your going out and your coming in from this time forth, and even forevermore\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవా ఏ హానియు రాకుండ నిన్ను కాపాడును; ఆయన నీ ప్రాణమును కాపాడును. ఇది మొదలుకొని నిరంతరము నీ రాకపోకలయందు యెహోవా నిన్ను కాపాడును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord shall preserve your going out and your coming in from this time forth, and even forevermore\"",
+    "bibleReference": "Psalm 121:8",
+    "explanation": "Comprehensive spatial and temporal coverage protecting the entire scope of life.",
+    "explanationTelugu": "మన జీవిత ప్రయాణములోని ప్రతి రాకపోకలయందు నిరంతరము తోడైయుండు సంపూర్ణ భద్రత.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q22",
+    "order": 22,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Psalm 145:15-16 on the eyes of all looking expectantly to God, who opens His hand and satisfies the desire of every living thing?",
+    "questionTelugu": "కీర్తన 145:15-16 సర్వజీవుల కన్నులు నీవైపు చూచుచున్నవి; నీవు నీ గుప్పిలి విప్పి ప్రతి జీవి వాంఛను తృప్తిపరచుచున్నావు గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"You open Your hand and satisfy the desire of every living thing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"సకల ప్రాణుల కన్నులు నీవైపు చూచుచున్నవి, తగిన కాలమందు నీవు వాటికి ఆహారమిచ్చుచున్నావు; నీవు నీ గుప్పిలి విప్పి ప్రతి జీవి వాంఛను తృప్తిపరచుచున్నావు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"You open Your hand and satisfy the desire of every living thing\"",
+    "bibleReference": "Psalm 145:16",
+    "explanation": "God's open-handed planetary benevolence feeding the entire biosphere effortlessly.",
+    "explanationTelugu": "తన గుప్పిలిని విప్పి సమస్త జీవరాశులకు సమయమునకు ఆహారమిచ్చి తృప్తిపరచు సృష్టికర్త.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q23",
+    "order": 23,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Psalm 146:7-9 on the Lord executing justice for the oppressed, giving food to the hungry, and relieving the fatherless and widow?",
+    "questionTelugu": "కీర్తన 146:7-9 ఆయన బాధపడువారికి న్యాయము తీర్చును, ఆకలిగొన్నవారికి ఆహారము నిచ్చును, అనాథలను వితంతువులను ఆదరించును గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"Who executes justice for the oppressed, who gives food to the hungry. The Lord gives freedom to the prisoners... The Lord relieves the fatherless and widow\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఆయన బాధపడువారికి న్యాయము తీర్చును, ఆకలిగొన్నవారికి ఆహారము నిచ్చును; యెహోవా బంధింపబడినవారిని విడుదల చేయును... దిక్కులేనివారిని విధవరాండ్రను ఆయన ఆదరించును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Who executes justice for the oppressed, who gives food to the hungry. The Lord gives freedom to the prisoners... The Lord relieves the fatherless and widow\"",
+    "bibleReference": "Psalm 146:7,9",
+    "explanation": "God's continuous judicial and nutritional intervention for the world's most powerless.",
+    "explanationTelugu": "బాధించబడువారి పక్షమున నిలబడి ఆకలిగొన్నవారికి అన్నంపెట్టి అనాథలను ఆదరించు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q24",
+    "order": 24,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Proverbs 3:5-6 on trusting in the Lord with all your heart and He directing your paths?",
+    "questionTelugu": "సామెతలు 3:5-6 నీ పూర్ణహృదయముతో యెహోవాయందు నమ్మకముంచుము, అప్పుడు ఆయన నీ మార్గములను సరాళము చేయును గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"In all your ways acknowledge Him, and He shall direct your paths\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ స్వబుద్ధిని ఆధారము చేసికొనక నీ పూర్ణహృదయముతో యెహోవాయందు నమ్మకముంచుము; నీ ప్రవర్తన అంతటియందు ఆయన అధికారమునకు ఒప్పుకొనుము, అప్పుడు ఆయన నీ త్రోవలను సరాళము చేయును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"In all your ways acknowledge Him, and He shall direct your paths\"",
+    "bibleReference": "Proverbs 3:6",
+    "explanation": "Surrendering human navigational control to the infallible care of the divine Guide.",
+    "explanationTelugu": "మన ఆలోచనలను విడిచి దేవునిపై ఆధారపడినప్పుడు ఆయన మన అడుగులను క్షేమముగా నడిపించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q25",
+    "order": 25,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Isaiah 25:4 on God being a strength to the poor, a strength to the needy in distress, a refuge from the storm?",
+    "questionTelugu": "యెషయా 25:4 దేవుడు దీనులకు శైలముగాను, శ్రమనొందిన దరిద్రులకు కోటగాను, గాలివాన తగలకుండ ఆశ్రయముగాను ఉండుట గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"For You have been a strength to the poor, a strength to the needy in his distress, a refuge from the storm, a shade from the heat\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఏలయనగా భయంకరుల ఊపిరి గోడకొట్టు గాలివానవలె ఉండగా, నీవు దీనులకు శైలముగాను, శ్రమనొందిన దరిద్రులకు కోటగాను, గాలివాన తగలకుండ ఆశ్రయముగాను, ఎండ తగలకుండ నీడగాను ఉంటివి\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For You have been a strength to the poor, a strength to the needy in his distress, a refuge from the storm, a shade from the heat\"",
+    "bibleReference": "Isaiah 25:4",
+    "explanation": "God provides impenetrable atmospheric shelter against the violent storms of oppression.",
+    "explanationTelugu": "శత్రువుల తుఫానులమధ్య పేదలకు కొండకోటగాను మండే ఎండలో చల్లని నీడగాను నిలుచు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q26",
+    "order": 26,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Isaiah 32:2 prophesying a King who will be 'as a hiding place from the wind, and a cover from the tempest, as rivers of water in a dry place'?",
+    "questionTelugu": "యెషయా 32:2 గాలికి మరుగైన చోటువలెను, గాలివానకు చాటైన చోటువలెను, ఎండినచోట నీళ్ల కాలువలవలెను ఉండు రక్షకుడు గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"A man will be as a hiding place from the wind, and a cover from the tempest, as rivers of water in a dry place, as the shadow of a great rock in a weary land\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఒకడు గాలికి మరుగైన చోటువలెను గాలివానకు చాటైన చోటువలెను ఉండును; ఎండినచోట నీళ్ల కాలువలవలెను, అలసిన దేశములో గొప్ప బండ నీడవలెను ఉండును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"A man will be as a hiding place from the wind, and a cover from the tempest, as rivers of water in a dry place, as the shadow of a great rock in a weary land\"",
+    "bibleReference": "Isaiah 32:2",
+    "explanation": "Messianic pastoral shelter: Jesus Christ as the rock, river, and shelter for tired travelers.",
+    "explanationTelugu": "పాపపు ఎడారిలో అలసిపోయిన మానవాళికి జీవజలపు నదిగాను బండ నీడగాను ప్రత్యక్షమైన క్రీస్తు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q27",
+    "order": 27,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Isaiah 41:17-18 on the poor and needy seeking water when there is none, and the God of Israel not forsaking them?",
+    "questionTelugu": "యెషయా 41:17-18 దీనులును దరిద్రులును నీళ్లు వెదకుచుండగా నీళ్లు లేక నాలుక దప్పిచేత ఎండిపోవునప్పుడు యెహోవా వారిని విడువకుండుట గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"The poor and needy seek water, but there is none, their tongues fail for thirst. I, the Lord, will hear them; I, the God of Israel, will not forsake them. I will open rivers in desolate heights\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"దీనులును దరిద్రులును నీళ్లు వెదకుచున్నారు, నీళ్లు దొరకక వారి నాలుక దప్పిచేత ఎండిపోవుచున్నది; యెహోవానైన నేను వారికి ఉత్తరమిచ్చెదను, ఇశ్రాయేలు దేవుడనైన నేను వారిని విడిచిపెట్టను. మెట్టలమీద నదులను ఊటలను తెరచెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The poor and needy seek water, but there is none, their tongues fail for thirst. I, the Lord, will hear them; I, the God of Israel, will not forsake them. I will open rivers in desolate heights\"",
+    "bibleReference": "Isaiah 41:17-18",
+    "explanation": "God sovereignly re-engineers geography to pour rivers into barren heights for parched souls.",
+    "explanationTelugu": "దాహముతో నాలుక ఎండిపోయిన దీనులకొరకు ఎడారిలో సైతం నదులను ప్రవహింపజేయు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q28",
+    "order": 28,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Isaiah 43:2 promising: 'When you pass through the waters, I will be with you; and through the rivers, they shall not overflow you'?",
+    "questionTelugu": "యెషయా 43:2 'నీవు జలములలో పడి దాటునప్పుడు నేను నీకు తోడైయుందును, నదులలో పడి వెళ్లునప్పుడు అవి నీమీద పొర్లిపారవు' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"When you pass through the waters, I will be with you; and through the rivers, they shall not overflow you. When you walk through the fire, you shall not be burned\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీవు జలములలో పడి దాటునప్పుడు నేను నీకు తోడైయుందును, నదులలో పడి వెళ్లునప్పుడు అవి నీమీద పొర్లిపారవు; నీవు అగ్నిమధ్యను నడచునప్పుడు కాలిపోవు, జ్వాలలు నిన్ను కాల్చవు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"When you pass through the waters, I will be with you; and through the rivers, they shall not overflow you. When you walk through the fire, you shall not be burned\"",
+    "bibleReference": "Isaiah 43:2",
+    "explanation": "Divine presence guarantees immunity from destruction in floods and fires of persecution.",
+    "explanationTelugu": "జీవిత జలములు నదులు అగ్నిశ్రమలు ఎదురైనను మనలను ముంచివేయకుండా కాపాడు దేవుని అభయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q29",
+    "order": 29,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Jeremiah 29:11 declaring: 'For I know the thoughts that I think toward you, says the Lord, thoughts of peace and not of evil'?",
+    "questionTelugu": "యిర్మీయా 29:11 'నేను మిమ్మునుగూర్చి తలంచుచున్న తలంపులను నేనెరుగుదును, అవి సమాధానకరమైన తలంపులే గాని హానికరమైనవి కావు' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"For I know the thoughts that I think toward you, says the Lord, thoughts of peace and not of evil, to give you a future and a hope\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను మిమ్మునుగూర్చి తలంచుచున్న తలంపులను నేనెరుగుదును, అవి సమాధానకరమైన తలంపులే గాని హానికరమైనవి కావు, రాబోవు కాలమందు మీకు నిరీక్షణ కలుగునట్లుగా చేయుదును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For I know the thoughts that I think toward you, says the Lord, thoughts of peace and not of evil, to give you a future and a hope\"",
+    "bibleReference": "Jeremiah 29:11",
+    "explanation": "Divine architectural care: every season of discipline is purposefully mapped toward hope.",
+    "explanationTelugu": "నిర్వాసన శ్రమలలో ఉన్న ప్రజలకొరకు సమాధానమును నిరీక్షణను సిద్ధపరచిన దేవుని సంరక్షణ తలంపులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q30",
+    "order": 30,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Jeremiah 31:10 on He who scattered Israel gathering him and keeping him as a shepherd does his flock?",
+    "questionTelugu": "యిర్మీయా 31:10 ఇశ్రాయేలును చెదరగొట్టినవాడు అతనిని సమకూర్చి, కాపరి తన మందను కాపాడునట్లు కాపాడును గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"He who scattered Israel will gather him, and keep him as a shepherd does his flock\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఇశ్రాయేలును చెదరగొట్టినవాడు అతనిని సమకూర్చును, కాపరి తన మందను కాపాడునట్లు అతనిని కాపాడును అని అన్యజనులకు చాటించుడి\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He who scattered Israel will gather him, and keep him as a shepherd does his flock\"",
+    "bibleReference": "Jeremiah 31:10",
+    "explanation": "Global ingathering and sovereign pastoral custody over scattered exiles.",
+    "explanationTelugu": "చెదిరిపోయిన తన ప్రజలను నలుదిక్కులనుండి సమకూర్చి కాపరివలె కాపాడు విమోచకుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q31",
+    "order": 31,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Ezekiel 34:11-12 on 'Indeed I Myself will search for My sheep and seek them out as a shepherd seeks out his flock'?",
+    "questionTelugu": "యెహెజ్కేలు 34:11-12 'నేనే నా గొర్రెలను వెదకి వాటిని పరామర్శించెదను, కాపరి తన మందను వెదకునట్లు నేను వెదకెదను' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"For thus says the Lord God: 'Indeed I Myself will search for My sheep and seek them out. As a shepherd seeks out his flock... so will I seek out My sheep and deliver them'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ప్రభువైన యెహోవా ఈలాగు సెలవిచ్చుచున్నాడు-ఇదిగో నేనే నా గొర్రెలను వెదకి వాటిని పరామర్శించెదను; కాపరి చెదిరిపోయిన తన గొర్రెలమధ్య ఉండు దినమున తన మందను వెదకునట్లు నేను నా గొర్రెలను వెదకెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For thus says the Lord God: 'Indeed I Myself will search for My sheep and seek them out. As a shepherd seeks out his flock... so will I seek out My sheep and deliver them'\"",
+    "bibleReference": "Ezekiel 34:11-12",
+    "explanation": "Yahweh Himself descends into the wilderness to conduct the search-and-rescue mission.",
+    "explanationTelugu": "చెదిరిపోయిన ప్రతి గొర్రెను స్వయముగా వెదకి కనుగొని రక్షించే పరమ కాపరియైన యెహోవా.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q32",
+    "order": 32,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Ezekiel 34:15-16 declaring: 'I will feed My flock, and I will make them lie down... I will seek what was lost and bring back what was driven away'?",
+    "questionTelugu": "యెహెజ్కేలు 34:15-16 'నేనే నా మందను మేపెదను, నేను వాటిని పరుండజేసెదను; తప్పిపోయినదానిని వెదకెదను, గాయపడినదానికి కట్టుకట్టెదను' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"I will feed My flock, and I will make them lie down,' says the Lord God. 'I will seek what was lost and bring back what was driven away, bind up the broken and strengthen what was sick'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేనే నా మందను మేపెదను, నేను వాటిని పరుండజేసెదను; తప్పిపోయినదానిని నేను వెదకెదను, తోలివేయబడినదానిని మరల తోడుకొనివచ్చెదను, గాయపడినదానికి కట్టుకట్టెదను, రోగముగలదానిని బలపరచెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I will feed My flock, and I will make them lie down,' says the Lord God. 'I will seek what was lost and bring back what was driven away, bind up the broken and strengthen what was sick'\"",
+    "bibleReference": "Ezekiel 34:15-16",
+    "explanation": "The fourfold clinical pastoral restoration: finding the lost, retrieving the driven, binding the fractured, healing the sick.",
+    "explanationTelugu": "తప్పిపోయినదానిని వెదకి, తోలివేయబడినదానిని రప్పించి, గాయపడినదానికి కట్టుకట్టి బలపరచు దేవుని సంపూర్ణ సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q33",
+    "order": 33,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Hosea 11:3-4 on God teaching Ephraim to walk, taking them by their arms, healing them, drawing them with cords of human kindness?",
+    "questionTelugu": "హోషేయ 11:3-4 ఎఫ్రాయిమునకు నడక నేర్పి చేతులమీద ఎత్తికొని ప్రేమబంధములతో వారిని ఆకర్షించిన దేవుడు గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"I taught Ephraim to walk, taking them by their arms; but they did not know that I healed them. I drew them with gentle cords, with bands of love, and I stooped down and fed them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను ఎఫ్రాయిమునకు నడక నేర్పితిని, నా బాహువులమీద వారిని ఎత్తికొంటిని; అయినను నేను వారిని స్వస్థపరచితినని వారు తెలిసికొనరైరి; మనుష్యులను ఆకర్షించు త్రాళ్లతోను ప్రేమబంధములతోను నేను వారిని ఆకర్షించితిని...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I taught Ephraim to walk, taking them by their arms; but they did not know that I healed them. I drew them with gentle cords, with bands of love, and I stooped down and fed them\"",
+    "bibleReference": "Hosea 11:3-4",
+    "explanation": "Parental toddler-training: bending down low to patiently teach stumbling Israel how to walk.",
+    "explanationTelugu": "చిన్నబిడ్డకు నడక నేర్పినట్లు చేయిపట్టి నడిపించి ప్రేమతో ఆహారము పెట్టిన దేవుని మాతృవాత్సల్యము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q34",
+    "order": 34,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Nahum 1:7 declaring: 'The Lord is good, a stronghold in the day of trouble; and He knows those who trust in Him'?",
+    "questionTelugu": "నహూము 1:7 'యెహోవా ఉత్తముడు, ఆపద్దినమందు ఆయన ఆశ్రయదుర్గము; తనయందు నమ్మకముంచువారిని ఆయన ఎరుగును' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"The Lord is good, a stronghold in the day of trouble; and He knows those who trust in Him\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవా ఉత్తముడు, ఆపద్దినమందు ఆయన ఆశ్రయదుర్గము; తనయందు నమ్మకముంచువారిని ఆయన ఎరుగును.\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord is good, a stronghold in the day of trouble; and He knows those who trust in Him\"",
+    "bibleReference": "Nahum 1:7",
+    "explanation": "Divine relational intimacy: God intimately acknowledges and protects every trusting soul.",
+    "explanationTelugu": "ఆపత్కాలములో శరణ్యమైన కోటగా నిలిచి తన్ను నమ్ముకొనువారిని వ్యక్తిగతముగా గుర్తించి కాపాడు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q35",
+    "order": 35,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Habakkuk 3:17-18 rejoicing in the Lord though the fig tree does not blossom, nor fruit be on the vines?",
+    "questionTelugu": "హబక్కూకు 3:17-18 అంజూరపు చెట్టు పూయకపోయినను ద్రాక్షతోటలు ఫలింపకపోయినను రక్షణకర్తయైన దేవునియందు ఆనందించుట గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"Though the fig tree may not blossom, nor fruit be on the vines... yet I will rejoice in the Lord, I will joy in the God of my salvation\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"అంజూరపు చెట్టు పూయకుండినను, ద్రాక్షతీగెలమీద పండ్లు లేకపోయినను, ఒలీవచెట్లు ఫలింపకపోయినను... నేను యెహోవాయందు ఆనందించెదను, నా రక్షణకర్తయైన నా దేవునియందు సంతోషించెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Though the fig tree may not blossom, nor fruit be on the vines... yet I will rejoice in the Lord, I will joy in the God of my salvation\"",
+    "bibleReference": "Habakkuk 3:17-18",
+    "explanation": "Triumphant faith that rests securely in God's pastoral goodness even amidst total agricultural collapse.",
+    "explanationTelugu": "సర్వసంపదలు కరువులో కొట్టుకుపోయినను దేవుని రక్షణ సంరక్షణను నమ్మి విజయగానము చేయు విశ్వాసము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q36",
+    "order": 36,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Matthew 11:28-30 Jesus inviting: 'Come to Me, all you who labor and are heavy laden, and I will give you rest'?",
+    "questionTelugu": "మత్తయి 11:28-30 'ప్రయాసపడి భారము మోసికొనుచున్న సమస్త జనులారా, నాయొద్దకు రండి, నేను మీకు విశ్రాంతి కలుగజేతును' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"Come to Me, all you who labor and are heavy laden, and I will give you rest. Take My yoke upon you and learn from Me, for I am gentle and lowly in heart\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ప్రయాసపడి భారము మోసికొనుచున్న సమస్త జనులారా, నాయొద్దకు రండి, నేను మీకు విశ్రాంతి కలుగజేతును. నేను సాత్వికుడను దీనమనస్సు గలవాడను గనుక మీమీద నా కాడి ఎత్తికొని నాయొద్ద నేర్చుకొనుడి\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Come to Me, all you who labor and are heavy laden, and I will give you rest. Take My yoke upon you and learn from Me, for I am gentle and lowly in heart\"",
+    "bibleReference": "Matthew 11:28",
+    "explanation": "Christ's gentle pastoral invitation replacing religious legalistic exhaustion with soul-rest.",
+    "explanationTelugu": "జీవిత భారములతో అలసిపోయినవారికి తన సాత్వికమైన ప్రేమతో నిత్య విశ్రాంతినిచ్చు రక్షకుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q37",
+    "order": 37,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Luke 15:4-7 the shepherd leaving the ninety-nine in the wilderness to search for the single lost sheep until he finds it?",
+    "questionTelugu": "లూకా 15:4-7 తప్పిపోయిన ఒక్క గొర్రె కనబడువరకు అరణ్యములో వెదకి దానిని భుజములపై వేసికొని సంతోషించు కాపరి గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"What man of you, having a hundred sheep, if he loses one of them, does not leave the ninety-nine in the wilderness, and go after the one which is lost until he finds it? And when he has found it, he lays it on his shoulders, rejoicing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"మీలో ఏ మనుష్యునికైనను నూరు గొర్రెలు కలిగియుండగా వాటిలో ఒకటి తప్పిపోయినయెడల, అతడు తొంబది తొమ్మిదింటిని అరణ్యములో విడిచిపెట్టి, తప్పిపోయినది దొరుకువరకు దానిని వెదకవెళ్లునా? అది దొరికినప్పుడు సంతోషముతో దానిని తన భుజములమీద వేసికొనును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"What man of you, having a hundred sheep, if he loses one of them, does not leave the ninety-nine in the wilderness, and go after the one which is lost until he finds it? And when he has found it, he lays it on his shoulders, rejoicing\"",
+    "bibleReference": "Luke 15:4-5",
+    "explanation": "Relentless individual care: the shepherd carries the weary wanderer on his shoulders rejoicing.",
+    "explanationTelugu": "తప్పిపోయిన గొర్రెను కనుగొని సంతోషముతో తన భుజములపై మోసికొని ఇంటికి చేర్చుకొను కాపరి ప్రేమ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q38",
+    "order": 38,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding John 6:39 Jesus declaring: 'This is the will of the Father who sent Me, that of all He has given Me I should lose nothing'?",
+    "questionTelugu": "యోహాను 6:39 'తండ్రి నాకు అనుగ్రహించినవాటిలో నేనేమియు పోగొట్టుకొనక అంత్యదినమున దాని లేపుటయే ఆయన చిత్తము' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"This is the will of the Father who sent Me, that of all He has given Me I should lose nothing, but should raise it up at the last day\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఆయన నాకు అనుగ్రహించినవాటిలో నేనేమియు పోగొట్టుకొనక, అంత్యదినమున దాని లేపుటయే నన్ను పంపిన తండ్రి చిత్తమై యున్నది\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"This is the will of the Father who sent Me, that of all He has given Me I should lose nothing, but should raise it up at the last day\"",
+    "bibleReference": "John 6:39",
+    "explanation": "Eternal security guaranteed: Christ's sovereign pastoral grip refuses to drop a single believer.",
+    "explanationTelugu": "తండ్రి తన చేతికిచ్చిన విశ్వాసులలో ఒక్కనినైనను పోగొట్టుకొనకుండా కాపాడు రక్షకుని శాశ్వత సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q39",
+    "order": 39,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding John 10:28-29 on 'I give them eternal life, and they shall never perish; neither shall anyone snatch them out of My hand'?",
+    "questionTelugu": "యోహాను 10:28-29 'నేను వాటికి నిత్యజీవము నిచ్చుచున్నాను, అవి ఎన్నటికిని నశింపవు, ఎవడును వాటిని నా చేతిలోనుండి అపహరింపడు' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"And I give them eternal life, and they shall never perish; neither shall anyone snatch them out of My hand. My Father, who has given them to Me, is greater than all\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను వాటికి నిత్యజీవము నిచ్చుచున్నాను గనుక అవి ఎన్నటికిని నశింపవు, ఎవడును వాటిని నా చేతిలోనుండి అపహరింపడు; వాటిని నాకిచ్చిన నా తండ్రి అందరికంటె గొప్పవాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"And I give them eternal life, and they shall never perish; neither shall anyone snatch them out of My hand. My Father, who has given them to Me, is greater than all\"",
+    "bibleReference": "John 10:28-29",
+    "explanation": "The double-fisted grip of omnipotence: held securely in the hand of the Son and of the Father.",
+    "explanationTelugu": "క్రీస్తు చేతిలోను తండ్రి చేతిలోను భద్రపరచబడిన విశ్వాసిని ఏ శత్రువును అపహరింపజాలడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q40",
+    "order": 40,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding John 17:12 Jesus praying: 'Those whom You gave Me I have kept; and none of them is lost except the son of perdition'?",
+    "questionTelugu": "యోహాను 17:12 'నీవు నాకు అనుగ్రహించినవారిని నేను కాపాడితిని; లేఖనము నెరవేరునట్లు నాశనపుత్రుడు తప్ప వారిలో ఎవడును నశించలేదు' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"While I was with them in the world, I kept them in Your name. Those whom You gave Me I have kept; and none of them is lost except the son of perdition\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను వారితోకూడ ఉన్నప్పుడు నీవు నాకు అనుగ్రహించిన నీ నామమందు వారిని కాపాడితిని; నేను వారిని భద్రపరచితిని గనుక లేఖనము నెరవేరునట్లు నాశనపుత్రుడు తప్ప వారిలో ఎవడును నశింపలేదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"While I was with them in the world, I kept them in Your name. Those whom You gave Me I have kept; and none of them is lost except the son of perdition\"",
+    "bibleReference": "John 17:12",
+    "explanation": "Christ's high-priestly custody shielding His disciples from cosmic demonic destruction.",
+    "explanationTelugu": "లోకములో ఉన్న శిష్యులను అపవాది చేతిలో పడకుండా తన నామమందు భద్రపరచిన యేసు క్రీస్తు విజ్ఞాపన.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q41",
+    "order": 41,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding John 18:8-9 Jesus commanding His arresters in Gethsemane: 'If you seek Me, let these go their way'?",
+    "questionTelugu": "యోహాను 18:8-9 గెత్సేమనేలో సైనికులతో యేసు: 'మీరు నన్ను వెదకుచున్నయెడల వీరిని పోనియ్యుడి' అని శిష్యులను కాపాడుట గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"Jesus answered, 'I have told you that I am He. Therefore if you seek Me, let these go their way,' that the saying might be fulfilled which He spoke, 'Of those whom You gave Me I have lost none'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యేసు-నేనే ఆయననని మీతో చెప్పితిని గనుక మీరు నన్ను వెదకుచున్నయెడల వీరిని పోనియ్యుడని చెప్పెను; నీవు నాకు అనుగ్రహించినవారిలో ఎవనిని నేనెంతమాత్రమును పోగొట్టుకొనలేదని తాను చెప్పిన మాట నెరవేరునట్లు ఈలాగు జరిగెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Jesus answered, 'I have told you that I am He. Therefore if you seek Me, let these go their way,' that the saying might be fulfilled which He spoke, 'Of those whom You gave Me I have lost none'\"",
+    "bibleReference": "John 18:8-9",
+    "explanation": "Christ shielding His vulnerable flock by offering Himself exclusively to the executioners.",
+    "explanationTelugu": "శిష్యుల ప్రాణములకు ఏ హాని కలుగకుండా తన్నుతాను శత్రువులకు అప్పగించుకొని వారిని కాపాడిన మంచి కాపరి.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q42",
+    "order": 42,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Romans 8:31-32 declaring: 'He who did not spare His own Son, but delivered Him up for us all, how shall He not with Him also freely give us all things?'?",
+    "questionTelugu": "రోమీయులకు 8:31-32 'తన సొంత కుమారుని అనుగ్రహించుటకు వెనుతీయక మన అందరికొరకు ఆయనను అప్పగించినవాడు ఆయనతోపాటు సమస్తమును మనకెందుకు ఉచితముగా అనుగ్రహింపడు?' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"He who did not spare His own Son, but delivered Him up for us all, how shall He not with Him also freely give us all things?\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"తన సొంతకుమారుని అనుగ్రహించుటకు వెనుకతీయక మన అందరికొరకు ఆయనను అప్పగించినవాడు ఆయనతోపాటు సమస్తమును మనకెందుకు ఉచితముగా అనుగ్రహింపడు?\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He who did not spare His own Son, but delivered Him up for us all, how shall He not with Him also freely give us all things?\"",
+    "bibleReference": "Romans 8:32",
+    "explanation": "The ultimate theological guarantee: the Father who sacrificed His greatest Treasure will surely provide lesser daily needs.",
+    "explanationTelugu": "మనకొరకు తన ప్రియ కుమారుని అర్పించిన పరలోకపు తండ్రి సమస్త ఆశీర్వాదములను మనకు ఉచితముగా సమకూర్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q43",
+    "order": 43,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding 1 Corinthians 10:13 on God being faithful, who will not allow you to be tempted beyond what you are able, but will make the way of escape?",
+    "questionTelugu": "1 కొరింథీయులకు 10:13 దేవుడు నమ్మదగినవాడు; మీరు సహింపగలిగినంతకంటె ఎక్కువగా ఆయన మిమ్మును శోధింపబడనియ్యడు గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"God is faithful, who will not allow you to be tempted beyond what you are able, but with the temptation will also make the way of escape, that you may be able to bear it\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"దేవుడు నమ్మదగినవాడు; మీరు సహింపగలిగినంతకంటె ఎక్కువగా ఆయన మిమ్మును శోధింపబడనియ్యడు; అంతేకాదు, సహింపగలుగుటకు ఆయన శోధనతోకూడ తప్పించుకొను మార్గమును కలుగజేయును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"God is faithful, who will not allow you to be tempted beyond what you are able, but with the temptation will also make the way of escape, that you may be able to bear it\"",
+    "bibleReference": "1 Corinthians 10:13",
+    "explanation": "Thermostatic spiritual care: God monitors the intensity of trial and always prepares the rescue hatch.",
+    "explanationTelugu": "శ్రమల తీవ్రతను కనిపెట్టి విశ్వాసి భరించగలిగినంతవరకే అనుమతించి తప్పించు మార్గమును సిద్ధపరచు దేవుని సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q44",
+    "order": 44,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding 2 Corinthians 1:3-4 blessing the Father of mercies who comforts us in all our tribulation that we may comfort others?",
+    "questionTelugu": "2 కొరింథీయులకు 1:3-4 కనికరముల తండ్రి మన శ్రమలన్నిటిలో మమ్మును ఆదరించుచున్నాడు; తద్వారా ఇతరులను ఆదరించుటకు బలపరచుచున్నాడు గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"Blessed be the God and Father of our Lord Jesus Christ, the Father of mercies and God of all comfort, who comforts us in all our tribulation, that we may be able to comfort those who are in any trouble\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"మన ప్రభువైన యేసుక్రీస్తుయొక్క తండ్రియైన దేవుడు, కనికరములు చూపు తండ్రియు, సమస్తమైన ఆదరణను అనుగ్రహించు దేవుడును స్తుతింపబడును గాక. దేవుడు మమ్మును ఏ ఆదరణతో ఆదరించుచున్నాడో, ఆ ఆదరణతో ఎట్టి శ్రమలలో ఉన్నవారినైనను ఆదరించుటకు శక్తిగలవారమగునట్లు...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Blessed be the God and Father of our Lord Jesus Christ, the Father of mercies and God of all comfort, who comforts us in all our tribulation, that we may be able to comfort those who are in any trouble\"",
+    "bibleReference": "2 Corinthians 1:3-4",
+    "explanation": "Redemptive suffering: our received comfort becomes the clinic equiping us to care for other broken souls.",
+    "explanationTelugu": "దేవునినుండి పొందిన ఆదరణద్వారా శ్రమలలో ఉన్న తోటివారిని ఆదరించి ఓదార్చు పరిచర్య.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q45",
+    "order": 45,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding 2 Thessalonians 3:3 promising: 'The Lord is faithful, who will establish you and guard you from the evil one'?",
+    "questionTelugu": "2 థెస్సలొనీకయులకు 3:3 'ప్రభువు నమ్మదగినవాడు; ఆయన మిమ్మును స్థిరపరచి దుష్టునినుండి కాపాడును' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"But the Lord is faithful, who will establish you and guard you from the evil one\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"అయితే ప్రభువు నమ్మదగినవాడు; ఆయన మిమ్మును స్థిరపరచి దుష్టునినుండి కాపాడును.\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"But the Lord is faithful, who will establish you and guard you from the evil one\"",
+    "bibleReference": "2 Thessalonians 3:3",
+    "explanation": "Sovereign defensive perimeter: the Lord erects an impenetrable spiritual garrison against Satan.",
+    "explanationTelugu": "దుష్టుడైన అపవాది దాడులనుండి మనలను భద్రపరచి ఆత్మీయముగా స్థిరపరచు నమ్మకమైన ప్రభువు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q46",
+    "order": 46,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Hebrews 7:25 on Christ living forever to make intercession for those who come to God through Him?",
+    "questionTelugu": "హెబ్రీయులకు 7:25 తనద్వారా దేవునియొద్దకు వచ్చువారి పక్షమున విజ్ఞాపన చేయుటకు నిరంతరము జీవించుచున్న రక్షకుడు గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"Therefore He is also able to save to the uttermost those who come to God through Him, since He always lives to make intercession for them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఈయన తనద్వారా దేవునియొద్దకు వచ్చువారి పక్షమున విజ్ఞాపన చేయుటకు నిరంతరము జీవించుచున్నాడు గనుక వారిని సంపూర్ణముగా రక్షించుటకు శక్తిమంతుడై యున్నాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Therefore He is also able to save to the uttermost those who come to God through Him, since He always lives to make intercession for them\"",
+    "bibleReference": "Hebrews 7:25",
+    "explanation": "Christ's unending heavenly ministry: 24/7 perpetual advocacy securing the believer's final perseverance.",
+    "explanationTelugu": "పరలోకమందు తండ్రి కుడిపార్శ్వమున నిత్యము మనకొరకు ప్రార్థించుచున్న ప్రధానయాజకుడైన యేసుక్రీస్తు సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q47",
+    "order": 47,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Hebrews 13:5-6 the divine covenant promise: 'I will never leave you nor forsake you. So we may boldly say: The Lord is my helper'?",
+    "questionTelugu": "హెబ్రీయులకు 13:5-6 'నేను నిన్ను ఏమాత్రమును విడువను, నిన్ను ఎన్నడును ఎడబాయను; కాబట్టి-ప్రభువు నాకు సహాయకుడు, నేను భయపడను' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"For He Himself has said, 'I will never leave you nor forsake you.' So we may boldly say: 'The Lord is my helper; I will not fear. What can man do to me?'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను నిన్ను ఏమాత్రమును విడువను, నిన్ను ఎన్నడును ఎడబాయను అని ఆయనయే చెప్పియున్నాడు గనుక-ప్రభువు నాకు సహాయకుడు, నేను భయపడను, నరమాత్రుడు నాకేమి చేయగలడు? అని మంచి ధైర్యముతో చెప్పగలవారమై యున్నాము\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For He Himself has said, 'I will never leave you nor forsake you.' So we may boldly say: 'The Lord is my helper; I will not fear. What can man do to me?'\"",
+    "bibleReference": "Hebrews 13:5-6",
+    "explanation": "Fivefold Greek negative reinforcement guaranteeing total, unconditional presence and financial contentment.",
+    "explanationTelugu": "ఎట్టి శ్రమలలోను ఒంటరిగా విడిచిపెట్టక నిరంతరము తోడైయుండి సహాయము చేయు దేవుని అచంచల వాగ్దానము.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q48",
+    "order": 48,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding 1 Peter 2:25 on returning unto the Shepherd and Overseer (Bishop) of your souls?",
+    "questionTelugu": "1 పేతురు 2:25 మీ ఆత్మల కాపరియు అధ్యక్షుడునైన ఆయనయొద్దకు ఇప్పుడు మళ్లుకొనుట గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"For you were like sheep going astray, but have now returned to the Shepherd and Overseer of your souls\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"మీరు గొర్రెలవలె దారితప్పిపోతిరి గాని యిప్పుడు మీ ఆత్మల కాపరియు అధ్యక్షుడునైన ఆయనయొద్దకు మళ్లుకొనియున్నారు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For you were like sheep going astray, but have now returned to the Shepherd and Overseer of your souls\"",
+    "bibleReference": "1 Peter 2:25",
+    "explanation": "Christ is the episkopos (vigilant guardian) watching over the immortal health of the soul.",
+    "explanationTelugu": "దారితప్పిన మనలను చేరదీసి నిరంతరము కనిపెట్టుచున్న మన ఆత్మల పరమ కాపరియైన యేసు క్రీస్తు.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q49",
+    "order": 49,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Jude 1:24 doxology: 'Now to Him who is able to keep you from stumbling, and to present you faultless before the presence of His glory'?",
+    "questionTelugu": "యూదా 1:24 'తొట్రిల్లకుండ మిమ్మును కాపాడుటకును, తన మహిమయెదుట నిర్దోషులుగా నిలువబెట్టుటకును శక్తిగల మన రక్షకుడు' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"Now to Him who is able to keep you from stumbling, and to present you faultless before the presence of His glory with exceeding joy\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"తొట్రిల్లకుండ మిమ్మును కాపాడుటకును, తన మహిమయెదుట నిర్దోషులుగా నిలువబెట్టుటకును శక్తిగల మన రక్షకుడైన అద్వితీయ దేవునికి... మహిమయు ప్రభావమును కలుగును గాక\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Now to Him who is able to keep you from stumbling, and to present you faultless before the presence of His glory with exceeding joy\"",
+    "bibleReference": "Jude 1:24",
+    "explanation": "The sovereign bodyguard of salvation: preserving believers through earthly hazards until glorified.",
+    "explanationTelugu": "విశ్వాస యాత్రలో జారిపడకుండా కాపాడి పరలోక మహిమలో నిలువబెట్టే దేవుని సంపూర్ణ సంరక్షణ శక్తి.",
+    "marks": 1
+  },
+  {
+    "id": "car_e_s3_q50",
+    "order": 50,
+    "questionType": "single_choice",
+    "question": "What eternal covenant truth or divine promise is declared regarding Revelation 7:16-17 on 'They shall neither hunger anymore nor thirst anymore... for the Lamb will shepherd them and lead them to living fountains of waters'?",
+    "questionTelugu": "ప్రకటన 7:16-17 'వారికి ఇకమీదట ఆకలియైనను దప్పియైనను కలుగదు; ఏలయనగా సింహాసనమధ్యమందుండు గొర్రెపిల్లయే వారిని మేపి జీవజలముల బుగ్గలయొద్దకు నడిపించును' గూర్చి లేఖనములో ఇవ్వబడిన నిత్య నిబంధన సత్యము లేదా దైవిక వాగ్దానమేమి?",
+    "options": [
+      "\"They shall neither hunger anymore nor thirst anymore; the sun shall not strike them... for the Lamb who is in the midst of the throne will shepherd them and lead them to living fountains of waters. And God will wipe away every tear from their eyes\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"వారికి ఇకమీదట ఆకలియైనను దప్పియైనను కలుగదు, ఎండయైనను ఏ ఉక్కయైనను వారికి తగలదు; ఏలయనగా సింహాసనమధ్యమందుండు గొర్రెపిల్లయే వారిని మేపి, జీవజలముల బుగ్గలయొద్దకు వారిని నడిపించును; దేవుడే వారి కన్నులనుండి ప్రతి భాష్పబిందువును తుడిచివేయును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"They shall neither hunger anymore nor thirst anymore; the sun shall not strike them... for the Lamb who is in the midst of the throne will shepherd them and lead them to living fountains of waters. And God will wipe away every tear from their eyes\"",
+    "bibleReference": "Revelation 7:16-17",
+    "explanation": "Eschatological consummation of care: eternal shepherd-leading where every tear is tenderly wiped away.",
+    "explanationTelugu": "పరలోక నిత్యత్వములో గొర్రెపిల్లయైన క్రీస్తు తన ప్రజలను నిత్య జీవజలములయొద్దకు నడిపించి కన్నీళ్లన్నిటినీ తుడిచివేయు పరమ సంరక్షణ.",
+    "marks": 1
+  }
+];
+
+export const CARE_MEDIUM_FOUNDATION: QuizQuestion[] = [
+  {
+    "id": "car_m_s1_q01",
+    "order": 1,
+    "questionType": "single_choice",
+    "question": "What profound reason is given in 1 Peter 5:7 for casting all our cares upon God?",
+    "questionTelugu": "1 పేతురు 5:7 లో మన చింతలన్నిటిని దేవునిపై వేయవలెననుటకు ఏ పరమ కారణము చెప్పబడినది?",
+    "options": [
+      "Cast all your care upon Him, for He cares for you",
+      "Hide your anxieties in sixty secret jars",
+      "Carry the burden alone through forty desert trials",
+      "Pay thirty silver coins to temple counselors"
+    ],
+    "optionsTelugu": [
+      "ఆయన మిమ్మునుగూర్చి చింతించుచున్నాడు గనుక మీ చింత యావత్తు ఆయనమీద వేయుడి",
+      "మీ చింతలను అరవై రహస్య పాత్రలలో దాచిపెట్టుడి",
+      "నలభై అరణ్య శ్రమలలో ఒంటరిగా ఆ భారమును మోయుడి",
+      "దేవాలయ సలహాదారులకు ముప్పది వెండి నాణెములు చెల్లించుడి"
+    ],
+    "correctAnswer": "Cast all your care upon Him, for He cares for you",
+    "bibleReference": "1 Peter 5:7",
+    "explanation": "Peter comforts believers to roll every anxiety upon God because He personally, tenderly cares for them.",
+    "explanationTelugu": "ఆయన మిమ్మునుగూర్చి చింతించుచున్నాడు గనుక మీ చింత యావత్తు ఆయనమీద వేయుడి.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q02",
+    "order": 2,
+    "questionType": "single_choice",
+    "question": "According to Matthew 6:26, why should humans never surrender to paralyzing anxiety about daily food?",
+    "questionTelugu": "మత్తయి 6:26 ప్రకారం దైనందిన ఆహారము విషయములో మనుష్యులు ఆందోళన చెందకూడదనుటకు యేసు ఏ తులనాత్మక సత్యమును పలికెను?",
+    "options": [
+      "They neither sow nor reap nor gather into barns, yet your Heavenly Father feeds them",
+      "They build forty grain storehouses in the trees",
+      "They fast seven months during severe desert drought",
+      "They purchase grain from the markets of Capernaum"
+    ],
+    "optionsTelugu": [
+      "అవి విత్తవు కోయవు కొట్లలో కూర్చుకొనవు; అయినను మీ పరలోకపు తండ్రి వాటిని పోషించుచున్నాడు",
+      "అవి చెట్లపై నలభై ధాన్యాగారములను నిర్మించును",
+      "తీవ్రమైన కరువులో అవి ఏడు నెలలు ఉపవాసముండును",
+      "కపెర్నహూము సంతలలో అవి ధాన్యమును కొనుగోలు చేయును"
+    ],
+    "correctAnswer": "They neither sow nor reap nor gather into barns, yet your Heavenly Father feeds them",
+    "bibleReference": "Matthew 6:26",
+    "explanation": "Jesus points out that our Heavenly Father faithfully feeds birds who cannot store food; how much more will He care for His children!",
+    "explanationTelugu": "ఆకాశ పక్షులను చూడుడి; అవి విత్తవు కోయవు కొట్లలో కూర్చుకొనవు; అయినను మీ పరలోకపు తండ్రి వాటిని పోషించుచున్నాడు; మీరు వాటికంటె బహు శ్రేష్ఠులు కారా?",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q03",
+    "order": 3,
+    "questionType": "single_choice",
+    "question": "According to Matthew 6:29, how did the natural splendor of a field flower compare to King Solomon in all his glory?",
+    "questionTelugu": "మత్తయి 6:29 ప్రకారం అడవి పువ్వుల అలంకారముతో పోలిస్తే సమస్త వైభవముతో కూడిన సొలొమోను అలంకారము ఎట్టిది?",
+    "options": [
+      "They neither toil nor spin; yet even Solomon in all his glory was not arrayed like one of these",
+      "They weave sixty garments of Egyptian linen",
+      "They trade in the royal bazaar of Tyre",
+      "They store forty bundles of purple wool"
+    ],
+    "optionsTelugu": [
+      "అవి కష్టపడవు వడకవు; అయినను తన సమస్త వైభవముతో కూడిన సొలొమోను సహితము వీటిలో ఒకదానివలెనైనను అలంకరింపబడలేదు",
+      "అవి ఐగుప్తు సన్నపు నారతో అరవై వస్త్రములను నేయును",
+      "అవి తీరు రాజ బజారులో వర్తకము చేయును",
+      "అవి నలభై కట్టల ఊదారంగు ఉన్నిని దాచిపెట్టును"
+    ],
+    "correctAnswer": "They neither toil nor spin; yet even Solomon in all his glory was not arrayed like one of these",
+    "bibleReference": "Matthew 6:28-29",
+    "explanation": "Jesus shows that God clothes wildflowers with greater majesty than King Solomon, proving He will surely clothe His faithful children.",
+    "explanationTelugu": "అడవి పువ్వులు ఏలాగు ఎదుగుచున్నవో ఆలోచించుడి. అవి కష్టపడవు వడకవు; అయినను తన సమస్త వైభవముతో కూడిన సొలొమోను సహితము వీటిలో ఒకదానివలెనైనను అలంకరింపబడలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q04",
+    "order": 4,
+    "questionType": "single_choice",
+    "question": "In Luke 12:6-7, how does God's remembrance of cheap sparrows reassure believers of their infinite worth to Him?",
+    "questionTelugu": "లూకా 12:6-7 లో పిచ్చుకలను కూడ మరచిపోని దేవుడు విశ్వాసుల అమూల్యమైన విలువను ఎలా స్థిరపరచెను?",
+    "options": [
+      "The very hairs of your head are all numbered; do not fear therefore; you are of more value than many sparrows",
+      "Your hairs are inspected forty days by temple priests",
+      "Your days are governed by the planetary signs of Babylon",
+      "Your body is left to the chance whims of nature"
+    ],
+    "optionsTelugu": [
+      "మీ తలవెండ్రుకలన్నియు లెక్కింపబడియున్నవి; భయపడకుడి, మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు",
+      "మీ వెండ్రుకలు నలభై దినములు యాజకులచేత పరిశోధింపబడును",
+      "మీ ఆయుష్షు బబులోను నక్షత్ర రాశులచేత నిర్ణయింపబడును",
+      "మీ శరీరము ప్రకృతి యాదృచ్ఛికతకు విడిచిపెట్టబడెను"
+    ],
+    "correctAnswer": "The very hairs of your head are all numbered; do not fear therefore; you are of more value than many sparrows",
+    "bibleReference": "Luke 12:7",
+    "explanation": "Jesus reassures us that God tracks the most minute details of our lives; even the hairs on our head are individually numbered.",
+    "explanationTelugu": "మీ తలవెండ్రుకలన్నియు లెక్కింపబడియున్నవి గనుక భయపడకుడి; మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q05",
+    "order": 5,
+    "questionType": "single_choice",
+    "question": "According to John 10:12-13, why does a hired hand flee when the wolf attacks?",
+    "questionTelugu": "యోహాను 10:12-13 ప్రకారం తోడేలు వచ్చుట చూచి కూలివాడు పారిపోవుటకు కారణమేమి?",
+    "options": [
+      "The Good Shepherd gives His life for the sheep, but a hireling flees because he does not care about the sheep",
+      "The hireling trains sixty watchdogs to fight wolves",
+      "The shepherd shears the sheep forty times in spring",
+      "The hireling sells forty rams to pay palace taxes"
+    ],
+    "optionsTelugu": [
+      "మంచి కాపరి గొర్రెలకొరకు తన ప్రాణము పెట్టును; జీతగాడు గొర్రెలనుగూర్చి చింతింపక పారిపోవును",
+      "జీతగాడు తోడేళ్లతో పోరాడుటకు అరవై కావలి కుక్కలను పెంచును",
+      "కాపరి వసంతకాలములో నలభైసార్లు గొర్రెల బొచ్చును కత్తిరించును",
+      "జీతగాడు రాజపన్ను చెల్లించుటకు నలభై పొట్టేళ్లను అమ్మును"
+    ],
+    "correctAnswer": "The Good Shepherd gives His life for the sheep, but a hireling flees because he does not care about the sheep",
+    "bibleReference": "John 10:11-13",
+    "explanation": "Jesus contrasts His self-sacrificing pastoral care with the mercenary hireling who abandons the sheep when danger arrives.",
+    "explanationTelugu": "నేను గొర్రెలకు మంచి కాపరిని; మంచి కాపరి గొర్రెలకొరకు తన ప్రాణము పెట్టును. జీతగాడు కాపరికాడు గనుక తోడేలు వచ్చుట చూచి గొర్రెలను విడిచి పారిపోవును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q06",
+    "order": 6,
+    "questionType": "single_choice",
+    "question": "What instructions and blank financial guarantee did the Samaritan give to the innkeeper in Luke 10:35?",
+    "questionTelugu": "లూకా 10:35 లో సత్రపు యజమానునికి సమరయుడు రెండు దేనారములు ఇచ్చి ఏ మాట చెప్పెను?",
+    "options": [
+      "Bandaged his wounds, poured on oil and wine, brought him to an inn, and gave two denarii saying 'Take care of him'",
+      "Gave him forty lashes for walking alone to Jericho",
+      "Left him seven loaves of barley bread on the road",
+      "Carried him forty miles to the Roman barracks in Caesarea"
+    ],
+    "optionsTelugu": [
+      "గాయములను కట్టి, నూనెయు ద్రాక్షారసమును పోసి, సత్రమునకు తీసికొనిపోయి, రెండు దేనారములు ఇచ్చి 'ఇతనిని పరామర్శించుము' అనెను",
+      "యెరికో మార్గములో ఒంటరిగా నడిచినందుకు నలభై కొరడా దెబ్బలు కొట్టెను",
+      "దారిలో ఏడు యవల రొట్టెలను విడిచిపెట్టి వెళ్లిపోయెను",
+      "కైసరయలోని రోమా సైనిక శిబిరమునకు నలభై మైళ్లు మోసుకొనిపోయెను"
+    ],
+    "correctAnswer": "Bandaged his wounds, poured on oil and wine, brought him to an inn, and gave two denarii saying 'Take care of him'",
+    "bibleReference": "Luke 10:34-35",
+    "explanation": "The Samaritan bound the victim's wounds, transported him to an inn, paid for his lodging, and promised to cover any additional care costs.",
+    "explanationTelugu": "అతని గాయములను కట్టి, నూనెయు ద్రాక్షారసమును పోసి, తన స్వంత వాహనముమీద ఎక్కించి, ఒక సత్రమునకు తీసికొనిపోయి అతనిని పరామర్శించెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q07",
+    "order": 7,
+    "questionType": "single_choice",
+    "question": "According to James 1:27, why is caring for orphans and widows in their affliction inseparable from personal holiness?",
+    "questionTelugu": "యాకోబు 1:27 ప్రకారం దిక్కులేని పిల్లలను విధవరాండ్రను వారి శ్రమలో పరామర్శించుట లోక మాలిన్యము అంటకుండా కాపాడుకొనుటతో ఎలా జతచేయబడినది?",
+    "options": [
+      "To visit orphans and widows in their trouble, and to keep oneself unspotted from the world",
+      "To offer sixty burnt offerings on the temple mount",
+      "To fast forty consecutive days in the desert caves",
+      "To memorize seven hundred verses of oral traditions"
+    ],
+    "optionsTelugu": [
+      "దిక్కులేని పిల్లలను విధవరాండ్రను వారి యిబ్బందిలో పరామర్శించుటయు, ఇహలోక మాలిన్యము తనకంటకుండా తన్నుతాను కాపాడుకొనుటయునై యున్నది",
+      "దేవాలయ పర్వతముపై అరవై దహనబలులను అర్పించుట",
+      "ఎడారి గుహలలో వరుసగా నలభై దినములు ఉపవాసముండుట",
+      "ఏడువందల పారంపర్యాచార వచనములను కంఠస్థము చేయుట"
+    ],
+    "correctAnswer": "To visit orphans and widows in their trouble, and to keep oneself unspotted from the world",
+    "bibleReference": "James 1:27",
+    "explanation": "Pure religion requires compassionate, hands-on care for vulnerable orphans and widows, alongside personal moral purity.",
+    "explanationTelugu": "తండ్రియైన దేవునియెదుట పవిత్రమును నిష్కళంకమునైన భక్తి యేదనగా-దిక్కులేని పిల్లలను విధవరాండ్రను వారి యిబ్బందిలో పరామర్శించుటయు, ఇహలోక మాలిన్యము తనకంటకుండా తన్ను కాపాడుకొనుటయునై యున్నది.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q08",
+    "order": 8,
+    "questionType": "single_choice",
+    "question": "In 1 Timothy 5:8, why is neglecting the material care of aging relatives judged as denying the Christian faith?",
+    "questionTelugu": "1 తిమోతి 5:8 ప్రకారం కుటుంబ పోషణను విస్మరించువాడు విశ్వాసత్యాగము చేసి అవిశ్వాసికంటె చెడ్డవాడగుటకు కారణమేమి?",
+    "options": [
+      "He has denied the faith and is worse than an unbeliever",
+      "He shall pay forty shekels to the local synagogue",
+      "He must fast seven weeks outside the camp of Israel",
+      "He shall be demoted to junior temple servant"
+    ],
+    "optionsTelugu": [
+      "అతడు విశ్వాసత్యాగము చేసినవాడై అవిశ్వాసికంటె చెడ్డవాడై యుండును",
+      "స్థానిక సమాజమందిరమునకు నలభై షెకెళ్ల జరిమానా చెల్లించవలెను",
+      "ఇశ్రాయేలు పాళెము వెలుపల ఏడు వారములు ఉపవాసముండవలెను",
+      "దేవాలయములో కనిష్ఠ సేవకునిగా తగ్గించబడవలెను"
+    ],
+    "correctAnswer": "He has denied the faith and is worse than an unbeliever",
+    "bibleReference": "1 Timothy 5:8",
+    "explanation": "Paul sternly states that anyone who fails to provide for their own household has denied the faith and is worse than an unbeliever.",
+    "explanationTelugu": "ఎవడైనను స్వకీయులను, విశేషముగా తన యింటివారిని సంరక్షింపకపోయినయెడల, వాడు విశ్వాసత్యాగము చేసినవాడై అవిశ్వాసికంటె చెడ్డవాడై యుండును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q09",
+    "order": 9,
+    "questionType": "single_choice",
+    "question": "According to 1 Corinthians 12:25-26, how do members of the church share each other's suffering and honor?",
+    "questionTelugu": "1 కొరింథీయులకు 12:25-26 ప్రకారం ఒక అవయవము శ్రమపడునప్పుడు మిగిలిన అవయవములు ఎలా పాలుపంచుకొనవలెను?",
+    "options": [
+      "That there should be no division in the body, but that the members should have the same care for one another",
+      "That wealthy members build forty private meeting halls",
+      "That eloquent speakers silence all weaker members",
+      "That elders collect thirty gold talents from every household"
+    ],
+    "optionsTelugu": [
+      "శరీరములో భేదము లేక, అవయవములు ఒకదానికొరకు ఒకటి సమానముగా చింతించునట్లు",
+      "ధనవంతులైన విశ్వాసులు నలభై ప్రత్యేక భవనములను నిర్మించుకొనునట్లు",
+      "గొప్ప ఉపన్యాసకులు బలహీనులను నిశ్శబ్దపరచునట్లు",
+      "పెద్దలు ప్రతి గృహమునుండి ముప్పది బంగారు నాణెములను వసూలు చేయునట్లు"
+    ],
+    "correctAnswer": "That there should be no division in the body, but that the members should have the same care for one another",
+    "bibleReference": "1 Corinthians 12:25",
+    "explanation": "Paul commands that in Christ's body there should be no faction, but all members should cherish and care for one another equally.",
+    "explanationTelugu": "శరీరములో భేదము లేక, అవయవములు ఒకదానికొరకు ఒకటి సమానముగా చింతించునట్లు దేవుడు శరీరమును అమర్చియున్నాడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q10",
+    "order": 10,
+    "questionType": "single_choice",
+    "question": "In 2 Corinthians 11:28-29, how did Paul deeply feel the weakness and stumbling of any believer under his care?",
+    "questionTelugu": "2 కొరింథీయులకు 11:28-29 ప్రకారం ఏ విశ్వాసియైనను బలహీనపడినప్పుడు పౌలు హృదయములో ఏ వేదన కలిగెడిది?",
+    "options": [
+      "My deep concern and care for all the churches",
+      "Managing forty commercial vineyards in Corinth",
+      "Appealing to Caesar for sixty silver grants",
+      "Constructing seven stone temples in Galatia"
+    ],
+    "optionsTelugu": [
+      "సమస్త సంఘములనుగూర్చిన చింతయు నన్ను రోజూ నెట్టుచున్న భారము",
+      "కొరింథులో నలభై ద్రాక్షతోటలను పర్యవేక్షించుట",
+      "కైసరునుండి అరవై వెండి విరాళములను కోరుట",
+      "గలతీయలో ఏడు రాతి దేవాలయములను నిర్మించుట"
+    ],
+    "correctAnswer": "My deep concern and care for all the churches",
+    "bibleReference": "2 Corinthians 11:28",
+    "explanation": "Beyond physical floggings and shipwrecks, Paul carried the daily emotional and spiritual weight of care for all the churches.",
+    "explanationTelugu": "ఇంకా చెప్పవలసినవి అనేకములున్నవి; అవియుగాక సంఘములన్నిటినిగూర్చిన చింతయు నన్ను ప్రతిదినము నెట్టుచున్న భారము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q11",
+    "order": 11,
+    "questionType": "single_choice",
+    "question": "According to Philippians 2:20-21, why was Timothy so uniquely trusted by Paul compared to others seeking their own interests?",
+    "questionTelugu": "ఫిలిప్పీయులకు 2:20-21 ప్రకారం అందరు తమ సొంత కార్యములనే చూచుకొనుచుండగా, తిమోతి ఎవరి కార్యములను ప్రేమతో చూచెను?",
+    "options": [
+      "I have no one like-minded, who will sincerely care for your state",
+      "He brings sixty talents of Macedonian silver",
+      "He can speak thirty foreign dialects fluently",
+      "He commands four legions of Roman guards"
+    ],
+    "optionsTelugu": [
+      "మీ క్షేమమునుగూర్చి యథార్థముగా చింతించువాడు అతనివంటి మనస్సుగలవాడెవడును నాయొద్ద లేడు",
+      "అతడు మాసిదోనియనుండి అరవై వెండి తలాంతులను తెచ్చును",
+      "అతడు ముప్పది విదేశీ భాషలను అనర్గళముగా మాట్లాడగలడు",
+      "అతడు రోమా సైనికుల నాలుగు దళములను నడిపించును"
+    ],
+    "correctAnswer": "I have no one like-minded, who will sincerely care for your state",
+    "bibleReference": "Philippians 2:20",
+    "explanation": "Paul commended Timothy as uniquely devoted to caring sincerely for the spiritual well-being of the Philippians, unlike self-seeking workers.",
+    "explanationTelugu": "మీ క్షేమమునుగూర్చి యథార్థముగా చింతించుటకు అతనివంటి మనస్సుగలవాడెవడును నాయొద్ద లేడు; అందరును తమ సొంతకార్యములనే చూచుకొనుచున్నారు గాని యేసుక్రీస్తు కార్యములను చూచుకొనరు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q12",
+    "order": 12,
+    "questionType": "single_choice",
+    "question": "In Ruth 2:14-16, what extra generous care did Boaz instruct his reapers to extend to Ruth during harvest?",
+    "questionTelugu": "రూతు 2:14-16 లో బోయజు తన కోతపనివారికి రూతు విషయములో ఏ దయాపూర్వక ఆజ్ఞలను ఇచ్చెను?",
+    "options": [
+      "Told her to stay in his fields, commanded young men not to touch her, and let her drink from their water vessels",
+      "Demanded forty sheaves of barley as tax",
+      "Drove her out to the borders of Moab",
+      "Confined her thirty days to the village gate"
+    ],
+    "optionsTelugu": [
+      "తన చేను విడిచి వెళ్లవద్దనియు, పనివారు ఆమెను ముట్టకూడదని ఆజ్ఞాపించి, వారు తోడు నీళ్లు తాగనిచ్చెను",
+      "పన్నుగా నలభై యవల మోపులను డిమాండ్ చేసెను",
+      "మోయాబు సరిహద్దులవరకు ఆమెను తరిమివేసెను",
+      "గ్రామ ద్వారమున ముప్పది దినములు ఆమెను బంధించెను"
+    ],
+    "correctAnswer": "Told her to stay in his fields, commanded young men not to touch her, and let her drink from their water vessels",
+    "bibleReference": "Ruth 2:8-9",
+    "explanation": "Boaz extended protective kindness to Ruth, providing water, safety from harassment, and permission to glean behind his reapers.",
+    "explanationTelugu": "బోయజు రూతును చూచి: నా కుమారీ, వినుము; వేరొక చేనిలో ఏరుకొనుటకు వెళ్లకుము, ఇచ్చటనే నా పనికత్తెలయొద్ద ఉండుము... నిన్ను ముట్టకూడదని పనివారికి ఆజ్ఞాపించితిని అనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q13",
+    "order": 13,
+    "questionType": "single_choice",
+    "question": "According to 2 Samuel 9:7-13, what continuous royal honor and lifelong care did Mephibosheth receive in Jerusalem?",
+    "questionTelugu": "2 సమూయేలు 9:7-13 ప్రకారం యెరూషలేములో మెఫీబోషెతుకు నిరంతరము లభించిన రాజరిక ఆదరణ ఏది?",
+    "options": [
+      "Restored all the land of Saul his grandfather, and said 'you shall eat bread at my table continually'",
+      "Assigned him forty days of solitary exile in Lo-Debar",
+      "Demanded sixty talents of silver from Jonathan's estate",
+      "Sent him into the Philistine garrison as a hostage"
+    ],
+    "optionsTelugu": [
+      "అతని పితరుడైన సౌలు భూమినంతటిని అతనికి తిరిగి ఇచ్చి, 'నీవు నిత్యము నా బల్లయొద్దనే భోజనము చేయుదువు' అనెను",
+      "లోదెబారులో నలభై దినములు ఏకాంత నిర్వాసన విధించెను",
+      "యోనాతాను ఆస్తినుండి అరవై వెండి తలాంతులను డిమాండ్ చేసెను",
+      "ఫిలిష్తీయుల కోటలోనికి బందీగా అతనిని పంపెను"
+    ],
+    "correctAnswer": "Restored all the land of Saul his grandfather, and said 'you shall eat bread at my table continually'",
+    "bibleReference": "2 Samuel 9:7",
+    "explanation": "David kept his covenant with Jonathan by restoring Saul's ancestral lands to Mephibosheth and seating him permanently at the royal table.",
+    "explanationTelugu": "దావీదు: భయపడవద్దు, నీ తండ్రియైన యోనాతాను నిమిత్తము నిశ్చయముగా నీకు ఉపకారము చేసెదను; నీ పితరుడైన సౌలు భూమినంతయు నీకు మరల ఇప్పించెదను, నీవు నిత్యము నా బల్లయొద్దనే భోజనము చేయుదువనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q14",
+    "order": 14,
+    "questionType": "single_choice",
+    "question": "According to 2 Kings 4:10, what four specific items of furniture did they place in the upper room for Elisha?",
+    "questionTelugu": "2 రాజులు 4:10 ప్రకారం ఎలీషా విశ్రాంతి కొరకు మిద్దెమీది గదిలో వారు ఉంచిన నాలుగు వస్తువులేవి?",
+    "options": [
+      "Built a small upper room on the wall with a bed, table, chair, and lampstand so he could rest",
+      "Offered him forty chariot horses from Damascus",
+      "Gave him seventy pieces of gold every new moon",
+      "Built sixty altars around the borders of Shunem"
+    ],
+    "optionsTelugu": [
+      "గోడమీద ఒక చిన్న మేడగదిని కట్టి, అందులో మంచమును బల్లను పీటను దీపస్తంభమును ఉంచి అతడు విశ్రమించునట్లు చేసిరి",
+      "దమస్కునుండి నలభై రథపు గుఱ్ఱములను అతనికి కానుకగా ఇచ్చిరి",
+      "ప్రతి అమావాస్యకు డెబ్బై బంగారు నాణెములను సమర్పించిరి",
+      "షూనేము సరిహద్దుల చుట్టూ అరవై బలిపీఠములను కట్టిరి"
+    ],
+    "correctAnswer": "Built a small upper room on the wall with a bed, table, chair, and lampstand so he could rest",
+    "bibleReference": "2 Kings 4:9-10",
+    "explanation": "The generous Shunammite woman recognized Elisha as a holy man of God and built a furnished upper room for his care and rest.",
+    "explanationTelugu": "ఆమె తన భర్తతో: మనయొద్దకు వచ్చుచుండు ఈ మనుష్యుడు పరిశుద్ధుడైన దైవజనుడని నేను ఎరుగుదును; కాబట్టి గోడమీద ఒక చిన్న మేడగదిని కట్టి, అందులో అతనికొరకు ఒక మంచమును బల్లను పీటను దీపస్తంభమును ఉంచుదము అనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q15",
+    "order": 15,
+    "questionType": "single_choice",
+    "question": "In 1 Kings 17:4-6, what food did the ravens bring Elijah morning and evening by divine command?",
+    "questionTelugu": "1 రాజులు 17:4-6 లో దేవుని ఆజ్ఞచొప్పున కాకులు ఉదయమున సాయంత్రమున ఏలియాకు ఏమి తెచ్చి ఇచ్చెను?",
+    "options": [
+      "The ravens brought him bread and meat in the morning and evening, and he drank from the brook",
+      "Angels brought sixty golden goblets of wine daily",
+      "Merchants of Sidon supplied him with forty sacks of grain",
+      "He found dried figs stored in forty clay jars"
+    ],
+    "optionsTelugu": [
+      "కాకులు ఉదయమందును సాయంత్రమందును రొట్టెను మాంసమును అతనియొద్దకు తెచ్చెను, అతడు ఆ వాగు నీళ్లు తాగెను",
+      "దేవదూతలు ప్రతిదినము అరవై బంగారు పాత్రలలో ద్రాక్షారసమును తెచ్చిరి",
+      "సీదోను వర్తకులు అతనికి నలభై సంచుల ధాన్యమును సరఫరా చేసిరి",
+      "నలభై మట్టి కుండలలో నిల్వయుంచిన అంజూరపు పండ్లను అతడు కనుగొనెను"
+    ],
+    "correctAnswer": "The ravens brought him bread and meat in the morning and evening, and he drank from the brook",
+    "bibleReference": "1 Kings 17:4-6",
+    "explanation": "God commanded ravens to bring Elijah bread and meat twice daily, caring for his survival while hiding by the brook Cherith.",
+    "explanationTelugu": "కాకులు ఉదయమందు రొట్టెను మాంసమును, సాయంత్రమందు రొట్టెను మాంసమును అతనియొద్దకు తెచ్చుచుండెను; అతడు ఆ వాగు నీళ్లు తాగుచుండెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q16",
+    "order": 16,
+    "questionType": "single_choice",
+    "question": "What prophetic promise in 1 Kings 17:14 ensured that her dwindling resources would never run dry during the famine?",
+    "questionTelugu": "1 రాజులు 17:14 లో యెహోవా వర్షము కురిపించువరకు ఆ విధవరాలి తొట్టిలోని పిండి మరియు బుడ్డిలోని నూనె విషయములో ఏ వాగ్దానము చేయబడెను?",
+    "options": [
+      "The bin of flour was not used up, nor did the jar of oil run dry until the day the Lord sent rain",
+      "Forty bags of wheat arrived from the King of Tyre",
+      "Seven silver coins appeared daily under her hearth",
+      "She inherited sixty olive groves in Mount Carmel"
+    ],
+    "optionsTelugu": [
+      "యెహోవా దేశముమీద వర్షము కురిపించువరకు ఆ తొట్టిలోని పిండి అయిపోలేదు, ఆ బుడ్డిలోని నూనె తరిగిపోలేదు",
+      "తీరు రాజునుండి నలభై సంచుల గోధుమలు ఆమెకు చేరెను",
+      "ప్రతిదినము ఆమె పొయ్యి క్రింద ఏడు వెండి నాణెములు ప్రత్యక్షమాయెను",
+      "కర్మెలు పర్వతములో అరవై ఒలీవ తోటలను ఆమె స్వాస్థ్యముగా పొందెను"
+    ],
+    "correctAnswer": "The bin of flour was not used up, nor did the jar of oil run dry until the day the Lord sent rain",
+    "bibleReference": "1 Kings 17:14-16",
+    "explanation": "God faithfully replenished the widow's tiny jar of flour and cruse of oil day after day throughout the severe drought.",
+    "explanationTelugu": "యెహోవా ఏలియాద్వారా సెలవిచ్చిన మాటచొప్పున ఆ తొట్టిలోని పిండి అయిపోలేదు, ఆ బుడ్డిలోని నూనె తరిగిపోలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q17",
+    "order": 17,
+    "questionType": "single_choice",
+    "question": "According to 1 Kings 19:7-8, for how many days and nights did the strength from that angelic meal sustain Elijah to Mount Horeb?",
+    "questionTelugu": "1 రాజులు 19:7-8 ప్రకారం దూత పెట్టిన ఆ భోజనపు బలముతో ఏలియా ఎన్ని దినములు హోరేబు పర్వతమువరకు నడిచెను?",
+    "options": [
+      "Touched him, provided a cake baked on coals and a jar of water, saying 'Arise and eat, because the journey is too great for you'",
+      "Rebuked him with forty severe curses for fleeing Jezebel",
+      "Sent forty chariots of fire to carry him instantly to Horeb",
+      "Commanded him to fast thirty days without food or water"
+    ],
+    "optionsTelugu": [
+      "అతనిని ముట్టి, నిప్పులమీద కాల్చబడిన అప్పమును నీళ్ల బుడ్డిని ఇచ్చి, 'ప్రయాణము నీ శక్తికి మించినది, లేచి భోజనము చేయుము' అనెను",
+      "యెజెబెలునకు భయపడి పారిపోయినందుకు నలభై కఠిన శాపములతో గద్దించెను",
+      "హోరేబునకు తక్షణమే తీసికొనిపోవుటకు నలభై అగ్ని రథములను పంపెను",
+      "అన్నపానములు లేకుండ ముప్పది దినములు ఉపవాసముండవలెనని ఆజ్ఞాపించెను"
+    ],
+    "correctAnswer": "Touched him, provided a cake baked on coals and a jar of water, saying 'Arise and eat, because the journey is too great for you'",
+    "bibleReference": "1 Kings 19:5-7",
+    "explanation": "God met Elijah's deep physical and emotional burnout with gentle nourishment, rest, and angelic refreshment.",
+    "explanationTelugu": "ఒక దూత అతనిని ముట్టి-నీవు లేచి భోజనము చేయుమని చెప్పెను. అతడు చూడగా నిప్పులమీద కాల్చబడిన అప్పమును నీళ్ల బుడ్డియు అతని తలయొద్ద ఉండెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q18",
+    "order": 18,
+    "questionType": "single_choice",
+    "question": "What did God open Hagar's eyes to see in Genesis 21:19 when all maternal hope seemed extinguished?",
+    "questionTelugu": "ఆదికాండము 21:19 లో హాగరు కన్నులు తెరచినప్పుడు ఆమెకు ఏమి కనబడెను?",
+    "options": [
+      "God heard the voice of the lad, opened her eyes, and she saw a well of water to fill the skin",
+      "Sent an army of seventy riders to transport them to Egypt",
+      "Rained manna around their bush for forty days",
+      "Turned the desert sand into solid silver coins"
+    ],
+    "optionsTelugu": [
+      "దేవుడు ఆ చిన్నవాని మొరను వినెను; ఆమె కన్నులు తెరవగా ఆమెకు నీళ్ల బావి కనబడెను, ఆమె వెళ్లి తిత్తిని నీళ్లతో నింపి చిన్నవానికి త్రాగించెను",
+      "ఐగుప్తునకు వారిని చేర్చుటకు డెబ్బైమంది గుర్రపు రౌతులను పంపెను",
+      "వారి పొద చుట్టూ నలభై దినములు మన్నాను కురిపించెను",
+      "ఎడారి ఇసుకను నికరమైన వెండి నాణెములుగా మార్చెను"
+    ],
+    "correctAnswer": "God heard the voice of the lad, opened her eyes, and she saw a well of water to fill the skin",
+    "bibleReference": "Genesis 21:17-19",
+    "explanation": "God heard Ishmael's weeping, comforted Hagar with covenant promises, and revealed a life-saving well of water.",
+    "explanationTelugu": "దేవుడు ఆ చిన్నవాని మొరను వినెను; దేవుడు ఆమె కన్నులు తెరవగా ఆమెకు నీళ్ల బావి కనబడెను; ఆమె వెళ్లి తిత్తిని నీళ్లతో నింపి ఆ చిన్నవానికి త్రాగించెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q19",
+    "order": 19,
+    "questionType": "single_choice",
+    "question": "According to Deuteronomy 8:3-4, why did God feed them with manna and prevent their feet from swelling for forty years?",
+    "questionTelugu": "ద్వితీయోపదేశకాండము 8:3-4 ప్రకారం నలభై సంవత్సరములు వారి కాళ్లు వాచకుండ వస్త్రములు పాతగిలకపోవుట ద్వారా దేవుడు ఏమి నేర్పెను?",
+    "options": [
+      "Your garments did not wear out on you, nor did your feet swell these forty years; your sandals did not wear out",
+      "They imported forty wagons of clothes from Babylon",
+      "They sheared sixty flocks of sheep every new moon",
+      "They purchased new sandals from Edomite merchants"
+    ],
+    "optionsTelugu": [
+      "ఈ నలభై సంవత్సరములు నీ ఒంటిమీది వస్త్రములు పాతగిలలేదు, నీ కాళ్లు వాచలేదు; నీ చెప్పులు అరిగిపోలేదు",
+      "బబులోనునుండి నలభై బండ్ల వస్త్రములను వారు దిగుమతి చేసికొనిరి",
+      "ప్రతి అమావాస్యకు అరవై గొర్రెల మందల బొచ్చును కత్తిరించిరి",
+      "ఎదోమీయుల వర్తకులనుండి నూతన చెప్పులను కొనుక్కొనిరి"
+    ],
+    "correctAnswer": "Your garments did not wear out on you, nor did your feet swell these forty years; your sandals did not wear out",
+    "bibleReference": "Deuteronomy 8:4; 29:5",
+    "explanation": "Throughout forty years in the harsh desert, God miraculously prevented their clothes from wearing out and kept their feet from swelling.",
+    "explanationTelugu": "ఈ నలభై సంవత్సరములు నీ ఒంటిమీది వస్త్రములు పాతగిలలేదు, నీ కాళ్లు వాచలేదు; మీ ఒంటిమీది బట్టలు పాతగిలలేదు, నీ చెప్పులు అరిగిపోలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q20",
+    "order": 20,
+    "questionType": "single_choice",
+    "question": "In Psalm 23:2-3, to what green pastures and quiet waters does the Good Shepherd gently lead His sheep?",
+    "questionTelugu": "కీర్తన 23:2-3 ప్రకారం కాపరియైన యెహోవా తన గొర్రెలను ఎక్కడికి నడిపించి సేదదీర్చును?",
+    "options": [
+      "The Lord is my shepherd; I shall not want. He makes me to lie down in green pastures; He leads me beside still waters",
+      "The king is my shield; I shall conquer forty nations",
+      "My wealth is my fortress; I shall store gold in seventy chests",
+      "The temple is my refuge; I shall fast thirty days"
+    ],
+    "optionsTelugu": [
+      "యెహోవా నా కాపరి, నాకు లేమి కలుగదు; పచ్చికగల చోట్లను ఆయన నన్ను పరుండజేయుచున్నాడు, శాంతికరమైన జలములయొద్ద నన్ను నడిపించుచున్నాడు",
+      "రాజు నా కేడెము, నేను నలభై దేశములను జయించెదను",
+      "నా సంపదయే నా కోట, డెబ్బై పెట్టెలలో బంగారమును దాచెదను",
+      "దేవాలయమే నా ఆశ్రయము, ముప్పది దినములు ఉపవాసముండెదను"
+    ],
+    "correctAnswer": "The Lord is my shepherd; I shall not want. He makes me to lie down in green pastures; He leads me beside still waters",
+    "bibleReference": "Psalm 23:1-2",
+    "explanation": "David testifies that under the Lord's caring shepherd-leadership, all spiritual, physical, and emotional needs are richly provided.",
+    "explanationTelugu": "యెహోవా నా కాపరి, నాకు లేమి కలుగదు. పచ్చికగల చోట్లను ఆయన నన్ను పరుండజేయుచున్నాడు, శాంతికరమైన జలములయొద్ద నన్ను నడిపించుచున్నాడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q21",
+    "order": 21,
+    "questionType": "single_choice",
+    "question": "According to Psalm 147:3-4, how is God's gentle binding of human wounds juxtaposed with His numbering of the billions of stars?",
+    "questionTelugu": "కీర్తన 147:3-4 ప్రకారం నక్షత్రములన్నిటి పేర్లు పిలుచు సర్వశక్తిగల దేవుడు గుండె చెదరినవారి గాయములను ఎలా కట్టుచున్నాడు?",
+    "options": [
+      "He heals the brokenhearted and binds up their wounds",
+      "He builds forty stone walls around Jerusalem's gates",
+      "He demands sixty rams for broken vows",
+      "He counts forty days of penance for sinners"
+    ],
+    "optionsTelugu": [
+      "గుండె చెదరినవారిని ఆయన బాగుచేయును, వారి గాయములను కట్టును",
+      "యెరూషలేము ద్వారముల చుట్టూ నలభై రాతి గోడలను నిర్మించును",
+      "మీరిన మొక్కుబడులకొరకు అరవై పొట్టేళ్లను డిమాండ్ చేయును",
+      "పాపులకొరకు నలభై దినముల కఠిన శిక్షను లెక్కించును"
+    ],
+    "correctAnswer": "He heals the brokenhearted and binds up their wounds",
+    "bibleReference": "Psalm 147:3",
+    "explanation": "The Almighty God tenderly bandages the deepest emotional and spiritual wounds of all who are brokenhearted.",
+    "explanationTelugu": "గుండె చెదరినవారిని ఆయన బాగుచేయును, వారి గాయములను కట్టును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q22",
+    "order": 22,
+    "questionType": "single_choice",
+    "question": "According to Isaiah 40:11, where does the Lord hold the tender lambs and how does He lead nursing ewes?",
+    "questionTelugu": "యెషయా 40:11 ప్రకారం గొర్రెపిల్లలను దేవుడు ఎక్కడ ఎత్తికొని మోయును, పాలిచ్చువాటిని ఎలా నడిపించును?",
+    "options": [
+      "He will gather the lambs with His arm and carry them in His bosom, and gently lead those who are with young",
+      "He will drive them forty miles through the scorching sun",
+      "He will sell the weak lambs to foreign merchants",
+      "He will leave the nursing ewes behind in the wilderness"
+    ],
+    "optionsTelugu": [
+      "గొర్రెపిల్లలను తన బాహువుతో సమకూర్చి తన రొమ్మున ఎత్తికొని మోయును, పాలిచ్చువాటిని మెల్లగా నడిపించును",
+      "మండే ఎండలో నలభై మైళ్లు వాటిని తోలుకొనిపోవును",
+      "బలహీన గొర్రెపిల్లలను పరదేశీ వర్తకులకు అమ్మును",
+      "పాలిచ్చే గొర్రెలను అరణ్యములో వెనుక విడిచిపెట్టును"
+    ],
+    "correctAnswer": "He will gather the lambs with His arm and carry them in His bosom, and gently lead those who are with young",
+    "bibleReference": "Isaiah 40:11",
+    "explanation": "Isaiah pictures God as a gentle Shepherd who lifts fragile lambs to His chest and paces Himself to accommodate nursing mothers.",
+    "explanationTelugu": "ఆయన గొర్రెల కాపరివలె తన మందను మేపును, గొర్రెపిల్లలను తన బాహువుతో సమకూర్చి తన రొమ్మున ఎత్తికొని మోయును, పాలిచ్చువాటిని మెల్లగా నడిపించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q23",
+    "order": 23,
+    "questionType": "single_choice",
+    "question": "In Isaiah 46:3-4, how does God contrast Himself carrying His people with idols that must be carried by men?",
+    "questionTelugu": "యెషయా 46:3-4 లో మనుష్యులచేత మోయబడు నిర్జీవ విగ్రహములకు భిన్నముగా తన ప్రజలను తానే మోయు జీవముగల దేవుడు ఏమి సెలవిచ్చెను?",
+    "options": [
+      "Even to your old age, I am He, and even to gray hairs I will carry you! I have made, and I will bear; even I will carry, and will deliver you",
+      "You must carry your forty ancestral idols into exile",
+      "At age sixty your strength will be forgotten before God",
+      "Nations will cast off their elderly into desert ravines"
+    ],
+    "optionsTelugu": [
+      "మీ ముసలితనము వచ్చువరకు నేను మిమ్మును ఎత్తికొనువాడను నేనే; తలవెండ్రుకలు నెరయువరకు మిమ్మును ఎత్తికొనువాడను నేనే. నేనే చేసియున్నాను, నేనే భరించెదను, నేనే ఎత్తికొనెదను, నేనే రక్షించెదను",
+      "మీ పితరుల నలభై విగ్రహములను మీరే మోసుకొని నిర్వాసనమునకు పోవలెను",
+      "అరువై ఏండ్ల వయస్సులో మీ బలము దేవునియెదుట మరచిపోబడును",
+      "జాతులు తమ వృద్ధులను అరణ్య లోయలలోనికి త్రోసివేయును"
+    ],
+    "correctAnswer": "Even to your old age, I am He, and even to gray hairs I will carry you! I have made, and I will bear; even I will carry, and will deliver you",
+    "bibleReference": "Isaiah 46:4",
+    "explanation": "God pledges that His sustaining care does not expire with youth; He will faithfully carry and deliver His people into frail old age.",
+    "explanationTelugu": "మీ ముసలితనము వచ్చువరకు నేను మిమ్మును ఎత్తికొనువాడను నేనే; తలవెండ్రుకలు నెరయువరకు మిమ్మును ఎత్తికొనువాడను నేనే. నేనే చేసియున్నాను, నేనే భరించెదను, నేనే ఎత్తికొనెదను, నేనే రక్షించెదను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q24",
+    "order": 24,
+    "questionType": "single_choice",
+    "question": "According to Isaiah 49:16, where has God permanently inscribed His people?",
+    "questionTelugu": "యెషయా 49:16 ప్రకారం దేవుడు తన ప్రజలను ఎక్కడ చెక్కియున్నాడు?",
+    "options": [
+      "Can a woman forget her nursing child? Yet I will not forget you. See, I have inscribed you on the palms of My hands",
+      "Can a king forget his forty golden war chariots?",
+      "Can a builder forget sixty stones of the foundation?",
+      "Can a merchant forget seventy bags of silver?"
+    ],
+    "optionsTelugu": [
+      "స్త్రీ తన గర్భమున పుట్టిన బిడ్డను కరుణింపకుండ తన చంటిపిల్లను మరచునా? వారైనను మరచుదురు గాని నేను నిన్ను మరువను; చూడుము, నా అరచేతులమీదనే నిన్ను చెక్కియున్నాను",
+      "రాజు తన నలభై బంగారు యుద్ధ రథములను మరచునా?",
+      "భవన నిర్మాణకుడు పునాదియందలి అరవై రాళ్లను మరచునా?",
+      "వర్తకుడు తన డెబ్బై సంచుల వెండిని మరచునా?"
+    ],
+    "correctAnswer": "Can a woman forget her nursing child? Yet I will not forget you. See, I have inscribed you on the palms of My hands",
+    "bibleReference": "Isaiah 49:15-16",
+    "explanation": "Even if a nursing mother could forget her baby, God will never forget His people, having indelibly engraved them on His palms.",
+    "explanationTelugu": "స్త్రీ తన గర్భమున పుట్టిన బిడ్డను కరుణింపకుండ తన చంటిపిల్లను మరచునా? వారైనను మరచుదురు గాని నేను నిన్ను మరువను. చూడుము, నా అరచేతులమీదనే నిన్ను చెక్కియున్నాను; నీ ప్రాకారములు నిత్యము నా యెదుట ఉన్నవి.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q25",
+    "order": 25,
+    "questionType": "single_choice",
+    "question": "According to Philippians 4:19, out of what infinite treasury does God supply all our needs in Christ Jesus?",
+    "questionTelugu": "ఫిలిప్పీయులకు 4:19 ప్రకారం క్రీస్తుయేసునందు ఏ నిత్య మహిమ ఐశ్వర్యము చొప్పున దేవుడు మన కొదువలను తీర్చును?",
+    "options": [
+      "And my God shall supply all your need according to His riches in glory by Christ Jesus",
+      "Rome shall distribute forty measures of wheat to all citizens",
+      "The temple treasury will give fifty pieces of silver to the poor",
+      "The merchant ships of Tyre will replenish your stores"
+    ],
+    "optionsTelugu": [
+      "కాగా దేవుడు తన ఐశ్వర్యముచొప్పున క్రీస్తుయేసునందు మహిమలో మీ ప్రతి అవసరమును తీర్చును",
+      "రోమా ప్రభుత్వం పౌరులందరికీ నలభై కొలతల గోధుమలను పంచును",
+      "దేవాలయ ఖజానా పేదలకు ఏబది వెండి నాణెములను ఇచ్చును",
+      "తీరు వర్తక ఓడలు మీ గిడ్డంగులను సమకూర్చును"
+    ],
+    "correctAnswer": "And my God shall supply all your need according to His riches in glory by Christ Jesus",
+    "bibleReference": "Philippians 4:19",
+    "explanation": "Paul assures generous believers that God will abundantly supply every physical, financial, and spiritual need out of His boundless riches in Christ.",
+    "explanationTelugu": "కాగా దేవుడు తన ఐశ్వర్యముచొప్పున క్రీస్తుయేసునందు మహిమలో మీ ప్రతి అవసరమును తీర్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q26",
+    "order": 26,
+    "questionType": "single_choice",
+    "question": "According to Luke 12:24, how does the Father's care for birds with no barns reassure believers of their greater value?",
+    "questionTelugu": "లూకా 12:24 ప్రకారం కొట్లు ధాన్యాగారములు లేని కాకులను దేవుడు పోషించుచుండగా, మనుష్యులు వాటికంటె ఎందుకు శ్రేష్ఠులు?",
+    "options": [
+      "Consider the ravens, for they neither sow nor reap; and God feeds them. Of how much more value are you than the birds?",
+      "They store forty bushels of grain in high trees",
+      "They purchase food from fifty merchant caravans",
+      "They migrate thirty days to Egypt for winter feasts"
+    ],
+    "optionsTelugu": [
+      "కాకులను విచారించి చూడుడి; అవి విత్తవు కోయవు, వాటికి గదియుండదు కొట్టునుండదు; అయినను దేవుడు వాటిని పోషించుచున్నాడు; మీరు పక్షులకంటె ఎంతో శ్రేష్ఠులు",
+      "అవి ఎత్తయిన చెట్లపై నలభై కొలతల ధాన్యమును దాచును",
+      "అవి ఏబది వర్తక బృందములవద్ద ఆహారమును కొనును",
+      "శీతాకాలపు విందులకొరకు అవి ఐగుప్తునకు ముప్పది దినములు ప్రయాణించును"
+    ],
+    "correctAnswer": "Consider the ravens, for they neither sow nor reap; and God feeds them. Of how much more value are you than the birds?",
+    "bibleReference": "Luke 12:24",
+    "explanation": "Jesus urges us to observe ravens, who have no barns yet are fed by God, proving our greater worth to the Father.",
+    "explanationTelugu": "కాకులను విచారించి చూడుడి; అవి విత్తవు కోయవు, వాటికి గదియుండదు కొట్టునుండదు; అయినను దేవుడు వాటిని పోషించుచున్నాడు; మీరు పక్షులకంటె ఎంతో శ్రేష్ఠులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q27",
+    "order": 27,
+    "questionType": "single_choice",
+    "question": "According to Philippians 4:6-7, what divine guardian protects our hearts and minds when we pray with thanksgiving?",
+    "questionTelugu": "ఫిలిప్పీయులకు 4:6-7 ప్రకారం కృతజ్ఞతాపూర్వకముగా విన్నపములు చేసినప్పుడు ఏ దైవిక సమాధానము మన హృదయములను కాపలా కాయును?",
+    "options": [
+      "Be anxious for nothing, but in everything by prayer and supplication, with thanksgiving, let your requests be made known to God",
+      "Pay forty silver coins to Roman officials for peace",
+      "Retreat into sixty days of solitary desert fasting",
+      "Chant thirty liturgical prayers before sunrise"
+    ],
+    "optionsTelugu": [
+      "దేనినిగూర్చియు చింతపడకుడి గాని ప్రతి విషయములోను ప్రార్థన విజ్ఞాపనములచేత కృతజ్ఞతాపూర్వకముగా మీ విన్నపములు దేవునికి తెలియజేయుడి",
+      "సమాధానము కొరకు రోమా అధికారులకు నలభై వెండి నాణెములను చెల్లించుడి",
+      "అరణ్యములో అరవై దినముల ఏకాంత ఉపవాసమునకు వెళ్లిపోవుడి",
+      "సూర్యోదయమునకు ముందు ముప్పది మంత్రములను జపించుడి"
+    ],
+    "correctAnswer": "Be anxious for nothing, but in everything by prayer and supplication, with thanksgiving, let your requests be made known to God",
+    "bibleReference": "Philippians 4:6-7",
+    "explanation": "Paul commands believers to trade anxiety for prayer with thanksgiving, receiving God's transcendent peace to guard their hearts.",
+    "explanationTelugu": "దేనినిగూర్చియు చింతపడకుడి గాని ప్రతి విషయములోను ప్రార్థన విజ్ఞాపనములచేత కృతజ్ఞతాపూర్వకముగా మీ విన్నపములు దేవునికి తెలియజేయుడి; అప్పుడు సమస్త బుద్ధికి మించిన దేవుని సమాధానము క్రీస్తుయేసునందు మీ హృదయములను మీ తలంపులను కావలియుండును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q28",
+    "order": 28,
+    "questionType": "single_choice",
+    "question": "In Psalm 23:4, what two pastoral instruments of the Shepherd bring comfort to the sheep?",
+    "questionTelugu": "కీర్తన 23:4 లో గొర్రెలకు ఆదరణ కలుగజేయు కాపరి యొక్క ఏ రెండు పరికరములు పేర్కొనబడినవి?",
+    "options": [
+      "Yea, though I walk through the valley of the shadow of death, I will fear no evil; for You are with me; Your rod and Your staff, they comfort me",
+      "The king's army of forty chariots will escort my path",
+      "A golden shield will protect me from thirty arrows",
+      "I will carry sixty torches of cedar wood through the dark"
+    ],
+    "optionsTelugu": [
+      "గాఢాంధకారపు లోయలో నేను సంచరించినను ఏ అపాయమునకు భయపడను, నీవు నాకు తోడైయుందువు; నీ దుడ్డుకఱ్ఱయు నీ దండమును నన్ను ఆదరించును",
+      "రాజుయొక్క నలభై రథముల సైన్యము నా మార్గములో కావలియుండును",
+      "బంగారు కేడెము నన్ను ముప్పది బాణములనుండి కాపాడును",
+      "చీకటిలో నడవడానికి అరవై దేవదారు దివిటీలను మోసెదను"
+    ],
+    "correctAnswer": "Yea, though I walk through the valley of the shadow of death, I will fear no evil; for You are with me; Your rod and Your staff, they comfort me",
+    "bibleReference": "Psalm 23:4",
+    "explanation": "David declares that even in mortality's deepest shadows, the Shepherd's personal presence, rod, and staff provide complete comfort and safety.",
+    "explanationTelugu": "గాఢాంధకారపు లోయలో నేను సంచరించినను ఏ అపాయమునకు భయపడను, నీవు నాకు తోడైయుందువు; నీ దుడ్డుకఱ్ఱయు నీ దండమును నన్ను ఆదరించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q29",
+    "order": 29,
+    "questionType": "single_choice",
+    "question": "According to Psalm 23:5, what two signs of royal honor and abundant care overflow upon the guest?",
+    "questionTelugu": "కీర్తన 23:5 లో తలమీద తైలమును పోసి గిన్నెను పొంగజేయుట ఏ ఆతిథ్య సంరక్షణను సూచించుచున్నది?",
+    "options": [
+      "You prepare a table before me in the presence of my enemies; You anoint my head with oil; my cup runs over",
+      "You build forty stone fortresses against Philistine archers",
+      "You give me seventy bags of silver from Damascus",
+      "You set forty guards at the gates of my estate"
+    ],
+    "optionsTelugu": [
+      "నా శత్రువుల యెదుట నీవు నాకు భోజనము సిద్ధపరచుదువు, నూనెతో నా తల అంటియున్నావు, నా గిన్నె నిండి పొర్లుచున్నది",
+      "ఫిలిష్తీయుల బాణములకు ఎదురుగా నలభై రాతి కోటలను కట్టుదువు",
+      "దమస్కునుండి డెబ్బై సంచుల వెండిని నాకు ఇచ్చుదువు",
+      "నా భవన ద్వారములయొద్ద నలభైమంది కావలివారిని ఉంచుదువు"
+    ],
+    "correctAnswer": "You prepare a table before me in the presence of my enemies; You anoint my head with oil; my cup runs over",
+    "bibleReference": "Psalm 23:5",
+    "explanation": "God honors His servant with a celebratory feast under the very gaze of his enemies, anointing his head and overflowing his cup.",
+    "explanationTelugu": "నా శత్రువుల యెదుట నీవు నాకు భోజనము సిద్ధపరచుదువు, నూనెతో నా తల అంటియున్నావు, నా గిన్నె నిండి పొర్లుచున్నది.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q30",
+    "order": 30,
+    "questionType": "single_choice",
+    "question": "According to Psalm 23:6, what two divine blessings will relentlessly pursue the believer, and where will he dwell?",
+    "questionTelugu": "కీర్తన 23:6 ప్రకారం భక్తుని వెంటవచ్చు రెండు దైవిక దీవెనలేవి, అతడు ఎక్కడ నివాసము చేయును?",
+    "options": [
+      "Surely goodness and mercy shall follow me all the days of my life; and I will dwell in the house of the Lord forever",
+      "War and forty tribulations shall surround my house",
+      "I shall amass seventy horses in the stables of Megiddo",
+      "My fame shall conquer forty cities in the wilderness"
+    ],
+    "optionsTelugu": [
+      "నేను బ్రదుకు దినములన్నియు కృపాక్షేమములే నా వెంట వచ్చును; చిరకాలము యెహోవా మందిరములో నేను నివాసము చేసెదను",
+      "యుద్ధములు నలభై శ్రమలు నా గృహమును చుట్టుముట్టును",
+      "మెగిద్దో లాయములలో డెబ్బై గుఱ్ఱములను నేను కూడబెట్టుకొందును",
+      "నా కీర్తి అరణ్యములోని నలభై పట్టణములను జయించును"
+    ],
+    "correctAnswer": "Surely goodness and mercy shall follow me all the days of my life; and I will dwell in the house of the Lord forever",
+    "bibleReference": "Psalm 23:6",
+    "explanation": "David concludes with the triumphant confidence that God's goodness and loyal love will pursue him through life into eternity.",
+    "explanationTelugu": "నేను బ్రదుకు దినములన్నియు కృపాక్షేమములే నా వెంట వచ్చును; చిరకాలము యెహోవా మందిరములో నేను నివాసము చేసెదను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q31",
+    "order": 31,
+    "questionType": "single_choice",
+    "question": "In Isaiah 43:1, why are believers commanded not to fear when God has called them by name?",
+    "questionTelugu": "యెషయా 43:1 ప్రకారం పేరుపెట్టి పిలిచి విమోచించిన దేవుని ప్రజలు ఎందుకు భయపడకూడదు?",
+    "options": [
+      "Fear not, for I have redeemed you; I have called you by your name; you are Mine",
+      "Pay forty talents of silver to the King of Assyria",
+      "Hide sixty days in the caves of the Dead Sea",
+      "Construct thirty watchtowers on Mount Gerizim"
+    ],
+    "optionsTelugu": [
+      "భయపడకుము, నేను నిన్ను విమోచించియున్నాను, పేరుపెట్టి నిన్ను పిలిచియున్నాను, నీవు నా సొత్తు",
+      "అష్షూరు రాజునకు నలభై తలాంతుల వెండిని చెల్లించుము",
+      "మృత సముద్రపు గుహలలో అరవై దినములు దాగియుండుము",
+      "గెరిజీము పర్వతముపై ముప్పది కావలి బురుజులను కట్టుము"
+    ],
+    "correctAnswer": "Fear not, for I have redeemed you; I have called you by your name; you are Mine",
+    "bibleReference": "Isaiah 43:1",
+    "explanation": "The Lord reassures His people: He has redeemed them, knows them intimately by name, and claims them forever as His personal possession.",
+    "explanationTelugu": "ఇప్పుడైతే యాకోబూ, నిన్ను సృజించిన యెహోవా, ఇశ్రాయేలూ, నిన్ను నిర్మించినవాడు ఈలాగు సెలవిచ్చుచున్నాడు-భయపడకుము, నేను నిన్ను విమోచించియున్నాను, పేరుపెట్టి నిన్ను పిలిచియున్నాను, నీవు నా సొత్తు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q32",
+    "order": 32,
+    "questionType": "single_choice",
+    "question": "According to Matthew 10:29, can even a single sparrow fall to the ground apart from the Father's will?",
+    "questionTelugu": "మత్తయి 10:29 ప్రకారం పరలోకపు తండ్రి సెలవులేకుండ ఒక్క పిచ్చుకయైనను నేలమీద పడునా?",
+    "options": [
+      "Not one of them falls to the ground apart from your Father's will; do not fear therefore; you are of more value than many sparrows",
+      "Birds are governed by the planetary courses of Babylon",
+      "Sparrows buy forty measures of wheat from merchants",
+      "Two copper coins purchase fifty years of life"
+    ],
+    "optionsTelugu": [
+      "మీ తండ్రి సెలవులేకుండ వాటిలో ఒకటైనను నేలపడదు; కాబట్టి మీరు భయపడకుడి, మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు",
+      "పక్షులు బబులోను గ్రహచారములచేత నడిపింపబడును",
+      "పిచ్చుకలు వర్తకులవద్ద నలభై కొలతల ధాన్యమును కొనును",
+      "రెండు కాసులు ఏబది సంవత్సరముల ఆయుష్షును కొనును"
+    ],
+    "correctAnswer": "Not one of them falls to the ground apart from your Father's will; do not fear therefore; you are of more value than many sparrows",
+    "bibleReference": "Matthew 10:29-31",
+    "explanation": "Not a single sparrow falls without the Father knowing and permitting it; believers are infinitely more precious in His sight.",
+    "explanationTelugu": "రెండు పిచ్చుకలు కాసుకు అమ్మబడును గదా; అయినను మీ తండ్రి సెలవులేకుండ వాటిలో ఒకటైనను నేలపడదు. కాబట్టి మీరు భయపడకుడి, మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q33",
+    "order": 33,
+    "questionType": "single_choice",
+    "question": "According to Matthew 11:29, what two character qualities of Jesus make His yoke comfortable and restful?",
+    "questionTelugu": "మత్తయి 11:29 ప్రకారం యేసుయొక్క ఏ రెండు సుగుణములు ఆయన కాడిని మోయుటకు సుళువుగా చేయును?",
+    "options": [
+      "Take My yoke upon you and learn from Me, for I am gentle and lowly in heart, and you will find rest for your souls",
+      "Fast forty days on Mount Sinai to earn peace",
+      "Carry sixty talents of temple stones to Jerusalem",
+      "Recite seventy traditional rabbinical prayers daily"
+    ],
+    "optionsTelugu": [
+      "నేను సాత్వికుడను దీనమనస్సు గలవాడను గనుక మీమీద నా కాడి ఎత్తికొని నాయొద్ద నేర్చుకొనుడి; అప్పుడు మీ ప్రాణములకు విశ్రాంతి దొరుకును",
+      "శాంతిని సంపాదించుటకు సీనాయి కొండపై నలభై దినములు ఉపవాసముండుడి",
+      "యెరూషలేమునకు అరవై తలాంతుల రాళ్లను మోసుకొనిరండి",
+      "ప్రతిదినము డెబ్బైమంది రబ్బీల పారంపర్యాచార ప్రార్థనలను వల్లెవేయండి"
+    ],
+    "correctAnswer": "Take My yoke upon you and learn from Me, for I am gentle and lowly in heart, and you will find rest for your souls",
+    "bibleReference": "Matthew 11:29-30",
+    "explanation": "Jesus invites the weary to wear His light, gentle yoke, finding deep soul-rest in His humble and gracious care.",
+    "explanationTelugu": "నేను సాత్వికుడను దీనమనస్సు గలవాడను గనుక మీమీద నా కాడి ఎత్తికొని నాయొద్ద నేర్చుకొనుడి; అప్పుడు మీ ప్రాణములకు విశ్రాంతి దొరుకును. ఏలయనగా నా కాడి సుళువుగాను నా భారము తేలికగాను ఉన్నది.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q34",
+    "order": 34,
+    "questionType": "single_choice",
+    "question": "In Psalm 34:18, what two spiritual conditions attract God's immediate saving presence?",
+    "questionTelugu": "కీర్తన 34:18 లో దేవుని రక్షణ సమీపతను ఆకర్షించు ఆ రెండు అంతరంగ స్థితులేవి?",
+    "options": [
+      "The Lord is near to those who have a broken heart, and saves such as have a contrite spirit",
+      "The Lord stays forty cubits away from human sorrow",
+      "The Lord visits only forty kings in their palaces",
+      "The Lord assists those who amass seventy shields of bronze"
+    ],
+    "optionsTelugu": [
+      "విరిగిన హృదయముగలవారికి యెహోవా ఆసన్నుడు, నలిగిన మనస్సుగలవారిని ఆయన రక్షించును",
+      "మానవ దుఃఖమునకు నలభై మూరల దూరములో దేవుడు నిలుచును",
+      "రాజభవనములలోని నలభైమంది రాజులను మాత్రమే దేవుడు దర్శించును",
+      "డెబ్బై ఇత్తడి డాలులను కూడబెట్టుకొనువారికి దేవుడు సహాయము చేయును"
+    ],
+    "correctAnswer": "The Lord is near to those who have a broken heart, and saves such as have a contrite spirit",
+    "bibleReference": "Psalm 34:18",
+    "explanation": "God draws intimately near to those experiencing grief and heartache, tenderly rescuing those with a humble, contrite spirit.",
+    "explanationTelugu": "విరిగిన హృదయముగలవారికి యెహోవా ఆసన్నుడు, నలిగిన మనస్సుగలవారిని ఆయన రక్షించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q35",
+    "order": 35,
+    "questionType": "single_choice",
+    "question": "According to Psalm 34:19, although the troubles of the godly may be numerous, what does the Lord do?",
+    "questionTelugu": "కీర్తన 34:19 ప్రకారం నీతిమంతునికి కలుగు ఆపదలు అనేకములైనను యెహోవా ఏమి చేయును?",
+    "options": [
+      "Many are the afflictions of the righteous, but the Lord delivers him out of them all",
+      "The righteous never experience forty days of adversity",
+      "The righteous buy forty houses in Jerusalem",
+      "The righteous defeat twenty armies with iron spears"
+    ],
+    "optionsTelugu": [
+      "నీతిమంతునికి కలుగు ఆపదలు అనేకములు, వాటన్నిటిలోనుండి యెహోవా వానిని విడిపించును",
+      "నీతిమంతుడు నలభై దినముల శ్రమను ఎన్నడును అనుభవింపడు",
+      "నీతిమంతుడు యెరూషలేములో నలభై ఇండ్లను కొనుక్కొనును",
+      "నీతిమంతుడు ఇనుప ఈటెలతో ఇరువది సైన్యములను ఓడించును"
+    ],
+    "correctAnswer": "Many are the afflictions of the righteous, but the Lord delivers him out of them all",
+    "bibleReference": "Psalm 34:19",
+    "explanation": "Scripture acknowledges that righteous believers face many trials, but promises that God faithfully delivers them from every single one.",
+    "explanationTelugu": "నీతిమంతునికి కలుగు ఆపదలు అనేకములు, వాటన్నిటిలోనుండి యెహోవా వానిని విడిపించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q36",
+    "order": 36,
+    "questionType": "single_choice",
+    "question": "According to Psalm 34:20, how meticulously does God guard the bodily frame of His righteous one?",
+    "questionTelugu": "కీర్తన 34:20 ప్రకారం నీతిమంతుని ఎముకలన్నిటిని దేవుడు ఎంత జాగ్రత్తగా కాపాడును?",
+    "options": [
+      "He guards all his bones; not one of them is broken",
+      "He gives him forty iron crutches for walking",
+      "He casts his bones into the valley of Hinnom",
+      "He heals his wounds with seventy days of plaster"
+    ],
+    "optionsTelugu": [
+      "ఆయన వాని ఎముకలన్నిటిని కాపాడును, వాటిలో ఒక్కటియైనను విరిగిపోదు",
+      "నడవడానికి అతనికి నలభై ఇనుప కర్రలను ఇచ్చును",
+      "అతని ఎముకలను హిన్నోము లోయలోనికి విసిరివేయును",
+      "డెబ్బై దినముల లేపనములతో అతని గాయములను మాన్పును"
+    ],
+    "correctAnswer": "He guards all his bones; not one of them is broken",
+    "bibleReference": "Psalm 34:20; John 19:36",
+    "explanation": "God watches over all his bones so that not a single one is broken, a promise fulfilled when Jesus died without broken bones on the cross.",
+    "explanationTelugu": "ఆయన వాని ఎముకలన్నిటిని కాపాడును, వాటిలో ఒక్కటియైనను విరిగిపోదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q37",
+    "order": 37,
+    "questionType": "single_choice",
+    "question": "According to Psalm 55:22, what will the Lord do for the one who casts their burden on Him?",
+    "questionTelugu": "కీర్తన 55:22 ప్రకారం తన భారమును యెహోవాపై వేయువానికి దేవుడు ఏమి చేయును, నీతిమంతుని ఎన్నడును ఏమి కానియ్యడు?",
+    "options": [
+      "Cast your burden on the Lord, and He shall sustain you; He shall never permit the righteous to be moved",
+      "Carry your burden forty miles through the valley of Rephaim",
+      "Give thirty silver pieces to temple porters to carry your loads",
+      "Hide your grief in forty secret tombs of Judah"
+    ],
+    "optionsTelugu": [
+      "నీ భారము యెహోవామీద మోపుము, ఆయన నిన్ను ఆదుకొనును; నీతిమంతుని ఎన్నడును కదలనీయడు",
+      "రెఫాయీము లోయలో నలభై మైళ్లు నీ భారమును మోసుకొనిపోవుము",
+      "నీ బరువులను మోయుటకు దేవాలయ కూలీలకు ముప్పది వెండి నాణెములు ఇమ్ము",
+      "యూదాలోని నలభై రహస్య సమాధులలో నీ దుఃఖమును దాచిపెట్టుము"
+    ],
+    "correctAnswer": "Cast your burden on the Lord, and He shall sustain you; He shall never permit the righteous to be moved",
+    "bibleReference": "Psalm 55:22",
+    "explanation": "Believers are urged to cast every overwhelming weight upon the Lord, who guarantees to sustain them and keep them unshakeable.",
+    "explanationTelugu": "నీ భారము యెహోవామీద మోపుము, ఆయన నిన్ను ఆదుకొనును; నీతిమంతుని ఎన్నడును కదలనీయడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q38",
+    "order": 38,
+    "questionType": "single_choice",
+    "question": "In Psalm 68:5, from where does God actively execute fatherhood to orphans and defense for widows?",
+    "questionTelugu": "కీర్తన 68:5 ప్రకారం తన ఏ పరిశుద్ధ స్థలమునుండి దేవుడు అనాథలకు తండ్రిగాను విధవరాండ్రకు న్యాయకర్తగాను ఉన్నాడు?",
+    "options": [
+      "A father of the fatherless, a defender of widows, is God in His holy habitation",
+      "A judge who demands forty bulls from orphans",
+      "A king who banishes widows forty leagues from Zion",
+      "A ruler who collects sixty talents of silver from the poor"
+    ],
+    "optionsTelugu": [
+      "దిక్కులేని పిల్లలకు తండ్రియు విధవరాండ్రకు న్యాయకర్తయునైన దేవుడు తన పరిశుద్ధ నివాసమందున్నాడు",
+      "అనాథలనుండి నలభై ఎద్దులను బలిగా కోరు న్యాయాధిపతి",
+      "సీయోనునుండి నలభై ఆమడల దూరమునకు విధవరాండ్రను వెళ్లగొట్టు రాజు",
+      "పేదలనుండి అరవై తలాంతుల వెండిని వసూలు చేయు పాలకుడు"
+    ],
+    "correctAnswer": "A father of the fatherless, a defender of widows, is God in His holy habitation",
+    "bibleReference": "Psalm 68:5",
+    "explanation": "God's holy residence does not detach Him from human sorrow; He sovereignly functions as Father to orphans and legal protector of widows.",
+    "explanationTelugu": "దిక్కులేని పిల్లలకు తండ్రియు విధవరాండ్రకు న్యాయకర్తయునైన దేవుడు తన పరిశుద్ధ నివాసమందున్నాడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q39",
+    "order": 39,
+    "questionType": "single_choice",
+    "question": "According to Psalm 146:7-8, what does the Lord do for those who are bowed down with heavy life burdens?",
+    "questionTelugu": "కీర్తన 146:7-8 ప్రకారం క్రుంగిపోయినవారిని లేవనెత్తుటలో ప్రభువు ఏ దయను చూపును?",
+    "options": [
+      "Executes justice for the oppressed, gives food to the hungry, and gives freedom to the prisoners",
+      "Builds forty iron towers in the desert",
+      "Levies sixty talents on the poor",
+      "Demands thirty rams for ritual sacrifices"
+    ],
+    "optionsTelugu": [
+      "బాధపడువారికి న్యాయము తీర్చును, ఆకలిగొన్నవారికి ఆహారము నిచ్చును, బంధింపబడినవారిని విడుదల చేయును",
+      "ఎడారిలో నలభై ఇనుప గోపురములను నిర్మించును",
+      "పేదలపై అరవై తలాంతుల పన్ను విధించును",
+      "ఆచార బలులకొరకు ముప్పది పొట్టేళ్లను డిమాండ్ చేయును"
+    ],
+    "correctAnswer": "Executes justice for the oppressed, gives food to the hungry, and gives freedom to the prisoners",
+    "bibleReference": "Psalm 146:7",
+    "explanation": "The Lord acts as the supreme liberator and provider, upholding justice for the oppressed, feeding the starving, and freeing captives.",
+    "explanationTelugu": "ఆయన బాధపడువారికి న్యాయము తీర్చును, ఆకలిగొన్నవారికి ఆహారము నిచ్చును, యెహోవా బంధింపబడినవారిని విడుదల చేయును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q40",
+    "order": 40,
+    "questionType": "single_choice",
+    "question": "According to Psalm 146:8, who does the Lord specifically love as He raises up the fallen?",
+    "questionTelugu": "కీర్తన 146:8 ప్రకారం పడిపోయినవారిని లేవనెత్తుచు యెహోవా ఎవరిని ప్రేమించుచున్నాడు?",
+    "options": [
+      "The Lord opens the eyes of the blind; the Lord raises those who are bowed down; the Lord loves the righteous",
+      "The Lord assigns forty days of penance to the blind",
+      "The Lord demands seventy shekels of silver for healing",
+      "The Lord leads the bowed down into sixty miles of exile"
+    ],
+    "optionsTelugu": [
+      "యెహోవా గ్రుడ్డివారి కన్నులు తెరచును, యెహోవా క్రుంగినవారిని లేవనెత్తును, యెహోవా నీతిమంతులను ప్రేమించును",
+      "గ్రుడ్డివారికి నలభై దినముల కఠిన శిక్షను విధించును",
+      "స్వస్థత కొరకు డెబ్బై వెండి షెకెళ్లను డిమాండ్ చేయును",
+      "క్రుంగినవారిని అరవై మైళ్ల నిర్వాసనలోనికి తోలుకొనిపోవును"
+    ],
+    "correctAnswer": "The Lord opens the eyes of the blind; the Lord raises those who are bowed down; the Lord loves the righteous",
+    "bibleReference": "Psalm 146:8",
+    "explanation": "The Lord opens blind eyes, lifts up all who are bent low under heavy trials, and sets His affectionate love on the righteous.",
+    "explanationTelugu": "యెహోవా గ్రుడ్డివారి కన్నులు తెరచును, యెహోవా క్రుంగినవారిని లేవనెత్తును, యెహోవా నీతిమంతులను ప్రేమించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q41",
+    "order": 41,
+    "questionType": "single_choice",
+    "question": "According to Psalm 146:9, what does God do to the way of the wicked while protecting strangers, orphans, and widows?",
+    "questionTelugu": "కీర్తన 146:9 ప్రకారం అనాథలను వితంతువులను ఆదరించు దేవుడు దుష్టుల మార్గమును ఏమి చేయును?",
+    "options": [
+      "The Lord watches over the strangers; He relieves the fatherless and widow; but the way of the wicked He turns upside down",
+      "The Lord demands forty talents of tax from foreign travelers",
+      "The Lord exiles thirty orphans to pagan nations",
+      "The Lord establishes seventy fortresses for rich landowners"
+    ],
+    "optionsTelugu": [
+      "యెహోవా పరదేశులను కాపాడును, ఆయన దిక్కులేనివారిని విధవరాండ్రను ఆదరించును; దుష్టుల మార్గమును ఆయన బోరగిలజేయును",
+      "విదేశీ ప్రయాణికులనుండి నలభై తలాంతుల పన్ను వసూలు చేయును",
+      "ముప్పదిమంది అనాథలను అన్యదేశములకు పారద్రోలును",
+      "భూస్వాములకొరకు డెబ్బై బలమైన కోటలను నిర్మించును"
+    ],
+    "correctAnswer": "The Lord watches over the strangers; He relieves the fatherless and widow; but the way of the wicked He turns upside down",
+    "bibleReference": "Psalm 146:9",
+    "explanation": "God guards resident foreigners, sustains vulnerable widows and orphans, and subverts the selfish plots of the wicked.",
+    "explanationTelugu": "యెహోవా పరదేశులను కాపాడును, ఆయన దిక్కులేనివారిని విధవరాండ్రను ఆదరించును; దుష్టుల మార్గమును ఆయన బోరగిలజేయును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q42",
+    "order": 42,
+    "questionType": "single_choice",
+    "question": "According to Matthew 18:10, what continual access do the angels of these little ones have before the Heavenly Father?",
+    "questionTelugu": "మత్తయి 18:10 ప్రకారం ఈ చిన్నవారి దేవదూతలు పరలోకమందు ఎల్లప్పుడు ఎవరి ముఖమును చూచుచున్నారు?",
+    "options": [
+      "Take heed that you do not despise one of these little ones, for their angels always see the face of My Father in heaven",
+      "Little ones must fast forty days before entering the assembly",
+      "Children must pay twenty shekels to temple elders",
+      "These little ones must be trained in sixty Roman laws"
+    ],
+    "optionsTelugu": [
+      "ఈ చిన్నవారిలో ఒకనినైనను తృణీకరింపకుండ చూచుకొనుడి; వీరి దూతలు పరలోకమందున్న నా తండ్రి ముఖమును ఎల్లప్పుడును చూచుచున్నారు",
+      "చిన్నపిల్లలు సమాజములో చేరకముందు నలభై దినములు ఉపవాసముండవలెను",
+      "పిల్లలు దేవాలయ పెద్దలకు ఇరువది షెకెళ్లు చెల్లించవలెను",
+      "ఈ చిన్నవారు అరవై రోమా చట్టములలో తర్ఫీదు పొందవలెను"
+    ],
+    "correctAnswer": "Take heed that you do not despise one of these little ones, for their angels always see the face of My Father in heaven",
+    "bibleReference": "Matthew 18:10",
+    "explanation": "Jesus warns against looking down on vulnerable believers, revealing that their heavenly angels continually behold the Father's face.",
+    "explanationTelugu": "ఈ చిన్నవారిలో ఒకనినైనను తృణీకరింపకుండ చూచుకొనుడి; పరలోకమందు వారి దూతలు పరలోకమందున్న నా తండ్రి ముఖమును ఎల్లప్పుడును చూచుచున్నారని మీతో చెప్పుచున్నాను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q43",
+    "order": 43,
+    "questionType": "single_choice",
+    "question": "According to Matthew 18:14, what is the Father's sovereign pastoral will concerning vulnerable believers?",
+    "questionTelugu": "మత్తయి 18:14 ప్రకారం ఈ చిన్నవారి విషయములో పరలోకపు తండ్రి చిత్తమేమిటి?",
+    "options": [
+      "He leaves the ninety-nine on the mountains and goes to search for the one that is straying; it is not the will of your Father that one of these little ones perish",
+      "He slaughters forty rams in anger against the straying sheep",
+      "He abandons the lost sheep to seventy desert predators",
+      "He demands sixty pieces of gold for finding the sheep"
+    ],
+    "optionsTelugu": [
+      "అతడు తొంబది తొమ్మిదింటిని కొండలమీద విడిచిపెట్టి, తప్పిపోయినదానిని వెదకవెళ్లును; ఈ చిన్నవారిలో ఒకడైనను నశించుట మీ పరలోకపు తండ్రి చిత్తము కాదు",
+      "తప్పిపోయిన గొర్రెపై కోపముతో నలభై పొట్టేళ్లను వధించును",
+      "ఎడారిలోని డెబ్బై క్రూరమృగములకు ఆ గొర్రెను విడిచిపెట్టును",
+      "గొర్రెను కనుగొన్నందుకు అరవై బంగారు నాణెములను అడుగును"
+    ],
+    "correctAnswer": "He leaves the ninety-nine on the mountains and goes to search for the one that is straying; it is not the will of your Father that one of these little ones perish",
+    "bibleReference": "Matthew 18:12-14",
+    "explanation": "The caring shepherd pursues the single wandering sheep, reflecting the Father's tender will that not a single little one perish.",
+    "explanationTelugu": "అతడు తొంబది తొమ్మిదింటిని కొండలమీద విడిచిపెట్టి, తప్పిపోయినదానిని వెదకవెళ్లును గదా? ఆలాగే ఈ చిన్నవారిలో ఒకడైనను నశించుట పరలోకమందున్న మీ తండ్రి చిత్తము కాదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q44",
+    "order": 44,
+    "questionType": "single_choice",
+    "question": "According to Luke 15:10, what celebration erupts in heaven when a single sinner is recovered through this pastoral seeking?",
+    "questionTelugu": "లూకా 15:10 ప్రకారం తప్పిపోయిన పాపి పశ్చాత్తాపపడి దొరికినప్పుడు పరలోకములో ఎవరియెదుట సంతోషము కలుగును?",
+    "options": [
+      "Lights a lamp, sweeps the house, and searches carefully until she finds it, rejoicing with friends",
+      "Builds forty stone walls around her courtyard",
+      "Demands thirty drachmas from her neighbors",
+      "Fasts forty days in mourning for her loss"
+    ],
+    "optionsTelugu": [
+      "దీపము వెలిగించి, యిల్లు ఊడ్చి, అది దొరుకువరకు శ్రద్ధగా వెదకును; అది దొరికినప్పుడు చెలికత్తెలను పిలిచి సంతోషించును",
+      "తన ఇంటి చుట్టూ నలభై రాతి గోడలను నిర్మించును",
+      "పొరుగువారినుండి ముప్పది వెండి నాణెములను డిమాండ్ చేయును",
+      "నాణెము పోయినందుకు నలభై దినములు దుఃఖముతో ఉపవాసముండును"
+    ],
+    "correctAnswer": "Lights a lamp, sweeps the house, and searches carefully until she finds it, rejoicing with friends",
+    "bibleReference": "Luke 15:8-10",
+    "explanation": "The woman lights a lamp and sweeps diligently until finding her lost coin, illustrating God's thorough, rejoicing care in recovering lost sinners.",
+    "explanationTelugu": "ఏ స్త్రీకైనను పది వెండి నాణెములుండగా వాటిలో ఒక నాణెము పోగొట్టుకొనినయెడల, ఆమె దీపము వెలిగించి, యిల్లు ఊడ్చి, అది దొరుకువరకు శ్రద్ధగా వెదకదా? అది దొరికినప్పుడు... నాతోకూడ సంతోషించుడని చెప్పును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q45",
+    "order": 45,
+    "questionType": "single_choice",
+    "question": "In John 19:26-27, what words did dying Jesus speak to Mary and to the beloved disciple John?",
+    "questionTelugu": "యోహాను 19:26-27 లో మరియతోను మరియు ప్రియ శిష్యుడైన యోహానుతోను యేసు పలికిన ఆదరణ మాటలేవి?",
+    "options": [
+      "Said to His mother, 'Woman, behold your son!' and to the disciple, 'Behold your mother!' and from that hour he took her to his home",
+      "Commanded the Roman soldiers to pay her forty pieces of gold",
+      "Assigned seventy priests to guard her in Nazareth",
+      "Ordered forty days of public lamentation across Judea"
+    ],
+    "optionsTelugu": [
+      "తన తల్లితో-అమ్మా, యిదిగో నీ కుమారుడు అనియు, శిష్యునితో-యిదిగో నీ తల్లి అనియు చెప్పెను; ఆ గడియనుండి ఆ శిష్యుడు ఆమెను తన యింట చేర్చుకొనెను",
+      "రోమా సైనికులు ఆమెకు నలభై బంగారు నాణెములను చెల్లించవలెనని ఆజ్ఞాపించెను",
+      "నజరేతులో ఆమెకు కావలియుండుటకు డెబ్బైమంది యాజకులను నియమించెను",
+      "యూదయయంతటను నలభై దినముల బహిరంగ రోదనను విధించెను"
+    ],
+    "correctAnswer": "Said to His mother, 'Woman, behold your son!' and to the disciple, 'Behold your mother!' and from that hour he took her to his home",
+    "bibleReference": "John 19:26-27",
+    "explanation": "Even while dying for the world's sins, Jesus cared for His earthly mother, placing her into the lifelong familial custody of the apostle John.",
+    "explanationTelugu": "యేసు తన తల్లిని తాను ప్రేమించిన శిష్యుడును దగ్గర నిలుచుండుట చూచి-అమ్మా, యిదిగో నీ కుమారుడు అని తన తల్లితో చెప్పెను; తరువాత శిష్యుని చూచి-యిదిగో నీ తల్లి అని చెప్పెను. ఆ గడియనుండి ఆ శిష్యుడు ఆమెను తన యింట చేర్చుకొనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q46",
+    "order": 46,
+    "questionType": "single_choice",
+    "question": "What famous statement of spiritual wealth over earthly silver did Peter proclaim to the disabled man in Acts 3:6?",
+    "questionTelugu": "అపొస్తలుల కార్యములు 3:6 లో వెండిబంగారములకంటె శ్రేష్ఠమైన క్రీస్తు నామపు స్వస్థతను గూర్చి పేతురు ఏమని పలికెను?",
+    "options": [
+      "Silver and gold I do not have, but what I do have I give you: In the name of Jesus Christ of Nazareth, rise up and walk",
+      "Gave him forty silver shekels from the temple treasury",
+      "Sent him into sixty days of quarantine outside Jerusalem",
+      "Offered him thirty loaves of barley bread"
+    ],
+    "optionsTelugu": [
+      "వెండిబంగారములు నాయొద్ద లేవు గాని నాకు కలిగినదే నీకిచ్చుచున్నాను; నజరేయుడైన యేసుక్రీస్తు నామమున నడువుము",
+      "దేవాలయ ఖజానానుండి నలభై వెండి షెకెళ్లను అతనికి ఇచ్చిరి",
+      "యెరూషలేము వెలుపల అరవై దినముల ఏకాంతవాసమునకు అతనిని పంపిరి",
+      "అతనికి ముప్పది యవల రొట్టెలను భిక్షగా సమర్పించిరి"
+    ],
+    "correctAnswer": "Silver and gold I do not have, but what I do have I give you: In the name of Jesus Christ of Nazareth, rise up and walk",
+    "bibleReference": "Acts 3:6",
+    "explanation": "Peter and John gave the lame man something far greater than money: total physical restoration and mobility in the powerful name of Jesus.",
+    "explanationTelugu": "అందుకు పేతురు-వెండిబంగారములు నాయొద్ద లేవు గాని నాకు కలిగినదే నీకిచ్చుచున్నాను; నజరేయుడైన యేసుక్రీస్తు నామమున నడువుమని చెప్పి, అతని కుడిచేయి పట్టుకొని లేవనెత్తెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q47",
+    "order": 47,
+    "questionType": "single_choice",
+    "question": "In Acts 9:40-41, what command did Peter speak to the deceased woman, and to whom did he present her alive?",
+    "questionTelugu": "అపొస్తలుల కార్యములు 9:40-41 లో మరణించిన దొర్కాతో పేతురు ఏమి చెప్పెను, ఎవరి ఎదుట ఆమెను సజీవురాలిగా నిలువబెట్టెను?",
+    "options": [
+      "Peter knelt, prayed, and said 'Tabitha, arise!' and presented her alive to the saints and widows",
+      "Peter ordered forty days of funeral wailing in Joppa",
+      "Peter built seventy stone shrines in memory of Dorcas",
+      "Peter distributed her thirty garments to Roman soldiers"
+    ],
+    "optionsTelugu": [
+      "పేతురు మోకాళ్లూని ప్రార్థనచేసి-తబితా, లెమ్ము అనగా ఆమె కన్నులు తెరచెను; అతడు ఆమెను లేవనెత్తి పరిశుద్ధులను విధవరాండ్రను పిలిచి ఆమెను సజీవురాలిగా వారియెదుట నిలువబెట్టెను",
+      "యొప్పాలో నలభై దినముల అంత్యక్రియల రోదనను ఆజ్ఞాపించెను",
+      "దొర్కా జ్ఞాపకార్థము డెబ్బై రాతి సమాధులను కట్టించెను",
+      "ఆమె కుట్టిన ముప్పది వస్త్రములను రోమా సైనికులకు పంచిపెట్టెను"
+    ],
+    "correctAnswer": "Peter knelt, prayed, and said 'Tabitha, arise!' and presented her alive to the saints and widows",
+    "bibleReference": "Acts 9:40-41",
+    "explanation": "God raised the beloved philanthropist Tabitha from the dead through Peter's prayer, restoring her compassionate care to the weeping widows.",
+    "explanationTelugu": "పేతురు అందరిని వెలుపలికి పంపి, మోకాళ్లూని ప్రార్థనచేసి శవమువైపు తిరిగి-తబితా, లెమ్ము అని చెప్పెను; అప్పుడామె కన్నులు తెరచి పేతురును చూచి లేచి కూర్చుండెను. అతడు ఆమెకు చేయి యిచ్చి ఆమెను లేవనెత్తి... సజీవురాలిగా వారియెదుట నిలువబెట్టెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q48",
+    "order": 48,
+    "questionType": "single_choice",
+    "question": "According to Galatians 6:2, whose law do believers fulfill when they bear one another's heavy burdens?",
+    "questionTelugu": "గలతీయులకు 6:2 ప్రకారం ఒకరి భారములను ఒకరు మోయుట ద్వారా ఎవరి నియమము నెరవేర్చబడును?",
+    "options": [
+      "Bear one another's burdens, and so fulfill the law of Christ",
+      "Impose forty days of penance upon struggling brothers",
+      "Avoid thirty brethren who suffer financial ruin",
+      "Carry forty weights of bronze to the temple"
+    ],
+    "optionsTelugu": [
+      "ఒకని భారములను ఒకడు భరించి, ఈలాగు క్రీస్తు నియమమును సంపూర్ణముగా నెరవేర్చుడి",
+      "శ్రమలలో ఉన్న సహోదరులపై నలభై దినముల కఠిన నియమములను మోపుడి",
+      "ఆర్థిక నష్టములో ఉన్న ముప్పదిమంది విశ్వాసులను దూరముగా ఉంచుడి",
+      "దేవాలయమునకు నలభై తలాంతుల ఇత్తడి బరువులను మోసుకొనిరండి"
+    ],
+    "correctAnswer": "Bear one another's burdens, and so fulfill the law of Christ",
+    "bibleReference": "Galatians 6:2",
+    "explanation": "Paul commands believers to shoulder one another's emotional, physical, and spiritual loads, thereby fulfilling Christ's law of love.",
+    "explanationTelugu": "ఒకని భారములను ఒకడు భరించి, ఈలాగు క్రీస్తు నియమమును సంపూర్ణముగా నెరవేర్చుడి.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q49",
+    "order": 49,
+    "questionType": "single_choice",
+    "question": "According to 1 John 3:17, what does possessing world's goods require when confronted with a brother in destitution?",
+    "questionTelugu": "1 యోహాను 3:17 ప్రకారం లోకపు జీవనసామగ్రి గలవాడు కొదువలో ఉన్న సహోదరుని చూచి ఏమి చేయకూడదు?",
+    "options": [
+      "Whoever has this world's goods, and sees his brother in need, and shuts up his heart from him, how does the love of God abide in him?",
+      "Whoever gives forty pieces of silver to Caesar is righteous",
+      "Whoever builds sixty storehouses in Galilee fulfills the law",
+      "Whoever fasts thirty days replaces the need for charity"
+    ],
+    "optionsTelugu": [
+      "ఈ లోకపు జీవనసామగ్రి గలవాడైయుండి, తన సహోదరునికి లేమి కలుగుట చూచియు, అతనియెడల ఎంతమాత్రమును కనికరము చూపనివానియందు దేవుని ప్రేమ యేలాగు నిలుచును?",
+      "కైసరునకు నలభై వెండి నాణెములను ఇచ్చువాడే నీతిమంతుడు",
+      "గలీలయలో అరవై ధాన్యాగారములను కట్టువాడు ధర్మశాస్త్రమును నెరవేర్చును",
+      "ముప్పది దినములు ఉపవాసముండువాడు దానధర్మములతో పనిలేదు"
+    ],
+    "correctAnswer": "Whoever has this world's goods, and sees his brother in need, and shuts up his heart from him, how does the love of God abide in him?",
+    "bibleReference": "1 John 3:17",
+    "explanation": "John insists that true divine love cannot co-exist with a stingy heart that closes its wallet against a destitute Christian brother.",
+    "explanationTelugu": "ఈ లోకపు జీవనసామగ్రి గలవాడైయుండి, తన సహోదరునికి లేమి కలుగుట చూచియు, అతనియెడల ఎంతమాత్రమును కనికరము చూపనివానియందు దేవుని ప్రేమ యేలాగు నిలుచును?",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s1_q50",
+    "order": 50,
+    "questionType": "single_choice",
+    "question": "According to Revelation 21:4, what four ancient curses of fallen creation will be eradicated forever?",
+    "questionTelugu": "ప్రకటన 21:4 ప్రకారం ఇకమీదట ఎన్నడును ఉండని ఆ నాలుగు దుఃఖకర శ్రమలేవి?",
+    "options": [
+      "God will wipe away every tear from their eyes; there shall be no more death, nor sorrow, nor crying. There shall be no more pain",
+      "He will establish forty iron fortresses in the new earth",
+      "He will collect sixty talents of gold tribute from nations",
+      "He will assign thirty years of labor in the celestial fields"
+    ],
+    "optionsTelugu": [
+      "ఆయన వారి కన్నుల ప్రతి భాష్పబిందువును తుడిచివేయును, ఇకమీదట మరణము ఉండదు, దుఃఖమైనను ఏడ్పైనను వేదనయైనను ఇకమీదట ఉండదు",
+      "నూతన భూమిపై నలభై ఇనుప కోటలను దేవుడు నిర్మించును",
+      "జాతులవద్దనుండి అరవై తలాంతుల బంగారు కప్పమును వసూలు చేయును",
+      "పరలోక పొలములలో ముప్పది సంవత్సరముల కాయకష్టమును విధించును"
+    ],
+    "correctAnswer": "God will wipe away every tear from their eyes; there shall be no more death, nor sorrow, nor crying. There shall be no more pain",
+    "bibleReference": "Revelation 21:4",
+    "explanation": "In the new creation, God personally wipes away every tear, banishing death, grief, crying, and pain forever.",
+    "explanationTelugu": "ఆయన వారి కన్నుల ప్రతి భాష్పబిందువును తుడిచివేయును, మరణము ఇకమీదట ఉండదు, దుఃఖమైనను ఏడ్పైనను వేదనయైనను ఇకమీదట ఉండదు; మొదటి సంగతులు గతించిపోయెను.",
+    "marks": 1
+  }
+];
+
+export const CARE_MEDIUM_GROWTH: QuizQuestion[] = [
+  {
+    "id": "car_m_s2_q01",
+    "order": 1,
+    "questionType": "single_choice",
+    "question": "According to Exodus 22:22-23, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Exodus 22:22-23 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"You shall not afflict any widow or fatherless child. If you afflict them in any way, and they cry at all to Me, I will surely hear their cry\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఏ విధవరాలినైనను దిక్కులేని పిల్లనైనను బాధపెట్టకూడదు; నీవు వారిని బాధపెట్టుటవలన వారు నాకు మొరపెట్టినయెడల నేను నిశ్చయముగా వారి మొరను వినెదను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"You shall not afflict any widow or fatherless child. If you afflict them in any way, and they cry at all to Me, I will surely hear their cry\"",
+    "bibleReference": "Exodus 22:22-23",
+    "explanation": "God stands as the active personal protector of the defenseless.",
+    "explanationTelugu": "దిక్కులేనివారిని బాధించువారికి దేవుడే స్వయముగా తీర్పు తీర్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q02",
+    "order": 2,
+    "questionType": "single_choice",
+    "question": "According to Leviticus 25:35, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Leviticus 25:35 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"If one of your brethren becomes poor, and falls into poverty among you, then you shall help him, like a stranger or a sojourner\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీ సహోదరుడు దరిద్రుడై నీయొద్ద నిలువలేకపోయినయెడల, పరదేశివలెను నివాసివలెను అతడు నీయొద్ద బ్రదుకునట్లు నీవు వానికి సహాయము చేయవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"If one of your brethren becomes poor, and falls into poverty among you, then you shall help him, like a stranger or a sojourner\"",
+    "bibleReference": "Leviticus 25:35",
+    "explanation": "Covenant brotherhood demands proactive financial and physical relief.",
+    "explanationTelugu": "బీదరికములో ఉన్న సహోదరునికి చేయూతనిచ్చి ఆదుకొను దైవిక ధర్మము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q03",
+    "order": 3,
+    "questionType": "single_choice",
+    "question": "According to Deuteronomy 15:8, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Deuteronomy 15:8 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"You shall open your hand wide to him and willingly lend him sufficient for his need, whatever he needs\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వానియెడల నీ చెయ్యి విప్పి, వానికి కలిగిన కొదువనుబట్టి వానికి కావలసినదంతయు నిశ్చయముగా అప్పియ్యవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"You shall open your hand wide to him and willingly lend him sufficient for his need, whatever he needs\"",
+    "bibleReference": "Deuteronomy 15:8",
+    "explanation": "Generous care refuses to let hardhearted stinginess block relief.",
+    "explanationTelugu": "పేద సహోదరుని అక్కరలో కనికరముతో చేయి చాచి సహాయము చేయవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q04",
+    "order": 4,
+    "questionType": "single_choice",
+    "question": "According to Deuteronomy 24:19, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Deuteronomy 24:19 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"When you reap your harvest in your field, and forget a sheaf... you shall not go back to get it; it shall be for the stranger, the fatherless, and the widow\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీ చేనిలో కోత కోయునప్పుడు చేనిలో ఒక మోపు మరచినయెడల, దాని తెచ్చుటకు తిరిగి వెళ్లకూడదు; నీ దేవుడైన యెహోవా నీ కార్యములన్నిటిలో నిన్ను ఆశీర్వదించునట్లు అది పరదేశికిని దిక్కులేనివానికిని విధవరాలికిని చెందవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"When you reap your harvest in your field, and forget a sheaf... you shall not go back to get it; it shall be for the stranger, the fatherless, and the widow\"",
+    "bibleReference": "Deuteronomy 24:19",
+    "explanation": "Institutionalizing systemic, dignified harvest welfare for the needy.",
+    "explanationTelugu": "పేదలు గౌరవముగా తిండి సంపాదించుకొనునట్లు ధర్మశాస్త్రములో ఏర్పాటుచేసిన దైవిక సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q05",
+    "order": 5,
+    "questionType": "single_choice",
+    "question": "According to 1 Samuel 30:11-12, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "1 Samuel 30:11-12 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"They found an Egyptian in the field, and brought him to David; and they gave him bread and he ate, and they let him drink water... and his spirit revived\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారు పొలములో ఒక ఐగుప్తీయుని కనుగొని దావీదునొద్దకు అతనిని తోడుకొనివచ్చి, అతనికి భోజనము పెట్టగా అతడు తినెను, వారు అతనికి దాహమిచ్చిరి... అతడు తినిన తరువాత అతని ప్రాణము మరల వచ్చెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"They found an Egyptian in the field, and brought him to David; and they gave him bread and he ate, and they let him drink water... and his spirit revived\"",
+    "bibleReference": "1 Samuel 30:11-12",
+    "explanation": "Compassion to a starving slave unlocked vital military intelligence saving families.",
+    "explanationTelugu": "ఆపదలో ఉన్న దిక్కులేని దాసునికి చేసిన సంరక్షణ సమస్త కుటుంబాన్ని విడిపించుటకు దారితీసెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q06",
+    "order": 6,
+    "questionType": "single_choice",
+    "question": "According to 2 Samuel 17:29, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "2 Samuel 17:29 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Brought beds and basins, earthen vessels and wheat, barley and flour... for they said, 'The people are hungry and weary and thirsty in the wilderness'\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆ జనులు అరణ్యమందు ఆకలిగొని డస్సి దప్పిగొని యున్నారని చెప్పి, పరుపులను గిన్నెలను మంటి పాత్రలను గోధుమలను యవలను పిండిని వేయించిన ధాన్యమును... దావీదునకును అతనితోనున్న జనులకును భోజనము తెచ్చి ఇచ్చిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Brought beds and basins, earthen vessels and wheat, barley and flour... for they said, 'The people are hungry and weary and thirsty in the wilderness'\"",
+    "bibleReference": "2 Samuel 17:29",
+    "explanation": "Loyal, practical hospitality providing comfort to displaced refugees.",
+    "explanationTelugu": "శ్రమలో ఉన్న దావీదుకు వృద్ధుడైన బర్జిల్లయి చేసిన అద్భుతమైన ఆదరణ సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q07",
+    "order": 7,
+    "questionType": "single_choice",
+    "question": "According to 1 Kings 18:4, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "1 Kings 18:4 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"While Jezebel massacred the prophets of the Lord, Obadiah had taken one hundred prophets and hidden them, fifty to a cave, and fed them with bread and water\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"యెజెబెలు యెహోవా ప్రవక్తలను నిర్మూలము చేయుచుండగా ఓబద్యా నూరుమంది ప్రవక్తలను తీసికొని, ఒక గుహలో ఏబదేసి మందిగా దాచి, వారికి అన్నపానములిచ్చి పోషించెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"While Jezebel massacred the prophets of the Lord, Obadiah had taken one hundred prophets and hidden them, fifty to a cave, and fed them with bread and water\"",
+    "bibleReference": "1 Kings 18:4",
+    "explanation": "Heroic, sacrificial stewardship protecting God's servants at mortal risk.",
+    "explanationTelugu": "దుష్ట రాణి యెజెబెలుకు భయపడక ప్రాణము తెగించి ప్రవక్తలను పోషించిన ఓబద్యా భక్తి.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q08",
+    "order": 8,
+    "questionType": "single_choice",
+    "question": "According to 2 Kings 4:41, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "2 Kings 4:41 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"So he said, 'Then bring some flour.' And he put it into the pot, and said, 'Pour it out, that they may eat.' And there was no harm in the pot\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అతడు-కొంచెము పిండి తెండని చెప్పి, దానిని ఆ కుండలో వేసి-జనులు తినునట్లు వడ్డించుడని చెప్పెను; అప్పుడు ఆ కుండలో ఏ విషమును లేకపోయెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"So he said, 'Then bring some flour.' And he put it into the pot, and said, 'Pour it out, that they may eat.' And there was no harm in the pot\"",
+    "bibleReference": "2 Kings 4:41",
+    "explanation": "Prophetic care ensuring that community members receive wholesome, life-sustaining food.",
+    "explanationTelugu": "ఆకలితో ఉన్న శిష్యులకొరకు విషపు కూరను పిండితో పవిత్రపరచిన దైవిక సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q09",
+    "order": 9,
+    "questionType": "single_choice",
+    "question": "According to 2 Kings 4:44, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "2 Kings 4:44 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"So he set it before them; and they ate and had some left over, according to the word of the Lord\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అతడు వారియెదుట దానిని పెట్టగా యెహోవా సెలవిచ్చిన మాటచొప్పున వారు తిని మిగిల్చిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"So he set it before them; and they ate and had some left over, according to the word of the Lord\"",
+    "bibleReference": "2 Kings 4:44",
+    "explanation": "Miraculous multiplication providing for the community's nutritional sustenance.",
+    "explanationTelugu": "దేవుని వాక్యముద్వారా అల్పమైన ఆహారమును నూరుమందికి సమృద్ధిగా విస్తరింపజేసిన సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q10",
+    "order": 10,
+    "questionType": "single_choice",
+    "question": "According to Job 29:12,15, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Job 29:12,15 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Because I delivered the poor who cried out, the fatherless and the one who had no helper... I was eyes to the blind, and I was feet to the lame\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఏలయనగా మొరపెట్టిన దీనులను, దిక్కులేని తండ్రిలేనివారిని నేను రక్షించితిని... గ్రుడ్డివారికి కన్నులుగాను కుంటివారికి కాళ్లుగాను ఉంటిని\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Because I delivered the poor who cried out, the fatherless and the one who had no helper... I was eyes to the blind, and I was feet to the lame\"",
+    "bibleReference": "Job 29:12,15",
+    "explanation": "Righteous patriarchal leadership measured by protective advocacy for outcasts.",
+    "explanationTelugu": "పేదలకు అనాథలకు అండగా నిలిచి వారి హక్కులను కాపాడిన యోబు యొక్క ఆదర్శవంతమైన సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q11",
+    "order": 11,
+    "questionType": "single_choice",
+    "question": "According to Job 31:19-20, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Job 31:19-20 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"If I have seen anyone perish for lack of clothing... and if he were not warmed with the fleece of my sheep\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బట్టలేక నశించువానినైనను... నేను చూచినయెడల, నా గొర్రెల బొచ్చుతో వానికి వెచ్చదనము కలుగనందున వాడు నన్ను దీవించనియెడల...\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"If I have seen anyone perish for lack of clothing... and if he were not warmed with the fleece of my sheep\"",
+    "bibleReference": "Job 31:19-20",
+    "explanation": "True godliness clothes the naked and feeds the destitute from personal substance.",
+    "explanationTelugu": "పేదవారి చలిబాధను తీర్చి స్వయముగా అన్నవస్త్రములిచ్చిన యోబు దయార్ద్ర హృదయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q12",
+    "order": 12,
+    "questionType": "single_choice",
+    "question": "According to Psalm 41:1, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Psalm 41:1 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Blessed is he who considers the poor; the Lord will deliver him in time of trouble. The Lord will preserve him and keep him alive\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బీదలను పరామర్శించువాడు ధన్యుడు; ఆపత్కాలమందు యెహోవా వానిని తప్పించును. యెహోవా వానిని కాపాడి బ్రదికించును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Blessed is he who considers the poor; the Lord will deliver him in time of trouble. The Lord will preserve him and keep him alive\"",
+    "bibleReference": "Psalm 41:1",
+    "explanation": "Thoughtful, attentive consideration of the needy brings divine reciprocal deliverance.",
+    "explanationTelugu": "పేదలను దయతో కనిపెట్టి చూచువానికి ఆపత్కాలములో దేవుడే స్వయముగా విడుదలను ఇచ్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q13",
+    "order": 13,
+    "questionType": "single_choice",
+    "question": "According to Proverbs 14:31, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Proverbs 14:31 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"He who oppresses the poor reproaches his Maker, but he who honors Him has mercy on the needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దరిద్రుని బాధించువాడు వాని సృష్టికర్తను నిందించువాడు; బీదలను కనికరించువాడు ఆయనను ఘనపరచువాడు\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"He who oppresses the poor reproaches his Maker, but he who honors Him has mercy on the needy\"",
+    "bibleReference": "Proverbs 14:31",
+    "explanation": "Social care for the poor is direct theological worship of their Creator.",
+    "explanationTelugu": "పేదవారిని ఆదరించుట సాక్షాత్తు వారి సృష్టికర్తయైన దేవుని ఘనపరచుటతో సమానము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q14",
+    "order": 14,
+    "questionType": "single_choice",
+    "question": "According to Proverbs 19:17, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Proverbs 19:17 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"He who has pity on the poor lends to the Lord, and He will pay back what he has given\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బీదలను కనికరించువాడు యెహోవాకు అప్పిచ్చువాడు; వాని ఉపకారమునకు ఆయన ప్రతిఫలమిచ్చును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"He who has pity on the poor lends to the Lord, and He will pay back what he has given\"",
+    "bibleReference": "Proverbs 19:17",
+    "explanation": "God sovereignly cosigns the debt of the impoverished, guaranteeing divine reimbursement.",
+    "explanationTelugu": "పేదలకు చేయు సహాయము దేవునికి ఇచ్చిన అప్పువంటిది; దేవుడే స్వయముగా దానికి ప్రతిఫలము నిచ్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q15",
+    "order": 15,
+    "questionType": "single_choice",
+    "question": "According to Proverbs 28:27, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Proverbs 28:27 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"He who gives to the poor will not lack, but he who hides his eyes will have many curses\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బీదలకిచ్చువానికి ఏమియు కొదువరాదు; వారిని చూడక తన కన్నులను మూసికొనువానికి శాపములు విస్తారముగా కలుగును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"He who gives to the poor will not lack, but he who hides his eyes will have many curses\"",
+    "bibleReference": "Proverbs 28:27",
+    "explanation": "Generous provision protects against personal lack, while turning a blind eye invites judgment.",
+    "explanationTelugu": "బీదలకు సహాయము చేయువారి గృహములో దైవిక సమృద్ధి నిరంతరము నిలుచును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q16",
+    "order": 16,
+    "questionType": "single_choice",
+    "question": "According to Proverbs 31:8-9, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Proverbs 31:8-9 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Open your mouth for the speechless, in the cause of all who are appointed to die. Open your mouth, judge righteously, and plead the cause of the poor and needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దిక్కులేనివారందరి పక్షమున మూగవానికొరకు నీ నోరు తెరువుము; న్యాయముగా తీర్పుతీర్చుటకు నీ నోరు తెరువుము, దీనులయొక్కయు దరిద్రులయొక్కయు పక్షమున వ్యాజ్యెమాడుము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Open your mouth for the speechless, in the cause of all who are appointed to die. Open your mouth, judge righteously, and plead the cause of the poor and needy\"",
+    "bibleReference": "Proverbs 31:8-9",
+    "explanation": "Care requires active public advocacy for the disenfranchised and voiceless.",
+    "explanationTelugu": "న్యాయము దక్కని పేదలకొరకు నాయకులు ధైర్యముగా గళమెత్తి న్యాయము జరిగించవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q17",
+    "order": 17,
+    "questionType": "single_choice",
+    "question": "According to Proverbs 31:20, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Proverbs 31:20 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"She extends her hand to the poor, yes, she reaches out her hands to the needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆమె దీనులకు తన చెయ్యి చాపును, దరిద్రులకు తన చేతులు చాపించును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"She extends her hand to the poor, yes, she reaches out her hands to the needy\"",
+    "bibleReference": "Proverbs 31:20",
+    "explanation": "Domestic industry and diligence enable joyful, generous philanthropic outreach.",
+    "explanationTelugu": "పరిశ్రమగల స్త్రీ తన సొంత సంపాదనతో పేదవారిని ఆదరించి పోషించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q18",
+    "order": 18,
+    "questionType": "single_choice",
+    "question": "According to Isaiah 58:7, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Isaiah 58:7 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Is it not to share your bread with the hungry, and that you bring to your house the poor who are cast out; when you see the naked, that you cover him?\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీ ఆహారము ఆకలిగొన్నవారికి పెట్టుటయు, దిక్కులేని బీదలను నీ యింట చేర్చుకొనుటయు, వస్త్రహీనుడు నీకు కనబడినప్పుడు వానికి వస్త్రములిచ్చుటయు... ఇదియే గదా నాకు ఇష్టమైన ఉపవాసము?\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Is it not to share your bread with the hungry, and that you bring to your house the poor who are cast out; when you see the naked, that you cover him?\"",
+    "bibleReference": "Isaiah 58:7",
+    "explanation": "Authentic spiritual fasting is measured by direct material care for destitute human beings.",
+    "explanationTelugu": "ఆహారము మానివేయుట మాత్రమే కాక ఆకలిగొన్నవారికి అన్నంపెట్టుటయే నిజమైన దైవిక ఉపవాసము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q19",
+    "order": 19,
+    "questionType": "single_choice",
+    "question": "According to Ezekiel 16:49, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Ezekiel 16:49 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Look, this was the iniquity of your sister Sodom: She and her daughter had pride, fullness of food, and abundance of idleness; neither did she strengthen the hand of the poor and needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఇదిగో నీ సహోదరియైన సొదొమ దోషమేదనగా, ఆమెయు ఆమె కుమార్తెలును గర్వమును ఆహార సమృద్ధియు నిర్విచారమైన సుఖమును కలిగియుండియు, దీనులను దరిద్రులను ఆదరింపకపోయిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Look, this was the iniquity of your sister Sodom: She and her daughter had pride, fullness of food, and abundance of idleness; neither did she strengthen the hand of the poor and needy\"",
+    "bibleReference": "Ezekiel 16:49",
+    "explanation": "Callous indifference to poverty is denounced as the foundational sin of Sodom.",
+    "explanationTelugu": "సమృద్ధి ఉన్నప్పుడు పేదలను ఆదుకోకుండా నిర్లక్ష్యము చేయుట దేవుని తీర్పును రప్పించు పాపము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q20",
+    "order": 20,
+    "questionType": "single_choice",
+    "question": "According to Ezekiel 34:4, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Ezekiel 34:4 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"The weak you have not strengthened, nor have you healed the sick, nor bound up the broken, nor brought back what was driven away... but with force and cruelty you have ruled them\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బలహీనమైనవాటిని మీరు బలపరచలేదు, రోగముగలవాటిని మీరు స్వస్థపరచలేదు, గాయపడినవాటిని మీరు కట్టలేదు... బలాత్కారముతోను కఠినత్వముతోను మీరు వాటిని ఏలితిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"The weak you have not strengthened, nor have you healed the sick, nor bound up the broken, nor brought back what was driven away... but with force and cruelty you have ruled them\"",
+    "bibleReference": "Ezekiel 34:4",
+    "explanation": "Severe prophetic condemnation of self-serving leaders who neglect the care of the flock.",
+    "explanationTelugu": "సంఘ కాపరులు తమ స్వార్థము చూచుకొనక బలహీనులను రోగులను శ్రద్ధతో పరామర్శించవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q21",
+    "order": 21,
+    "questionType": "single_choice",
+    "question": "According to Matthew 25:35-36, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Matthew 25:35-36 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"I was naked and you clothed Me; I was sick and you visited Me; I was in prison and you came to Me\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వస్త్రహీనుడనై యుంటిని నాకు బట్టలిచ్చితిరి, రోగినై యుంటిని నన్ను చూడవచ్చితిరి, చెరసాలలో ఉంటిని నాయొద్దకు వచ్చితిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"I was naked and you clothed Me; I was sick and you visited Me; I was in prison and you came to Me\"",
+    "bibleReference": "Matthew 25:35-36",
+    "explanation": "Jesus equates hands-on practical care for the suffering directly with serving Him.",
+    "explanationTelugu": "ఆపదలో ఉన్నవారికి చేయు ఉపచారము సాక్షాత్తు యేసుక్రీస్తు ప్రభువునకే చేసినట్లు లెక్క.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q22",
+    "order": 22,
+    "questionType": "single_choice",
+    "question": "According to Matthew 25:40, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Matthew 25:40 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"And the King will answer and say to them, 'Assuredly, I say to you, inasmuch as you did it to one of the least of these My brethren, you did it to Me'\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అందుకు రాజు-మిక్కిలి అల్పులైన యీ నా సహోదరులలో ఒకనికి మీరు చేసితిరి గనుక నాకు చేసితిరని నిశ్చయముగా మీతో చెప్పుచున్నానని వారితో చెప్పును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"And the King will answer and say to them, 'Assuredly, I say to you, inasmuch as you did it to one of the least of these My brethren, you did it to Me'\"",
+    "bibleReference": "Matthew 25:40",
+    "explanation": "Christ permanently identifies Himself with the poorest, weakest, and most vulnerable.",
+    "explanationTelugu": "కనిష్ట సహోదరునికి చేసిన చిన్న సహాయమును సైతం ప్రభువు తనకే చేసిన సేవగా అంగీకరించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q23",
+    "order": 23,
+    "questionType": "single_choice",
+    "question": "According to Mark 9:41, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Mark 9:41 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"For whoever gives you a cup of water to drink in My name, because you belong to Christ, assuredly, I say to you, he will by no means lose his reward\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మీరు క్రీస్తువారని నా నామమున మీకు గిన్నెడు నీళ్లు త్రాగనిచ్చువాడు తన ఫలము పోగొట్టుకొనడని నిశ్చయముగా మీతో చెప్పుచున్నాను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"For whoever gives you a cup of water to drink in My name, because you belong to Christ, assuredly, I say to you, he will by no means lose his reward\"",
+    "bibleReference": "Mark 9:41",
+    "explanation": "Even the smallest act of physical care offered for Christ's sake earns eternal recompense.",
+    "explanationTelugu": "క్రీస్తు నామమున దాహమునకు గిన్నెడు నీళ్లిచ్చినను దానికి పరలోకమందు గొప్ప ప్రతిఫలముండును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q24",
+    "order": 24,
+    "questionType": "single_choice",
+    "question": "According to Luke 14:13-14, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Luke 14:13-14 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"When you give a feast, invite the poor, the maimed, the lame, the blind. And you will be blessed, because they cannot repay you\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీవు విందు చేయునప్పుడు పేదలను అంగహీనులను కుంటివారిని గ్రుడ్డివారిని పిలువుము; వారు నీకు ప్రత్యుపకారము చేయనేరరు గనుక నీవు ధన్యుడవుదువు; నీతిమంతుల పునరుత్థానమందు నీకు ప్రతిఫలము కలుగును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"When you give a feast, invite the poor, the maimed, the lame, the blind. And you will be blessed, because they cannot repay you\"",
+    "bibleReference": "Luke 14:13-14",
+    "explanation": "Kingdom hospitality deliberately seeks those entirely incapable of social reciprocity.",
+    "explanationTelugu": "ప్రత్యుపకారము చేయలేని నిస్సహాయులకు భోజనము పెట్టుట పునరుత్థాన దినమున నిత్య బహుమానము తెచ్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q25",
+    "order": 25,
+    "questionType": "single_choice",
+    "question": "According to Acts 2:44-45, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Acts 2:44-45 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Now all who believed were together, and had all things in common, and sold their possessions and goods, and divided them among all, as anyone had need\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"విశ్వసించినవారందరును ఏకముగా ఉండి, తమకు కలిగినదంతయు ఉమ్మడిగా ఉంచుకొనిరి; వారు తమ చరస్థిరాస్తులను అమ్మి, అందరికిని వారి వారి అక్కరకొలది పంచిపెట్టిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Now all who believed were together, and had all things in common, and sold their possessions and goods, and divided them among all, as anyone had need\"",
+    "bibleReference": "Acts 2:44-45",
+    "explanation": "The explosive generosity of the early church eradicating poverty in their midst.",
+    "explanationTelugu": "పరిశుద్ధాత్మ కుమ్మరింపుతో ప్రారంభమైన సంఘములో ఎవరికిని ఏ కొదువ లేకుండ చూచుకొన్న పరస్పర సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q26",
+    "order": 26,
+    "questionType": "single_choice",
+    "question": "According to Acts 4:34-35, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Acts 4:34-35 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Nor was there anyone among them who lacked; for all who were possessors of lands or houses sold them, and brought the proceeds... and distributed to each as anyone had need\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారిలో ఎవనికిని ఏ కొదువయు లేకపోయెను; ఏలయనగా భూములు లేక యిండ్లు గలవారందరును వాటిని అమ్మి, అమ్మినవాటి వెల తెచ్చి అపొస్తలుల పాదములయొద్ద పెట్టుచుండిరి; వారు ప్రతివానికి వాని వాని అక్కరకొలది పంచిపెట్టిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Nor was there anyone among them who lacked; for all who were possessors of lands or houses sold them, and brought the proceeds... and distributed to each as anyone had need\"",
+    "bibleReference": "Acts 4:34-35",
+    "explanation": "Selfless community care systematically eliminated destitution from the fellowship.",
+    "explanationTelugu": "విశ్వాసుల త్యాగపూరిత సహకారము వలన ఆదిమ సంఘములో ఏ ఒక్కరును దరిద్రతలో మిగిలిపోలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q27",
+    "order": 27,
+    "questionType": "single_choice",
+    "question": "According to Acts 6:3, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Acts 6:3 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Therefore, brethren, seek out from among you seven men of good reputation, full of the Holy Spirit and wisdom, whom we may appoint over this business\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"సహోదరులారా, ఆత్మతోను జ్ఞానముతోను నిండుకొని మంచిపేరు పొందిన ఏడుగురు మనుష్యులను మీలో వెదకి చూడుడి; మేము వారిని ఈ పనికి నియమింతుము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Therefore, brethren, seek out from among you seven men of good reputation, full of the Holy Spirit and wisdom, whom we may appoint over this business\"",
+    "bibleReference": "Acts 6:3",
+    "explanation": "Institutionalizing organized, Spirit-led social care alongside Word ministry.",
+    "explanationTelugu": "సంఘములో విధవరాండ్ర అనుదిన పోషణ కొరకు దైవజనుల చేతులమీదుగా ఏర్పాటుచేసిన డీకన్ పరిచర్య.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q28",
+    "order": 28,
+    "questionType": "single_choice",
+    "question": "According to Acts 9:36,39, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Acts 9:36,39 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"This woman was full of good works and charitable deeds which she did... and all the widows stood by him weeping, showing the tunics and garments which Dorcas had made\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఈమె సత్కార్యములను ధర్మకార్యములను విస్తారముగా చేసియుండెను... విధవరాండ్రందరును ఏడ్చుచు, దొర్కా తమతోకూడ ఉన్నప్పుడు కుట్టిన అంగీలను వస్త్రములను చూపిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"This woman was full of good works and charitable deeds which she did... and all the widows stood by him weeping, showing the tunics and garments which Dorcas had made\"",
+    "bibleReference": "Acts 9:36,39",
+    "explanation": "Practical sewing and clothing of impoverished widows leaving a legacy of holy love.",
+    "explanationTelugu": "విధవరాండ్రకు వస్త్రములు కుట్టిపెట్టి క్రీస్తు ప్రేమను చేతలలో చూపిన దొర్కా యొక్క ధన్య పరిచర్య.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q29",
+    "order": 29,
+    "questionType": "single_choice",
+    "question": "According to Acts 11:29, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Acts 11:29 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Then the disciples, each according to his ability, determined to send relief to the brethren dwelling in Judea\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అప్పుడు శిష్యులలో ప్రతివాడును తన తన శక్తికొలది యూదయయందు కాపురమున్న సహోదరుల కొరకు సహాయము పంపవలెనని నిర్ణయించుకొనిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Then the disciples, each according to his ability, determined to send relief to the brethren dwelling in Judea\"",
+    "bibleReference": "Acts 11:29",
+    "explanation": "Trans-regional disaster relief binding Gentile and Jewish believers into loving solidarity.",
+    "explanationTelugu": "కరువులో ఉన్న ఇతర ప్రాంత సహోదరులకు అంతియొకయ విశ్వాసులు ఉదారముగా పంపిన కరువు సహాయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q30",
+    "order": 30,
+    "questionType": "single_choice",
+    "question": "According to Acts 20:35, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Acts 20:35 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"I have shown you in every way, by laboring like this, that you must support the weak. And remember the words of the Lord Jesus, that He said, 'It is more blessed to give than to receive'\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మీరును ఈలాగు శ్రమపడి బలహీనులను ఆదరింపవలెననియు, పుచ్చుకొనుటకంటె ఇచ్చుట ధన్యమని ప్రభువైన యేసు చెప్పిన మాటలను జ్ఞాపకము చేసికొనవలెననియు... మీకు చూపితిని\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"I have shown you in every way, by laboring like this, that you must support the weak. And remember the words of the Lord Jesus, that He said, 'It is more blessed to give than to receive'\"",
+    "bibleReference": "Acts 20:35",
+    "explanation": "Pastoral leadership prioritizes manual labor and financial sacrifice to support the weak.",
+    "explanationTelugu": "స్వయముగా శ్రమపడి బలహీనులను ఆదుకొనుటయే క్రైస్తవ పరిచర్యకు పరమోన్నత మాదిరి.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q31",
+    "order": 31,
+    "questionType": "single_choice",
+    "question": "According to Acts 28:2, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Acts 28:2 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"And the natives showed us unusual kindness; for they kindled a fire and made us all welcome, because of the rain that had fallen and because of the cold\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆ ద్వీపవాసులు మాకు చూపిన దయ ఇంతంత కాదు; ఏలయనగా అప్పుడు కురియుచున్న వర్షమునకును చలికిని వారు నిప్పు రాజేసి మమ్మునందరిని చేర్చుకొనిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"And the natives showed us unusual kindness; for they kindled a fire and made us all welcome, because of the rain that had fallen and because of the cold\"",
+    "bibleReference": "Acts 28:2",
+    "explanation": "Human hospitality from pagans providing life-saving warmth to frozen survivors.",
+    "explanationTelugu": "తీవ్రమైన చలిలో వర్షములో తడిసిన బాటసారులకు అగ్నిని రాజేసి సాంత్వన చేకూర్చిన ద్వీపవాసుల సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q32",
+    "order": 32,
+    "questionType": "single_choice",
+    "question": "According to Romans 12:13, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Romans 12:13 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Distributing to the needs of the saints, given to hospitality\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"పరిశుద్ధుల అవసరములలో పాలుపంచుకొనుచు, అతిథిసత్కారము చేయుటకు ఆసక్తి కలిగియుండుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Distributing to the needs of the saints, given to hospitality\"",
+    "bibleReference": "Romans 12:13",
+    "explanation": "Eager, joyful sharing of material wealth and opening of homes to travelers.",
+    "explanationTelugu": "తోటి విశ్వాసుల కొదువలను తీర్చుటలోను ఇండ్లలో అతిథులను చేర్చుకొనుటలోను ముందంజ వేయవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q33",
+    "order": 33,
+    "questionType": "single_choice",
+    "question": "According to Romans 15:26, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Romans 15:26 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"For it pleased those from Macedonia and Achaia to make a certain contribution for the poor among the saints who are in Jerusalem\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"యెరూషలేములోని పరిశుద్ధులలో ఉన్న బీదలకొరకు కొంత చందా చేయుటకు మాసిదోనియవారును అకయవారును ఇష్టపడిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"For it pleased those from Macedonia and Achaia to make a certain contribution for the poor among the saints who are in Jerusalem\"",
+    "bibleReference": "Romans 15:26",
+    "explanation": "Financial reciprocity: sharing material blessings with those who brought spiritual gospel riches.",
+    "explanationTelugu": "ఆత్మీయ మేళ్లను పొందిన అన్యజనులు యెరూషలేము పేదలకు భౌతిక ధనసహాయము చేయుట దైవిక బాధ్యత.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q34",
+    "order": 34,
+    "questionType": "single_choice",
+    "question": "According to 1 Corinthians 16:2, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "1 Corinthians 16:2 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"On the first day of the week let each one of you lay something aside, storing up as he may prosper\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నేను వచ్చినప్పుడు చందా కూర్చవలసి రాకుండునట్లు, ప్రతి ఆదివారమున మీలో ప్రతివాడును తన సంపాదనకొలది కొంత ధనమును తనయొద్ద నిలువజేయవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"On the first day of the week let each one of you lay something aside, storing up as he may prosper\"",
+    "bibleReference": "1 Corinthians 16:2",
+    "explanation": "Systematic, disciplined weekly giving for relief of impoverished believers.",
+    "explanationTelugu": "క్రమశిక్షణతో కూడిన ప్రతివారపు అర్పణలద్వారా పేద విశ్వాసుల అవసరతలను తీర్చు ఏర్పాటు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q35",
+    "order": 35,
+    "questionType": "single_choice",
+    "question": "According to 2 Corinthians 8:3-4, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "2 Corinthians 8:3-4 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"For I bear witness that according to their ability, yes, and beyond their ability, they were freely willing, imploring us with much urgency\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారు తమ శక్తికొలదియే గాక శక్తికి మించియు తమంతట తామే యిచ్చిరని సాక్ష్యమిచ్చుచున్నాను; పరిశుద్ధులకొరకైన పరిచర్యయందు పాలుపొందు కృపను మాకిమ్మని మిక్కిలిగా బతిమాలుకొనిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"For I bear witness that according to their ability, yes, and beyond their ability, they were freely willing, imploring us with much urgency\"",
+    "bibleReference": "2 Corinthians 8:3-4",
+    "explanation": "Radical, sacrificial giving overflowing out of severe trial and deep poverty.",
+    "explanationTelugu": "తీవ్రమైన కష్టములలో ఉన్నను ఇతరులకు సహాయము చేయు ఆధిక్యత కొరకు వేడుకొనిన మాసిదోనియ సంఘ ఆదర్శము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q36",
+    "order": 36,
+    "questionType": "single_choice",
+    "question": "According to 2 Corinthians 9:7, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "2 Corinthians 9:7 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"So let each one give as he purposes in his heart, not grudgingly or of necessity; for God loves a cheerful giver\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"సణుగుకొనకయు బలవంతముగా కాకయు ప్రతివాడును తన హృదయములో నిశ్చయించుకొనిన ప్రకారము ఇయ్యవలెను; దేవుడు ఉత్సాహముగా ఇచ్చువానిని ప్రేమించును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"So let each one give as he purposes in his heart, not grudgingly or of necessity; for God loves a cheerful giver\"",
+    "bibleReference": "2 Corinthians 9:7",
+    "explanation": "Grace transforms reluctant obligation into spontaneous, joyous generosity.",
+    "explanationTelugu": "విశ్వాసి చిరునవ్వుతో సంతోషముగా బీదలకు ఇచ్చునప్పుడు దేవుని ఆనందము వారిపై కుమ్మరింపబడును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q37",
+    "order": 37,
+    "questionType": "single_choice",
+    "question": "According to Galatians 2:10, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Galatians 2:10 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"They desired only that we should remember the poor, the very thing which I also was eager to do\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మేము బీదలను జ్ఞాపకము చేసికొనవలెనని మాత్రమే వారు కోరిరి; ఆలాగు చేయుటకు నేనును ఆతురపడితిని\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"They desired only that we should remember the poor, the very thing which I also was eager to do\"",
+    "bibleReference": "Galatians 2:10",
+    "explanation": "Apostolic consensus: gospel proclamation is inseparable from constant care for the impoverished.",
+    "explanationTelugu": "సువార్త సత్యమును కాపాడుటతోపాటు బీదలను ఆదుకొనుట అపొస్తలులందరి ఏకగ్రీవ నిర్ణయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q38",
+    "order": 38,
+    "questionType": "single_choice",
+    "question": "According to Galatians 6:2, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Galatians 6:2 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Bear one another's burdens, and so fulfill the law of Christ\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఒకని భారములను ఒకడు భరించి, ఈలాగు క్రీస్తు నియమమును సంపూర్ణముగా నెరవేర్చుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Bear one another's burdens, and so fulfill the law of Christ\"",
+    "bibleReference": "Galatians 6:2",
+    "explanation": "Empathic, hands-on shoulder-to-shoulder assistance fulfills Christ's law of love.",
+    "explanationTelugu": "తోటి సహోదరుని ఆత్మీయ మరియు భౌతిక భారములను కలిసి మోయుటయే క్రీస్తు ఆజ్ఞను నెరవేర్చుట.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q39",
+    "order": 39,
+    "questionType": "single_choice",
+    "question": "According to Galatians 6:10, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Galatians 6:10 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Therefore, as we have opportunity, let us do good to all, especially to those who are of the household of faith\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"కాబట్టి మనకు సమయము దొరకినకొలది అందరియెడలను, విశేషముగా విశ్వాసగృహమునకు చేరినవారియెడలను మేలు చేయుదము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Therefore, as we have opportunity, let us do good to all, especially to those who are of the household of faith\"",
+    "bibleReference": "Galatians 6:10",
+    "explanation": "Prioritizing the sustained care of our brothers and sisters in the faith family.",
+    "explanationTelugu": "విసుగు చెందకుండా సమస్త ప్రజలకు, ప్రత్యేకముగా విశ్వాస కుటుంబ సభ్యులకు ఉపకారము చేయవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q40",
+    "order": 40,
+    "questionType": "single_choice",
+    "question": "According to Ephesians 4:28, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Ephesians 4:28 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Let him who stole steal no longer, but rather let him labor, working with his hands what is good, that he may have something to give him who has need\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దొంగిలించువాడు ఇకమీదట దొంగిలింపక, అక్కరగలవానికి పంచిపెట్టుటకు వీలుకలుగునట్లు తన చేతులతో మంచిపని చేయుచు కష్టపడవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Let him who stole steal no longer, but rather let him labor, working with his hands what is good, that he may have something to give him who has need\"",
+    "bibleReference": "Ephesians 4:28",
+    "explanation": "Regeneration reverses destructive selfishness into diligent labor for philanthropic charity.",
+    "explanationTelugu": "స్వార్థముతో ఇతరులది దోచుకొనే స్థితినుండి కష్టపడి సంపాదించి పేదలకు పంచిపెట్టే స్థాయికి మార్పు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q41",
+    "order": 41,
+    "questionType": "single_choice",
+    "question": "According to Philippians 2:4, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Philippians 2:4 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Let each of you look out not only for his own interests, but also for the interests of others\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మీలో ప్రతివాడును తన సొంతకార్యములను మాత్రమే గాక యితరుల కార్యములను కూడ చూడవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Let each of you look out not only for his own interests, but also for the interests of others\"",
+    "bibleReference": "Philippians 2:4",
+    "explanation": "The mind of Christ fundamentally de-centers the ego to care actively for others.",
+    "explanationTelugu": "కేవలము తన సొంత ప్రయోజనములనే కాక ఇతరుల అవసరతలను ఆత్మీయ క్షేమమును విచారించు మనస్సు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q42",
+    "order": 42,
+    "questionType": "single_choice",
+    "question": "According to Philippians 2:30, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Philippians 2:30 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Because for the work of Christ he came close to death, not regarding his life, to supply what was lacking in your service toward me\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నాకొరకైన మీ పరిచర్యలో ఉన్న కొదువను తీర్చుటకై అతడు తన ప్రాణమునైనను లక్ష్యపెట్టక, క్రీస్తుయొక్క పనినిమిత్తము చావునకు సిద్ధపడెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Because for the work of Christ he came close to death, not regarding his life, to supply what was lacking in your service toward me\"",
+    "bibleReference": "Philippians 2:30",
+    "explanation": "Sacrificial pastoral care that wades into danger and illness to nurse the saints.",
+    "explanationTelugu": "పౌలు సంరక్షణ నిమిత్తము ప్రాణాపాయకరమైన జబ్బునొందినను నమ్మకముగా సేవచేసిన ఎపఫ్రొదితు త్యాగము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q43",
+    "order": 43,
+    "questionType": "single_choice",
+    "question": "According to Philippians 4:10, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Philippians 4:10 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"I rejoiced in the Lord greatly that now at last your care for me has flourished again; though you surely did care, but you lacked opportunity\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నన్నుగూర్చిన మీ చింత మరల చిగురించినందున ప్రభువునందు బహుగా సంతోషించితిని; నిజముగా మీరు నన్నుగూర్చి చింతించుచుంటిరి గాని సమయము లేకపోయెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"I rejoiced in the Lord greatly that now at last your care for me has flourished again; though you surely did care, but you lacked opportunity\"",
+    "bibleReference": "Philippians 4:10",
+    "explanation": "Christian partnership faithfully reviving material support across seasons and distances.",
+    "explanationTelugu": "కాలవ్యవధి గడచినను పౌలుయెడల ఫిలిప్పీ సంఘము చూపిన విడువని ప్రేమ మరియు సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q44",
+    "order": 44,
+    "questionType": "single_choice",
+    "question": "According to Colossians 3:12, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Colossians 3:12 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Therefore, as the elect of God, holy and beloved, put on tender mercies, kindness, humility, meekness, longsuffering\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"కావున దేవునిచేత ఏర్పరచబడినవారును పరిశుద్ధులును ప్రియులునైనవారికి తగినట్లు, మీరు జాలిగల మనస్సును, దయాళుత్వమును, వినయమును, సాత్వికమును, దీర్ఘశాంతమును ధరించుకొనుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Therefore, as the elect of God, holy and beloved, put on tender mercies, kindness, humility, meekness, longsuffering\"",
+    "bibleReference": "Colossians 3:12",
+    "explanation": "The wardrobe of the elect: compassionate visceral empathy in daily relationships.",
+    "explanationTelugu": "దేవుని ప్రజలుగా ఏర్పరచబడిన విశ్వాసులు పరస్పర జాలిని దయను వస్త్రమువలె ధరించుకొనవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q45",
+    "order": 45,
+    "questionType": "single_choice",
+    "question": "According to 1 Thessalonians 2:7, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "1 Thessalonians 2:7 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"We were gentle among you, just as a nursing mother cherishes her own children. So, affectionately longing for you, we were well pleased to impart our own lives\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"పాలిచ్చు తల్లి తన సొంత బిడ్డలను లాలించునట్లు మేము మీమధ్య సాధువులమై యుంటిమి; మిమ్మును ఎంతగానో ప్రేమించి సువార్తను మాత్రమే కాక మా ప్రాణములను కూడ మీకిచ్చుటకు సిద్ధపడితిమి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"We were gentle among you, just as a nursing mother cherishes her own children. So, affectionately longing for you, we were well pleased to impart our own lives\"",
+    "bibleReference": "1 Thessalonians 2:7",
+    "explanation": "Pastoral nurture that breathes tender maternal affection, imparting life alongside truth.",
+    "explanationTelugu": "తల్లి తన బిడ్డలను లాలించునట్లు విశ్వాసులను ఆదరించి ప్రాణమిచ్చుటకు సిద్ధపడిన అపొస్తల ప్రేమ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q46",
+    "order": 46,
+    "questionType": "single_choice",
+    "question": "According to 1 Thessalonians 5:14, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "1 Thessalonians 5:14 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Comfort the fainthearted, uphold the weak, be patient with all\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దిగులుపడినవారిని ధైర్యపరచుడి, బలహీనులకు ఊతనియ్యుడి, అందరియెడల దీర్ఘశాంతము కలిగియుండుడి అని మిమ్మును హెచ్చరించుచున్నాము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Comfort the fainthearted, uphold the weak, be patient with all\"",
+    "bibleReference": "1 Thessalonians 5:14",
+    "explanation": "Differentiated pastoral care: applying appropriate medicine to anxiety, weakness, and strife.",
+    "explanationTelugu": "ఆత్మీయముగా కుంగిపోయినవారిని లేవనెత్తి బలహీనులను పట్టుకొని ఆదరించు బాధ్యత.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q47",
+    "order": 47,
+    "questionType": "single_choice",
+    "question": "According to 1 Timothy 5:4, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "1 Timothy 5:4 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Let them first learn to show piety at home and to repay their parents; for this is good and acceptable before God\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారు మొదట తమ యింటివారియెడల భక్తి కనబరచుటకును, తమ తల్లిదండ్రులకు ప్రత్యుపకారము చేయుటకును నేర్చుకొనవలెను; ఇది దేవుని దృష్టికి అనుకూలమై యున్నది\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Let them first learn to show piety at home and to repay their parents; for this is good and acceptable before God\"",
+    "bibleReference": "1 Timothy 5:4",
+    "explanation": "Repaying parental sacrifice through faithful care for elderly mothers and grandmothers.",
+    "explanationTelugu": "వృద్ధాప్యములో ఉన్న తల్లిదండ్రులకు సేవచేసి ప్రత్యుపకారము చేయుట దేవునికి ప్రీతికరమైన భక్తి.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q48",
+    "order": 48,
+    "questionType": "single_choice",
+    "question": "According to Philemon 1:17-18, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Philemon 1:17-18 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"If then you count me as a partner, receive him as you would me. But if he has wronged you or owes anything, put that on my account\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"కాబట్టి నీవు నన్ను నీతో పాలివానిగా ఎంచినయెడల నన్ను చేర్చుకొనినట్లు అతనిని చేర్చుకొనుము; అతడు నీకేదైన నష్టము కలుగజేసినను, నీకు అప్పియున్నను, అది నా లెక్కలో ఉంచుము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"If then you count me as a partner, receive him as you would me. But if he has wronged you or owes anything, put that on my account\"",
+    "bibleReference": "Philemon 1:17-18",
+    "explanation": "Sacrificial pastoral advocacy absorbing another's debt to restore broken relationships.",
+    "explanationTelugu": "ఒక బీద దాసుని విమోచన కొరకు తన సొంత ధనమును పూచీకత్తుగా పెట్టిన పౌలు అద్భుత సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q49",
+    "order": 49,
+    "questionType": "single_choice",
+    "question": "According to Hebrews 13:2-3, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Hebrews 13:2-3 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"Do not forget to entertain strangers, for by so doing some have unwittingly entertained angels. Remember the prisoners as if chained with them\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆతిథ్యము చేయ మరవకుడి; దానివలన కొందరు ఎరుగకయే దేవదూతలకు ఆతిథ్యమిచ్చిరి; బంధకములలో ఉన్నవారితో తామును బంధింపబడినట్టు వారిని జ్ఞాపకము చేసికొనుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Do not forget to entertain strangers, for by so doing some have unwittingly entertained angels. Remember the prisoners as if chained with them\"",
+    "bibleReference": "Hebrews 13:2-3",
+    "explanation": "Empathetic identification with persecuted, incarcerated brothers and sisters.",
+    "explanationTelugu": "చెరసాలలో ఉన్నవారి శ్రమలను తమ స్వంత శరీరములో అనుభవించునట్లు వారిని పరామర్శించవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s2_q50",
+    "order": 50,
+    "questionType": "single_choice",
+    "question": "According to Hebrews 13:16, how did God or His people demonstrate practical care in this circumstance?",
+    "questionTelugu": "Hebrews 13:16 లేఖనము ప్రకారం దేవుడు లేదా ఆయన ప్రజలు ఆపదలో ఉన్నవారికి ఏ విధముగా ఆదరణ సహాయమును అందించిరి?",
+    "options": [
+      "\"But do not forget to do good and to share, for with such sacrifices God is well pleased\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఉపకారమును ధర్మమును చేయ మరవకుడి; అట్టి యాగములు దేవునికి ఇష్టమైనవి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"But do not forget to do good and to share, for with such sacrifices God is well pleased\"",
+    "bibleReference": "Hebrews 13:16",
+    "explanation": "Tangible acts of benevolent sharing are recognized as sweet-smelling spiritual sacrifices.",
+    "explanationTelugu": "బీదలకు సహాయము చేయుటయు ధర్మము చేయుటయు దేవునికి ఎంతో ఇష్టమైన ఆత్మీయ బలులు.",
+    "marks": 1
+  }
+];
+
+export const CARE_MEDIUM_MASTERY: QuizQuestion[] = [
+  {
+    "id": "car_m_s3_q01",
+    "order": 1,
+    "questionType": "single_choice",
+    "question": "In Genesis 22:14, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Genesis 22:14 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"And Abraham called the name of the place, The-Lord-Will-Provide; as it is said to this day, 'In the Mount of the Lord it shall be provided'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"అబ్రాహాము ఆ స్థలమునకు యెహోవా ఈరే అను పేరు పెట్టెను. కాబట్టి-యెహోవా పర్వతముమీద చూచుకొనును అని నేటివరకు చెప్పబడుచున్నది\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"And Abraham called the name of the place, The-Lord-Will-Provide; as it is said to this day, 'In the Mount of the Lord it shall be provided'\"",
+    "bibleReference": "Genesis 22:14",
+    "explanation": "God preemptively sees human desperate need and sovereignly provides the atoning substitute.",
+    "explanationTelugu": "మన రక్షణ అవసరతను ముందుగానే ఎరిగి బలిపశువును సిద్ధపరచిన యెహోవా ఈరే సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q02",
+    "order": 2,
+    "questionType": "single_choice",
+    "question": "In Genesis 28:15, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Genesis 28:15 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"Behold, I am with you and will keep you wherever you go, and will bring you back to this land; for I will not leave you\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఇదిగో నేను నీకు తోడైయుండి, నీవు వెళ్లు ప్రతి స్థలమందు నిన్ను కాపాడుచు ఈ దేశమునకు నిన్ను మరల రప్పించెదను; నిన్ను విడువను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Behold, I am with you and will keep you wherever you go, and will bring you back to this land; for I will not leave you\"",
+    "bibleReference": "Genesis 28:15",
+    "explanation": "Unconditional covenant accompaniment guarding the wandering, flawed patriarch.",
+    "explanationTelugu": "దిక్కుతోచని స్థితిలో పారిపోవుచున్న యాకోబును విడువక నిరంతరము కాపాడిన దేవుని వాగ్దానము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q03",
+    "order": 3,
+    "questionType": "single_choice",
+    "question": "In Genesis 48:15, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Genesis 48:15 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"God, before whom my fathers Abraham and Isaac walked, the God who has fed me all my life long unto this day\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నా పితరులైన అబ్రాహామును ఇస్సాకును ఏ దేవుని సన్నిధిని నడచుకొనిరో, నేను పుట్టినది మొదలుకొని నేటివరకు ఏ దేవుడు నన్ను పోషించుచు వచ్చెనో ఆ దేవుడు...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"God, before whom my fathers Abraham and Isaac walked, the God who has fed me all my life long unto this day\"",
+    "bibleReference": "Genesis 48:15",
+    "explanation": "A centenarian looking back over a tumultuous life recognizing unbroken divine shepherd-care.",
+    "explanationTelugu": "తన జీవితమంతయు ప్రతి ఆపదలోను ఆహారమిచ్చి కాపాడిన దేవుని కాపరిత్వమును యాకోబు కొనియాడెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q04",
+    "order": 4,
+    "questionType": "single_choice",
+    "question": "In Genesis 50:21, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Genesis 50:21 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"Now therefore, do not be afraid; I will provide for you and your little ones. And he comforted them and spoke kindly to them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"కాబట్టి భయపడకుడి, నేను మిమ్మును మీ పిల్లలను పోషించెదను అని చెప్పి వారిని ఆదరించి వారితో ప్రేమగా మాటలాడెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Now therefore, do not be afraid; I will provide for you and your little ones. And he comforted them and spoke kindly to them\"",
+    "bibleReference": "Genesis 50:21",
+    "explanation": "Overcoming deep past trauma to extend restorative, lavish provision to former tormentors.",
+    "explanationTelugu": "కీడు చేసిన అన్నలను ద్వేషింపక కనికరముతో వారిని వారి పిల్లలను పోషించి ఆదరించిన యోసేపు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q05",
+    "order": 5,
+    "questionType": "single_choice",
+    "question": "In Exodus 3:7, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Exodus 3:7 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"I have surely seen the oppression of My people who are in Egypt, and have heard their cry... for I know their sorrows. So I have come down to deliver them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను ఐగుప్తులోనున్న నా ప్రజల శ్రమను నిశ్చయముగా చూచితిని... వారి దుఃఖములు నాకు తెలిసేయున్నవి. కాబట్టి ఐగుప్తీయుల చేతిలోనుండి వారిని విడిపించుటకు నేను దిగివచ్చియున్నాను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I have surely seen the oppression of My people who are in Egypt, and have heard their cry... for I know their sorrows. So I have come down to deliver them\"",
+    "bibleReference": "Exodus 3:7",
+    "explanation": "God's compassionate heart is not numb to human agony; He sees, hears, feels, and intervenes.",
+    "explanationTelugu": "తన ప్రజల కన్నీటిని చూచి వారి బాధలను వ్యక్తిగతముగా ఎరిగి విడిపించుటకు దిగివచ్చిన దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q06",
+    "order": 6,
+    "questionType": "single_choice",
+    "question": "In Exodus 15:26, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Exodus 15:26 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"If you diligently heed the voice of the Lord your God... I will put none of the diseases on you... for I am the Lord who heals you\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ దేవుడైన యెహోవా వాక్యమును శ్రద్ధగా విని... నా ఆజ్ఞలన్నిటిని గైకొనినయెడల, నేను ఐగుప్తీయులమీదికి రప్పించిన రోగములలో ఏదియు నీమీదికి రానియ్యను; నిన్ను స్వస్థపరచు యెహోవాను నేనే\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"If you diligently heed the voice of the Lord your God... I will put none of the diseases on you... for I am the Lord who heals you\"",
+    "bibleReference": "Exodus 15:26",
+    "explanation": "God covenants to be the sovereign Physician guarding the physical wellness of His people.",
+    "explanationTelugu": "తన ప్రజల రోగములను గాయములను స్వస్థపరచే పరమ వైద్యుడైన యెహోవా రాఫా.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q07",
+    "order": 7,
+    "questionType": "single_choice",
+    "question": "In Exodus 16:18, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Exodus 16:18 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"So when they measured it by omers, he who gathered much had nothing over, and he who gathered little had no lack. Every man had gathered according to each one's need\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"వారు ఓమెరుతో దాని కొలిచినప్పుడు, ఎక్కువ కూర్చుకొనినవానికి ఏమియు మిగులలేదు, తక్కువ కూర్చుకొనినవానికి ఏమియు కొదువపడలేదు; ప్రతివాడును తన తన తిండికి తగినట్టుగా కూర్చుకొనెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"So when they measured it by omers, he who gathered much had nothing over, and he who gathered little had no lack. Every man had gathered according to each one's need\"",
+    "bibleReference": "Exodus 16:18",
+    "explanation": "Divine economics: sovereign egalitarian equity in daily bread provision.",
+    "explanationTelugu": "ప్రతివాని అవసరతకు తగినట్లు కొదువలేకుండ పోషించిన పరలోకపు మన్నా అద్భుతము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q08",
+    "order": 8,
+    "questionType": "single_choice",
+    "question": "In Exodus 17:6, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Exodus 17:6 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"Behold, I will stand before you there on the rock in Horeb; and you shall strike the rock, and water will come out of it, that the people may drink\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఇదిగో అక్కడ హోరేబులోని బండమీద నేను నీకు ఎదురుగా నిలిచెదను; నీవు ఆ బండను కొట్టగా జనులు తాగునట్లు అందులోనుండి నీళ్లు బయలుదేరును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Behold, I will stand before you there on the rock in Horeb; and you shall strike the rock, and water will come out of it, that the people may drink\"",
+    "bibleReference": "Exodus 17:6",
+    "explanation": "The stricken rock typifying Christ struck for our sins, pouring forth the refreshing water of life.",
+    "explanationTelugu": "ఎండిన అరణ్యములో దాహము తీర్చుటకు బండనుండి సమృద్ధిగా నీటిని రప్పించిన దేవుని సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q09",
+    "order": 9,
+    "questionType": "single_choice",
+    "question": "In Deuteronomy 1:31, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Deuteronomy 1:31 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"In the wilderness where you saw how the Lord your God carried you, as a man carries his son, in all the way that you went until you came to this place\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఒకడు తన కుమారుని ఎత్తికొనునట్లు, మీరు ఈ స్థలమునకు వచ్చువరకు మీరు ప్రయాణముచేసిన మార్గమంతటిలో మీ దేవుడైన యెహోవా మిమ్మును ఎత్తికొని వచ్చెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"In the wilderness where you saw how the Lord your God carried you, as a man carries his son, in all the way that you went until you came to this place\"",
+    "bibleReference": "Deuteronomy 1:31",
+    "explanation": "Tender, paternal muscle carrying an exhausted child across treacherous desert terrain.",
+    "explanationTelugu": "తండ్రి బిడ్డను చంకనెత్తుకొని నడిపించినట్లు అరణ్య ప్రయాణమంతటిలో ప్రజలను మోసిన దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q10",
+    "order": 10,
+    "questionType": "single_choice",
+    "question": "In Deuteronomy 2:7, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Deuteronomy 2:7 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"For the Lord your God has blessed you in all the work of your hand; He knows your walking through this great wilderness. These forty years the Lord your God has been with you; you have lacked nothing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ దేవుడైన యెహోవా నీ చేతిపనులన్నిటిలోను నిన్ను ఆశీర్వదించెను; ఈ గొప్ప అరణ్యములో నీ సంచారమును ఆయన ఎరిగియున్నాడు; ఈ నలభై సంవత్సరములు నీ దేవుడైన యెహోవా నీకు తోడైయుండెను, నీకేమియు కొదువపడలేదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For the Lord your God has blessed you in all the work of your hand; He knows your walking through this great wilderness. These forty years the Lord your God has been with you; you have lacked nothing\"",
+    "bibleReference": "Deuteronomy 2:7",
+    "explanation": "God's providential GPS: tracking every footstep through uncharted barren wastelands.",
+    "explanationTelugu": "అరణ్య ప్రయాణములో ప్రతి అడుగును కనిపెట్టి నలభై ఏండ్లు ఏ కొదువలేకుండ పోషించిన పరమ తండ్రి.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q11",
+    "order": 11,
+    "questionType": "single_choice",
+    "question": "In Deuteronomy 32:10-11, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Deuteronomy 32:10-11 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"He found him in a desert land... He encircled him, He instructed him, He kept him as the apple of His eye. As an eagle stirs up its nest... so the Lord alone did lead him\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"పాడుభూమిలోను... ఎడారిలోను ఆయన వానిని కనుగొనెను; ఆయన వానిని ఆవరించి పరామర్శించెను, తన కనుపాపవలె వానిని కాపాడెను. పక్షిరాజు తన గూడు రేపి, తన పిల్లలపై తన్నుకొనుచు... తన రెక్కలమీద వాటిని మోయునట్లు...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He found him in a desert land... He encircled him, He instructed him, He kept him as the apple of His eye. As an eagle stirs up its nest... so the Lord alone did lead him\"",
+    "bibleReference": "Deuteronomy 32:10-11",
+    "explanation": "The fierce, maternal tenderness of an eagle training and catching her falling eaglets.",
+    "explanationTelugu": "తన కనుపాపవలె కాపాడుచు పక్షిరాజువలె రెక్కలపై మోసి రక్షించిన దేవుని అద్భుత వాత్సల్యము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q12",
+    "order": 12,
+    "questionType": "single_choice",
+    "question": "In Deuteronomy 33:27, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Deuteronomy 33:27 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"The eternal God is your refuge, and underneath are the everlasting arms; He will thrust out the enemy from before you\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"శాశ్వతుడైన దేవుడు నీకు నివాసస్థలము, ఆయన నిత్యమైన బాహువులు నీ క్రింద ఉన్నవి; ఆయన నీ యెదుటనుండి శత్రువును వెళ్లగొట్టును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The eternal God is your refuge, and underneath are the everlasting arms; He will thrust out the enemy from before you\"",
+    "bibleReference": "Deuteronomy 33:27",
+    "explanation": "No believer can fall beneath the safety net of God's indestructible everlasting arms.",
+    "explanationTelugu": "ఎంతటి అగాధములో పడిపోయినను విశ్వాసిని పట్టుకొని ఆదుకొను నిత్యమైన దైవిక బాహువులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q13",
+    "order": 13,
+    "questionType": "single_choice",
+    "question": "In Ruth 2:12, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Ruth 2:12 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"The Lord repay your work, and a full reward be given you by the Lord God of Israel, under whose wings you have come for refuge\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవా నీవు చేసినదానికి ప్రతిఫలమిచ్చును గాక; ఇశ్రాయేలీయుల దేవుడైన యెహోవా రెక్కలక్రింద ఆశ్రయము పొందుటకు నీవు వచ్చితివి; ఆయనవలన నీకు సంపూర్ణ బహుమానము కలుగును గాక\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord repay your work, and a full reward be given you by the Lord God of Israel, under whose wings you have come for refuge\"",
+    "bibleReference": "Ruth 2:12",
+    "explanation": "The protective maternal wings of Yahweh sheltering foreign outcasts who trust in Him.",
+    "explanationTelugu": "దేవుని రెక్కల నీడలోనికి ఆశ్రయముకొరకు వచ్చిన పేద విధవరాలికి లభించిన సంపూర్ణ భద్రత.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q14",
+    "order": 14,
+    "questionType": "single_choice",
+    "question": "In Psalm 34:10, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Psalm 34:10 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"The young lions lack and suffer hunger; but those who seek the Lord shall not lack any good thing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"సింహపు పిల్లలు లేమిగలవై ఆకలిగొనును; యెహోవాను ఆశ్రయించువారికి ఏ మేలు కొదువై యుండదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The young lions lack and suffer hunger; but those who seek the Lord shall not lack any good thing\"",
+    "bibleReference": "Psalm 34:10",
+    "explanation": "Even the fiercest apex predators may starve, but humble believers under God's care lack nothing.",
+    "explanationTelugu": "బలముగల సింహములే ఆకలిగొనవచ్చును గాని దేవుని ఆశ్రయించు విశ్వాసులకు ఏ మేలు కొదువపడదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q15",
+    "order": 15,
+    "questionType": "single_choice",
+    "question": "In Psalm 37:25, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Psalm 37:25 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"I have been young, and now am old; yet I have not seen the righteous forsaken, nor his descendants begging bread\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను చిన్నవాడనై యుంటిని ఇప్పుడు ముసలివాడనై యున్నాను; అయినను నీతిమంతుడు విడువబడుట గాని వాని సంతానము భిక్షమెత్తుకొనుట గాని నేను చూచియుండలేదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I have been young, and now am old; yet I have not seen the righteous forsaken, nor his descendants begging bread\"",
+    "bibleReference": "Psalm 37:25",
+    "explanation": "Lifelong empirical testimony to God's generational fidelity providing bread for the righteous.",
+    "explanationTelugu": "తరతరములకు నీతిమంతులను వారి సంతానమును ఆకలిదప్పులలో విడువక కాపాడు దేవుని నమ్మకత్వము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q16",
+    "order": 16,
+    "questionType": "single_choice",
+    "question": "In Psalm 68:19, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Psalm 68:19 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"Blessed be the Lord, who daily loads us with benefits, the God of our salvation! Selah\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ప్రభువు స్తుతింపబడును గాక, అనుదినము ఆయన మా భారము భరించుచున్నాడు; రక్షణకర్తయైన దేవుడే మా భారము భరించుచున్నాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Blessed be the Lord, who daily loads us with benefits, the God of our salvation! Selah\"",
+    "bibleReference": "Psalm 68:19",
+    "explanation": "Daily divine logistics: God faithfully carries our heavy loads every single dawn.",
+    "explanationTelugu": "ప్రతి ఉదయమున మన భారములను తానే స్వయముగా భరించి మోయు రక్షణకర్తయైన దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q17",
+    "order": 17,
+    "questionType": "single_choice",
+    "question": "In Psalm 91:4, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Psalm 91:4 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"He shall cover you with His feathers, and under His wings you shall take refuge; His truth shall be your shield and buckler\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఆయన తన రెక్కలతో నిన్ను కప్పును, ఆయన రెక్కలక్రింద నీకు ఆశ్రయము కలుగును; ఆయన సత్యము కేడెమును డాలునై యున్నది\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He shall cover you with His feathers, and under His wings you shall take refuge; His truth shall be your shield and buckler\"",
+    "bibleReference": "Psalm 91:4",
+    "explanation": "Tender, feathery shelter protecting the believer from deadly plagues and terror.",
+    "explanationTelugu": "పక్షి తన పిల్లలను రెక్కలక్రింద దాచునట్లు శత్రువుల బాణములనుండి మనలను కాపాడు దైవిక సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q18",
+    "order": 18,
+    "questionType": "single_choice",
+    "question": "In Psalm 107:9, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Psalm 107:9 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"For He satisfies the longing soul, and fills the hungry soul with goodness\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఏలయనగా ఆయన ఆశగల ప్రాణమును తృప్తిపరచుచున్నాడు, ఆకలిగొన్నవారి ప్రాణమును మేలుతో నింపుచున్నాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For He satisfies the longing soul, and fills the hungry soul with goodness\"",
+    "bibleReference": "Psalm 107:9",
+    "explanation": "Spiritual and physical hunger met completely in the generous banquets of divine grace.",
+    "explanationTelugu": "ఆత్మయందును శరీరమందును ఆకలిగొన్నవారిని తన పరిపూర్ణ మేళ్లతో తృప్తిపరచు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q19",
+    "order": 19,
+    "questionType": "single_choice",
+    "question": "In Psalm 121:3-4, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Psalm 121:3-4 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"He who keeps you will not slumber. Behold, He who keeps Israel shall neither slumber nor sleep\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ పాదము తొట్రిల్లనియ్యడు, నిన్ను కాపాడువాడు కునుకడు; ఇదిగో ఇశ్రాయేలును కాపాడువాడు కునుకడు నిద్రపోడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He who keeps you will not slumber. Behold, He who keeps Israel shall neither slumber nor sleep\"",
+    "bibleReference": "Psalm 121:3-4",
+    "explanation": "God's unwearied, sleepless sentinel-care guarding His children around the clock.",
+    "explanationTelugu": "రాత్రింబగళ్లు రెప్పవాల్చక మనలను కాపలాకాయు నిద్రపోని పరలోకపు రక్షకుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q20",
+    "order": 20,
+    "questionType": "single_choice",
+    "question": "In Psalm 121:5-6, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Psalm 121:5-6 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"The Lord is your keeper; the Lord is your shade at your right hand. The sun shall not strike you by day, nor the moon by night\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవాయే నిన్ను కాపాడువాడు; నీ కుడిచేతిప్రక్కన యెహోవా నీకు నీడగా ఉండును. పగటివేళ ఎండయైనను రాత్రివేళ వెన్నెలయైనను నీకేమియు అపాయము చేయదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord is your keeper; the Lord is your shade at your right hand. The sun shall not strike you by day, nor the moon by night\"",
+    "bibleReference": "Psalm 121:5-6",
+    "explanation": "Cosmic environmental protection shielding the soul from unseen natural perils.",
+    "explanationTelugu": "పగటివేళ శ్రమల ఎండయైనను రాత్రివేళ భయములైనను మనకు తాకకుండా కాపాడు దైవిక నీడ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q21",
+    "order": 21,
+    "questionType": "single_choice",
+    "question": "In Psalm 121:8, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Psalm 121:8 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"The Lord shall preserve your going out and your coming in from this time forth, and even forevermore\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవా ఏ హానియు రాకుండ నిన్ను కాపాడును; ఆయన నీ ప్రాణమును కాపాడును. ఇది మొదలుకొని నిరంతరము నీ రాకపోకలయందు యెహోవా నిన్ను కాపాడును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord shall preserve your going out and your coming in from this time forth, and even forevermore\"",
+    "bibleReference": "Psalm 121:8",
+    "explanation": "Comprehensive spatial and temporal coverage protecting the entire scope of life.",
+    "explanationTelugu": "మన జీవిత ప్రయాణములోని ప్రతి రాకపోకలయందు నిరంతరము తోడైయుండు సంపూర్ణ భద్రత.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q22",
+    "order": 22,
+    "questionType": "single_choice",
+    "question": "In Psalm 145:16, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Psalm 145:16 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"You open Your hand and satisfy the desire of every living thing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"సకల ప్రాణుల కన్నులు నీవైపు చూచుచున్నవి, తగిన కాలమందు నీవు వాటికి ఆహారమిచ్చుచున్నావు; నీవు నీ గుప్పిలి విప్పి ప్రతి జీవి వాంఛను తృప్తిపరచుచున్నావు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"You open Your hand and satisfy the desire of every living thing\"",
+    "bibleReference": "Psalm 145:16",
+    "explanation": "God's open-handed planetary benevolence feeding the entire biosphere effortlessly.",
+    "explanationTelugu": "తన గుప్పిలిని విప్పి సమస్త జీవరాశులకు సమయమునకు ఆహారమిచ్చి తృప్తిపరచు సృష్టికర్త.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q23",
+    "order": 23,
+    "questionType": "single_choice",
+    "question": "In Psalm 146:7,9, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Psalm 146:7,9 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"Who executes justice for the oppressed, who gives food to the hungry. The Lord gives freedom to the prisoners... The Lord relieves the fatherless and widow\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఆయన బాధపడువారికి న్యాయము తీర్చును, ఆకలిగొన్నవారికి ఆహారము నిచ్చును; యెహోవా బంధింపబడినవారిని విడుదల చేయును... దిక్కులేనివారిని విధవరాండ్రను ఆయన ఆదరించును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Who executes justice for the oppressed, who gives food to the hungry. The Lord gives freedom to the prisoners... The Lord relieves the fatherless and widow\"",
+    "bibleReference": "Psalm 146:7,9",
+    "explanation": "God's continuous judicial and nutritional intervention for the world's most powerless.",
+    "explanationTelugu": "బాధించబడువారి పక్షమున నిలబడి ఆకలిగొన్నవారికి అన్నంపెట్టి అనాథలను ఆదరించు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q24",
+    "order": 24,
+    "questionType": "single_choice",
+    "question": "In Proverbs 3:6, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Proverbs 3:6 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"In all your ways acknowledge Him, and He shall direct your paths\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ స్వబుద్ధిని ఆధారము చేసికొనక నీ పూర్ణహృదయముతో యెహోవాయందు నమ్మకముంచుము; నీ ప్రవర్తన అంతటియందు ఆయన అధికారమునకు ఒప్పుకొనుము, అప్పుడు ఆయన నీ త్రోవలను సరాళము చేయును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"In all your ways acknowledge Him, and He shall direct your paths\"",
+    "bibleReference": "Proverbs 3:6",
+    "explanation": "Surrendering human navigational control to the infallible care of the divine Guide.",
+    "explanationTelugu": "మన ఆలోచనలను విడిచి దేవునిపై ఆధారపడినప్పుడు ఆయన మన అడుగులను క్షేమముగా నడిపించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q25",
+    "order": 25,
+    "questionType": "single_choice",
+    "question": "In Isaiah 25:4, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Isaiah 25:4 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"For You have been a strength to the poor, a strength to the needy in his distress, a refuge from the storm, a shade from the heat\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఏలయనగా భయంకరుల ఊపిరి గోడకొట్టు గాలివానవలె ఉండగా, నీవు దీనులకు శైలముగాను, శ్రమనొందిన దరిద్రులకు కోటగాను, గాలివాన తగలకుండ ఆశ్రయముగాను, ఎండ తగలకుండ నీడగాను ఉంటివి\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For You have been a strength to the poor, a strength to the needy in his distress, a refuge from the storm, a shade from the heat\"",
+    "bibleReference": "Isaiah 25:4",
+    "explanation": "God provides impenetrable atmospheric shelter against the violent storms of oppression.",
+    "explanationTelugu": "శత్రువుల తుఫానులమధ్య పేదలకు కొండకోటగాను మండే ఎండలో చల్లని నీడగాను నిలుచు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q26",
+    "order": 26,
+    "questionType": "single_choice",
+    "question": "In Isaiah 32:2, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Isaiah 32:2 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"A man will be as a hiding place from the wind, and a cover from the tempest, as rivers of water in a dry place, as the shadow of a great rock in a weary land\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఒకడు గాలికి మరుగైన చోటువలెను గాలివానకు చాటైన చోటువలెను ఉండును; ఎండినచోట నీళ్ల కాలువలవలెను, అలసిన దేశములో గొప్ప బండ నీడవలెను ఉండును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"A man will be as a hiding place from the wind, and a cover from the tempest, as rivers of water in a dry place, as the shadow of a great rock in a weary land\"",
+    "bibleReference": "Isaiah 32:2",
+    "explanation": "Messianic pastoral shelter: Jesus Christ as the rock, river, and shelter for tired travelers.",
+    "explanationTelugu": "పాపపు ఎడారిలో అలసిపోయిన మానవాళికి జీవజలపు నదిగాను బండ నీడగాను ప్రత్యక్షమైన క్రీస్తు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q27",
+    "order": 27,
+    "questionType": "single_choice",
+    "question": "In Isaiah 41:17-18, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Isaiah 41:17-18 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"The poor and needy seek water, but there is none, their tongues fail for thirst. I, the Lord, will hear them; I, the God of Israel, will not forsake them. I will open rivers in desolate heights\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"దీనులును దరిద్రులును నీళ్లు వెదకుచున్నారు, నీళ్లు దొరకక వారి నాలుక దప్పిచేత ఎండిపోవుచున్నది; యెహోవానైన నేను వారికి ఉత్తరమిచ్చెదను, ఇశ్రాయేలు దేవుడనైన నేను వారిని విడిచిపెట్టను. మెట్టలమీద నదులను ఊటలను తెరచెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The poor and needy seek water, but there is none, their tongues fail for thirst. I, the Lord, will hear them; I, the God of Israel, will not forsake them. I will open rivers in desolate heights\"",
+    "bibleReference": "Isaiah 41:17-18",
+    "explanation": "God sovereignly re-engineers geography to pour rivers into barren heights for parched souls.",
+    "explanationTelugu": "దాహముతో నాలుక ఎండిపోయిన దీనులకొరకు ఎడారిలో సైతం నదులను ప్రవహింపజేయు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q28",
+    "order": 28,
+    "questionType": "single_choice",
+    "question": "In Isaiah 43:2, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Isaiah 43:2 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"When you pass through the waters, I will be with you; and through the rivers, they shall not overflow you. When you walk through the fire, you shall not be burned\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీవు జలములలో పడి దాటునప్పుడు నేను నీకు తోడైయుందును, నదులలో పడి వెళ్లునప్పుడు అవి నీమీద పొర్లిపారవు; నీవు అగ్నిమధ్యను నడచునప్పుడు కాలిపోవు, జ్వాలలు నిన్ను కాల్చవు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"When you pass through the waters, I will be with you; and through the rivers, they shall not overflow you. When you walk through the fire, you shall not be burned\"",
+    "bibleReference": "Isaiah 43:2",
+    "explanation": "Divine presence guarantees immunity from destruction in floods and fires of persecution.",
+    "explanationTelugu": "జీవిత జలములు నదులు అగ్నిశ్రమలు ఎదురైనను మనలను ముంచివేయకుండా కాపాడు దేవుని అభయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q29",
+    "order": 29,
+    "questionType": "single_choice",
+    "question": "In Jeremiah 29:11, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Jeremiah 29:11 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"For I know the thoughts that I think toward you, says the Lord, thoughts of peace and not of evil, to give you a future and a hope\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను మిమ్మునుగూర్చి తలంచుచున్న తలంపులను నేనెరుగుదును, అవి సమాధానకరమైన తలంపులే గాని హానికరమైనవి కావు, రాబోవు కాలమందు మీకు నిరీక్షణ కలుగునట్లుగా చేయుదును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For I know the thoughts that I think toward you, says the Lord, thoughts of peace and not of evil, to give you a future and a hope\"",
+    "bibleReference": "Jeremiah 29:11",
+    "explanation": "Divine architectural care: every season of discipline is purposefully mapped toward hope.",
+    "explanationTelugu": "నిర్వాసన శ్రమలలో ఉన్న ప్రజలకొరకు సమాధానమును నిరీక్షణను సిద్ధపరచిన దేవుని సంరక్షణ తలంపులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q30",
+    "order": 30,
+    "questionType": "single_choice",
+    "question": "In Jeremiah 31:10, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Jeremiah 31:10 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"He who scattered Israel will gather him, and keep him as a shepherd does his flock\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఇశ్రాయేలును చెదరగొట్టినవాడు అతనిని సమకూర్చును, కాపరి తన మందను కాపాడునట్లు అతనిని కాపాడును అని అన్యజనులకు చాటించుడి\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He who scattered Israel will gather him, and keep him as a shepherd does his flock\"",
+    "bibleReference": "Jeremiah 31:10",
+    "explanation": "Global ingathering and sovereign pastoral custody over scattered exiles.",
+    "explanationTelugu": "చెదిరిపోయిన తన ప్రజలను నలుదిక్కులనుండి సమకూర్చి కాపరివలె కాపాడు విమోచకుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q31",
+    "order": 31,
+    "questionType": "single_choice",
+    "question": "In Ezekiel 34:11-12, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Ezekiel 34:11-12 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"For thus says the Lord God: 'Indeed I Myself will search for My sheep and seek them out. As a shepherd seeks out his flock... so will I seek out My sheep and deliver them'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ప్రభువైన యెహోవా ఈలాగు సెలవిచ్చుచున్నాడు-ఇదిగో నేనే నా గొర్రెలను వెదకి వాటిని పరామర్శించెదను; కాపరి చెదిరిపోయిన తన గొర్రెలమధ్య ఉండు దినమున తన మందను వెదకునట్లు నేను నా గొర్రెలను వెదకెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For thus says the Lord God: 'Indeed I Myself will search for My sheep and seek them out. As a shepherd seeks out his flock... so will I seek out My sheep and deliver them'\"",
+    "bibleReference": "Ezekiel 34:11-12",
+    "explanation": "Yahweh Himself descends into the wilderness to conduct the search-and-rescue mission.",
+    "explanationTelugu": "చెదిరిపోయిన ప్రతి గొర్రెను స్వయముగా వెదకి కనుగొని రక్షించే పరమ కాపరియైన యెహోవా.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q32",
+    "order": 32,
+    "questionType": "single_choice",
+    "question": "In Ezekiel 34:15-16, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Ezekiel 34:15-16 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"I will feed My flock, and I will make them lie down,' says the Lord God. 'I will seek what was lost and bring back what was driven away, bind up the broken and strengthen what was sick'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేనే నా మందను మేపెదను, నేను వాటిని పరుండజేసెదను; తప్పిపోయినదానిని నేను వెదకెదను, తోలివేయబడినదానిని మరల తోడుకొనివచ్చెదను, గాయపడినదానికి కట్టుకట్టెదను, రోగముగలదానిని బలపరచెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I will feed My flock, and I will make them lie down,' says the Lord God. 'I will seek what was lost and bring back what was driven away, bind up the broken and strengthen what was sick'\"",
+    "bibleReference": "Ezekiel 34:15-16",
+    "explanation": "The fourfold clinical pastoral restoration: finding the lost, retrieving the driven, binding the fractured, healing the sick.",
+    "explanationTelugu": "తప్పిపోయినదానిని వెదకి, తోలివేయబడినదానిని రప్పించి, గాయపడినదానికి కట్టుకట్టి బలపరచు దేవుని సంపూర్ణ సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q33",
+    "order": 33,
+    "questionType": "single_choice",
+    "question": "In Hosea 11:3-4, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Hosea 11:3-4 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"I taught Ephraim to walk, taking them by their arms; but they did not know that I healed them. I drew them with gentle cords, with bands of love, and I stooped down and fed them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను ఎఫ్రాయిమునకు నడక నేర్పితిని, నా బాహువులమీద వారిని ఎత్తికొంటిని; అయినను నేను వారిని స్వస్థపరచితినని వారు తెలిసికొనరైరి; మనుష్యులను ఆకర్షించు త్రాళ్లతోను ప్రేమబంధములతోను నేను వారిని ఆకర్షించితిని...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I taught Ephraim to walk, taking them by their arms; but they did not know that I healed them. I drew them with gentle cords, with bands of love, and I stooped down and fed them\"",
+    "bibleReference": "Hosea 11:3-4",
+    "explanation": "Parental toddler-training: bending down low to patiently teach stumbling Israel how to walk.",
+    "explanationTelugu": "చిన్నబిడ్డకు నడక నేర్పినట్లు చేయిపట్టి నడిపించి ప్రేమతో ఆహారము పెట్టిన దేవుని మాతృవాత్సల్యము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q34",
+    "order": 34,
+    "questionType": "single_choice",
+    "question": "In Nahum 1:7, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Nahum 1:7 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"The Lord is good, a stronghold in the day of trouble; and He knows those who trust in Him\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవా ఉత్తముడు, ఆపద్దినమందు ఆయన ఆశ్రయదుర్గము; తనయందు నమ్మకముంచువారిని ఆయన ఎరుగును.\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord is good, a stronghold in the day of trouble; and He knows those who trust in Him\"",
+    "bibleReference": "Nahum 1:7",
+    "explanation": "Divine relational intimacy: God intimately acknowledges and protects every trusting soul.",
+    "explanationTelugu": "ఆపత్కాలములో శరణ్యమైన కోటగా నిలిచి తన్ను నమ్ముకొనువారిని వ్యక్తిగతముగా గుర్తించి కాపాడు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q35",
+    "order": 35,
+    "questionType": "single_choice",
+    "question": "In Habakkuk 3:17-18, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Habakkuk 3:17-18 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"Though the fig tree may not blossom, nor fruit be on the vines... yet I will rejoice in the Lord, I will joy in the God of my salvation\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"అంజూరపు చెట్టు పూయకుండినను, ద్రాక్షతీగెలమీద పండ్లు లేకపోయినను, ఒలీవచెట్లు ఫలింపకపోయినను... నేను యెహోవాయందు ఆనందించెదను, నా రక్షణకర్తయైన నా దేవునియందు సంతోషించెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Though the fig tree may not blossom, nor fruit be on the vines... yet I will rejoice in the Lord, I will joy in the God of my salvation\"",
+    "bibleReference": "Habakkuk 3:17-18",
+    "explanation": "Triumphant faith that rests securely in God's pastoral goodness even amidst total agricultural collapse.",
+    "explanationTelugu": "సర్వసంపదలు కరువులో కొట్టుకుపోయినను దేవుని రక్షణ సంరక్షణను నమ్మి విజయగానము చేయు విశ్వాసము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q36",
+    "order": 36,
+    "questionType": "single_choice",
+    "question": "In Matthew 11:28, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Matthew 11:28 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"Come to Me, all you who labor and are heavy laden, and I will give you rest. Take My yoke upon you and learn from Me, for I am gentle and lowly in heart\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ప్రయాసపడి భారము మోసికొనుచున్న సమస్త జనులారా, నాయొద్దకు రండి, నేను మీకు విశ్రాంతి కలుగజేతును. నేను సాత్వికుడను దీనమనస్సు గలవాడను గనుక మీమీద నా కాడి ఎత్తికొని నాయొద్ద నేర్చుకొనుడి\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Come to Me, all you who labor and are heavy laden, and I will give you rest. Take My yoke upon you and learn from Me, for I am gentle and lowly in heart\"",
+    "bibleReference": "Matthew 11:28",
+    "explanation": "Christ's gentle pastoral invitation replacing religious legalistic exhaustion with soul-rest.",
+    "explanationTelugu": "జీవిత భారములతో అలసిపోయినవారికి తన సాత్వికమైన ప్రేమతో నిత్య విశ్రాంతినిచ్చు రక్షకుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q37",
+    "order": 37,
+    "questionType": "single_choice",
+    "question": "In Luke 15:4-5, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Luke 15:4-5 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"What man of you, having a hundred sheep, if he loses one of them, does not leave the ninety-nine in the wilderness, and go after the one which is lost until he finds it? And when he has found it, he lays it on his shoulders, rejoicing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"మీలో ఏ మనుష్యునికైనను నూరు గొర్రెలు కలిగియుండగా వాటిలో ఒకటి తప్పిపోయినయెడల, అతడు తొంబది తొమ్మిదింటిని అరణ్యములో విడిచిపెట్టి, తప్పిపోయినది దొరుకువరకు దానిని వెదకవెళ్లునా? అది దొరికినప్పుడు సంతోషముతో దానిని తన భుజములమీద వేసికొనును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"What man of you, having a hundred sheep, if he loses one of them, does not leave the ninety-nine in the wilderness, and go after the one which is lost until he finds it? And when he has found it, he lays it on his shoulders, rejoicing\"",
+    "bibleReference": "Luke 15:4-5",
+    "explanation": "Relentless individual care: the shepherd carries the weary wanderer on his shoulders rejoicing.",
+    "explanationTelugu": "తప్పిపోయిన గొర్రెను కనుగొని సంతోషముతో తన భుజములపై మోసికొని ఇంటికి చేర్చుకొను కాపరి ప్రేమ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q38",
+    "order": 38,
+    "questionType": "single_choice",
+    "question": "In John 6:39, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "John 6:39 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"This is the will of the Father who sent Me, that of all He has given Me I should lose nothing, but should raise it up at the last day\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఆయన నాకు అనుగ్రహించినవాటిలో నేనేమియు పోగొట్టుకొనక, అంత్యదినమున దాని లేపుటయే నన్ను పంపిన తండ్రి చిత్తమై యున్నది\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"This is the will of the Father who sent Me, that of all He has given Me I should lose nothing, but should raise it up at the last day\"",
+    "bibleReference": "John 6:39",
+    "explanation": "Eternal security guaranteed: Christ's sovereign pastoral grip refuses to drop a single believer.",
+    "explanationTelugu": "తండ్రి తన చేతికిచ్చిన విశ్వాసులలో ఒక్కనినైనను పోగొట్టుకొనకుండా కాపాడు రక్షకుని శాశ్వత సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q39",
+    "order": 39,
+    "questionType": "single_choice",
+    "question": "In John 10:28-29, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "John 10:28-29 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"And I give them eternal life, and they shall never perish; neither shall anyone snatch them out of My hand. My Father, who has given them to Me, is greater than all\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను వాటికి నిత్యజీవము నిచ్చుచున్నాను గనుక అవి ఎన్నటికిని నశింపవు, ఎవడును వాటిని నా చేతిలోనుండి అపహరింపడు; వాటిని నాకిచ్చిన నా తండ్రి అందరికంటె గొప్పవాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"And I give them eternal life, and they shall never perish; neither shall anyone snatch them out of My hand. My Father, who has given them to Me, is greater than all\"",
+    "bibleReference": "John 10:28-29",
+    "explanation": "The double-fisted grip of omnipotence: held securely in the hand of the Son and of the Father.",
+    "explanationTelugu": "క్రీస్తు చేతిలోను తండ్రి చేతిలోను భద్రపరచబడిన విశ్వాసిని ఏ శత్రువును అపహరింపజాలడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q40",
+    "order": 40,
+    "questionType": "single_choice",
+    "question": "In John 17:12, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "John 17:12 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"While I was with them in the world, I kept them in Your name. Those whom You gave Me I have kept; and none of them is lost except the son of perdition\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను వారితోకూడ ఉన్నప్పుడు నీవు నాకు అనుగ్రహించిన నీ నామమందు వారిని కాపాడితిని; నేను వారిని భద్రపరచితిని గనుక లేఖనము నెరవేరునట్లు నాశనపుత్రుడు తప్ప వారిలో ఎవడును నశింపలేదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"While I was with them in the world, I kept them in Your name. Those whom You gave Me I have kept; and none of them is lost except the son of perdition\"",
+    "bibleReference": "John 17:12",
+    "explanation": "Christ's high-priestly custody shielding His disciples from cosmic demonic destruction.",
+    "explanationTelugu": "లోకములో ఉన్న శిష్యులను అపవాది చేతిలో పడకుండా తన నామమందు భద్రపరచిన యేసు క్రీస్తు విజ్ఞాపన.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q41",
+    "order": 41,
+    "questionType": "single_choice",
+    "question": "In John 18:8-9, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "John 18:8-9 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"Jesus answered, 'I have told you that I am He. Therefore if you seek Me, let these go their way,' that the saying might be fulfilled which He spoke, 'Of those whom You gave Me I have lost none'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యేసు-నేనే ఆయననని మీతో చెప్పితిని గనుక మీరు నన్ను వెదకుచున్నయెడల వీరిని పోనియ్యుడని చెప్పెను; నీవు నాకు అనుగ్రహించినవారిలో ఎవనిని నేనెంతమాత్రమును పోగొట్టుకొనలేదని తాను చెప్పిన మాట నెరవేరునట్లు ఈలాగు జరిగెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Jesus answered, 'I have told you that I am He. Therefore if you seek Me, let these go their way,' that the saying might be fulfilled which He spoke, 'Of those whom You gave Me I have lost none'\"",
+    "bibleReference": "John 18:8-9",
+    "explanation": "Christ shielding His vulnerable flock by offering Himself exclusively to the executioners.",
+    "explanationTelugu": "శిష్యుల ప్రాణములకు ఏ హాని కలుగకుండా తన్నుతాను శత్రువులకు అప్పగించుకొని వారిని కాపాడిన మంచి కాపరి.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q42",
+    "order": 42,
+    "questionType": "single_choice",
+    "question": "In Romans 8:32, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Romans 8:32 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"He who did not spare His own Son, but delivered Him up for us all, how shall He not with Him also freely give us all things?\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"తన సొంతకుమారుని అనుగ్రహించుటకు వెనుకతీయక మన అందరికొరకు ఆయనను అప్పగించినవాడు ఆయనతోపాటు సమస్తమును మనకెందుకు ఉచితముగా అనుగ్రహింపడు?\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He who did not spare His own Son, but delivered Him up for us all, how shall He not with Him also freely give us all things?\"",
+    "bibleReference": "Romans 8:32",
+    "explanation": "The ultimate theological guarantee: the Father who sacrificed His greatest Treasure will surely provide lesser daily needs.",
+    "explanationTelugu": "మనకొరకు తన ప్రియ కుమారుని అర్పించిన పరలోకపు తండ్రి సమస్త ఆశీర్వాదములను మనకు ఉచితముగా సమకూర్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q43",
+    "order": 43,
+    "questionType": "single_choice",
+    "question": "In 1 Corinthians 10:13, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "1 Corinthians 10:13 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"God is faithful, who will not allow you to be tempted beyond what you are able, but with the temptation will also make the way of escape, that you may be able to bear it\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"దేవుడు నమ్మదగినవాడు; మీరు సహింపగలిగినంతకంటె ఎక్కువగా ఆయన మిమ్మును శోధింపబడనియ్యడు; అంతేకాదు, సహింపగలుగుటకు ఆయన శోధనతోకూడ తప్పించుకొను మార్గమును కలుగజేయును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"God is faithful, who will not allow you to be tempted beyond what you are able, but with the temptation will also make the way of escape, that you may be able to bear it\"",
+    "bibleReference": "1 Corinthians 10:13",
+    "explanation": "Thermostatic spiritual care: God monitors the intensity of trial and always prepares the rescue hatch.",
+    "explanationTelugu": "శ్రమల తీవ్రతను కనిపెట్టి విశ్వాసి భరించగలిగినంతవరకే అనుమతించి తప్పించు మార్గమును సిద్ధపరచు దేవుని సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q44",
+    "order": 44,
+    "questionType": "single_choice",
+    "question": "In 2 Corinthians 1:3-4, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "2 Corinthians 1:3-4 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"Blessed be the God and Father of our Lord Jesus Christ, the Father of mercies and God of all comfort, who comforts us in all our tribulation, that we may be able to comfort those who are in any trouble\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"మన ప్రభువైన యేసుక్రీస్తుయొక్క తండ్రియైన దేవుడు, కనికరములు చూపు తండ్రియు, సమస్తమైన ఆదరణను అనుగ్రహించు దేవుడును స్తుతింపబడును గాక. దేవుడు మమ్మును ఏ ఆదరణతో ఆదరించుచున్నాడో, ఆ ఆదరణతో ఎట్టి శ్రమలలో ఉన్నవారినైనను ఆదరించుటకు శక్తిగలవారమగునట్లు...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Blessed be the God and Father of our Lord Jesus Christ, the Father of mercies and God of all comfort, who comforts us in all our tribulation, that we may be able to comfort those who are in any trouble\"",
+    "bibleReference": "2 Corinthians 1:3-4",
+    "explanation": "Redemptive suffering: our received comfort becomes the clinic equiping us to care for other broken souls.",
+    "explanationTelugu": "దేవునినుండి పొందిన ఆదరణద్వారా శ్రమలలో ఉన్న తోటివారిని ఆదరించి ఓదార్చు పరిచర్య.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q45",
+    "order": 45,
+    "questionType": "single_choice",
+    "question": "In 2 Thessalonians 3:3, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "2 Thessalonians 3:3 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"But the Lord is faithful, who will establish you and guard you from the evil one\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"అయితే ప్రభువు నమ్మదగినవాడు; ఆయన మిమ్మును స్థిరపరచి దుష్టునినుండి కాపాడును.\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"But the Lord is faithful, who will establish you and guard you from the evil one\"",
+    "bibleReference": "2 Thessalonians 3:3",
+    "explanation": "Sovereign defensive perimeter: the Lord erects an impenetrable spiritual garrison against Satan.",
+    "explanationTelugu": "దుష్టుడైన అపవాది దాడులనుండి మనలను భద్రపరచి ఆత్మీయముగా స్థిరపరచు నమ్మకమైన ప్రభువు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q46",
+    "order": 46,
+    "questionType": "single_choice",
+    "question": "In Hebrews 7:25, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Hebrews 7:25 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"Therefore He is also able to save to the uttermost those who come to God through Him, since He always lives to make intercession for them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఈయన తనద్వారా దేవునియొద్దకు వచ్చువారి పక్షమున విజ్ఞాపన చేయుటకు నిరంతరము జీవించుచున్నాడు గనుక వారిని సంపూర్ణముగా రక్షించుటకు శక్తిమంతుడై యున్నాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Therefore He is also able to save to the uttermost those who come to God through Him, since He always lives to make intercession for them\"",
+    "bibleReference": "Hebrews 7:25",
+    "explanation": "Christ's unending heavenly ministry: 24/7 perpetual advocacy securing the believer's final perseverance.",
+    "explanationTelugu": "పరలోకమందు తండ్రి కుడిపార్శ్వమున నిత్యము మనకొరకు ప్రార్థించుచున్న ప్రధానయాజకుడైన యేసుక్రీస్తు సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q47",
+    "order": 47,
+    "questionType": "single_choice",
+    "question": "In Hebrews 13:5-6, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Hebrews 13:5-6 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"For He Himself has said, 'I will never leave you nor forsake you.' So we may boldly say: 'The Lord is my helper; I will not fear. What can man do to me?'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను నిన్ను ఏమాత్రమును విడువను, నిన్ను ఎన్నడును ఎడబాయను అని ఆయనయే చెప్పియున్నాడు గనుక-ప్రభువు నాకు సహాయకుడు, నేను భయపడను, నరమాత్రుడు నాకేమి చేయగలడు? అని మంచి ధైర్యముతో చెప్పగలవారమై యున్నాము\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For He Himself has said, 'I will never leave you nor forsake you.' So we may boldly say: 'The Lord is my helper; I will not fear. What can man do to me?'\"",
+    "bibleReference": "Hebrews 13:5-6",
+    "explanation": "Fivefold Greek negative reinforcement guaranteeing total, unconditional presence and financial contentment.",
+    "explanationTelugu": "ఎట్టి శ్రమలలోను ఒంటరిగా విడిచిపెట్టక నిరంతరము తోడైయుండి సహాయము చేయు దేవుని అచంచల వాగ్దానము.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q48",
+    "order": 48,
+    "questionType": "single_choice",
+    "question": "In 1 Peter 2:25, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "1 Peter 2:25 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"For you were like sheep going astray, but have now returned to the Shepherd and Overseer of your souls\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"మీరు గొర్రెలవలె దారితప్పిపోతిరి గాని యిప్పుడు మీ ఆత్మల కాపరియు అధ్యక్షుడునైన ఆయనయొద్దకు మళ్లుకొనియున్నారు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For you were like sheep going astray, but have now returned to the Shepherd and Overseer of your souls\"",
+    "bibleReference": "1 Peter 2:25",
+    "explanation": "Christ is the episkopos (vigilant guardian) watching over the immortal health of the soul.",
+    "explanationTelugu": "దారితప్పిన మనలను చేరదీసి నిరంతరము కనిపెట్టుచున్న మన ఆత్మల పరమ కాపరియైన యేసు క్రీస్తు.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q49",
+    "order": 49,
+    "questionType": "single_choice",
+    "question": "In Jude 1:24, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Jude 1:24 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"Now to Him who is able to keep you from stumbling, and to present you faultless before the presence of His glory with exceeding joy\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"తొట్రిల్లకుండ మిమ్మును కాపాడుటకును, తన మహిమయెదుట నిర్దోషులుగా నిలువబెట్టుటకును శక్తిగల మన రక్షకుడైన అద్వితీయ దేవునికి... మహిమయు ప్రభావమును కలుగును గాక\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Now to Him who is able to keep you from stumbling, and to present you faultless before the presence of His glory with exceeding joy\"",
+    "bibleReference": "Jude 1:24",
+    "explanation": "The sovereign bodyguard of salvation: preserving believers through earthly hazards until glorified.",
+    "explanationTelugu": "విశ్వాస యాత్రలో జారిపడకుండా కాపాడి పరలోక మహిమలో నిలువబెట్టే దేవుని సంపూర్ణ సంరక్షణ శక్తి.",
+    "marks": 1
+  },
+  {
+    "id": "car_m_s3_q50",
+    "order": 50,
+    "questionType": "single_choice",
+    "question": "In Revelation 7:16-17, what specific statement reveals God's sovereign providential care for His people?",
+    "questionTelugu": "Revelation 7:16-17 లో తన ప్రజల సంరక్షణ కొరకు దేవుని సర్వాధికార కృపను గూర్చి చెప్పబడిన వాక్యమేమి?",
+    "options": [
+      "\"They shall neither hunger anymore nor thirst anymore; the sun shall not strike them... for the Lamb who is in the midst of the throne will shepherd them and lead them to living fountains of waters. And God will wipe away every tear from their eyes\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"వారికి ఇకమీదట ఆకలియైనను దప్పియైనను కలుగదు, ఎండయైనను ఏ ఉక్కయైనను వారికి తగలదు; ఏలయనగా సింహాసనమధ్యమందుండు గొర్రెపిల్లయే వారిని మేపి, జీవజలముల బుగ్గలయొద్దకు వారిని నడిపించును; దేవుడే వారి కన్నులనుండి ప్రతి భాష్పబిందువును తుడిచివేయును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"They shall neither hunger anymore nor thirst anymore; the sun shall not strike them... for the Lamb who is in the midst of the throne will shepherd them and lead them to living fountains of waters. And God will wipe away every tear from their eyes\"",
+    "bibleReference": "Revelation 7:16-17",
+    "explanation": "Eschatological consummation of care: eternal shepherd-leading where every tear is tenderly wiped away.",
+    "explanationTelugu": "పరలోక నిత్యత్వములో గొర్రెపిల్లయైన క్రీస్తు తన ప్రజలను నిత్య జీవజలములయొద్దకు నడిపించి కన్నీళ్లన్నిటినీ తుడిచివేయు పరమ సంరక్షణ.",
+    "marks": 1
+  }
+];
+
+export const CARE_HARD_FOUNDATION: QuizQuestion[] = [
+  {
+    "id": "car_h_s1_q01",
+    "order": 1,
+    "questionType": "single_choice",
+    "question": "How does the Greek term merimna (anxiety) contrasted with God's personal care (melei) offer pastoral therapy for chronic worry?",
+    "questionTelugu": "'ఆయన మిమ్మునుగూర్చి చింతించుచున్నాడు' అను సత్యము విశ్వాసి మానసిక ఆందోళనలను ఎలా నివారించుచున్నది?",
+    "options": [
+      "Cast all your care upon Him, for He cares for you",
+      "Hide your anxieties in sixty secret jars",
+      "Carry the burden alone through forty desert trials",
+      "Pay thirty silver coins to temple counselors"
+    ],
+    "optionsTelugu": [
+      "ఆయన మిమ్మునుగూర్చి చింతించుచున్నాడు గనుక మీ చింత యావత్తు ఆయనమీద వేయుడి",
+      "మీ చింతలను అరవై రహస్య పాత్రలలో దాచిపెట్టుడి",
+      "నలభై అరణ్య శ్రమలలో ఒంటరిగా ఆ భారమును మోయుడి",
+      "దేవాలయ సలహాదారులకు ముప్పది వెండి నాణెములు చెల్లించుడి"
+    ],
+    "correctAnswer": "Cast all your care upon Him, for He cares for you",
+    "bibleReference": "1 Peter 5:7",
+    "explanation": "Peter comforts believers to roll every anxiety upon God because He personally, tenderly cares for them.",
+    "explanationTelugu": "ఆయన మిమ్మునుగూర్చి చింతించుచున్నాడు గనుక మీ చింత యావత్తు ఆయనమీద వేయుడి.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q02",
+    "order": 2,
+    "questionType": "single_choice",
+    "question": "How does Christ's argument from the lesser to the greater (qal vahomer) in Matthew 6:26 establish human value in creation?",
+    "questionTelugu": "ఆకాశ పక్షులకంటె మనుష్యులు ఎంతో శ్రేష్ఠులని నిరూపించుటద్వారా పరమ తండ్రి సంరక్షణపై ఏ అచంచల విశ్వాసము కలుగును?",
+    "options": [
+      "They neither sow nor reap nor gather into barns, yet your Heavenly Father feeds them",
+      "They build forty grain storehouses in the trees",
+      "They fast seven months during severe desert drought",
+      "They purchase grain from the markets of Capernaum"
+    ],
+    "optionsTelugu": [
+      "అవి విత్తవు కోయవు కొట్లలో కూర్చుకొనవు; అయినను మీ పరలోకపు తండ్రి వాటిని పోషించుచున్నాడు",
+      "అవి చెట్లపై నలభై ధాన్యాగారములను నిర్మించును",
+      "తీవ్రమైన కరువులో అవి ఏడు నెలలు ఉపవాసముండును",
+      "కపెర్నహూము సంతలలో అవి ధాన్యమును కొనుగోలు చేయును"
+    ],
+    "correctAnswer": "They neither sow nor reap nor gather into barns, yet your Heavenly Father feeds them",
+    "bibleReference": "Matthew 6:26",
+    "explanation": "Jesus points out that our Heavenly Father faithfully feeds birds who cannot store food; how much more will He care for His children!",
+    "explanationTelugu": "ఆకాశ పక్షులను చూడుడి; అవి విత్తవు కోయవు కొట్లలో కూర్చుకొనవు; అయినను మీ పరలోకపు తండ్రి వాటిని పోషించుచున్నాడు; మీరు వాటికంటె బహు శ్రేష్ఠులు కారా?",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q03",
+    "order": 3,
+    "questionType": "single_choice",
+    "question": "How does God dressing ephemeral grass highlight the sovereign, artistic care He guarantees to His covenant people?",
+    "questionTelugu": "నేడుండి రేపు పొయ్యిలో వేయబడు అడవి గడ్డిని దేవుడు ఇంతగా అలంకరించినయెడల తన ప్రజలను ఎంత నిశ్చయముగా సంరక్షించును?",
+    "options": [
+      "They neither toil nor spin; yet even Solomon in all his glory was not arrayed like one of these",
+      "They weave sixty garments of Egyptian linen",
+      "They trade in the royal bazaar of Tyre",
+      "They store forty bundles of purple wool"
+    ],
+    "optionsTelugu": [
+      "అవి కష్టపడవు వడకవు; అయినను తన సమస్త వైభవముతో కూడిన సొలొమోను సహితము వీటిలో ఒకదానివలెనైనను అలంకరింపబడలేదు",
+      "అవి ఐగుప్తు సన్నపు నారతో అరవై వస్త్రములను నేయును",
+      "అవి తీరు రాజ బజారులో వర్తకము చేయును",
+      "అవి నలభై కట్టల ఊదారంగు ఉన్నిని దాచిపెట్టును"
+    ],
+    "correctAnswer": "They neither toil nor spin; yet even Solomon in all his glory was not arrayed like one of these",
+    "bibleReference": "Matthew 6:28-29",
+    "explanation": "Jesus shows that God clothes wildflowers with greater majesty than King Solomon, proving He will surely clothe His faithful children.",
+    "explanationTelugu": "అడవి పువ్వులు ఏలాగు ఎదుగుచున్నవో ఆలోచించుడి. అవి కష్టపడవు వడకవు; అయినను తన సమస్త వైభవముతో కూడిన సొలొమోను సహితము వీటిలో ఒకదానివలెనైనను అలంకరింపబడలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q04",
+    "order": 4,
+    "questionType": "single_choice",
+    "question": "What theological comfort lies in divine omniscience actively counting the mortal, changing details of our physical existence?",
+    "questionTelugu": "మన తలవెండ్రుకలన్నియు లెక్కింపబడియున్నవను సత్యము దేవుని సంపూర్ణ సంరక్షణపై ఏ పరమ శాంతిని ఇచ్చును?",
+    "options": [
+      "The very hairs of your head are all numbered; do not fear therefore; you are of more value than many sparrows",
+      "Your hairs are inspected forty days by temple priests",
+      "Your days are governed by the planetary signs of Babylon",
+      "Your body is left to the chance whims of nature"
+    ],
+    "optionsTelugu": [
+      "మీ తలవెండ్రుకలన్నియు లెక్కింపబడియున్నవి; భయపడకుడి, మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు",
+      "మీ వెండ్రుకలు నలభై దినములు యాజకులచేత పరిశోధింపబడును",
+      "మీ ఆయుష్షు బబులోను నక్షత్ర రాశులచేత నిర్ణయింపబడును",
+      "మీ శరీరము ప్రకృతి యాదృచ్ఛికతకు విడిచిపెట్టబడెను"
+    ],
+    "correctAnswer": "The very hairs of your head are all numbered; do not fear therefore; you are of more value than many sparrows",
+    "bibleReference": "Luke 12:7",
+    "explanation": "Jesus reassures us that God tracks the most minute details of our lives; even the hairs on our head are individually numbered.",
+    "explanationTelugu": "మీ తలవెండ్రుకలన్నియు లెక్కింపబడియున్నవి గనుక భయపడకుడి; మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q05",
+    "order": 5,
+    "questionType": "single_choice",
+    "question": "How does the shepherd's willingness to die for the flock redefine pastoral leadership from professional employment to sacrificial covenant?",
+    "questionTelugu": "గొర్రెలకొరకు ప్రాణము పెట్టుట అనునది సంఘ కాపరిత్వమును కేవలము ఉద్యోగమునుండి ఆత్మీయ త్యాగ నిబంధనగా ఎలా మార్చుచున్నది?",
+    "options": [
+      "The Good Shepherd gives His life for the sheep, but a hireling flees because he does not care about the sheep",
+      "The hireling trains sixty watchdogs to fight wolves",
+      "The shepherd shears the sheep forty times in spring",
+      "The hireling sells forty rams to pay palace taxes"
+    ],
+    "optionsTelugu": [
+      "మంచి కాపరి గొర్రెలకొరకు తన ప్రాణము పెట్టును; జీతగాడు గొర్రెలనుగూర్చి చింతింపక పారిపోవును",
+      "జీతగాడు తోడేళ్లతో పోరాడుటకు అరవై కావలి కుక్కలను పెంచును",
+      "కాపరి వసంతకాలములో నలభైసార్లు గొర్రెల బొచ్చును కత్తిరించును",
+      "జీతగాడు రాజపన్ను చెల్లించుటకు నలభై పొట్టేళ్లను అమ్మును"
+    ],
+    "correctAnswer": "The Good Shepherd gives His life for the sheep, but a hireling flees because he does not care about the sheep",
+    "bibleReference": "John 10:11-13",
+    "explanation": "Jesus contrasts His self-sacrificing pastoral care with the mercenary hireling who abandons the sheep when danger arrives.",
+    "explanationTelugu": "నేను గొర్రెలకు మంచి కాపరిని; మంచి కాపరి గొర్రెలకొరకు తన ప్రాణము పెట్టును. జీతగాడు కాపరికాడు గనుక తోడేలు వచ్చుట చూచి గొర్రెలను విడిచి పారిపోవును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q06",
+    "order": 6,
+    "questionType": "single_choice",
+    "question": "How does the Samaritan paying future medical expenses model Christ's open-ended atonement and rehabilitative care for broken sinners?",
+    "questionTelugu": "గాయపడినవాని భవిష్యత్ ఖర్చులన్నిటినీ తానే భరింతునను సమరయుని వాగ్దానము పాపులయెడల క్రీస్తు పునరుద్ధరణ కృపను ఎలా సూచించుచున్నది?",
+    "options": [
+      "Bandaged his wounds, poured on oil and wine, brought him to an inn, and gave two denarii saying 'Take care of him'",
+      "Gave him forty lashes for walking alone to Jericho",
+      "Left him seven loaves of barley bread on the road",
+      "Carried him forty miles to the Roman barracks in Caesarea"
+    ],
+    "optionsTelugu": [
+      "గాయములను కట్టి, నూనెయు ద్రాక్షారసమును పోసి, సత్రమునకు తీసికొనిపోయి, రెండు దేనారములు ఇచ్చి 'ఇతనిని పరామర్శించుము' అనెను",
+      "యెరికో మార్గములో ఒంటరిగా నడిచినందుకు నలభై కొరడా దెబ్బలు కొట్టెను",
+      "దారిలో ఏడు యవల రొట్టెలను విడిచిపెట్టి వెళ్లిపోయెను",
+      "కైసరయలోని రోమా సైనిక శిబిరమునకు నలభై మైళ్లు మోసుకొనిపోయెను"
+    ],
+    "correctAnswer": "Bandaged his wounds, poured on oil and wine, brought him to an inn, and gave two denarii saying 'Take care of him'",
+    "bibleReference": "Luke 10:34-35",
+    "explanation": "The Samaritan bound the victim's wounds, transported him to an inn, paid for his lodging, and promised to cover any additional care costs.",
+    "explanationTelugu": "అతని గాయములను కట్టి, నూనెయు ద్రాక్షారసమును పోసి, తన స్వంత వాహనముమీద ఎక్కించి, ఒక సత్రమునకు తీసికొనిపోయి అతనిని పరామర్శించెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q07",
+    "order": 7,
+    "questionType": "single_choice",
+    "question": "Why does caring for the socially vulnerable serve as the acid test of authentic biblical spirituality over outward ritual?",
+    "questionTelugu": "ఆచారపరమైన భక్తికంటె అనాథలను వితంతువులను ఆదరించుటయే నిజమైన దైవభక్తికి గీటురాయి అని యాకోబు ఎందుకు నొక్కిచెప్పెను?",
+    "options": [
+      "To visit orphans and widows in their trouble, and to keep oneself unspotted from the world",
+      "To offer sixty burnt offerings on the temple mount",
+      "To fast forty consecutive days in the desert caves",
+      "To memorize seven hundred verses of oral traditions"
+    ],
+    "optionsTelugu": [
+      "దిక్కులేని పిల్లలను విధవరాండ్రను వారి యిబ్బందిలో పరామర్శించుటయు, ఇహలోక మాలిన్యము తనకంటకుండా తన్నుతాను కాపాడుకొనుటయునై యున్నది",
+      "దేవాలయ పర్వతముపై అరవై దహనబలులను అర్పించుట",
+      "ఎడారి గుహలలో వరుసగా నలభై దినములు ఉపవాసముండుట",
+      "ఏడువందల పారంపర్యాచార వచనములను కంఠస్థము చేయుట"
+    ],
+    "correctAnswer": "To visit orphans and widows in their trouble, and to keep oneself unspotted from the world",
+    "bibleReference": "James 1:27",
+    "explanation": "Pure religion requires compassionate, hands-on care for vulnerable orphans and widows, alongside personal moral purity.",
+    "explanationTelugu": "తండ్రియైన దేవునియెదుట పవిత్రమును నిష్కళంకమునైన భక్తి యేదనగా-దిక్కులేని పిల్లలను విధవరాండ్రను వారి యిబ్బందిలో పరామర్శించుటయు, ఇహలోక మాలిన్యము తనకంటకుండా తన్ను కాపాడుకొనుటయునై యున్నది.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q08",
+    "order": 8,
+    "questionType": "single_choice",
+    "question": "How does natural family care form the moral baseline for all genuine Christian integrity and witness?",
+    "questionTelugu": "కుటుంబ సంరక్షణ బాధ్యతను నెరవేర్చుట క్రైస్తవ సాక్ష్యమునకు మరియు నైతికతకు ప్రాథమిక పునాదిగా ఎలా నిలుచుచున్నది?",
+    "options": [
+      "He has denied the faith and is worse than an unbeliever",
+      "He shall pay forty shekels to the local synagogue",
+      "He must fast seven weeks outside the camp of Israel",
+      "He shall be demoted to junior temple servant"
+    ],
+    "optionsTelugu": [
+      "అతడు విశ్వాసత్యాగము చేసినవాడై అవిశ్వాసికంటె చెడ్డవాడై యుండును",
+      "స్థానిక సమాజమందిరమునకు నలభై షెకెళ్ల జరిమానా చెల్లించవలెను",
+      "ఇశ్రాయేలు పాళెము వెలుపల ఏడు వారములు ఉపవాసముండవలెను",
+      "దేవాలయములో కనిష్ఠ సేవకునిగా తగ్గించబడవలెను"
+    ],
+    "correctAnswer": "He has denied the faith and is worse than an unbeliever",
+    "bibleReference": "1 Timothy 5:8",
+    "explanation": "Paul sternly states that anyone who fails to provide for their own household has denied the faith and is worse than an unbeliever.",
+    "explanationTelugu": "ఎవడైనను స్వకీయులను, విశేషముగా తన యింటివారిని సంరక్షింపకపోయినయెడల, వాడు విశ్వాసత్యాగము చేసినవాడై అవిశ్వాసికంటె చెడ్డవాడై యుండును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q09",
+    "order": 9,
+    "questionType": "single_choice",
+    "question": "How does organic interdependence eliminate division (schisma) and foster mutual empathetic care across social strata?",
+    "questionTelugu": "సంఘములో విభేదములు లేకుండ ఒకరికొరకు ఒకరు ఒకే సంరక్షణ కలిగియుండుట క్రీస్తు శరీర ఐక్యతను ఎలా బలపరచును?",
+    "options": [
+      "That there should be no division in the body, but that the members should have the same care for one another",
+      "That wealthy members build forty private meeting halls",
+      "That eloquent speakers silence all weaker members",
+      "That elders collect thirty gold talents from every household"
+    ],
+    "optionsTelugu": [
+      "శరీరములో భేదము లేక, అవయవములు ఒకదానికొరకు ఒకటి సమానముగా చింతించునట్లు",
+      "ధనవంతులైన విశ్వాసులు నలభై ప్రత్యేక భవనములను నిర్మించుకొనునట్లు",
+      "గొప్ప ఉపన్యాసకులు బలహీనులను నిశ్శబ్దపరచునట్లు",
+      "పెద్దలు ప్రతి గృహమునుండి ముప్పది బంగారు నాణెములను వసూలు చేయునట్లు"
+    ],
+    "correctAnswer": "That there should be no division in the body, but that the members should have the same care for one another",
+    "bibleReference": "1 Corinthians 12:25",
+    "explanation": "Paul commands that in Christ's body there should be no faction, but all members should cherish and care for one another equally.",
+    "explanationTelugu": "శరీరములో భేదము లేక, అవయవములు ఒకదానికొరకు ఒకటి సమానముగా చింతించునట్లు దేవుడు శరీరమును అమర్చియున్నాడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q10",
+    "order": 10,
+    "questionType": "single_choice",
+    "question": "How does apostolic solicitude (merimna pason ton ekklesion) illustrate the heart of a true spiritual father toward vulnerable congregations?",
+    "questionTelugu": "'సమస్త సంఘములనుగూర్చిన చింత' అనునది అపొస్తలుడైన పౌలుకు సంఘములయెడల గల ఆత్మీయ కాపరిత్వ వాత్సల్యమును ఎలా నిరూపించుచున్నది?",
+    "options": [
+      "My deep concern and care for all the churches",
+      "Managing forty commercial vineyards in Corinth",
+      "Appealing to Caesar for sixty silver grants",
+      "Constructing seven stone temples in Galatia"
+    ],
+    "optionsTelugu": [
+      "సమస్త సంఘములనుగూర్చిన చింతయు నన్ను రోజూ నెట్టుచున్న భారము",
+      "కొరింథులో నలభై ద్రాక్షతోటలను పర్యవేక్షించుట",
+      "కైసరునుండి అరవై వెండి విరాళములను కోరుట",
+      "గలతీయలో ఏడు రాతి దేవాలయములను నిర్మించుట"
+    ],
+    "correctAnswer": "My deep concern and care for all the churches",
+    "bibleReference": "2 Corinthians 11:28",
+    "explanation": "Beyond physical floggings and shipwrecks, Paul carried the daily emotional and spiritual weight of care for all the churches.",
+    "explanationTelugu": "ఇంకా చెప్పవలసినవి అనేకములున్నవి; అవియుగాక సంఘములన్నిటినిగూర్చిన చింతయు నన్ను ప్రతిదినము నెట్టుచున్న భారము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q11",
+    "order": 11,
+    "questionType": "single_choice",
+    "question": "How does genuine unselfish care for others' spiritual welfare contrast with ministerial careerism and self-interest?",
+    "questionTelugu": "ఇతరుల ఆత్మీయ క్షేమమును స్వార్థములేక విచారించు మనస్సు లోక స్వార్థపరత్వముకంటె క్రీస్తు సేవకుని ఎలా వేరుచేయుచున్నది?",
+    "options": [
+      "I have no one like-minded, who will sincerely care for your state",
+      "He brings sixty talents of Macedonian silver",
+      "He can speak thirty foreign dialects fluently",
+      "He commands four legions of Roman guards"
+    ],
+    "optionsTelugu": [
+      "మీ క్షేమమునుగూర్చి యథార్థముగా చింతించువాడు అతనివంటి మనస్సుగలవాడెవడును నాయొద్ద లేడు",
+      "అతడు మాసిదోనియనుండి అరవై వెండి తలాంతులను తెచ్చును",
+      "అతడు ముప్పది విదేశీ భాషలను అనర్గళముగా మాట్లాడగలడు",
+      "అతడు రోమా సైనికుల నాలుగు దళములను నడిపించును"
+    ],
+    "correctAnswer": "I have no one like-minded, who will sincerely care for your state",
+    "bibleReference": "Philippians 2:20",
+    "explanation": "Paul commended Timothy as uniquely devoted to caring sincerely for the spiritual well-being of the Philippians, unlike self-seeking workers.",
+    "explanationTelugu": "మీ క్షేమమునుగూర్చి యథార్థముగా చింతించుటకు అతనివంటి మనస్సుగలవాడెవడును నాయొద్ద లేడు; అందరును తమ సొంతకార్యములనే చూచుకొనుచున్నారు గాని యేసుక్రీస్తు కార్యములను చూచుకొనరు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q12",
+    "order": 12,
+    "questionType": "single_choice",
+    "question": "How does Boaz acting as goel (kinsman-redeemer) prefigure Christ's protective, lavish care for destitute outsiders?",
+    "questionTelugu": "విమోచకుడైన బంధువుగా రూతును ఆదరించిన బోయజు అనాథలను రక్షించి చేరదీయు క్రీస్తు విమోచన సంరక్షణను ఎలా సూచించుచున్నది?",
+    "options": [
+      "Told her to stay in his fields, commanded young men not to touch her, and let her drink from their water vessels",
+      "Demanded forty sheaves of barley as tax",
+      "Drove her out to the borders of Moab",
+      "Confined her thirty days to the village gate"
+    ],
+    "optionsTelugu": [
+      "తన చేను విడిచి వెళ్లవద్దనియు, పనివారు ఆమెను ముట్టకూడదని ఆజ్ఞాపించి, వారు తోడు నీళ్లు తాగనిచ్చెను",
+      "పన్నుగా నలభై యవల మోపులను డిమాండ్ చేసెను",
+      "మోయాబు సరిహద్దులవరకు ఆమెను తరిమివేసెను",
+      "గ్రామ ద్వారమున ముప్పది దినములు ఆమెను బంధించెను"
+    ],
+    "correctAnswer": "Told her to stay in his fields, commanded young men not to touch her, and let her drink from their water vessels",
+    "bibleReference": "Ruth 2:8-9",
+    "explanation": "Boaz extended protective kindness to Ruth, providing water, safety from harassment, and permission to glean behind his reapers.",
+    "explanationTelugu": "బోయజు రూతును చూచి: నా కుమారీ, వినుము; వేరొక చేనిలో ఏరుకొనుటకు వెళ్లకుము, ఇచ్చటనే నా పనికత్తెలయొద్ద ఉండుము... నిన్ను ముట్టకూడదని పనివారికి ఆజ్ఞాపించితిని అనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q13",
+    "order": 13,
+    "questionType": "single_choice",
+    "question": "How does David seating a disabled outcast at the king's royal table illustrate God's unmerited grace caring for broken sinners?",
+    "questionTelugu": "తన రెండు కాళ్లు కుంటియైన మెఫీబోషెతును రాజు బల్లయొద్ద కూర్చుండబెట్టుట పాపులను తన సహవాసములోనికి చేర్చుకొను దేవుని కృపను ఎలా చాటుచున్నది?",
+    "options": [
+      "Restored all the land of Saul his grandfather, and said 'you shall eat bread at my table continually'",
+      "Assigned him forty days of solitary exile in Lo-Debar",
+      "Demanded sixty talents of silver from Jonathan's estate",
+      "Sent him into the Philistine garrison as a hostage"
+    ],
+    "optionsTelugu": [
+      "అతని పితరుడైన సౌలు భూమినంతటిని అతనికి తిరిగి ఇచ్చి, 'నీవు నిత్యము నా బల్లయొద్దనే భోజనము చేయుదువు' అనెను",
+      "లోదెబారులో నలభై దినములు ఏకాంత నిర్వాసన విధించెను",
+      "యోనాతాను ఆస్తినుండి అరవై వెండి తలాంతులను డిమాండ్ చేసెను",
+      "ఫిలిష్తీయుల కోటలోనికి బందీగా అతనిని పంపెను"
+    ],
+    "correctAnswer": "Restored all the land of Saul his grandfather, and said 'you shall eat bread at my table continually'",
+    "bibleReference": "2 Samuel 9:7",
+    "explanation": "David kept his covenant with Jonathan by restoring Saul's ancestral lands to Mephibosheth and seating him permanently at the royal table.",
+    "explanationTelugu": "దావీదు: భయపడవద్దు, నీ తండ్రియైన యోనాతాను నిమిత్తము నిశ్చయముగా నీకు ఉపకారము చేసెదను; నీ పితరుడైన సౌలు భూమినంతయు నీకు మరల ఇప్పించెదను, నీవు నిత్యము నా బల్లయొద్దనే భోజనము చేయుదువనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q14",
+    "order": 14,
+    "questionType": "single_choice",
+    "question": "How does discerning hospitality for God's servants bring unexpected, miraculous covenant fruitfulness to a household?",
+    "questionTelugu": "దైవజనుల ఆత్మీయ అక్కరలను గుర్తించి చేసిన ఈ ఉపచారము ఆ కుటుంబమునకు ఏ అద్భుతమైన దీవెనను తెచ్చెను?",
+    "options": [
+      "Built a small upper room on the wall with a bed, table, chair, and lampstand so he could rest",
+      "Offered him forty chariot horses from Damascus",
+      "Gave him seventy pieces of gold every new moon",
+      "Built sixty altars around the borders of Shunem"
+    ],
+    "optionsTelugu": [
+      "గోడమీద ఒక చిన్న మేడగదిని కట్టి, అందులో మంచమును బల్లను పీటను దీపస్తంభమును ఉంచి అతడు విశ్రమించునట్లు చేసిరి",
+      "దమస్కునుండి నలభై రథపు గుఱ్ఱములను అతనికి కానుకగా ఇచ్చిరి",
+      "ప్రతి అమావాస్యకు డెబ్బై బంగారు నాణెములను సమర్పించిరి",
+      "షూనేము సరిహద్దుల చుట్టూ అరవై బలిపీఠములను కట్టిరి"
+    ],
+    "correctAnswer": "Built a small upper room on the wall with a bed, table, chair, and lampstand so he could rest",
+    "bibleReference": "2 Kings 4:9-10",
+    "explanation": "The generous Shunammite woman recognized Elisha as a holy man of God and built a furnished upper room for his care and rest.",
+    "explanationTelugu": "ఆమె తన భర్తతో: మనయొద్దకు వచ్చుచుండు ఈ మనుష్యుడు పరిశుద్ధుడైన దైవజనుడని నేను ఎరుగుదును; కాబట్టి గోడమీద ఒక చిన్న మేడగదిని కట్టి, అందులో అతనికొరకు ఒక మంచమును బల్లను పీటను దీపస్తంభమును ఉంచుదము అనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q15",
+    "order": 15,
+    "questionType": "single_choice",
+    "question": "How does God commanding unclean scavenging birds to feed His prophet demonstrate His absolute sovereignty over nature to care for His saints?",
+    "questionTelugu": "కాకులద్వారా ప్రవక్తను పోషించుట ప్రకృతి శక్తులన్నిటిపై దేవునికున్న సర్వాధికారమును మరియు సంరక్షణను ఎలా చాటుచున్నది?",
+    "options": [
+      "The ravens brought him bread and meat in the morning and evening, and he drank from the brook",
+      "Angels brought sixty golden goblets of wine daily",
+      "Merchants of Sidon supplied him with forty sacks of grain",
+      "He found dried figs stored in forty clay jars"
+    ],
+    "optionsTelugu": [
+      "కాకులు ఉదయమందును సాయంత్రమందును రొట్టెను మాంసమును అతనియొద్దకు తెచ్చెను, అతడు ఆ వాగు నీళ్లు తాగెను",
+      "దేవదూతలు ప్రతిదినము అరవై బంగారు పాత్రలలో ద్రాక్షారసమును తెచ్చిరి",
+      "సీదోను వర్తకులు అతనికి నలభై సంచుల ధాన్యమును సరఫరా చేసిరి",
+      "నలభై మట్టి కుండలలో నిల్వయుంచిన అంజూరపు పండ్లను అతడు కనుగొనెను"
+    ],
+    "correctAnswer": "The ravens brought him bread and meat in the morning and evening, and he drank from the brook",
+    "bibleReference": "1 Kings 17:4-6",
+    "explanation": "God commanded ravens to bring Elijah bread and meat twice daily, caring for his survival while hiding by the brook Cherith.",
+    "explanationTelugu": "కాకులు ఉదయమందు రొట్టెను మాంసమును, సాయంత్రమందు రొట్టెను మాంసమును అతనియొద్దకు తెచ్చుచుండెను; అతడు ఆ వాగు నీళ్లు తాగుచుండెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q16",
+    "order": 16,
+    "questionType": "single_choice",
+    "question": "How does sacrificial generosity out of poverty unlock the miraculous, unending supply of divine care?",
+    "questionTelugu": "కడపటి పిడికెడు పిండితో మొదట దైవజనునికి ఆహారము సిద్ధపరచుట అపరిమితమైన దైవిక సంరక్షణను ఎలా విడుదల చేసెను?",
+    "options": [
+      "The bin of flour was not used up, nor did the jar of oil run dry until the day the Lord sent rain",
+      "Forty bags of wheat arrived from the King of Tyre",
+      "Seven silver coins appeared daily under her hearth",
+      "She inherited sixty olive groves in Mount Carmel"
+    ],
+    "optionsTelugu": [
+      "యెహోవా దేశముమీద వర్షము కురిపించువరకు ఆ తొట్టిలోని పిండి అయిపోలేదు, ఆ బుడ్డిలోని నూనె తరిగిపోలేదు",
+      "తీరు రాజునుండి నలభై సంచుల గోధుమలు ఆమెకు చేరెను",
+      "ప్రతిదినము ఆమె పొయ్యి క్రింద ఏడు వెండి నాణెములు ప్రత్యక్షమాయెను",
+      "కర్మెలు పర్వతములో అరవై ఒలీవ తోటలను ఆమె స్వాస్థ్యముగా పొందెను"
+    ],
+    "correctAnswer": "The bin of flour was not used up, nor did the jar of oil run dry until the day the Lord sent rain",
+    "bibleReference": "1 Kings 17:14-16",
+    "explanation": "God faithfully replenished the widow's tiny jar of flour and cruse of oil day after day throughout the severe drought.",
+    "explanationTelugu": "యెహోవా ఏలియాద్వారా సెలవిచ్చిన మాటచొప్పున ఆ తొట్టిలోని పిండి అయిపోలేదు, ఆ బుడ్డిలోని నూనె తరిగిపోలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q17",
+    "order": 17,
+    "questionType": "single_choice",
+    "question": "How does God's gentle provision of physical rest, baked bread, and cool water demonstrate holistic pastoral care for burned-out leaders?",
+    "questionTelugu": "నిరాశ చెందిన ప్రవక్తను గద్దించక నిద్రను భోజనమును అనుగ్రహించి సేదదీర్చుట దేవుని వాత్సల్య సంరక్షణను ఎలా బయలుపరచుచున్నది?",
+    "options": [
+      "Touched him, provided a cake baked on coals and a jar of water, saying 'Arise and eat, because the journey is too great for you'",
+      "Rebuked him with forty severe curses for fleeing Jezebel",
+      "Sent forty chariots of fire to carry him instantly to Horeb",
+      "Commanded him to fast thirty days without food or water"
+    ],
+    "optionsTelugu": [
+      "అతనిని ముట్టి, నిప్పులమీద కాల్చబడిన అప్పమును నీళ్ల బుడ్డిని ఇచ్చి, 'ప్రయాణము నీ శక్తికి మించినది, లేచి భోజనము చేయుము' అనెను",
+      "యెజెబెలునకు భయపడి పారిపోయినందుకు నలభై కఠిన శాపములతో గద్దించెను",
+      "హోరేబునకు తక్షణమే తీసికొనిపోవుటకు నలభై అగ్ని రథములను పంపెను",
+      "అన్నపానములు లేకుండ ముప్పది దినములు ఉపవాసముండవలెనని ఆజ్ఞాపించెను"
+    ],
+    "correctAnswer": "Touched him, provided a cake baked on coals and a jar of water, saying 'Arise and eat, because the journey is too great for you'",
+    "bibleReference": "1 Kings 19:5-7",
+    "explanation": "God met Elijah's deep physical and emotional burnout with gentle nourishment, rest, and angelic refreshment.",
+    "explanationTelugu": "ఒక దూత అతనిని ముట్టి-నీవు లేచి భోజనము చేయుమని చెప్పెను. అతడు చూడగా నిప్పులమీద కాల్చబడిన అప్పమును నీళ్ల బుడ్డియు అతని తలయొద్ద ఉండెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q18",
+    "order": 18,
+    "questionType": "single_choice",
+    "question": "How does God hearing the cry of the boy (Ishmael = 'God hears') prove His providential care for discarded outcasts?",
+    "questionTelugu": "తల్లి మొరయే కాక పిల్లవాని రోదనను ఆలకించి నీటి ఊటను చూపిన దేవుని దయ అనాథలయెడల ఏ ఆదరణను చాటుచున్నది?",
+    "options": [
+      "God heard the voice of the lad, opened her eyes, and she saw a well of water to fill the skin",
+      "Sent an army of seventy riders to transport them to Egypt",
+      "Rained manna around their bush for forty days",
+      "Turned the desert sand into solid silver coins"
+    ],
+    "optionsTelugu": [
+      "దేవుడు ఆ చిన్నవాని మొరను వినెను; ఆమె కన్నులు తెరవగా ఆమెకు నీళ్ల బావి కనబడెను, ఆమె వెళ్లి తిత్తిని నీళ్లతో నింపి చిన్నవానికి త్రాగించెను",
+      "ఐగుప్తునకు వారిని చేర్చుటకు డెబ్బైమంది గుర్రపు రౌతులను పంపెను",
+      "వారి పొద చుట్టూ నలభై దినములు మన్నాను కురిపించెను",
+      "ఎడారి ఇసుకను నికరమైన వెండి నాణెములుగా మార్చెను"
+    ],
+    "correctAnswer": "God heard the voice of the lad, opened her eyes, and she saw a well of water to fill the skin",
+    "bibleReference": "Genesis 21:17-19",
+    "explanation": "God heard Ishmael's weeping, comforted Hagar with covenant promises, and revealed a life-saving well of water.",
+    "explanationTelugu": "దేవుడు ఆ చిన్నవాని మొరను వినెను; దేవుడు ఆమె కన్నులు తెరవగా ఆమెకు నీళ్ల బావి కనబడెను; ఆమె వెళ్లి తిత్తిని నీళ్లతో నింపి ఆ చిన్నవానికి త్రాగించెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q19",
+    "order": 19,
+    "questionType": "single_choice",
+    "question": "How does the preservation of footwear and garments demonstrate God's unceasing, supernatural attentiveness to mundane travel needs?",
+    "questionTelugu": "వస్త్రములు మాసిపోకుండ చెప్పులు అరిగిపోకుండ కాపాడుట విశ్వాసి దైనందిన జీవిత అవసరతలను తీర్చు దేవుని సంరక్షణను ఎలా చాటుచున్నది?",
+    "options": [
+      "Your garments did not wear out on you, nor did your feet swell these forty years; your sandals did not wear out",
+      "They imported forty wagons of clothes from Babylon",
+      "They sheared sixty flocks of sheep every new moon",
+      "They purchased new sandals from Edomite merchants"
+    ],
+    "optionsTelugu": [
+      "ఈ నలభై సంవత్సరములు నీ ఒంటిమీది వస్త్రములు పాతగిలలేదు, నీ కాళ్లు వాచలేదు; నీ చెప్పులు అరిగిపోలేదు",
+      "బబులోనునుండి నలభై బండ్ల వస్త్రములను వారు దిగుమతి చేసికొనిరి",
+      "ప్రతి అమావాస్యకు అరవై గొర్రెల మందల బొచ్చును కత్తిరించిరి",
+      "ఎదోమీయుల వర్తకులనుండి నూతన చెప్పులను కొనుక్కొనిరి"
+    ],
+    "correctAnswer": "Your garments did not wear out on you, nor did your feet swell these forty years; your sandals did not wear out",
+    "bibleReference": "Deuteronomy 8:4; 29:5",
+    "explanation": "Throughout forty years in the harsh desert, God miraculously prevented their clothes from wearing out and kept their feet from swelling.",
+    "explanationTelugu": "ఈ నలభై సంవత్సరములు నీ ఒంటిమీది వస్త్రములు పాతగిలలేదు, నీ కాళ్లు వాచలేదు; మీ ఒంటిమీది బట్టలు పాతగిలలేదు, నీ చెప్పులు అరిగిపోలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q20",
+    "order": 20,
+    "questionType": "single_choice",
+    "question": "How does the confession 'The Lord is my shepherd; I shall not want' dismantle self-reliance and establish absolute contentment in divine care?",
+    "questionTelugu": "'యెహోవా నా కాపరి, నాకు లేమి కలుగదు' అను ఒప్పుకోలు విశ్వాసికి సమస్త శ్రమలలో ఏ సంపూర్ణ తృప్తిని భద్రతనిచ్చును?",
+    "options": [
+      "The Lord is my shepherd; I shall not want. He makes me to lie down in green pastures; He leads me beside still waters",
+      "The king is my shield; I shall conquer forty nations",
+      "My wealth is my fortress; I shall store gold in seventy chests",
+      "The temple is my refuge; I shall fast thirty days"
+    ],
+    "optionsTelugu": [
+      "యెహోవా నా కాపరి, నాకు లేమి కలుగదు; పచ్చికగల చోట్లను ఆయన నన్ను పరుండజేయుచున్నాడు, శాంతికరమైన జలములయొద్ద నన్ను నడిపించుచున్నాడు",
+      "రాజు నా కేడెము, నేను నలభై దేశములను జయించెదను",
+      "నా సంపదయే నా కోట, డెబ్బై పెట్టెలలో బంగారమును దాచెదను",
+      "దేవాలయమే నా ఆశ్రయము, ముప్పది దినములు ఉపవాసముండెదను"
+    ],
+    "correctAnswer": "The Lord is my shepherd; I shall not want. He makes me to lie down in green pastures; He leads me beside still waters",
+    "bibleReference": "Psalm 23:1-2",
+    "explanation": "David testifies that under the Lord's caring shepherd-leadership, all spiritual, physical, and emotional needs are richly provided.",
+    "explanationTelugu": "యెహోవా నా కాపరి, నాకు లేమి కలుగదు. పచ్చికగల చోట్లను ఆయన నన్ను పరుండజేయుచున్నాడు, శాంతికరమైన జలములయొద్ద నన్ను నడిపించుచున్నాడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q21",
+    "order": 21,
+    "questionType": "single_choice",
+    "question": "How does cosmic transcendence coupled with intimate surgical tenderness reveal the unique glory of God's pastoral care?",
+    "questionTelugu": "విశ్వ నక్షత్రములను నడిపించే సృష్టికర్తయే వ్యక్తిగతముగా వచ్చి మానవ హృదయ గాయములను కట్టుట ఏ సాటిలేని వాత్సల్యమును చాటుచున్నది?",
+    "options": [
+      "He heals the brokenhearted and binds up their wounds",
+      "He builds forty stone walls around Jerusalem's gates",
+      "He demands sixty rams for broken vows",
+      "He counts forty days of penance for sinners"
+    ],
+    "optionsTelugu": [
+      "గుండె చెదరినవారిని ఆయన బాగుచేయును, వారి గాయములను కట్టును",
+      "యెరూషలేము ద్వారముల చుట్టూ నలభై రాతి గోడలను నిర్మించును",
+      "మీరిన మొక్కుబడులకొరకు అరవై పొట్టేళ్లను డిమాండ్ చేయును",
+      "పాపులకొరకు నలభై దినముల కఠిన శిక్షను లెక్కించును"
+    ],
+    "correctAnswer": "He heals the brokenhearted and binds up their wounds",
+    "bibleReference": "Psalm 147:3",
+    "explanation": "The Almighty God tenderly bandages the deepest emotional and spiritual wounds of all who are brokenhearted.",
+    "explanationTelugu": "గుండె చెదరినవారిని ఆయన బాగుచేయును, వారి గాయములను కట్టును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q22",
+    "order": 22,
+    "questionType": "single_choice",
+    "question": "How does the image of carrying lambs in His bosom comfort believers during periods of extreme frailty?",
+    "questionTelugu": "గొర్రెపిల్లలను రొమ్మున ఎత్తుకొని చంకనెత్తుకొని మోయు దేవుని చిత్రం బలహీనులకు ఏ నిత్య ధైర్యమునిచ్చుచున్నది?",
+    "options": [
+      "He will gather the lambs with His arm and carry them in His bosom, and gently lead those who are with young",
+      "He will drive them forty miles through the scorching sun",
+      "He will sell the weak lambs to foreign merchants",
+      "He will leave the nursing ewes behind in the wilderness"
+    ],
+    "optionsTelugu": [
+      "గొర్రెపిల్లలను తన బాహువుతో సమకూర్చి తన రొమ్మున ఎత్తికొని మోయును, పాలిచ్చువాటిని మెల్లగా నడిపించును",
+      "మండే ఎండలో నలభై మైళ్లు వాటిని తోలుకొనిపోవును",
+      "బలహీన గొర్రెపిల్లలను పరదేశీ వర్తకులకు అమ్మును",
+      "పాలిచ్చే గొర్రెలను అరణ్యములో వెనుక విడిచిపెట్టును"
+    ],
+    "correctAnswer": "He will gather the lambs with His arm and carry them in His bosom, and gently lead those who are with young",
+    "bibleReference": "Isaiah 40:11",
+    "explanation": "Isaiah pictures God as a gentle Shepherd who lifts fragile lambs to His chest and paces Himself to accommodate nursing mothers.",
+    "explanationTelugu": "ఆయన గొర్రెల కాపరివలె తన మందను మేపును, గొర్రెపిల్లలను తన బాహువుతో సమకూర్చి తన రొమ్మున ఎత్తికొని మోయును, పాలిచ్చువాటిని మెల్లగా నడిపించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q23",
+    "order": 23,
+    "questionType": "single_choice",
+    "question": "How does God's promise 'Even to gray hairs I will carry you' sustain aging Christians with unshakable dignity and security?",
+    "questionTelugu": "'తలవెండ్రుకలు నెరయువరకు మిమ్మును ఎత్తికొనువాడను నేనే' అను మాట వృద్ధులకు ఏ దైవిక ఆదరణను భరోసాను ఇచ్చుచున్నది?",
+    "options": [
+      "Even to your old age, I am He, and even to gray hairs I will carry you! I have made, and I will bear; even I will carry, and will deliver you",
+      "You must carry your forty ancestral idols into exile",
+      "At age sixty your strength will be forgotten before God",
+      "Nations will cast off their elderly into desert ravines"
+    ],
+    "optionsTelugu": [
+      "మీ ముసలితనము వచ్చువరకు నేను మిమ్మును ఎత్తికొనువాడను నేనే; తలవెండ్రుకలు నెరయువరకు మిమ్మును ఎత్తికొనువాడను నేనే. నేనే చేసియున్నాను, నేనే భరించెదను, నేనే ఎత్తికొనెదను, నేనే రక్షించెదను",
+      "మీ పితరుల నలభై విగ్రహములను మీరే మోసుకొని నిర్వాసనమునకు పోవలెను",
+      "అరువై ఏండ్ల వయస్సులో మీ బలము దేవునియెదుట మరచిపోబడును",
+      "జాతులు తమ వృద్ధులను అరణ్య లోయలలోనికి త్రోసివేయును"
+    ],
+    "correctAnswer": "Even to your old age, I am He, and even to gray hairs I will carry you! I have made, and I will bear; even I will carry, and will deliver you",
+    "bibleReference": "Isaiah 46:4",
+    "explanation": "God pledges that His sustaining care does not expire with youth; He will faithfully carry and deliver His people into frail old age.",
+    "explanationTelugu": "మీ ముసలితనము వచ్చువరకు నేను మిమ్మును ఎత్తికొనువాడను నేనే; తలవెండ్రుకలు నెరయువరకు మిమ్మును ఎత్తికొనువాడను నేనే. నేనే చేసియున్నాను, నేనే భరించెదను, నేనే ఎత్తికొనెదను, నేనే రక్షించెదను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q24",
+    "order": 24,
+    "questionType": "single_choice",
+    "question": "How does the metaphor of engraving on the palms of God's hands prefigure the nail-pierced hands of Christ securing our salvation?",
+    "questionTelugu": "'నా అరచేతులమీదనే నిన్ను చెక్కియున్నాను' అను మాట సిలువలో మేకులు దిగగొట్టబడిన క్రీస్తు చేతులను ఎలా ముంగుర్తుగా చూపుచున్నది?",
+    "options": [
+      "Can a woman forget her nursing child? Yet I will not forget you. See, I have inscribed you on the palms of My hands",
+      "Can a king forget his forty golden war chariots?",
+      "Can a builder forget sixty stones of the foundation?",
+      "Can a merchant forget seventy bags of silver?"
+    ],
+    "optionsTelugu": [
+      "స్త్రీ తన గర్భమున పుట్టిన బిడ్డను కరుణింపకుండ తన చంటిపిల్లను మరచునా? వారైనను మరచుదురు గాని నేను నిన్ను మరువను; చూడుము, నా అరచేతులమీదనే నిన్ను చెక్కియున్నాను",
+      "రాజు తన నలభై బంగారు యుద్ధ రథములను మరచునా?",
+      "భవన నిర్మాణకుడు పునాదియందలి అరవై రాళ్లను మరచునా?",
+      "వర్తకుడు తన డెబ్బై సంచుల వెండిని మరచునా?"
+    ],
+    "correctAnswer": "Can a woman forget her nursing child? Yet I will not forget you. See, I have inscribed you on the palms of My hands",
+    "bibleReference": "Isaiah 49:15-16",
+    "explanation": "Even if a nursing mother could forget her baby, God will never forget His people, having indelibly engraved them on His palms.",
+    "explanationTelugu": "స్త్రీ తన గర్భమున పుట్టిన బిడ్డను కరుణింపకుండ తన చంటిపిల్లను మరచునా? వారైనను మరచుదురు గాని నేను నిన్ను మరువను. చూడుము, నా అరచేతులమీదనే నిన్ను చెక్కియున్నాను; నీ ప్రాకారములు నిత్యము నా యెదుట ఉన్నవి.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q25",
+    "order": 25,
+    "questionType": "single_choice",
+    "question": "How does the context of the Philippians caring for Paul's physical needs anchor God's covenant pledge to replenish their every need?",
+    "questionTelugu": "పౌలు అవసరతలలో ఫిలిప్పీయులు చూపిన శ్రద్ధాసంరక్షణకు ప్రతిఫలముగా దేవుడు వారి ప్రతి అక్కరను తీర్చునను వాగ్దానము ఎలా నిలిచెను?",
+    "options": [
+      "And my God shall supply all your need according to His riches in glory by Christ Jesus",
+      "Rome shall distribute forty measures of wheat to all citizens",
+      "The temple treasury will give fifty pieces of silver to the poor",
+      "The merchant ships of Tyre will replenish your stores"
+    ],
+    "optionsTelugu": [
+      "కాగా దేవుడు తన ఐశ్వర్యముచొప్పున క్రీస్తుయేసునందు మహిమలో మీ ప్రతి అవసరమును తీర్చును",
+      "రోమా ప్రభుత్వం పౌరులందరికీ నలభై కొలతల గోధుమలను పంచును",
+      "దేవాలయ ఖజానా పేదలకు ఏబది వెండి నాణెములను ఇచ్చును",
+      "తీరు వర్తక ఓడలు మీ గిడ్డంగులను సమకూర్చును"
+    ],
+    "correctAnswer": "And my God shall supply all your need according to His riches in glory by Christ Jesus",
+    "bibleReference": "Philippians 4:19",
+    "explanation": "Paul assures generous believers that God will abundantly supply every physical, financial, and spiritual need out of His boundless riches in Christ.",
+    "explanationTelugu": "కాగా దేవుడు తన ఐశ్వర్యముచొప్పున క్రీస్తుయేసునందు మహిమలో మీ ప్రతి అవసరమును తీర్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q26",
+    "order": 26,
+    "questionType": "single_choice",
+    "question": "How does Christ's command to 'consider the ravens' expose the irrationality of worldly anxiety in light of sovereign creation care?",
+    "questionTelugu": "కాకులను ఆలోచించుడి అను యేసు మాట అల్పవిశ్వాసమును గద్దించి దేవుని సంరక్షణపై పరిపూర్ణ ఆధారపడటాన్ని ఎలా నేర్పుచున్నది?",
+    "options": [
+      "Consider the ravens, for they neither sow nor reap; and God feeds them. Of how much more value are you than the birds?",
+      "They store forty bushels of grain in high trees",
+      "They purchase food from fifty merchant caravans",
+      "They migrate thirty days to Egypt for winter feasts"
+    ],
+    "optionsTelugu": [
+      "కాకులను విచారించి చూడుడి; అవి విత్తవు కోయవు, వాటికి గదియుండదు కొట్టునుండదు; అయినను దేవుడు వాటిని పోషించుచున్నాడు; మీరు పక్షులకంటె ఎంతో శ్రేష్ఠులు",
+      "అవి ఎత్తయిన చెట్లపై నలభై కొలతల ధాన్యమును దాచును",
+      "అవి ఏబది వర్తక బృందములవద్ద ఆహారమును కొనును",
+      "శీతాకాలపు విందులకొరకు అవి ఐగుప్తునకు ముప్పది దినములు ప్రయాణించును"
+    ],
+    "correctAnswer": "Consider the ravens, for they neither sow nor reap; and God feeds them. Of how much more value are you than the birds?",
+    "bibleReference": "Luke 12:24",
+    "explanation": "Jesus urges us to observe ravens, who have no barns yet are fed by God, proving our greater worth to the Father.",
+    "explanationTelugu": "కాకులను విచారించి చూడుడి; అవి విత్తవు కోయవు, వాటికి గదియుండదు కొట్టునుండదు; అయినను దేవుడు వాటిని పోషించుచున్నాడు; మీరు పక్షులకంటె ఎంతో శ్రేష్ఠులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q27",
+    "order": 27,
+    "questionType": "single_choice",
+    "question": "How does the military term phroureo (garrison/guard) in Philippians 4:7 illustrate God's pastoral care defending the believer's emotional stability?",
+    "questionTelugu": "'సమస్త బుద్ధికి మించిన దేవుని సమాధానము కావలియుండును' అను మాట విశ్వాసి అంతరంగానికి ఏ ఆత్మీయ రక్షణ కోటను నిర్మించును?",
+    "options": [
+      "Be anxious for nothing, but in everything by prayer and supplication, with thanksgiving, let your requests be made known to God",
+      "Pay forty silver coins to Roman officials for peace",
+      "Retreat into sixty days of solitary desert fasting",
+      "Chant thirty liturgical prayers before sunrise"
+    ],
+    "optionsTelugu": [
+      "దేనినిగూర్చియు చింతపడకుడి గాని ప్రతి విషయములోను ప్రార్థన విజ్ఞాపనములచేత కృతజ్ఞతాపూర్వకముగా మీ విన్నపములు దేవునికి తెలియజేయుడి",
+      "సమాధానము కొరకు రోమా అధికారులకు నలభై వెండి నాణెములను చెల్లించుడి",
+      "అరణ్యములో అరవై దినముల ఏకాంత ఉపవాసమునకు వెళ్లిపోవుడి",
+      "సూర్యోదయమునకు ముందు ముప్పది మంత్రములను జపించుడి"
+    ],
+    "correctAnswer": "Be anxious for nothing, but in everything by prayer and supplication, with thanksgiving, let your requests be made known to God",
+    "bibleReference": "Philippians 4:6-7",
+    "explanation": "Paul commands believers to trade anxiety for prayer with thanksgiving, receiving God's transcendent peace to guard their hearts.",
+    "explanationTelugu": "దేనినిగూర్చియు చింతపడకుడి గాని ప్రతి విషయములోను ప్రార్థన విజ్ఞాపనములచేత కృతజ్ఞతాపూర్వకముగా మీ విన్నపములు దేవునికి తెలియజేయుడి; అప్పుడు సమస్త బుద్ధికి మించిన దేవుని సమాధానము క్రీస్తుయేసునందు మీ హృదయములను మీ తలంపులను కావలియుండును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q28",
+    "order": 28,
+    "questionType": "single_choice",
+    "question": "How do the rod (defending against predators) and staff (guiding and retrieving wanderers) demonstrate complete protective shepherd-care?",
+    "questionTelugu": "దుడ్డుకఱ్ఱ మరియు దండము అనునవి క్రూరమృగములనుండి కాపాడుటకును దారితప్పిన గొర్రెను లాగుటకును కాపరి సంరక్షణను ఎలా చాటుచున్నవి?",
+    "options": [
+      "Yea, though I walk through the valley of the shadow of death, I will fear no evil; for You are with me; Your rod and Your staff, they comfort me",
+      "The king's army of forty chariots will escort my path",
+      "A golden shield will protect me from thirty arrows",
+      "I will carry sixty torches of cedar wood through the dark"
+    ],
+    "optionsTelugu": [
+      "గాఢాంధకారపు లోయలో నేను సంచరించినను ఏ అపాయమునకు భయపడను, నీవు నాకు తోడైయుందువు; నీ దుడ్డుకఱ్ఱయు నీ దండమును నన్ను ఆదరించును",
+      "రాజుయొక్క నలభై రథముల సైన్యము నా మార్గములో కావలియుండును",
+      "బంగారు కేడెము నన్ను ముప్పది బాణములనుండి కాపాడును",
+      "చీకటిలో నడవడానికి అరవై దేవదారు దివిటీలను మోసెదను"
+    ],
+    "correctAnswer": "Yea, though I walk through the valley of the shadow of death, I will fear no evil; for You are with me; Your rod and Your staff, they comfort me",
+    "bibleReference": "Psalm 23:4",
+    "explanation": "David declares that even in mortality's deepest shadows, the Shepherd's personal presence, rod, and staff provide complete comfort and safety.",
+    "explanationTelugu": "గాఢాంధకారపు లోయలో నేను సంచరించినను ఏ అపాయమునకు భయపడను, నీవు నాకు తోడైయుందువు; నీ దుడ్డుకఱ్ఱయు నీ దండమును నన్ను ఆదరించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q29",
+    "order": 29,
+    "questionType": "single_choice",
+    "question": "How does being hosted at God's royal table in the presence of hostile foes guarantee total, unshakeable divine protection?",
+    "questionTelugu": "శత్రువులు చూచుచుండగానే దేవుని విందు బల్లయొద్ద కూర్చుండుట దైవిక సంరక్షణ యొక్క ఏ పరమోన్నత అధికారమును వెల్లడించుచున్నది?",
+    "options": [
+      "You prepare a table before me in the presence of my enemies; You anoint my head with oil; my cup runs over",
+      "You build forty stone fortresses against Philistine archers",
+      "You give me seventy bags of silver from Damascus",
+      "You set forty guards at the gates of my estate"
+    ],
+    "optionsTelugu": [
+      "నా శత్రువుల యెదుట నీవు నాకు భోజనము సిద్ధపరచుదువు, నూనెతో నా తల అంటియున్నావు, నా గిన్నె నిండి పొర్లుచున్నది",
+      "ఫిలిష్తీయుల బాణములకు ఎదురుగా నలభై రాతి కోటలను కట్టుదువు",
+      "దమస్కునుండి డెబ్బై సంచుల వెండిని నాకు ఇచ్చుదువు",
+      "నా భవన ద్వారములయొద్ద నలభైమంది కావలివారిని ఉంచుదువు"
+    ],
+    "correctAnswer": "You prepare a table before me in the presence of my enemies; You anoint my head with oil; my cup runs over",
+    "bibleReference": "Psalm 23:5",
+    "explanation": "God honors His servant with a celebratory feast under the very gaze of his enemies, anointing his head and overflowing his cup.",
+    "explanationTelugu": "నా శత్రువుల యెదుట నీవు నాకు భోజనము సిద్ధపరచుదువు, నూనెతో నా తల అంటియున్నావు, నా గిన్నె నిండి పొర్లుచున్నది.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q30",
+    "order": 30,
+    "questionType": "single_choice",
+    "question": "How does the Hebrew verb radaph (pursue/follow) depict God's goodness and mercy actively chasing down the believer all their days?",
+    "questionTelugu": "'కృపాక్షేమములే నా వెంట వచ్చును' అను మాటలో దేవుని వాత్సల్యము విశ్వాసిని నిరంతరము వెంబడించి కాపాడునను ఏ సత్యము దాగియున్నది?",
+    "options": [
+      "Surely goodness and mercy shall follow me all the days of my life; and I will dwell in the house of the Lord forever",
+      "War and forty tribulations shall surround my house",
+      "I shall amass seventy horses in the stables of Megiddo",
+      "My fame shall conquer forty cities in the wilderness"
+    ],
+    "optionsTelugu": [
+      "నేను బ్రదుకు దినములన్నియు కృపాక్షేమములే నా వెంట వచ్చును; చిరకాలము యెహోవా మందిరములో నేను నివాసము చేసెదను",
+      "యుద్ధములు నలభై శ్రమలు నా గృహమును చుట్టుముట్టును",
+      "మెగిద్దో లాయములలో డెబ్బై గుఱ్ఱములను నేను కూడబెట్టుకొందును",
+      "నా కీర్తి అరణ్యములోని నలభై పట్టణములను జయించును"
+    ],
+    "correctAnswer": "Surely goodness and mercy shall follow me all the days of my life; and I will dwell in the house of the Lord forever",
+    "bibleReference": "Psalm 23:6",
+    "explanation": "David concludes with the triumphant confidence that God's goodness and loyal love will pursue him through life into eternity.",
+    "explanationTelugu": "నేను బ్రదుకు దినములన్నియు కృపాక్షేమములే నా వెంట వచ్చును; చిరకాలము యెహోవా మందిరములో నేను నివాసము చేసెదను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q31",
+    "order": 31,
+    "questionType": "single_choice",
+    "question": "How does divine redemption and naming ('You are Mine') secure the believer in an unbreakable covenant relationship?",
+    "questionTelugu": "'నీవు నా సొత్తు' అను దేవుని ప్రకటన విశ్వాసికి ఎటువంటి శాశ్వత సంరక్షణ హక్కును కలుగజేయుచున్నది?",
+    "options": [
+      "Fear not, for I have redeemed you; I have called you by your name; you are Mine",
+      "Pay forty talents of silver to the King of Assyria",
+      "Hide sixty days in the caves of the Dead Sea",
+      "Construct thirty watchtowers on Mount Gerizim"
+    ],
+    "optionsTelugu": [
+      "భయపడకుము, నేను నిన్ను విమోచించియున్నాను, పేరుపెట్టి నిన్ను పిలిచియున్నాను, నీవు నా సొత్తు",
+      "అష్షూరు రాజునకు నలభై తలాంతుల వెండిని చెల్లించుము",
+      "మృత సముద్రపు గుహలలో అరవై దినములు దాగియుండుము",
+      "గెరిజీము పర్వతముపై ముప్పది కావలి బురుజులను కట్టుము"
+    ],
+    "correctAnswer": "Fear not, for I have redeemed you; I have called you by your name; you are Mine",
+    "bibleReference": "Isaiah 43:1",
+    "explanation": "The Lord reassures His people: He has redeemed them, knows them intimately by name, and claims them forever as His personal possession.",
+    "explanationTelugu": "ఇప్పుడైతే యాకోబూ, నిన్ను సృజించిన యెహోవా, ఇశ్రాయేలూ, నిన్ను నిర్మించినవాడు ఈలాగు సెలవిచ్చుచున్నాడు-భయపడకుము, నేను నిన్ను విమోచించియున్నాను, పేరుపెట్టి నిన్ను పిలిచియున్నాను, నీవు నా సొత్తు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q32",
+    "order": 32,
+    "questionType": "single_choice",
+    "question": "How does God's micro-providential governance over tiny birds guarantee the ultimate safety of persecuted disciples?",
+    "questionTelugu": "అల్పమైన పిచ్చుకల మరణమును సైతం నిర్ణయించు పరమ తండ్రి సువార్త నిమిత్తము హింసింపబడు శిష్యులను ఎంత నిశ్చయముగా సంరక్షించును?",
+    "options": [
+      "Not one of them falls to the ground apart from your Father's will; do not fear therefore; you are of more value than many sparrows",
+      "Birds are governed by the planetary courses of Babylon",
+      "Sparrows buy forty measures of wheat from merchants",
+      "Two copper coins purchase fifty years of life"
+    ],
+    "optionsTelugu": [
+      "మీ తండ్రి సెలవులేకుండ వాటిలో ఒకటైనను నేలపడదు; కాబట్టి మీరు భయపడకుడి, మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు",
+      "పక్షులు బబులోను గ్రహచారములచేత నడిపింపబడును",
+      "పిచ్చుకలు వర్తకులవద్ద నలభై కొలతల ధాన్యమును కొనును",
+      "రెండు కాసులు ఏబది సంవత్సరముల ఆయుష్షును కొనును"
+    ],
+    "correctAnswer": "Not one of them falls to the ground apart from your Father's will; do not fear therefore; you are of more value than many sparrows",
+    "bibleReference": "Matthew 10:29-31",
+    "explanation": "Not a single sparrow falls without the Father knowing and permitting it; believers are infinitely more precious in His sight.",
+    "explanationTelugu": "రెండు పిచ్చుకలు కాసుకు అమ్మబడును గదా; అయినను మీ తండ్రి సెలవులేకుండ వాటిలో ఒకటైనను నేలపడదు. కాబట్టి మీరు భయపడకుడి, మీరు అనేకమైన పిచ్చుకలకంటె శ్రేష్ఠులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q33",
+    "order": 33,
+    "questionType": "single_choice",
+    "question": "How does the easy yoke (chrestos) of Christ liberate burdened souls from religious legalism and worldly exhaustion?",
+    "questionTelugu": "'నా కాడి సుళువుగాను నా భారము తేలికగాను ఉన్నది' అను మాట శాస్త్రుల పరిసయ్యుల బరువైన నియమములనుండి విశ్వాసిని ఎలా విడుదల చేయును?",
+    "options": [
+      "Take My yoke upon you and learn from Me, for I am gentle and lowly in heart, and you will find rest for your souls",
+      "Fast forty days on Mount Sinai to earn peace",
+      "Carry sixty talents of temple stones to Jerusalem",
+      "Recite seventy traditional rabbinical prayers daily"
+    ],
+    "optionsTelugu": [
+      "నేను సాత్వికుడను దీనమనస్సు గలవాడను గనుక మీమీద నా కాడి ఎత్తికొని నాయొద్ద నేర్చుకొనుడి; అప్పుడు మీ ప్రాణములకు విశ్రాంతి దొరుకును",
+      "శాంతిని సంపాదించుటకు సీనాయి కొండపై నలభై దినములు ఉపవాసముండుడి",
+      "యెరూషలేమునకు అరవై తలాంతుల రాళ్లను మోసుకొనిరండి",
+      "ప్రతిదినము డెబ్బైమంది రబ్బీల పారంపర్యాచార ప్రార్థనలను వల్లెవేయండి"
+    ],
+    "correctAnswer": "Take My yoke upon you and learn from Me, for I am gentle and lowly in heart, and you will find rest for your souls",
+    "bibleReference": "Matthew 11:29-30",
+    "explanation": "Jesus invites the weary to wear His light, gentle yoke, finding deep soul-rest in His humble and gracious care.",
+    "explanationTelugu": "నేను సాత్వికుడను దీనమనస్సు గలవాడను గనుక మీమీద నా కాడి ఎత్తికొని నాయొద్ద నేర్చుకొనుడి; అప్పుడు మీ ప్రాణములకు విశ్రాంతి దొరుకును. ఏలయనగా నా కాడి సుళువుగాను నా భారము తేలికగాను ఉన్నది.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q34",
+    "order": 34,
+    "questionType": "single_choice",
+    "question": "Why does divine majesty condescend with special therapeutic care to the crushed and contrite rather than the self-sufficient?",
+    "questionTelugu": "స్వనీతిపరులను కాక విరిగిన హృదయముగలవారిని దేవుడు ఆదరించి రక్షించుటకు గల ఆత్మీయ కారణమేమి?",
+    "options": [
+      "The Lord is near to those who have a broken heart, and saves such as have a contrite spirit",
+      "The Lord stays forty cubits away from human sorrow",
+      "The Lord visits only forty kings in their palaces",
+      "The Lord assists those who amass seventy shields of bronze"
+    ],
+    "optionsTelugu": [
+      "విరిగిన హృదయముగలవారికి యెహోవా ఆసన్నుడు, నలిగిన మనస్సుగలవారిని ఆయన రక్షించును",
+      "మానవ దుఃఖమునకు నలభై మూరల దూరములో దేవుడు నిలుచును",
+      "రాజభవనములలోని నలభైమంది రాజులను మాత్రమే దేవుడు దర్శించును",
+      "డెబ్బై ఇత్తడి డాలులను కూడబెట్టుకొనువారికి దేవుడు సహాయము చేయును"
+    ],
+    "correctAnswer": "The Lord is near to those who have a broken heart, and saves such as have a contrite spirit",
+    "bibleReference": "Psalm 34:18",
+    "explanation": "God draws intimately near to those experiencing grief and heartache, tenderly rescuing those with a humble, contrite spirit.",
+    "explanationTelugu": "విరిగిన హృదయముగలవారికి యెహోవా ఆసన్నుడు, నలిగిన మనస్సుగలవారిని ఆయన రక్షించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q35",
+    "order": 35,
+    "questionType": "single_choice",
+    "question": "How does Psalm 34:19 demolish health-and-wealth triumphalism while validating sovereign protective care through suffering?",
+    "questionTelugu": "నీతిమంతునికి శ్రమలే ఉండవని కాక, ఎన్ని ఆపదలు వచ్చినను వాటన్నిటిలోనుండి దేవుడే విడిపించునను సత్యము ఏ విశ్వాస ధైర్యమునిచ్చును?",
+    "options": [
+      "Many are the afflictions of the righteous, but the Lord delivers him out of them all",
+      "The righteous never experience forty days of adversity",
+      "The righteous buy forty houses in Jerusalem",
+      "The righteous defeat twenty armies with iron spears"
+    ],
+    "optionsTelugu": [
+      "నీతిమంతునికి కలుగు ఆపదలు అనేకములు, వాటన్నిటిలోనుండి యెహోవా వానిని విడిపించును",
+      "నీతిమంతుడు నలభై దినముల శ్రమను ఎన్నడును అనుభవింపడు",
+      "నీతిమంతుడు యెరూషలేములో నలభై ఇండ్లను కొనుక్కొనును",
+      "నీతిమంతుడు ఇనుప ఈటెలతో ఇరువది సైన్యములను ఓడించును"
+    ],
+    "correctAnswer": "Many are the afflictions of the righteous, but the Lord delivers him out of them all",
+    "bibleReference": "Psalm 34:19",
+    "explanation": "Scripture acknowledges that righteous believers face many trials, but promises that God faithfully delivers them from every single one.",
+    "explanationTelugu": "నీతిమంతునికి కలుగు ఆపదలు అనేకములు, వాటన్నిటిలోనుండి యెహోవా వానిని విడిపించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q36",
+    "order": 36,
+    "questionType": "single_choice",
+    "question": "How does John 19:36 tie the preservation of Christ's bones on the cross to the Passover lamb and Psalm 34:20?",
+    "questionTelugu": "సిలువపై యేసు కాళ్లు విరువబడకపోవుట పస్కా గొర్రెపిల్ల నియమమును మరియు కీర్తన 34:20 ప్రవచన సంరక్షణను ఎలా నెరవేర్చెను?",
+    "options": [
+      "He guards all his bones; not one of them is broken",
+      "He gives him forty iron crutches for walking",
+      "He casts his bones into the valley of Hinnom",
+      "He heals his wounds with seventy days of plaster"
+    ],
+    "optionsTelugu": [
+      "ఆయన వాని ఎముకలన్నిటిని కాపాడును, వాటిలో ఒక్కటియైనను విరిగిపోదు",
+      "నడవడానికి అతనికి నలభై ఇనుప కర్రలను ఇచ్చును",
+      "అతని ఎముకలను హిన్నోము లోయలోనికి విసిరివేయును",
+      "డెబ్బై దినముల లేపనములతో అతని గాయములను మాన్పును"
+    ],
+    "correctAnswer": "He guards all his bones; not one of them is broken",
+    "bibleReference": "Psalm 34:20; John 19:36",
+    "explanation": "God watches over all his bones so that not a single one is broken, a promise fulfilled when Jesus died without broken bones on the cross.",
+    "explanationTelugu": "ఆయన వాని ఎముకలన్నిటిని కాపాడును, వాటిలో ఒక్కటియైనను విరిగిపోదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q37",
+    "order": 37,
+    "questionType": "single_choice",
+    "question": "How does God's promise that He 'shall never permit the righteous to be moved' impart spiritual ballast in the storm?",
+    "questionTelugu": "'నీతిమంతుని ఎన్నడును కదలనీయడు' అను దేవుని వాగ్దానము శోధన తుఫానులలో విశ్వాసిని ఎలా స్థిరపరచును?",
+    "options": [
+      "Cast your burden on the Lord, and He shall sustain you; He shall never permit the righteous to be moved",
+      "Carry your burden forty miles through the valley of Rephaim",
+      "Give thirty silver pieces to temple porters to carry your loads",
+      "Hide your grief in forty secret tombs of Judah"
+    ],
+    "optionsTelugu": [
+      "నీ భారము యెహోవామీద మోపుము, ఆయన నిన్ను ఆదుకొనును; నీతిమంతుని ఎన్నడును కదలనీయడు",
+      "రెఫాయీము లోయలో నలభై మైళ్లు నీ భారమును మోసుకొనిపోవుము",
+      "నీ బరువులను మోయుటకు దేవాలయ కూలీలకు ముప్పది వెండి నాణెములు ఇమ్ము",
+      "యూదాలోని నలభై రహస్య సమాధులలో నీ దుఃఖమును దాచిపెట్టుము"
+    ],
+    "correctAnswer": "Cast your burden on the Lord, and He shall sustain you; He shall never permit the righteous to be moved",
+    "bibleReference": "Psalm 55:22",
+    "explanation": "Believers are urged to cast every overwhelming weight upon the Lord, who guarantees to sustain them and keep them unshakeable.",
+    "explanationTelugu": "నీ భారము యెహోవామీద మోపుము, ఆయన నిన్ను ఆదుకొనును; నీతిమంతుని ఎన్నడును కదలనీయడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q38",
+    "order": 38,
+    "questionType": "single_choice",
+    "question": "Why does the transcendence of God in His holy habitation intimately correlate with His protective solidarity with orphans and widows?",
+    "questionTelugu": "సర్వోన్నత పరిశుద్ధ నివాసమందున్న దేవుడే లోకములో అత్యంత నిస్సహాయులైనవారికి సంరక్షకుడై యుండుట దైవిక నీతిని ఎలా రుజువు చేయుచున్నది?",
+    "options": [
+      "A father of the fatherless, a defender of widows, is God in His holy habitation",
+      "A judge who demands forty bulls from orphans",
+      "A king who banishes widows forty leagues from Zion",
+      "A ruler who collects sixty talents of silver from the poor"
+    ],
+    "optionsTelugu": [
+      "దిక్కులేని పిల్లలకు తండ్రియు విధవరాండ్రకు న్యాయకర్తయునైన దేవుడు తన పరిశుద్ధ నివాసమందున్నాడు",
+      "అనాథలనుండి నలభై ఎద్దులను బలిగా కోరు న్యాయాధిపతి",
+      "సీయోనునుండి నలభై ఆమడల దూరమునకు విధవరాండ్రను వెళ్లగొట్టు రాజు",
+      "పేదలనుండి అరవై తలాంతుల వెండిని వసూలు చేయు పాలకుడు"
+    ],
+    "correctAnswer": "A father of the fatherless, a defender of widows, is God in His holy habitation",
+    "bibleReference": "Psalm 68:5",
+    "explanation": "God's holy residence does not detach Him from human sorrow; He sovereignly functions as Father to orphans and legal protector of widows.",
+    "explanationTelugu": "దిక్కులేని పిల్లలకు తండ్రియు విధవరాండ్రకు న్యాయకర్తయునైన దేవుడు తన పరిశుద్ధ నివాసమందున్నాడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q39",
+    "order": 39,
+    "questionType": "single_choice",
+    "question": "How do the actions in Psalm 146:7-9 foreshadow Jesus Christ's messianic manifesto in Luke 4:18-19?",
+    "questionTelugu": "కీర్తన 146 లోని విమోచన కార్యములు లూకా 4:18-19 లో యేసు ప్రకటించిన సువార్త పరిచర్యకు ఎలా పునాదిగా నిలిచినవి?",
+    "options": [
+      "Executes justice for the oppressed, gives food to the hungry, and gives freedom to the prisoners",
+      "Builds forty iron towers in the desert",
+      "Levies sixty talents on the poor",
+      "Demands thirty rams for ritual sacrifices"
+    ],
+    "optionsTelugu": [
+      "బాధపడువారికి న్యాయము తీర్చును, ఆకలిగొన్నవారికి ఆహారము నిచ్చును, బంధింపబడినవారిని విడుదల చేయును",
+      "ఎడారిలో నలభై ఇనుప గోపురములను నిర్మించును",
+      "పేదలపై అరవై తలాంతుల పన్ను విధించును",
+      "ఆచార బలులకొరకు ముప్పది పొట్టేళ్లను డిమాండ్ చేయును"
+    ],
+    "correctAnswer": "Executes justice for the oppressed, gives food to the hungry, and gives freedom to the prisoners",
+    "bibleReference": "Psalm 146:7",
+    "explanation": "The Lord acts as the supreme liberator and provider, upholding justice for the oppressed, feeding the starving, and freeing captives.",
+    "explanationTelugu": "ఆయన బాధపడువారికి న్యాయము తీర్చును, ఆకలిగొన్నవారికి ఆహారము నిచ్చును, యెహోవా బంధింపబడినవారిని విడుదల చేయును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q40",
+    "order": 40,
+    "questionType": "single_choice",
+    "question": "How does the physical opening of blind eyes in Psalm 146:8 establish both physical compassion and spiritual illumination by Christ?",
+    "questionTelugu": "గ్రుడ్డివారి కన్నులు తెరుచుట అనునది క్రీస్తు ద్వారా మానవాళికి లభించిన శారీరక మరియు ఆత్మీయ నేత్రాల వెలుగును ఎలా సూచించుచున్నది?",
+    "options": [
+      "The Lord opens the eyes of the blind; the Lord raises those who are bowed down; the Lord loves the righteous",
+      "The Lord assigns forty days of penance to the blind",
+      "The Lord demands seventy shekels of silver for healing",
+      "The Lord leads the bowed down into sixty miles of exile"
+    ],
+    "optionsTelugu": [
+      "యెహోవా గ్రుడ్డివారి కన్నులు తెరచును, యెహోవా క్రుంగినవారిని లేవనెత్తును, యెహోవా నీతిమంతులను ప్రేమించును",
+      "గ్రుడ్డివారికి నలభై దినముల కఠిన శిక్షను విధించును",
+      "స్వస్థత కొరకు డెబ్బై వెండి షెకెళ్లను డిమాండ్ చేయును",
+      "క్రుంగినవారిని అరవై మైళ్ల నిర్వాసనలోనికి తోలుకొనిపోవును"
+    ],
+    "correctAnswer": "The Lord opens the eyes of the blind; the Lord raises those who are bowed down; the Lord loves the righteous",
+    "bibleReference": "Psalm 146:8",
+    "explanation": "The Lord opens blind eyes, lifts up all who are bent low under heavy trials, and sets His affectionate love on the righteous.",
+    "explanationTelugu": "యెహోవా గ్రుడ్డివారి కన్నులు తెరచును, యెహోవా క్రుంగినవారిని లేవనెత్తును, యెహోవా నీతిమంతులను ప్రేమించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q41",
+    "order": 41,
+    "questionType": "single_choice",
+    "question": "How does the trio of 'stranger, fatherless, widow' form the central biblical paradigm for social justice and pastoral care?",
+    "questionTelugu": "పరదేశులు, దిక్కులేనివారు, విధవరాండ్రు అను ఈ ముగ్గురు దేవుని సంరక్షణ న్యాయములో కేంద్రబిందువుగా ఎందుకు ఉన్నారు?",
+    "options": [
+      "The Lord watches over the strangers; He relieves the fatherless and widow; but the way of the wicked He turns upside down",
+      "The Lord demands forty talents of tax from foreign travelers",
+      "The Lord exiles thirty orphans to pagan nations",
+      "The Lord establishes seventy fortresses for rich landowners"
+    ],
+    "optionsTelugu": [
+      "యెహోవా పరదేశులను కాపాడును, ఆయన దిక్కులేనివారిని విధవరాండ్రను ఆదరించును; దుష్టుల మార్గమును ఆయన బోరగిలజేయును",
+      "విదేశీ ప్రయాణికులనుండి నలభై తలాంతుల పన్ను వసూలు చేయును",
+      "ముప్పదిమంది అనాథలను అన్యదేశములకు పారద్రోలును",
+      "భూస్వాములకొరకు డెబ్బై బలమైన కోటలను నిర్మించును"
+    ],
+    "correctAnswer": "The Lord watches over the strangers; He relieves the fatherless and widow; but the way of the wicked He turns upside down",
+    "bibleReference": "Psalm 146:9",
+    "explanation": "God guards resident foreigners, sustains vulnerable widows and orphans, and subverts the selfish plots of the wicked.",
+    "explanationTelugu": "యెహోవా పరదేశులను కాపాడును, ఆయన దిక్కులేనివారిని విధవరాండ్రను ఆదరించును; దుష్టుల మార్గమును ఆయన బోరగిలజేయును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q42",
+    "order": 42,
+    "questionType": "single_choice",
+    "question": "How does the direct access of guardian angels to the Father's face establish the sacred dignity of vulnerable believers?",
+    "questionTelugu": "చిన్నవారి దేవదూతలు పరలోకపు తండ్రి ముఖదర్శనమును నిత్యము కలిగియుండుట బలహీనుల పట్ల దేవునికి గల అత్యున్నత సంరక్షణను ఎలా చాటుచున్నది?",
+    "options": [
+      "Take heed that you do not despise one of these little ones, for their angels always see the face of My Father in heaven",
+      "Little ones must fast forty days before entering the assembly",
+      "Children must pay twenty shekels to temple elders",
+      "These little ones must be trained in sixty Roman laws"
+    ],
+    "optionsTelugu": [
+      "ఈ చిన్నవారిలో ఒకనినైనను తృణీకరింపకుండ చూచుకొనుడి; వీరి దూతలు పరలోకమందున్న నా తండ్రి ముఖమును ఎల్లప్పుడును చూచుచున్నారు",
+      "చిన్నపిల్లలు సమాజములో చేరకముందు నలభై దినములు ఉపవాసముండవలెను",
+      "పిల్లలు దేవాలయ పెద్దలకు ఇరువది షెకెళ్లు చెల్లించవలెను",
+      "ఈ చిన్నవారు అరవై రోమా చట్టములలో తర్ఫీదు పొందవలెను"
+    ],
+    "correctAnswer": "Take heed that you do not despise one of these little ones, for their angels always see the face of My Father in heaven",
+    "bibleReference": "Matthew 18:10",
+    "explanation": "Jesus warns against looking down on vulnerable believers, revealing that their heavenly angels continually behold the Father's face.",
+    "explanationTelugu": "ఈ చిన్నవారిలో ఒకనినైనను తృణీకరింపకుండ చూచుకొనుడి; పరలోకమందు వారి దూతలు పరలోకమందున్న నా తండ్రి ముఖమును ఎల్లప్పుడును చూచుచున్నారని మీతో చెప్పుచున్నాను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q43",
+    "order": 43,
+    "questionType": "single_choice",
+    "question": "How does leaving ninety-nine secure sheep to rescue one wanderer demonstrate God's relentless individual pastoral care?",
+    "questionTelugu": "తొంబది తొమ్మిదింటిని కొండలమీద విడిచి తప్పిపోయిన ఒక్క గొర్రెను వెదకుట ప్రతి ఒక్కరిపై దేవునికి గల అపరిమిత సంరక్షణను ఎలా చాటుచున్నది?",
+    "options": [
+      "He leaves the ninety-nine on the mountains and goes to search for the one that is straying; it is not the will of your Father that one of these little ones perish",
+      "He slaughters forty rams in anger against the straying sheep",
+      "He abandons the lost sheep to seventy desert predators",
+      "He demands sixty pieces of gold for finding the sheep"
+    ],
+    "optionsTelugu": [
+      "అతడు తొంబది తొమ్మిదింటిని కొండలమీద విడిచిపెట్టి, తప్పిపోయినదానిని వెదకవెళ్లును; ఈ చిన్నవారిలో ఒకడైనను నశించుట మీ పరలోకపు తండ్రి చిత్తము కాదు",
+      "తప్పిపోయిన గొర్రెపై కోపముతో నలభై పొట్టేళ్లను వధించును",
+      "ఎడారిలోని డెబ్బై క్రూరమృగములకు ఆ గొర్రెను విడిచిపెట్టును",
+      "గొర్రెను కనుగొన్నందుకు అరవై బంగారు నాణెములను అడుగును"
+    ],
+    "correctAnswer": "He leaves the ninety-nine on the mountains and goes to search for the one that is straying; it is not the will of your Father that one of these little ones perish",
+    "bibleReference": "Matthew 18:12-14",
+    "explanation": "The caring shepherd pursues the single wandering sheep, reflecting the Father's tender will that not a single little one perish.",
+    "explanationTelugu": "అతడు తొంబది తొమ్మిదింటిని కొండలమీద విడిచిపెట్టి, తప్పిపోయినదానిని వెదకవెళ్లును గదా? ఆలాగే ఈ చిన్నవారిలో ఒకడైనను నశించుట పరలోకమందున్న మీ తండ్రి చిత్తము కాదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q44",
+    "order": 44,
+    "questionType": "single_choice",
+    "question": "How does lighting a lamp and sweeping every corner portray the Holy Spirit's thorough illuminating care seeking lost souls?",
+    "questionTelugu": "దీపము వెలిగించి ఇల్లు ఊడ్చి శ్రద్ధగా వెదకుట తప్పిపోయిన ఆత్మలను రక్షించుటకు పరిశుద్ధాత్మ దేవుని సంరక్షణను ఎలా చాటుచున్నది?",
+    "options": [
+      "Lights a lamp, sweeps the house, and searches carefully until she finds it, rejoicing with friends",
+      "Builds forty stone walls around her courtyard",
+      "Demands thirty drachmas from her neighbors",
+      "Fasts forty days in mourning for her loss"
+    ],
+    "optionsTelugu": [
+      "దీపము వెలిగించి, యిల్లు ఊడ్చి, అది దొరుకువరకు శ్రద్ధగా వెదకును; అది దొరికినప్పుడు చెలికత్తెలను పిలిచి సంతోషించును",
+      "తన ఇంటి చుట్టూ నలభై రాతి గోడలను నిర్మించును",
+      "పొరుగువారినుండి ముప్పది వెండి నాణెములను డిమాండ్ చేయును",
+      "నాణెము పోయినందుకు నలభై దినములు దుఃఖముతో ఉపవాసముండును"
+    ],
+    "correctAnswer": "Lights a lamp, sweeps the house, and searches carefully until she finds it, rejoicing with friends",
+    "bibleReference": "Luke 15:8-10",
+    "explanation": "The woman lights a lamp and sweeps diligently until finding her lost coin, illustrating God's thorough, rejoicing care in recovering lost sinners.",
+    "explanationTelugu": "ఏ స్త్రీకైనను పది వెండి నాణెములుండగా వాటిలో ఒక నాణెము పోగొట్టుకొనినయెడల, ఆమె దీపము వెలిగించి, యిల్లు ఊడ్చి, అది దొరుకువరకు శ్రద్ధగా వెదకదా? అది దొరికినప్పుడు... నాతోకూడ సంతోషించుడని చెప్పును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q45",
+    "order": 45,
+    "questionType": "single_choice",
+    "question": "How does Jesus securing filial care for Mary amidst the cosmic agony of the cross fulfill the Fifth Commandment and model pastoral responsibility?",
+    "questionTelugu": "సర్వలోక పాపభారమును మోయుచున్న సిలువ ఘడియలో సైతం తల్లి సంరక్షణను శిష్యునికి అప్పగించుట ఐదవ ఆజ్ఞను మరియు పరిపూర్ణ ప్రేమను ఎలా నెరవేర్చెను?",
+    "options": [
+      "Said to His mother, 'Woman, behold your son!' and to the disciple, 'Behold your mother!' and from that hour he took her to his home",
+      "Commanded the Roman soldiers to pay her forty pieces of gold",
+      "Assigned seventy priests to guard her in Nazareth",
+      "Ordered forty days of public lamentation across Judea"
+    ],
+    "optionsTelugu": [
+      "తన తల్లితో-అమ్మా, యిదిగో నీ కుమారుడు అనియు, శిష్యునితో-యిదిగో నీ తల్లి అనియు చెప్పెను; ఆ గడియనుండి ఆ శిష్యుడు ఆమెను తన యింట చేర్చుకొనెను",
+      "రోమా సైనికులు ఆమెకు నలభై బంగారు నాణెములను చెల్లించవలెనని ఆజ్ఞాపించెను",
+      "నజరేతులో ఆమెకు కావలియుండుటకు డెబ్బైమంది యాజకులను నియమించెను",
+      "యూదయయంతటను నలభై దినముల బహిరంగ రోదనను విధించెను"
+    ],
+    "correctAnswer": "Said to His mother, 'Woman, behold your son!' and to the disciple, 'Behold your mother!' and from that hour he took her to his home",
+    "bibleReference": "John 19:26-27",
+    "explanation": "Even while dying for the world's sins, Jesus cared for His earthly mother, placing her into the lifelong familial custody of the apostle John.",
+    "explanationTelugu": "యేసు తన తల్లిని తాను ప్రేమించిన శిష్యుడును దగ్గర నిలుచుండుట చూచి-అమ్మా, యిదిగో నీ కుమారుడు అని తన తల్లితో చెప్పెను; తరువాత శిష్యుని చూచి-యిదిగో నీ తల్లి అని చెప్పెను. ఆ గడియనుండి ఆ శిష్యుడు ఆమెను తన యింట చేర్చుకొనెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q46",
+    "order": 46,
+    "questionType": "single_choice",
+    "question": "How does apostolic healing transcend mere financial alms to restore human dignity, mobility, and temple worship?",
+    "questionTelugu": "కేవలము భిక్షమిచ్చుటకంటె క్రీస్తు నామమున సంపూర్ణ స్వస్థతను ఇచ్చి దేవాలయములో నడిపించుట ఉన్నతమైన సంరక్షణను ఎలా చాటుచున్నది?",
+    "options": [
+      "Silver and gold I do not have, but what I do have I give you: In the name of Jesus Christ of Nazareth, rise up and walk",
+      "Gave him forty silver shekels from the temple treasury",
+      "Sent him into sixty days of quarantine outside Jerusalem",
+      "Offered him thirty loaves of barley bread"
+    ],
+    "optionsTelugu": [
+      "వెండిబంగారములు నాయొద్ద లేవు గాని నాకు కలిగినదే నీకిచ్చుచున్నాను; నజరేయుడైన యేసుక్రీస్తు నామమున నడువుము",
+      "దేవాలయ ఖజానానుండి నలభై వెండి షెకెళ్లను అతనికి ఇచ్చిరి",
+      "యెరూషలేము వెలుపల అరవై దినముల ఏకాంతవాసమునకు అతనిని పంపిరి",
+      "అతనికి ముప్పది యవల రొట్టెలను భిక్షగా సమర్పించిరి"
+    ],
+    "correctAnswer": "Silver and gold I do not have, but what I do have I give you: In the name of Jesus Christ of Nazareth, rise up and walk",
+    "bibleReference": "Acts 3:6",
+    "explanation": "Peter and John gave the lame man something far greater than money: total physical restoration and mobility in the powerful name of Jesus.",
+    "explanationTelugu": "అందుకు పేతురు-వెండిబంగారములు నాయొద్ద లేవు గాని నాకు కలిగినదే నీకిచ్చుచున్నాను; నజరేయుడైన యేసుక్రీస్తు నామమున నడువుమని చెప్పి, అతని కుడిచేయి పట్టుకొని లేవనెత్తెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q47",
+    "order": 47,
+    "questionType": "single_choice",
+    "question": "Why was Dorcas' resurrection a monumental testimony of God caring for community caregivers who champion the poor?",
+    "questionTelugu": "పేద విధవరాండ్రను ప్రేమతో పోషించిన దొర్కాను పునరుత్థానము చేయుట సమాజ సేవకులకు దేవుడిచ్చు పరమోన్నత ఘనతను ఎలా చాటుచున్నది?",
+    "options": [
+      "Peter knelt, prayed, and said 'Tabitha, arise!' and presented her alive to the saints and widows",
+      "Peter ordered forty days of funeral wailing in Joppa",
+      "Peter built seventy stone shrines in memory of Dorcas",
+      "Peter distributed her thirty garments to Roman soldiers"
+    ],
+    "optionsTelugu": [
+      "పేతురు మోకాళ్లూని ప్రార్థనచేసి-తబితా, లెమ్ము అనగా ఆమె కన్నులు తెరచెను; అతడు ఆమెను లేవనెత్తి పరిశుద్ధులను విధవరాండ్రను పిలిచి ఆమెను సజీవురాలిగా వారియెదుట నిలువబెట్టెను",
+      "యొప్పాలో నలభై దినముల అంత్యక్రియల రోదనను ఆజ్ఞాపించెను",
+      "దొర్కా జ్ఞాపకార్థము డెబ్బై రాతి సమాధులను కట్టించెను",
+      "ఆమె కుట్టిన ముప్పది వస్త్రములను రోమా సైనికులకు పంచిపెట్టెను"
+    ],
+    "correctAnswer": "Peter knelt, prayed, and said 'Tabitha, arise!' and presented her alive to the saints and widows",
+    "bibleReference": "Acts 9:40-41",
+    "explanation": "God raised the beloved philanthropist Tabitha from the dead through Peter's prayer, restoring her compassionate care to the weeping widows.",
+    "explanationTelugu": "పేతురు అందరిని వెలుపలికి పంపి, మోకాళ్లూని ప్రార్థనచేసి శవమువైపు తిరిగి-తబితా, లెమ్ము అని చెప్పెను; అప్పుడామె కన్నులు తెరచి పేతురును చూచి లేచి కూర్చుండెను. అతడు ఆమెకు చేయి యిచ్చి ఆమెను లేవనెత్తి... సజీవురాలిగా వారియెదుట నిలువబెట్టెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q48",
+    "order": 48,
+    "questionType": "single_choice",
+    "question": "How does bearing burdens (bare) operate as the communal counterweight to individual spiritual burnout and failure?",
+    "questionTelugu": "తోటి విశ్వాసి భారములను కలిసి మోయుట సంఘములో ఎవరిని ఒంటరిగా పడిపోకుండా కాపాడు ఆత్మీయ రక్షణ కవచముగా ఎలా పనిచేయును?",
+    "options": [
+      "Bear one another's burdens, and so fulfill the law of Christ",
+      "Impose forty days of penance upon struggling brothers",
+      "Avoid thirty brethren who suffer financial ruin",
+      "Carry forty weights of bronze to the temple"
+    ],
+    "optionsTelugu": [
+      "ఒకని భారములను ఒకడు భరించి, ఈలాగు క్రీస్తు నియమమును సంపూర్ణముగా నెరవేర్చుడి",
+      "శ్రమలలో ఉన్న సహోదరులపై నలభై దినముల కఠిన నియమములను మోపుడి",
+      "ఆర్థిక నష్టములో ఉన్న ముప్పదిమంది విశ్వాసులను దూరముగా ఉంచుడి",
+      "దేవాలయమునకు నలభై తలాంతుల ఇత్తడి బరువులను మోసుకొనిరండి"
+    ],
+    "correctAnswer": "Bear one another's burdens, and so fulfill the law of Christ",
+    "bibleReference": "Galatians 6:2",
+    "explanation": "Paul commands believers to shoulder one another's emotional, physical, and spiritual loads, thereby fulfilling Christ's law of love.",
+    "explanationTelugu": "ఒకని భారములను ఒకడు భరించి, ఈలాగు క్రీస్తు నియమమును సంపూర్ణముగా నెరవేర్చుడి.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q49",
+    "order": 49,
+    "questionType": "single_choice",
+    "question": "Why is shutting up the bowels of compassion (splagchna) fatal to any authentic claim of possessing divine love?",
+    "questionTelugu": "కనికరము చూపక హృదయమును కఠినపరచుకొనువానిలో దేవుని ప్రేమ ఎందుకు ఉండజాలదు?",
+    "options": [
+      "Whoever has this world's goods, and sees his brother in need, and shuts up his heart from him, how does the love of God abide in him?",
+      "Whoever gives forty pieces of silver to Caesar is righteous",
+      "Whoever builds sixty storehouses in Galilee fulfills the law",
+      "Whoever fasts thirty days replaces the need for charity"
+    ],
+    "optionsTelugu": [
+      "ఈ లోకపు జీవనసామగ్రి గలవాడైయుండి, తన సహోదరునికి లేమి కలుగుట చూచియు, అతనియెడల ఎంతమాత్రమును కనికరము చూపనివానియందు దేవుని ప్రేమ యేలాగు నిలుచును?",
+      "కైసరునకు నలభై వెండి నాణెములను ఇచ్చువాడే నీతిమంతుడు",
+      "గలీలయలో అరవై ధాన్యాగారములను కట్టువాడు ధర్మశాస్త్రమును నెరవేర్చును",
+      "ముప్పది దినములు ఉపవాసముండువాడు దానధర్మములతో పనిలేదు"
+    ],
+    "correctAnswer": "Whoever has this world's goods, and sees his brother in need, and shuts up his heart from him, how does the love of God abide in him?",
+    "bibleReference": "1 John 3:17",
+    "explanation": "John insists that true divine love cannot co-exist with a stingy heart that closes its wallet against a destitute Christian brother.",
+    "explanationTelugu": "ఈ లోకపు జీవనసామగ్రి గలవాడైయుండి, తన సహోదరునికి లేమి కలుగుట చూచియు, అతనియెడల ఎంతమాత్రమును కనికరము చూపనివానియందు దేవుని ప్రేమ యేలాగు నిలుచును?",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s1_q50",
+    "order": 50,
+    "questionType": "single_choice",
+    "question": "How does God personally wiping tears with His own hand serve as the crowning intimacy of eternal pastoral care?",
+    "questionTelugu": "దేవుడే స్వయముగా తన ప్రజల ప్రతి భాష్పబిందువును తుడిచివేయుట పరలోక నిత్య సంరక్షణ యొక్క ఏ పరమోన్నత వాత్సల్యమును చూపుచున్నది?",
+    "options": [
+      "God will wipe away every tear from their eyes; there shall be no more death, nor sorrow, nor crying. There shall be no more pain",
+      "He will establish forty iron fortresses in the new earth",
+      "He will collect sixty talents of gold tribute from nations",
+      "He will assign thirty years of labor in the celestial fields"
+    ],
+    "optionsTelugu": [
+      "ఆయన వారి కన్నుల ప్రతి భాష్పబిందువును తుడిచివేయును, ఇకమీదట మరణము ఉండదు, దుఃఖమైనను ఏడ్పైనను వేదనయైనను ఇకమీదట ఉండదు",
+      "నూతన భూమిపై నలభై ఇనుప కోటలను దేవుడు నిర్మించును",
+      "జాతులవద్దనుండి అరవై తలాంతుల బంగారు కప్పమును వసూలు చేయును",
+      "పరలోక పొలములలో ముప్పది సంవత్సరముల కాయకష్టమును విధించును"
+    ],
+    "correctAnswer": "God will wipe away every tear from their eyes; there shall be no more death, nor sorrow, nor crying. There shall be no more pain",
+    "bibleReference": "Revelation 21:4",
+    "explanation": "In the new creation, God personally wipes away every tear, banishing death, grief, crying, and pain forever.",
+    "explanationTelugu": "ఆయన వారి కన్నుల ప్రతి భాష్పబిందువును తుడిచివేయును, మరణము ఇకమీదట ఉండదు, దుఃఖమైనను ఏడ్పైనను వేదనయైనను ఇకమీదట ఉండదు; మొదటి సంగతులు గతించిపోయెను.",
+    "marks": 1
+  }
+];
+
+export const CARE_HARD_GROWTH: QuizQuestion[] = [
+  {
+    "id": "car_h_s2_q01",
+    "order": 1,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Exodus 22:22-23 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Exodus 22:22-23 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"You shall not afflict any widow or fatherless child. If you afflict them in any way, and they cry at all to Me, I will surely hear their cry\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఏ విధవరాలినైనను దిక్కులేని పిల్లనైనను బాధపెట్టకూడదు; నీవు వారిని బాధపెట్టుటవలన వారు నాకు మొరపెట్టినయెడల నేను నిశ్చయముగా వారి మొరను వినెదను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"You shall not afflict any widow or fatherless child. If you afflict them in any way, and they cry at all to Me, I will surely hear their cry\"",
+    "bibleReference": "Exodus 22:22-23",
+    "explanation": "God stands as the active personal protector of the defenseless.",
+    "explanationTelugu": "దిక్కులేనివారిని బాధించువారికి దేవుడే స్వయముగా తీర్పు తీర్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q02",
+    "order": 2,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Leviticus 25:35 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Leviticus 25:35 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"If one of your brethren becomes poor, and falls into poverty among you, then you shall help him, like a stranger or a sojourner\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీ సహోదరుడు దరిద్రుడై నీయొద్ద నిలువలేకపోయినయెడల, పరదేశివలెను నివాసివలెను అతడు నీయొద్ద బ్రదుకునట్లు నీవు వానికి సహాయము చేయవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"If one of your brethren becomes poor, and falls into poverty among you, then you shall help him, like a stranger or a sojourner\"",
+    "bibleReference": "Leviticus 25:35",
+    "explanation": "Covenant brotherhood demands proactive financial and physical relief.",
+    "explanationTelugu": "బీదరికములో ఉన్న సహోదరునికి చేయూతనిచ్చి ఆదుకొను దైవిక ధర్మము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q03",
+    "order": 3,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Deuteronomy 15:8 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Deuteronomy 15:8 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"You shall open your hand wide to him and willingly lend him sufficient for his need, whatever he needs\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వానియెడల నీ చెయ్యి విప్పి, వానికి కలిగిన కొదువనుబట్టి వానికి కావలసినదంతయు నిశ్చయముగా అప్పియ్యవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"You shall open your hand wide to him and willingly lend him sufficient for his need, whatever he needs\"",
+    "bibleReference": "Deuteronomy 15:8",
+    "explanation": "Generous care refuses to let hardhearted stinginess block relief.",
+    "explanationTelugu": "పేద సహోదరుని అక్కరలో కనికరముతో చేయి చాచి సహాయము చేయవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q04",
+    "order": 4,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Deuteronomy 24:19 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Deuteronomy 24:19 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"When you reap your harvest in your field, and forget a sheaf... you shall not go back to get it; it shall be for the stranger, the fatherless, and the widow\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీ చేనిలో కోత కోయునప్పుడు చేనిలో ఒక మోపు మరచినయెడల, దాని తెచ్చుటకు తిరిగి వెళ్లకూడదు; నీ దేవుడైన యెహోవా నీ కార్యములన్నిటిలో నిన్ను ఆశీర్వదించునట్లు అది పరదేశికిని దిక్కులేనివానికిని విధవరాలికిని చెందవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"When you reap your harvest in your field, and forget a sheaf... you shall not go back to get it; it shall be for the stranger, the fatherless, and the widow\"",
+    "bibleReference": "Deuteronomy 24:19",
+    "explanation": "Institutionalizing systemic, dignified harvest welfare for the needy.",
+    "explanationTelugu": "పేదలు గౌరవముగా తిండి సంపాదించుకొనునట్లు ధర్మశాస్త్రములో ఏర్పాటుచేసిన దైవిక సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q05",
+    "order": 5,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does 1 Samuel 30:11-12 provide for Christian community and mercy ministry?",
+    "questionTelugu": "1 Samuel 30:11-12 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"They found an Egyptian in the field, and brought him to David; and they gave him bread and he ate, and they let him drink water... and his spirit revived\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారు పొలములో ఒక ఐగుప్తీయుని కనుగొని దావీదునొద్దకు అతనిని తోడుకొనివచ్చి, అతనికి భోజనము పెట్టగా అతడు తినెను, వారు అతనికి దాహమిచ్చిరి... అతడు తినిన తరువాత అతని ప్రాణము మరల వచ్చెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"They found an Egyptian in the field, and brought him to David; and they gave him bread and he ate, and they let him drink water... and his spirit revived\"",
+    "bibleReference": "1 Samuel 30:11-12",
+    "explanation": "Compassion to a starving slave unlocked vital military intelligence saving families.",
+    "explanationTelugu": "ఆపదలో ఉన్న దిక్కులేని దాసునికి చేసిన సంరక్షణ సమస్త కుటుంబాన్ని విడిపించుటకు దారితీసెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q06",
+    "order": 6,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does 2 Samuel 17:29 provide for Christian community and mercy ministry?",
+    "questionTelugu": "2 Samuel 17:29 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Brought beds and basins, earthen vessels and wheat, barley and flour... for they said, 'The people are hungry and weary and thirsty in the wilderness'\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆ జనులు అరణ్యమందు ఆకలిగొని డస్సి దప్పిగొని యున్నారని చెప్పి, పరుపులను గిన్నెలను మంటి పాత్రలను గోధుమలను యవలను పిండిని వేయించిన ధాన్యమును... దావీదునకును అతనితోనున్న జనులకును భోజనము తెచ్చి ఇచ్చిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Brought beds and basins, earthen vessels and wheat, barley and flour... for they said, 'The people are hungry and weary and thirsty in the wilderness'\"",
+    "bibleReference": "2 Samuel 17:29",
+    "explanation": "Loyal, practical hospitality providing comfort to displaced refugees.",
+    "explanationTelugu": "శ్రమలో ఉన్న దావీదుకు వృద్ధుడైన బర్జిల్లయి చేసిన అద్భుతమైన ఆదరణ సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q07",
+    "order": 7,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does 1 Kings 18:4 provide for Christian community and mercy ministry?",
+    "questionTelugu": "1 Kings 18:4 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"While Jezebel massacred the prophets of the Lord, Obadiah had taken one hundred prophets and hidden them, fifty to a cave, and fed them with bread and water\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"యెజెబెలు యెహోవా ప్రవక్తలను నిర్మూలము చేయుచుండగా ఓబద్యా నూరుమంది ప్రవక్తలను తీసికొని, ఒక గుహలో ఏబదేసి మందిగా దాచి, వారికి అన్నపానములిచ్చి పోషించెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"While Jezebel massacred the prophets of the Lord, Obadiah had taken one hundred prophets and hidden them, fifty to a cave, and fed them with bread and water\"",
+    "bibleReference": "1 Kings 18:4",
+    "explanation": "Heroic, sacrificial stewardship protecting God's servants at mortal risk.",
+    "explanationTelugu": "దుష్ట రాణి యెజెబెలుకు భయపడక ప్రాణము తెగించి ప్రవక్తలను పోషించిన ఓబద్యా భక్తి.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q08",
+    "order": 8,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does 2 Kings 4:41 provide for Christian community and mercy ministry?",
+    "questionTelugu": "2 Kings 4:41 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"So he said, 'Then bring some flour.' And he put it into the pot, and said, 'Pour it out, that they may eat.' And there was no harm in the pot\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అతడు-కొంచెము పిండి తెండని చెప్పి, దానిని ఆ కుండలో వేసి-జనులు తినునట్లు వడ్డించుడని చెప్పెను; అప్పుడు ఆ కుండలో ఏ విషమును లేకపోయెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"So he said, 'Then bring some flour.' And he put it into the pot, and said, 'Pour it out, that they may eat.' And there was no harm in the pot\"",
+    "bibleReference": "2 Kings 4:41",
+    "explanation": "Prophetic care ensuring that community members receive wholesome, life-sustaining food.",
+    "explanationTelugu": "ఆకలితో ఉన్న శిష్యులకొరకు విషపు కూరను పిండితో పవిత్రపరచిన దైవిక సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q09",
+    "order": 9,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does 2 Kings 4:44 provide for Christian community and mercy ministry?",
+    "questionTelugu": "2 Kings 4:44 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"So he set it before them; and they ate and had some left over, according to the word of the Lord\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అతడు వారియెదుట దానిని పెట్టగా యెహోవా సెలవిచ్చిన మాటచొప్పున వారు తిని మిగిల్చిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"So he set it before them; and they ate and had some left over, according to the word of the Lord\"",
+    "bibleReference": "2 Kings 4:44",
+    "explanation": "Miraculous multiplication providing for the community's nutritional sustenance.",
+    "explanationTelugu": "దేవుని వాక్యముద్వారా అల్పమైన ఆహారమును నూరుమందికి సమృద్ధిగా విస్తరింపజేసిన సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q10",
+    "order": 10,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Job 29:12,15 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Job 29:12,15 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Because I delivered the poor who cried out, the fatherless and the one who had no helper... I was eyes to the blind, and I was feet to the lame\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఏలయనగా మొరపెట్టిన దీనులను, దిక్కులేని తండ్రిలేనివారిని నేను రక్షించితిని... గ్రుడ్డివారికి కన్నులుగాను కుంటివారికి కాళ్లుగాను ఉంటిని\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Because I delivered the poor who cried out, the fatherless and the one who had no helper... I was eyes to the blind, and I was feet to the lame\"",
+    "bibleReference": "Job 29:12,15",
+    "explanation": "Righteous patriarchal leadership measured by protective advocacy for outcasts.",
+    "explanationTelugu": "పేదలకు అనాథలకు అండగా నిలిచి వారి హక్కులను కాపాడిన యోబు యొక్క ఆదర్శవంతమైన సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q11",
+    "order": 11,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Job 31:19-20 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Job 31:19-20 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"If I have seen anyone perish for lack of clothing... and if he were not warmed with the fleece of my sheep\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బట్టలేక నశించువానినైనను... నేను చూచినయెడల, నా గొర్రెల బొచ్చుతో వానికి వెచ్చదనము కలుగనందున వాడు నన్ను దీవించనియెడల...\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"If I have seen anyone perish for lack of clothing... and if he were not warmed with the fleece of my sheep\"",
+    "bibleReference": "Job 31:19-20",
+    "explanation": "True godliness clothes the naked and feeds the destitute from personal substance.",
+    "explanationTelugu": "పేదవారి చలిబాధను తీర్చి స్వయముగా అన్నవస్త్రములిచ్చిన యోబు దయార్ద్ర హృదయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q12",
+    "order": 12,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Psalm 41:1 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Psalm 41:1 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Blessed is he who considers the poor; the Lord will deliver him in time of trouble. The Lord will preserve him and keep him alive\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బీదలను పరామర్శించువాడు ధన్యుడు; ఆపత్కాలమందు యెహోవా వానిని తప్పించును. యెహోవా వానిని కాపాడి బ్రదికించును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Blessed is he who considers the poor; the Lord will deliver him in time of trouble. The Lord will preserve him and keep him alive\"",
+    "bibleReference": "Psalm 41:1",
+    "explanation": "Thoughtful, attentive consideration of the needy brings divine reciprocal deliverance.",
+    "explanationTelugu": "పేదలను దయతో కనిపెట్టి చూచువానికి ఆపత్కాలములో దేవుడే స్వయముగా విడుదలను ఇచ్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q13",
+    "order": 13,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Proverbs 14:31 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Proverbs 14:31 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"He who oppresses the poor reproaches his Maker, but he who honors Him has mercy on the needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దరిద్రుని బాధించువాడు వాని సృష్టికర్తను నిందించువాడు; బీదలను కనికరించువాడు ఆయనను ఘనపరచువాడు\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"He who oppresses the poor reproaches his Maker, but he who honors Him has mercy on the needy\"",
+    "bibleReference": "Proverbs 14:31",
+    "explanation": "Social care for the poor is direct theological worship of their Creator.",
+    "explanationTelugu": "పేదవారిని ఆదరించుట సాక్షాత్తు వారి సృష్టికర్తయైన దేవుని ఘనపరచుటతో సమానము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q14",
+    "order": 14,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Proverbs 19:17 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Proverbs 19:17 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"He who has pity on the poor lends to the Lord, and He will pay back what he has given\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బీదలను కనికరించువాడు యెహోవాకు అప్పిచ్చువాడు; వాని ఉపకారమునకు ఆయన ప్రతిఫలమిచ్చును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"He who has pity on the poor lends to the Lord, and He will pay back what he has given\"",
+    "bibleReference": "Proverbs 19:17",
+    "explanation": "God sovereignly cosigns the debt of the impoverished, guaranteeing divine reimbursement.",
+    "explanationTelugu": "పేదలకు చేయు సహాయము దేవునికి ఇచ్చిన అప్పువంటిది; దేవుడే స్వయముగా దానికి ప్రతిఫలము నిచ్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q15",
+    "order": 15,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Proverbs 28:27 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Proverbs 28:27 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"He who gives to the poor will not lack, but he who hides his eyes will have many curses\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బీదలకిచ్చువానికి ఏమియు కొదువరాదు; వారిని చూడక తన కన్నులను మూసికొనువానికి శాపములు విస్తారముగా కలుగును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"He who gives to the poor will not lack, but he who hides his eyes will have many curses\"",
+    "bibleReference": "Proverbs 28:27",
+    "explanation": "Generous provision protects against personal lack, while turning a blind eye invites judgment.",
+    "explanationTelugu": "బీదలకు సహాయము చేయువారి గృహములో దైవిక సమృద్ధి నిరంతరము నిలుచును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q16",
+    "order": 16,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Proverbs 31:8-9 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Proverbs 31:8-9 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Open your mouth for the speechless, in the cause of all who are appointed to die. Open your mouth, judge righteously, and plead the cause of the poor and needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దిక్కులేనివారందరి పక్షమున మూగవానికొరకు నీ నోరు తెరువుము; న్యాయముగా తీర్పుతీర్చుటకు నీ నోరు తెరువుము, దీనులయొక్కయు దరిద్రులయొక్కయు పక్షమున వ్యాజ్యెమాడుము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Open your mouth for the speechless, in the cause of all who are appointed to die. Open your mouth, judge righteously, and plead the cause of the poor and needy\"",
+    "bibleReference": "Proverbs 31:8-9",
+    "explanation": "Care requires active public advocacy for the disenfranchised and voiceless.",
+    "explanationTelugu": "న్యాయము దక్కని పేదలకొరకు నాయకులు ధైర్యముగా గళమెత్తి న్యాయము జరిగించవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q17",
+    "order": 17,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Proverbs 31:20 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Proverbs 31:20 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"She extends her hand to the poor, yes, she reaches out her hands to the needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆమె దీనులకు తన చెయ్యి చాపును, దరిద్రులకు తన చేతులు చాపించును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"She extends her hand to the poor, yes, she reaches out her hands to the needy\"",
+    "bibleReference": "Proverbs 31:20",
+    "explanation": "Domestic industry and diligence enable joyful, generous philanthropic outreach.",
+    "explanationTelugu": "పరిశ్రమగల స్త్రీ తన సొంత సంపాదనతో పేదవారిని ఆదరించి పోషించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q18",
+    "order": 18,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Isaiah 58:7 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Isaiah 58:7 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Is it not to share your bread with the hungry, and that you bring to your house the poor who are cast out; when you see the naked, that you cover him?\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీ ఆహారము ఆకలిగొన్నవారికి పెట్టుటయు, దిక్కులేని బీదలను నీ యింట చేర్చుకొనుటయు, వస్త్రహీనుడు నీకు కనబడినప్పుడు వానికి వస్త్రములిచ్చుటయు... ఇదియే గదా నాకు ఇష్టమైన ఉపవాసము?\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Is it not to share your bread with the hungry, and that you bring to your house the poor who are cast out; when you see the naked, that you cover him?\"",
+    "bibleReference": "Isaiah 58:7",
+    "explanation": "Authentic spiritual fasting is measured by direct material care for destitute human beings.",
+    "explanationTelugu": "ఆహారము మానివేయుట మాత్రమే కాక ఆకలిగొన్నవారికి అన్నంపెట్టుటయే నిజమైన దైవిక ఉపవాసము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q19",
+    "order": 19,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Ezekiel 16:49 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Ezekiel 16:49 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Look, this was the iniquity of your sister Sodom: She and her daughter had pride, fullness of food, and abundance of idleness; neither did she strengthen the hand of the poor and needy\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఇదిగో నీ సహోదరియైన సొదొమ దోషమేదనగా, ఆమెయు ఆమె కుమార్తెలును గర్వమును ఆహార సమృద్ధియు నిర్విచారమైన సుఖమును కలిగియుండియు, దీనులను దరిద్రులను ఆదరింపకపోయిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Look, this was the iniquity of your sister Sodom: She and her daughter had pride, fullness of food, and abundance of idleness; neither did she strengthen the hand of the poor and needy\"",
+    "bibleReference": "Ezekiel 16:49",
+    "explanation": "Callous indifference to poverty is denounced as the foundational sin of Sodom.",
+    "explanationTelugu": "సమృద్ధి ఉన్నప్పుడు పేదలను ఆదుకోకుండా నిర్లక్ష్యము చేయుట దేవుని తీర్పును రప్పించు పాపము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q20",
+    "order": 20,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Ezekiel 34:4 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Ezekiel 34:4 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"The weak you have not strengthened, nor have you healed the sick, nor bound up the broken, nor brought back what was driven away... but with force and cruelty you have ruled them\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"బలహీనమైనవాటిని మీరు బలపరచలేదు, రోగముగలవాటిని మీరు స్వస్థపరచలేదు, గాయపడినవాటిని మీరు కట్టలేదు... బలాత్కారముతోను కఠినత్వముతోను మీరు వాటిని ఏలితిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"The weak you have not strengthened, nor have you healed the sick, nor bound up the broken, nor brought back what was driven away... but with force and cruelty you have ruled them\"",
+    "bibleReference": "Ezekiel 34:4",
+    "explanation": "Severe prophetic condemnation of self-serving leaders who neglect the care of the flock.",
+    "explanationTelugu": "సంఘ కాపరులు తమ స్వార్థము చూచుకొనక బలహీనులను రోగులను శ్రద్ధతో పరామర్శించవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q21",
+    "order": 21,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Matthew 25:35-36 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Matthew 25:35-36 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"I was naked and you clothed Me; I was sick and you visited Me; I was in prison and you came to Me\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వస్త్రహీనుడనై యుంటిని నాకు బట్టలిచ్చితిరి, రోగినై యుంటిని నన్ను చూడవచ్చితిరి, చెరసాలలో ఉంటిని నాయొద్దకు వచ్చితిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"I was naked and you clothed Me; I was sick and you visited Me; I was in prison and you came to Me\"",
+    "bibleReference": "Matthew 25:35-36",
+    "explanation": "Jesus equates hands-on practical care for the suffering directly with serving Him.",
+    "explanationTelugu": "ఆపదలో ఉన్నవారికి చేయు ఉపచారము సాక్షాత్తు యేసుక్రీస్తు ప్రభువునకే చేసినట్లు లెక్క.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q22",
+    "order": 22,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Matthew 25:40 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Matthew 25:40 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"And the King will answer and say to them, 'Assuredly, I say to you, inasmuch as you did it to one of the least of these My brethren, you did it to Me'\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అందుకు రాజు-మిక్కిలి అల్పులైన యీ నా సహోదరులలో ఒకనికి మీరు చేసితిరి గనుక నాకు చేసితిరని నిశ్చయముగా మీతో చెప్పుచున్నానని వారితో చెప్పును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"And the King will answer and say to them, 'Assuredly, I say to you, inasmuch as you did it to one of the least of these My brethren, you did it to Me'\"",
+    "bibleReference": "Matthew 25:40",
+    "explanation": "Christ permanently identifies Himself with the poorest, weakest, and most vulnerable.",
+    "explanationTelugu": "కనిష్ట సహోదరునికి చేసిన చిన్న సహాయమును సైతం ప్రభువు తనకే చేసిన సేవగా అంగీకరించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q23",
+    "order": 23,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Mark 9:41 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Mark 9:41 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"For whoever gives you a cup of water to drink in My name, because you belong to Christ, assuredly, I say to you, he will by no means lose his reward\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మీరు క్రీస్తువారని నా నామమున మీకు గిన్నెడు నీళ్లు త్రాగనిచ్చువాడు తన ఫలము పోగొట్టుకొనడని నిశ్చయముగా మీతో చెప్పుచున్నాను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"For whoever gives you a cup of water to drink in My name, because you belong to Christ, assuredly, I say to you, he will by no means lose his reward\"",
+    "bibleReference": "Mark 9:41",
+    "explanation": "Even the smallest act of physical care offered for Christ's sake earns eternal recompense.",
+    "explanationTelugu": "క్రీస్తు నామమున దాహమునకు గిన్నెడు నీళ్లిచ్చినను దానికి పరలోకమందు గొప్ప ప్రతిఫలముండును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q24",
+    "order": 24,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Luke 14:13-14 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Luke 14:13-14 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"When you give a feast, invite the poor, the maimed, the lame, the blind. And you will be blessed, because they cannot repay you\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నీవు విందు చేయునప్పుడు పేదలను అంగహీనులను కుంటివారిని గ్రుడ్డివారిని పిలువుము; వారు నీకు ప్రత్యుపకారము చేయనేరరు గనుక నీవు ధన్యుడవుదువు; నీతిమంతుల పునరుత్థానమందు నీకు ప్రతిఫలము కలుగును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"When you give a feast, invite the poor, the maimed, the lame, the blind. And you will be blessed, because they cannot repay you\"",
+    "bibleReference": "Luke 14:13-14",
+    "explanation": "Kingdom hospitality deliberately seeks those entirely incapable of social reciprocity.",
+    "explanationTelugu": "ప్రత్యుపకారము చేయలేని నిస్సహాయులకు భోజనము పెట్టుట పునరుత్థాన దినమున నిత్య బహుమానము తెచ్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q25",
+    "order": 25,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Acts 2:44-45 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Acts 2:44-45 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Now all who believed were together, and had all things in common, and sold their possessions and goods, and divided them among all, as anyone had need\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"విశ్వసించినవారందరును ఏకముగా ఉండి, తమకు కలిగినదంతయు ఉమ్మడిగా ఉంచుకొనిరి; వారు తమ చరస్థిరాస్తులను అమ్మి, అందరికిని వారి వారి అక్కరకొలది పంచిపెట్టిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Now all who believed were together, and had all things in common, and sold their possessions and goods, and divided them among all, as anyone had need\"",
+    "bibleReference": "Acts 2:44-45",
+    "explanation": "The explosive generosity of the early church eradicating poverty in their midst.",
+    "explanationTelugu": "పరిశుద్ధాత్మ కుమ్మరింపుతో ప్రారంభమైన సంఘములో ఎవరికిని ఏ కొదువ లేకుండ చూచుకొన్న పరస్పర సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q26",
+    "order": 26,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Acts 4:34-35 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Acts 4:34-35 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Nor was there anyone among them who lacked; for all who were possessors of lands or houses sold them, and brought the proceeds... and distributed to each as anyone had need\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారిలో ఎవనికిని ఏ కొదువయు లేకపోయెను; ఏలయనగా భూములు లేక యిండ్లు గలవారందరును వాటిని అమ్మి, అమ్మినవాటి వెల తెచ్చి అపొస్తలుల పాదములయొద్ద పెట్టుచుండిరి; వారు ప్రతివానికి వాని వాని అక్కరకొలది పంచిపెట్టిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Nor was there anyone among them who lacked; for all who were possessors of lands or houses sold them, and brought the proceeds... and distributed to each as anyone had need\"",
+    "bibleReference": "Acts 4:34-35",
+    "explanation": "Selfless community care systematically eliminated destitution from the fellowship.",
+    "explanationTelugu": "విశ్వాసుల త్యాగపూరిత సహకారము వలన ఆదిమ సంఘములో ఏ ఒక్కరును దరిద్రతలో మిగిలిపోలేదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q27",
+    "order": 27,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Acts 6:3 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Acts 6:3 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Therefore, brethren, seek out from among you seven men of good reputation, full of the Holy Spirit and wisdom, whom we may appoint over this business\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"సహోదరులారా, ఆత్మతోను జ్ఞానముతోను నిండుకొని మంచిపేరు పొందిన ఏడుగురు మనుష్యులను మీలో వెదకి చూడుడి; మేము వారిని ఈ పనికి నియమింతుము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Therefore, brethren, seek out from among you seven men of good reputation, full of the Holy Spirit and wisdom, whom we may appoint over this business\"",
+    "bibleReference": "Acts 6:3",
+    "explanation": "Institutionalizing organized, Spirit-led social care alongside Word ministry.",
+    "explanationTelugu": "సంఘములో విధవరాండ్ర అనుదిన పోషణ కొరకు దైవజనుల చేతులమీదుగా ఏర్పాటుచేసిన డీకన్ పరిచర్య.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q28",
+    "order": 28,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Acts 9:36,39 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Acts 9:36,39 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"This woman was full of good works and charitable deeds which she did... and all the widows stood by him weeping, showing the tunics and garments which Dorcas had made\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఈమె సత్కార్యములను ధర్మకార్యములను విస్తారముగా చేసియుండెను... విధవరాండ్రందరును ఏడ్చుచు, దొర్కా తమతోకూడ ఉన్నప్పుడు కుట్టిన అంగీలను వస్త్రములను చూపిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"This woman was full of good works and charitable deeds which she did... and all the widows stood by him weeping, showing the tunics and garments which Dorcas had made\"",
+    "bibleReference": "Acts 9:36,39",
+    "explanation": "Practical sewing and clothing of impoverished widows leaving a legacy of holy love.",
+    "explanationTelugu": "విధవరాండ్రకు వస్త్రములు కుట్టిపెట్టి క్రీస్తు ప్రేమను చేతలలో చూపిన దొర్కా యొక్క ధన్య పరిచర్య.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q29",
+    "order": 29,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Acts 11:29 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Acts 11:29 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Then the disciples, each according to his ability, determined to send relief to the brethren dwelling in Judea\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"అప్పుడు శిష్యులలో ప్రతివాడును తన తన శక్తికొలది యూదయయందు కాపురమున్న సహోదరుల కొరకు సహాయము పంపవలెనని నిర్ణయించుకొనిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Then the disciples, each according to his ability, determined to send relief to the brethren dwelling in Judea\"",
+    "bibleReference": "Acts 11:29",
+    "explanation": "Trans-regional disaster relief binding Gentile and Jewish believers into loving solidarity.",
+    "explanationTelugu": "కరువులో ఉన్న ఇతర ప్రాంత సహోదరులకు అంతియొకయ విశ్వాసులు ఉదారముగా పంపిన కరువు సహాయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q30",
+    "order": 30,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Acts 20:35 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Acts 20:35 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"I have shown you in every way, by laboring like this, that you must support the weak. And remember the words of the Lord Jesus, that He said, 'It is more blessed to give than to receive'\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మీరును ఈలాగు శ్రమపడి బలహీనులను ఆదరింపవలెననియు, పుచ్చుకొనుటకంటె ఇచ్చుట ధన్యమని ప్రభువైన యేసు చెప్పిన మాటలను జ్ఞాపకము చేసికొనవలెననియు... మీకు చూపితిని\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"I have shown you in every way, by laboring like this, that you must support the weak. And remember the words of the Lord Jesus, that He said, 'It is more blessed to give than to receive'\"",
+    "bibleReference": "Acts 20:35",
+    "explanation": "Pastoral leadership prioritizes manual labor and financial sacrifice to support the weak.",
+    "explanationTelugu": "స్వయముగా శ్రమపడి బలహీనులను ఆదుకొనుటయే క్రైస్తవ పరిచర్యకు పరమోన్నత మాదిరి.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q31",
+    "order": 31,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Acts 28:2 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Acts 28:2 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"And the natives showed us unusual kindness; for they kindled a fire and made us all welcome, because of the rain that had fallen and because of the cold\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆ ద్వీపవాసులు మాకు చూపిన దయ ఇంతంత కాదు; ఏలయనగా అప్పుడు కురియుచున్న వర్షమునకును చలికిని వారు నిప్పు రాజేసి మమ్మునందరిని చేర్చుకొనిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"And the natives showed us unusual kindness; for they kindled a fire and made us all welcome, because of the rain that had fallen and because of the cold\"",
+    "bibleReference": "Acts 28:2",
+    "explanation": "Human hospitality from pagans providing life-saving warmth to frozen survivors.",
+    "explanationTelugu": "తీవ్రమైన చలిలో వర్షములో తడిసిన బాటసారులకు అగ్నిని రాజేసి సాంత్వన చేకూర్చిన ద్వీపవాసుల సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q32",
+    "order": 32,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Romans 12:13 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Romans 12:13 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Distributing to the needs of the saints, given to hospitality\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"పరిశుద్ధుల అవసరములలో పాలుపంచుకొనుచు, అతిథిసత్కారము చేయుటకు ఆసక్తి కలిగియుండుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Distributing to the needs of the saints, given to hospitality\"",
+    "bibleReference": "Romans 12:13",
+    "explanation": "Eager, joyful sharing of material wealth and opening of homes to travelers.",
+    "explanationTelugu": "తోటి విశ్వాసుల కొదువలను తీర్చుటలోను ఇండ్లలో అతిథులను చేర్చుకొనుటలోను ముందంజ వేయవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q33",
+    "order": 33,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Romans 15:26 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Romans 15:26 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"For it pleased those from Macedonia and Achaia to make a certain contribution for the poor among the saints who are in Jerusalem\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"యెరూషలేములోని పరిశుద్ధులలో ఉన్న బీదలకొరకు కొంత చందా చేయుటకు మాసిదోనియవారును అకయవారును ఇష్టపడిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"For it pleased those from Macedonia and Achaia to make a certain contribution for the poor among the saints who are in Jerusalem\"",
+    "bibleReference": "Romans 15:26",
+    "explanation": "Financial reciprocity: sharing material blessings with those who brought spiritual gospel riches.",
+    "explanationTelugu": "ఆత్మీయ మేళ్లను పొందిన అన్యజనులు యెరూషలేము పేదలకు భౌతిక ధనసహాయము చేయుట దైవిక బాధ్యత.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q34",
+    "order": 34,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does 1 Corinthians 16:2 provide for Christian community and mercy ministry?",
+    "questionTelugu": "1 Corinthians 16:2 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"On the first day of the week let each one of you lay something aside, storing up as he may prosper\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నేను వచ్చినప్పుడు చందా కూర్చవలసి రాకుండునట్లు, ప్రతి ఆదివారమున మీలో ప్రతివాడును తన సంపాదనకొలది కొంత ధనమును తనయొద్ద నిలువజేయవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"On the first day of the week let each one of you lay something aside, storing up as he may prosper\"",
+    "bibleReference": "1 Corinthians 16:2",
+    "explanation": "Systematic, disciplined weekly giving for relief of impoverished believers.",
+    "explanationTelugu": "క్రమశిక్షణతో కూడిన ప్రతివారపు అర్పణలద్వారా పేద విశ్వాసుల అవసరతలను తీర్చు ఏర్పాటు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q35",
+    "order": 35,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does 2 Corinthians 8:3-4 provide for Christian community and mercy ministry?",
+    "questionTelugu": "2 Corinthians 8:3-4 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"For I bear witness that according to their ability, yes, and beyond their ability, they were freely willing, imploring us with much urgency\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారు తమ శక్తికొలదియే గాక శక్తికి మించియు తమంతట తామే యిచ్చిరని సాక్ష్యమిచ్చుచున్నాను; పరిశుద్ధులకొరకైన పరిచర్యయందు పాలుపొందు కృపను మాకిమ్మని మిక్కిలిగా బతిమాలుకొనిరి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"For I bear witness that according to their ability, yes, and beyond their ability, they were freely willing, imploring us with much urgency\"",
+    "bibleReference": "2 Corinthians 8:3-4",
+    "explanation": "Radical, sacrificial giving overflowing out of severe trial and deep poverty.",
+    "explanationTelugu": "తీవ్రమైన కష్టములలో ఉన్నను ఇతరులకు సహాయము చేయు ఆధిక్యత కొరకు వేడుకొనిన మాసిదోనియ సంఘ ఆదర్శము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q36",
+    "order": 36,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does 2 Corinthians 9:7 provide for Christian community and mercy ministry?",
+    "questionTelugu": "2 Corinthians 9:7 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"So let each one give as he purposes in his heart, not grudgingly or of necessity; for God loves a cheerful giver\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"సణుగుకొనకయు బలవంతముగా కాకయు ప్రతివాడును తన హృదయములో నిశ్చయించుకొనిన ప్రకారము ఇయ్యవలెను; దేవుడు ఉత్సాహముగా ఇచ్చువానిని ప్రేమించును\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"So let each one give as he purposes in his heart, not grudgingly or of necessity; for God loves a cheerful giver\"",
+    "bibleReference": "2 Corinthians 9:7",
+    "explanation": "Grace transforms reluctant obligation into spontaneous, joyous generosity.",
+    "explanationTelugu": "విశ్వాసి చిరునవ్వుతో సంతోషముగా బీదలకు ఇచ్చునప్పుడు దేవుని ఆనందము వారిపై కుమ్మరింపబడును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q37",
+    "order": 37,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Galatians 2:10 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Galatians 2:10 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"They desired only that we should remember the poor, the very thing which I also was eager to do\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మేము బీదలను జ్ఞాపకము చేసికొనవలెనని మాత్రమే వారు కోరిరి; ఆలాగు చేయుటకు నేనును ఆతురపడితిని\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"They desired only that we should remember the poor, the very thing which I also was eager to do\"",
+    "bibleReference": "Galatians 2:10",
+    "explanation": "Apostolic consensus: gospel proclamation is inseparable from constant care for the impoverished.",
+    "explanationTelugu": "సువార్త సత్యమును కాపాడుటతోపాటు బీదలను ఆదుకొనుట అపొస్తలులందరి ఏకగ్రీవ నిర్ణయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q38",
+    "order": 38,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Galatians 6:2 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Galatians 6:2 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Bear one another's burdens, and so fulfill the law of Christ\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఒకని భారములను ఒకడు భరించి, ఈలాగు క్రీస్తు నియమమును సంపూర్ణముగా నెరవేర్చుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Bear one another's burdens, and so fulfill the law of Christ\"",
+    "bibleReference": "Galatians 6:2",
+    "explanation": "Empathic, hands-on shoulder-to-shoulder assistance fulfills Christ's law of love.",
+    "explanationTelugu": "తోటి సహోదరుని ఆత్మీయ మరియు భౌతిక భారములను కలిసి మోయుటయే క్రీస్తు ఆజ్ఞను నెరవేర్చుట.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q39",
+    "order": 39,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Galatians 6:10 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Galatians 6:10 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Therefore, as we have opportunity, let us do good to all, especially to those who are of the household of faith\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"కాబట్టి మనకు సమయము దొరకినకొలది అందరియెడలను, విశేషముగా విశ్వాసగృహమునకు చేరినవారియెడలను మేలు చేయుదము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Therefore, as we have opportunity, let us do good to all, especially to those who are of the household of faith\"",
+    "bibleReference": "Galatians 6:10",
+    "explanation": "Prioritizing the sustained care of our brothers and sisters in the faith family.",
+    "explanationTelugu": "విసుగు చెందకుండా సమస్త ప్రజలకు, ప్రత్యేకముగా విశ్వాస కుటుంబ సభ్యులకు ఉపకారము చేయవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q40",
+    "order": 40,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Ephesians 4:28 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Ephesians 4:28 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Let him who stole steal no longer, but rather let him labor, working with his hands what is good, that he may have something to give him who has need\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దొంగిలించువాడు ఇకమీదట దొంగిలింపక, అక్కరగలవానికి పంచిపెట్టుటకు వీలుకలుగునట్లు తన చేతులతో మంచిపని చేయుచు కష్టపడవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Let him who stole steal no longer, but rather let him labor, working with his hands what is good, that he may have something to give him who has need\"",
+    "bibleReference": "Ephesians 4:28",
+    "explanation": "Regeneration reverses destructive selfishness into diligent labor for philanthropic charity.",
+    "explanationTelugu": "స్వార్థముతో ఇతరులది దోచుకొనే స్థితినుండి కష్టపడి సంపాదించి పేదలకు పంచిపెట్టే స్థాయికి మార్పు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q41",
+    "order": 41,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Philippians 2:4 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Philippians 2:4 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Let each of you look out not only for his own interests, but also for the interests of others\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"మీలో ప్రతివాడును తన సొంతకార్యములను మాత్రమే గాక యితరుల కార్యములను కూడ చూడవలెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Let each of you look out not only for his own interests, but also for the interests of others\"",
+    "bibleReference": "Philippians 2:4",
+    "explanation": "The mind of Christ fundamentally de-centers the ego to care actively for others.",
+    "explanationTelugu": "కేవలము తన సొంత ప్రయోజనములనే కాక ఇతరుల అవసరతలను ఆత్మీయ క్షేమమును విచారించు మనస్సు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q42",
+    "order": 42,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Philippians 2:30 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Philippians 2:30 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Because for the work of Christ he came close to death, not regarding his life, to supply what was lacking in your service toward me\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నాకొరకైన మీ పరిచర్యలో ఉన్న కొదువను తీర్చుటకై అతడు తన ప్రాణమునైనను లక్ష్యపెట్టక, క్రీస్తుయొక్క పనినిమిత్తము చావునకు సిద్ధపడెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Because for the work of Christ he came close to death, not regarding his life, to supply what was lacking in your service toward me\"",
+    "bibleReference": "Philippians 2:30",
+    "explanation": "Sacrificial pastoral care that wades into danger and illness to nurse the saints.",
+    "explanationTelugu": "పౌలు సంరక్షణ నిమిత్తము ప్రాణాపాయకరమైన జబ్బునొందినను నమ్మకముగా సేవచేసిన ఎపఫ్రొదితు త్యాగము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q43",
+    "order": 43,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Philippians 4:10 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Philippians 4:10 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"I rejoiced in the Lord greatly that now at last your care for me has flourished again; though you surely did care, but you lacked opportunity\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"నన్నుగూర్చిన మీ చింత మరల చిగురించినందున ప్రభువునందు బహుగా సంతోషించితిని; నిజముగా మీరు నన్నుగూర్చి చింతించుచుంటిరి గాని సమయము లేకపోయెను\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"I rejoiced in the Lord greatly that now at last your care for me has flourished again; though you surely did care, but you lacked opportunity\"",
+    "bibleReference": "Philippians 4:10",
+    "explanation": "Christian partnership faithfully reviving material support across seasons and distances.",
+    "explanationTelugu": "కాలవ్యవధి గడచినను పౌలుయెడల ఫిలిప్పీ సంఘము చూపిన విడువని ప్రేమ మరియు సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q44",
+    "order": 44,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Colossians 3:12 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Colossians 3:12 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Therefore, as the elect of God, holy and beloved, put on tender mercies, kindness, humility, meekness, longsuffering\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"కావున దేవునిచేత ఏర్పరచబడినవారును పరిశుద్ధులును ప్రియులునైనవారికి తగినట్లు, మీరు జాలిగల మనస్సును, దయాళుత్వమును, వినయమును, సాత్వికమును, దీర్ఘశాంతమును ధరించుకొనుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Therefore, as the elect of God, holy and beloved, put on tender mercies, kindness, humility, meekness, longsuffering\"",
+    "bibleReference": "Colossians 3:12",
+    "explanation": "The wardrobe of the elect: compassionate visceral empathy in daily relationships.",
+    "explanationTelugu": "దేవుని ప్రజలుగా ఏర్పరచబడిన విశ్వాసులు పరస్పర జాలిని దయను వస్త్రమువలె ధరించుకొనవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q45",
+    "order": 45,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does 1 Thessalonians 2:7 provide for Christian community and mercy ministry?",
+    "questionTelugu": "1 Thessalonians 2:7 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"We were gentle among you, just as a nursing mother cherishes her own children. So, affectionately longing for you, we were well pleased to impart our own lives\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"పాలిచ్చు తల్లి తన సొంత బిడ్డలను లాలించునట్లు మేము మీమధ్య సాధువులమై యుంటిమి; మిమ్మును ఎంతగానో ప్రేమించి సువార్తను మాత్రమే కాక మా ప్రాణములను కూడ మీకిచ్చుటకు సిద్ధపడితిమి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"We were gentle among you, just as a nursing mother cherishes her own children. So, affectionately longing for you, we were well pleased to impart our own lives\"",
+    "bibleReference": "1 Thessalonians 2:7",
+    "explanation": "Pastoral nurture that breathes tender maternal affection, imparting life alongside truth.",
+    "explanationTelugu": "తల్లి తన బిడ్డలను లాలించునట్లు విశ్వాసులను ఆదరించి ప్రాణమిచ్చుటకు సిద్ధపడిన అపొస్తల ప్రేమ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q46",
+    "order": 46,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does 1 Thessalonians 5:14 provide for Christian community and mercy ministry?",
+    "questionTelugu": "1 Thessalonians 5:14 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Comfort the fainthearted, uphold the weak, be patient with all\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"దిగులుపడినవారిని ధైర్యపరచుడి, బలహీనులకు ఊతనియ్యుడి, అందరియెడల దీర్ఘశాంతము కలిగియుండుడి అని మిమ్మును హెచ్చరించుచున్నాము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Comfort the fainthearted, uphold the weak, be patient with all\"",
+    "bibleReference": "1 Thessalonians 5:14",
+    "explanation": "Differentiated pastoral care: applying appropriate medicine to anxiety, weakness, and strife.",
+    "explanationTelugu": "ఆత్మీయముగా కుంగిపోయినవారిని లేవనెత్తి బలహీనులను పట్టుకొని ఆదరించు బాధ్యత.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q47",
+    "order": 47,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does 1 Timothy 5:4 provide for Christian community and mercy ministry?",
+    "questionTelugu": "1 Timothy 5:4 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Let them first learn to show piety at home and to repay their parents; for this is good and acceptable before God\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"వారు మొదట తమ యింటివారియెడల భక్తి కనబరచుటకును, తమ తల్లిదండ్రులకు ప్రత్యుపకారము చేయుటకును నేర్చుకొనవలెను; ఇది దేవుని దృష్టికి అనుకూలమై యున్నది\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Let them first learn to show piety at home and to repay their parents; for this is good and acceptable before God\"",
+    "bibleReference": "1 Timothy 5:4",
+    "explanation": "Repaying parental sacrifice through faithful care for elderly mothers and grandmothers.",
+    "explanationTelugu": "వృద్ధాప్యములో ఉన్న తల్లిదండ్రులకు సేవచేసి ప్రత్యుపకారము చేయుట దేవునికి ప్రీతికరమైన భక్తి.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q48",
+    "order": 48,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Philemon 1:17-18 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Philemon 1:17-18 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"If then you count me as a partner, receive him as you would me. But if he has wronged you or owes anything, put that on my account\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"కాబట్టి నీవు నన్ను నీతో పాలివానిగా ఎంచినయెడల నన్ను చేర్చుకొనినట్లు అతనిని చేర్చుకొనుము; అతడు నీకేదైన నష్టము కలుగజేసినను, నీకు అప్పియున్నను, అది నా లెక్కలో ఉంచుము\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"If then you count me as a partner, receive him as you would me. But if he has wronged you or owes anything, put that on my account\"",
+    "bibleReference": "Philemon 1:17-18",
+    "explanation": "Sacrificial pastoral advocacy absorbing another's debt to restore broken relationships.",
+    "explanationTelugu": "ఒక బీద దాసుని విమోచన కొరకు తన సొంత ధనమును పూచీకత్తుగా పెట్టిన పౌలు అద్భుత సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q49",
+    "order": 49,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Hebrews 13:2-3 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Hebrews 13:2-3 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"Do not forget to entertain strangers, for by so doing some have unwittingly entertained angels. Remember the prisoners as if chained with them\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఆతిథ్యము చేయ మరవకుడి; దానివలన కొందరు ఎరుగకయే దేవదూతలకు ఆతిథ్యమిచ్చిరి; బంధకములలో ఉన్నవారితో తామును బంధింపబడినట్టు వారిని జ్ఞాపకము చేసికొనుడి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"Do not forget to entertain strangers, for by so doing some have unwittingly entertained angels. Remember the prisoners as if chained with them\"",
+    "bibleReference": "Hebrews 13:2-3",
+    "explanation": "Empathetic identification with persecuted, incarcerated brothers and sisters.",
+    "explanationTelugu": "చెరసాలలో ఉన్నవారి శ్రమలను తమ స్వంత శరీరములో అనుభవించునట్లు వారిని పరామర్శించవలెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s2_q50",
+    "order": 50,
+    "questionType": "single_choice",
+    "question": "What enduring theological or ethical lesson does Hebrews 13:16 provide for Christian community and mercy ministry?",
+    "questionTelugu": "Hebrews 13:16 లేఖనము ప్రకారం సంఘము చేపట్టవలసిన సహాయ పరిచర్య మరియు ఆత్మీయ బాధ్యతలను గూర్చి ఏ పాఠము నేర్చుకొనవచ్చును?",
+    "options": [
+      "\"But do not forget to do good and to share, for with such sacrifices God is well pleased\"",
+      "To retreat into forty days of ritual cleansing in the desert",
+      "To levy fifty talents of gold upon foreign merchants",
+      "To construct sixty bronze altars outside the camp"
+    ],
+    "optionsTelugu": [
+      "\"ఉపకారమును ధర్మమును చేయ మరవకుడి; అట్టి యాగములు దేవునికి ఇష్టమైనవి\"",
+      "అరణ్యములో నలభై దినములు ఆచారబద్ధమైన శుద్ధీకరణకు వెళ్లిపోవుట",
+      "విదేశీ వర్తకులపై ఏబది బంగారు తలాంతుల పన్ను విధించుట",
+      "పాళెము వెలుపల అరవై ఇత్తడి బలిపీఠములను కట్టుట"
+    ],
+    "correctAnswer": "\"But do not forget to do good and to share, for with such sacrifices God is well pleased\"",
+    "bibleReference": "Hebrews 13:16",
+    "explanation": "Tangible acts of benevolent sharing are recognized as sweet-smelling spiritual sacrifices.",
+    "explanationTelugu": "బీదలకు సహాయము చేయుటయు ధర్మము చేయుటయు దేవునికి ఎంతో ఇష్టమైన ఆత్మీయ బలులు.",
+    "marks": 1
+  }
+];
+
+export const CARE_HARD_MASTERY: QuizQuestion[] = [
+  {
+    "id": "car_h_s3_q01",
+    "order": 1,
+    "questionType": "single_choice",
+    "question": "What theological reality does Genesis 22:14 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Genesis 22:14 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"And Abraham called the name of the place, The-Lord-Will-Provide; as it is said to this day, 'In the Mount of the Lord it shall be provided'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"అబ్రాహాము ఆ స్థలమునకు యెహోవా ఈరే అను పేరు పెట్టెను. కాబట్టి-యెహోవా పర్వతముమీద చూచుకొనును అని నేటివరకు చెప్పబడుచున్నది\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"And Abraham called the name of the place, The-Lord-Will-Provide; as it is said to this day, 'In the Mount of the Lord it shall be provided'\"",
+    "bibleReference": "Genesis 22:14",
+    "explanation": "God preemptively sees human desperate need and sovereignly provides the atoning substitute.",
+    "explanationTelugu": "మన రక్షణ అవసరతను ముందుగానే ఎరిగి బలిపశువును సిద్ధపరచిన యెహోవా ఈరే సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q02",
+    "order": 2,
+    "questionType": "single_choice",
+    "question": "What theological reality does Genesis 28:15 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Genesis 28:15 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"Behold, I am with you and will keep you wherever you go, and will bring you back to this land; for I will not leave you\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఇదిగో నేను నీకు తోడైయుండి, నీవు వెళ్లు ప్రతి స్థలమందు నిన్ను కాపాడుచు ఈ దేశమునకు నిన్ను మరల రప్పించెదను; నిన్ను విడువను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Behold, I am with you and will keep you wherever you go, and will bring you back to this land; for I will not leave you\"",
+    "bibleReference": "Genesis 28:15",
+    "explanation": "Unconditional covenant accompaniment guarding the wandering, flawed patriarch.",
+    "explanationTelugu": "దిక్కుతోచని స్థితిలో పారిపోవుచున్న యాకోబును విడువక నిరంతరము కాపాడిన దేవుని వాగ్దానము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q03",
+    "order": 3,
+    "questionType": "single_choice",
+    "question": "What theological reality does Genesis 48:15 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Genesis 48:15 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"God, before whom my fathers Abraham and Isaac walked, the God who has fed me all my life long unto this day\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నా పితరులైన అబ్రాహామును ఇస్సాకును ఏ దేవుని సన్నిధిని నడచుకొనిరో, నేను పుట్టినది మొదలుకొని నేటివరకు ఏ దేవుడు నన్ను పోషించుచు వచ్చెనో ఆ దేవుడు...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"God, before whom my fathers Abraham and Isaac walked, the God who has fed me all my life long unto this day\"",
+    "bibleReference": "Genesis 48:15",
+    "explanation": "A centenarian looking back over a tumultuous life recognizing unbroken divine shepherd-care.",
+    "explanationTelugu": "తన జీవితమంతయు ప్రతి ఆపదలోను ఆహారమిచ్చి కాపాడిన దేవుని కాపరిత్వమును యాకోబు కొనియాడెను.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q04",
+    "order": 4,
+    "questionType": "single_choice",
+    "question": "What theological reality does Genesis 50:21 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Genesis 50:21 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"Now therefore, do not be afraid; I will provide for you and your little ones. And he comforted them and spoke kindly to them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"కాబట్టి భయపడకుడి, నేను మిమ్మును మీ పిల్లలను పోషించెదను అని చెప్పి వారిని ఆదరించి వారితో ప్రేమగా మాటలాడెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Now therefore, do not be afraid; I will provide for you and your little ones. And he comforted them and spoke kindly to them\"",
+    "bibleReference": "Genesis 50:21",
+    "explanation": "Overcoming deep past trauma to extend restorative, lavish provision to former tormentors.",
+    "explanationTelugu": "కీడు చేసిన అన్నలను ద్వేషింపక కనికరముతో వారిని వారి పిల్లలను పోషించి ఆదరించిన యోసేపు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q05",
+    "order": 5,
+    "questionType": "single_choice",
+    "question": "What theological reality does Exodus 3:7 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Exodus 3:7 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"I have surely seen the oppression of My people who are in Egypt, and have heard their cry... for I know their sorrows. So I have come down to deliver them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను ఐగుప్తులోనున్న నా ప్రజల శ్రమను నిశ్చయముగా చూచితిని... వారి దుఃఖములు నాకు తెలిసేయున్నవి. కాబట్టి ఐగుప్తీయుల చేతిలోనుండి వారిని విడిపించుటకు నేను దిగివచ్చియున్నాను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I have surely seen the oppression of My people who are in Egypt, and have heard their cry... for I know their sorrows. So I have come down to deliver them\"",
+    "bibleReference": "Exodus 3:7",
+    "explanation": "God's compassionate heart is not numb to human agony; He sees, hears, feels, and intervenes.",
+    "explanationTelugu": "తన ప్రజల కన్నీటిని చూచి వారి బాధలను వ్యక్తిగతముగా ఎరిగి విడిపించుటకు దిగివచ్చిన దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q06",
+    "order": 6,
+    "questionType": "single_choice",
+    "question": "What theological reality does Exodus 15:26 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Exodus 15:26 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"If you diligently heed the voice of the Lord your God... I will put none of the diseases on you... for I am the Lord who heals you\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ దేవుడైన యెహోవా వాక్యమును శ్రద్ధగా విని... నా ఆజ్ఞలన్నిటిని గైకొనినయెడల, నేను ఐగుప్తీయులమీదికి రప్పించిన రోగములలో ఏదియు నీమీదికి రానియ్యను; నిన్ను స్వస్థపరచు యెహోవాను నేనే\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"If you diligently heed the voice of the Lord your God... I will put none of the diseases on you... for I am the Lord who heals you\"",
+    "bibleReference": "Exodus 15:26",
+    "explanation": "God covenants to be the sovereign Physician guarding the physical wellness of His people.",
+    "explanationTelugu": "తన ప్రజల రోగములను గాయములను స్వస్థపరచే పరమ వైద్యుడైన యెహోవా రాఫా.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q07",
+    "order": 7,
+    "questionType": "single_choice",
+    "question": "What theological reality does Exodus 16:18 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Exodus 16:18 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"So when they measured it by omers, he who gathered much had nothing over, and he who gathered little had no lack. Every man had gathered according to each one's need\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"వారు ఓమెరుతో దాని కొలిచినప్పుడు, ఎక్కువ కూర్చుకొనినవానికి ఏమియు మిగులలేదు, తక్కువ కూర్చుకొనినవానికి ఏమియు కొదువపడలేదు; ప్రతివాడును తన తన తిండికి తగినట్టుగా కూర్చుకొనెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"So when they measured it by omers, he who gathered much had nothing over, and he who gathered little had no lack. Every man had gathered according to each one's need\"",
+    "bibleReference": "Exodus 16:18",
+    "explanation": "Divine economics: sovereign egalitarian equity in daily bread provision.",
+    "explanationTelugu": "ప్రతివాని అవసరతకు తగినట్లు కొదువలేకుండ పోషించిన పరలోకపు మన్నా అద్భుతము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q08",
+    "order": 8,
+    "questionType": "single_choice",
+    "question": "What theological reality does Exodus 17:6 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Exodus 17:6 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"Behold, I will stand before you there on the rock in Horeb; and you shall strike the rock, and water will come out of it, that the people may drink\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఇదిగో అక్కడ హోరేబులోని బండమీద నేను నీకు ఎదురుగా నిలిచెదను; నీవు ఆ బండను కొట్టగా జనులు తాగునట్లు అందులోనుండి నీళ్లు బయలుదేరును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Behold, I will stand before you there on the rock in Horeb; and you shall strike the rock, and water will come out of it, that the people may drink\"",
+    "bibleReference": "Exodus 17:6",
+    "explanation": "The stricken rock typifying Christ struck for our sins, pouring forth the refreshing water of life.",
+    "explanationTelugu": "ఎండిన అరణ్యములో దాహము తీర్చుటకు బండనుండి సమృద్ధిగా నీటిని రప్పించిన దేవుని సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q09",
+    "order": 9,
+    "questionType": "single_choice",
+    "question": "What theological reality does Deuteronomy 1:31 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Deuteronomy 1:31 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"In the wilderness where you saw how the Lord your God carried you, as a man carries his son, in all the way that you went until you came to this place\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఒకడు తన కుమారుని ఎత్తికొనునట్లు, మీరు ఈ స్థలమునకు వచ్చువరకు మీరు ప్రయాణముచేసిన మార్గమంతటిలో మీ దేవుడైన యెహోవా మిమ్మును ఎత్తికొని వచ్చెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"In the wilderness where you saw how the Lord your God carried you, as a man carries his son, in all the way that you went until you came to this place\"",
+    "bibleReference": "Deuteronomy 1:31",
+    "explanation": "Tender, paternal muscle carrying an exhausted child across treacherous desert terrain.",
+    "explanationTelugu": "తండ్రి బిడ్డను చంకనెత్తుకొని నడిపించినట్లు అరణ్య ప్రయాణమంతటిలో ప్రజలను మోసిన దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q10",
+    "order": 10,
+    "questionType": "single_choice",
+    "question": "What theological reality does Deuteronomy 2:7 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Deuteronomy 2:7 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"For the Lord your God has blessed you in all the work of your hand; He knows your walking through this great wilderness. These forty years the Lord your God has been with you; you have lacked nothing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ దేవుడైన యెహోవా నీ చేతిపనులన్నిటిలోను నిన్ను ఆశీర్వదించెను; ఈ గొప్ప అరణ్యములో నీ సంచారమును ఆయన ఎరిగియున్నాడు; ఈ నలభై సంవత్సరములు నీ దేవుడైన యెహోవా నీకు తోడైయుండెను, నీకేమియు కొదువపడలేదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For the Lord your God has blessed you in all the work of your hand; He knows your walking through this great wilderness. These forty years the Lord your God has been with you; you have lacked nothing\"",
+    "bibleReference": "Deuteronomy 2:7",
+    "explanation": "God's providential GPS: tracking every footstep through uncharted barren wastelands.",
+    "explanationTelugu": "అరణ్య ప్రయాణములో ప్రతి అడుగును కనిపెట్టి నలభై ఏండ్లు ఏ కొదువలేకుండ పోషించిన పరమ తండ్రి.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q11",
+    "order": 11,
+    "questionType": "single_choice",
+    "question": "What theological reality does Deuteronomy 32:10-11 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Deuteronomy 32:10-11 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"He found him in a desert land... He encircled him, He instructed him, He kept him as the apple of His eye. As an eagle stirs up its nest... so the Lord alone did lead him\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"పాడుభూమిలోను... ఎడారిలోను ఆయన వానిని కనుగొనెను; ఆయన వానిని ఆవరించి పరామర్శించెను, తన కనుపాపవలె వానిని కాపాడెను. పక్షిరాజు తన గూడు రేపి, తన పిల్లలపై తన్నుకొనుచు... తన రెక్కలమీద వాటిని మోయునట్లు...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He found him in a desert land... He encircled him, He instructed him, He kept him as the apple of His eye. As an eagle stirs up its nest... so the Lord alone did lead him\"",
+    "bibleReference": "Deuteronomy 32:10-11",
+    "explanation": "The fierce, maternal tenderness of an eagle training and catching her falling eaglets.",
+    "explanationTelugu": "తన కనుపాపవలె కాపాడుచు పక్షిరాజువలె రెక్కలపై మోసి రక్షించిన దేవుని అద్భుత వాత్సల్యము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q12",
+    "order": 12,
+    "questionType": "single_choice",
+    "question": "What theological reality does Deuteronomy 33:27 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Deuteronomy 33:27 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"The eternal God is your refuge, and underneath are the everlasting arms; He will thrust out the enemy from before you\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"శాశ్వతుడైన దేవుడు నీకు నివాసస్థలము, ఆయన నిత్యమైన బాహువులు నీ క్రింద ఉన్నవి; ఆయన నీ యెదుటనుండి శత్రువును వెళ్లగొట్టును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The eternal God is your refuge, and underneath are the everlasting arms; He will thrust out the enemy from before you\"",
+    "bibleReference": "Deuteronomy 33:27",
+    "explanation": "No believer can fall beneath the safety net of God's indestructible everlasting arms.",
+    "explanationTelugu": "ఎంతటి అగాధములో పడిపోయినను విశ్వాసిని పట్టుకొని ఆదుకొను నిత్యమైన దైవిక బాహువులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q13",
+    "order": 13,
+    "questionType": "single_choice",
+    "question": "What theological reality does Ruth 2:12 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Ruth 2:12 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"The Lord repay your work, and a full reward be given you by the Lord God of Israel, under whose wings you have come for refuge\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవా నీవు చేసినదానికి ప్రతిఫలమిచ్చును గాక; ఇశ్రాయేలీయుల దేవుడైన యెహోవా రెక్కలక్రింద ఆశ్రయము పొందుటకు నీవు వచ్చితివి; ఆయనవలన నీకు సంపూర్ణ బహుమానము కలుగును గాక\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord repay your work, and a full reward be given you by the Lord God of Israel, under whose wings you have come for refuge\"",
+    "bibleReference": "Ruth 2:12",
+    "explanation": "The protective maternal wings of Yahweh sheltering foreign outcasts who trust in Him.",
+    "explanationTelugu": "దేవుని రెక్కల నీడలోనికి ఆశ్రయముకొరకు వచ్చిన పేద విధవరాలికి లభించిన సంపూర్ణ భద్రత.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q14",
+    "order": 14,
+    "questionType": "single_choice",
+    "question": "What theological reality does Psalm 34:10 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Psalm 34:10 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"The young lions lack and suffer hunger; but those who seek the Lord shall not lack any good thing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"సింహపు పిల్లలు లేమిగలవై ఆకలిగొనును; యెహోవాను ఆశ్రయించువారికి ఏ మేలు కొదువై యుండదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The young lions lack and suffer hunger; but those who seek the Lord shall not lack any good thing\"",
+    "bibleReference": "Psalm 34:10",
+    "explanation": "Even the fiercest apex predators may starve, but humble believers under God's care lack nothing.",
+    "explanationTelugu": "బలముగల సింహములే ఆకలిగొనవచ్చును గాని దేవుని ఆశ్రయించు విశ్వాసులకు ఏ మేలు కొదువపడదు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q15",
+    "order": 15,
+    "questionType": "single_choice",
+    "question": "What theological reality does Psalm 37:25 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Psalm 37:25 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"I have been young, and now am old; yet I have not seen the righteous forsaken, nor his descendants begging bread\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను చిన్నవాడనై యుంటిని ఇప్పుడు ముసలివాడనై యున్నాను; అయినను నీతిమంతుడు విడువబడుట గాని వాని సంతానము భిక్షమెత్తుకొనుట గాని నేను చూచియుండలేదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I have been young, and now am old; yet I have not seen the righteous forsaken, nor his descendants begging bread\"",
+    "bibleReference": "Psalm 37:25",
+    "explanation": "Lifelong empirical testimony to God's generational fidelity providing bread for the righteous.",
+    "explanationTelugu": "తరతరములకు నీతిమంతులను వారి సంతానమును ఆకలిదప్పులలో విడువక కాపాడు దేవుని నమ్మకత్వము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q16",
+    "order": 16,
+    "questionType": "single_choice",
+    "question": "What theological reality does Psalm 68:19 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Psalm 68:19 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"Blessed be the Lord, who daily loads us with benefits, the God of our salvation! Selah\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ప్రభువు స్తుతింపబడును గాక, అనుదినము ఆయన మా భారము భరించుచున్నాడు; రక్షణకర్తయైన దేవుడే మా భారము భరించుచున్నాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Blessed be the Lord, who daily loads us with benefits, the God of our salvation! Selah\"",
+    "bibleReference": "Psalm 68:19",
+    "explanation": "Daily divine logistics: God faithfully carries our heavy loads every single dawn.",
+    "explanationTelugu": "ప్రతి ఉదయమున మన భారములను తానే స్వయముగా భరించి మోయు రక్షణకర్తయైన దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q17",
+    "order": 17,
+    "questionType": "single_choice",
+    "question": "What theological reality does Psalm 91:4 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Psalm 91:4 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"He shall cover you with His feathers, and under His wings you shall take refuge; His truth shall be your shield and buckler\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఆయన తన రెక్కలతో నిన్ను కప్పును, ఆయన రెక్కలక్రింద నీకు ఆశ్రయము కలుగును; ఆయన సత్యము కేడెమును డాలునై యున్నది\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He shall cover you with His feathers, and under His wings you shall take refuge; His truth shall be your shield and buckler\"",
+    "bibleReference": "Psalm 91:4",
+    "explanation": "Tender, feathery shelter protecting the believer from deadly plagues and terror.",
+    "explanationTelugu": "పక్షి తన పిల్లలను రెక్కలక్రింద దాచునట్లు శత్రువుల బాణములనుండి మనలను కాపాడు దైవిక సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q18",
+    "order": 18,
+    "questionType": "single_choice",
+    "question": "What theological reality does Psalm 107:9 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Psalm 107:9 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"For He satisfies the longing soul, and fills the hungry soul with goodness\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఏలయనగా ఆయన ఆశగల ప్రాణమును తృప్తిపరచుచున్నాడు, ఆకలిగొన్నవారి ప్రాణమును మేలుతో నింపుచున్నాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For He satisfies the longing soul, and fills the hungry soul with goodness\"",
+    "bibleReference": "Psalm 107:9",
+    "explanation": "Spiritual and physical hunger met completely in the generous banquets of divine grace.",
+    "explanationTelugu": "ఆత్మయందును శరీరమందును ఆకలిగొన్నవారిని తన పరిపూర్ణ మేళ్లతో తృప్తిపరచు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q19",
+    "order": 19,
+    "questionType": "single_choice",
+    "question": "What theological reality does Psalm 121:3-4 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Psalm 121:3-4 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"He who keeps you will not slumber. Behold, He who keeps Israel shall neither slumber nor sleep\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ పాదము తొట్రిల్లనియ్యడు, నిన్ను కాపాడువాడు కునుకడు; ఇదిగో ఇశ్రాయేలును కాపాడువాడు కునుకడు నిద్రపోడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He who keeps you will not slumber. Behold, He who keeps Israel shall neither slumber nor sleep\"",
+    "bibleReference": "Psalm 121:3-4",
+    "explanation": "God's unwearied, sleepless sentinel-care guarding His children around the clock.",
+    "explanationTelugu": "రాత్రింబగళ్లు రెప్పవాల్చక మనలను కాపలాకాయు నిద్రపోని పరలోకపు రక్షకుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q20",
+    "order": 20,
+    "questionType": "single_choice",
+    "question": "What theological reality does Psalm 121:5-6 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Psalm 121:5-6 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"The Lord is your keeper; the Lord is your shade at your right hand. The sun shall not strike you by day, nor the moon by night\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవాయే నిన్ను కాపాడువాడు; నీ కుడిచేతిప్రక్కన యెహోవా నీకు నీడగా ఉండును. పగటివేళ ఎండయైనను రాత్రివేళ వెన్నెలయైనను నీకేమియు అపాయము చేయదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord is your keeper; the Lord is your shade at your right hand. The sun shall not strike you by day, nor the moon by night\"",
+    "bibleReference": "Psalm 121:5-6",
+    "explanation": "Cosmic environmental protection shielding the soul from unseen natural perils.",
+    "explanationTelugu": "పగటివేళ శ్రమల ఎండయైనను రాత్రివేళ భయములైనను మనకు తాకకుండా కాపాడు దైవిక నీడ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q21",
+    "order": 21,
+    "questionType": "single_choice",
+    "question": "What theological reality does Psalm 121:8 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Psalm 121:8 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"The Lord shall preserve your going out and your coming in from this time forth, and even forevermore\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవా ఏ హానియు రాకుండ నిన్ను కాపాడును; ఆయన నీ ప్రాణమును కాపాడును. ఇది మొదలుకొని నిరంతరము నీ రాకపోకలయందు యెహోవా నిన్ను కాపాడును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord shall preserve your going out and your coming in from this time forth, and even forevermore\"",
+    "bibleReference": "Psalm 121:8",
+    "explanation": "Comprehensive spatial and temporal coverage protecting the entire scope of life.",
+    "explanationTelugu": "మన జీవిత ప్రయాణములోని ప్రతి రాకపోకలయందు నిరంతరము తోడైయుండు సంపూర్ణ భద్రత.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q22",
+    "order": 22,
+    "questionType": "single_choice",
+    "question": "What theological reality does Psalm 145:16 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Psalm 145:16 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"You open Your hand and satisfy the desire of every living thing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"సకల ప్రాణుల కన్నులు నీవైపు చూచుచున్నవి, తగిన కాలమందు నీవు వాటికి ఆహారమిచ్చుచున్నావు; నీవు నీ గుప్పిలి విప్పి ప్రతి జీవి వాంఛను తృప్తిపరచుచున్నావు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"You open Your hand and satisfy the desire of every living thing\"",
+    "bibleReference": "Psalm 145:16",
+    "explanation": "God's open-handed planetary benevolence feeding the entire biosphere effortlessly.",
+    "explanationTelugu": "తన గుప్పిలిని విప్పి సమస్త జీవరాశులకు సమయమునకు ఆహారమిచ్చి తృప్తిపరచు సృష్టికర్త.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q23",
+    "order": 23,
+    "questionType": "single_choice",
+    "question": "What theological reality does Psalm 146:7,9 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Psalm 146:7,9 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"Who executes justice for the oppressed, who gives food to the hungry. The Lord gives freedom to the prisoners... The Lord relieves the fatherless and widow\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఆయన బాధపడువారికి న్యాయము తీర్చును, ఆకలిగొన్నవారికి ఆహారము నిచ్చును; యెహోవా బంధింపబడినవారిని విడుదల చేయును... దిక్కులేనివారిని విధవరాండ్రను ఆయన ఆదరించును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Who executes justice for the oppressed, who gives food to the hungry. The Lord gives freedom to the prisoners... The Lord relieves the fatherless and widow\"",
+    "bibleReference": "Psalm 146:7,9",
+    "explanation": "God's continuous judicial and nutritional intervention for the world's most powerless.",
+    "explanationTelugu": "బాధించబడువారి పక్షమున నిలబడి ఆకలిగొన్నవారికి అన్నంపెట్టి అనాథలను ఆదరించు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q24",
+    "order": 24,
+    "questionType": "single_choice",
+    "question": "What theological reality does Proverbs 3:6 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Proverbs 3:6 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"In all your ways acknowledge Him, and He shall direct your paths\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీ స్వబుద్ధిని ఆధారము చేసికొనక నీ పూర్ణహృదయముతో యెహోవాయందు నమ్మకముంచుము; నీ ప్రవర్తన అంతటియందు ఆయన అధికారమునకు ఒప్పుకొనుము, అప్పుడు ఆయన నీ త్రోవలను సరాళము చేయును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"In all your ways acknowledge Him, and He shall direct your paths\"",
+    "bibleReference": "Proverbs 3:6",
+    "explanation": "Surrendering human navigational control to the infallible care of the divine Guide.",
+    "explanationTelugu": "మన ఆలోచనలను విడిచి దేవునిపై ఆధారపడినప్పుడు ఆయన మన అడుగులను క్షేమముగా నడిపించును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q25",
+    "order": 25,
+    "questionType": "single_choice",
+    "question": "What theological reality does Isaiah 25:4 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Isaiah 25:4 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"For You have been a strength to the poor, a strength to the needy in his distress, a refuge from the storm, a shade from the heat\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఏలయనగా భయంకరుల ఊపిరి గోడకొట్టు గాలివానవలె ఉండగా, నీవు దీనులకు శైలముగాను, శ్రమనొందిన దరిద్రులకు కోటగాను, గాలివాన తగలకుండ ఆశ్రయముగాను, ఎండ తగలకుండ నీడగాను ఉంటివి\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For You have been a strength to the poor, a strength to the needy in his distress, a refuge from the storm, a shade from the heat\"",
+    "bibleReference": "Isaiah 25:4",
+    "explanation": "God provides impenetrable atmospheric shelter against the violent storms of oppression.",
+    "explanationTelugu": "శత్రువుల తుఫానులమధ్య పేదలకు కొండకోటగాను మండే ఎండలో చల్లని నీడగాను నిలుచు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q26",
+    "order": 26,
+    "questionType": "single_choice",
+    "question": "What theological reality does Isaiah 32:2 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Isaiah 32:2 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"A man will be as a hiding place from the wind, and a cover from the tempest, as rivers of water in a dry place, as the shadow of a great rock in a weary land\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఒకడు గాలికి మరుగైన చోటువలెను గాలివానకు చాటైన చోటువలెను ఉండును; ఎండినచోట నీళ్ల కాలువలవలెను, అలసిన దేశములో గొప్ప బండ నీడవలెను ఉండును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"A man will be as a hiding place from the wind, and a cover from the tempest, as rivers of water in a dry place, as the shadow of a great rock in a weary land\"",
+    "bibleReference": "Isaiah 32:2",
+    "explanation": "Messianic pastoral shelter: Jesus Christ as the rock, river, and shelter for tired travelers.",
+    "explanationTelugu": "పాపపు ఎడారిలో అలసిపోయిన మానవాళికి జీవజలపు నదిగాను బండ నీడగాను ప్రత్యక్షమైన క్రీస్తు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q27",
+    "order": 27,
+    "questionType": "single_choice",
+    "question": "What theological reality does Isaiah 41:17-18 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Isaiah 41:17-18 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"The poor and needy seek water, but there is none, their tongues fail for thirst. I, the Lord, will hear them; I, the God of Israel, will not forsake them. I will open rivers in desolate heights\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"దీనులును దరిద్రులును నీళ్లు వెదకుచున్నారు, నీళ్లు దొరకక వారి నాలుక దప్పిచేత ఎండిపోవుచున్నది; యెహోవానైన నేను వారికి ఉత్తరమిచ్చెదను, ఇశ్రాయేలు దేవుడనైన నేను వారిని విడిచిపెట్టను. మెట్టలమీద నదులను ఊటలను తెరచెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The poor and needy seek water, but there is none, their tongues fail for thirst. I, the Lord, will hear them; I, the God of Israel, will not forsake them. I will open rivers in desolate heights\"",
+    "bibleReference": "Isaiah 41:17-18",
+    "explanation": "God sovereignly re-engineers geography to pour rivers into barren heights for parched souls.",
+    "explanationTelugu": "దాహముతో నాలుక ఎండిపోయిన దీనులకొరకు ఎడారిలో సైతం నదులను ప్రవహింపజేయు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q28",
+    "order": 28,
+    "questionType": "single_choice",
+    "question": "What theological reality does Isaiah 43:2 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Isaiah 43:2 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"When you pass through the waters, I will be with you; and through the rivers, they shall not overflow you. When you walk through the fire, you shall not be burned\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నీవు జలములలో పడి దాటునప్పుడు నేను నీకు తోడైయుందును, నదులలో పడి వెళ్లునప్పుడు అవి నీమీద పొర్లిపారవు; నీవు అగ్నిమధ్యను నడచునప్పుడు కాలిపోవు, జ్వాలలు నిన్ను కాల్చవు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"When you pass through the waters, I will be with you; and through the rivers, they shall not overflow you. When you walk through the fire, you shall not be burned\"",
+    "bibleReference": "Isaiah 43:2",
+    "explanation": "Divine presence guarantees immunity from destruction in floods and fires of persecution.",
+    "explanationTelugu": "జీవిత జలములు నదులు అగ్నిశ్రమలు ఎదురైనను మనలను ముంచివేయకుండా కాపాడు దేవుని అభయము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q29",
+    "order": 29,
+    "questionType": "single_choice",
+    "question": "What theological reality does Jeremiah 29:11 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Jeremiah 29:11 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"For I know the thoughts that I think toward you, says the Lord, thoughts of peace and not of evil, to give you a future and a hope\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను మిమ్మునుగూర్చి తలంచుచున్న తలంపులను నేనెరుగుదును, అవి సమాధానకరమైన తలంపులే గాని హానికరమైనవి కావు, రాబోవు కాలమందు మీకు నిరీక్షణ కలుగునట్లుగా చేయుదును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For I know the thoughts that I think toward you, says the Lord, thoughts of peace and not of evil, to give you a future and a hope\"",
+    "bibleReference": "Jeremiah 29:11",
+    "explanation": "Divine architectural care: every season of discipline is purposefully mapped toward hope.",
+    "explanationTelugu": "నిర్వాసన శ్రమలలో ఉన్న ప్రజలకొరకు సమాధానమును నిరీక్షణను సిద్ధపరచిన దేవుని సంరక్షణ తలంపులు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q30",
+    "order": 30,
+    "questionType": "single_choice",
+    "question": "What theological reality does Jeremiah 31:10 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Jeremiah 31:10 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"He who scattered Israel will gather him, and keep him as a shepherd does his flock\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఇశ్రాయేలును చెదరగొట్టినవాడు అతనిని సమకూర్చును, కాపరి తన మందను కాపాడునట్లు అతనిని కాపాడును అని అన్యజనులకు చాటించుడి\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He who scattered Israel will gather him, and keep him as a shepherd does his flock\"",
+    "bibleReference": "Jeremiah 31:10",
+    "explanation": "Global ingathering and sovereign pastoral custody over scattered exiles.",
+    "explanationTelugu": "చెదిరిపోయిన తన ప్రజలను నలుదిక్కులనుండి సమకూర్చి కాపరివలె కాపాడు విమోచకుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q31",
+    "order": 31,
+    "questionType": "single_choice",
+    "question": "What theological reality does Ezekiel 34:11-12 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Ezekiel 34:11-12 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"For thus says the Lord God: 'Indeed I Myself will search for My sheep and seek them out. As a shepherd seeks out his flock... so will I seek out My sheep and deliver them'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ప్రభువైన యెహోవా ఈలాగు సెలవిచ్చుచున్నాడు-ఇదిగో నేనే నా గొర్రెలను వెదకి వాటిని పరామర్శించెదను; కాపరి చెదిరిపోయిన తన గొర్రెలమధ్య ఉండు దినమున తన మందను వెదకునట్లు నేను నా గొర్రెలను వెదకెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For thus says the Lord God: 'Indeed I Myself will search for My sheep and seek them out. As a shepherd seeks out his flock... so will I seek out My sheep and deliver them'\"",
+    "bibleReference": "Ezekiel 34:11-12",
+    "explanation": "Yahweh Himself descends into the wilderness to conduct the search-and-rescue mission.",
+    "explanationTelugu": "చెదిరిపోయిన ప్రతి గొర్రెను స్వయముగా వెదకి కనుగొని రక్షించే పరమ కాపరియైన యెహోవా.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q32",
+    "order": 32,
+    "questionType": "single_choice",
+    "question": "What theological reality does Ezekiel 34:15-16 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Ezekiel 34:15-16 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"I will feed My flock, and I will make them lie down,' says the Lord God. 'I will seek what was lost and bring back what was driven away, bind up the broken and strengthen what was sick'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేనే నా మందను మేపెదను, నేను వాటిని పరుండజేసెదను; తప్పిపోయినదానిని నేను వెదకెదను, తోలివేయబడినదానిని మరల తోడుకొనివచ్చెదను, గాయపడినదానికి కట్టుకట్టెదను, రోగముగలదానిని బలపరచెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I will feed My flock, and I will make them lie down,' says the Lord God. 'I will seek what was lost and bring back what was driven away, bind up the broken and strengthen what was sick'\"",
+    "bibleReference": "Ezekiel 34:15-16",
+    "explanation": "The fourfold clinical pastoral restoration: finding the lost, retrieving the driven, binding the fractured, healing the sick.",
+    "explanationTelugu": "తప్పిపోయినదానిని వెదకి, తోలివేయబడినదానిని రప్పించి, గాయపడినదానికి కట్టుకట్టి బలపరచు దేవుని సంపూర్ణ సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q33",
+    "order": 33,
+    "questionType": "single_choice",
+    "question": "What theological reality does Hosea 11:3-4 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Hosea 11:3-4 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"I taught Ephraim to walk, taking them by their arms; but they did not know that I healed them. I drew them with gentle cords, with bands of love, and I stooped down and fed them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను ఎఫ్రాయిమునకు నడక నేర్పితిని, నా బాహువులమీద వారిని ఎత్తికొంటిని; అయినను నేను వారిని స్వస్థపరచితినని వారు తెలిసికొనరైరి; మనుష్యులను ఆకర్షించు త్రాళ్లతోను ప్రేమబంధములతోను నేను వారిని ఆకర్షించితిని...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"I taught Ephraim to walk, taking them by their arms; but they did not know that I healed them. I drew them with gentle cords, with bands of love, and I stooped down and fed them\"",
+    "bibleReference": "Hosea 11:3-4",
+    "explanation": "Parental toddler-training: bending down low to patiently teach stumbling Israel how to walk.",
+    "explanationTelugu": "చిన్నబిడ్డకు నడక నేర్పినట్లు చేయిపట్టి నడిపించి ప్రేమతో ఆహారము పెట్టిన దేవుని మాతృవాత్సల్యము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q34",
+    "order": 34,
+    "questionType": "single_choice",
+    "question": "What theological reality does Nahum 1:7 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Nahum 1:7 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"The Lord is good, a stronghold in the day of trouble; and He knows those who trust in Him\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యెహోవా ఉత్తముడు, ఆపద్దినమందు ఆయన ఆశ్రయదుర్గము; తనయందు నమ్మకముంచువారిని ఆయన ఎరుగును.\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"The Lord is good, a stronghold in the day of trouble; and He knows those who trust in Him\"",
+    "bibleReference": "Nahum 1:7",
+    "explanation": "Divine relational intimacy: God intimately acknowledges and protects every trusting soul.",
+    "explanationTelugu": "ఆపత్కాలములో శరణ్యమైన కోటగా నిలిచి తన్ను నమ్ముకొనువారిని వ్యక్తిగతముగా గుర్తించి కాపాడు దేవుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q35",
+    "order": 35,
+    "questionType": "single_choice",
+    "question": "What theological reality does Habakkuk 3:17-18 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Habakkuk 3:17-18 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"Though the fig tree may not blossom, nor fruit be on the vines... yet I will rejoice in the Lord, I will joy in the God of my salvation\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"అంజూరపు చెట్టు పూయకుండినను, ద్రాక్షతీగెలమీద పండ్లు లేకపోయినను, ఒలీవచెట్లు ఫలింపకపోయినను... నేను యెహోవాయందు ఆనందించెదను, నా రక్షణకర్తయైన నా దేవునియందు సంతోషించెదను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Though the fig tree may not blossom, nor fruit be on the vines... yet I will rejoice in the Lord, I will joy in the God of my salvation\"",
+    "bibleReference": "Habakkuk 3:17-18",
+    "explanation": "Triumphant faith that rests securely in God's pastoral goodness even amidst total agricultural collapse.",
+    "explanationTelugu": "సర్వసంపదలు కరువులో కొట్టుకుపోయినను దేవుని రక్షణ సంరక్షణను నమ్మి విజయగానము చేయు విశ్వాసము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q36",
+    "order": 36,
+    "questionType": "single_choice",
+    "question": "What theological reality does Matthew 11:28 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Matthew 11:28 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"Come to Me, all you who labor and are heavy laden, and I will give you rest. Take My yoke upon you and learn from Me, for I am gentle and lowly in heart\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ప్రయాసపడి భారము మోసికొనుచున్న సమస్త జనులారా, నాయొద్దకు రండి, నేను మీకు విశ్రాంతి కలుగజేతును. నేను సాత్వికుడను దీనమనస్సు గలవాడను గనుక మీమీద నా కాడి ఎత్తికొని నాయొద్ద నేర్చుకొనుడి\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Come to Me, all you who labor and are heavy laden, and I will give you rest. Take My yoke upon you and learn from Me, for I am gentle and lowly in heart\"",
+    "bibleReference": "Matthew 11:28",
+    "explanation": "Christ's gentle pastoral invitation replacing religious legalistic exhaustion with soul-rest.",
+    "explanationTelugu": "జీవిత భారములతో అలసిపోయినవారికి తన సాత్వికమైన ప్రేమతో నిత్య విశ్రాంతినిచ్చు రక్షకుడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q37",
+    "order": 37,
+    "questionType": "single_choice",
+    "question": "What theological reality does Luke 15:4-5 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Luke 15:4-5 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"What man of you, having a hundred sheep, if he loses one of them, does not leave the ninety-nine in the wilderness, and go after the one which is lost until he finds it? And when he has found it, he lays it on his shoulders, rejoicing\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"మీలో ఏ మనుష్యునికైనను నూరు గొర్రెలు కలిగియుండగా వాటిలో ఒకటి తప్పిపోయినయెడల, అతడు తొంబది తొమ్మిదింటిని అరణ్యములో విడిచిపెట్టి, తప్పిపోయినది దొరుకువరకు దానిని వెదకవెళ్లునా? అది దొరికినప్పుడు సంతోషముతో దానిని తన భుజములమీద వేసికొనును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"What man of you, having a hundred sheep, if he loses one of them, does not leave the ninety-nine in the wilderness, and go after the one which is lost until he finds it? And when he has found it, he lays it on his shoulders, rejoicing\"",
+    "bibleReference": "Luke 15:4-5",
+    "explanation": "Relentless individual care: the shepherd carries the weary wanderer on his shoulders rejoicing.",
+    "explanationTelugu": "తప్పిపోయిన గొర్రెను కనుగొని సంతోషముతో తన భుజములపై మోసికొని ఇంటికి చేర్చుకొను కాపరి ప్రేమ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q38",
+    "order": 38,
+    "questionType": "single_choice",
+    "question": "What theological reality does John 6:39 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "John 6:39 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"This is the will of the Father who sent Me, that of all He has given Me I should lose nothing, but should raise it up at the last day\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఆయన నాకు అనుగ్రహించినవాటిలో నేనేమియు పోగొట్టుకొనక, అంత్యదినమున దాని లేపుటయే నన్ను పంపిన తండ్రి చిత్తమై యున్నది\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"This is the will of the Father who sent Me, that of all He has given Me I should lose nothing, but should raise it up at the last day\"",
+    "bibleReference": "John 6:39",
+    "explanation": "Eternal security guaranteed: Christ's sovereign pastoral grip refuses to drop a single believer.",
+    "explanationTelugu": "తండ్రి తన చేతికిచ్చిన విశ్వాసులలో ఒక్కనినైనను పోగొట్టుకొనకుండా కాపాడు రక్షకుని శాశ్వత సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q39",
+    "order": 39,
+    "questionType": "single_choice",
+    "question": "What theological reality does John 10:28-29 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "John 10:28-29 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"And I give them eternal life, and they shall never perish; neither shall anyone snatch them out of My hand. My Father, who has given them to Me, is greater than all\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను వాటికి నిత్యజీవము నిచ్చుచున్నాను గనుక అవి ఎన్నటికిని నశింపవు, ఎవడును వాటిని నా చేతిలోనుండి అపహరింపడు; వాటిని నాకిచ్చిన నా తండ్రి అందరికంటె గొప్పవాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"And I give them eternal life, and they shall never perish; neither shall anyone snatch them out of My hand. My Father, who has given them to Me, is greater than all\"",
+    "bibleReference": "John 10:28-29",
+    "explanation": "The double-fisted grip of omnipotence: held securely in the hand of the Son and of the Father.",
+    "explanationTelugu": "క్రీస్తు చేతిలోను తండ్రి చేతిలోను భద్రపరచబడిన విశ్వాసిని ఏ శత్రువును అపహరింపజాలడు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q40",
+    "order": 40,
+    "questionType": "single_choice",
+    "question": "What theological reality does John 17:12 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "John 17:12 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"While I was with them in the world, I kept them in Your name. Those whom You gave Me I have kept; and none of them is lost except the son of perdition\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను వారితోకూడ ఉన్నప్పుడు నీవు నాకు అనుగ్రహించిన నీ నామమందు వారిని కాపాడితిని; నేను వారిని భద్రపరచితిని గనుక లేఖనము నెరవేరునట్లు నాశనపుత్రుడు తప్ప వారిలో ఎవడును నశింపలేదు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"While I was with them in the world, I kept them in Your name. Those whom You gave Me I have kept; and none of them is lost except the son of perdition\"",
+    "bibleReference": "John 17:12",
+    "explanation": "Christ's high-priestly custody shielding His disciples from cosmic demonic destruction.",
+    "explanationTelugu": "లోకములో ఉన్న శిష్యులను అపవాది చేతిలో పడకుండా తన నామమందు భద్రపరచిన యేసు క్రీస్తు విజ్ఞాపన.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q41",
+    "order": 41,
+    "questionType": "single_choice",
+    "question": "What theological reality does John 18:8-9 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "John 18:8-9 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"Jesus answered, 'I have told you that I am He. Therefore if you seek Me, let these go their way,' that the saying might be fulfilled which He spoke, 'Of those whom You gave Me I have lost none'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"యేసు-నేనే ఆయననని మీతో చెప్పితిని గనుక మీరు నన్ను వెదకుచున్నయెడల వీరిని పోనియ్యుడని చెప్పెను; నీవు నాకు అనుగ్రహించినవారిలో ఎవనిని నేనెంతమాత్రమును పోగొట్టుకొనలేదని తాను చెప్పిన మాట నెరవేరునట్లు ఈలాగు జరిగెను\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Jesus answered, 'I have told you that I am He. Therefore if you seek Me, let these go their way,' that the saying might be fulfilled which He spoke, 'Of those whom You gave Me I have lost none'\"",
+    "bibleReference": "John 18:8-9",
+    "explanation": "Christ shielding His vulnerable flock by offering Himself exclusively to the executioners.",
+    "explanationTelugu": "శిష్యుల ప్రాణములకు ఏ హాని కలుగకుండా తన్నుతాను శత్రువులకు అప్పగించుకొని వారిని కాపాడిన మంచి కాపరి.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q42",
+    "order": 42,
+    "questionType": "single_choice",
+    "question": "What theological reality does Romans 8:32 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Romans 8:32 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"He who did not spare His own Son, but delivered Him up for us all, how shall He not with Him also freely give us all things?\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"తన సొంతకుమారుని అనుగ్రహించుటకు వెనుకతీయక మన అందరికొరకు ఆయనను అప్పగించినవాడు ఆయనతోపాటు సమస్తమును మనకెందుకు ఉచితముగా అనుగ్రహింపడు?\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"He who did not spare His own Son, but delivered Him up for us all, how shall He not with Him also freely give us all things?\"",
+    "bibleReference": "Romans 8:32",
+    "explanation": "The ultimate theological guarantee: the Father who sacrificed His greatest Treasure will surely provide lesser daily needs.",
+    "explanationTelugu": "మనకొరకు తన ప్రియ కుమారుని అర్పించిన పరలోకపు తండ్రి సమస్త ఆశీర్వాదములను మనకు ఉచితముగా సమకూర్చును.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q43",
+    "order": 43,
+    "questionType": "single_choice",
+    "question": "What theological reality does 1 Corinthians 10:13 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "1 Corinthians 10:13 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"God is faithful, who will not allow you to be tempted beyond what you are able, but with the temptation will also make the way of escape, that you may be able to bear it\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"దేవుడు నమ్మదగినవాడు; మీరు సహింపగలిగినంతకంటె ఎక్కువగా ఆయన మిమ్మును శోధింపబడనియ్యడు; అంతేకాదు, సహింపగలుగుటకు ఆయన శోధనతోకూడ తప్పించుకొను మార్గమును కలుగజేయును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"God is faithful, who will not allow you to be tempted beyond what you are able, but with the temptation will also make the way of escape, that you may be able to bear it\"",
+    "bibleReference": "1 Corinthians 10:13",
+    "explanation": "Thermostatic spiritual care: God monitors the intensity of trial and always prepares the rescue hatch.",
+    "explanationTelugu": "శ్రమల తీవ్రతను కనిపెట్టి విశ్వాసి భరించగలిగినంతవరకే అనుమతించి తప్పించు మార్గమును సిద్ధపరచు దేవుని సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q44",
+    "order": 44,
+    "questionType": "single_choice",
+    "question": "What theological reality does 2 Corinthians 1:3-4 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "2 Corinthians 1:3-4 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"Blessed be the God and Father of our Lord Jesus Christ, the Father of mercies and God of all comfort, who comforts us in all our tribulation, that we may be able to comfort those who are in any trouble\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"మన ప్రభువైన యేసుక్రీస్తుయొక్క తండ్రియైన దేవుడు, కనికరములు చూపు తండ్రియు, సమస్తమైన ఆదరణను అనుగ్రహించు దేవుడును స్తుతింపబడును గాక. దేవుడు మమ్మును ఏ ఆదరణతో ఆదరించుచున్నాడో, ఆ ఆదరణతో ఎట్టి శ్రమలలో ఉన్నవారినైనను ఆదరించుటకు శక్తిగలవారమగునట్లు...\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Blessed be the God and Father of our Lord Jesus Christ, the Father of mercies and God of all comfort, who comforts us in all our tribulation, that we may be able to comfort those who are in any trouble\"",
+    "bibleReference": "2 Corinthians 1:3-4",
+    "explanation": "Redemptive suffering: our received comfort becomes the clinic equiping us to care for other broken souls.",
+    "explanationTelugu": "దేవునినుండి పొందిన ఆదరణద్వారా శ్రమలలో ఉన్న తోటివారిని ఆదరించి ఓదార్చు పరిచర్య.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q45",
+    "order": 45,
+    "questionType": "single_choice",
+    "question": "What theological reality does 2 Thessalonians 3:3 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "2 Thessalonians 3:3 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"But the Lord is faithful, who will establish you and guard you from the evil one\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"అయితే ప్రభువు నమ్మదగినవాడు; ఆయన మిమ్మును స్థిరపరచి దుష్టునినుండి కాపాడును.\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"But the Lord is faithful, who will establish you and guard you from the evil one\"",
+    "bibleReference": "2 Thessalonians 3:3",
+    "explanation": "Sovereign defensive perimeter: the Lord erects an impenetrable spiritual garrison against Satan.",
+    "explanationTelugu": "దుష్టుడైన అపవాది దాడులనుండి మనలను భద్రపరచి ఆత్మీయముగా స్థిరపరచు నమ్మకమైన ప్రభువు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q46",
+    "order": 46,
+    "questionType": "single_choice",
+    "question": "What theological reality does Hebrews 7:25 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Hebrews 7:25 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"Therefore He is also able to save to the uttermost those who come to God through Him, since He always lives to make intercession for them\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"ఈయన తనద్వారా దేవునియొద్దకు వచ్చువారి పక్షమున విజ్ఞాపన చేయుటకు నిరంతరము జీవించుచున్నాడు గనుక వారిని సంపూర్ణముగా రక్షించుటకు శక్తిమంతుడై యున్నాడు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Therefore He is also able to save to the uttermost those who come to God through Him, since He always lives to make intercession for them\"",
+    "bibleReference": "Hebrews 7:25",
+    "explanation": "Christ's unending heavenly ministry: 24/7 perpetual advocacy securing the believer's final perseverance.",
+    "explanationTelugu": "పరలోకమందు తండ్రి కుడిపార్శ్వమున నిత్యము మనకొరకు ప్రార్థించుచున్న ప్రధానయాజకుడైన యేసుక్రీస్తు సంరక్షణ.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q47",
+    "order": 47,
+    "questionType": "single_choice",
+    "question": "What theological reality does Hebrews 13:5-6 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Hebrews 13:5-6 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"For He Himself has said, 'I will never leave you nor forsake you.' So we may boldly say: 'The Lord is my helper; I will not fear. What can man do to me?'\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"నేను నిన్ను ఏమాత్రమును విడువను, నిన్ను ఎన్నడును ఎడబాయను అని ఆయనయే చెప్పియున్నాడు గనుక-ప్రభువు నాకు సహాయకుడు, నేను భయపడను, నరమాత్రుడు నాకేమి చేయగలడు? అని మంచి ధైర్యముతో చెప్పగలవారమై యున్నాము\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For He Himself has said, 'I will never leave you nor forsake you.' So we may boldly say: 'The Lord is my helper; I will not fear. What can man do to me?'\"",
+    "bibleReference": "Hebrews 13:5-6",
+    "explanation": "Fivefold Greek negative reinforcement guaranteeing total, unconditional presence and financial contentment.",
+    "explanationTelugu": "ఎట్టి శ్రమలలోను ఒంటరిగా విడిచిపెట్టక నిరంతరము తోడైయుండి సహాయము చేయు దేవుని అచంచల వాగ్దానము.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q48",
+    "order": 48,
+    "questionType": "single_choice",
+    "question": "What theological reality does 1 Peter 2:25 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "1 Peter 2:25 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"For you were like sheep going astray, but have now returned to the Shepherd and Overseer of your souls\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"మీరు గొర్రెలవలె దారితప్పిపోతిరి గాని యిప్పుడు మీ ఆత్మల కాపరియు అధ్యక్షుడునైన ఆయనయొద్దకు మళ్లుకొనియున్నారు\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"For you were like sheep going astray, but have now returned to the Shepherd and Overseer of your souls\"",
+    "bibleReference": "1 Peter 2:25",
+    "explanation": "Christ is the episkopos (vigilant guardian) watching over the immortal health of the soul.",
+    "explanationTelugu": "దారితప్పిన మనలను చేరదీసి నిరంతరము కనిపెట్టుచున్న మన ఆత్మల పరమ కాపరియైన యేసు క్రీస్తు.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q49",
+    "order": 49,
+    "questionType": "single_choice",
+    "question": "What theological reality does Jude 1:24 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Jude 1:24 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"Now to Him who is able to keep you from stumbling, and to present you faultless before the presence of His glory with exceeding joy\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"తొట్రిల్లకుండ మిమ్మును కాపాడుటకును, తన మహిమయెదుట నిర్దోషులుగా నిలువబెట్టుటకును శక్తిగల మన రక్షకుడైన అద్వితీయ దేవునికి... మహిమయు ప్రభావమును కలుగును గాక\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"Now to Him who is able to keep you from stumbling, and to present you faultless before the presence of His glory with exceeding joy\"",
+    "bibleReference": "Jude 1:24",
+    "explanation": "The sovereign bodyguard of salvation: preserving believers through earthly hazards until glorified.",
+    "explanationTelugu": "విశ్వాస యాత్రలో జారిపడకుండా కాపాడి పరలోక మహిమలో నిలువబెట్టే దేవుని సంపూర్ణ సంరక్షణ శక్తి.",
+    "marks": 1
+  },
+  {
+    "id": "car_h_s3_q50",
+    "order": 50,
+    "questionType": "single_choice",
+    "question": "What theological reality does Revelation 7:16-17 establish concerning God's preservation and Christological shepherding of the church?",
+    "questionTelugu": "Revelation 7:16-17 లేఖనము ప్రకారం విశ్వాసుల శాశ్వత రక్షణ భద్రత మరియు క్రీస్తు కాపరిత్వమును గూర్చి సంఘము నమ్మవలసిన సిద్ధాంతమేమి?",
+    "options": [
+      "\"They shall neither hunger anymore nor thirst anymore; the sun shall not strike them... for the Lamb who is in the midst of the throne will shepherd them and lead them to living fountains of waters. And God will wipe away every tear from their eyes\"",
+      "He commanded seventy golden idols erected in Samaria",
+      "He ordered forty legions of iron chariots to seize the temple",
+      "He decreed fifty years of total silence in the wilderness"
+    ],
+    "optionsTelugu": [
+      "\"వారికి ఇకమీదట ఆకలియైనను దప్పియైనను కలుగదు, ఎండయైనను ఏ ఉక్కయైనను వారికి తగలదు; ఏలయనగా సింహాసనమధ్యమందుండు గొర్రెపిల్లయే వారిని మేపి, జీవజలముల బుగ్గలయొద్దకు వారిని నడిపించును; దేవుడే వారి కన్నులనుండి ప్రతి భాష్పబిందువును తుడిచివేయును\"",
+      "సమరయలో డెబ్బై బంగారు విగ్రహములను నిలుపుడని ఆజ్ఞాపించెను",
+      "దేవాలయమును పట్టుకొనుటకు నలభై దళముల ఇనుప రథములను పంపెను",
+      "అరణ్యములో ఏబది సంవత్సరముల సంపూర్ణ నిశ్శబ్దమును విధించెను"
+    ],
+    "correctAnswer": "\"They shall neither hunger anymore nor thirst anymore; the sun shall not strike them... for the Lamb who is in the midst of the throne will shepherd them and lead them to living fountains of waters. And God will wipe away every tear from their eyes\"",
+    "bibleReference": "Revelation 7:16-17",
+    "explanation": "Eschatological consummation of care: eternal shepherd-leading where every tear is tenderly wiped away.",
+    "explanationTelugu": "పరలోక నిత్యత్వములో గొర్రెపిల్లయైన క్రీస్తు తన ప్రజలను నిత్య జీవజలములయొద్దకు నడిపించి కన్నీళ్లన్నిటినీ తుడిచివేయు పరమ సంరక్షణ.",
+    "marks": 1
+  }
+];
+
+export const CARE_QUESTION_REGISTRY: Record<QuizDifficulty, { foundation: QuizQuestion[]; growth: QuizQuestion[]; mastery: QuizQuestion[]; }> = {
+  easy: {
+    foundation: CARE_EASY_FOUNDATION,
+    growth: CARE_EASY_GROWTH,
+    mastery: CARE_EASY_MASTERY
+  },
+  medium: {
+    foundation: CARE_MEDIUM_FOUNDATION,
+    growth: CARE_MEDIUM_GROWTH,
+    mastery: CARE_MEDIUM_MASTERY
+  },
+  hard: {
+    foundation: CARE_HARD_FOUNDATION,
+    growth: CARE_HARD_GROWTH,
+    mastery: CARE_HARD_MASTERY
+  },
+};
+
+export function getCareStageQuestions(difficulty: QuizDifficulty, stage: 1 | 2 | 3): QuizQuestion[] {
+  const diffKey = (difficulty || 'easy').toLowerCase() as QuizDifficulty;
+  const stageMap = CARE_QUESTION_REGISTRY[diffKey] || CARE_QUESTION_REGISTRY.easy;
+  if (stage === 1) return stageMap.foundation;
+  if (stage === 2) return stageMap.growth;
+  return stageMap.mastery;
+}
+
+export function getCareLevelQuestions(difficulty: QuizDifficulty, level: number): QuizQuestion[] {
+  const stage = level <= 10 ? 1 : level <= 20 ? 2 : 3;
+  const stagePool = getCareStageQuestions(difficulty, stage);
+  const offset = (level - 1) % 10;
+  const startIndex = offset * 5;
+  return stagePool.slice(startIndex, startIndex + 5);
+}

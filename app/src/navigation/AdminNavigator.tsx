@@ -40,7 +40,8 @@ import {
   Eye,
   X,
   Wand2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Award
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -82,6 +83,7 @@ import AdminGalleryNavigator from '../screens/admin/gallery/AdminGalleryNavigato
 import { Shield, Video as VideoIcon, Headset } from 'lucide-react-native';
 import AISermonAssistant from '../screens/admin/AISermonAssistant';
 import AIContentCreator from '../screens/admin/AIContentCreator';
+import AdminQuizList from '../screens/admin/quiz/AdminQuizList';
 import ChurchService from '../services/ChurchService';
 
 const { width } = Dimensions.get('window');
@@ -152,7 +154,7 @@ export default function AdminNavigator({ navigation, route }: any) {
         'Sermons', 'New Sermon', 'Songs', 'Events', 'New Event', 'Pastor Event',
         'Prayers', 'Celebrations', 'Gallery', 'Expense', 'Donations', 
         'Online Meetings', 'New Online Meeting', 'AI Sermon Assistant', 'AI Thumbnail Creation', 'AI Content Creator',
-        'WeCelebrations', 'WhatsApp'
+        'WeCelebrations', 'WhatsApp', 'Bible Quiz'
       ];
       
       if (premiumTabs.includes(tabName) && ChurchService.isSubscriptionExpired(activeChurch)) {
@@ -245,6 +247,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     // ── AI Ministry Tools ──
     { name: 'AI Sermon Assistant', icon: Sparkles, component: AISermonAssistant },
     { name: 'AI Thumbnail Creation', icon: Wand2, component: AIContentCreator },
+    { name: 'Bible Quiz', icon: Award, component: AdminQuizList },
     ...(isPlatformSuperAdmin ? [{ name: 'App Admin', icon: Shield, component: SuperAdminDashboard }] : []),
   ];
 
