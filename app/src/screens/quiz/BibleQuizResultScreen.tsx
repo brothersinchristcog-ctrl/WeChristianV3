@@ -57,13 +57,24 @@ export default function BibleQuizResultScreen() {
   const divider = isDark ? '#1f2e47' : '#e2e8f0';
 
   const isPassed = attempt?.passed;
-  const hasNextLevel = Boolean(isPassed && level && level < 30);
+  const isChurchQuiz = !level;
+  const hasNextLevel = Boolean(!isChurchQuiz && isPassed && level && level < 30);
   const nextLevel = level ? level + 1 : 2;
 
   // Bulletproof back navigation:
-  // Prefer BibleQuizStages in the stack (new flow: Levels → Stages → Player → Result).
+  // For church quizzes, go back to ChurchQuizzes screen.
+  // For category quizzes: Prefer BibleQuizStages in the stack (Levels → Stages → Player → Result).
   // Fall back to BibleQuizLevels if Stages isn't present (legacy deep links).
   const handleBackToLevels = () => {
+    if (isChurchQuiz) {
+      if (navigation.canGoBack()) {
+        navigation.goBack();
+      } else {
+        navigation.replace('ChurchQuizzes');
+      }
+      return;
+    }
+
     const state = navigation.getState();
     const routes = state?.routes || [];
 
@@ -120,7 +131,7 @@ export default function BibleQuizResultScreen() {
     };
     const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => sub.remove();
-  }, [category, categoryTitleParam, categoryImage]);
+  }, [category, categoryTitleParam, categoryImage, isChurchQuiz]);
 
   if (!attempt) {
     return (
@@ -128,9 +139,11 @@ export default function BibleQuizResultScreen() {
         <Text style={[styles.errorTxt, { color: textMuted }]}>No attempt data found.</Text>
         <TouchableOpacity
           style={styles.backHomeBtn}
-          onPress={() => navigation.navigate('BibleQuizHome')}
+          onPress={handleBackToLevels}
         >
-          <Text style={styles.backHomeBtnTxt}>{ui.viewAllLevels}</Text>
+          <Text style={styles.backHomeBtnTxt}>
+            {isChurchQuiz ? (quizLanguage === 'te' ? 'వెనుకకు' : 'Go Back') : ui.viewAllLevels}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -147,6 +160,15 @@ export default function BibleQuizResultScreen() {
   };
 
   const handlePrimary = () => {
+    if (isChurchQuiz) {
+      const qId = quiz?.id || attempt?.quizId;
+      if (qId) {
+        navigation.replace('BibleQuizPlayer', { quizId: qId, quiz });
+      } else {
+        handleBackToLevels();
+      }
+      return;
+    }
     if (!category || !level) return handleBackToLevels();
     goToPlayer(hasNextLevel ? nextLevel : level);
   };
@@ -208,7 +230,17 @@ export default function BibleQuizResultScreen() {
 
           {/* Subtitle */}
           <Text style={[styles.congratsSubtitle, { color: textMuted }]}>
-            {isPassed ? ui.passedLevelMsg(level || 1) : ui.failedLevelMsg}
+            {isChurchQuiz
+              ? isPassed
+                ? quizLanguage === 'te'
+                  ? 'మీరు ఈ క్విజ్‌ను విజయవంతంగా పూర్తి చేశారు!'
+                  : 'You successfully completed this quiz!'
+                : quizLanguage === 'te'
+                ? 'ఈసారి ఉత్తీర్ణత సాధించలేకపోయారు. మళ్ళీ ప్రయత్నించండి!'
+                : 'You did not pass this quiz. Try again to improve!'
+              : isPassed
+              ? ui.passedLevelMsg(level || 1)
+              : ui.failedLevelMsg}
           </Text>
 
           {/* Score Container */}
@@ -321,7 +353,13 @@ export default function BibleQuizResultScreen() {
             >
               {hasNextLevel ? null : <RotateCcw size={19} color="#ffffff" strokeWidth={2.4} />}
               <Text style={styles.primaryBtnTxt} numberOfLines={1}>
-                {hasNextLevel ? ui.continueToLevel(nextLevel) : ui.retryLevel}
+                {hasNextLevel
+                  ? ui.continueToLevel(nextLevel)
+                  : isChurchQuiz
+                  ? quizLanguage === 'te'
+                    ? 'క్విజ్ మళ్ళీ ప్రయత్నించండి'
+                    : 'Retry Quiz'
+                  : ui.retryLevel}
               </Text>
               {hasNextLevel ? <ArrowRight size={19} color="#ffffff" strokeWidth={2.4} /> : null}
             </LinearGradient>
@@ -349,27 +387,29 @@ export default function BibleQuizResultScreen() {
             <ChevronRight size={18} color={isDark ? '#64748b' : '#94a3b8'} strokeWidth={2.2} />
           </TouchableOpacity>
 
-          {/* Tertiary CTA: View All Levels */}
-          <TouchableOpacity
-            style={[styles.actionCardBtn, { backgroundColor: cardBg, borderColor: cardBorder }]}
-            onPress={handleBackToLevels}
-            activeOpacity={0.85}
-          >
-            <View style={styles.actionCardLeft}>
-              <View
-                style={[
-                  styles.actionIconBubble,
-                  { backgroundColor: isDark ? 'rgba(139, 92, 246, 0.16)' : '#F5F3FF' },
-                ]}
-              >
-                <LayoutGrid size={19} color="#8B5CF6" strokeWidth={2.2} />
+          {/* Tertiary CTA: View All Levels (Only shown for multi-level category quizzes) */}
+          {!isChurchQuiz && (
+            <TouchableOpacity
+              style={[styles.actionCardBtn, { backgroundColor: cardBg, borderColor: cardBorder }]}
+              onPress={handleBackToLevels}
+              activeOpacity={0.85}
+            >
+              <View style={styles.actionCardLeft}>
+                <View
+                  style={[
+                    styles.actionIconBubble,
+                    { backgroundColor: isDark ? 'rgba(139, 92, 246, 0.16)' : '#F5F3FF' },
+                  ]}
+                >
+                  <LayoutGrid size={19} color="#8B5CF6" strokeWidth={2.2} />
+                </View>
+                <Text style={[styles.actionCardTxt, { color: textPrimary }]} numberOfLines={1}>
+                  {ui.viewAllLevels}
+                </Text>
               </View>
-              <Text style={[styles.actionCardTxt, { color: textPrimary }]} numberOfLines={1}>
-                {ui.viewAllLevels}
-              </Text>
-            </View>
-            <ChevronRight size={18} color={isDark ? '#64748b' : '#94a3b8'} strokeWidth={2.2} />
-          </TouchableOpacity>
+              <ChevronRight size={18} color={isDark ? '#64748b' : '#94a3b8'} strokeWidth={2.2} />
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </View>

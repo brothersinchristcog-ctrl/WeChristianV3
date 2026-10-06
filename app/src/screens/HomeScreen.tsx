@@ -2220,114 +2220,132 @@ export default function HomeScreen() {
                 }
               }} 
             />
-            <GridItem isDark={isDark} icon={<Users size={26} color="#fff" />} label={t('home.quickMembers')} color="#db2777" onPress={handleOpenMembers} />
             {useWeChristianDailyPromise && (
-              <GridItem isDark={isDark} icon={<AnimatedCameraIcon size={26} color="#fff" />} label={t('home.quickMeetings')} color="#3B82F6" onPress={() => navigation.navigate('OnlineMeetings')} />
+              <GridItem isDark={isDark} icon={<Users size={26} color="#fff" />} label={t('home.quickMembers')} color="#db2777" onPress={handleOpenMembers} />
             )}
           </View>
 
-          {/* Attendance pill button centered below grid when Daily Promise toggle is ON */}
-          {useWeChristianDailyPromise && (
-            <View style={{ alignItems: 'center', marginTop: 4, marginBottom: 8, paddingHorizontal: 15 }}>
-              <TouchableOpacity
-                onPress={() => navigation.navigate('Attendance')}
-                activeOpacity={0.8}
+          {/* ── Separate Member View Navigation: Members, Online Meetings & Attendance ── */}
+          <View 
+            style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              gap: useWeChristianDailyPromise ? 12 : 6, 
+              marginTop: 18, 
+              marginBottom: 10, 
+              paddingHorizontal: useWeChristianDailyPromise ? 20 : 12 
+            }}
+            onLayout={(e) => setOnlineMeetingsY(e.nativeEvent.layout.y)}
+          >
+            {/* Separate Button 1: Members (when Daily Promise is NO, balances grid so Members, Online Meetings & Attendance are in one line) */}
+            {!useWeChristianDailyPromise && (
+              <TouchableOpacity 
                 style={{
+                  flex: 1,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: '#059669',
-                  paddingVertical: 14,
-                  paddingHorizontal: 32,
-                  borderRadius: 50,
-                  gap: 10,
+                  backgroundColor: '#db2777',
+                  paddingVertical: 12,
+                  paddingHorizontal: 4,
+                  borderRadius: 20,
                   elevation: 4,
-                  shadowColor: '#059669',
+                  shadowColor: '#db2777',
                   shadowOpacity: 0.35,
-                  shadowRadius: 8,
+                  shadowRadius: 6,
                   shadowOffset: { width: 0, height: 3 },
-                  minWidth: 200,
+                  gap: 4,
                 }}
+                onPress={handleOpenMembers}
+                activeOpacity={0.8}
               >
-                <CalendarCheck size={22} color="#fff" strokeWidth={2.2} />
-                <Text style={{ color: '#fff', fontSize: 16, fontWeight: '700', letterSpacing: 0.3 }}>
-                  {t('nav.attendance')}
+                <Users size={16} color="#fff" />
+                <Text 
+                  style={{ color: '#fff', fontSize: 11.5, fontWeight: '700', letterSpacing: 0 }} 
+                  numberOfLines={1} 
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
+                >
+                  {t('home.quickMembers')}
                 </Text>
               </TouchableOpacity>
-            </View>
-          )}
+            )}
 
-          {/* ── Separate Member View Navigation: Online Meetings & Attendance ──
-               Only shown when Daily Promise toggle is OFF.
-               When ON, these two items already appear in the Quick Access grid above. ── */}
-          {!useWeChristianDailyPromise && (
-            <View 
-              style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                justifyContent: 'space-between', 
-                gap: 12, 
-                marginTop: 18, 
-                marginBottom: 10, 
-                paddingHorizontal: 20 
+            {/* Separate Button 2: Online Meetings */}
+            <TouchableOpacity 
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#3B82F6',
+                paddingVertical: useWeChristianDailyPromise ? 13 : 12,
+                paddingHorizontal: useWeChristianDailyPromise ? 14 : 4,
+                borderRadius: 20,
+                elevation: 4,
+                shadowColor: '#3B82F6',
+                shadowOpacity: 0.35,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 3 },
+                gap: useWeChristianDailyPromise ? 7 : 4,
               }}
-              onLayout={(e) => setOnlineMeetingsY(e.nativeEvent.layout.y)}
+              onPress={() => navigation.navigate('OnlineMeetings')}
+              activeOpacity={0.8}
             >
-              {/* Separate Button 1: Online Meetings */}
-              <TouchableOpacity 
-                style={{
-                  flex: 1,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: '#3B82F6',
-                  paddingVertical: 13,
-                  paddingHorizontal: 14,
-                  borderRadius: 20,
-                  elevation: 4,
-                  shadowColor: '#3B82F6',
-                  shadowOpacity: 0.35,
-                  shadowRadius: 6,
-                  shadowOffset: { width: 0, height: 3 },
-                  gap: 8,
-                }}
-                onPress={() => navigation.navigate('OnlineMeetings')}
-                activeOpacity={0.8}
+              <AnimatedCameraIcon size={useWeChristianDailyPromise ? 18 : 16} color="#fff" scrollY={scrollY} triggerY={onlineMeetingsY} />
+              <Text 
+                style={{ 
+                  color: '#fff', 
+                  fontSize: useWeChristianDailyPromise ? 12.8 : 11.5, 
+                  fontWeight: '700', 
+                  letterSpacing: useWeChristianDailyPromise ? 0.2 : 0 
+                }} 
+                numberOfLines={1} 
+                adjustsFontSizeToFit
+                minimumFontScale={0.7}
               >
-                <AnimatedCameraIcon size={20} color="#fff" scrollY={scrollY} triggerY={onlineMeetingsY} />
-                <Text style={{ color: '#fff', fontSize: 13.5, fontWeight: '700', letterSpacing: 0.3 }} numberOfLines={1}>
-                  {t('home.quickMeetings')}
-                </Text>
-              </TouchableOpacity>
+                {t('home.quickMeetings')}
+              </Text>
+            </TouchableOpacity>
 
-              {/* Separate Button 2: Attendance */}
-              <TouchableOpacity 
-                style={{
-                  flex: 1,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: '#059669',
-                  paddingVertical: 13,
-                  paddingHorizontal: 14,
-                  borderRadius: 20,
-                  elevation: 4,
-                  shadowColor: '#059669',
-                  shadowOpacity: 0.35,
-                  shadowRadius: 6,
-                  shadowOffset: { width: 0, height: 3 },
-                  gap: 8,
-                }}
-                onPress={() => navigation.navigate('Attendance')}
-                activeOpacity={0.8}
+            {/* Separate Button 3: Attendance */}
+            <TouchableOpacity 
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#059669',
+                paddingVertical: useWeChristianDailyPromise ? 13 : 12,
+                paddingHorizontal: useWeChristianDailyPromise ? 14 : 4,
+                borderRadius: 20,
+                elevation: 4,
+                shadowColor: '#059669',
+                shadowOpacity: 0.35,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 3 },
+                gap: useWeChristianDailyPromise ? 7 : 4,
+              }}
+              onPress={() => navigation.navigate('Attendance')}
+              activeOpacity={0.8}
+            >
+              <CalendarCheck size={useWeChristianDailyPromise ? 18 : 16} color="#fff" strokeWidth={2.2} />
+              <Text 
+                style={{ 
+                  color: '#fff', 
+                  fontSize: useWeChristianDailyPromise ? 12.8 : 11.5, 
+                  fontWeight: '700', 
+                  letterSpacing: useWeChristianDailyPromise ? 0.2 : 0 
+                }} 
+                numberOfLines={1} 
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
               >
-                <CalendarCheck size={20} color="#fff" strokeWidth={2.2} />
-                <Text style={{ color: '#fff', fontSize: 13.5, fontWeight: '700', letterSpacing: 0.3 }} numberOfLines={1}>
-                  {t('nav.attendance')}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
+                {t('nav.attendance')}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* ── Arched Navigation Section ── */}
           <View style={{ marginTop: 0, marginBottom: 30, width: '100%', height: 160, alignItems: 'center' }}>
@@ -2775,7 +2793,7 @@ const styles = StyleSheet.create({
   screenLoadingText: { color: '#FCD34D', marginTop: 15, fontSize: 14, fontWeight: '700' },
   
   scroll: { flex: 1 },
-  contentPad: { paddingBottom: 140 },
+  contentPad: { paddingBottom: 160 },
   
   appHeader: {
     paddingTop: Platform.OS === 'ios' ? 60 : 45,

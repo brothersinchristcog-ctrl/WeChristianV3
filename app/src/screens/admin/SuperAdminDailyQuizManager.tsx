@@ -51,7 +51,6 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
   }>>([]);
 
   const [selectedMonth, setSelectedMonth] = useState<string>('All');
-  const [localSearch, setLocalSearch] = useState<string>('');
 
   // Bulk Generation progress modal
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -138,7 +137,7 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
   };
 
   const filteredDays = useMemo(() => {
-    const query = (localSearch || searchQuery || '').toLowerCase().trim();
+    const query = (searchQuery || '').toLowerCase().trim();
 
     return scheduledDays.filter(item => {
       // Month filter
@@ -160,7 +159,7 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
 
       return true;
     });
-  }, [scheduledDays, selectedMonth, localSearch, searchQuery]);
+  }, [scheduledDays, selectedMonth, searchQuery]);
 
   return (
     <View style={styles.container}>
@@ -174,12 +173,12 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
         >
           <View style={styles.kpiTopRow}>
             <View style={styles.kpiBadge}>
-              <Award size={14} color="#f59e0b" />
-              <Text style={styles.kpiBadgeTxt}>Super Admin · Daily Bible Quiz</Text>
+              <Award size={13} color="#f59e0b" />
+              <Text style={styles.kpiBadgeTxt}>Daily Bible Quiz</Text>
             </View>
             <View style={styles.liveBadge}>
               <View style={styles.greenPulseDot} />
-              <Text style={styles.liveBadgeTxt}>Auto-Deliver 5:00 AM – 7:00 AM</Text>
+              <Text style={styles.liveBadgeTxt}>Auto 5:00 AM Delivery</Text>
             </View>
           </View>
 
@@ -227,24 +226,8 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
         </LinearGradient>
       </View>
 
-      {/* Search and Month Filter Bar */}
+      {/* Month Filter Bar (Uses top dashboard search bar for searching) */}
       <View style={styles.filterSection}>
-        <View style={styles.searchBar}>
-          <Search size={16} color="#64748b" />
-          <TextInput
-            style={styles.searchInput}
-            value={localSearch}
-            onChangeText={setLocalSearch}
-            placeholder="Search dates (YYYY-MM-DD), scriptures or questions..."
-            placeholderTextColor="#64748b"
-          />
-          {localSearch.length > 0 && (
-            <TouchableOpacity onPress={() => setLocalSearch('')}>
-              <X size={16} color="#94a3b8" />
-            </TouchableOpacity>
-          )}
-        </View>
-
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.monthScroll}>
           {MONTHS.map(m => {
             const isSelected = selectedMonth === m;
@@ -284,7 +267,8 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
                 onPress={() => setInspectQuiz(item.quiz)}
                 activeOpacity={0.75}
               >
-                <View style={styles.dayCardLeft}>
+                {/* Header Row: Date Badge + Title/Sub + Inspect Button */}
+                <View style={styles.dayCardHeaderRow}>
                   <View style={[styles.dateBadge, isToday && styles.dateBadgeToday]}>
                     <Text style={[styles.dateBadgeDay, isToday && styles.dateBadgeDayToday]}>
                       {item.dateStr.split('-')[2]}
@@ -297,7 +281,7 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
                   <View style={styles.dayInfoCol}>
                     <View style={styles.dayTitleRow}>
                       <Text style={styles.dayTitle} numberOfLines={1}>
-                        {item.quiz.title}
+                        Daily Bible Quiz
                       </Text>
                       {isToday && (
                         <View style={styles.todayPill}>
@@ -305,24 +289,31 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
                         </View>
                       )}
                     </View>
+                    <Text style={styles.dayDateSub}>{item.dateStr}</Text>
+                  </View>
 
-                    <View style={styles.dayMetaRow}>
-                      <View style={styles.metaChip}>
-                        <Clock size={12} color="#94a3b8" />
-                        <Text style={styles.metaChipTxt}>5:00 AM Delivery</Text>
-                      </View>
-                      <View style={styles.metaChip}>
-                        <BookOpen size={12} color="#94a3b8" />
-                        <Text style={styles.metaChipTxt}>5 Questions · Intermediate</Text>
-                      </View>
-                    </View>
+                  <View style={styles.inspectBtn}>
+                    <Eye size={13} color="#38bdf8" />
+                    <Text style={styles.inspectBtnTxt}>Inspect</Text>
                   </View>
                 </View>
 
-                <View style={styles.dayCardRight}>
-                  <View style={styles.inspectBtn}>
-                    <Eye size={16} color="#38bdf8" />
-                    <Text style={styles.inspectBtnTxt}>Inspect</Text>
+                {/* Bottom Row: Full-width metadata info chips */}
+                <View style={styles.dayMetaRow}>
+                  <View style={styles.metaChip}>
+                    <Clock size={11} color="#94a3b8" />
+                    <Text style={styles.metaChipTxt}>5:00 AM Delivery</Text>
+                  </View>
+                  <View style={styles.metaDividerDot} />
+                  <View style={styles.metaChip}>
+                    <BookOpen size={11} color="#94a3b8" />
+                    <Text style={styles.metaChipTxt}>{item.quiz.questions.length} Questions</Text>
+                  </View>
+                  <View style={styles.metaDividerDot} />
+                  <View style={styles.metaChip}>
+                    <Text style={[styles.metaChipTxt, { color: '#38bdf8', fontWeight: '600' }]}>
+                      Intermediate
+                    </Text>
                   </View>
                 </View>
               </TouchableOpacity>
@@ -544,25 +535,8 @@ const styles = StyleSheet.create({
   },
   filterSection: {
     paddingHorizontal: 16,
+    paddingTop: 2,
     paddingBottom: 8,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#1e293b',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  searchInput: {
-    flex: 1,
-    color: '#f8fafc',
-    fontSize: 13,
-    marginLeft: 8,
-    padding: 0,
   },
   monthScroll: {
     flexDirection: 'row',
@@ -606,9 +580,6 @@ const styles = StyleSheet.create({
     paddingTop: 4,
   },
   dayCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
     backgroundColor: '#111827',
     borderRadius: 14,
     padding: 12,
@@ -620,20 +591,19 @@ const styles = StyleSheet.create({
     borderColor: '#3b82f6',
     backgroundColor: '#172554',
   },
-  dayCardLeft: {
+  dayCardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    marginRight: 10,
+    marginBottom: 10,
   },
   dateBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 10,
     backgroundColor: '#1f2937',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
@@ -643,16 +613,16 @@ const styles = StyleSheet.create({
   },
   dateBadgeDay: {
     color: '#f8fafc',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '800',
-    lineHeight: 20,
+    lineHeight: 18,
   },
   dateBadgeDayToday: {
     color: '#ffffff',
   },
   dateBadgeMonth: {
     color: '#94a3b8',
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
     textTransform: 'uppercase',
   },
@@ -661,18 +631,24 @@ const styles = StyleSheet.create({
   },
   dayInfoCol: {
     flex: 1,
+    marginRight: 8,
   },
   dayTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
+    gap: 6,
+    marginBottom: 2,
+    flexWrap: 'wrap',
   },
   dayTitle: {
     color: '#f8fafc',
     fontSize: 14,
     fontWeight: '700',
-    flexShrink: 1,
+  },
+  dayDateSub: {
+    color: '#64748b',
+    fontSize: 11.5,
+    fontWeight: '500',
   },
   todayPill: {
     backgroundColor: '#16a34a',
@@ -682,26 +658,8 @@ const styles = StyleSheet.create({
   },
   todayPillTxt: {
     color: '#ffffff',
-    fontSize: 9,
+    fontSize: 8.5,
     fontWeight: '800',
-  },
-  dayMetaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  metaChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  metaChipTxt: {
-    color: '#94a3b8',
-    fontSize: 11,
-  },
-  dayCardRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   inspectBtn: {
     flexDirection: 'row',
@@ -716,6 +674,29 @@ const styles = StyleSheet.create({
     color: '#38bdf8',
     fontSize: 12,
     fontWeight: '600',
+  },
+  dayMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.05)',
+    gap: 8,
+  },
+  metaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metaChipTxt: {
+    color: '#94a3b8',
+    fontSize: 11,
+  },
+  metaDividerDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: '#475569',
   },
   modalBackdrop: {
     flex: 1,

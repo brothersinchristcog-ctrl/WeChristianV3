@@ -188,53 +188,40 @@ export default function ChurchQuizzesScreen() {
                 key={quiz.id}
                 style={[
                   styles.quizCard,
-                  isDark && { backgroundColor: '#111827', borderColor: '#1f2937' },
+                  isDark && { backgroundColor: '#131e36', borderColor: 'rgba(59, 130, 246, 0.22)' },
                 ]}
                 onPress={() => handleSelectQuiz(quiz)}
                 activeOpacity={0.88}
               >
-                {/* Top Badge Row */}
+                {/* Top Badge Row: Clean & Uncluttered */}
                 <View style={styles.quizCardTop}>
-                  <View style={styles.quizBadgeRow}>
-                    <View style={[styles.diffPill, { backgroundColor: `${diffColor}15` }]}>
-                      <Text style={[styles.diffPillTxt, { color: diffColor }]}>
-                        {quiz.difficulty ? quiz.difficulty.toUpperCase() : 'MEDIUM'}
-                      </Text>
-                    </View>
-                    {Boolean(quiz.category) && (
-                      <View style={styles.catPill}>
-                        <Text style={styles.catPillTxt}>{quiz.category}</Text>
-                      </View>
-                    )}
-                    {Boolean(quiz.language && quiz.language !== 'en') && (
-                      <View style={styles.langBadgePill}>
-                        <Text style={styles.langBadgeTxt}>{quiz.language.toUpperCase()}</Text>
-                      </View>
-                    )}
-                    {attempt && (
-                      <View style={styles.completedCardBadge}>
-                        <CheckCircle size={10} color="#10b981" />
-                        <Text style={styles.completedCardBadgeTxt}>
-                          {attempt.percentage !== undefined ? `Completed · ${attempt.percentage}%` : 'Completed'}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.metaTimeChip}>
-                    <Clock size={11} color="#64748b" />
-                    <Text style={styles.metaTimeChipTxt}>
-                      {quiz.timeLimitMinutes > 0 ? `${quiz.timeLimitMinutes}m` : 'Untimed'}
+                  <View style={[styles.diffPill, { backgroundColor: `${diffColor}18` }]}>
+                    <Text style={[styles.diffPillTxt, { color: diffColor }]}>
+                      {quiz.difficulty ? quiz.difficulty.toUpperCase() : 'MEDIUM'}
                     </Text>
                   </View>
+
+                  {attempt ? (
+                    <View style={styles.completedCardBadge}>
+                      <CheckCircle size={10} color="#10b981" />
+                      <Text style={styles.completedCardBadgeTxt}>
+                        {attempt.percentage !== undefined ? `Completed · ${attempt.percentage}%` : 'Completed'}
+                      </Text>
+                    </View>
+                  ) : quiz.timeLimitMinutes > 0 ? (
+                    <View style={styles.metaTimeChip}>
+                      <Clock size={11} color="#64748b" />
+                      <Text style={styles.metaTimeChipTxt}>{quiz.timeLimitMinutes}m</Text>
+                    </View>
+                  ) : null}
                 </View>
 
                 {/* Title & Description */}
-                <Text style={[styles.quizTitle, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
+                <Text style={[styles.quizTitle, { color: isDark ? '#ffffff' : '#0f172a' }]} numberOfLines={2}>
                   {quiz.title}
                 </Text>
-                {Boolean(quiz.description) && (
-                  <Text style={styles.quizDesc} numberOfLines={2}>
+                {Boolean(quiz.description && quiz.description !== quiz.title) && (
+                  <Text style={[styles.quizDesc, { color: isDark ? '#94a3b8' : '#64748b' }]} numberOfLines={1}>
                     {quiz.description}
                   </Text>
                 )}
@@ -418,38 +405,32 @@ const styles = StyleSheet.create({
   },
   quizCard: {
     backgroundColor: '#ffffff',
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 14,
     borderWidth: 1,
     borderColor: '#e2e8f0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   quizCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  quizBadgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexWrap: 'wrap',
+    marginBottom: 10,
   },
   diffPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
+    borderRadius: 8,
   },
   diffPillTxt: {
-    fontSize: 10,
+    fontSize: 10.5,
     fontWeight: '800',
-    letterSpacing: 0.3,
+    letterSpacing: 0.5,
   },
   catPill: {
     backgroundColor: '#f1f5f9',
@@ -488,16 +469,15 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   quizTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     marginBottom: 4,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   quizDesc: {
-    fontSize: 12,
-    color: '#64748b',
-    lineHeight: 16,
-    marginBottom: 6,
+    fontSize: 12.5,
+    lineHeight: 18,
+    marginBottom: 8,
   },
   quizCardFooter: {
     flexDirection: 'row',

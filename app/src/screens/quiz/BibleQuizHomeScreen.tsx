@@ -132,67 +132,41 @@ export default function BibleQuizHomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ─── ENTRY POINT CARD: CHURCH QUIZZES (POLISHED & MODERN) ────────────────── */}
-        {(() => {
-          const totalCount = quizzes.length;
-          const completedCount = quizzes.filter(q => Boolean(userAttempts[q.id])).length;
-          const availableCount = Math.max(0, totalCount - completedCount);
-          const isAllCompleted = totalCount > 0 && availableCount === 0;
-
-          return (
-            <TouchableOpacity
-              style={[
-                styles.churchQuizzesEntryCard,
-                { borderColor: isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(30, 58, 138, 0.22)' },
-              ]}
-              onPress={() => navigation.navigate('ChurchQuizzes')}
-              activeOpacity={0.88}
+        {/* ─── ENTRY POINT CARD: CHURCH QUIZZES (POLISHED & MODERN BANNER) ────────────────── */}
+        <TouchableOpacity
+          style={[
+            styles.churchQuizzesEntryCard,
+            isDark && { borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)' },
+          ]}
+          onPress={() => navigation.navigate('ChurchQuizzes')}
+          activeOpacity={0.88}
+        >
+          <ImageBackground
+            source={{ uri: 'https://images.unsplash.com/photo-1438032005730-c779502df39b?w=800&auto=format&fit=crop&q=80' }}
+            style={styles.churchCardImageBg}
+            imageStyle={styles.churchCardImage}
+            resizeMode="cover"
+          >
+            <LinearGradient
+              colors={['transparent', 'rgba(10, 20, 50, 0.35)', 'rgba(8, 15, 38, 0.88)']}
+              locations={[0, 0.48, 1]}
+              style={styles.churchQuizzesOverlay}
             >
-              <LinearGradient
-                colors={isDark ? ['#1e3a8a', '#0f2452'] : ['#1d4ed8', '#1e3a8a']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.churchQuizzesInner}
-              >
-                {/* Left Icon Pill */}
-                <View style={styles.churchIconSquircle}>
-                  {isAllCompleted ? (
-                    <Award size={22} color="#fef08a" />
-                  ) : (
-                    <BookOpen size={22} color="#ffffff" />
-                  )}
-                </View>
+              {/* Content */}
+              <View style={styles.churchEntryContent}>
+                <Text style={styles.churchEntryTitle} numberOfLines={1}>Church Quizzes</Text>
+                <Text style={styles.churchEntrySub} numberOfLines={2}>
+                  Browse and participate in all available church quizzes
+                </Text>
+              </View>
 
-                {/* Content */}
-                <View style={styles.churchEntryContent}>
-                  <View style={styles.churchEntryTitleRow}>
-                    <Text style={styles.churchEntryTitle} numberOfLines={1}>Church Quizzes</Text>
-                    {isAllCompleted ? (
-                      <View style={styles.entryBadgeCompleted}>
-                        <CheckCircle size={10} color="#10b981" />
-                        <Text style={styles.entryBadgeCompletedTxt}>Completed</Text>
-                      </View>
-                    ) : availableCount > 0 ? (
-                      <View style={styles.entryBadge}>
-                        <Text style={styles.entryBadgeTxt}>{availableCount} Available</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  <Text style={styles.churchEntrySub} numberOfLines={2}>
-                    {isAllCompleted
-                      ? 'All quizzes completed! Tap to review results or retry.'
-                      : 'Browse and participate in all available quizzes'}
-                  </Text>
-                </View>
-
-                {/* Right Action Button */}
-                <View style={styles.arrowCircle}>
-                  <ArrowRight size={17} color="#ffffff" />
-                </View>
-              </LinearGradient>
-            </TouchableOpacity>
-          );
-        })()}
+              {/* Right Action Button */}
+              <View style={styles.arrowCircle}>
+                <ArrowRight size={18} color="#ffffff" />
+              </View>
+            </LinearGradient>
+          </ImageBackground>
+        </TouchableOpacity>
 
         {/* ─── FAITH CATEGORIES SECTION (CLEAN & MINIMALIST) ────────────────── */}
         <View style={[styles.sectionHeadingRow, { marginTop: 20 }]}>
@@ -311,85 +285,59 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // ── Single Entry Point: Church Quizzes Card ────────────────────────────────
+  // ── Single Entry Point: Church Quizzes Banner Card ─────────────────────────
   churchQuizzesEntryCard: {
-    marginBottom: 12,
+    height: 110,
+    marginBottom: 16,
     borderRadius: 18,
     overflow: 'hidden',
-    borderWidth: 1,
-    shadowColor: '#0a1945',
+    backgroundColor: '#0f172a',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.28,
+    shadowOpacity: 0.25,
     shadowRadius: 8,
     elevation: 4,
   },
-  churchQuizzesInner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
+  churchCardImageBg: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  churchCardImage: {
     borderRadius: 18,
   },
-  churchIconSquircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+  churchQuizzesOverlay: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderRadius: 18,
   },
   churchEntryContent: {
     flex: 1,
-    marginRight: 10,
-  },
-  churchEntryTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 3,
+    marginRight: 16,
+    justifyContent: 'center',
   },
   churchEntryTitle: {
-    fontSize: 17,
+    fontSize: 20,
     fontWeight: '800',
     color: '#ffffff',
-    letterSpacing: 0.2,
-  },
-  entryBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.18)',
-    paddingHorizontal: 8,
-    paddingVertical: 2.5,
-    borderRadius: 8,
-    borderWidth: 0.5,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  entryBadgeTxt: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    color: '#bfdbfe',
-  },
-  entryBadgeCompleted: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(16, 185, 129, 0.22)',
-    paddingHorizontal: 8,
-    paddingVertical: 2.5,
-    borderRadius: 8,
-    borderWidth: 0.5,
-    borderColor: 'rgba(52, 211, 153, 0.45)',
-  },
-  entryBadgeCompletedTxt: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    color: '#6ee7b7',
+    letterSpacing: 0.3,
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 1.5 },
+    textShadowRadius: 4,
   },
   churchEntrySub: {
-    fontSize: 12,
-    color: '#cbd5e1',
-    lineHeight: 16,
+    fontSize: 12.5,
+    color: 'rgba(255, 255, 255, 0.92)',
+    lineHeight: 17,
+    fontWeight: '600',
+    textShadowColor: 'rgba(0, 0, 0, 0.85)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
 
   // ── Faith Categories ────────────────────────────────────────────────────────
