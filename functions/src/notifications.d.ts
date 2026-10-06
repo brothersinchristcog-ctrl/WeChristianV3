@@ -36,4 +36,12 @@ export declare const monitorMeetingLive: import("firebase-functions/v2/scheduler
 export declare const pushNewChurchRegistered: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
     churchId: string;
 }>>;
+export declare const pushBibleQuizCreated: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+    quizId: string;
+}>>;
+export declare const pushBibleQuizUpdated: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").Change<import("firebase-functions/v2/firestore").QueryDocumentSnapshot> | undefined, {
+    churchId: string;
+    quizId: string;
+}>>;
 //# sourceMappingURL=notifications.d.ts.map

@@ -6,23 +6,37 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  Switch,
   Alert,
   ActivityIndicator,
+  Modal,
+  Platform,
 } from 'react-native';
 import {
   Plus,
   Trash2,
   BookOpen,
   ChevronLeft,
+  ChevronRight,
   CheckCircle,
-  Calendar,
-  ChevronDown,
-  ChevronUp,
+  Calendar as CalendarIcon,
+  Clock,
+  Upload,
+  FileText,
+  Eye,
+  Sparkles,
+  X,
+  Check,
+  Send,
+  Save,
+  Globe,
+  HelpCircle,
+  Bell,
 } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import * as DocumentPicker from 'expo-document-picker';
 import { BibleQuiz, QuizDifficulty, QuizQuestion, QuizQuestionType, QuizStatus } from '../../../types/Quiz';
 import { QuizService } from '../../../services/QuizService';
-import { QUIZ_CATEGORIES } from '../../../constants/BibleQuizCategories';
+import { QuizAIService } from '../../../services/QuizAIService';
 import BibleReferencePickerModal, {
   BiblePickerResult,
 } from './BibleReferencePickerModal';
@@ -34,6 +48,18 @@ interface Props {
   onBack: () => void;
   onSaved: (quizId: string) => void;
 }
+
+const SUPPORTED_LANGUAGES = [
+  { code: 'en', name: 'English', native: 'English' },
+  { code: 'te', name: 'Telugu', native: 'తెలుగు' },
+  { code: 'ta', name: 'Tamil', native: 'தமிழ்' },
+  { code: 'hi', name: 'Hindi', native: 'हिन्दी' },
+  { code: 'kn', name: 'Kannada', native: 'ಕನ್ನಡ' },
+  { code: 'ml', name: 'Malayalam', native: 'മലയാളം' },
+  { code: 'mr', name: 'Marathi', native: 'मराठी' },
+];
+
+const TIME_PRESETS = ['05:00', '06:00', '07:00', '09:00', '18:00', '20:00'];
 
 const createBlankQuestion = (order: number, type: QuizQuestionType = 'single_choice'): QuizQuestion => ({
   id: `q_${Date.now()}_${order}`,
@@ -56,19 +82,35 @@ export default function AdminQuizEditor({
 }: Props) {
   const [quizId] = useState<string | undefined>(initialQuiz?.id);
   const [title, setTitle] = useState<string>(initialQuiz?.title || '');
-  const [category, setCategory] = useState<string>(initialQuiz?.category || 'Family');
-  const [difficulty, setDifficulty] = useState<QuizDifficulty>(initialQuiz?.difficulty || 'easy');
-  const [level, setLevel] = useState<number | undefined>(initialQuiz?.level || 1);
+  const [topic, setTopic] = useState<string>(initialQuiz?.topic || initialQuiz?.category || '');
+  const [difficulty, setDifficulty] = useState<QuizDifficulty>(initialQuiz?.difficulty || 'medium');
+  const [language, setLanguage] = useState<string>(initialQuiz?.language || 'en');
   const [description, setDescription] = useState<string>(initialQuiz?.description || '');
+  const [sourceFile, setSourceFile] = useState<string>(initialQuiz?.sourceFile || '');
 
-  // Optional settings
-  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
-  const [timeLimitMinutes, setTimeLimitMinutes] = useState<string>(
-    initialQuiz?.timeLimitMinutes !== undefined ? String(initialQuiz.timeLimitMinutes) : '0'
+  // Scheduling State (matching Daily Promise workflow)
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+
+  const [scheduledDate, setScheduledDate] = useState<string>(initialQuiz?.scheduledDate || initialQuiz?.dailyDate || todayStr);
+  const [scheduledTime, setScheduledTime] = useState<string>(initialQuiz?.scheduledTime || '06:00');
+  const [publishStatus, setPublishStatus] = useState<'published' | 'scheduled' | 'draft'>(
+    initialQuiz?.status === 'scheduled' ? 'scheduled' : initialQuiz?.status === 'draft' ? 'draft' : 'published'
   );
-  const [passPercentage, setPassPercentage] = useState<string>(
-    initialQuiz?.passPercentage ? String(initialQuiz.passPercentage) : '70'
-  );
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
+  const [showScheduleModal, setShowScheduleModal] = useState<boolean>(false);
+
+  // Calendar Picker state
+  const [pickerYear, setPickerYear] = useState<number>(() => {
+    const p = (scheduledDate || todayStr).split('-');
+    return parseInt(p[0], 10) || new Date().getFullYear();
+  });
+  const [pickerMonth, setPickerMonth] = useState<number>(() => {
+    const p = (scheduledDate || todayStr).split('-');
+    return (parseInt(p[1], 10) - 1) || new Date().getMonth();
+  });
 
   // Questions state
   const [questions, setQuestions] = useState<QuizQuestion[]>(() => {
@@ -79,10 +121,130 @@ export default function AdminQuizEditor({
   });
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [isGeneratingFromFile, setIsGeneratingFromFile] = useState<boolean>(false);
+  const [generatingStatus, setGeneratingStatus] = useState<string>('');
 
   // Bible Reference Picker Modal state
   const [pickerVisible, setPickerVisible] = useState<boolean>(false);
   const [activeQuestionIndex, setActiveQuestionIndex] = useState<number | null>(null);
+
+  // Preview Modal state
+  const [previewVisible, setPreviewVisible] = useState<boolean>(false);
+  const [previewSelectedAnswers, setPreviewSelectedAnswers] = useState<Record<number, string>>({});
+  const [previewShowAnswers, setPreviewShowAnswers] = useState<boolean>(false);
+
+  const scrollViewRef = React.useRef<ScrollView>(null);
+
+  // Upload Celebratory Success Modal state
+  const [uploadSuccessData, setUploadSuccessData] = useState<{
+    visible: boolean;
+    fileName: string;
+    questionCount: number;
+    language: string;
+    title: string;
+    firstQuestion?: string;
+    firstOptions?: string[];
+  }>({
+    visible: false,
+    fileName: '',
+    questionCount: 0,
+    language: 'English',
+    title: '',
+  });
+
+  // Quiz Save / Publish / Schedule Success Modal state
+  const [saveSuccessData, setSaveSuccessData] = useState<{
+    visible: boolean;
+    status: 'published' | 'scheduled' | 'draft';
+    title: string;
+    questionCount: number;
+    scheduledDate?: string;
+    scheduledTime?: string;
+    savedId: string;
+  } | null>(null);
+
+  // ─── File Upload Handler (PDF, DOCX, TXT, XLSX, CSV) ──────────────────────────
+  const handlePickDocument = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: [
+          'application/pdf',
+          'text/plain',
+          'text/csv',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/vnd.ms-excel',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'application/msword',
+          '*/*',
+        ],
+        copyToCacheDirectory: true,
+      });
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const asset = res.assets[0];
+        setIsGeneratingFromFile(true);
+        setGeneratingStatus(`Reading "${asset.name}" and extracting up to 10 questions...`);
+
+        const generated = await QuizAIService.generateQuizFromFile(asset, {
+          category: topic || 'Bible Study',
+          difficulty,
+          language,
+          questionCount: 10,
+        });
+
+        // Automatically update language to match the document
+        const isTe = generated.language === 'te' || /[\u0C00-\u0C7F]/.test(generated.questions[0]?.question || '');
+        if (isTe) {
+          setLanguage('te');
+        } else if (generated.language) {
+          setLanguage(generated.language);
+        } else {
+          setLanguage('en');
+        }
+
+        if (generated.title) {
+          setTitle(generated.title);
+        }
+        if (generated.description && !description.trim()) {
+          setDescription(generated.description);
+        }
+        if (generated.questions && generated.questions.length > 0) {
+          setQuestions(generated.questions);
+        }
+
+        setSourceFile(asset.name || 'Uploaded File');
+
+        const langName = isTe
+          ? 'Telugu (తెలుగు లిపి)'
+          : generated.language === 'ta'
+          ? 'Tamil (தமிழ்)'
+          : generated.language === 'hi'
+          ? 'Hindi (हिन्दी)'
+          : generated.language === 'kn'
+          ? 'Kannada (ಕನ್ನಡ)'
+          : generated.language === 'ml'
+          ? 'Malayalam (മലയാളം)'
+          : 'English';
+
+        // Open beautiful celebratory success card with live extracted preview
+        setUploadSuccessData({
+          visible: true,
+          fileName: asset.name || 'Document',
+          questionCount: generated.questions.length,
+          language: langName,
+          title: generated.title || title || 'Bible Quiz',
+          firstQuestion: generated.questions[0]?.question,
+          firstOptions: generated.questions[0]?.options,
+        });
+      }
+    } catch (err: any) {
+      console.error('[AdminQuizEditor] Document upload failed:', err);
+      Alert.alert('Upload Error', err?.message || 'Could not process the uploaded file. Please try a TXT, PDF, DOCX, or CSV file.');
+    } finally {
+      setIsGeneratingFromFile(false);
+      setGeneratingStatus('');
+    }
+  };
 
   const handleSelectReference = (res: BiblePickerResult) => {
     if (activeQuestionIndex !== null && activeQuestionIndex >= 0) {
@@ -151,7 +313,10 @@ export default function AdminQuizEditor({
     setQuestions(prev => prev.filter((_, idx) => idx !== index));
   };
 
-  const handleSave = async (targetStatus: QuizStatus) => {
+  // ─── Save / Schedule / Publish ────────────────────────────────────────────────
+  const handleSave = async (targetStatus?: 'published' | 'scheduled' | 'draft') => {
+    const finalStatus: QuizStatus = targetStatus || publishStatus;
+
     if (!title.trim()) {
       Alert.alert('Missing Title', 'Please enter a Quiz Title.');
       return;
@@ -162,7 +327,7 @@ export default function AdminQuizEditor({
       return;
     }
 
-    // Friendly validation: Check question text and correct answer
+    // Validate questions and answers
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (!q.question.trim()) {
@@ -172,10 +337,7 @@ export default function AdminQuizEditor({
 
       const nonEmptyOptions = (q.options || []).filter(opt => opt.trim().length > 0);
       if (nonEmptyOptions.length < 2) {
-        Alert.alert(
-          'Missing Options',
-          `Please provide at least 2 choices for Question #${i + 1}.`
-        );
+        Alert.alert('Missing Options', `Please provide at least 2 choices for Question #${i + 1}.`);
         return;
       }
 
@@ -184,10 +346,7 @@ export default function AdminQuizEditor({
         : Boolean(q.correctAnswer && String(q.correctAnswer).trim());
 
       if (!hasCorrectAnswer) {
-        Alert.alert(
-          'Correct Answer Required',
-          `Please select the correct answer for Question #${i + 1}.`
-        );
+        Alert.alert('Correct Answer Required', `Please tap the circle next to the correct answer for Question #${i + 1}.`);
         return;
       }
     }
@@ -209,27 +368,36 @@ export default function AdminQuizEditor({
         churchName,
         title: title.trim(),
         description: description.trim(),
-        category: category.trim(),
+        category: topic.trim() || 'General',
+        topic: topic.trim() || 'General',
         difficulty,
-        level: level || 1,
-        language: 'en',
-        timeLimitMinutes: parseInt(timeLimitMinutes, 10) || 0,
+        level: 1,
+        language,
+        scheduledDate: finalStatus === 'scheduled' ? scheduledDate : '',
+        scheduledTime: finalStatus === 'scheduled' ? scheduledTime : '',
+        scheduledAt: finalStatus === 'scheduled' ? `${scheduledDate}T${scheduledTime}:00` : null,
+        sourceFile: sourceFile || '',
+        timeLimitMinutes: 0,
         marksPerQuestion: 1,
-        passPercentage: parseInt(passPercentage, 10) || 70,
+        passPercentage: 70,
         isDailyQuiz: false,
         allowMultipleAttempts: true,
-        status: targetStatus,
+        status: finalStatus,
         questions: sanitizedQuestions,
       };
 
       const savedId = await QuizService.saveQuiz(payload);
-      Alert.alert(
-        targetStatus === 'published' ? 'Quiz Published! 🎉' : 'Draft Saved 👍',
-        targetStatus === 'published'
-          ? `Your quiz for "${category} · Level ${level || 1}" is now live!`
-          : 'Your quiz draft has been saved successfully.',
-        [{ text: 'OK', onPress: () => onSaved(savedId) }]
-      );
+      setShowScheduleModal(false);
+
+      setSaveSuccessData({
+        visible: true,
+        status: finalStatus,
+        title: title.trim(),
+        questionCount: sanitizedQuestions.length,
+        scheduledDate: finalStatus === 'scheduled' ? scheduledDate : undefined,
+        scheduledTime: finalStatus === 'scheduled' ? scheduledTime : undefined,
+        savedId,
+      });
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Failed to save quiz. Please try again.');
     } finally {
@@ -237,74 +405,734 @@ export default function AdminQuizEditor({
     }
   };
 
-  return (
-    <View style={styles.container}>
-      {/* Top Header */}
-      <View style={styles.topBar}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn} activeOpacity={0.7}>
-          <ChevronLeft size={22} color="#1E293B" />
-          <Text style={styles.backBtnTxt}>Cancel</Text>
-        </TouchableOpacity>
+  // ─── Render Date Picker Modal (Calendar) ──────────────────────────────────────
+  const renderCalendarModal = () => {
+    const daysInMonth = new Date(pickerYear, pickerMonth + 1, 0).getDate();
+    const firstDayIndex = new Date(pickerYear, pickerMonth, 1).getDay();
 
-        <Text style={styles.topBarTitle}>
-          {quizId ? 'Edit Bible Quiz' : 'Create Bible Quiz'}
-        </Text>
+    const MONTH_NAMES = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December',
+    ];
 
-        <View style={{ width: 50 }} />
-      </View>
+    return (
+      <Modal visible={showDatePicker} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.calendarCard}>
+            <View style={styles.calHeader}>
+              <Text style={styles.calTitle}>Select Schedule Date</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <X size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
 
-      <ScrollView
-        style={styles.scrollArea}
-        contentContainerStyle={{ paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Basic Information Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardHeading}>Basic Information</Text>
+            <View style={styles.calNavRow}>
+              <TouchableOpacity
+                onPress={() => {
+                  if (pickerMonth === 0) {
+                    setPickerMonth(11);
+                    setPickerYear(y => y - 1);
+                  } else {
+                    setPickerMonth(m => m - 1);
+                  }
+                }}
+                style={styles.calNavBtn}
+              >
+                <ChevronLeft size={20} color="#1a2d5a" />
+              </TouchableOpacity>
 
-          {/* Quiz Title */}
-          <Text style={styles.label}>Quiz Title *</Text>
-          <TextInput
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="e.g. Family Bible Challenge"
-            placeholderTextColor="#94A3B8"
-          />
+              <Text style={styles.calMonthYearTxt}>
+                {MONTH_NAMES[pickerMonth]} {pickerYear}
+              </Text>
 
-          {/* Category Dropdown/Chips */}
-          <Text style={styles.label}>Category *</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
-            {QUIZ_CATEGORIES.map(cat => {
-              const isSelected = category === cat.name;
+              <TouchableOpacity
+                onPress={() => {
+                  if (pickerMonth === 11) {
+                    setPickerMonth(0);
+                    setPickerYear(y => y + 1);
+                  } else {
+                    setPickerMonth(m => m + 1);
+                  }
+                }}
+                style={styles.calNavBtn}
+              >
+                <ChevronRight size={20} color="#1a2d5a" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.weekdaysRow}>
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d, i) => (
+                <Text key={d} style={[styles.weekdayTxt, (i === 0 || i === 6) && { color: '#c0392b' }]}>{d}</Text>
+              ))}
+            </View>
+
+            <View style={styles.daysGrid}>
+              {Array.from({ length: firstDayIndex }).map((_, idx) => (
+                <View key={`b_${idx}`} style={styles.emptyDayCell} />
+              ))}
+              {Array.from({ length: daysInMonth }).map((_, idx) => {
+                const dayNum = idx + 1;
+                const dStr = `${pickerYear}-${String(pickerMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+                const isSelected = scheduledDate === dStr;
+                return (
+                  <TouchableOpacity
+                    key={`d_${dayNum}`}
+                    style={[styles.dayCell, isSelected && styles.dayCellSelected]}
+                    onPress={() => {
+                      setScheduledDate(dStr);
+                      setShowDatePicker(false);
+                    }}
+                  >
+                    <Text style={[styles.dayCellTxt, isSelected && styles.dayCellTxtSelected]}>
+                      {dayNum}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <TouchableOpacity
+              style={styles.todayShortcutBtn}
+              onPress={() => {
+                const now = new Date();
+                setPickerYear(now.getFullYear());
+                setPickerMonth(now.getMonth());
+                setScheduledDate(todayStr);
+                setShowDatePicker(false);
+              }}
+            >
+              <Text style={styles.todayShortcutTxt}>Today</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  // ─── Render Schedule Dialog Modal ─────────────────────────────────────────────
+  const renderScheduleModal = () => (
+    <Modal visible={showScheduleModal} transparent animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={styles.scheduleModalCard}>
+          <View style={styles.modalHeaderRow}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <CalendarIcon size={20} color="#1a2d5a" />
+              <Text style={styles.modalTitle}>Schedule Bible Quiz</Text>
+            </View>
+            <TouchableOpacity onPress={() => setShowScheduleModal(false)}>
+              <X size={20} color="#64748b" />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.modalSubtitle}>
+            Choose when this quiz will automatically become available to your congregation.
+          </Text>
+
+          {/* Date Picker trigger */}
+          <Text style={styles.inputLabel}>Schedule Date</Text>
+          <TouchableOpacity
+            style={styles.datePickerTrigger}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <CalendarIcon size={18} color="#1a2d5a" />
+            <Text style={styles.datePickerTriggerTxt}>{scheduledDate}</Text>
+          </TouchableOpacity>
+
+          {/* Time Presets */}
+          <Text style={styles.inputLabel}>Schedule Time</Text>
+          <View style={styles.timePresetsRow}>
+            {TIME_PRESETS.map(t => {
+              const isSelected = scheduledTime === t;
               return (
                 <TouchableOpacity
-                  key={cat.id}
-                  style={[styles.catChip, isSelected && styles.catChipActive]}
-                  onPress={() => setCategory(cat.name)}
-                  activeOpacity={0.8}
+                  key={t}
+                  style={[styles.timeChip, isSelected && styles.timeChipActive]}
+                  onPress={() => setScheduledTime(t)}
                 >
-                  <Text style={[styles.catChipTxt, isSelected && styles.catChipTxtActive]}>
-                    {cat.name}
+                  <Text style={[styles.timeChipTxt, isSelected && styles.timeChipTxtActive]}>
+                    {t}
                   </Text>
                 </TouchableOpacity>
               );
             })}
+          </View>
+
+          <TextInput
+            style={styles.customTimeInput}
+            value={scheduledTime}
+            onChangeText={setScheduledTime}
+            placeholder="Custom Time (e.g. 06:30)"
+            placeholderTextColor="#94a3b8"
+          />
+
+          <View style={styles.scheduleInfoBox}>
+            <Clock size={16} color="#1a2d5a" />
+            <Text style={styles.scheduleInfoTxt}>
+              Members will automatically see this quiz in the Church Quizzes tab on {scheduledDate} at {scheduledTime}.
+            </Text>
+          </View>
+
+          <View style={styles.modalActionsRow}>
+            <TouchableOpacity
+              style={styles.modalCancelBtn}
+              onPress={() => setShowScheduleModal(false)}
+            >
+              <Text style={styles.modalCancelBtnTxt}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.modalConfirmBtn}
+              onPress={() => {
+                setPublishStatus('scheduled');
+                handleSave('scheduled');
+              }}
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <ActivityIndicator size="small" color="#ffffff" />
+              ) : (
+                <Text style={styles.modalConfirmBtnTxt}>Confirm & Schedule</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // ─── Render Live Preview Modal ────────────────────────────────────────────────
+  const renderPreviewModal = () => (
+    <Modal visible={previewVisible} transparent animationType="slide">
+      <View style={styles.modalOverlay}>
+        <View style={styles.previewCard}>
+          <View style={styles.previewHeader}>
+            <View>
+              <Text style={styles.previewBadge}>MEMBER PREVIEW</Text>
+              <Text style={styles.previewTitle}>{title || 'Bible Quiz'}</Text>
+              <Text style={styles.previewSub}>
+                {topic || 'Scripture Knowledge'} · {difficulty.toUpperCase()} · {questions.length} Questions
+              </Text>
+            </View>
+            <TouchableOpacity onPress={() => setPreviewVisible(false)}>
+              <X size={22} color="#64748b" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={styles.previewScroll} showsVerticalScrollIndicator={false}>
+            {questions.map((q, idx) => {
+              const selectedOpt = previewSelectedAnswers[idx];
+
+              return (
+                <View key={q.id || idx} style={styles.previewQuestionBox}>
+                  <View style={styles.previewQHeader}>
+                    <Text style={styles.previewQNumber}>Question {idx + 1} of {questions.length}</Text>
+                    {Boolean(q.bibleReference) && (
+                      <Text style={styles.previewQRef}>{q.bibleReference}</Text>
+                    )}
+                  </View>
+
+                  <Text style={styles.previewQText}>{q.question || `(Question ${idx + 1})`}</Text>
+
+                  <View style={styles.previewOptionsCol}>
+                    {q.options?.map((opt, optIdx) => {
+                      const isSelected = selectedOpt === opt;
+                      const isCorrect = q.correctAnswer === opt;
+
+                      return (
+                        <TouchableOpacity
+                          key={optIdx}
+                          style={[
+                            styles.previewOptionBtn,
+                            isSelected && styles.previewOptionSelected,
+                            previewShowAnswers && isCorrect && styles.previewOptionCorrect,
+                          ]}
+                          onPress={() => {
+                            setPreviewSelectedAnswers(prev => ({ ...prev, [idx]: opt }));
+                          }}
+                        >
+                          <Text
+                            style={[
+                              styles.previewOptionTxt,
+                              isSelected && styles.previewOptionTxtSelected,
+                              previewShowAnswers && isCorrect && styles.previewOptionTxtCorrect,
+                            ]}
+                          >
+                            {String.fromCharCode(65 + optIdx)}. {opt}
+                          </Text>
+                          {previewShowAnswers && isCorrect && (
+                            <Check size={16} color="#10b981" />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {previewShowAnswers && Boolean(q.explanation) && (
+                    <View style={styles.previewExpBox}>
+                      <Text style={styles.previewExpLabel}>Biblical Explanation:</Text>
+                      <Text style={styles.previewExpTxt}>{q.explanation}</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
           </ScrollView>
 
-          {/* Difficulty: Easy | Medium | Hard */}
-          <Text style={styles.label}>Difficulty</Text>
-          <View style={styles.segmentedRow}>
+          <View style={styles.previewFooter}>
+            <TouchableOpacity
+              style={styles.previewToggleBtn}
+              onPress={() => setPreviewShowAnswers(!previewShowAnswers)}
+            >
+              <Text style={styles.previewToggleBtnTxt}>
+                {previewShowAnswers ? 'Hide Answers' : 'Reveal Answers & Scripture'}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.previewCloseBtn}
+              onPress={() => setPreviewVisible(false)}
+            >
+              <Text style={styles.previewCloseBtnTxt}>Close Preview</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // ─── Document Upload Success Modal ───────────────────────────────────────────
+  const renderSuccessModal = () => (
+    <Modal visible={uploadSuccessData.visible} transparent animationType="fade">
+      <View style={styles.modalOverlay}>
+        <View style={styles.celebrationCard}>
+          {/* Top Close Button */}
+          <TouchableOpacity
+            onPress={() => setUploadSuccessData(prev => ({ ...prev, visible: false }))}
+            style={styles.celebrationCloseBtn}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <X size={18} color="#64748B" />
+          </TouchableOpacity>
+
+          {/* Clean Emerald Checkmark Circle */}
+          <View style={styles.celebrationIconCircle}>
+            <CheckCircle size={28} color="#059669" />
+          </View>
+
+          <Text style={styles.celebrationTitle}>10 Questions Extracted!</Text>
+          <Text style={styles.celebrationSubtitle}>
+            Successfully extracted from "{uploadSuccessData.fileName || 'your document'}".
+          </Text>
+
+          {/* 2 Clean Info Chips */}
+          <View style={styles.celebrationBadgeRow}>
+            <View style={styles.celebrationCountBadge}>
+              <BookOpen size={13} color="#1a2d5a" />
+              <Text style={styles.celebrationCountBadgeTxt}>
+                {uploadSuccessData.questionCount || 10} Questions Ready
+              </Text>
+            </View>
+            <View style={styles.celebrationLangBadge}>
+              <Globe size={13} color="#059669" />
+              <Text style={styles.celebrationLangBadgeTxt}>{uploadSuccessData.language}</Text>
+            </View>
+          </View>
+
+          {/* First Question Sample Preview */}
+          {Boolean(uploadSuccessData.firstQuestion) && (
+            <View style={styles.celebrationSampleBox}>
+              <Text style={styles.celebrationSampleTag}>QUESTION 1 SAMPLE</Text>
+              <Text style={styles.celebrationSampleQText} numberOfLines={2}>
+                "{uploadSuccessData.firstQuestion}"
+              </Text>
+              {Boolean(uploadSuccessData.firstOptions && uploadSuccessData.firstOptions.length > 0) && (
+                <View style={styles.celebrationSampleOptionsGrid}>
+                  {uploadSuccessData.firstOptions?.slice(0, 4).map((opt, oIdx) => (
+                    <View key={oIdx} style={styles.celebrationSampleOptionPill}>
+                      <Text style={styles.celebrationSampleOptionTxt} numberOfLines={1}>
+                        <Text style={{ fontWeight: '700', color: '#1a2d5a' }}>{String.fromCharCode(65 + oIdx)}. </Text>
+                        {opt}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Action Buttons */}
+          <View style={styles.celebrationActionsCol}>
+            <TouchableOpacity
+              style={styles.celebrationPrimaryBtn}
+              onPress={() => {
+                setUploadSuccessData(prev => ({ ...prev, visible: false }));
+                setTimeout(() => {
+                  scrollViewRef.current?.scrollTo({ y: 380, animated: true });
+                }, 200);
+              }}
+              activeOpacity={0.85}
+            >
+              <Check size={16} color="#ffffff" />
+              <Text style={styles.celebrationPrimaryBtnTxt}>Review & Edit Questions</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.celebrationSecondaryBtn}
+              onPress={() => {
+                setUploadSuccessData(prev => ({ ...prev, visible: false }));
+                setPreviewVisible(true);
+              }}
+              activeOpacity={0.7}
+            >
+              <Eye size={15} color="#1a2d5a" />
+              <Text style={styles.celebrationSecondaryBtnTxt}>Preview Member Experience</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
+  // ─── Quiz Save / Publish / Schedule Success Modal ─────────────────────────
+  const renderSaveSuccessModal = () => {
+    if (!saveSuccessData || !saveSuccessData.visible) return null;
+
+    const isPub = saveSuccessData.status === 'published';
+    const isSched = saveSuccessData.status === 'scheduled';
+
+    const getLangLabel = () => {
+      const match = SUPPORTED_LANGUAGES.find(l => l.code === language);
+      return match ? `${match.name} (${match.native})` : language.toUpperCase();
+    };
+
+    return (
+      <Modal visible={saveSuccessData.visible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.celebrationCard}>
+            {/* Top Close Button */}
+            <TouchableOpacity
+              onPress={() => {
+                const sId = saveSuccessData.savedId;
+                setSaveSuccessData(null);
+                onSaved(sId);
+              }}
+              style={styles.celebrationCloseBtn}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <X size={18} color="#64748B" />
+            </TouchableOpacity>
+
+            {/* Top Icon Badge */}
+            <View
+              style={[
+                styles.celebrationIconCircle,
+                isPub
+                  ? { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }
+                  : isSched
+                  ? { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }
+                  : { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' },
+              ]}
+            >
+              {isPub ? (
+                <CheckCircle size={30} color="#059669" />
+              ) : isSched ? (
+                <CalendarIcon size={28} color="#1a2d5a" />
+              ) : (
+                <Save size={26} color="#475569" />
+              )}
+            </View>
+
+            {/* Title & Subtitle */}
+            <Text style={styles.celebrationTitle}>
+              {isPub
+                ? 'Quiz Published Live!'
+                : isSched
+                ? 'Quiz Scheduled!'
+                : 'Quiz Draft Saved!'}
+            </Text>
+            <Text style={styles.celebrationSubtitle}>
+              {isPub
+                ? `"${saveSuccessData.title}" is now active and ready for your members.`
+                : isSched
+                ? `"${saveSuccessData.title}" will unlock on ${saveSuccessData.scheduledDate} at ${saveSuccessData.scheduledTime}.`
+                : `Your draft "${saveSuccessData.title}" has been saved safely.`}
+            </Text>
+
+            {/* Push Notification Banner for Published Quizzes */}
+            {isPub && (
+              <View style={styles.saveSuccessNotificationBox}>
+                <View style={styles.saveSuccessBellCircle}>
+                  <Bell size={14} color="#059669" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.saveSuccessNotificationTitle}>Push Notification Broadcasted</Text>
+                  <Text style={styles.saveSuccessNotificationDesc}>
+                    Church members received a push notification to play this quiz.
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Summary Chips */}
+            <View style={styles.celebrationBadgeRow}>
+              <View style={styles.celebrationCountBadge}>
+                <BookOpen size={13} color="#1a2d5a" />
+                <Text style={styles.celebrationCountBadgeTxt}>
+                  {saveSuccessData.questionCount} Questions
+                </Text>
+              </View>
+              <View style={styles.saveSuccessDifficultyBadge}>
+                <Text style={styles.saveSuccessDifficultyTxt}>
+                  {difficulty.toUpperCase()}
+                </Text>
+              </View>
+              <View style={styles.celebrationLangBadge}>
+                <Globe size={13} color="#059669" />
+                <Text style={styles.celebrationLangBadgeTxt}>
+                  {getLangLabel()}
+                </Text>
+              </View>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.celebrationActionsCol}>
+              <TouchableOpacity
+                style={styles.celebrationPrimaryBtn}
+                onPress={() => {
+                  const sId = saveSuccessData.savedId;
+                  setSaveSuccessData(null);
+                  onSaved(sId);
+                }}
+                activeOpacity={0.85}
+              >
+                <Check size={16} color="#ffffff" />
+                <Text style={styles.celebrationPrimaryBtnTxt}>Done · View Quiz Library</Text>
+              </TouchableOpacity>
+
+              {isPub && (
+                <TouchableOpacity
+                  style={styles.celebrationSecondaryBtn}
+                  onPress={() => {
+                    setSaveSuccessData(null);
+                    setPreviewVisible(true);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Eye size={15} color="#1a2d5a" />
+                  <Text style={styles.celebrationSecondaryBtnTxt}>Preview Member Experience</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* ── Signature Navy Hero (Matching Daily Promise Header) ── */}
+      <View style={styles.hero}>
+        <View style={styles.heroTitleRow}>
+          <TouchableOpacity onPress={onBack} style={styles.heroBackBtn} activeOpacity={0.7}>
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -4, marginRight: 2 }} />
+            <Text style={styles.heroBackTxt}>Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.heroDivider}>|</Text>
+          <Text style={styles.heroTitle}>{quizId ? 'Edit Bible Quiz' : 'New Bible Quiz'}</Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.heroPreviewPill}
+          onPress={() => setPreviewVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Eye size={15} color="#fff" />
+          <Text style={styles.heroPreviewPillTxt}>Preview</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        ref={scrollViewRef}
+        style={styles.scrollArea}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── 1. Create Quiz from Uploaded Document (Up to 10 Questions) ── */}
+        <View style={[styles.sectionCard, styles.topperCard]}>
+          <View style={styles.secHeader}>
+            <View style={styles.secHdPill}>
+              <FileText size={14} color="#fff" />
+            </View>
+            <View>
+              <Text style={styles.secHeadingText}>Upload Document</Text>
+              <Text style={styles.topperSubHint}>Auto-extracts up to 10 questions</Text>
+            </View>
+          </View>
+
+          {Boolean(sourceFile) && (
+            <View style={styles.docAttachedBanner}>
+              <FileText size={16} color="#1a2d5a" />
+              <Text style={styles.docAttachedBannerTxt} numberOfLines={1}>{sourceFile}</Text>
+              <TouchableOpacity onPress={() => setSourceFile('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} style={styles.docAttachedRemoveBtn}>
+                <X size={12} color="#dc2626" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          <Text style={styles.docUploadSub}>
+            Supports PDF, Word (DOC/DOCX), Excel (XLSX), CSV, or Notepad (TXT) study notes. Automatically extracts and generates up to 10 questions.
+          </Text>
+
+          {/* Quick Language Target Selector (Symmetrical 2x2 Grid) */}
+          <View style={styles.docLangContainer}>
+            <Text style={styles.docLangLabel}>DOCUMENT / TARGET LANGUAGE:</Text>
+            <View style={styles.docLangGrid}>
+              {[
+                { code: 'te', label: 'Telugu (తెలుగు)' },
+                { code: 'en', label: 'English' },
+                { code: 'hi', label: 'Hindi (हिन्दी)' },
+                { code: 'ta', label: 'Tamil (தமிழ்)' },
+              ].map(l => {
+                const isSel = language === l.code;
+                return (
+                  <TouchableOpacity
+                    key={l.code}
+                    style={[styles.docLangPill, isSel && styles.docLangPillActive]}
+                    onPress={() => setLanguage(l.code)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={[styles.docLangPillTxt, isSel && styles.docLangPillTxtActive]}>
+                      {l.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+
+          {isGeneratingFromFile ? (
+            <View style={styles.docLoadingRow}>
+              <ActivityIndicator size="small" color="#1a2d5a" />
+              <Text style={styles.docLoadingTxt}>{generatingStatus}</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={styles.docUploadActionBtn}
+              onPress={handlePickDocument}
+              activeOpacity={0.85}
+            >
+              <Upload size={16} color="#ffffff" />
+              <Text style={styles.docUploadActionTxt}>Choose Document & Generate Quiz</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ── 2. Schedule & Publication Section (Matching Daily Promise secNavy) ── */}
+        <View style={styles.sectionCard}>
+          <View style={styles.secHeader}>
+            <View style={styles.secHdPill}>
+              <CalendarIcon size={14} color="#fff" />
+            </View>
+            <Text style={styles.secHeadingText}>Schedule & Availability</Text>
+          </View>
+
+          {/* Status Segment Control: Draft | Scheduled | Publish Now */}
+          <View style={styles.statusSegmentRow}>
+            {(
+              [
+                { key: 'draft', label: 'Save Draft' },
+                { key: 'scheduled', label: 'Scheduled' },
+                { key: 'published', label: 'Publish Live' },
+              ] as const
+            ).map(opt => {
+              const isSelected = publishStatus === opt.key;
+              return (
+                <TouchableOpacity
+                  key={opt.key}
+                  style={[styles.statusSegmentBtn, isSelected && styles.statusSegmentBtnActive]}
+                  onPress={() => {
+                    setPublishStatus(opt.key);
+                    if (opt.key === 'scheduled') {
+                      setShowScheduleModal(true);
+                    }
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.statusSegmentTxt, isSelected && styles.statusSegmentTxtActive]}>
+                    {opt.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Date & Time Row when Scheduled */}
+          {publishStatus === 'scheduled' && (
+            <TouchableOpacity
+              style={styles.scheduleInfoRow}
+              onPress={() => setShowScheduleModal(true)}
+              activeOpacity={0.7}
+            >
+              <CalendarIcon size={15} color="#1a2d5a" />
+              <Text style={styles.scheduleInfoRowTxt}>
+                Active on: <Text style={{ fontWeight: '700', color: '#1a2d5a' }}>{scheduledDate}</Text> at <Text style={{ fontWeight: '700', color: '#1a2d5a' }}>{scheduledTime}</Text>
+              </Text>
+              <ChevronRight size={16} color="#64748B" style={{ marginLeft: 'auto' }} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ── 3. Quiz Details (Clean, Simple, No confusing category chips) ── */}
+        <View style={styles.sectionCard}>
+          <View style={styles.secHeader}>
+            <View style={styles.secHdPill}>
+              <BookOpen size={14} color="#fff" />
+            </View>
+            <Text style={styles.secHeadingText}>Quiz Information</Text>
+          </View>
+
+          {/* Quiz Title */}
+          <Text style={styles.fieldLabel}>Quiz Title <Text style={{ color: '#c0392b' }}>*</Text></Text>
+          <TextInput
+            style={styles.textInput}
+            value={title}
+            onChangeText={setTitle}
+            placeholder="e.g. Sunday Fellowship Bible Challenge"
+            placeholderTextColor="#94A3B8"
+          />
+
+          {/* Bible Topic / Series */}
+          <Text style={styles.fieldLabel}>Topic / Series (Optional)</Text>
+          <TextInput
+            style={styles.textInput}
+            value={topic}
+            onChangeText={setTopic}
+            placeholder="e.g. Gospel of John, Life of David, Parables..."
+            placeholderTextColor="#94A3B8"
+          />
+
+          {/* Difficulty Segment */}
+          <Text style={styles.fieldLabel}>Difficulty</Text>
+          <View style={styles.diffSegmentRow}>
             {(['easy', 'medium', 'hard'] as QuizDifficulty[]).map(d => {
               const isSelected = difficulty === d;
               return (
                 <TouchableOpacity
                   key={d}
-                  style={[styles.segmentBtn, isSelected && styles.segmentBtnActive]}
+                  style={[
+                    styles.diffSegmentBtn,
+                    isSelected && (
+                      d === 'easy'
+                        ? styles.diffSegmentBtnEasyActive
+                        : d === 'medium'
+                        ? styles.diffSegmentBtnMediumActive
+                        : styles.diffSegmentBtnHardActive
+                    ),
+                  ]}
                   onPress={() => setDifficulty(d)}
                   activeOpacity={0.8}
                 >
-                  <Text style={[styles.segmentBtnTxt, isSelected && styles.segmentBtnTxtActive]}>
+                  <Text style={[styles.diffSegmentTxt, isSelected && styles.diffSegmentTxtActive]}>
                     {d.toUpperCase()}
                   </Text>
                 </TouchableOpacity>
@@ -312,131 +1140,64 @@ export default function AdminQuizEditor({
             })}
           </View>
 
-          {/* Level: Level 1 to 30 */}
-          <Text style={styles.label}>Level (1 - 30)</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll}>
-            {Array.from({ length: 30 }, (_, idx) => {
-              const lvlNum = idx + 1;
-              const isSelected = level === lvlNum;
+          {/* Language Selector */}
+          <Text style={styles.fieldLabel}>Language</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.langChipsScroll}>
+            {SUPPORTED_LANGUAGES.map(lang => {
+              const isSelected = language === lang.code;
               return (
                 <TouchableOpacity
-                  key={lvlNum}
-                  style={[styles.levelChip, isSelected && styles.levelChipActive]}
-                  onPress={() => setLevel(lvlNum)}
-                  activeOpacity={0.8}
+                  key={lang.code}
+                  style={[styles.langChip, isSelected && styles.langChipActive]}
+                  onPress={() => setLanguage(lang.code)}
                 >
-                  <Text style={[styles.levelChipTxt, isSelected && styles.levelChipTxtActive]}>
-                    Level {lvlNum}
+                  <Text style={[styles.langChipTxt, isSelected && styles.langChipTxtActive]}>
+                    {lang.name} ({lang.native})
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </ScrollView>
-
-          {/* Optional Advanced Settings Accordion */}
-          <TouchableOpacity
-            style={styles.advancedToggle}
-            onPress={() => setShowAdvanced(!showAdvanced)}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.advancedToggleTxt}>
-              {showAdvanced ? 'Hide Optional Settings' : '+ Optional Settings (Time Limit, Pass Score)'}
-            </Text>
-            {showAdvanced ? (
-              <ChevronUp size={16} color="#3B5998" />
-            ) : (
-              <ChevronDown size={16} color="#3B5998" />
-            )}
-          </TouchableOpacity>
-
-          {showAdvanced && (
-            <View style={styles.advancedBox}>
-              <Text style={styles.label}>Description / Encouragement (Optional)</Text>
-              <TextInput
-                style={[styles.input, { height: 60, textAlignVertical: 'top' }]}
-                value={description}
-                onChangeText={setDescription}
-                placeholder="Words of encouragement for church members..."
-                placeholderTextColor="#94A3B8"
-                multiline
-              />
-
-              <View style={styles.rowTwoCols}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Time Limit (Minutes)</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={timeLimitMinutes}
-                    onChangeText={setTimeLimitMinutes}
-                    placeholder="0 for Untimed"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="numeric"
-                  />
-                </View>
-
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.label}>Passing Score (%)</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={passPercentage}
-                    onChangeText={setPassPercentage}
-                    placeholder="70"
-                    placeholderTextColor="#94A3B8"
-                    keyboardType="numeric"
-                  />
-                </View>
-              </View>
-            </View>
-          )}
         </View>
 
-        {/* Questions Builder Card (Google Forms Style) */}
-        <View style={styles.card}>
-          <Text style={styles.cardHeading}>Questions ({questions.length})</Text>
-          <Text style={styles.cardSubheading}>
-            Select the radio circle (○) to mark the correct answer
-          </Text>
+        {/* ── 4. Questions Builder (Google Forms style with premium styling) ── */}
+        <View style={styles.sectionCard}>
+          <View style={styles.secHeader}>
+            <View style={styles.secHdPill}>
+              <HelpCircle size={14} color="#fff" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.secHeadingText}>Quiz Questions ({questions.length})</Text>
+              <Text style={styles.secSubheadingText}>
+                Tap the circle (○) to mark the correct answer
+              </Text>
+            </View>
+          </View>
 
           {questions.map((q, qIdx) => (
-            <View key={q.id || qIdx} style={styles.googleFormQuestionBox}>
+            <View key={q.id || qIdx} style={styles.questionCard}>
               {/* Question Header */}
-              <View style={styles.qHeader}>
-                <View style={styles.qIndexPill}>
-                  <Text style={styles.qIndexTxt}>Question {qIdx + 1}</Text>
+              <View style={styles.qCardHeader}>
+                <View style={styles.qNumberPill}>
+                  <Text style={styles.qNumberTxt}>Q{qIdx + 1}</Text>
                 </View>
 
-                {/* Question Type Selector: Multiple Choice | True/False */}
-                <View style={styles.typeSelectorRow}>
+                {/* Type toggle */}
+                <View style={styles.qTypeToggleRow}>
                   <TouchableOpacity
-                    style={[
-                      styles.typeBtn,
-                      q.questionType === 'single_choice' && styles.typeBtnActive,
-                    ]}
+                    style={[styles.qTypeBtn, q.questionType === 'single_choice' && styles.qTypeBtnActive]}
                     onPress={() => handleQuestionTypeChange(qIdx, 'single_choice')}
                   >
-                    <Text
-                      style={[
-                        styles.typeBtnTxt,
-                        q.questionType === 'single_choice' && styles.typeBtnTxtActive,
-                      ]}
-                    >
+                    <Text style={[styles.qTypeBtnTxt, q.questionType === 'single_choice' && styles.qTypeBtnTxtActive]}>
                       Multiple Choice
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[
-                      styles.typeBtn,
-                      q.questionType === 'true_false' && styles.typeBtnActive,
-                    ]}
+                    style={[styles.qTypeBtn, q.questionType === 'true_false' && styles.qTypeBtnActive]}
                     onPress={() => handleQuestionTypeChange(qIdx, 'true_false')}
                   >
-                    <Text
-                      style={[
-                        styles.typeBtnTxt,
-                        q.questionType === 'true_false' && styles.typeBtnTxtActive,
-                      ]}
-                    >
+                    <Text style={[styles.qTypeBtnTxt, q.questionType === 'true_false' && styles.qTypeBtnTxtActive]}>
                       True / False
                     </Text>
                   </TouchableOpacity>
@@ -445,93 +1206,75 @@ export default function AdminQuizEditor({
                 {questions.length > 1 && (
                   <TouchableOpacity
                     onPress={() => handleDeleteQuestion(qIdx)}
-                    style={styles.deleteBtn}
+                    style={styles.qDeleteBtn}
                   >
-                    <Trash2 size={16} color="#EF4444" />
+                    <Trash2 size={16} color="#c0392b" />
                   </TouchableOpacity>
                 )}
               </View>
 
-              {/* Question Input */}
+              {/* Question Text */}
               <TextInput
-                style={styles.questionInput}
+                style={styles.qInput}
                 value={q.question}
-                onChangeText={val => handleUpdateQuestion(qIdx, 'question', val)}
-                placeholder="Question (e.g. Who built the ark?)"
+                onChangeText={text => handleUpdateQuestion(qIdx, 'question', text)}
+                placeholder="Type the question text here..."
                 placeholderTextColor="#94A3B8"
                 multiline
               />
 
-              {/* Options with Radio Circles (Google Forms style) */}
+              {/* Options */}
               <View style={styles.optionsWrap}>
-                {q.options.map((optVal, optIdx) => {
-                  const isCorrect = Boolean(optVal.trim()) && q.correctAnswer === optVal;
+                {(q.options || []).map((optVal, optIdx) => {
+                  const isCorrect = q.correctAnswer === optVal && optVal.trim().length > 0;
+
                   return (
-                    <View
-                      key={optIdx}
-                      style={[
-                        styles.optionRow,
-                        isCorrect && styles.optionRowCorrect,
-                      ]}
-                    >
-                      {/* Radio Circle */}
+                    <View key={optIdx} style={styles.optionRow}>
                       <TouchableOpacity
-                        style={[
-                          styles.radioCircle,
-                          isCorrect && styles.radioCircleActive,
-                        ]}
-                        onPress={() => {
-                          if (!optVal.trim()) {
-                            Alert.alert('Notice', 'Please type option text first.');
-                            return;
-                          }
-                          handleSetCorrectAnswer(qIdx, optVal);
-                        }}
+                        style={[styles.radioCircle, isCorrect && styles.radioCircleActive]}
+                        onPress={() => handleSetCorrectAnswer(qIdx, optVal)}
                         activeOpacity={0.7}
                       >
-                        {isCorrect ? (
-                          <View style={styles.radioInnerFilled} />
-                        ) : null}
+                        {isCorrect ? <View style={styles.radioDot} /> : null}
                       </TouchableOpacity>
 
-                      {/* Option Text Input */}
-                      <TextInput
-                        style={[
-                          styles.optionInput,
-                          isCorrect && styles.optionInputCorrect,
-                        ]}
-                        value={optVal}
-                        onChangeText={text => handleUpdateOption(qIdx, optIdx, text)}
-                        placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
-                        placeholderTextColor="#94A3B8"
-                      />
-
-                      {isCorrect ? (
-                        <CheckCircle size={16} color="#10B981" style={{ marginRight: 6 }} />
-                      ) : null}
+                      <View style={[styles.optionInputWrap, isCorrect && styles.optionInputWrapCorrect]}>
+                        <Text style={styles.optLetter}>{String.fromCharCode(65 + optIdx)}.</Text>
+                        <TextInput
+                          style={styles.optionTextInput}
+                          value={optVal}
+                          onChangeText={text => handleUpdateOption(qIdx, optIdx, text)}
+                          placeholder={`Option ${String.fromCharCode(65 + optIdx)}`}
+                          placeholderTextColor="#94A3B8"
+                        />
+                        {isCorrect ? (
+                          <CheckCircle size={16} color="#10B981" style={{ marginLeft: 6 }} />
+                        ) : null}
+                      </View>
                     </View>
                   );
                 })}
               </View>
 
-              {/* Bible Reference & Explanation */}
+              {/* Bible Reference with Pick button */}
               <View style={styles.refRow}>
-                <BookOpen size={16} color="#3B5998" />
+                <BookOpen size={16} color="#1a2d5a" />
                 <TextInput
                   style={styles.refInput}
                   value={q.bibleReference || ''}
                   onChangeText={ref => handleUpdateQuestion(qIdx, 'bibleReference', ref)}
-                  placeholder="Bible Reference (e.g. Genesis 6)"
+                  placeholder="Bible Reference (e.g. John 3:16)"
                   placeholderTextColor="#94A3B8"
                 />
                 <TouchableOpacity
-                  style={styles.refPickerBtn}
+                  style={styles.refPickBtn}
                   onPress={() => {
                     setActiveQuestionIndex(qIdx);
                     setPickerVisible(true);
                   }}
+                  activeOpacity={0.7}
                 >
-                  <Text style={styles.refPickerBtnTxt}>Pick</Text>
+                  <Text style={styles.refPickBtnTxt}>Pick Verse</Text>
                 </TouchableOpacity>
               </View>
 
@@ -540,53 +1283,60 @@ export default function AdminQuizEditor({
                 style={styles.explanationInput}
                 value={q.explanation || ''}
                 onChangeText={exp => handleUpdateQuestion(qIdx, 'explanation', exp)}
-                placeholder="Short Explanation (e.g. Noah was instructed by God to build the ark.)"
+                placeholder="Scripture Explanation / Devotional Insight (optional)"
                 placeholderTextColor="#94A3B8"
               />
             </View>
           ))}
 
-          {/* + Add Question Button */}
+          {/* Add Question Button */}
           <TouchableOpacity
             style={styles.addQuestionBtn}
             onPress={handleAddQuestion}
             activeOpacity={0.75}
           >
-            <Plus size={20} color="#3B5998" />
-            <Text style={styles.addQuestionBtnTxt}>+ Add Question</Text>
+            <Plus size={18} color="#1a2d5a" />
+            <Text style={styles.addQuestionBtnTxt}>Add Another Question</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── 5. Footer Buttons (Matching Daily Promise Footer) ── */}
+        <View style={styles.footerBtnRow}>
+          <TouchableOpacity
+            style={styles.btnDraft}
+            onPress={() => handleSave('draft')}
+            disabled={isSaving}
+            activeOpacity={0.8}
+          >
+            <Save size={16} color="#1a2d5a" />
+            <Text style={styles.btnDraftTxt}>Save as Draft</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.btnPublish}
+            onPress={() => handleSave('published')}
+            disabled={isSaving}
+            activeOpacity={0.85}
+          >
+            {isSaving ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <>
+                <Send size={16} color="#ffffff" />
+                <Text style={styles.btnPublishTxt}>Publish Quiz</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Floating Bottom Action Bar */}
-      <View style={styles.bottomBar}>
-        <TouchableOpacity
-          style={styles.draftBtn}
-          onPress={() => handleSave('draft')}
-          disabled={isSaving}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.draftBtnTxt}>Save as Draft</Text>
-        </TouchableOpacity>
+      {/* Modals */}
+      {renderCalendarModal()}
+      {renderScheduleModal()}
+      {renderPreviewModal()}
+      {renderSuccessModal()}
+      {renderSaveSuccessModal()}
 
-        <TouchableOpacity
-          style={styles.publishBtn}
-          onPress={() => handleSave('published')}
-          disabled={isSaving}
-          activeOpacity={0.85}
-        >
-          {isSaving ? (
-            <ActivityIndicator size="small" color="#ffffff" />
-          ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <CheckCircle size={18} color="#ffffff" />
-              <Text style={styles.publishBtnTxt}>Publish Quiz</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      {/* Scripture Reference Picker Modal */}
       <BibleReferencePickerModal
         visible={pickerVisible}
         onClose={() => {
@@ -603,41 +1353,244 @@ export default function AdminQuizEditor({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#EDE8DC',
   },
-  topBar: {
+  // ── Hero Header ─────────────────────────────────────────────────────────────
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingTop: Platform.OS === 'ios' ? 52 : 22,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 16,
-    paddingBottom: 14,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
+    marginBottom: 4,
   },
-  backBtn: {
+  heroTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
   },
-  backBtnTxt: {
-    fontSize: 15,
-    color: '#334155',
+  heroBackBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  heroBackTxt: {
+    color: '#ffffff',
+    fontSize: 14,
     fontWeight: '600',
   },
-  topBarTitle: {
-    fontSize: 17,
+  heroDivider: {
+    color: '#ffffff',
+    marginHorizontal: 10,
+    opacity: 0.4,
+    fontSize: 14,
+  },
+  heroTitle: {
+    color: '#ffffff',
+    fontSize: 16,
     fontWeight: '700',
-    color: '#0F172A',
+  },
+  heroPreviewPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  heroPreviewPillTxt: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   scrollArea: {
-    padding: 16,
+    flex: 1,
   },
-  card: {
+  scrollContent: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+  // ── Topper AI Studio Card ──────────────────────────────────────────────────
+  topperCard: {
+    borderWidth: 1.5,
+    borderColor: 'rgba(26, 45, 90, 0.12)',
+    borderRadius: 18,
+    backgroundColor: '#ffffff',
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  topperIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: '#1a2d5a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topperSubHint: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+    fontWeight: '500',
+  },
+  topperBadge: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderWidth: 1,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  topperBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1D4ED8',
+    letterSpacing: 0.3,
+  },
+  docAttachedBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 10,
+  },
+  docAttachedBannerTxt: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1a2d5a',
+  },
+  docAttachedRemoveBtn: {
+    padding: 4,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 6,
+  },
+  secHeaderBetween: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  secHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  docAttachedPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    maxWidth: '45%',
+  },
+  docAttachedPillTxt: {
+    color: '#1a2d5a',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  docUploadSub: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  docLangContainer: {
+    marginBottom: 14,
+  },
+  docLangLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  docLangGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  docLangPill: {
+    flexBasis: '48%',
+    flexGrow: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+  },
+  docLangPillActive: {
+    backgroundColor: '#1a2d5a',
+    borderColor: '#1a2d5a',
+  },
+  docLangPillTxt: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  docLangPillTxtActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  docUploadActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#1a2d5a',
+    paddingVertical: 13,
+    borderRadius: 12,
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  docUploadActionTxt: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  docLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  docLoadingTxt: {
+    color: '#1a2d5a',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // ── Section Card (Signature Daily Promise secNavy) ──────────────────────────
+  sectionCard: {
     backgroundColor: '#ffffff',
     borderRadius: 16,
-    padding: 18,
+    padding: 16,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#E2E8F0',
@@ -647,189 +1600,237 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  cardHeading: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0F172A',
-    marginBottom: 4,
-  },
-  cardSubheading: {
-    fontSize: 13,
-    color: '#64748B',
+  secHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
     marginBottom: 14,
   },
-  label: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#475569',
-    marginBottom: 6,
-    marginTop: 10,
+  secHdPill: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#1a2d5a',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  input: {
+  secHeadingText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    letterSpacing: 0.3,
+  },
+  secSubheadingText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  // ── Status Segment Control ──────────────────────────────────────────────────
+  statusSegmentRow: {
+    flexDirection: 'row',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    padding: 3,
+    gap: 3,
+    marginBottom: 10,
+  },
+  statusSegmentBtn: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statusSegmentBtnActive: {
+    backgroundColor: '#1a2d5a',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  statusSegmentTxt: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  statusSegmentTxtActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  scheduleInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
     backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  scheduleInfoRowTxt: {
+    fontSize: 12,
+    color: '#475569',
+  },
+  // ── Inputs & Details ────────────────────────────────────────────────────────
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 6,
+    marginTop: 8,
+  },
+  textInput: {
     borderWidth: 1,
     borderColor: '#CBD5E1',
     borderRadius: 10,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     paddingVertical: 10,
-    fontSize: 15,
+    fontSize: 13,
     color: '#0F172A',
-  },
-  chipsScroll: {
+    backgroundColor: '#F8FAFC',
     marginBottom: 6,
   },
-  catChip: {
+  diffSegmentRow: {
+    flexDirection: 'row',
     backgroundColor: '#F1F5F9',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 12,
+    padding: 4,
+    gap: 6,
+    marginBottom: 6,
+  },
+  diffSegmentBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  diffSegmentBtnEasyActive: {
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  diffSegmentBtnMediumActive: {
+    backgroundColor: '#D97706',
+    borderColor: '#D97706',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  diffSegmentBtnHardActive: {
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  diffSegmentTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  diffSegmentTxtActive: {
+    color: '#ffffff',
+    fontWeight: '800',
+  },
+  langChipsScroll: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  langChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
     marginRight: 8,
     borderWidth: 1,
     borderColor: '#E2E8F0',
   },
-  catChipActive: {
-    backgroundColor: '#3B5998',
-    borderColor: '#3B5998',
+  langChipActive: {
+    backgroundColor: '#1a2d5a',
+    borderColor: '#1a2d5a',
   },
-  catChipTxt: {
-    fontSize: 13,
-    fontWeight: '600',
+  langChipTxt: {
+    fontSize: 11,
     color: '#475569',
-  },
-  catChipTxtActive: {
-    color: '#ffffff',
-  },
-  segmentedRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  segmentBtn: {
-    flex: 1,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 10,
-    borderRadius: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  segmentBtnActive: {
-    backgroundColor: '#3B5998',
-    borderColor: '#3B5998',
-  },
-  segmentBtnTxt: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#64748B',
-  },
-  segmentBtnTxtActive: {
-    color: '#ffffff',
-  },
-  levelChip: {
-    backgroundColor: '#F1F5F9',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 16,
-    marginRight: 6,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-  },
-  levelChipActive: {
-    backgroundColor: '#3B5998',
-    borderColor: '#3B5998',
-  },
-  levelChipTxt: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#475569',
-  },
-  levelChipTxtActive: {
-    color: '#ffffff',
-  },
-  advancedToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    marginTop: 14,
-    paddingVertical: 8,
-  },
-  advancedToggleTxt: {
-    fontSize: 13,
     fontWeight: '600',
-    color: '#3B5998',
   },
-  advancedBox: {
-    marginTop: 6,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+  langChipTxtActive: {
+    color: '#ffffff',
+    fontWeight: '700',
   },
-  rowTwoCols: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  googleFormQuestionBox: {
-    backgroundColor: '#F8FAFC',
-    borderRadius: 14,
+  // ── Question Cards ──────────────────────────────────────────────────────────
+  questionCard: {
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    borderRadius: 12,
     padding: 14,
-    marginBottom: 16,
+    marginBottom: 14,
+    backgroundColor: '#FAFAFA',
   },
-  qHeader: {
+  qCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
-    flexWrap: 'wrap',
-    gap: 8,
   },
-  qIndexPill: {
-    backgroundColor: '#EFF6FF',
+  qNumberPill: {
+    backgroundColor: '#1a2d5a',
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 6,
   },
-  qIndexTxt: {
-    fontSize: 12,
+  qNumberTxt: {
+    fontSize: 11,
     fontWeight: '800',
-    color: '#3B5998',
+    color: '#ffffff',
   },
-  typeSelectorRow: {
+  qTypeToggleRow: {
     flexDirection: 'row',
     gap: 6,
   },
-  typeBtn: {
-    backgroundColor: '#E2E8F0',
+  qTypeBtn: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
+    backgroundColor: '#EEF2F6',
   },
-  typeBtnActive: {
-    backgroundColor: '#3B5998',
+  qTypeBtnActive: {
+    backgroundColor: '#1a2d5a',
   },
-  typeBtnTxt: {
-    fontSize: 11,
+  qTypeBtnTxt: {
+    fontSize: 10.5,
+    color: '#64748B',
     fontWeight: '600',
-    color: '#475569',
   },
-  typeBtnTxtActive: {
+  qTypeBtnTxtActive: {
     color: '#ffffff',
   },
-  deleteBtn: {
+  qDeleteBtn: {
     padding: 4,
   },
-  questionInput: {
-    backgroundColor: '#ffffff',
+  qInput: {
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 15,
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 13,
     color: '#0F172A',
-    minHeight: 52,
-    marginBottom: 12,
+    backgroundColor: '#ffffff',
+    marginBottom: 10,
+    minHeight: 48,
   },
   optionsWrap: {
     gap: 8,
@@ -838,16 +1839,6 @@ const styles = StyleSheet.create({
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  optionRowCorrect: {
-    borderColor: '#10B981',
-    backgroundColor: '#ECFDF5',
   },
   radioCircle: {
     width: 20,
@@ -857,126 +1848,713 @@ const styles = StyleSheet.create({
     borderColor: '#94A3B8',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 10,
+    marginRight: 8,
   },
   radioCircleActive: {
     borderColor: '#10B981',
   },
-  radioInnerFilled: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+  radioDot: {
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
     backgroundColor: '#10B981',
   },
-  optionInput: {
+  optionInputWrap: {
     flex: 1,
-    fontSize: 14,
-    color: '#0F172A',
-    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: '#ffffff',
   },
-  optionInputCorrect: {
-    fontWeight: '600',
-    color: '#065F46',
+  optionInputWrapCorrect: {
+    borderColor: '#10B981',
+    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+  },
+  optLetter: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+    marginRight: 6,
+  },
+  optionTextInput: {
+    flex: 1,
+    paddingVertical: 7,
+    fontSize: 13,
+    color: '#0F172A',
   },
   refRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    gap: 8,
     marginBottom: 8,
   },
   refInput: {
     flex: 1,
-    fontSize: 13,
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    fontSize: 12.5,
     color: '#0F172A',
-    paddingVertical: 6,
   },
-  refPickerBtn: {
-    backgroundColor: '#EFF6FF',
+  refPickBtn: {
+    backgroundColor: '#1a2d5a',
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
   },
-  refPickerBtnTxt: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#3B5998',
+  refPickBtnTxt: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   explanationInput: {
-    backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#E2E8F0',
     borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    fontSize: 13,
-    color: '#0F172A',
+    padding: 8,
+    fontSize: 12,
+    color: '#475569',
+    backgroundColor: '#ffffff',
   },
   addQuestionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EFF6FF',
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: '#93C5FD',
-    borderRadius: 12,
-    paddingVertical: 14,
     gap: 6,
-    marginTop: 6,
+    paddingVertical: 12,
+    borderWidth: 1.5,
+    borderColor: '#1a2d5a',
+    borderStyle: 'dashed',
+    borderRadius: 10,
+    marginTop: 4,
   },
   addQuestionBtnTxt: {
-    fontSize: 15,
+    color: '#1a2d5a',
+    fontSize: 13,
     fontWeight: '700',
-    color: '#3B5998',
   },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#ffffff',
-    borderTopWidth: 1,
-    borderTopColor: '#E2E8F0',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+  // ── Footer Action Buttons (Matching Daily Promise) ──────────────────────────
+  footerBtnRow: {
     flexDirection: 'row',
     gap: 12,
+    marginTop: 8,
+    marginBottom: 20,
   },
-  draftBtn: {
+  btnDraft: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
-    paddingVertical: 14,
-    borderRadius: 12,
+    backgroundColor: '#F5F0E8',
+    borderRadius: 14,
+    paddingVertical: 15,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 7,
+    borderWidth: 1.5,
+    borderColor: 'rgba(26,45,90,0.30)',
   },
-  draftBtnTxt: {
+  btnDraftTxt: {
+    color: '#1a2d5a',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  btnPublish: {
+    flex: 1,
+    backgroundColor: '#2E6B4F',
+    borderRadius: 14,
+    paddingVertical: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 7,
+    elevation: 6,
+    shadowColor: '#2E6B4F',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  btnPublishTxt: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  // ── Modals ──────────────────────────────────────────────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  calendarCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 18,
+  },
+  calHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  calTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  calNavRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  calNavBtn: {
+    padding: 6,
+  },
+  calMonthYearTxt: {
     fontSize: 15,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  weekdaysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 8,
+  },
+  weekdayTxt: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748B',
+    width: 38,
+    textAlign: 'center',
+  },
+  daysGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+  },
+  emptyDayCell: {
+    width: '14.28%',
+    height: 38,
+  },
+  dayCell: {
+    width: '14.28%',
+    height: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 19,
+  },
+  dayCellSelected: {
+    backgroundColor: '#1a2d5a',
+  },
+  dayCellTxt: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1E293B',
+  },
+  dayCellTxtSelected: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  todayShortcutBtn: {
+    alignSelf: 'center',
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    backgroundColor: '#F1F5F9',
+    borderRadius: 14,
+  },
+  todayShortcutTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  scheduleModalCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    padding: 20,
+  },
+  modalHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  modalSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 17,
+    marginBottom: 14,
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 6,
+  },
+  datePickerTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 12,
+    backgroundColor: '#F8FAFC',
+  },
+  datePickerTriggerTxt: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  timePresetsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginBottom: 8,
+  },
+  timeChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  timeChipActive: {
+    backgroundColor: '#1a2d5a',
+  },
+  timeChipTxt: {
+    fontSize: 12,
     fontWeight: '600',
     color: '#475569',
   },
-  publishBtn: {
-    flex: 1.5,
-    backgroundColor: '#10B981',
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#10B981',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 3,
+  timeChipTxtActive: {
+    color: '#ffffff',
   },
-  publishBtnTxt: {
-    fontSize: 15,
+  customTimeInput: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: '#0F172A',
+    marginBottom: 12,
+  },
+  scheduleInfoBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 16,
+  },
+  scheduleInfoTxt: {
+    flex: 1,
+    fontSize: 11,
+    color: '#1E40AF',
+    lineHeight: 15,
+  },
+  modalActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+  },
+  modalCancelBtnTxt: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  modalConfirmBtn: {
+    flex: 2,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: '#1a2d5a',
+  },
+  modalConfirmBtnTxt: {
+    fontSize: 13,
     fontWeight: '700',
     color: '#ffffff',
+  },
+  previewCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 20,
+    maxHeight: '90%',
+    overflow: 'hidden',
+  },
+  previewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    padding: 18,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  previewBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    marginBottom: 2,
+  },
+  previewTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  previewSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  previewScroll: {
+    padding: 16,
+  },
+  previewQuestionBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  previewQHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  previewQNumber: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  previewQRef: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  previewQText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+    marginBottom: 10,
+    lineHeight: 19,
+  },
+  previewOptionsCol: {
+    gap: 6,
+  },
+  previewOptionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  previewOptionSelected: {
+    borderColor: '#1a2d5a',
+    backgroundColor: '#F0F5FF',
+  },
+  previewOptionCorrect: {
+    borderColor: '#10B981',
+    backgroundColor: '#ECFDF5',
+  },
+  previewOptionTxt: {
+    fontSize: 13,
+    color: '#334155',
+  },
+  previewOptionTxtSelected: {
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  previewOptionTxtCorrect: {
+    fontWeight: '700',
+    color: '#10B981',
+  },
+  previewExpBox: {
+    marginTop: 10,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+  },
+  previewExpLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  previewExpTxt: {
+    fontSize: 12,
+    color: '#334155',
+    marginTop: 2,
+  },
+  previewFooter: {
+    flexDirection: 'row',
+    padding: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    gap: 8,
+  },
+  previewToggleBtn: {
+    flex: 1,
+    backgroundColor: '#F1F5F9',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  previewToggleBtnTxt: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+  },
+  previewCloseBtn: {
+    paddingHorizontal: 18,
+    backgroundColor: '#1a2d5a',
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  previewCloseBtnTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#ffffff',
+  },
+
+
+  // ── Document Upload Success Modal ───────────────────────────────────────────
+  celebrationCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 22,
+    padding: 22,
+    paddingTop: 24,
+    width: '92%',
+    maxWidth: 420,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+    position: 'relative',
+  },
+  celebrationCloseBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  celebrationIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1.5,
+    borderColor: '#A7F3D0',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  celebrationTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  celebrationSubtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 12,
+    paddingHorizontal: 8,
+  },
+  celebrationBadgeRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  celebrationLangBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  celebrationLangBadgeTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  celebrationCountBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+  },
+  celebrationCountBadgeTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  celebrationSampleBox: {
+    width: '100%',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    marginBottom: 16,
+  },
+
+  celebrationSampleTag: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.5,
+  },
+
+  celebrationSampleQText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  celebrationSampleOptionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  celebrationSampleOptionPill: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  celebrationSampleOptionTxt: {
+    fontSize: 11,
+    color: '#334155',
+    fontWeight: '500',
+  },
+  celebrationActionsCol: {
+    width: '100%',
+    gap: 8,
+  },
+  celebrationPrimaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#1a2d5a',
+    paddingVertical: 13,
+    borderRadius: 12,
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  celebrationPrimaryBtnTxt: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  celebrationSecondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 11,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    backgroundColor: '#F8FAFC',
+  },
+  celebrationSecondaryBtnTxt: {
+    color: '#1a2d5a',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  saveSuccessNotificationBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 12,
+    padding: 12,
+    width: '100%',
+    marginBottom: 14,
+  },
+  saveSuccessBellCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#D1FAE5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveSuccessNotificationTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  saveSuccessNotificationDesc: {
+    fontSize: 11,
+    color: '#047857',
+    marginTop: 2,
+  },
+  saveSuccessDifficultyBadge: {
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  saveSuccessDifficultyTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
   },
 });

@@ -419,3 +419,154 @@ export const pushNewChurchRegistered = onDocumentCreated('churches/{churchId}', 
   }
 });
 
+/**
+ * 📖 NOTIFY CHURCH MEMBERS OF PUBLISHED BIBLE QUIZ
+ * Triggered automatically when an Admin creates or publishes a Bible Quiz in Firestore.
+ * Dispatches push notification to topic church_{churchId} and multicast tokens.
+ */
+async function sendBibleQuizPublishNotification(churchId: string, quizId: string, quiz: any) {
+  const db = getFirestore();
+  const messaging = getMessaging();
+
+  const title = `📖 New Bible Quiz: ${quiz.title || 'Challenge Your Bible Knowledge'}`;
+  const details = quiz.book
+    ? `${quiz.book}${quiz.chapterStart ? ` (Ch. ${quiz.chapterStart}${quiz.chapterEnd && quiz.chapterEnd !== quiz.chapterStart ? `-${quiz.chapterEnd}` : ''})` : ''}`
+    : (quiz.topic || quiz.category || 'Holy Scripture');
+  const body = `A new Bible quiz is now live: "${details}". Tap to test your knowledge!`;
+
+  const notificationData: Record<string, string> = {
+    type: 'quiz',
+    quizId: String(quizId),
+    id: String(quizId),
+    churchId: String(churchId),
+    screen: 'BibleQuizDetail',
+    click_action: 'FLUTTER_NOTIFICATION_CLICK',
+  };
+
+  // 1. Send to church topic (instant broadcast to all members subscribed to this church)
+  if (churchId && churchId !== 'global') {
+    try {
+      await messaging.send({
+        notification: { title, body },
+        data: notificationData,
+        topic: `church_${churchId}`,
+        android: {
+          priority: 'high' as const,
+          notification: {
+            sound: 'default',
+            priority: 'max' as const,
+            channelId: 'church_alerts',
+          },
+        },
+        apns: {
+          headers: { 'apns-priority': '10' },
+          payload: { aps: { sound: 'default', badge: 1 } },
+        },
+      });
+      console.log(`✅ Sent Bible quiz notification to topic: church_${churchId}`);
+    } catch (topicErr) {
+      console.warn(`Error sending quiz notification to topic church_${churchId}:`, topicErr);
+    }
+  }
+
+  // 2. Also send multicast to registered tokens in users and members
+  try {
+    const tokenSet = new Set<string>();
+
+    if (churchId && churchId !== 'global') {
+      const usersSnap = await db.collection('users').where('primaryChurchId', '==', churchId).get();
+      usersSnap.forEach((doc: any) => {
+        const u = doc.data();
+        if (u.fcmToken) tokenSet.add(u.fcmToken);
+      });
+
+      const membersSnap = await db.collection('churches').doc(churchId).collection('members').get();
+      membersSnap.forEach((doc: any) => {
+        const m = doc.data();
+        if (m.fcmToken) tokenSet.add(m.fcmToken);
+      });
+    } else {
+      const usersSnap = await db.collection('users').limit(500).get();
+      usersSnap.forEach((doc: any) => {
+        const u = doc.data();
+        if (u.fcmToken) tokenSet.add(u.fcmToken);
+      });
+    }
+
+    const tokens = Array.from(tokenSet);
+    if (tokens.length > 0) {
+      const response = await messaging.sendEachForMulticast({
+        notification: { title, body },
+        data: notificationData,
+        tokens,
+        android: {
+          priority: 'high' as const,
+          notification: {
+            sound: 'default',
+            priority: 'max' as const,
+            channelId: 'church_alerts',
+          },
+        },
+        apns: {
+          headers: { 'apns-priority': '10' },
+          payload: { aps: { sound: 'default', badge: 1 } },
+        },
+      });
+      console.log(`✅ Sent Bible quiz multicast notification to ${response.successCount} devices (${response.failureCount} failed).`);
+    }
+  } catch (multicastErr) {
+    console.error('Error sending multicast quiz notification:', multicastErr);
+  }
+
+  // 3. Write in-app notification document
+  if (churchId && churchId !== 'global') {
+    try {
+      await db.collection('churches').doc(churchId).collection('notifications').add({
+        type: 'quiz',
+        title,
+        body,
+        quizId,
+        quizTitle: quiz.title || '',
+        category: quiz.category || '',
+        read: false,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    } catch (dbErr) {
+      console.warn('Error saving quiz in-app notification:', dbErr);
+    }
+  }
+}
+
+export const pushBibleQuizCreated = onDocumentCreated('churches/{churchId}/bibleQuizzes/{quizId}', async (event) => {
+  const snap = event.data;
+  if (!snap) return;
+
+  const quiz = snap.data();
+  if (quiz?.status !== 'published') return;
+
+  const churchId = event.params.churchId;
+  const quizId = event.params.quizId;
+  await sendBibleQuizPublishNotification(churchId, quizId, quiz);
+  try {
+    await snap.ref.update({ notificationSent: true });
+  } catch (e) {}
+});
+
+export const pushBibleQuizUpdated = onDocumentUpdated('churches/{churchId}/bibleQuizzes/{quizId}', async (event) => {
+  const snap = event.data;
+  if (!snap) return;
+
+  const before = snap.before.data();
+  const after = snap.after.data();
+
+  // If status transitioned to 'published' and notification hasn't been sent yet
+  if (before?.status !== 'published' && after?.status === 'published' && !after?.notificationSent) {
+    const churchId = event.params.churchId;
+    const quizId = event.params.quizId;
+    await sendBibleQuizPublishNotification(churchId, quizId, after);
+    try {
+      await snap.after.ref.update({ notificationSent: true });
+    } catch (e) {}
+  }
+});
+

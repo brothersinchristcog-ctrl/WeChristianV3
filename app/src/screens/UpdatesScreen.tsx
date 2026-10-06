@@ -279,6 +279,10 @@ export default function UpdatesScreen({ navigation, route }: any) {
               icon = Mic;
               color = '#6366f1';
               resolvedType = 'sermon';
+            } else if (data.type === 'quiz' || data.type === 'bible_quiz' || data.screen === 'BibleQuizDetail' || data.title?.includes('Quiz') || data.title?.includes('క్విజ్')) {
+              icon = BookOpen;
+              color = '#1a2d5a';
+              resolvedType = 'quiz';
             }
             let dateStr = data.date || new Date().toISOString().split('T')[0];
             
@@ -305,7 +309,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
               color: color,
               url: data.url || '',
               imageUrl: data.imageUrl || null,
-              relatedId: data.relatedId || null,
+              relatedId: data.quizId || data.relatedId || null,
+              churchId: data.churchId || null,
               rawDate: data.createdAt?.toMillis?.() || (typeof data.createdAt === 'number' ? data.createdAt : 0)
             };
           }).filter(item => item !== null);
@@ -481,6 +486,9 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     navigation.navigate('Events');
                   } else if (update.type === 'attendance') {
                     navigation.navigate('AttendanceScreen');
+                  } else if (update.type === 'quiz' || update.type === 'bible_quiz') {
+                    const qId = update.relatedId || update.id;
+                    navigation.navigate('BibleQuizDetail', { quizId: qId, churchId: update.churchId });
                   } else {
                     setSelectedUpdate(update);
                   }
@@ -683,6 +691,20 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     }}
                   >
                     <Text style={styles.joinLiveBtnTxt}>📺 {t('updates.joinLiveStream')}</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(selectedUpdate?.type === 'quiz' || selectedUpdate?.type === 'bible_quiz') && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#1a2d5a' }]}
+                    onPress={() => {
+                      const qId = selectedUpdate?.relatedId || selectedUpdate?.id;
+                      const cId = selectedUpdate?.churchId;
+                      setSelectedUpdate(null);
+                      navigation.navigate('BibleQuizDetail', { quizId: qId, churchId: cId });
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>📖 Play Bible Quiz Now</Text>
                   </TouchableOpacity>
                 )}
               </View>

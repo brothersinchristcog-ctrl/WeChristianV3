@@ -98,7 +98,9 @@ class NotificationService {
       return;
     }
 
-    const { type, id } = remoteMessage.data || {};
+    const rawData = remoteMessage?.data || {};
+    const type = ((rawData.type || (rawData.screen === 'BibleQuizDetail' || rawData.quizId ? 'quiz' : '')) as string).toLowerCase();
+    const id = rawData.id || rawData.quizId;
     console.log('🚀 Navigating for notification type:', type);
 
     try {
@@ -149,6 +151,18 @@ class NotificationService {
         case 'prayer_request_public':
           nav.navigate('PrayerWall', { tab: 'public_requests' });
           break;
+        case 'quiz':
+        case 'bible_quiz': {
+          const quizTargetId = rawData.quizId || rawData.relatedId || rawData.id || id;
+          const targetChurchId = rawData.churchId;
+          console.log('📖 [NotificationService] Routing directly to Bible quiz:', { quizTargetId, targetChurchId });
+          if (quizTargetId) {
+            nav.navigate('BibleQuizDetail', { quizId: quizTargetId, churchId: targetChurchId });
+          } else {
+            nav.navigate('ChurchQuizzes');
+          }
+          break;
+        }
         default:
           if (id) {
             nav.navigate('Updates', { highlightId: id, highlightType: type });

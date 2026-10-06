@@ -58,6 +58,10 @@ export interface BibleQuiz {
   allowMultipleAttempts: boolean;
   maxAttempts: number; // default 1 for daily quiz
   status: QuizStatus;
+  scheduledDate?: string; // 'YYYY-MM-DD'
+  scheduledTime?: string; // 'HH:mm' e.g. '06:00'
+  scheduledAt?: any; // Date, string or Timestamp
+  sourceFile?: string; // Uploaded document filename if generated
   startAt?: any;
   endAt?: any;
   totalQuestions: number;

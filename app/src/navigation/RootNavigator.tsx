@@ -68,6 +68,7 @@ import MemberGalleryNavigator from '../screens/gallery/MemberGalleryNavigator';
 
 // Bible Quiz Screens
 import BibleQuizHomeScreen from '../screens/quiz/BibleQuizHomeScreen';
+import ChurchQuizzesScreen from '../screens/quiz/ChurchQuizzesScreen';
 import BibleQuizLevelsScreen from '../screens/quiz/BibleQuizLevelsScreen';
 import BibleQuizStagesScreen from '../screens/quiz/BibleQuizStagesScreen';
 import BibleQuizDetailScreen from '../screens/quiz/BibleQuizDetailScreen';
@@ -582,42 +583,48 @@ function Navigation() {
 
   // Handle Notifications
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
-      const data = response.notification.request.content.data;
-      if (data?.type === 'daily_verse' && data.verseId) {
-        const { navigationRef } = require('../../App');
+    const handleExpoNotificationPayload = (data: any) => {
+      if (!data) return;
+      const { navigationRef } = require('../../App');
+      let retries = 0;
+      const tryNav = () => {
         if (navigationRef && navigationRef.isReady()) {
-          navigationRef.navigate('VerseOfTheDay', { 
-            verseId: data.verseId, 
-            period: data.period 
-          });
+          const type = data.type || (data.screen === 'BibleQuizDetail' ? 'quiz' : undefined);
+          const quizTargetId = data.quizId || data.relatedId || data.id;
+
+          if (type === 'daily_verse' && data.verseId) {
+            navigationRef.navigate('VerseOfTheDay', { 
+              verseId: data.verseId, 
+              period: data.period 
+            });
+          } else if (type === 'quiz' || type === 'bible_quiz' || data.quizId || data.screen === 'BibleQuizDetail') {
+            console.log('📖 [ExpoNotification] Opening Bible Quiz:', quizTargetId);
+            if (quizTargetId) {
+              navigationRef.navigate('BibleQuizDetail', { quizId: quizTargetId, churchId: data.churchId });
+            } else {
+              navigationRef.navigate('ChurchQuizzes');
+            }
+          } else {
+            NotificationService.handleNotificationNavigation({ data }, navigationRef);
+          }
+        } else if (retries < 25) {
+          retries++;
+          setTimeout(tryNav, 200);
         }
-      }
+      };
+      tryNav();
+    };
+
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification?.request?.content?.data;
+      handleExpoNotificationPayload(data);
     });
 
     // Cold-start: app was fully closed when user tapped the notification.
-    // addNotificationResponseReceivedListener won't fire in this case,
-    // so we check getLastNotificationResponseAsync() once on mount.
     Notifications.getLastNotificationResponseAsync().then(response => {
       if (!response) return;
-      const data = response.notification.request.content.data;
-      if (data?.type === 'daily_verse' && data.verseId) {
-        // Wait for navigation to be ready before navigating
-        const { navigationRef } = require('../../App');
-        let retries = 0;
-        const tryNav = () => {
-          if (navigationRef && navigationRef.isReady()) {
-            navigationRef.navigate('VerseOfTheDay', {
-              verseId: data.verseId,
-              period: data.period,
-            });
-          } else if (retries < 20) {
-            retries++;
-            setTimeout(tryNav, 250);
-          }
-        };
-        tryNav();
-      }
+      const data = response.notification?.request?.content?.data;
+      handleExpoNotificationPayload(data);
     }).catch(() => {});
 
     // 1. When app is in background and user clicks notification
@@ -814,6 +821,7 @@ function Navigation() {
             <Stack.Screen name="LiveCelebrationsChat" component={renderPremium(LiveCelebrationsChat)} />
             <Stack.Screen name="VerseOfTheDay" component={renderPremium(VerseOfTheDayScreen)} />
             <Stack.Screen name="BibleQuizHome" component={BibleQuizHomeScreen} />
+            <Stack.Screen name="ChurchQuizzes" component={ChurchQuizzesScreen} />
             <Stack.Screen name="BibleQuizLevels" component={BibleQuizLevelsScreen} />
             <Stack.Screen name="BibleQuizStages" component={BibleQuizStagesScreen} />
             <Stack.Screen name="BibleQuizDetail" component={BibleQuizDetailScreen} />
@@ -854,6 +862,7 @@ function Navigation() {
             <Stack.Screen name="Gallery" component={renderPremium(MemberGalleryNavigator)} />
             <Stack.Screen name="VerseOfTheDay" component={renderPremium(VerseOfTheDayScreen)} />
             <Stack.Screen name="BibleQuizHome" component={BibleQuizHomeScreen} />
+            <Stack.Screen name="ChurchQuizzes" component={ChurchQuizzesScreen} />
             <Stack.Screen name="BibleQuizLevels" component={BibleQuizLevelsScreen} />
             <Stack.Screen name="BibleQuizStages" component={BibleQuizStagesScreen} />
             <Stack.Screen name="BibleQuizDetail" component={BibleQuizDetailScreen} />

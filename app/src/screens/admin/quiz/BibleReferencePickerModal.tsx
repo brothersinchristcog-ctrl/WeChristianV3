@@ -24,6 +24,7 @@ export interface BiblePickerResult {
   bookIndex: number;
   chapter: number;
   verse?: number | string;
+  chapterRange?: string;
   referenceString: string;
 }
 
@@ -55,6 +56,7 @@ export default function BibleReferencePickerModal({
 }: Props) {
   // Step: 1 = Book, 2 = Chapter, 3 = Verse (only for 'reference' mode)
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [chapterMode, setChapterMode] = useState<'multiple' | 'single'>('multiple');
 
   // Selection states
   const [selectedBookIndex, setSelectedBookIndex] = useState<number | null>(() => {
@@ -168,6 +170,34 @@ export default function BibleReferencePickerModal({
     handleClose();
   };
 
+  // Finalize Multi-Chapter Reference Selection (e.g. Genesis 1-6)
+  const handleConfirmMultiChapterReference = (wholeBook: boolean = false) => {
+    if (!currentBook) return;
+    const sCh = wholeBook ? 1 : Math.min(startChapter, endChapter);
+    const eCh = wholeBook ? maxChapters : Math.max(startChapter, endChapter);
+    const ref = sCh === eCh ? `${currentBook.nameEn} ${sCh}` : `${currentBook.nameEn} ${sCh}-${eCh}`;
+    onSelectReference?.({
+      book: currentBook.nameEn,
+      bookIndex: currentBook.index,
+      chapter: sCh,
+      chapterRange: `${sCh}-${eCh}`,
+      referenceString: ref,
+    });
+    handleClose();
+  };
+
+  // Finalize Whole Single Chapter Reference without needing verse
+  const handleConfirmSingleChapterOnly = (ch: number) => {
+    if (!currentBook) return;
+    onSelectReference?.({
+      book: currentBook.nameEn,
+      bookIndex: currentBook.index,
+      chapter: ch,
+      referenceString: `${currentBook.nameEn} ${ch}`,
+    });
+    handleClose();
+  };
+
   // Finalize Scope Selection (for quiz book/chapter start & end)
   const handleConfirmScope = (wholeBook: boolean = false) => {
     if (!currentBook) return;
@@ -218,16 +248,14 @@ export default function BibleReferencePickerModal({
                 {step === 1
                   ? 'Select Bible Book'
                   : step === 2
-                  ? mode === 'scope'
-                    ? `${currentBook?.nameEn} · Chapters Range`
-                    : `${currentBook?.nameEn} · Select Chapter`
+                  ? `${currentBook?.nameEn} · Select Chapters`
                   : `${currentBook?.nameEn} ${selectedChapter} · Select Verse`}
               </Text>
               <Text style={styles.modalSubtitle}>
                 {step === 1
                   ? 'Choose from 66 Books of Scripture'
                   : step === 2
-                  ? `${currentBook?.totalChapters} Chapters available`
+                  ? `${currentBook?.totalChapters} Chapters available · Single or Multiple Chapters`
                   : 'Tap a verse number or enter a verse range'}
               </Text>
             </View>
@@ -315,12 +343,54 @@ export default function BibleReferencePickerModal({
           {/* ──────────────── STEP 2: CHAPTER SELECTION ──────────────── */}
           {step === 2 && currentBook && (
             <View style={{ flex: 1 }}>
-              {mode === 'scope' ? (
-                /* Chapter Range Mode for Quiz Scope */
+              {/* Tab Selector: Multiple Chapters / Range vs Single Chapter & Verse */}
+              <View style={styles.chapterModeTabs}>
+                <TouchableOpacity
+                  style={[
+                    styles.chapterModeTabBtn,
+                    chapterMode === 'multiple' && styles.chapterModeTabBtnActive,
+                  ]}
+                  onPress={() => setChapterMode('multiple')}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.chapterModeTabBtnTxt,
+                      chapterMode === 'multiple' && styles.chapterModeTabBtnTxtActive,
+                    ]}
+                  >
+                    Multiple Chapters / Range
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.chapterModeTabBtn,
+                    chapterMode === 'single' && styles.chapterModeTabBtnActive,
+                  ]}
+                  onPress={() => setChapterMode('single')}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.chapterModeTabBtnTxt,
+                      chapterMode === 'single' && styles.chapterModeTabBtnTxtActive,
+                    ]}
+                  >
+                    Single Chapter & Verse
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {chapterMode === 'multiple' ? (
+                /* Multiple Chapters / Range Mode */
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
                   <TouchableOpacity
                     style={styles.quickAllBtn}
-                    onPress={() => handleConfirmScope(true)}
+                    onPress={() => {
+                      setStartChapter(1);
+                      setEndChapter(maxChapters);
+                    }}
                     activeOpacity={0.8}
                   >
                     <Check size={16} color="#059669" />
@@ -329,7 +399,7 @@ export default function BibleReferencePickerModal({
                     </Text>
                   </TouchableOpacity>
 
-                  <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Or Select Chapter Range:</Text>
+                  <Text style={[styles.sectionTitle, { marginTop: 16 }]}>Select Chapter Range:</Text>
 
                   <View style={styles.rangeSelectorRow}>
                     <View style={{ flex: 1 }}>
@@ -351,7 +421,7 @@ export default function BibleReferencePickerModal({
                       </View>
                     </View>
 
-                    <View style={{ width: 20 }} />
+                    <View style={{ width: 16 }} />
 
                     <View style={{ flex: 1 }}>
                       <Text style={styles.rangeLabel}>To Chapter</Text>
@@ -373,24 +443,41 @@ export default function BibleReferencePickerModal({
                     </View>
                   </View>
 
-                  <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Quick Chapter Select:</Text>
+                  <Text style={[styles.sectionTitle, { marginTop: 18 }]}>Tap Chapter to Set Range / Quick Select:</Text>
                   <View style={styles.chipsGrid}>
                     {Array.from({ length: maxChapters }, (_, i) => i + 1).map(ch => {
-                      const inRange = ch >= Math.min(startChapter, endChapter) && ch <= Math.max(startChapter, endChapter);
+                      const minCh = Math.min(startChapter, endChapter);
+                      const maxCh = Math.max(startChapter, endChapter);
+                      const inRange = ch >= minCh && ch <= maxCh;
+                      const isEdge = ch === minCh || ch === maxCh;
+
                       return (
                         <TouchableOpacity
                           key={ch}
-                          style={[styles.chipBtn, inRange && styles.chipBtnActive]}
+                          style={[
+                            styles.chipBtn,
+                            inRange && styles.chipBtnActive,
+                            isEdge && styles.chipBtnEdge,
+                          ]}
                           onPress={() => {
                             if (ch > startChapter) {
                               setEndChapter(ch);
+                            } else if (ch < startChapter) {
+                              setStartChapter(ch);
                             } else {
                               setStartChapter(ch);
                               setEndChapter(ch);
                             }
                           }}
+                          activeOpacity={0.7}
                         >
-                          <Text style={[styles.chipBtnTxt, inRange && styles.chipBtnTxtActive]}>
+                          <Text
+                            style={[
+                              styles.chipBtnTxt,
+                              inRange && styles.chipBtnTxtActive,
+                              isEdge && { fontWeight: '900' },
+                            ]}
+                          >
                             {ch}
                           </Text>
                         </TouchableOpacity>
@@ -400,7 +487,13 @@ export default function BibleReferencePickerModal({
 
                   <TouchableOpacity
                     style={styles.confirmBtn}
-                    onPress={() => handleConfirmScope(false)}
+                    onPress={() => {
+                      if (mode === 'scope') {
+                        handleConfirmScope(false);
+                      } else {
+                        handleConfirmMultiChapterReference(false);
+                      }
+                    }}
                     activeOpacity={0.88}
                   >
                     <Check size={18} color="#fff" />
@@ -410,22 +503,56 @@ export default function BibleReferencePickerModal({
                   </TouchableOpacity>
                 </ScrollView>
               ) : (
-                /* Single Chapter Mode for Question Reference */
+                /* Single Chapter Mode */
                 <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 30 }}>
-                  <Text style={styles.sectionTitle}>Tap a Chapter:</Text>
+                  <Text style={styles.sectionTitle}>Tap a Chapter to Select:</Text>
                   <View style={styles.chipsGrid}>
                     {Array.from({ length: maxChapters }, (_, i) => i + 1).map(ch => (
                       <TouchableOpacity
                         key={ch}
-                        style={[styles.chapterGridBtn, selectedChapter === ch && styles.chapterGridBtnActive]}
-                        onPress={() => handleSelectChapterForReference(ch)}
+                        style={[
+                          styles.chapterGridBtn,
+                          selectedChapter === ch && styles.chapterGridBtnActive,
+                        ]}
+                        onPress={() => setSelectedChapter(ch)}
                         activeOpacity={0.7}
                       >
-                        <Text style={[styles.chapterGridBtnTxt, selectedChapter === ch && styles.chapterGridBtnTxtActive]}>
+                        <Text
+                          style={[
+                            styles.chapterGridBtnTxt,
+                            selectedChapter === ch && styles.chapterGridBtnTxtActive,
+                          ]}
+                        >
                           {ch}
                         </Text>
                       </TouchableOpacity>
                     ))}
+                  </View>
+
+                  {/* Actions for Selected Chapter */}
+                  <View style={styles.singleChapterActionsBox}>
+                    <Text style={styles.singleChapterSelectedTxt}>
+                      Selected Chapter: <Text style={{ fontWeight: '800', color: '#1a2d5a' }}>{currentBook.nameEn} {selectedChapter}</Text>
+                    </Text>
+
+                    <TouchableOpacity
+                      style={styles.nextToVerseBtn}
+                      onPress={() => handleSelectChapterForReference(selectedChapter)}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.nextToVerseBtnTxt}>Next: Select Specific Verse →</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.confirmChapterOnlyBtn}
+                      onPress={() => handleConfirmSingleChapterOnly(selectedChapter)}
+                      activeOpacity={0.85}
+                    >
+                      <Check size={16} color="#059669" />
+                      <Text style={styles.confirmChapterOnlyBtnTxt}>
+                        Confirm Chapter Only: {currentBook.nameEn} {selectedChapter}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </ScrollView>
               )}
@@ -776,5 +903,84 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     color: '#ffffff',
+  },
+  chapterModeTabs: {
+    flexDirection: 'row',
+    backgroundColor: '#f1f5f9',
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 14,
+    marginTop: 6,
+  },
+  chapterModeTabBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chapterModeTabBtnActive: {
+    backgroundColor: '#1a2d5a',
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  chapterModeTabBtnTxt: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  chapterModeTabBtnTxtActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  chipBtnEdge: {
+    borderColor: '#1a2d5a',
+    borderWidth: 2,
+    backgroundColor: '#1a2d5a',
+  },
+  singleChapterActionsBox: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: '#f8fafc',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 10,
+  },
+  singleChapterSelectedTxt: {
+    fontSize: 13,
+    color: '#475569',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  nextToVerseBtn: {
+    backgroundColor: '#1a2d5a',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  nextToVerseBtnTxt: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  confirmChapterOnlyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    paddingVertical: 11,
+    borderRadius: 10,
+    gap: 6,
+  },
+  confirmChapterOnlyBtnTxt: {
+    color: '#065f46',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

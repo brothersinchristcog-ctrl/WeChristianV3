@@ -887,44 +887,99 @@ export const processBroadcastPushNotifications = functionsCompat
             if (uData.fcmToken)
                 tokenSet.add(uData.fcmToken);
         });
-        const tokens = Array.from(tokenSet);
-        if (tokens.length === 0) {
-            console.log('🛑 No registered FCM tokens found.');
-            return;
+        // Also gather tokens from churches/{churchId}/members if not phone-targeted
+        if (!data.targetPhone && churchId) {
+            try {
+                const memSnap = await db.collection('churches').doc(churchId).collection('members').get();
+                memSnap.forEach((doc) => {
+                    const mData = doc.data();
+                    if (mData.fcmToken)
+                        tokenSet.add(mData.fcmToken);
+                });
+            }
+            catch (memErr) {
+                console.warn('Could not read church members for broadcast tokens:', memErr);
+            }
         }
         const plainBody = stripHtml(body);
-        const message = {
-            notification: {
-                title,
-                body: plainBody.length > 200 ? plainBody.substring(0, 197) + '...' : plainBody
-            },
-            data: {
-                type,
-                id: context.params.messageId
-            },
-            android: {
-                priority: 'high',
-                notification: {
-                    sound: 'default',
-                    priority: 'max',
-                    channelId: 'church_alerts'
-                }
-            },
-            apns: {
-                headers: {
-                    'apns-priority': '10'
-                },
-                payload: {
-                    aps: {
-                        sound: 'default',
-                        badge: 1
-                    }
-                }
-            },
-            tokens: tokens
+        const targetQuizId = data.quizId || data.relatedId || (data.type === 'quiz' ? data.id : undefined);
+        const notificationData = {
+            type,
+            id: String(targetQuizId || context.params.messageId),
+            ...(targetQuizId ? { quizId: String(targetQuizId) } : {}),
+            ...(data.screen ? { screen: String(data.screen) } : {}),
+            ...(churchId ? { churchId: String(churchId) } : {}),
+            click_action: 'FLUTTER_NOTIFICATION_CLICK',
         };
-        const response = await getMsg().sendEachForMulticast(message);
-        console.log(`✅ Broadcast push delivered: ${response.successCount} success, ${response.failureCount} failed.`);
+        // 1. Also broadcast to church topic church_{churchId} if churchId is present and not phone-targeted
+        if (churchId && !data.targetPhone) {
+            try {
+                await getMsg().send({
+                    notification: {
+                        title,
+                        body: plainBody.length > 200 ? plainBody.substring(0, 197) + '...' : plainBody,
+                    },
+                    data: notificationData,
+                    topic: `church_${churchId}`,
+                    android: {
+                        priority: 'high',
+                        notification: {
+                            sound: 'default',
+                            priority: 'max',
+                            channelId: 'church_alerts',
+                        },
+                    },
+                    apns: {
+                        headers: {
+                            'apns-priority': '10',
+                        },
+                        payload: {
+                            aps: {
+                                sound: 'default',
+                                badge: 1,
+                            },
+                        },
+                    },
+                });
+                console.log(`✅ Broadcast push delivered to topic church_${churchId}`);
+            }
+            catch (topicErr) {
+                console.warn(`⚠️ Topic broadcast push warning:`, topicErr);
+            }
+        }
+        // 2. Multicast to individual registered devices
+        const tokens = Array.from(tokenSet);
+        if (tokens.length > 0) {
+            const message = {
+                notification: {
+                    title,
+                    body: plainBody.length > 200 ? plainBody.substring(0, 197) + '...' : plainBody
+                },
+                data: notificationData,
+                android: {
+                    priority: 'high',
+                    notification: {
+                        sound: 'default',
+                        priority: 'max',
+                        channelId: 'church_alerts'
+                    }
+                },
+                apns: {
+                    headers: {
+                        'apns-priority': '10'
+                    },
+                    payload: {
+                        aps: {
+                            sound: 'default',
+                            badge: 1
+                        }
+                    }
+                },
+                tokens: tokens
+            };
+            const response = await getMsg().sendEachForMulticast(message);
+            console.log(`✅ Broadcast push delivered: ${response.successCount} success, ${response.failureCount} failed.`);
+        }
     }
     catch (error) {
         console.error('Error sending broadcast push:', error);

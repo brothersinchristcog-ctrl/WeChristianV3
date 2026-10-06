@@ -17,6 +17,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import SuperAdminChurchManager from './SuperAdminChurchManager';
 import SuperAdminVersesManager from './SuperAdminVersesManager';
 import SuperAdminVouchersManager from './SuperAdminVouchersManager';
+import SuperAdminDailyQuizManager from './SuperAdminDailyQuizManager';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import SongDetailModal from '../../components/SongDetailModal';
 
@@ -45,7 +46,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
   const [masterSongs, setMasterSongs] = useState<any[]>([]);
   const [churchesLoading, setChurchesLoading] = useState(true);
   const [songsLoading, setSongsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'churches' | 'vouchers' | 'songs' | 'verses'>('churches');
+  const [activeTab, setActiveTab] = useState<'churches' | 'vouchers' | 'songs' | 'verses' | 'daily_quiz'>('churches');
   const loading = activeTab === 'churches' ? churchesLoading : activeTab === 'songs' ? songsLoading : false;
   
   const [searchQuery, setSearchQuery] = useState('');
@@ -604,6 +605,16 @@ export default function SuperAdminDashboard({ navigation }: any) {
             Verses
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity style={[styles.tab, activeTab === 'daily_quiz' && styles.tabActive]} onPress={() => setActiveTab('daily_quiz')}>
+          <Text 
+            style={[styles.tabText, activeTab === 'daily_quiz' && styles.tabTextActive]}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.85}
+          >
+            Daily Quiz
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.searchBar}>
@@ -617,6 +628,8 @@ export default function SuperAdminDashboard({ navigation }: any) {
               ? 'Search voucher code, church, admin, or tag...'
               : activeTab === 'verses'
               ? 'Search verses...'
+              : activeTab === 'daily_quiz'
+              ? 'Search daily quizzes, date, scripture...'
               : 'Search master songs...'
           }
           placeholderTextColor="#64748b"
@@ -864,6 +877,8 @@ export default function SuperAdminDashboard({ navigation }: any) {
           <SuperAdminVouchersManager searchQuery={searchQuery} />
         ) : activeTab === 'verses' ? (
           <SuperAdminVersesManager searchQuery={searchQuery} />
+        ) : activeTab === 'daily_quiz' ? (
+          <SuperAdminDailyQuizManager searchQuery={searchQuery} />
         ) : activeTab === 'churches' ? (
           <FlatList
             data={filteredChurches}

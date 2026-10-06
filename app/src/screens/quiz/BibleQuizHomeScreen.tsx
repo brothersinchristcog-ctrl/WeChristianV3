@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,24 +8,75 @@ import {
   ImageBackground,
   StatusBar,
   Platform,
+  RefreshControl,
 } from 'react-native';
-import { ArrowLeft, ArrowRight, Globe } from 'lucide-react-native';
+import {
+  ArrowLeft,
+  ArrowRight,
+  Globe,
+  BookOpen,
+  Award,
+  CheckCircle,
+} from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { QUIZ_CATEGORIES } from '../../constants/BibleQuizCategories';
 import { useQuizLanguage } from '../../context/QuizLanguageContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useChurch } from '../../context/ChurchContext';
+import { useAuth } from '../../context/AuthContext';
 import { getQuizStrings } from '../../constants/BibleQuizTranslations';
+import { QuizService } from '../../services/QuizService';
+import { BibleQuiz, QuizAttempt } from '../../types/Quiz';
 import QuizLanguageModal from './QuizLanguageModal';
 
 export default function BibleQuizHomeScreen() {
   const navigation = useNavigation<any>();
+  const { user } = useAuth();
   const { quizLanguage, quizLanguageOption } = useQuizLanguage();
   const { isDark } = useTheme();
+  const { activeChurch } = useChurch();
+
   const [langModalVisible, setLangModalVisible] = useState<boolean>(false);
+  const [quizzes, setQuizzes] = useState<BibleQuiz[]>([]);
+  const [userAttempts, setUserAttempts] = useState<Record<string, QuizAttempt>>({});
+  const [refreshing, setRefreshing] = useState<boolean>(false);
 
   const ui = getQuizStrings(quizLanguage);
+  const churchId = activeChurch?.id || 'global';
 
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [churchId, user?.uid])
+  );
+
+  const loadData = async () => {
+    try {
+      // Fetch available quizzes (both Church Admin and Super Admin created)
+      const list = await QuizService.getQuizzes(churchId, {
+        isAdmin: false,
+      });
+      setQuizzes(list);
+
+      // Fetch user attempts to compute true availability and completion status
+      if (user?.uid) {
+        const attempts = await QuizService.getUserAttemptsMap(user.uid, churchId);
+        setUserAttempts(attempts);
+      }
+    } catch (err) {
+      console.warn('[BibleQuizHomeScreen] Error loading quiz count:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  // Flow: Bible Quiz → Category → Difficulty → Stages → Levels → Questions
   const handleSelectCategory = (cat: typeof QUIZ_CATEGORIES[0]) => {
     navigation.navigate('BibleQuizLevels', {
       category: cat.id,
@@ -39,7 +90,7 @@ export default function BibleQuizHomeScreen() {
     <View style={[styles.container, { backgroundColor: isDark ? '#0b1120' : '#f8fafc' }]}>
       <StatusBar barStyle="light-content" backgroundColor="#1a3673" />
 
-      {/* Signature WeChristian Curved Topper Hero Section */}
+      {/* Clean Hero Header */}
       <LinearGradient
         colors={['#2b52a1', '#1a3673']}
         start={{ x: 0, y: 0 }}
@@ -53,7 +104,7 @@ export default function BibleQuizHomeScreen() {
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
             activeOpacity={0.7}
           >
-            <ArrowLeft size={24} color="#ffffff" />
+            <ArrowLeft size={22} color="#ffffff" />
           </TouchableOpacity>
 
           <View style={styles.headerCenter}>
@@ -62,7 +113,7 @@ export default function BibleQuizHomeScreen() {
             </Text>
           </View>
 
-          {/* Local Quiz Language Selector Pill */}
+          {/* Quiz Language Selector Pill */}
           <TouchableOpacity
             style={styles.langPill}
             onPress={() => setLangModalVisible(true)}
@@ -72,26 +123,92 @@ export default function BibleQuizHomeScreen() {
             <Text style={styles.langPillTxt}>{quizLanguageOption.nativeName}</Text>
           </TouchableOpacity>
         </View>
-
-        {/* Hero Tagline inside Curved Topper Card */}
-        <View style={styles.heroSubRow}>
-          <Text style={styles.heroSubTxt}>
-            {quizLanguage === 'te'
-              ? '12 అంశాలు · ప్రతి అంశంలో 30 స్థాయిలు'
-              : '12 Faith Categories · 30 Progressive Levels'}
-          </Text>
-        </View>
       </LinearGradient>
 
-      {/* Categories List (12 Curated Category Cards) */}
+      {/* Main Content Area */}
       <ScrollView
         style={styles.scrollArea}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 40 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {QUIZ_CATEGORIES.map((cat) => {
+        {/* ─── ENTRY POINT CARD: CHURCH QUIZZES (POLISHED & MODERN) ────────────────── */}
+        {(() => {
+          const totalCount = quizzes.length;
+          const completedCount = quizzes.filter(q => Boolean(userAttempts[q.id])).length;
+          const availableCount = Math.max(0, totalCount - completedCount);
+          const isAllCompleted = totalCount > 0 && availableCount === 0;
+
+          return (
+            <TouchableOpacity
+              style={[
+                styles.churchQuizzesEntryCard,
+                { borderColor: isDark ? 'rgba(255, 255, 255, 0.14)' : 'rgba(30, 58, 138, 0.22)' },
+              ]}
+              onPress={() => navigation.navigate('ChurchQuizzes')}
+              activeOpacity={0.88}
+            >
+              <LinearGradient
+                colors={isDark ? ['#1e3a8a', '#0f2452'] : ['#1d4ed8', '#1e3a8a']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.churchQuizzesInner}
+              >
+                {/* Left Icon Pill */}
+                <View style={styles.churchIconSquircle}>
+                  {isAllCompleted ? (
+                    <Award size={22} color="#fef08a" />
+                  ) : (
+                    <BookOpen size={22} color="#ffffff" />
+                  )}
+                </View>
+
+                {/* Content */}
+                <View style={styles.churchEntryContent}>
+                  <View style={styles.churchEntryTitleRow}>
+                    <Text style={styles.churchEntryTitle} numberOfLines={1}>Church Quizzes</Text>
+                    {isAllCompleted ? (
+                      <View style={styles.entryBadgeCompleted}>
+                        <CheckCircle size={10} color="#10b981" />
+                        <Text style={styles.entryBadgeCompletedTxt}>Completed</Text>
+                      </View>
+                    ) : availableCount > 0 ? (
+                      <View style={styles.entryBadge}>
+                        <Text style={styles.entryBadgeTxt}>{availableCount} Available</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={styles.churchEntrySub} numberOfLines={2}>
+                    {isAllCompleted
+                      ? 'All quizzes completed! Tap to review results or retry.'
+                      : 'Browse and participate in all available quizzes'}
+                  </Text>
+                </View>
+
+                {/* Right Action Button */}
+                <View style={styles.arrowCircle}>
+                  <ArrowRight size={17} color="#ffffff" />
+                </View>
+              </LinearGradient>
+            </TouchableOpacity>
+          );
+        })()}
+
+        {/* ─── FAITH CATEGORIES SECTION (CLEAN & MINIMALIST) ────────────────── */}
+        <View style={[styles.sectionHeadingRow, { marginTop: 20 }]}>
+          <Text style={[styles.sectionHeading, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
+            Faith Categories
+          </Text>
+          <View style={styles.sectionBadgeWrap}>
+            <Text style={styles.sectionSubBadge}>
+              12 Themes
+            </Text>
+          </View>
+        </View>
+
+        {/* Clean Category Cards */}
+        {QUIZ_CATEGORIES.map(cat => {
           const localizedName = ui.categories[cat.id] || cat.name;
-          const showSecondary = quizLanguage !== 'en' && localizedName !== cat.name;
 
           return (
             <TouchableOpacity
@@ -117,12 +234,11 @@ export default function BibleQuizHomeScreen() {
                   style={styles.cardOverlay}
                 >
                   <View style={styles.cardContentRow}>
-                    <Text style={styles.categoryTitle}>
+                    <Text style={styles.categoryTitle} numberOfLines={1}>
                       {localizedName}
-                      {showSecondary ? ` · ${cat.name}` : ''}
                     </Text>
                     <View style={styles.arrowCircle}>
-                      <ArrowRight size={18} color="#ffffff" />
+                      <ArrowRight size={16} color="#ffffff" />
                     </View>
                   </View>
                 </LinearGradient>
@@ -146,78 +262,183 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   headerHero: {
-    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 14,
-    paddingHorizontal: 20,
-    paddingBottom: 22,
-    borderBottomLeftRadius: 32,
-    borderBottomRightRadius: 32,
+    paddingTop: Platform.OS === 'ios' ? 54 : (StatusBar.currentHeight ?? 24) + 12,
+    paddingHorizontal: 18,
+    paddingBottom: 16,
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
     shadowColor: '#1a3673',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: '100%',
   },
   backBtn: {
-    zIndex: 10,
     padding: 4,
   },
   headerCenter: {
     flex: 1,
     alignItems: 'center',
-    marginHorizontal: 12,
   },
   headerTitle: {
     color: '#ffffff',
-    fontSize: 21,
-    fontWeight: '900',
-    letterSpacing: 0.3,
-  },
-  heroSubRow: {
-    alignItems: 'center',
-    marginTop: 10,
-    paddingHorizontal: 12,
-  },
-  heroSubTxt: {
-    color: '#cbd5e1',
-    fontSize: 12.5,
-    fontWeight: '600',
+    fontSize: 19,
+    fontWeight: '800',
     letterSpacing: 0.2,
+  },
+  langPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  langPillTxt: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
   scrollArea: {
     flex: 1,
   },
-  categoryCard: {
-    height: 116,
+
+  // ── Single Entry Point: Church Quizzes Card ────────────────────────────────
+  churchQuizzesEntryCard: {
+    marginBottom: 12,
     borderRadius: 18,
-    marginBottom: 14,
     overflow: 'hidden',
-    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    shadowColor: '#0a1945',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  churchQuizzesInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 18,
+  },
+  churchIconSquircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  churchEntryContent: {
+    flex: 1,
+    marginRight: 10,
+  },
+  churchEntryTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 3,
+  },
+  churchEntryTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: 0.2,
+  },
+  entryBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  entryBadgeTxt: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#bfdbfe',
+  },
+  entryBadgeCompleted: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(16, 185, 129, 0.22)',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+    borderWidth: 0.5,
+    borderColor: 'rgba(52, 211, 153, 0.45)',
+  },
+  entryBadgeCompletedTxt: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#6ee7b7',
+  },
+  churchEntrySub: {
+    fontSize: 12,
+    color: '#cbd5e1',
+    lineHeight: 16,
+  },
+
+  // ── Faith Categories ────────────────────────────────────────────────────────
+  sectionHeadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  sectionHeading: {
+    fontSize: 17,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  sectionBadgeWrap: {
+    backgroundColor: '#e2e8f0',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  sectionSubBadge: {
+    fontSize: 11,
+    color: '#475569',
+    fontWeight: '700',
+  },
+
+  categoryCard: {
+    height: 90,
+    borderRadius: 16,
+    overflow: 'hidden',
+    marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
     shadowRadius: 5,
-    elevation: 3,
+    elevation: 2,
   },
   cardImageBg: {
+    flex: 1,
     width: '100%',
     height: '100%',
-    justifyContent: 'flex-end',
   },
   cardImage: {
-    borderRadius: 18,
+    borderRadius: 16,
   },
   cardOverlay: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 18,
-    paddingBottom: 16,
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   cardContentRow: {
     flexDirection: 'row',
@@ -225,14 +446,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   categoryTitle: {
-    fontSize: 22,
-    fontWeight: '800',
     color: '#ffffff',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    letterSpacing: 0.3,
+    fontSize: 17,
+    fontWeight: '800',
     textShadowColor: 'rgba(0, 0, 0, 0.7)',
-    textShadowOffset: { width: 0, height: 1.5 },
-    textShadowRadius: 4,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+    flex: 1,
+    marginRight: 10,
   },
   arrowCircle: {
     width: 32,
@@ -241,22 +462,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.22)',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  langPill: {
-    zIndex: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.16)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
-    gap: 5,
-  },
-  langPillTxt: {
-    color: '#ffffff',
-    fontSize: 12,
-    fontWeight: '700',
+    borderColor: 'rgba(255, 255, 255, 0.35)',
   },
 });

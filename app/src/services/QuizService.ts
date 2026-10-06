@@ -40,6 +40,7 @@ export class QuizService {
       category?: string;
       isDaily?: boolean;
       isAdmin?: boolean;
+      scope?: 'church' | 'wechristian' | 'all';
     }
   ): Promise<BibleQuiz[]> {
     try {
@@ -102,11 +103,36 @@ export class QuizService {
         list = list.filter(q => q.churchId === targetChurchId || q.churchId === 'global' || !q.churchId);
       }
 
-      // Filter by status (members only see 'published', admins can see all)
+      // Filter by Scope: 'church' (Church Admin only) vs 'wechristian' (Platform Super Admin only)
+      if (options?.scope === 'church') {
+        list = list.filter(q => targetChurchId && q.churchId === targetChurchId && q.churchId !== 'global');
+      } else if (options?.scope === 'wechristian') {
+        list = list.filter(q => q.churchId === 'global' || !q.churchId);
+      }
+
+      // Filter by status (members only see 'published' or active 'scheduled', admins can see all)
       if (options?.status) {
         list = list.filter(q => q.status === options.status);
       } else if (!options?.isAdmin) {
-        list = list.filter(q => q.status === 'published');
+        const now = new Date();
+        const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        list = list.filter(q => {
+          if (q.status === 'published') return true;
+          if (q.status === 'scheduled') {
+            const schedDate = q.scheduledDate || q.dailyDate;
+            if (!schedDate) return false;
+            if (schedDate < todayStr) return true; // Scheduled in past date -> live
+            if (schedDate === todayStr) {
+              // Auto-deliver: default daily quiz early morning is 05:00
+              const schedTime = q.scheduledTime || (q.isDailyQuiz ? '05:00' : '00:00');
+              return currentTimeStr >= schedTime;
+            }
+            return false;
+          }
+          return false;
+        });
       }
 
       // Filter by category
@@ -179,6 +205,21 @@ export class QuizService {
         // ignore
       }
 
+      // 4. Fallback search across all church subcollections via collectionGroup
+      try {
+        const groupSnap = await firestore()
+          .collectionGroup(this.QUIZZES_COLLECTION)
+          .where(firestore.FieldPath.documentId(), '==', quizId)
+          .limit(1)
+          .get();
+        if (!groupSnap.empty) {
+          const doc = groupSnap.docs[0];
+          return { id: doc.id, ...doc.data() } as BibleQuiz;
+        }
+      } catch {
+        // ignore
+      }
+
       return null;
     } catch (err: any) {
       console.warn('[QuizService] Notice in getQuizById:', err?.message || err);
@@ -224,16 +265,16 @@ export class QuizService {
     try {
       const todayStr = new Date().toISOString().split('T')[0];
 
-      // Re-use resilient getQuizzes with isDaily filter
+      // Re-use resilient getQuizzes with isDaily filter (members see published or active scheduled)
       const dailyQuizzes = await this.getQuizzes(churchId, {
         isDaily: true,
-        status: 'published',
+        isAdmin: false,
       });
 
       if (!dailyQuizzes || dailyQuizzes.length === 0) return null;
 
       // Check if one matches today's date
-      const todayQuiz = dailyQuizzes.find(q => q.dailyDate === todayStr);
+      const todayQuiz = dailyQuizzes.find(q => q.dailyDate === todayStr || q.scheduledDate === todayStr);
       if (todayQuiz) return todayQuiz;
 
       // Fallback: pick the latest published daily quiz
@@ -283,6 +324,10 @@ export class QuizService {
         bibleVersion: quizData.bibleVersion || 'NIV',
         isDailyQuiz: quizData.isDailyQuiz || false,
         dailyDate: quizData.dailyDate || (quizData.isDailyQuiz ? new Date().toISOString().split('T')[0] : ''),
+        scheduledDate: quizData.scheduledDate || '',
+        scheduledTime: quizData.scheduledTime || '',
+        scheduledAt: quizData.scheduledAt || null,
+        sourceFile: quizData.sourceFile || '',
         timeLimitMinutes: quizData.timeLimitMinutes || 0,
         passPercentage: quizData.passPercentage || 70,
         allowMultipleAttempts: quizData.allowMultipleAttempts ?? true,
@@ -322,10 +367,81 @@ export class QuizService {
         .set(payload, { merge: true })
         .catch(() => {});
 
+      // 3. If published, notify church members via push broadcast & in-app notification
+      if (payload.status === 'published') {
+        this.notifyMembersQuizPublished(payload).catch((e: any) => {
+          console.warn('[QuizService] Post-save notification warning:', e);
+        });
+      }
+
       return quizId;
     } catch (err: any) {
       console.error('[QuizService] Error saving quiz:', err);
       throw err;
+    }
+  }
+
+  /**
+   * Dispatches push broadcast and in-app notifications when a quiz is published.
+   * Creates a broadcast record in churches/{churchId}/broadcasts (triggers Cloud Functions)
+   * and logs in churches/{churchId}/notifications for the member notification center.
+   */
+  static async notifyMembersQuizPublished(quiz: BibleQuiz): Promise<void> {
+    try {
+      if (!quiz || !quiz.churchId) return;
+      const targetChurchId = quiz.churchId;
+      const quizTitle = (quiz.title || 'Bible Quiz').trim();
+      const topicInfo = quiz.book
+        ? `${quiz.book}${quiz.chapterStart ? ` Ch. ${quiz.chapterStart}${quiz.chapterEnd && quiz.chapterEnd !== quiz.chapterStart ? `-${quiz.chapterEnd}` : ''}` : ''}`
+        : (quiz.topic || quiz.category || 'Holy Scripture');
+
+      const pushTitle = `📖 New Bible Quiz: ${quizTitle}`;
+      const pushBody = `A new Bible quiz is now live on ${topicInfo}! Tap to test your knowledge and see your score.`;
+
+      // 1. Write to churches/{churchId}/broadcasts to trigger Cloud Function broadcast push
+      if (targetChurchId) {
+        await firestore()
+          .collection('churches')
+          .doc(targetChurchId)
+          .collection('broadcasts')
+          .add({
+            title: pushTitle,
+            content: pushBody,
+            type: 'quiz',
+            id: quiz.id,
+            quizId: quiz.id,
+            relatedId: quiz.id,
+            screen: 'BibleQuizDetail',
+            churchId: targetChurchId,
+            createdAt: firestore.FieldValue.serverTimestamp(),
+          })
+          .catch((e: any) => console.warn('[QuizService] Broadcast creation warning:', e));
+      }
+
+      // 2. Also write in-app notification to churches/{churchId}/notifications
+      if (targetChurchId) {
+        firestore()
+          .collection('churches')
+          .doc(targetChurchId)
+          .collection('notifications')
+          .add({
+            type: 'quiz',
+            title: pushTitle,
+            body: pushBody,
+            id: quiz.id,
+            quizId: quiz.id,
+            relatedId: quiz.id,
+            screen: 'BibleQuizDetail',
+            churchId: targetChurchId,
+            quizTitle: quizTitle,
+            category: quiz.category || '',
+            read: false,
+            createdAt: firestore.FieldValue.serverTimestamp(),
+          })
+          .catch(() => {});
+      }
+    } catch (err: any) {
+      console.warn('[QuizService] Failed to notify members of quiz:', err);
     }
   }
 
@@ -623,6 +739,29 @@ export class QuizService {
     } catch (err: any) {
       console.warn('[QuizService] Notice in getUserAttempts:', err?.message || err);
       return [];
+    }
+  }
+
+  /**
+   * Fetch all past attempts for a member keyed by quizId for quick lookups.
+   */
+  static async getUserAttemptsMap(userId: string, churchId?: string): Promise<Record<string, QuizAttempt>> {
+    try {
+      const attempts = await this.getUserAttempts(userId, churchId);
+      const map: Record<string, QuizAttempt> = {};
+      attempts.forEach((att) => {
+        if (att.quizId) {
+          // Keep the latest or best score attempt
+          const existing = map[att.quizId];
+          if (!existing || (att.percentage || 0) >= (existing.percentage || 0)) {
+            map[att.quizId] = att;
+          }
+        }
+      });
+      return map;
+    } catch (err: any) {
+      console.warn('[QuizService] Notice in getUserAttemptsMap:', err?.message || err);
+      return {};
     }
   }
 
