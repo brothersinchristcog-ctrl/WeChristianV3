@@ -34,6 +34,7 @@ import {
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as DocumentPicker from 'expo-document-picker';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { BibleQuiz, QuizDifficulty, QuizQuestion, QuizQuestionType, QuizStatus } from '../../../types/Quiz';
 import { QuizService } from '../../../services/QuizService';
 import { QuizAIService } from '../../../services/QuizAIService';
@@ -101,6 +102,25 @@ export default function AdminQuizEditor({
   );
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [showScheduleModal, setShowScheduleModal] = useState<boolean>(false);
+  const [showTimePicker, setShowTimePicker] = useState<boolean>(false);
+
+  // Convert 24-hr time (e.g. "06:30") to user-friendly "6:30 AM"
+  const formatTimeDisplay = (time24: string) => {
+    if (!time24) return '6:00 AM';
+    const [hStr, mStr] = time24.split(':');
+    const h = parseInt(hStr, 10) || 0;
+    const m = (mStr || '00').padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+  };
+
+  const handleConfirmTime = (date: Date) => {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    setScheduledTime(`${hours}:${minutes}`);
+    setShowTimePicker(false);
+  };
 
   // Calendar Picker state
   const [pickerYear, setPickerYear] = useState<number>(() => {
@@ -525,50 +545,75 @@ export default function AdminQuizEditor({
           </View>
 
           <Text style={styles.modalSubtitle}>
-            Choose when this quiz will automatically become available to your congregation.
+            Choose the release date and time for this quiz to automatically unlock for church members.
           </Text>
 
           {/* Date Picker trigger */}
-          <Text style={styles.inputLabel}>Schedule Date</Text>
+          <Text style={styles.inputLabel}>Release Date</Text>
           <TouchableOpacity
             style={styles.datePickerTrigger}
             onPress={() => setShowDatePicker(true)}
+            activeOpacity={0.8}
           >
             <CalendarIcon size={18} color="#1a2d5a" />
             <Text style={styles.datePickerTriggerTxt}>{scheduledDate}</Text>
+            <Text style={{ marginLeft: 'auto', fontSize: 12, color: '#1a2d5a', fontWeight: '700' }}>Change Date 📅</Text>
           </TouchableOpacity>
 
-          {/* Time Presets */}
-          <Text style={styles.inputLabel}>Schedule Time</Text>
+          {/* Clock Picker Trigger (Interactive Native Clock / Wheel) */}
+          <Text style={styles.inputLabel}>Release Time (Clock Picker)</Text>
+          <TouchableOpacity
+            style={styles.timePickerTrigger}
+            onPress={() => setShowTimePicker(true)}
+            activeOpacity={0.8}
+          >
+            <View style={styles.timePickerLeft}>
+              <View style={styles.timePickerIconCircle}>
+                <Clock size={18} color="#1a2d5a" />
+              </View>
+              <View>
+                <Text style={styles.timePickerLabel}>SCHEDULED TIME</Text>
+                <Text style={styles.timePickerValueTxt}>
+                  {formatTimeDisplay(scheduledTime)} <Text style={{ fontSize: 12, fontWeight: '500', color: '#64748B' }}>({scheduledTime})</Text>
+                </Text>
+              </View>
+            </View>
+            <View style={styles.timePickerChangeBtn}>
+              <Text style={styles.timePickerChangeBtnTxt}>Pick Clock ⏰</Text>
+            </View>
+          </TouchableOpacity>
+
+          {/* Quick Time Presets */}
+          <Text style={[styles.inputLabel, { marginTop: 4 }]}>Quick Presets</Text>
           <View style={styles.timePresetsRow}>
-            {TIME_PRESETS.map(t => {
-              const isSelected = scheduledTime === t;
+            {[
+              { time: '05:00', label: '5:00 AM' },
+              { time: '06:00', label: '6:00 AM' },
+              { time: '07:00', label: '7:00 AM' },
+              { time: '09:00', label: '9:00 AM' },
+              { time: '18:00', label: '6:00 PM' },
+              { time: '20:00', label: '8:00 PM' },
+            ].map(p => {
+              const isSelected = scheduledTime === p.time;
               return (
                 <TouchableOpacity
-                  key={t}
+                  key={p.time}
                   style={[styles.timeChip, isSelected && styles.timeChipActive]}
-                  onPress={() => setScheduledTime(t)}
+                  onPress={() => setScheduledTime(p.time)}
+                  activeOpacity={0.7}
                 >
                   <Text style={[styles.timeChipTxt, isSelected && styles.timeChipTxtActive]}>
-                    {t}
+                    {p.label}
                   </Text>
                 </TouchableOpacity>
               );
             })}
           </View>
 
-          <TextInput
-            style={styles.customTimeInput}
-            value={scheduledTime}
-            onChangeText={setScheduledTime}
-            placeholder="Custom Time (e.g. 06:30)"
-            placeholderTextColor="#94a3b8"
-          />
-
           <View style={styles.scheduleInfoBox}>
             <Clock size={16} color="#1a2d5a" />
             <Text style={styles.scheduleInfoTxt}>
-              Members will automatically see this quiz in the Church Quizzes tab on {scheduledDate} at {scheduledTime}.
+              Members will automatically see this quiz in Church Quizzes on <Text style={{ fontWeight: '700' }}>{scheduledDate}</Text> at <Text style={{ fontWeight: '700' }}>{formatTimeDisplay(scheduledTime)}</Text>.
             </Text>
           </View>
 
@@ -596,6 +641,20 @@ export default function AdminQuizEditor({
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Native Interactive Clock Time Picker */}
+        <DateTimePickerModal
+          isVisible={showTimePicker}
+          mode="time"
+          date={(() => {
+            const [h, m] = (scheduledTime || '06:00').split(':');
+            const d = new Date();
+            d.setHours(parseInt(h, 10) || 6, parseInt(m, 10) || 0, 0, 0);
+            return d;
+          })()}
+          onConfirm={handleConfirmTime}
+          onCancel={() => setShowTimePicker(false)}
+        />
       </View>
     </Modal>
   );
@@ -792,7 +851,7 @@ export default function AdminQuizEditor({
     </Modal>
   );
 
-  // ─── Quiz Save / Publish / Schedule Success Modal ─────────────────────────
+  // ─── Quiz Save / Publish / Schedule Success Modal (Neat, Clean & Modern) ───
   const renderSaveSuccessModal = () => {
     if (!saveSuccessData || !saveSuccessData.visible) return null;
 
@@ -801,7 +860,7 @@ export default function AdminQuizEditor({
 
     const getLangLabel = () => {
       const match = SUPPORTED_LANGUAGES.find(l => l.code === language);
-      return match ? `${match.name} (${match.native})` : language.toUpperCase();
+      return match ? match.name : language.toUpperCase();
     };
 
     return (
@@ -821,7 +880,7 @@ export default function AdminQuizEditor({
               <X size={18} color="#64748B" />
             </TouchableOpacity>
 
-            {/* Top Icon Badge */}
+            {/* Top Decorative Icon */}
             <View
               style={[
                 styles.celebrationIconCircle,
@@ -833,49 +892,55 @@ export default function AdminQuizEditor({
               ]}
             >
               {isPub ? (
-                <CheckCircle size={30} color="#059669" />
+                <CheckCircle size={32} color="#059669" strokeWidth={2.5} />
               ) : isSched ? (
-                <CalendarIcon size={28} color="#1a2d5a" />
+                <Clock size={30} color="#1a2d5a" strokeWidth={2.5} />
               ) : (
-                <Save size={26} color="#475569" />
+                <Save size={28} color="#475569" strokeWidth={2.5} />
               )}
             </View>
 
-            {/* Title & Subtitle */}
+            {/* Title & Status */}
             <Text style={styles.celebrationTitle}>
               {isPub
                 ? 'Quiz Published Live!'
                 : isSched
                 ? 'Quiz Scheduled!'
-                : 'Quiz Draft Saved!'}
-            </Text>
-            <Text style={styles.celebrationSubtitle}>
-              {isPub
-                ? `"${saveSuccessData.title}" is now active and ready for your members.`
-                : isSched
-                ? `"${saveSuccessData.title}" will unlock on ${saveSuccessData.scheduledDate} at ${saveSuccessData.scheduledTime}.`
-                : `Your draft "${saveSuccessData.title}" has been saved safely.`}
+                : 'Draft Saved Safely'}
             </Text>
 
-            {/* Push Notification Banner for Published Quizzes */}
+            {/* Quiz Title Box */}
+            <View style={styles.cleanQuizTitleBox}>
+              <Text style={styles.cleanQuizTitleTxt} numberOfLines={2}>
+                {saveSuccessData.title}
+              </Text>
+            </View>
+
+            {/* Subtitle / Context Note */}
+            <Text style={styles.celebrationSubtitle}>
+              {isPub
+                ? 'This quiz is now active and accessible to your congregation.'
+                : isSched
+                ? `Automatically unlocks on ${saveSuccessData.scheduledDate} at ${formatTimeDisplay(saveSuccessData.scheduledTime || '')}.`
+                : 'Your changes have been safely saved as a draft.'}
+            </Text>
+
+            {/* Push Notification Banner (Compact & Neat) */}
             {isPub && (
               <View style={styles.saveSuccessNotificationBox}>
                 <View style={styles.saveSuccessBellCircle}>
-                  <Bell size={14} color="#059669" />
+                  <Bell size={13} color="#059669" />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.saveSuccessNotificationTitle}>Push Notification Broadcasted</Text>
-                  <Text style={styles.saveSuccessNotificationDesc}>
-                    Church members received a push notification to play this quiz.
-                  </Text>
-                </View>
+                <Text style={styles.saveSuccessNotificationTitle}>
+                  Push notification broadcasted to members
+                </Text>
               </View>
             )}
 
-            {/* Summary Chips */}
+            {/* Summary Info Chips (3 Clean Symmetrical Pills) */}
             <View style={styles.celebrationBadgeRow}>
               <View style={styles.celebrationCountBadge}>
-                <BookOpen size={13} color="#1a2d5a" />
+                <BookOpen size={12} color="#1a2d5a" />
                 <Text style={styles.celebrationCountBadgeTxt}>
                   {saveSuccessData.questionCount} Questions
                 </Text>
@@ -886,7 +951,7 @@ export default function AdminQuizEditor({
                 </Text>
               </View>
               <View style={styles.celebrationLangBadge}>
-                <Globe size={13} color="#059669" />
+                <Globe size={12} color="#059669" />
                 <Text style={styles.celebrationLangBadgeTxt}>
                   {getLangLabel()}
                 </Text>
@@ -1075,7 +1140,7 @@ export default function AdminQuizEditor({
             >
               <CalendarIcon size={15} color="#1a2d5a" />
               <Text style={styles.scheduleInfoRowTxt}>
-                Active on: <Text style={{ fontWeight: '700', color: '#1a2d5a' }}>{scheduledDate}</Text> at <Text style={{ fontWeight: '700', color: '#1a2d5a' }}>{scheduledTime}</Text>
+                Active on: <Text style={{ fontWeight: '700', color: '#1a2d5a' }}>{scheduledDate}</Text> at <Text style={{ fontWeight: '700', color: '#1a2d5a' }}>{formatTimeDisplay(scheduledTime)}</Text>
               </Text>
               <ChevronRight size={16} color="#64748B" style={{ marginLeft: 'auto' }} />
             </TouchableOpacity>
@@ -2517,32 +2582,29 @@ const styles = StyleSheet.create({
   saveSuccessNotificationBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     backgroundColor: '#ECFDF5',
     borderWidth: 1,
     borderColor: '#A7F3D0',
     borderRadius: 12,
-    padding: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     width: '100%',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   saveSuccessBellCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     backgroundColor: '#D1FAE5',
     alignItems: 'center',
     justifyContent: 'center',
   },
   saveSuccessNotificationTitle: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
     color: '#065F46',
-  },
-  saveSuccessNotificationDesc: {
-    fontSize: 11,
-    color: '#047857',
-    marginTop: 2,
+    flex: 1,
   },
   saveSuccessDifficultyBadge: {
     backgroundColor: '#F8FAFC',
@@ -2556,5 +2618,70 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#475569',
+  },
+  cleanQuizTitleBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    width: '100%',
+    alignItems: 'center',
+  },
+  cleanQuizTitleTxt: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    textAlign: 'center',
+    lineHeight: 19,
+  },
+  timePickerTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  timePickerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  timePickerIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#EFF6FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timePickerLabel: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  timePickerValueTxt: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1A2D5A',
+  },
+  timePickerChangeBtn: {
+    backgroundColor: '#1A2D5A',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  timePickerChangeBtnTxt: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });

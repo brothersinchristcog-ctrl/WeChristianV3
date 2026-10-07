@@ -3,10 +3,10 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { QuizDifficulty, QuizQuestion, QuizQuestionType } from '../types/Quiz';
 
 const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
-const GEMINI_MODELS = ['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
+const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
 
 const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || '';
-const GROQ_MODEL = 'qwen/qwen3.8-27b';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 export interface DocumentUploadAsset {
@@ -331,9 +331,12 @@ Respond ONLY with valid, raw JSON with NO markdown code fences:
 
           parts.push({ text: userPromptText });
 
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
           const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
           const geminiRes = await fetch(endpoint, {
             method: 'POST',
+            signal: controller.signal,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -345,6 +348,7 @@ Respond ONLY with valid, raw JSON with NO markdown code fences:
               },
             }),
           });
+          clearTimeout(timeoutId);
 
           if (geminiRes.ok) {
             const data = await geminiRes.json();
@@ -372,8 +376,11 @@ Respond ONLY with valid, raw JSON with NO markdown code fences:
     if (GROQ_API_KEY) {
       try {
         console.log('[QuizAIService] Fallback to Groq for Quiz Generation...');
+        const groqController = new AbortController();
+        const groqTimeoutId = setTimeout(() => groqController.abort(), 12000);
         const groqRes = await fetch(GROQ_URL, {
           method: 'POST',
+          signal: groqController.signal,
           headers: {
             Authorization: `Bearer ${GROQ_API_KEY}`,
             'Content-Type': 'application/json',
@@ -388,6 +395,7 @@ Respond ONLY with valid, raw JSON with NO markdown code fences:
             max_tokens: 6000,
           }),
         });
+        clearTimeout(groqTimeoutId);
 
         if (groqRes.ok) {
           const data = await groqRes.json();
