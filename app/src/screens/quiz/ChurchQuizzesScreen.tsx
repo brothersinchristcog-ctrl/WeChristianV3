@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import {
   Award,
   CheckCircle,
   RotateCcw,
+  SlidersHorizontal,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
@@ -29,9 +30,31 @@ import { useTheme } from '../../context/ThemeContext';
 import { useChurch } from '../../context/ChurchContext';
 import { useAuth } from '../../context/AuthContext';
 import { getQuizStrings } from '../../constants/BibleQuizTranslations';
+import {
+  getLocalizedDailyQuizTitle,
+  getLocalizedDailyQuizDescription,
+} from '../../constants/DailyQuizTranslations';
 import { QuizService } from '../../services/QuizService';
 import { BibleQuiz, QuizAttempt } from '../../types/Quiz';
 import QuizLanguageModal from './QuizLanguageModal';
+
+type QuizDateFilter = 'all' | 'today' | 'week' | 'month' | 'year';
+
+function getQuizDateString(quiz: BibleQuiz): string {
+  if (quiz.dailyDate) return quiz.dailyDate;
+  if (quiz.scheduledDate) return quiz.scheduledDate;
+  if (quiz.createdAt) {
+    if (typeof (quiz.createdAt as any).toDate === 'function') {
+      const d = (quiz.createdAt as any).toDate();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    const d = new Date(quiz.createdAt as any);
+    if (!isNaN(d.getTime())) {
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+  }
+  return '';
+}
 
 export default function ChurchQuizzesScreen() {
   const navigation = useNavigation<any>();
@@ -45,6 +68,7 @@ export default function ChurchQuizzesScreen() {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [langModalVisible, setLangModalVisible] = useState<boolean>(false);
+  const [selectedFilter, setSelectedFilter] = useState<QuizDateFilter>('all');
 
   const ui = getQuizStrings(quizLanguage);
   const churchId = activeChurch?.id || 'global';
@@ -55,20 +79,26 @@ export default function ChurchQuizzesScreen() {
     }, [churchId, user?.uid])
   );
 
-  const loadQuizzes = async () => {
+  const loadQuizzes = async (isManualRefresh = false) => {
     try {
-      setLoading(true);
-      // Fetch all published/scheduled quizzes available to this member
-      const list = await QuizService.getQuizzes(churchId, {
-        isAdmin: false,
-      });
-      setQuizzes(list);
-
-      // Fetch member's past attempts to show Completed badges and scores
-      if (user?.uid) {
-        const attempts = await QuizService.getUserAttemptsMap(user.uid, churchId);
-        setUserAttempts(attempts);
+      // If we don't have quizzes yet, show loader.
+      // If we already have quizzes, load silently in background for instant responsiveness.
+      if (quizzes.length === 0 && !isManualRefresh) {
+        setLoading(true);
       }
+
+      const [list, attempts] = await Promise.all([
+        QuizService.getQuizzes(churchId, {
+          isAdmin: false,
+          forceRefresh: isManualRefresh,
+        }),
+        user?.uid
+          ? QuizService.getUserAttemptsMap(user.uid, churchId, isManualRefresh)
+          : Promise.resolve({} as Record<string, QuizAttempt>),
+      ]);
+
+      setQuizzes(list);
+      setUserAttempts(attempts);
     } catch (err) {
       console.warn('[ChurchQuizzesScreen] Error loading quizzes:', err);
     } finally {
@@ -79,8 +109,87 @@ export default function ChurchQuizzesScreen() {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    loadQuizzes();
+    loadQuizzes(true);
   };
+
+  // Date range computations for filter chips
+  const dateRanges = useMemo(() => {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    const dayOfWeek = now.getDay();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfWeekStr = `${startOfWeek.getFullYear()}-${String(startOfWeek.getMonth() + 1).padStart(2, '0')}-${String(startOfWeek.getDate()).padStart(2, '0')}`;
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    const endOfWeekStr = `${endOfWeek.getFullYear()}-${String(endOfWeek.getMonth() + 1).padStart(2, '0')}-${String(endOfWeek.getDate()).padStart(2, '0')}`;
+
+    const currentYearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const currentYear = `${now.getFullYear()}`;
+
+    return {
+      todayStr,
+      startOfWeekStr,
+      endOfWeekStr,
+      currentYearMonth,
+      currentYear,
+    };
+  }, []);
+
+  const filterCounts = useMemo(() => {
+    const { todayStr, startOfWeekStr, endOfWeekStr, currentYearMonth, currentYear } = dateRanges;
+    let todayCount = 0;
+    let weekCount = 0;
+    let monthCount = 0;
+    let yearCount = 0;
+
+    quizzes.forEach(q => {
+      const qDate = getQuizDateString(q);
+      if (!qDate) {
+        yearCount++;
+        return;
+      }
+      if (qDate === todayStr) todayCount++;
+      if (qDate >= startOfWeekStr && qDate <= endOfWeekStr) weekCount++;
+      if (qDate.startsWith(currentYearMonth)) monthCount++;
+      if (qDate.startsWith(currentYear)) yearCount++;
+    });
+
+    return {
+      all: quizzes.length,
+      today: todayCount,
+      week: weekCount,
+      month: monthCount,
+      year: yearCount,
+    };
+  }, [quizzes, dateRanges]);
+
+  const filteredQuizzes = useMemo(() => {
+    if (selectedFilter === 'all') return quizzes;
+
+    const { todayStr, startOfWeekStr, endOfWeekStr, currentYearMonth, currentYear } = dateRanges;
+
+    return quizzes.filter(q => {
+      const qDate = getQuizDateString(q);
+      if (!qDate) return selectedFilter === 'year';
+      if (selectedFilter === 'today') return qDate === todayStr;
+      if (selectedFilter === 'week') return qDate >= startOfWeekStr && qDate <= endOfWeekStr;
+      if (selectedFilter === 'month') return qDate.startsWith(currentYearMonth);
+      if (selectedFilter === 'year') return qDate.startsWith(currentYear);
+      return true;
+    });
+  }, [quizzes, selectedFilter, dateRanges]);
+
+  const filterTabs: Array<{ id: QuizDateFilter; label: string; count: number }> = [
+    { id: 'all', label: ui.filterAll, count: filterCounts.all },
+    { id: 'today', label: ui.filterToday, count: filterCounts.today },
+    { id: 'week', label: ui.filterThisWeek, count: filterCounts.week },
+    { id: 'month', label: ui.filterThisMonth, count: filterCounts.month },
+    { id: 'year', label: ui.filterThisYear, count: filterCounts.year },
+  ];
 
   // Flow: Select Quiz → Detail → Start Quiz
   const handleSelectQuiz = (quiz: BibleQuiz) => {
@@ -120,7 +229,7 @@ export default function ChurchQuizzesScreen() {
 
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle} numberOfLines={1}>
-              Church Quizzes
+              {ui.churchQuizzes}
             </Text>
           </View>
 
@@ -151,16 +260,67 @@ export default function ChurchQuizzesScreen() {
           return (
             <View style={styles.sectionHeadingRow}>
               <Text style={[styles.sectionHeading, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
-                {isAllDone ? 'Church Quizzes' : 'Available Quizzes'}
+                {isAllDone ? ui.churchQuizzes : ui.availableQuizzes}
               </Text>
               <View style={[styles.sectionBadgeWrap, isAllDone && styles.sectionBadgeWrapCompleted]}>
                 <Text style={[styles.sectionSubBadge, isAllDone && styles.sectionSubBadgeCompleted]}>
-                  {isAllDone ? `✓ Completed (${completedCount})` : `${availableCount}`}
+                  {isAllDone ? `✓ ${ui.completed} (${completedCount})` : `${availableCount}`}
                 </Text>
               </View>
             </View>
           );
         })()}
+
+        {/* Date Filter Chips (All, Today, This Week, This Month, This Year) */}
+        <View style={styles.filterBarContainer}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterScrollContent}
+          >
+            {filterTabs.map(tab => {
+              const isSelected = selectedFilter === tab.id;
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  style={[
+                    styles.filterChip,
+                    isDark && styles.filterChipDark,
+                    isSelected && styles.filterChipActive,
+                  ]}
+                  onPress={() => setSelectedFilter(tab.id)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      isDark && styles.filterChipTextDark,
+                      isSelected && styles.filterChipTextActive,
+                    ]}
+                  >
+                    {tab.label}
+                  </Text>
+                  <View
+                    style={[
+                      styles.filterBadge,
+                      isDark && styles.filterBadgeDark,
+                      isSelected && styles.filterBadgeActive,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.filterBadgeText,
+                        isSelected && styles.filterBadgeTextActive,
+                      ]}
+                    >
+                      {tab.count}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
@@ -170,14 +330,31 @@ export default function ChurchQuizzesScreen() {
           <View style={[styles.emptyCard, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}>
             <BookOpen size={28} color="#64748b" style={{ marginBottom: 8 }} />
             <Text style={[styles.emptyTitle, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
-              No Quizzes Available
+              {ui.noQuizzesAvailable}
             </Text>
             <Text style={styles.emptySub}>
-              There are currently no scheduled church quizzes. Please check back soon!
+              {ui.noQuizzesAvailableSub}
             </Text>
           </View>
+        ) : filteredQuizzes.length === 0 ? (
+          <View style={[styles.emptyCard, isDark && { backgroundColor: '#111827', borderColor: '#1f2937' }]}>
+            <Calendar size={28} color="#64748b" style={{ marginBottom: 8 }} />
+            <Text style={[styles.emptyTitle, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
+              {ui.noQuizzesAvailable}
+            </Text>
+            <Text style={styles.emptySub}>
+              {ui.noQuizzesAvailableSub}
+            </Text>
+            <TouchableOpacity
+              style={styles.resetFilterBtn}
+              onPress={() => setSelectedFilter('all')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.resetFilterBtnTxt}>{ui.filterAll}</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
-          quizzes.map(quiz => {
+          filteredQuizzes.map(quiz => {
             const isEasy = quiz.difficulty === 'easy';
             const isMedium = quiz.difficulty === 'medium';
             const diffColor = isEasy ? '#2563eb' : isMedium ? '#d97706' : '#059669';
@@ -205,7 +382,7 @@ export default function ChurchQuizzesScreen() {
                     <View style={styles.completedCardBadge}>
                       <CheckCircle size={10} color="#10b981" />
                       <Text style={styles.completedCardBadgeTxt}>
-                        {attempt.percentage !== undefined ? `Completed · ${attempt.percentage}%` : 'Completed'}
+                        {attempt.percentage !== undefined ? `${ui.completed} · ${attempt.percentage}%` : ui.completed}
                       </Text>
                     </View>
                   ) : quiz.timeLimitMinutes > 0 ? (
@@ -218,11 +395,15 @@ export default function ChurchQuizzesScreen() {
 
                 {/* Title & Description */}
                 <Text style={[styles.quizTitle, { color: isDark ? '#ffffff' : '#0f172a' }]} numberOfLines={2}>
-                  {quiz.title}
+                  {quiz.isDailyQuiz && quiz.dailyDate
+                    ? getLocalizedDailyQuizTitle(quiz.dailyDate, quizLanguage)
+                    : quiz.title}
                 </Text>
                 {Boolean(quiz.description && quiz.description !== quiz.title) && (
-                  <Text style={[styles.quizDesc, { color: isDark ? '#94a3b8' : '#64748b' }]} numberOfLines={1}>
-                    {quiz.description}
+                  <Text style={[styles.quizDesc, { color: isDark ? '#94a3b8' : '#64748b' }]} numberOfLines={2}>
+                    {quiz.isDailyQuiz && quiz.dailyDate
+                      ? getLocalizedDailyQuizDescription(quiz.dailyDate, quizLanguage)
+                      : quiz.description}
                   </Text>
                 )}
 
@@ -231,7 +412,7 @@ export default function ChurchQuizzesScreen() {
                   <View style={styles.metaQCountRow}>
                     <BookOpen size={13} color="#64748b" />
                     <Text style={styles.metaQCountTxt}>
-                      {quiz.totalQuestions || quiz.questions?.length || 0} Questions
+                      {ui.questionsCount(quiz.totalQuestions || quiz.questions?.length || 0)}
                     </Text>
                     {Boolean(quiz.scheduledDate) && (
                       <>
@@ -250,7 +431,7 @@ export default function ChurchQuizzesScreen() {
                         activeOpacity={0.82}
                       >
                         <Award size={12} color={isDark ? '#93c5fd' : '#2563eb'} />
-                        <Text style={[styles.resultsBtnTxt, { color: isDark ? '#93c5fd' : '#2563eb' }]}>Results</Text>
+                        <Text style={[styles.resultsBtnTxt, { color: isDark ? '#93c5fd' : '#2563eb' }]}>{ui.results}</Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
@@ -265,7 +446,7 @@ export default function ChurchQuizzesScreen() {
                           style={styles.retryBtnGradient}
                         >
                           <RotateCcw size={11} color="#ffffff" />
-                          <Text style={styles.startBtnTxt}>Retry</Text>
+                          <Text style={styles.startBtnTxt}>{ui.retry}</Text>
                         </LinearGradient>
                       </TouchableOpacity>
                     </View>
@@ -282,7 +463,7 @@ export default function ChurchQuizzesScreen() {
                         style={styles.startBtnGradient}
                       >
                         <Play size={11} color="#ffffff" fill="#ffffff" />
-                        <Text style={styles.startBtnTxt}>Start</Text>
+                        <Text style={styles.startBtnTxt}>{ui.start}</Text>
                         <ChevronRight size={13} color="#ffffff" />
                       </LinearGradient>
                     </TouchableOpacity>
@@ -574,5 +755,76 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 12,
     paddingVertical: 6.5,
+  },
+  filterBarContainer: {
+    marginBottom: 16,
+  },
+  filterScrollContent: {
+    paddingRight: 8,
+    gap: 8,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 13,
+    paddingVertical: 7,
+    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    gap: 6,
+  },
+  filterChipDark: {
+    backgroundColor: '#1e293b',
+    borderColor: '#334155',
+  },
+  filterChipActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  filterChipText: {
+    fontSize: 12.5,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  filterChipTextDark: {
+    color: '#cbd5e1',
+  },
+  filterChipTextActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  filterBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: '#f1f5f9',
+  },
+  filterBadgeDark: {
+    backgroundColor: '#334155',
+  },
+  filterBadgeActive: {
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  filterBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#64748b',
+  },
+  filterBadgeTextActive: {
+    color: '#ffffff',
+  },
+  resetFilterBtn: {
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#2563eb',
+    alignSelf: 'center',
+  },
+  resetFilterBtnTxt: {
+    color: '#ffffff',
+    fontSize: 12.5,
+    fontWeight: '600',
   },
 });

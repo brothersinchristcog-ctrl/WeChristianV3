@@ -26,8 +26,15 @@ import {
   Search,
   Filter,
   Check,
+  Bell,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import DailyQuizNotificationService from '../../services/DailyQuizNotificationService';
+import { SupportedLanguage, LANGUAGES } from '../../locales';
+import {
+  getLocalizedDailyQuestion,
+  getLocalizedDailyQuizTitle,
+} from '../../constants/DailyQuizTranslations';
 import { DailyBibleQuizBank } from '../../services/DailyBibleQuizBank';
 import { QuizService } from '../../services/QuizService';
 import { BibleQuiz, QuizQuestion } from '../../types/Quiz';
@@ -66,6 +73,7 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
 
   // Inspect / Detail modal for a specific day
   const [inspectQuiz, setInspectQuiz] = useState<BibleQuiz | null>(null);
+  const [inspectLang, setInspectLang] = useState<SupportedLanguage>('en');
 
   const MONTHS = ['All', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -136,6 +144,25 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
     );
   };
 
+  const handleTriggerTestNotification = async () => {
+    try {
+      const ok = await DailyQuizNotificationService.sendTestQuizNotification(3);
+      if (ok) {
+        Alert.alert(
+          'Notification Scheduled! 🔔',
+          "A test 5:00 AM Daily Bible Quiz notification will arrive on your phone in 3 seconds!\n\nPull down your notification bar and tap it to verify that it opens today's quiz directly."
+        );
+      } else {
+        Alert.alert(
+          'Permission Required',
+          'Please enable notifications in your phone settings to receive 5:00 AM Daily Quiz notifications.'
+        );
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to trigger test notification');
+    }
+  };
+
   const filteredDays = useMemo(() => {
     const query = (searchQuery || '').toLowerCase().trim();
 
@@ -161,8 +188,8 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
     });
   }, [scheduledDays, selectedMonth, searchQuery]);
 
-  return (
-    <View style={styles.container}>
+  const renderHeader = () => (
+    <View style={styles.headerWrapper}>
       {/* KPI & Status Banner */}
       <View style={styles.kpiContainer}>
         <LinearGradient
@@ -223,6 +250,23 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
               </LinearGradient>
             </TouchableOpacity>
           </View>
+
+          {/* Instant 5:00 AM Notification Test Button */}
+          <TouchableOpacity
+            style={styles.testNotifBtn}
+            onPress={handleTriggerTestNotification}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#059669', '#047857']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.btnGradient}
+            >
+              <Bell size={16} color="#ffffff" />
+              <Text style={styles.btnTxt}>🔔 Test 5:00 AM Notification Now (In 3s)</Text>
+            </LinearGradient>
+          </TouchableOpacity>
         </LinearGradient>
       </View>
 
@@ -245,8 +289,12 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
           })}
         </ScrollView>
       </View>
+    </View>
+  );
 
-      {/* Scheduled Days List */}
+  return (
+    <View style={styles.container}>
+      {/* Scheduled Days List with Unified Full-Page Scroll */}
       {loading ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color="#f59e0b" />
@@ -258,6 +306,7 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
           keyExtractor={item => item.dateStr}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={renderHeader}
           renderItem={({ item, index }) => {
             const isToday = item.dateStr === new Date().toISOString().split('T')[0];
 
@@ -303,6 +352,11 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
                   <View style={styles.metaChip}>
                     <Clock size={11} color="#94a3b8" />
                     <Text style={styles.metaChipTxt}>5:00 AM Delivery</Text>
+                  </View>
+                  <View style={styles.metaDividerDot} />
+                  <View style={styles.metaChip}>
+                    <Clock size={11} color="#f59e0b" />
+                    <Text style={[styles.metaChipTxt, { color: '#fbbf24', fontWeight: '600' }]}>5 Mins Limit</Text>
                   </View>
                   <View style={styles.metaDividerDot} />
                   <View style={styles.metaChip}>
@@ -357,8 +411,12 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
         <View style={styles.modalBackdrop}>
           <View style={styles.inspectModalCard}>
             <View style={styles.inspectHeader}>
-              <View>
-                <Text style={styles.inspectTitle}>{inspectQuiz?.title}</Text>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={styles.inspectTitle}>
+                  {inspectQuiz?.dailyDate
+                    ? getLocalizedDailyQuizTitle(inspectQuiz.dailyDate, inspectLang)
+                    : inspectQuiz?.title}
+                </Text>
                 <Text style={styles.inspectSub}>
                   Scheduled Date: {inspectQuiz?.dailyDate} · Delivery Time: 5:00 AM
                 </Text>
@@ -373,9 +431,42 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
             </View>
 
             <ScrollView style={styles.inspectScroll} showsVerticalScrollIndicator={false}>
+              {/* Language Switcher Bar for Admin Preview */}
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', color: '#94a3b8', marginBottom: 6 }}>
+                  Preview Language:
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                  {LANGUAGES.map((lang) => {
+                    const isSelected = inspectLang === lang.code;
+                    return (
+                      <TouchableOpacity
+                        key={lang.code}
+                        onPress={() => setInspectLang(lang.code)}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          borderRadius: 16,
+                          backgroundColor: isSelected ? '#2563eb' : '#1e293b',
+                          borderWidth: 1,
+                          borderColor: isSelected ? '#3b82f6' : 'rgba(255,255,255,0.08)',
+                        }}
+                      >
+                        <Text style={{ fontSize: 12, fontWeight: '700', color: isSelected ? '#ffffff' : '#94a3b8' }}>
+                          {lang.nativeName}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
               <View style={styles.inspectBadgeRow}>
                 <View style={styles.inspectPill}>
-                  <Text style={styles.inspectPillTxt}>Difficulty: Intermediate / Moderate</Text>
+                  <Text style={styles.inspectPillTxt}>Difficulty: Intermediate</Text>
+                </View>
+                <View style={[styles.inspectPill, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+                  <Text style={[styles.inspectPillTxt, { color: '#f59e0b' }]}>⏱ Time Limit: 5 Mins</Text>
                 </View>
                 <View style={[styles.inspectPill, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
                   <Text style={[styles.inspectPillTxt, { color: '#10b981' }]}>Status: Scheduled & Live</Text>
@@ -384,43 +475,47 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
 
               <Text style={styles.inspectSectionHeading}>Questions ({inspectQuiz?.questions?.length || 0})</Text>
 
-              {inspectQuiz?.questions?.map((q, idx) => (
-                <View key={q.id || idx} style={styles.questionCard}>
-                  <View style={styles.qIndexRow}>
-                    <Text style={styles.qIndexTxt}>Q{idx + 1}</Text>
-                    <Text style={styles.qRefTxt}>{q.bibleReference}</Text>
-                  </View>
-
-                  <Text style={styles.qQuestionTxt}>{q.question}</Text>
-
-                  <View style={styles.optionsList}>
-                    {q.options?.map((opt, optIdx) => {
-                      const isCorrect = opt === q.correctAnswer;
-                      return (
-                        <View
-                          key={optIdx}
-                          style={[
-                            styles.optionItem,
-                            isCorrect && styles.optionItemCorrect,
-                          ]}
-                        >
-                          <Text style={[styles.optionTxt, isCorrect && styles.optionTxtCorrect]}>
-                            {String.fromCharCode(65 + optIdx)}. {opt}
-                          </Text>
-                          {isCorrect && <Check size={16} color="#10b981" />}
-                        </View>
-                      );
-                    })}
-                  </View>
-
-                  {Boolean(q.explanation) && (
-                    <View style={styles.expBox}>
-                      <Text style={styles.expLabel}>Biblical Insight:</Text>
-                      <Text style={styles.expTxt}>{q.explanation}</Text>
+              {inspectQuiz?.questions?.map((q, idx) => {
+                const localized = getLocalizedDailyQuestion(q, inspectLang);
+                return (
+                  <View key={q.id || idx} style={styles.questionCard}>
+                    <View style={styles.qIndexRow}>
+                      <Text style={styles.qIndexTxt}>Q{idx + 1}</Text>
+                      <Text style={styles.qRefTxt}>{localized.bibleReference}</Text>
                     </View>
-                  )}
-                </View>
-              ))}
+
+                    <Text style={styles.qQuestionTxt}>{localized.question}</Text>
+
+                    <View style={styles.optionsList}>
+                      {q.options?.map((opt, optIdx) => {
+                        const isCorrect = opt === q.correctAnswer;
+                        const optText = localized.options[optIdx] || opt;
+                        return (
+                          <View
+                            key={optIdx}
+                            style={[
+                              styles.optionItem,
+                              isCorrect && styles.optionItemCorrect,
+                            ]}
+                          >
+                            <Text style={[styles.optionTxt, isCorrect && styles.optionTxtCorrect]}>
+                              {String.fromCharCode(65 + optIdx)}. {optText}
+                            </Text>
+                            {isCorrect && <Check size={16} color="#10b981" />}
+                          </View>
+                        );
+                      })}
+                    </View>
+
+                    {Boolean(localized.explanation) && (
+                      <View style={styles.expBox}>
+                        <Text style={styles.expLabel}>Biblical Insight:</Text>
+                        <Text style={styles.expTxt}>{localized.explanation}</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
             </ScrollView>
 
             <View style={styles.inspectFooter}>
@@ -443,9 +538,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#0a0f1e',
   },
+  headerWrapper: {
+    marginBottom: 4,
+  },
   kpiContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 10,
     paddingBottom: 8,
   },
   kpiBanner: {
@@ -520,6 +617,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
   },
+  testNotifBtn: {
+    marginTop: 10,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
   btnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -534,9 +636,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   filterSection: {
-    paddingHorizontal: 16,
     paddingTop: 2,
-    paddingBottom: 8,
+    paddingBottom: 10,
   },
   monthScroll: {
     flexDirection: 'row',

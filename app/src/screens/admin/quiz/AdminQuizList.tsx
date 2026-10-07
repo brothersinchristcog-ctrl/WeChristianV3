@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useMemo } from 'react';
 import {
   View,
   Text,
@@ -29,9 +29,16 @@ import {
   X,
   Check,
   AlertTriangle,
+  Trophy,
+  Award,
+  Users,
+  CheckCircle2,
+  XCircle,
+  ArrowUpDown,
+  Phone,
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
-import { BibleQuiz, QuizStatus } from '../../../types/Quiz';
+import { BibleQuiz, QuizStatus, QuizAttempt } from '../../../types/Quiz';
 import { QuizService } from '../../../services/QuizService';
 import { useChurch } from '../../../context/ChurchContext';
 import { AdminTabContext } from '../../../context/AdminTabContext';
@@ -50,6 +57,13 @@ export default function AdminQuizList() {
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('All');
+
+  // Reports State
+  const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
+  const [loadingAttempts, setLoadingAttempts] = useState<boolean>(false);
+  const [reportSort, setReportSort] = useState<'rank' | 'recent'>('rank');
+  const [reportQuizFilter, setReportQuizFilter] = useState<string>('All');
+  const [inspectAttempt, setInspectAttempt] = useState<QuizAttempt | null>(null);
 
   // Navigation / View states
   const [currentView, setCurrentView] = useState<'list' | 'editor' | 'reports'>('list');
@@ -74,10 +88,18 @@ export default function AdminQuizList() {
     loadQuizzes();
   }, [churchId]);
 
-  const loadQuizzes = async () => {
+  useEffect(() => {
+    if (statusFilter === 'Reports') {
+      loadAttempts();
+    }
+  }, [statusFilter, churchId]);
+
+  const loadQuizzes = async (isManualRefresh = false) => {
     try {
-      setLoading(true);
-      const list = await QuizService.getQuizzes(churchId, { isAdmin: true });
+      if (quizzes.length === 0 && !isManualRefresh) {
+        setLoading(true);
+      }
+      const list = await QuizService.getQuizzes(churchId, { isAdmin: true, forceRefresh: isManualRefresh });
       setQuizzes(list);
     } catch (err) {
       console.error(err);
@@ -87,9 +109,28 @@ export default function AdminQuizList() {
     }
   };
 
+  const loadAttempts = async (isManualRefresh = false) => {
+    try {
+      if (attempts.length === 0 && !isManualRefresh) {
+        setLoadingAttempts(true);
+      }
+      const list = await QuizService.getAllChurchQuizAttempts(churchId, isManualRefresh);
+      setAttempts(list);
+    } catch (err) {
+      console.warn('[AdminQuizList] Error loading church quiz attempts:', err);
+    } finally {
+      setLoadingAttempts(false);
+      setRefreshing(false);
+    }
+  };
+
   const handleRefresh = () => {
     setRefreshing(true);
-    loadQuizzes();
+    if (statusFilter === 'Reports') {
+      loadAttempts(true);
+    } else {
+      loadQuizzes(true);
+    }
   };
 
   const handleDeleteQuiz = (quiz: BibleQuiz) => {
@@ -142,6 +183,63 @@ export default function AdminQuizList() {
     return true;
   });
 
+  // Helper: format duration in minutes and seconds
+  const formatCompletionTime = (seconds?: number): string => {
+    if (!seconds || seconds <= 0) return '0s';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins === 0) return `${secs}s`;
+    if (secs === 0) return `${mins}m`;
+    return `${mins}m ${secs}s`;
+  };
+
+  // Process & rank member quiz attempts
+  const filteredAndRankedAttempts = useMemo(() => {
+    let list = [...attempts];
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter(
+        a =>
+          (a.memberName && a.memberName.toLowerCase().includes(q)) ||
+          (a.quizTitle && a.quizTitle.toLowerCase().includes(q)) ||
+          (a.memberPhone && a.memberPhone.includes(q))
+      );
+    }
+
+    if (reportQuizFilter !== 'All') {
+      list = list.filter(a => a.quizId === reportQuizFilter || a.quizTitle === reportQuizFilter);
+    }
+
+    if (reportSort === 'rank') {
+      list.sort((a, b) => {
+        const pctDiff = (b.percentage ?? 0) - (a.percentage ?? 0);
+        if (pctDiff !== 0) return pctDiff;
+        const scoreDiff = (b.score ?? 0) - (a.score ?? 0);
+        if (scoreDiff !== 0) return scoreDiff;
+        return (a.timeTakenSeconds ?? 0) - (b.timeTakenSeconds ?? 0);
+      });
+    } else {
+      list.sort((a, b) => {
+        const timeA = a.submittedAt?.toMillis ? a.submittedAt.toMillis() : new Date(a.submittedAt || 0).getTime();
+        const timeB = b.submittedAt?.toMillis ? b.submittedAt.toMillis() : new Date(b.submittedAt || 0).getTime();
+        return timeB - timeA;
+      });
+    }
+
+    return list;
+  }, [attempts, searchQuery, reportQuizFilter, reportSort]);
+
+  const attemptedQuizzes = useMemo(() => {
+    const map = new Map<string, string>();
+    attempts.forEach(a => {
+      if (a.quizId && a.quizTitle) {
+        map.set(a.quizId, a.quizTitle);
+      }
+    });
+    return Array.from(map.entries()).map(([id, title]) => ({ id, title }));
+  }, [attempts]);
+
   // Calculate high-level metrics
   const totalCount = quizzes.length;
   const publishedCount = quizzes.filter(q => q.status === 'published' || !q.status).length;
@@ -161,7 +259,7 @@ export default function AdminQuizList() {
         onSaved={() => {
           setSelectedQuiz(null);
           setCurrentView('list');
-          loadQuizzes();
+          loadQuizzes(true);
         }}
       />
     );
@@ -306,6 +404,397 @@ export default function AdminQuizList() {
     );
   };
 
+  // ─── Reports Section Rendering ──────────────────────────────────────────
+  const renderReportsSection = () => {
+    const totalAttemptsCount = attempts.length;
+    const uniqueParticipantsCount = new Set(attempts.map(a => a.userId)).size;
+    const avgScore = totalAttemptsCount > 0
+      ? Math.round(attempts.reduce((acc, a) => acc + (a.percentage || 0), 0) / totalAttemptsCount)
+      : 0;
+
+    return (
+      <View style={styles.reportsContainer}>
+        {/* Reports Header Card & High-level Metrics */}
+        <View style={styles.reportsHeaderCard}>
+          <View style={styles.reportsHeaderTopRow}>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <Text style={styles.reportsHeaderTitle}>Quiz Results & Leaderboard</Text>
+              <Text style={styles.reportsHeaderSubtitle}>
+                Member participation, scores, and prize rankings
+              </Text>
+            </View>
+            <View style={styles.reportsCounterBadge}>
+              <Users size={13} color="#1a2d5a" />
+              <Text style={styles.reportsCounterBadgeTxt}>{uniqueParticipantsCount} Members</Text>
+            </View>
+          </View>
+
+          {/* Mini Stats Grid */}
+          <View style={styles.reportsMiniStatsRow}>
+            <View style={styles.reportsMiniStat}>
+              <Text style={styles.reportsMiniStatNum}>{totalAttemptsCount}</Text>
+              <Text style={styles.reportsMiniStatLbl}>Total Attempts</Text>
+            </View>
+            <View style={styles.reportsMiniStatDivider} />
+            <View style={styles.reportsMiniStat}>
+              <Text style={[styles.reportsMiniStatNum, { color: '#059669' }]}>{avgScore}%</Text>
+              <Text style={styles.reportsMiniStatLbl}>Average Score</Text>
+            </View>
+            <View style={styles.reportsMiniStatDivider} />
+            <View style={styles.reportsMiniStat}>
+              <Text style={[styles.reportsMiniStatNum, { color: '#C9A84C' }]}>
+                {filteredAndRankedAttempts[0] ? `${filteredAndRankedAttempts[0].percentage}%` : '0%'}
+              </Text>
+              <Text style={styles.reportsMiniStatLbl}>Top Score</Text>
+            </View>
+          </View>
+
+          {/* Sort Switcher (Rank vs Recent) */}
+          <View style={styles.sortToggleRow}>
+            <Text style={styles.sortToggleLbl}>Sort by:</Text>
+            <View style={styles.sortToggleButtons}>
+              <TouchableOpacity
+                style={[styles.sortBtn, reportSort === 'rank' && styles.sortBtnActive]}
+                onPress={() => setReportSort('rank')}
+                activeOpacity={0.8}
+              >
+                <Trophy size={13} color={reportSort === 'rank' ? '#ffffff' : '#475569'} />
+                <Text style={[styles.sortBtnTxt, reportSort === 'rank' && styles.sortBtnTxtActive]}>
+                  Rank (Winners)
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sortBtn, reportSort === 'recent' && styles.sortBtnActive]}
+                onPress={() => setReportSort('recent')}
+                activeOpacity={0.8}
+              >
+                <Clock size={13} color={reportSort === 'recent' ? '#ffffff' : '#475569'} />
+                <Text style={[styles.sortBtnTxt, reportSort === 'recent' && styles.sortBtnTxtActive]}>
+                  Recent
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Quiz Filter Chips if multiple quizzes */}
+          {attemptedQuizzes.length > 1 && (
+            <View style={{ marginTop: 12 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+                <TouchableOpacity
+                  style={[styles.quizFilterChip, reportQuizFilter === 'All' && styles.quizFilterChipActive]}
+                  onPress={() => setReportQuizFilter('All')}
+                >
+                  <Text style={[styles.quizFilterChipTxt, reportQuizFilter === 'All' && styles.quizFilterChipTxtActive]}>
+                    All Quizzes ({attempts.length})
+                  </Text>
+                </TouchableOpacity>
+                {attemptedQuizzes.map(q => {
+                  const isSelected = reportQuizFilter === q.id || reportQuizFilter === q.title;
+                  const qCount = attempts.filter(a => a.quizId === q.id || a.quizTitle === q.title).length;
+                  return (
+                    <TouchableOpacity
+                      key={q.id}
+                      style={[styles.quizFilterChip, isSelected && styles.quizFilterChipActive]}
+                      onPress={() => setReportQuizFilter(q.id)}
+                    >
+                      <Text style={[styles.quizFilterChipTxt, isSelected && styles.quizFilterChipTxtActive]} numberOfLines={1}>
+                        {q.title} ({qCount})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
+        {/* 🏆 Top 3 Winners Podium Banner (when sorted by rank & attempts exist) */}
+        {reportSort === 'rank' && filteredAndRankedAttempts.length > 0 && (
+          <View style={styles.podiumCard}>
+            <View style={styles.podiumHeaderRow}>
+              <Trophy size={18} color="#C9A84C" />
+              <Text style={styles.podiumHeaderTitle}>Top Performers & Prize Candidates</Text>
+            </View>
+            <View style={styles.podiumList}>
+              {filteredAndRankedAttempts.slice(0, 3).map((item, idx) => {
+                const medalIcon = idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉';
+                const prizeLabel = idx === 0 ? '1st Place' : idx === 1 ? '2nd Place' : '3rd Place';
+                const badgeBg = idx === 0 ? '#FEF3C7' : idx === 1 ? '#E2E8F0' : '#FED7AA';
+                const badgeBorder = idx === 0 ? '#F59E0B' : idx === 1 ? '#94A3B8' : '#F97316';
+                return (
+                  <View key={`winner-${item.id || idx}`} style={styles.podiumItemRow}>
+                    <View style={[styles.podiumMedalBadge, { backgroundColor: badgeBg, borderColor: badgeBorder }]}>
+                      <Text style={styles.podiumMedalTxt}>{medalIcon} {prizeLabel}</Text>
+                    </View>
+                    <View style={{ flex: 1, marginHorizontal: 8 }}>
+                      <Text style={styles.podiumMemberName} numberOfLines={1}>{item.memberName || 'Member'}</Text>
+                      <Text style={styles.podiumQuizSub} numberOfLines={1}>{item.quizTitle}</Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <Text style={styles.podiumScoreTxt}>{item.percentage}%</Text>
+                      <Text style={styles.podiumTimeTxt}>⏱️ {formatCompletionTime(item.timeTakenSeconds)}</Text>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* List of Member Attempt Results */}
+        {loadingAttempts ? (
+          <View style={styles.centerLoading}>
+            <ActivityIndicator size="large" color="#1a2d5a" />
+            <Text style={styles.loadingTxt}>Loading member attempt reports...</Text>
+          </View>
+        ) : filteredAndRankedAttempts.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Award size={40} color="#cbd5e1" />
+            <Text style={styles.emptyTitle}>No Quiz Attempts Found</Text>
+            <Text style={styles.emptySubtitle}>
+              {searchQuery || reportQuizFilter !== 'All'
+                ? 'No attempt results matched your filter criteria.'
+                : 'When church members attempt Bible Quizzes, their results, scores, completion times, and answer details will appear here.'}
+            </Text>
+          </View>
+        ) : (
+          filteredAndRankedAttempts.map((attempt, index) => {
+            const rank = index + 1;
+            const isRank1 = reportSort === 'rank' && rank === 1;
+            const isRank2 = reportSort === 'rank' && rank === 2;
+            const isRank3 = reportSort === 'rank' && rank === 3;
+            const rankBadgeColor = isRank1 ? '#FEF3C7' : isRank2 ? '#E2E8F0' : isRank3 ? '#FED7AA' : '#F1F5F9';
+            const rankTextColor = isRank1 ? '#B45309' : isRank2 ? '#334155' : isRank3 ? '#C2410C' : '#64748B';
+            const rankBorderColor = isRank1 ? '#FDE68A' : isRank2 ? '#CBD5E1' : isRank3 ? '#FDBA74' : '#E2E8F0';
+
+            const submittedDateStr = attempt.submittedAt?.toDate
+              ? attempt.submittedAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+              : attempt.submittedAt
+              ? new Date(attempt.submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+              : 'Recent';
+
+            return (
+              <View key={attempt.id} style={styles.attemptCard}>
+                {/* Top Row: Rank & Score */}
+                <View style={styles.attemptCardHeader}>
+                  <View style={[styles.rankBadge, { backgroundColor: rankBadgeColor, borderColor: rankBorderColor }]}>
+                    <Text style={[styles.rankBadgeTxt, { color: rankTextColor }]}>
+                      {isRank1 ? '🥇 #1' : isRank2 ? '🥈 #2' : isRank3 ? '🥉 #3' : `#${rank}`}
+                    </Text>
+                  </View>
+
+                  <View
+                    style={[
+                      styles.attemptPassBadge,
+                      attempt.passed ? styles.attemptPassBadgeGood : styles.attemptPassBadgeFail,
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.attemptPassBadgeTxt,
+                        attempt.passed ? { color: '#059669' } : { color: '#DC2626' },
+                      ]}
+                    >
+                      {attempt.passed ? '✓ Passed' : '✕ Needs Improvement'}
+                    </Text>
+                  </View>
+
+                  <View style={styles.attemptScorePill}>
+                    <Text style={styles.attemptScoreTxt}>{attempt.percentage}%</Text>
+                    <Text style={styles.attemptScoreSub}>
+                      ({attempt.score}/{attempt.totalMarks} pts)
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Member Profile Row */}
+                <View style={styles.attemptMemberRow}>
+                  <View style={styles.attemptAvatarCircle}>
+                    <Text style={styles.attemptAvatarTxt}>
+                      {(attempt.memberName || 'M').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1, marginLeft: 10 }}>
+                    <Text style={styles.attemptMemberName}>{attempt.memberName || 'Church Member'}</Text>
+                    <View style={styles.attemptMetaRow}>
+                      {Boolean(attempt.memberPhone) && (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginRight: 8 }}>
+                          <Phone size={10} color="#64748B" />
+                          <Text style={styles.attemptMetaTxt}>{attempt.memberPhone}</Text>
+                        </View>
+                      )}
+                      <Text style={styles.attemptMetaTxt}>🕒 {submittedDateStr}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Attempted Quiz Box */}
+                <View style={styles.attemptQuizBox}>
+                  <BookOpen size={13} color="#1a2d5a" />
+                  <Text style={styles.attemptQuizTitle} numberOfLines={1}>
+                    {attempt.quizTitle || 'Bible Quiz'}
+                  </Text>
+                </View>
+
+                {/* Detailed Metrics Row */}
+                <View style={styles.attemptMetricsRow}>
+                  <View style={styles.metricPillCorrect}>
+                    <CheckCircle2 size={12} color="#059669" />
+                    <Text style={styles.metricPillCorrectTxt}>
+                      {attempt.correctCount ?? 0} Correct
+                    </Text>
+                  </View>
+
+                  <View style={styles.metricPillWrong}>
+                    <XCircle size={12} color="#DC2626" />
+                    <Text style={styles.metricPillWrongTxt}>
+                      {attempt.wrongCount ?? 0} Incorrect
+                    </Text>
+                  </View>
+
+                  <View style={styles.metricPillTime}>
+                    <Clock size={12} color="#2563EB" />
+                    <Text style={styles.metricPillTimeTxt}>
+                      {formatCompletionTime(attempt.timeTakenSeconds)}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Review Answers Button */}
+                {Array.isArray(attempt.answers) && attempt.answers.length > 0 && (
+                  <TouchableOpacity
+                    style={styles.reviewAnswersBtn}
+                    onPress={() => setInspectAttempt(attempt)}
+                    activeOpacity={0.82}
+                  >
+                    <FileText size={13} color="#1a2d5a" />
+                    <Text style={styles.reviewAnswersBtnTxt}>
+                      Review Answers ({attempt.answers.length} Questions)
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            );
+          })
+        )}
+      </View>
+    );
+  };
+
+  // ─── Answer Review Modal ────────────────────────────────────────────────
+  const renderAnswerReviewModal = () => {
+    if (!inspectAttempt) return null;
+
+    return (
+      <Modal visible={!!inspectAttempt} transparent animationType="slide">
+        <View style={styles.reviewModalOverlay}>
+          <View style={styles.reviewModalCard}>
+            {/* Modal Header */}
+            <View style={styles.reviewModalHeader}>
+              <View style={{ flex: 1, paddingRight: 8 }}>
+                <Text style={styles.reviewModalTitle} numberOfLines={1}>
+                  {inspectAttempt.memberName}'s Answers
+                </Text>
+                <Text style={styles.reviewModalSubtitle} numberOfLines={1}>
+                  {inspectAttempt.quizTitle} · Score: {inspectAttempt.percentage}% · Time: {formatCompletionTime(inspectAttempt.timeTakenSeconds)}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setInspectAttempt(null)}
+                style={styles.reviewModalCloseBtn}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <X size={18} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Questions List */}
+            <ScrollView style={styles.reviewModalScroll} showsVerticalScrollIndicator={false}>
+              {(inspectAttempt.answers || []).map((ans, idx) => {
+                const isCorrect = ans.isCorrect;
+                const memberSelectedStr = Array.isArray(ans.selectedAnswer)
+                  ? ans.selectedAnswer.join(', ')
+                  : String(ans.selectedAnswer || 'Not answered');
+                const correctAnswerStr = Array.isArray(ans.correctAnswer)
+                  ? ans.correctAnswer.join(', ')
+                  : String(ans.correctAnswer || '');
+
+                return (
+                  <View key={ans.questionId || idx} style={styles.reviewQCard}>
+                    <View style={styles.reviewQTopRow}>
+                      <View style={styles.reviewQNumPill}>
+                        <Text style={styles.reviewQNumPillTxt}>Q{idx + 1}</Text>
+                      </View>
+                      <View
+                        style={[
+                          styles.reviewQResultBadge,
+                          isCorrect ? styles.reviewQResultBadgeCorrect : styles.reviewQResultBadgeWrong,
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.reviewQResultBadgeTxt,
+                            isCorrect ? { color: '#059669' } : { color: '#DC2626' },
+                          ]}
+                        >
+                          {isCorrect ? '✓ Correct' : '✕ Incorrect'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.reviewQText}>{ans.question}</Text>
+
+                    {/* Member's answer */}
+                    <View
+                      style={[
+                        styles.reviewAnsBox,
+                        isCorrect ? styles.reviewAnsBoxCorrect : styles.reviewAnsBoxWrong,
+                      ]}
+                    >
+                      <Text style={styles.reviewAnsLbl}>Member Answer:</Text>
+                      <Text
+                        style={[
+                          styles.reviewAnsVal,
+                          isCorrect ? { color: '#065F46' } : { color: '#991B1B' },
+                        ]}
+                      >
+                        {memberSelectedStr}
+                      </Text>
+                    </View>
+
+                    {/* Correct answer if member answered wrong */}
+                    {!isCorrect && Boolean(correctAnswerStr) && (
+                      <View style={styles.reviewCorrectAnsBox}>
+                        <Text style={styles.reviewAnsLbl}>Correct Answer:</Text>
+                        <Text style={styles.reviewCorrectAnsVal}>{correctAnswerStr}</Text>
+                      </View>
+                    )}
+
+                    {/* Scripture Reference */}
+                    {Boolean(ans.bibleReference) && (
+                      <Text style={styles.reviewScriptureRef}>
+                        📖 Scripture: {ans.bibleReference}
+                      </Text>
+                    )}
+                  </View>
+                );
+              })}
+            </ScrollView>
+
+            {/* Bottom Done Button */}
+            <TouchableOpacity
+              style={styles.reviewModalDoneBtn}
+              onPress={() => setInspectAttempt(null)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.reviewModalDoneBtnTxt}>Close Review</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
@@ -427,20 +916,30 @@ export default function AdminQuizList() {
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search by title, book, category..."
+            placeholder={
+              statusFilter === 'Reports'
+                ? "Search by member name, quiz title, phone..."
+                : "Search by title, book, category..."
+            }
             placeholderTextColor="#94a3b8"
           />
         </View>
 
         {/* Filter Pills */}
-        <View style={styles.filterPillsRow}>
-          {['All Quizzes', 'Published', 'Scheduled', 'Drafts'].map(filter => {
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterPillsScroll}
+          contentContainerStyle={styles.filterPillsRow}
+        >
+          {['All Quizzes', 'Published', 'Scheduled', 'Drafts', 'Reports'].map(filter => {
             const isActive = (filter === 'All Quizzes' && statusFilter === 'All') || statusFilter === filter;
             return (
               <TouchableOpacity
                 key={filter}
                 style={[styles.filterPill, isActive && styles.filterPillActive]}
                 onPress={() => setStatusFilter(filter === 'All Quizzes' ? 'All' : filter)}
+                activeOpacity={0.75}
               >
                 <Text
                   style={[styles.filterPillTxt, isActive && styles.filterPillTxtActive]}
@@ -450,10 +949,12 @@ export default function AdminQuizList() {
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
 
-        {/* Quizzes List */}
-        {loading ? (
+        {/* Content: Reports vs Quizzes */}
+        {statusFilter === 'Reports' ? (
+          renderReportsSection()
+        ) : loading ? (
           <View style={styles.centerLoading}>
             <ActivityIndicator size="large" color="#7c3aed" />
             <Text style={styles.loadingTxt}>Loading quizzes...</Text>
@@ -600,6 +1101,7 @@ export default function AdminQuizList() {
 
       {renderDeleteModal()}
       {renderDeleteSuccessModal()}
+      {renderAnswerReviewModal()}
     </View>
   );
 }
@@ -1160,5 +1662,537 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+
+  // ─── Reports & Leaderboard Styles ──────────────────────────────────────────
+  reportsContainer: {
+    paddingTop: 4,
+  },
+  reportsHeaderCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  reportsHeaderTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  reportsHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1a2d5a',
+  },
+  reportsHeaderSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  reportsCounterBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#dbeafe',
+  },
+  reportsCounterBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  reportsMiniStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+  },
+  reportsMiniStat: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  reportsMiniStatNum: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#1a2d5a',
+  },
+  reportsMiniStatLbl: {
+    fontSize: 10.5,
+    color: '#64748b',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  reportsMiniStatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#e2e8f0',
+  },
+  sortToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 4,
+  },
+  sortToggleLbl: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  sortToggleButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  sortBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  sortBtnActive: {
+    backgroundColor: '#1a2d5a',
+    borderColor: '#1a2d5a',
+  },
+  sortBtnTxt: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  sortBtnTxtActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  quizFilterChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    maxWidth: 220,
+  },
+  quizFilterChipActive: {
+    backgroundColor: '#1a2d5a',
+    borderColor: '#1a2d5a',
+  },
+  quizFilterChipTxt: {
+    fontSize: 11,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  quizFilterChipTxtActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  podiumCard: {
+    backgroundColor: '#fffbeb',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1.5,
+    borderColor: '#fde68a',
+    shadowColor: '#d97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  podiumHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  podiumHeaderTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#92400e',
+    letterSpacing: 0.2,
+  },
+  podiumList: {
+    gap: 8,
+  },
+  podiumItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#fef3c7',
+  },
+  podiumMedalBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  podiumMedalTxt: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#78350f',
+  },
+  podiumMemberName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  podiumQuizSub: {
+    fontSize: 10.5,
+    color: '#64748b',
+    marginTop: 1,
+  },
+  podiumScoreTxt: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#059669',
+  },
+  podiumTimeTxt: {
+    fontSize: 10,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  attemptCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  attemptCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  rankBadge: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
+  rankBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  attemptPassBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  attemptPassBadgeGood: {
+    backgroundColor: '#ecfdf5',
+  },
+  attemptPassBadgeFail: {
+    backgroundColor: '#fef2f2',
+  },
+  attemptPassBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  attemptScorePill: {
+    alignItems: 'flex-end',
+  },
+  attemptScoreTxt: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1a2d5a',
+  },
+  attemptScoreSub: {
+    fontSize: 10,
+    color: '#64748b',
+    fontWeight: '600',
+  },
+  attemptMemberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  attemptAvatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#1a2d5a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  attemptAvatarTxt: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  attemptMemberName: {
+    fontSize: 14.5,
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  attemptMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  attemptMetaTxt: {
+    fontSize: 11,
+    color: '#64748b',
+  },
+  attemptQuizBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#f8fafc',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  attemptQuizTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1a2d5a',
+    flex: 1,
+  },
+  attemptMetricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  metricPillCorrect: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#ecfdf5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  metricPillCorrectTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#059669',
+  },
+  metricPillWrong: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#fef2f2',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  metricPillWrongTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#dc2626',
+  },
+  metricPillTime: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#eff6ff',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginLeft: 'auto',
+  },
+  metricPillTimeTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  reviewAnswersBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  reviewAnswersBtnTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  filterPillsScroll: {
+    marginBottom: 12,
+  },
+  reviewModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
+  },
+  reviewModalCard: {
+    backgroundColor: '#ffffff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '88%',
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+  },
+  reviewModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    marginBottom: 14,
+  },
+  reviewModalTitle: {
+    fontSize: 16.5,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  reviewModalSubtitle: {
+    fontSize: 12,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  reviewModalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewModalScroll: {
+    marginBottom: 14,
+  },
+  reviewQCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  reviewQTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  reviewQNumPill: {
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  reviewQNumPillTxt: {
+    color: '#ffffff',
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  reviewQResultBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+  },
+  reviewQResultBadgeCorrect: {
+    backgroundColor: '#ecfdf5',
+  },
+  reviewQResultBadgeWrong: {
+    backgroundColor: '#fef2f2',
+  },
+  reviewQResultBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  reviewQText: {
+    fontSize: 13.5,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 8,
+    lineHeight: 19,
+  },
+  reviewAnsBox: {
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  reviewAnsBoxCorrect: {
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  reviewAnsBoxWrong: {
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  reviewAnsLbl: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748b',
+    marginBottom: 2,
+  },
+  reviewAnsVal: {
+    fontSize: 12.5,
+    fontWeight: '700',
+  },
+  reviewCorrectAnsBox: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  reviewCorrectAnsVal: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#1d4ed8',
+  },
+  reviewScriptureRef: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  reviewModalDoneBtn: {
+    backgroundColor: '#1a2d5a',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reviewModalDoneBtnTxt: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

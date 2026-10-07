@@ -346,7 +346,7 @@ export class DailyBibleQuizBank {
       dailyDate: formattedDate,
       scheduledDate: formattedDate,
       scheduledTime: '05:00', // Auto delivery 5:00 AM - 7:00 AM window
-      timeLimitMinutes: 0,
+      timeLimitMinutes: 5, // 5 minutes time limit
       passPercentage: 70,
       allowMultipleAttempts: true,
       maxAttempts: 1,
@@ -374,7 +374,7 @@ export class DailyBibleQuizBank {
     let scheduledCount = 0;
     let lastDateStr = '';
 
-    const batchSize = 50; // Firestore commit batch limit is 500
+    const batchSize = 50;
     let currentBatch = firestore().batch();
     let opsInBatch = 0;
 
@@ -386,14 +386,12 @@ export class DailyBibleQuizBank {
 
       const entity = this.createDailyQuizEntity(dateStr, 'global');
 
-      // Write to churches/global/bibleQuizzes
       const globalDocRef = firestore()
         .collection('churches')
         .doc('global')
         .collection(this.QUIZZES_COLLECTION)
         .doc(entity.id);
 
-      // Also write to top-level collection for universal redundancy
       const rootDocRef = firestore()
         .collection(this.QUIZZES_COLLECTION)
         .doc(entity.id);
@@ -404,7 +402,11 @@ export class DailyBibleQuizBank {
       scheduledCount++;
 
       if (opsInBatch >= batchSize * 2) {
-        await currentBatch.commit();
+        try {
+          await currentBatch.commit();
+        } catch (err: any) {
+          console.warn('[DailyBibleQuizBank] Batch commit notice:', err?.message || err);
+        }
         currentBatch = firestore().batch();
         opsInBatch = 0;
       }
@@ -415,7 +417,11 @@ export class DailyBibleQuizBank {
     }
 
     if (opsInBatch > 0) {
-      await currentBatch.commit();
+      try {
+        await currentBatch.commit();
+      } catch (err: any) {
+        console.warn('[DailyBibleQuizBank] Final batch commit notice:', err?.message || err);
+      }
     }
 
     return {
@@ -435,28 +441,42 @@ export class DailyBibleQuizBank {
   }> {
     try {
       const todayStr = new Date().toISOString().split('T')[0];
-      const snapshot = await firestore()
-        .collection('churches')
-        .doc('global')
+
+      // Check root collection first
+      let snapshot = await firestore()
         .collection(this.QUIZZES_COLLECTION)
         .where('isDailyQuiz', '==', true)
-        .get();
+        .get()
+        .catch(() => null);
+
+      // Fallback: check church subcollection if empty
+      if (!snapshot || snapshot.empty) {
+        snapshot = await firestore()
+          .collection('churches')
+          .doc('global')
+          .collection(this.QUIZZES_COLLECTION)
+          .where('isDailyQuiz', '==', true)
+          .get()
+          .catch(() => null);
+      }
 
       let futureDays = 0;
       let furthest = todayStr;
       let todayReady = false;
 
-      snapshot.docs.forEach((doc: any) => {
-        const d = doc.data();
-        const date = d.dailyDate || d.scheduledDate;
-        if (date) {
-          if (date === todayStr) todayReady = true;
-          if (date >= todayStr) {
-            futureDays++;
-            if (date > furthest) furthest = date;
+      if (snapshot && !snapshot.empty) {
+        snapshot.docs.forEach((doc: any) => {
+          const d = doc.data();
+          const date = d.dailyDate || d.scheduledDate;
+          if (date) {
+            if (date === todayStr) todayReady = true;
+            if (date >= todayStr) {
+              futureDays++;
+              if (date > furthest) furthest = date;
+            }
           }
-        }
-      });
+        });
+      }
 
       return {
         todayReady,

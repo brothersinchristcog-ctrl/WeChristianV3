@@ -14,6 +14,16 @@ import {
 export class QuizService {
   private static QUIZZES_COLLECTION = 'bibleQuizzes';
   private static ATTEMPTS_COLLECTION = 'quizAttempts';
+  private static quizzesCache: Map<string, { data: BibleQuiz[]; timestamp: number }> = new Map();
+  private static attemptsCache: Map<string, { data: Record<string, QuizAttempt>; timestamp: number }> = new Map();
+
+  /**
+   * Clear in-memory caches when new quizzes are added or attempts are made.
+   */
+  static clearCache(): void {
+    this.quizzesCache.clear();
+    this.attemptsCache.clear();
+  }
 
   /**
    * Helper: Get active church ID from parameter or AsyncStorage.
@@ -31,7 +41,7 @@ export class QuizService {
 
   /**
    * Fetch quizzes for a church (includes church-specific and global quizzes).
-   * Automatically queries church-scoped collections first, with safe fallbacks.
+   * High performance: reads from in-memory cache if available and avoids fetching hundreds of unreleased future daily quizzes.
    */
   static async getQuizzes(
     churchId?: string,
@@ -41,8 +51,24 @@ export class QuizService {
       isDaily?: boolean;
       isAdmin?: boolean;
       scope?: 'church' | 'wechristian' | 'all';
+      forceRefresh?: boolean;
     }
   ): Promise<BibleQuiz[]> {
+    const cacheKey = `${churchId || 'global'}_${JSON.stringify({
+      status: options?.status,
+      category: options?.category,
+      isDaily: options?.isDaily,
+      isAdmin: options?.isAdmin,
+      scope: options?.scope,
+    })}`;
+
+    if (!options?.forceRefresh) {
+      const cached = this.quizzesCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < 60000) {
+        return cached.data;
+      }
+    }
+
     try {
       const targetChurchId = await this.resolveChurchId(churchId);
       const docsMap = new Map<string, BibleQuiz>();
@@ -66,34 +92,140 @@ export class QuizService {
 
       // 2. Fetch from global church subcollection
       try {
-        const globalSnaps = await firestore()
-          .collection('churches')
-          .doc('global')
-          .collection(this.QUIZZES_COLLECTION)
-          .get();
+        if (!options?.isAdmin) {
+          // OPTIMIZATION: For regular church members, do NOT download 700+ future scheduled daily quizzes!
+          // Only fetch released daily quizzes (up to today, limit 60) and non-daily global quizzes
+          const now = new Date();
+          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-        globalSnaps.docs.forEach((doc: any) => {
-          if (!docsMap.has(doc.id)) {
-            docsMap.set(doc.id, { id: doc.id, ...doc.data() });
+          try {
+            const dailySnaps = await firestore()
+              .collection('churches')
+              .doc('global')
+              .collection(this.QUIZZES_COLLECTION)
+              .where('dailyDate', '<=', todayStr)
+              .limit(60)
+              .get();
+
+            dailySnaps.docs.forEach((doc: any) => {
+              if (!docsMap.has(doc.id)) {
+                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
+              }
+            });
+          } catch {
+            // where filter fallback
           }
-        });
+
+          try {
+            const generalSnaps = await firestore()
+              .collection('churches')
+              .doc('global')
+              .collection(this.QUIZZES_COLLECTION)
+              .where('isDailyQuiz', '==', false)
+              .limit(50)
+              .get();
+
+            generalSnaps.docs.forEach((doc: any) => {
+              if (!docsMap.has(doc.id)) {
+                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
+              }
+            });
+          } catch {
+            // where filter fallback
+          }
+
+          // If targeted queries yielded no docs, fallback safely with limit 60
+          if (docsMap.size === 0) {
+            const globalSnaps = await firestore()
+              .collection('churches')
+              .doc('global')
+              .collection(this.QUIZZES_COLLECTION)
+              .limit(60)
+              .get();
+
+            globalSnaps.docs.forEach((doc: any) => {
+              if (!docsMap.has(doc.id)) {
+                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
+              }
+            });
+          }
+        } else {
+          // Admin view: fetch global non-daily platform quizzes and recent daily quizzes (avoid downloading 700+ future quizzes)
+          const now = new Date();
+          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+          try {
+            const generalSnaps = await firestore()
+              .collection('churches')
+              .doc('global')
+              .collection(this.QUIZZES_COLLECTION)
+              .where('isDailyQuiz', '==', false)
+              .limit(100)
+              .get();
+
+            generalSnaps.docs.forEach((doc: any) => {
+              if (!docsMap.has(doc.id)) {
+                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
+              }
+            });
+          } catch {
+            // fallback
+          }
+
+          try {
+            const dailySnaps = await firestore()
+              .collection('churches')
+              .doc('global')
+              .collection(this.QUIZZES_COLLECTION)
+              .where('dailyDate', '<=', todayStr)
+              .limit(60)
+              .get();
+
+            dailySnaps.docs.forEach((doc: any) => {
+              if (!docsMap.has(doc.id)) {
+                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
+              }
+            });
+          } catch {
+            // fallback
+          }
+
+          // Fallback if targeted queries yielded nothing (limit 60 to prevent downloading 700+ docs)
+          if (docsMap.size === 0) {
+            const globalSnaps = await firestore()
+              .collection('churches')
+              .doc('global')
+              .collection(this.QUIZZES_COLLECTION)
+              .limit(60)
+              .get();
+
+            globalSnaps.docs.forEach((doc: any) => {
+              if (!docsMap.has(doc.id)) {
+                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
+              }
+            });
+          }
+        }
       } catch (e: any) {
         // Suppress if not found
       }
 
-      // 3. Fallback: try top-level collection safely (in case deployed with root rules)
-      try {
-        const rootSnaps = await firestore()
-          .collection(this.QUIZZES_COLLECTION)
-          .get();
+      // 3. Fallback: ONLY try top-level collection if docsMap is STILL empty
+      if (docsMap.size === 0) {
+        try {
+          const rootSnaps = await firestore()
+            .collection(this.QUIZZES_COLLECTION)
+            .limit(50)
+            .get();
 
-        rootSnaps.docs.forEach((doc: any) => {
-          if (!docsMap.has(doc.id)) {
-            docsMap.set(doc.id, { id: doc.id, ...doc.data() });
-          }
-        });
-      } catch (e: any) {
-        // Silently catch permission-denied or missing collection at root
+          rootSnaps.docs.forEach((doc: any) => {
+            if (!docsMap.has(doc.id)) {
+              docsMap.set(doc.id, { id: doc.id, ...doc.data() });
+            }
+          });
+        } catch (e: any) {
+          // Silently catch permission-denied or missing collection at root
+        }
       }
 
       let list = Array.from(docsMap.values());
@@ -119,18 +251,19 @@ export class QuizService {
         const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
         list = list.filter(q => {
-          if (q.status === 'published') return true;
-          if (q.status === 'scheduled') {
+          // If it's a daily quiz or a scheduled quiz, enforce release date and 5:00 AM time
+          if (q.isDailyQuiz || q.status === 'scheduled') {
             const schedDate = q.scheduledDate || q.dailyDate;
             if (!schedDate) return false;
-            if (schedDate < todayStr) return true; // Scheduled in past date -> live
+            if (schedDate < todayStr) return true; // Past days are available
             if (schedDate === todayStr) {
               // Auto-deliver: default daily quiz early morning is 05:00
               const schedTime = q.scheduledTime || (q.isDailyQuiz ? '05:00' : '00:00');
               return currentTimeStr >= schedTime;
             }
-            return false;
+            return false; // Future dates are scheduled and locked until that morning
           }
+          if (q.status === 'published') return true;
           return false;
         });
       }
@@ -152,6 +285,7 @@ export class QuizService {
         return timeB - timeA;
       });
 
+      this.quizzesCache.set(cacheKey, { data: list, timestamp: Date.now() });
       return list;
     } catch (err: any) {
       console.warn('[QuizService] Handled getQuizzes failure:', err?.message || err);
@@ -241,7 +375,9 @@ export class QuizService {
         order: q.order,
         questionType: q.questionType,
         question: q.question,
+        questionTelugu: q.questionTelugu,
         options: q.options || [],
+        optionsTelugu: q.optionsTelugu,
         bibleReference: q.bibleReference || '',
         marks: q.marks || 1,
       }));
@@ -374,6 +510,9 @@ export class QuizService {
         });
       }
 
+      // Invalidate memory cache so changes reflect immediately
+      this.quizzesCache.clear();
+
       return quizId;
     } catch (err: any) {
       console.error('[QuizService] Error saving quiz:', err);
@@ -475,6 +614,9 @@ export class QuizService {
         .doc(quizId)
         .delete()
         .catch(() => {});
+
+      // Invalidate memory cache so changes reflect immediately
+      this.quizzesCache.clear();
 
       return true;
     } catch (err: any) {
@@ -614,6 +756,9 @@ export class QuizService {
       .set(attempt)
       .catch(() => {});
 
+    // Invalidate user attempts cache so results update immediately
+    this.attemptsCache.clear();
+
     return attempt;
   }
 
@@ -744,8 +889,17 @@ export class QuizService {
 
   /**
    * Fetch all past attempts for a member keyed by quizId for quick lookups.
+   * Cached in-memory for instant 0ms responses across screen visits.
    */
-  static async getUserAttemptsMap(userId: string, churchId?: string): Promise<Record<string, QuizAttempt>> {
+  static async getUserAttemptsMap(userId: string, churchId?: string, forceRefresh: boolean = false): Promise<Record<string, QuizAttempt>> {
+    const cacheKey = `${userId}_${churchId || 'global'}`;
+    if (!forceRefresh) {
+      const cached = this.attemptsCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < 60000) {
+        return cached.data;
+      }
+    }
+
     try {
       const attempts = await this.getUserAttempts(userId, churchId);
       const map: Record<string, QuizAttempt> = {};
@@ -758,6 +912,7 @@ export class QuizService {
           }
         }
       });
+      this.attemptsCache.set(cacheKey, { data: map, timestamp: Date.now() });
       return map;
     } catch (err: any) {
       console.warn('[QuizService] Notice in getUserAttemptsMap:', err?.message || err);
@@ -834,6 +989,98 @@ export class QuizService {
       return list;
     } catch (err: any) {
       console.warn('[QuizService] Notice in getQuizAttempts:', err?.message || err);
+      return [];
+    }
+  }
+
+  /**
+   * Fetch all quiz attempts for the church members across all quizzes.
+   * Used by Admin Dashboard -> Bible Quiz -> Reports tab.
+   */
+  static async getAllChurchQuizAttempts(churchId?: string, forceRefresh: boolean = false): Promise<QuizAttempt[]> {
+    const cacheKey = `all_attempts_${churchId || 'global'}`;
+    if (!forceRefresh) {
+      const cached = this.attemptsCache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < 60000) {
+        return (cached as any).list || [];
+      }
+    }
+
+    try {
+      const targetChurchId = await this.resolveChurchId(churchId);
+      const attemptsMap = new Map<string, QuizAttempt>();
+
+      // 1. Church-specific attempts subcollection
+      if (targetChurchId && targetChurchId !== 'global') {
+        try {
+          const snaps = await firestore()
+            .collection('churches')
+            .doc(targetChurchId)
+            .collection(this.ATTEMPTS_COLLECTION)
+            .limit(200)
+            .get();
+
+          snaps.docs.forEach((doc: any) => {
+            attemptsMap.set(doc.id, { id: doc.id, ...doc.data() });
+          });
+        } catch {
+          // ignore
+        }
+      }
+
+      // 2. Global attempts subcollection (filtered by churchId if applicable)
+      try {
+        const globalSnaps = await firestore()
+          .collection('churches')
+          .doc('global')
+          .collection(this.ATTEMPTS_COLLECTION)
+          .limit(200)
+          .get();
+
+        globalSnaps.docs.forEach((doc: any) => {
+          const data = doc.data();
+          if (!targetChurchId || targetChurchId === 'global' || data.churchId === targetChurchId) {
+            if (!attemptsMap.has(doc.id)) {
+              attemptsMap.set(doc.id, { id: doc.id, ...data });
+            }
+          }
+        });
+      } catch {
+        // ignore
+      }
+
+      // 3. Fallback to root collection if needed
+      if (attemptsMap.size === 0) {
+        try {
+          const rootSnaps = await firestore()
+            .collection(this.ATTEMPTS_COLLECTION)
+            .limit(200)
+            .get();
+
+          rootSnaps.docs.forEach((doc: any) => {
+            const data = doc.data();
+            if (!targetChurchId || targetChurchId === 'global' || data.churchId === targetChurchId) {
+              if (!attemptsMap.has(doc.id)) {
+                attemptsMap.set(doc.id, { id: doc.id, ...data });
+              }
+            }
+          });
+        } catch {
+          // ignore
+        }
+      }
+
+      const list = Array.from(attemptsMap.values());
+      list.sort((a, b) => {
+        const timeA = a.submittedAt?.toMillis ? a.submittedAt.toMillis() : new Date(a.submittedAt || 0).getTime();
+        const timeB = b.submittedAt?.toMillis ? b.submittedAt.toMillis() : new Date(b.submittedAt || 0).getTime();
+        return timeB - timeA;
+      });
+
+      this.attemptsCache.set(cacheKey, { list, timestamp: Date.now() } as any);
+      return list;
+    } catch (err: any) {
+      console.warn('[QuizService] Notice in getAllChurchQuizAttempts:', err?.message || err);
       return [];
     }
   }

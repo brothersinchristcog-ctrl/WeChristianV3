@@ -23,6 +23,7 @@ import ChurchService from '../services/ChurchService';
 import * as Notifications from 'expo-notifications';
 import VerseOfTheDayScreen from '../screens/VerseOfTheDayScreen';
 import VerseNotificationService from '../services/VerseNotificationService';
+import DailyQuizNotificationService from '../services/DailyQuizNotificationService';
 
 // Auth & Onboarding
 import AuthNavigator from './AuthNavigator';
@@ -688,6 +689,9 @@ function Navigation() {
         
         // Initialize Daily Verses Background Sync & Local Notifications
         VerseNotificationService.initialize();
+
+        // Initialize Daily Bible Quiz 5:00 AM Automated Notifications
+        DailyQuizNotificationService.initialize();
 
         // Proactive self-healing: Ensure user profile document has 'name' and 'phone' in Firestore
         if (!user.isAnonymous) {

@@ -70,7 +70,8 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'AI Sermon': require('../../../assets/admin_cards/ai_sermon.jpg'),
   'AI Thumbnail Creation': require('../../../assets/admin_cards/ai_content.jpg'),
   'AI Content Creator': require('../../../assets/admin_cards/ai_content.jpg'),
-  'Bible Quiz': require('../../../assets/admin_cards/promise.png'),
+  'Bible Quiz': require('../../../assets/admin_cards/bible_quiz.jpg'),
+  'Quiz': require('../../../assets/admin_cards/bible_quiz.jpg'),
 };
 
 const CATEGORIES = [
@@ -240,10 +241,15 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
   const cardGap = isSmallDevice ? 10 : 12;
   const availableGridWidth = windowWidth - (horizontalPadding * 2);
   const halfCardWidth = Math.floor((availableGridWidth - cardGap) / 2);
-  const halfCardHeight = isSmallDevice ? 106 : isMediumDevice ? 116 : 122;
-  const fullCardHeight = isSmallDevice ? 142 : isMediumDevice ? 154 : 164;
-  const cardPadding = isSmallDevice ? 10 : 12;
-  const cardBorderRadius = isSmallDevice ? 18 : 20;
+
+  // Increased Topper Card height for a prominent, spacious executive look
+  const topperCardHeight = isSmallDevice ? 195 : isMediumDevice ? 215 : 230;
+
+  // Slightly reduced dashboard card heights for a compact, balanced dashboard grid
+  const halfCardHeight = isSmallDevice ? 94 : isMediumDevice ? 102 : 108;
+  const fullCardHeight = isSmallDevice ? 122 : isMediumDevice ? 130 : 138;
+  const cardPadding = isSmallDevice ? 8 : 10;
+  const cardBorderRadius = isSmallDevice ? 16 : 18;
 
   return (
     <View style={styles.container}>
@@ -255,9 +261,17 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scroll}
       >
-        {/* Responsive Admin Dashboard Top Hero Card */}
-        <View style={{ zIndex: 10, backgroundColor: '#F4F0EA', paddingHorizontal: horizontalPadding, paddingTop: 10, paddingBottom: 10 }}>
-          <View style={[styles.heroSection, { borderColor: '#000000', borderWidth: 1, paddingHorizontal: 0, paddingVertical: 0, overflow: 'hidden', backgroundColor: '#FDFBF7' }]}>
+        {/* Responsive Admin Dashboard Top Hero / Topper Card */}
+        <View style={{ zIndex: 10, backgroundColor: '#F4F0EA', paddingHorizontal: horizontalPadding, paddingTop: 8, paddingBottom: 8 }}>
+          <View style={[styles.heroSection, { 
+            borderColor: '#000000', 
+            borderWidth: 1, 
+            paddingHorizontal: 0, 
+            paddingVertical: 0, 
+            overflow: 'hidden', 
+            backgroundColor: '#FDFBF7',
+            minHeight: topperCardHeight,
+          }]}>
             <Image 
               source={require('../../../assets/admin_hero_church_2.png')} 
               style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]} 
@@ -266,17 +280,17 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
             
             <View style={{ 
               paddingHorizontal: isSmallDevice ? 16 : 22, 
-              paddingVertical: isSmallDevice ? 24 : 34, 
-              width: isSmallDevice ? '72%' : isMediumDevice ? '68%' : '64%', 
-              minHeight: isSmallDevice ? 155 : 175, 
-              justifyContent: 'center' 
+              paddingTop: isSmallDevice ? 18 : 24,
+              paddingBottom: isSmallDevice ? 18 : 24,
+              width: isSmallDevice ? '74%' : isMediumDevice ? '70%' : '66%', 
+              minHeight: topperCardHeight, 
             }}>
-              {/* Top row: Logo, Info */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: isSmallDevice ? 12 : 16 }}>
+              {/* Top-left row: Church Logo & Church Name */}
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ 
-                  width: isSmallDevice ? 38 : 44, 
-                  height: isSmallDevice ? 38 : 44, 
-                  borderRadius: isSmallDevice ? 19 : 22, 
+                  width: isSmallDevice ? 40 : 46, 
+                  height: isSmallDevice ? 40 : 46, 
+                  borderRadius: isSmallDevice ? 20 : 23, 
                   backgroundColor: '#ffffff', 
                   justifyContent: 'center', 
                   alignItems: 'center', 
@@ -286,7 +300,8 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                   elevation: 2, 
                   shadowColor: '#000', 
                   shadowOpacity: 0.1, 
-                  shadowRadius: 4 
+                  shadowRadius: 4,
+                  flexShrink: 0,
                 }}>
                   <Image 
                     source={activeChurch?.theme?.logoUrl ? { uri: activeChurch.theme.logoUrl } : require('../../../assets/logo.png')} 
@@ -294,55 +309,56 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                     resizeMode="cover" 
                   />
                 </View>
-                <View style={{ marginLeft: 10, flex: 1 }}>
+                <View style={{ marginLeft: 10, flex: 1, justifyContent: 'center' }}>
                   <Text 
                     style={{ 
                       color: '#1a2d5a', 
-                      fontSize: isSmallDevice ? 15 : 17, 
-                      fontWeight: '800' 
+                      fontSize: isSmallDevice ? 14.5 : 16.5, 
+                      fontWeight: '800',
+                      lineHeight: isSmallDevice ? 19 : 21,
                     }}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.85}
+                    numberOfLines={3}
                   >
                     {activeChurch?.name || 'Your Church'}
                   </Text>
                 </View>
               </View>
 
-              {/* Title */}
-              <Text 
-                style={{ 
-                  color: '#b45309', 
-                  fontSize: isSmallDevice ? 21 : 25, 
-                  fontWeight: '600', 
-                  marginBottom: 6, 
-                  fontFamily: FONTS.serif, 
-                  fontStyle: 'italic' 
-                }}
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.85}
-              >
-                Admin Dashboard
-              </Text>
-              
-              {/* Short Separator */}
-              <View style={{ height: 2, width: 40, backgroundColor: '#b45309', marginBottom: 4 }} />
+              {/* Middle group: Title & Separator centered in the space below the top row */}
+              <View style={{ flex: 1, justifyContent: 'center', paddingTop: 6 }}>
+                <Text 
+                  style={{ 
+                    color: '#b45309', 
+                    fontSize: isSmallDevice ? 22 : 26, 
+                    fontWeight: '600', 
+                    marginBottom: 6, 
+                    fontFamily: FONTS.serif, 
+                    fontStyle: 'italic' 
+                  }}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
+                  Admin Dashboard
+                </Text>
+                
+                {/* Short Separator */}
+                <View style={{ height: 2.5, width: 42, backgroundColor: '#b45309' }} />
+              </View>
             </View>
           </View>
         </View>
         
-        <View style={[styles.content, { paddingHorizontal: horizontalPadding, paddingTop: isSmallDevice ? 20 : 26 }]}>
+        <View style={[styles.content, { paddingHorizontal: horizontalPadding, paddingTop: isSmallDevice ? 16 : 22 }]}>
           {CATEGORIES.map((category, catIdx) => {
             const tabsInCategory = categorizedTabs[category.title];
             if (!tabsInCategory || tabsInCategory.length === 0) return null;
 
             return (
-              <View key={catIdx} style={[styles.categoryBlock, { marginBottom: isSmallDevice ? 22 : 28 }]}>
+              <View key={catIdx} style={[styles.categoryBlock, { marginBottom: isSmallDevice ? 18 : 24 }]}>
                 
                 {/* Elegant Category Header */}
-                <View style={[styles.categoryHeader, { marginBottom: isSmallDevice ? 14 : 18 }]}>
+                <View style={[styles.categoryHeader, { marginBottom: isSmallDevice ? 12 : 15 }]}>
                   <View style={[styles.categoryIconBg, { backgroundColor: `${category.color}20`, width: isSmallDevice ? 24 : 26, height: isSmallDevice ? 24 : 26 }]}>
                     <category.icon size={isSmallDevice ? 15 : 17} color={category.color} strokeWidth={2.5} />
                   </View>
@@ -351,7 +367,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                       styles.categoryTitle, 
                       { 
                         color: category.color,
-                        fontSize: isSmallDevice ? 16 : 17.5,
+                        fontSize: isSmallDevice ? 15.5 : 17,
                         flexShrink: 1,
                       }
                     ]}
@@ -412,11 +428,11 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                               <Text 
                                 style={{
                                   position: 'absolute',
-                                  bottom: isSmallDevice ? 12 : 16,
-                                  left: isSmallDevice ? 12 : 16,
-                                  right: isSmallDevice ? 12 : 16,
+                                  bottom: isSmallDevice ? 10 : 14,
+                                  left: isSmallDevice ? 12 : 14,
+                                  right: isSmallDevice ? 12 : 14,
                                   color: '#ffffff',
-                                  fontSize: isSmallDevice ? 19 : isMediumDevice ? 21 : 23,
+                                  fontSize: isSmallDevice ? 18 : isMediumDevice ? 20 : 21,
                                   fontWeight: '800',
                                   fontFamily: FONTS.sans,
                                   textShadowColor: 'rgba(0,0,0,0.85)',
@@ -433,25 +449,25 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                             <View style={[
                               { flexDirection: 'row', alignItems: 'center', width: '100%', justifyContent: 'space-between' },
                               CARD_BACKGROUNDS[tab.name] ? { 
-                                padding: tab.name === 'Members' ? 0 : 16, 
-                                paddingLeft: tab.name === 'Members' ? 12 : 16,
-                                paddingBottom: tab.name === 'Members' ? 8 : 16,
+                                padding: tab.name === 'Members' ? 0 : 14, 
+                                paddingLeft: tab.name === 'Members' ? 12 : 14,
+                                paddingBottom: tab.name === 'Members' ? 8 : 14,
                                 height: '100%', 
                                 alignItems: 'flex-end',
                                 justifyContent: 'space-between'
-                              } : { paddingVertical: 14, paddingHorizontal: 16 }
+                              } : { paddingVertical: 12, paddingHorizontal: 14 }
                             ]}>
                               <View style={[styles.moduleLeftRow, CARD_BACKGROUNDS[tab.name] && { alignItems: 'flex-end' }]}>
                                 {!CARD_BACKGROUNDS[tab.name] && (
-                                  <View style={[styles.moduleIconWrapperFull, { backgroundColor: `${category.color}15`, width: isSmallDevice ? 36 : 40, height: isSmallDevice ? 36 : 40, borderRadius: isSmallDevice ? 18 : 20 }]}>
-                                    <tab.icon size={isSmallDevice ? 19 : 22} color={category.color} strokeWidth={2.5} />
+                                  <View style={[styles.moduleIconWrapperFull, { backgroundColor: `${category.color}15`, width: isSmallDevice ? 34 : 38, height: isSmallDevice ? 34 : 38, borderRadius: isSmallDevice ? 17 : 19 }]}>
+                                    <tab.icon size={isSmallDevice ? 18 : 20} color={category.color} strokeWidth={2.5} />
                                   </View>
                                 )}
                                 <Text 
                                   style={[
                                     styles.moduleTitleFull,
-                                    { fontSize: isSmallDevice ? 14 : 15 },
-                                    CARD_BACKGROUNDS[tab.name] && { color: '#ffffff', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, fontSize: isSmallDevice ? 19 : 23, marginLeft: CARD_BACKGROUNDS[tab.name] ? 0 : undefined }
+                                    { fontSize: isSmallDevice ? 13.5 : 14.5 },
+                                    CARD_BACKGROUNDS[tab.name] && { color: '#ffffff', textShadowColor: 'rgba(0,0,0,0.8)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4, fontSize: isSmallDevice ? 18 : 21, marginLeft: CARD_BACKGROUNDS[tab.name] ? 0 : undefined }
                                   ]}
                                   numberOfLines={1}
                                   adjustsFontSizeToFit
@@ -474,8 +490,8 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                               CARD_BACKGROUNDS[tab.name] && { padding: cardPadding, justifyContent: 'flex-end' }
                             ]}>
                               {!CARD_BACKGROUNDS[tab.name] && (
-                                <View style={[styles.moduleIconWrapper, { backgroundColor: `${category.color}15`, width: isSmallDevice ? 34 : 38, height: isSmallDevice ? 34 : 38, borderRadius: isSmallDevice ? 17 : 19 }]}>
-                                  <tab.icon size={isSmallDevice ? 18 : 20} color={category.color} strokeWidth={2.5} />
+                                <View style={[styles.moduleIconWrapper, { backgroundColor: `${category.color}15`, width: isSmallDevice ? 32 : 36, height: isSmallDevice ? 32 : 36, borderRadius: isSmallDevice ? 16 : 18, marginBottom: 6 }]}>
+                                  <tab.icon size={isSmallDevice ? 17 : 19} color={category.color} strokeWidth={2.5} />
                                 </View>
                               )}
                               <Text 
@@ -483,8 +499,8 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                                   styles.moduleTitle,
                                   {
                                     width: '100%',
-                                    fontSize: isSmallDevice ? 13 : isMediumDevice ? 14 : 14.5,
-                                    lineHeight: isSmallDevice ? 16 : isMediumDevice ? 17.5 : 18,
+                                    fontSize: isSmallDevice ? 12.5 : isMediumDevice ? 13.5 : 14,
+                                    lineHeight: isSmallDevice ? 15.5 : isMediumDevice ? 16.5 : 17,
                                   },
                                   CARD_BACKGROUNDS[tab.name] && { color: '#ffffff', textShadowColor: 'rgba(0,0,0,0.85)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 4 }
                                 ]} 

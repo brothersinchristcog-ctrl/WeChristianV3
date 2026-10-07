@@ -24,6 +24,7 @@ import {
   getQuizStrings,
   localizeBibleReference,
 } from '../../constants/BibleQuizTranslations';
+import { getLocalizedDailyQuestion } from '../../constants/DailyQuizTranslations';
 
 export default function BibleQuizReviewScreen() {
   const insets = useSafeAreaInsets();
@@ -122,7 +123,17 @@ export default function BibleQuizReviewScreen() {
         </View>
 
         {attempt.answers.map((ans, idx) => {
-          const locRef = localizeBibleReference(ans.bibleReference || '', quizLanguage);
+          const localized = getLocalizedDailyQuestion(
+            {
+              question: ans.question,
+              bibleReference: ans.bibleReference,
+              explanation: ans.explanation,
+            },
+            quizLanguage
+          );
+          const locRef = localized.bibleReference || localizeBibleReference(ans.bibleReference || '', quizLanguage);
+          const displayedQuestion = localized.question || ans.question;
+          const displayedExp = localized.explanation || ans.explanation;
 
           return (
             <View
@@ -176,7 +187,7 @@ export default function BibleQuizReviewScreen() {
                   { color: isDark ? '#f8fafc' : '#0F172A' },
                 ]}
               >
-                Q{idx + 1}. {ans.question}
+                Q{idx + 1}. {displayedQuestion}
               </Text>
 
               {/* Member's Answer */}
@@ -282,7 +293,7 @@ export default function BibleQuizReviewScreen() {
               ) : null}
 
               {/* Detailed Explanation */}
-              {ans.explanation ? (
+              {displayedExp ? (
                 <View
                   style={[
                     styles.explanationBox,
@@ -308,7 +319,7 @@ export default function BibleQuizReviewScreen() {
                       { color: isDark ? '#cbd5e1' : '#475569' },
                     ]}
                   >
-                    {ans.explanation}
+                    {displayedExp}
                   </Text>
                 </View>
               ) : null}

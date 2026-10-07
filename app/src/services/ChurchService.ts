@@ -120,10 +120,12 @@ class ChurchService {
   async getAllChurches(): Promise<ChurchDetails[]> {
     try {
       const snapshot = await firestore().collection('churches').orderBy('name').get();
-      const churches = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as ChurchDetails[];
+      const churches = snapshot.docs
+        .filter(doc => doc.id !== 'global' && !doc.data()?.isGlobalPlatform)
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as ChurchDetails[];
 
       // Fetch live member count dynamically for each church
       const churchesWithCounts = await Promise.all(churches.map(async (church) => {

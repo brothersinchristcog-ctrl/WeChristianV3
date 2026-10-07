@@ -30,6 +30,11 @@ import { BibleQuiz, QuizAttempt } from '../../types/Quiz';
 import { QuizService } from '../../services/QuizService';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useQuizLanguage } from '../../context/QuizLanguageContext';
+import {
+  getLocalizedDailyQuizTitle,
+  getLocalizedDailyQuizDescription,
+} from '../../constants/DailyQuizTranslations';
 
 export default function BibleQuizDetailScreen() {
   const insets = useSafeAreaInsets();
@@ -37,6 +42,7 @@ export default function BibleQuizDetailScreen() {
   const route = useRoute<any>();
   const { user } = useAuth();
   const { isDark } = useTheme();
+  const { quizLanguage } = useQuizLanguage();
 
   const passedQuiz: BibleQuiz | undefined = route?.params?.quiz;
   const targetQuizId: string | undefined = route?.params?.quizId || passedQuiz?.id;
@@ -210,13 +216,17 @@ export default function BibleQuizDetailScreen() {
 
           {/* Quiz Title */}
           <Text style={[styles.quizTitle, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
-            {quiz.title}
+            {quiz.isDailyQuiz && quiz.dailyDate
+              ? getLocalizedDailyQuizTitle(quiz.dailyDate, quizLanguage)
+              : quiz.title}
           </Text>
 
           {/* Description */}
           <Text style={[styles.quizDesc, { color: isDark ? '#94a3b8' : '#475569' }]}>
-            {quiz.description ||
-              'Test and deepen your understanding of scripture with this curated Bible quiz. Study with prayer and devotion.'}
+            {quiz.isDailyQuiz && quiz.dailyDate
+              ? getLocalizedDailyQuizDescription(quiz.dailyDate, quizLanguage)
+              : (quiz.description ||
+                'Test and deepen your understanding of scripture with this curated Bible quiz. Study with prayer and devotion.')}
           </Text>
 
           {/* Scripture Focus Pill if configured */}

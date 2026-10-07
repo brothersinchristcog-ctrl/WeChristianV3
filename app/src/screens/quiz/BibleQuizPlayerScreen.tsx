@@ -43,6 +43,10 @@ import {
   getQuizStrings,
   localizeBibleReference,
 } from '../../constants/BibleQuizTranslations';
+import {
+  getLocalizedDailyQuestion,
+  getLocalizedDailyQuizTitle,
+} from '../../constants/DailyQuizTranslations';
 import QuizLanguageModal from './QuizLanguageModal';
 import QuizAlertModal, { QuizAlertModalType } from './QuizAlertModal';
 
@@ -368,22 +372,22 @@ export default function BibleQuizPlayerScreen() {
           }
 
           // Localize review question and explanation based on active language
-          const isTe = quizLanguage === 'te';
-          const displayedQ = isTe && q.questionTelugu ? q.questionTelugu : q.question;
-          const displayedRef = localizeBibleReference(q.bibleReference || '', quizLanguage);
-          const displayedExp = isTe && q.explanationTelugu ? q.explanationTelugu : (q.explanation || '');
+          const localized = getLocalizedDailyQuestion(q, quizLanguage);
+          const displayedQ = localized.question;
+          const displayedRef = localized.bibleReference;
+          const displayedExp = localized.explanation || q.explanation || '';
 
           // Resolve localized text for selected and correct answers
           let localizedUserAns = userAns;
           let localizedCorrectAns = q.correctAnswer;
-          if (isTe && q.optionsTelugu && q.optionsTelugu.length === q.options.length) {
+          if (Array.isArray(q.options) && localized.options.length === q.options.length) {
             const userAnsIdx = q.options.indexOf(userAns as string);
             if (userAnsIdx >= 0) {
-              localizedUserAns = q.optionsTelugu[userAnsIdx];
+              localizedUserAns = localized.options[userAnsIdx];
             }
             const correctAnsIdx = q.options.indexOf(q.correctAnswer as string);
             if (correctAnsIdx >= 0) {
-              localizedCorrectAns = q.optionsTelugu[correctAnsIdx];
+              localizedCorrectAns = localized.options[correctAnsIdx];
             }
           }
 
@@ -498,20 +502,9 @@ export default function BibleQuizPlayerScreen() {
 
   // Render each swipeable Question Card + Options + Compact Navigator
   const renderQuestionItem = ({ item: currentQ, index: qIndex }: { item: PublicQuizQuestion; index: number }) => {
-    const isTe = quizLanguage === 'te';
-    const displayedQuestionText =
-      isTe && currentQ.questionTelugu
-        ? currentQ.questionTelugu
-        : currentQ.question;
-
-    const hasTeluguOptions =
-      currentQ.optionsTelugu &&
-      currentQ.optionsTelugu.length === currentQ.options.length;
-
-    const localizedReference = localizeBibleReference(
-      currentQ.bibleReference || '',
-      quizLanguage
-    );
+    const localized = getLocalizedDailyQuestion(currentQ, quizLanguage);
+    const displayedQuestionText = localized.question;
+    const localizedReference = localized.bibleReference;
 
     const isLastQuestion = qIndex === questions.length - 1;
 
@@ -585,8 +578,8 @@ export default function BibleQuizPlayerScreen() {
                 : answers[currentQ.id] === canonicalOption;
 
               const optionDisplayText =
-                isTe && hasTeluguOptions
-                  ? currentQ.optionsTelugu![optIdx]
+                localized.options && localized.options[optIdx]
+                  ? localized.options[optIdx]
                   : canonicalOption;
 
               return (
@@ -728,7 +721,7 @@ export default function BibleQuizPlayerScreen() {
               >
                 <Check size={14} color="#ffffff" strokeWidth={3} />
                 <Text style={styles.submitActionPillTxt}>
-                  {isTe ? 'పూర్తి చేయండి' : 'Submit'}
+                  {ui.completeQuiz}
                 </Text>
               </TouchableOpacity>
             ) : (
@@ -772,7 +765,9 @@ export default function BibleQuizPlayerScreen() {
 
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {categoryDisplayName} · {difficulty.toUpperCase()} · L{level}
+            {quizMeta?.isDailyQuiz && quizMeta?.dailyDate
+              ? getLocalizedDailyQuizTitle(quizMeta.dailyDate, quizLanguage)
+              : `${categoryDisplayName} · ${difficulty.toUpperCase()} · L${level}`}
           </Text>
         </View>
 

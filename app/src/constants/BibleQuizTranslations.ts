@@ -53,6 +53,18 @@ export interface QuizUIStrings {
   selectLanguage: string;
   scriptureQuote: string;
   categories: Record<string, string>;
+  churchQuizzes: string;
+  availableQuizzes: string;
+  noQuizzesAvailable: string;
+  noQuizzesAvailableSub: string;
+  start: string;
+  retry: string;
+  questionsCount: (count: number) => string;
+  filterAll: string;
+  filterToday: string;
+  filterThisWeek: string;
+  filterThisMonth: string;
+  filterThisYear: string;
 }
 
 export const QUIZ_TRANSLATIONS: Record<SupportedLanguage, QuizUIStrings> = {
@@ -122,6 +134,18 @@ export const QUIZ_TRANSLATIONS: Record<SupportedLanguage, QuizUIStrings> = {
       Life: 'Life',
       Wisdom: 'Wisdom',
     },
+    churchQuizzes: 'Church Quizzes',
+    availableQuizzes: 'Available Quizzes',
+    noQuizzesAvailable: 'No Quizzes Available',
+    noQuizzesAvailableSub: 'There are currently no scheduled church quizzes. Please check back soon!',
+    start: 'Start',
+    retry: 'Retry',
+    questionsCount: (c) => `${c} Questions`,
+    filterAll: 'All',
+    filterToday: 'Today',
+    filterThisWeek: 'This Week',
+    filterThisMonth: 'This Month',
+    filterThisYear: 'This Year',
   },
   te: {
     quizTitle: 'బైబిల్ క్విజ్',
@@ -189,6 +213,18 @@ export const QUIZ_TRANSLATIONS: Record<SupportedLanguage, QuizUIStrings> = {
       Life: 'నిత్యజీవం',
       Wisdom: 'దైవ జ్ఞానం',
     },
+    churchQuizzes: 'సంఘ క్విజ్లు',
+    availableQuizzes: 'అందుబాటులో ఉన్న క్విజ్లు',
+    noQuizzesAvailable: 'క్విజ్లు అందుబాటులో లేవు',
+    noQuizzesAvailableSub: 'ప్రస్తుతం షెడ్యూల్ చేయబడిన సంఘ క్విజ్లు ఏవీ లేవు. దయచేసి త్వరలో మళ్లీ తనిఖీ చేయండి!',
+    start: 'ప్రారంభించు',
+    retry: 'మరలా చేయండి',
+    questionsCount: (c) => `${c} ప్రశ్నలు`,
+    filterAll: 'అన్నీ',
+    filterToday: 'ఈ రోజు',
+    filterThisWeek: 'ఈ వారం',
+    filterThisMonth: 'ఈ నెల',
+    filterThisYear: 'ఈ సంవత్సరం',
   },
   hi: {
     quizTitle: 'बाइबल क्विज़',
@@ -256,6 +292,18 @@ export const QUIZ_TRANSLATIONS: Record<SupportedLanguage, QuizUIStrings> = {
       Life: 'जीवन',
       Wisdom: 'बुद्धि',
     },
+    churchQuizzes: 'चर्च प्रश्नोत्तरी',
+    availableQuizzes: 'उपलब्ध प्रश्नोत्तरी',
+    noQuizzesAvailable: 'कोई प्रश्नोत्तरी उपलब्ध नहीं है',
+    noQuizzesAvailableSub: 'वर्तमान में कोई निर्धारित चर्च प्रश्नोत्तरी नहीं है। कृपया जल्द ही वापस देखें!',
+    start: 'शुरू करें',
+    retry: 'पुनः प्रयास करें',
+    questionsCount: (c) => `${c} प्रश्न`,
+    filterAll: 'सभी',
+    filterToday: 'आज',
+    filterThisWeek: 'इस सप्ताह',
+    filterThisMonth: 'इस महीने',
+    filterThisYear: 'इस वर्ष',
   },
   ta: {
     quizTitle: 'பைபிள் வினாடி வினா',
@@ -323,6 +371,18 @@ export const QUIZ_TRANSLATIONS: Record<SupportedLanguage, QuizUIStrings> = {
       Life: 'ஜீவன்',
       Wisdom: 'ஞானம்',
     },
+    churchQuizzes: 'திருச்சபை வினாடி வினாக்கள்',
+    availableQuizzes: 'கிடைக்கும் வினாடி வினாக்கள்',
+    noQuizzesAvailable: 'வினாடி வினாக்கள் எதுவும் கிடைக்கவில்லை',
+    noQuizzesAvailableSub: 'தற்போது திட்டமிடப்பட்ட வினாடி வினாக்கள் எதுவும் இல்லை. விரைவில் மீண்டும் பார்க்கவும்!',
+    start: 'தொடங்கு',
+    retry: 'மீண்டும் முயற்சி செய்',
+    questionsCount: (c) => `${c} கேள்விகள்`,
+    filterAll: 'அனைத்தும்',
+    filterToday: 'இன்று',
+    filterThisWeek: 'இந்த வாரம்',
+    filterThisMonth: 'இந்த மாதம்',
+    filterThisYear: 'இந்த ஆண்டு',
   },
   kn: {
     quizTitle: 'ಬೈಬಲ್ ರಸಪ್ರಶ್ನೆ',
@@ -390,6 +450,18 @@ export const QUIZ_TRANSLATIONS: Record<SupportedLanguage, QuizUIStrings> = {
       Life: 'ಜೀವನ',
       Wisdom: 'ಜ್ಞಾನ',
     },
+    churchQuizzes: 'ಚರ್ಚ್ ರಸಪ್ರಶ್ನೆಗಳು',
+    availableQuizzes: 'ಲಭ್ಯವಿರುವ ರಸಪ್ರಶ್ನೆಗಳು',
+    noQuizzesAvailable: 'ಯಾವುದೇ ರಸಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ',
+    noQuizzesAvailableSub: 'ಪ್ರಸ್ತುತ ನಿಗದಿತ ಚರ್ಚ್ ರಸಪ್ರಶ್ನೆಗಳು ಲಭ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಶೀಘ್ರದಲ್ಲೇ ಪರಿಶೀಲಿಸಿ!',
+    start: 'ಪ್ರಾರಂಭಿಸಿ',
+    retry: 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ',
+    questionsCount: (c) => `${c} ಪ್ರಶ್ನೆಗಳು`,
+    filterAll: 'ಎಲ್ಲವೂ',
+    filterToday: 'ಇಂದು',
+    filterThisWeek: 'ಈ ವಾರ',
+    filterThisMonth: 'ಈ ತಿಂಗಳು',
+    filterThisYear: 'ಈ ವರ್ಷ',
   },
   ml: {
     quizTitle: 'ബൈബിൾ ക്വിസ്',
@@ -457,6 +529,18 @@ export const QUIZ_TRANSLATIONS: Record<SupportedLanguage, QuizUIStrings> = {
       Life: 'ജീവൻ',
       Wisdom: 'ജ്ഞാനം',
     },
+    churchQuizzes: 'സഭാ ക്വിസുകൾ',
+    availableQuizzes: 'ലഭ്യമായ ക്വിസുകൾ',
+    noQuizzesAvailable: 'ക്വിസുകൾ ഒന്നും ലഭ്യമല്ല',
+    noQuizzesAvailableSub: 'നിലവിൽ സഭാ ക്വിസുകളൊന്നും ഷെഡ്യൂൾ ചെയ്തിട്ടില്ല. ദയവായി ഉടൻ പരിശോധിക്കുക!',
+    start: 'തുടങ്ങുക',
+    retry: 'വീണ്ടും ശ്രമിക്കുക',
+    questionsCount: (c) => `${c} ചോദ്യങ്ങൾ`,
+    filterAll: 'എല്ലാം',
+    filterToday: 'ഇന്ന്',
+    filterThisWeek: 'ഈ ആഴ്ച',
+    filterThisMonth: 'ഈ മാസം',
+    filterThisYear: 'ഈ വർഷം',
   },
   mr: {
     quizTitle: 'बायबल क्विझ',
@@ -524,6 +608,18 @@ export const QUIZ_TRANSLATIONS: Record<SupportedLanguage, QuizUIStrings> = {
       Life: 'जीवन',
       Wisdom: 'ज्ञान',
     },
+    churchQuizzes: 'चर्च प्रश्नमंजुषा',
+    availableQuizzes: 'उपलब्ध क्विझ',
+    noQuizzesAvailable: 'कोणतेही क्विझ उपलब्ध नाही',
+    noQuizzesAvailableSub: 'सध्या कोणतेही शेड्यूल केलेले चर्च क्विझ नाही. कृपया लवकरच पुन्हा तपासा!',
+    start: 'सुरू करा',
+    retry: 'पुन्हा प्रयत्न करा',
+    questionsCount: (c) => `${c} प्रश्न`,
+    filterAll: 'सर्व',
+    filterToday: 'आज',
+    filterThisWeek: 'या आठवड्यात',
+    filterThisMonth: 'या महिन्यात',
+    filterThisYear: 'या वर्षी',
   },
 };
 
