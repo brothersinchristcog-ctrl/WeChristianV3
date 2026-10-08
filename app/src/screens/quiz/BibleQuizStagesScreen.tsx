@@ -81,7 +81,7 @@ export default function BibleQuizStagesScreen() {
 
   const loadProgress = async () => {
     try {
-      setLoading(true);
+      if (!progress) setLoading(true);
       const data = await BibleQuizBank.getMemberCategoryProgress(
         user?.uid || 'guest',
         category,
@@ -268,7 +268,7 @@ export default function BibleQuizStagesScreen() {
         </View>
 
         {/* Loading or Stages Grid */}
-        {loading ? (
+        {loading && !progress ? (
           <View style={styles.centerLoading}>
             <ActivityIndicator size="large" color={diffCfg.color} />
             <Text style={[styles.loadingTxt, { color: isDark ? '#94a3b8' : '#64748b' }]}>

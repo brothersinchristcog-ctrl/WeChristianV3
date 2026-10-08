@@ -179,6 +179,55 @@ export default function AdminOnlineMeetingEditor() {
   };
 
 
+  const handleGenerateZoomLink = async () => {
+    if (!form.title.trim()) {
+      setErrorMsg("Please enter a Meeting Title first.");
+      setShowError(true);
+      return;
+    }
+
+    setGeneratingMeet(true);
+    try {
+      const createZoomFn = functions().httpsCallable('createZoomMeeting');
+      const res = await createZoomFn({
+        title: form.title,
+        description: form.description || form.bibleBook || '',
+        startTime: form.startTime.toISOString(),
+        endTime: form.endTime.toISOString(),
+        churchId: activeChurch?.id,
+      });
+
+      const data = res.data as any;
+      if (data && data.meetingUrl) {
+        setForm(prev => ({ ...prev, meetingLink: data.meetingUrl }));
+        const passText = data.password ? ` • Passcode: ${data.password}` : '';
+        setSuccessMsg({ 
+          title: 'Zoom Link Generated!', 
+          sub: `Meeting ID: ${data.meetingId || ''}${passText}` 
+        });
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 3000);
+      } else {
+        throw new Error('No Zoom meeting link returned from backend.');
+      }
+    } catch (err: any) {
+      console.error('[handleGenerateZoomLink] Error:', err);
+      const msg = err?.message || 'Failed to generate Zoom meeting. Please check backend credentials.';
+      setErrorMsg(msg);
+      setShowError(true);
+    } finally {
+      setGeneratingMeet(false);
+    }
+  };
+
+  const handleGenerateLink = () => {
+    if (form.provider === 'zoom') {
+      handleGenerateZoomLink();
+    } else {
+      handleGenerateMeetLink();
+    }
+  };
+
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [timePickerTarget, setTimePickerTarget] = useState<'start' | 'end'>('start');
@@ -195,8 +244,6 @@ export default function AdminOnlineMeetingEditor() {
     endTime: new Date(new Date().getTime() + 60 * 60 * 1000)
   });
 
-
-
   useEffect(() => {
     if (editingData) {
       setForm(prev => ({
@@ -205,7 +252,7 @@ export default function AdminOnlineMeetingEditor() {
         bibleBook: editingData.bibleBook || '',
         teacher: editingData.teacher || '',
         description: editingData.description || '',
-        provider: editingData.provider || 'google_meet',
+        provider: editingData.provider || editingData.meetingType || 'google_meet',
         meetingLink: editingData.meetingLink || '',
         date: editingData.startTime ? new Date(editingData.startTime.seconds * 1000) : new Date(),
         startTime: editingData.startTime ? new Date(editingData.startTime.seconds * 1000) : new Date(),
@@ -276,7 +323,8 @@ export default function AdminOnlineMeetingEditor() {
         bibleBook: form.bibleBook,
         teacher: form.teacher,
         description: form.description,
-        provider: 'custom',
+        provider: form.provider || 'google_meet',
+        meetingType: form.provider || 'google_meet',
         meetingLink: form.meetingLink,
         startTime: firestore.Timestamp.fromDate(form.startTime),
         endTime: firestore.Timestamp.fromDate(form.endTime),
@@ -305,7 +353,10 @@ export default function AdminOnlineMeetingEditor() {
         }
       }
       
-      setSuccessMsg({ title: 'Meeting Scheduled!', sub: 'The meeting details have been saved.' });
+      setSuccessMsg({ 
+        title: editingData ? 'Meeting Updated!' : 'Meeting Scheduled!', 
+        sub: form.provider === 'zoom' ? 'Zoom meeting is saved.' : 'Google Meet is saved.' 
+      });
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
@@ -345,6 +396,50 @@ export default function AdminOnlineMeetingEditor() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         
+        {/* Meeting Platform Selector */}
+        <View style={styles.card}>
+          <Text style={styles.inputLabel}>Meeting Platform</Text>
+          <View style={styles.platformToggleRow}>
+            <TouchableOpacity
+              style={[
+                styles.platformToggleBtn,
+                form.provider === 'google_meet' && styles.platformToggleBtnActiveMeet,
+              ]}
+              onPress={() => setForm({ ...form, provider: 'google_meet' })}
+              activeOpacity={0.8}
+            >
+              <Video size={16} color={form.provider === 'google_meet' ? '#ffffff' : '#059669'} />
+              <Text
+                style={[
+                  styles.platformToggleTxt,
+                  form.provider === 'google_meet' && styles.platformToggleTxtActive,
+                ]}
+              >
+                Google Meet
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.platformToggleBtn,
+                form.provider === 'zoom' && styles.platformToggleBtnActiveZoom,
+              ]}
+              onPress={() => setForm({ ...form, provider: 'zoom' })}
+              activeOpacity={0.8}
+            >
+              <Video size={16} color={form.provider === 'zoom' ? '#ffffff' : '#2563EB'} />
+              <Text
+                style={[
+                  styles.platformToggleTxt,
+                  form.provider === 'zoom' && styles.platformToggleTxtActive,
+                ]}
+              >
+                Zoom Meeting
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
         {/* Meeting Details */}
         <View style={styles.card}>
           <Text style={styles.inputLabel}>Topic / Theme <Text style={{ color: '#DC2626' }}>*</Text></Text>
@@ -383,12 +478,19 @@ export default function AdminOnlineMeetingEditor() {
             />
           </View>
 
-          <Text style={styles.inputLabel}>Meeting Link <Text style={{ color: '#DC2626' }}>*</Text></Text>
+          <Text style={styles.inputLabel}>
+            {form.provider === 'zoom' ? 'Zoom Meeting Link ' : 'Google Meet Link '}
+            <Text style={{ color: '#DC2626' }}>*</Text>
+          </Text>
           <View style={[styles.inputWrapper, { paddingRight: 8 }]}>
             <LinkIcon size={18} color="#9CA3AF" style={styles.inputIcon} />
             <TextInput
               style={[styles.input, { flex: 1 }]}
-              placeholder="Paste link or generate one ->"
+              placeholder={
+                form.provider === 'zoom'
+                  ? 'Paste Zoom link or generate one ->'
+                  : 'Paste Meet link or generate one ->'
+              }
               placeholderTextColor="#9CA3AF"
               value={form.meetingLink}
               onChangeText={t => setForm({ ...form, meetingLink: t })}
@@ -396,14 +498,22 @@ export default function AdminOnlineMeetingEditor() {
               keyboardType="url"
             />
             <TouchableOpacity 
-              style={{ backgroundColor: '#2563EB', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 6, opacity: generatingMeet ? 0.7 : 1 }}
-              onPress={handleGenerateMeetLink}
+              style={{
+                backgroundColor: form.provider === 'zoom' ? '#2D8CFF' : '#2563EB',
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                borderRadius: 6,
+                opacity: generatingMeet ? 0.7 : 1,
+              }}
+              onPress={handleGenerateLink}
               disabled={generatingMeet}
             >
               {generatingMeet ? (
                 <ActivityIndicator size="small" color="#fff" />
               ) : (
-                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>Generate Meet</Text>
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+                  {form.provider === 'zoom' ? 'Generate Zoom' : 'Generate Meet'}
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -573,4 +683,59 @@ const styles = StyleSheet.create({
   toastIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center' },
   toastTitle: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
   toastSub: { fontSize: 12, color: '#6B7280', marginTop: 2, fontWeight: '500' },
+
+  // Platform Selector Tabs
+  platformTabsCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.06)',
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
+  },
+  platformSectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#4B5563',
+    marginBottom: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  platformToggleRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  platformToggleBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+  },
+  platformToggleBtnActiveMeet: {
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+  },
+  platformToggleBtnActiveZoom: {
+    backgroundColor: '#2563EB',
+    borderColor: '#2563EB',
+  },
+  platformToggleTxt: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#374151',
+  },
+  platformToggleTxtActive: {
+    color: '#FFFFFF',
+  },
 });

@@ -135,6 +135,21 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
           {/* Decorative circle */}
           <View style={[styles.gradCircle, { backgroundColor: gradEnd }]} />
 
+          {/* Platform Badge */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6 }}>
+            {meeting.meetingType === 'zoom' || meeting.provider === 'zoom' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(45, 140, 255, 0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#2D8CFF' }}>
+                <Video size={13} color="#ffffff" style={{ marginRight: 5 }} />
+                <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>Zoom Meeting</Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#10B981' }}>
+                <Video size={13} color="#ffffff" style={{ marginRight: 5 }} />
+                <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>Google Meet</Text>
+              </View>
+            )}
+          </View>
+
           {/* Title */}
           <Text style={styles.gradTitle} numberOfLines={3}>
             {meeting.title || t('meetings.onlineMeeting')}
@@ -212,7 +227,9 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
                 >
                   <Video size={16} color={gradStart} />
                   <Text style={[styles.gradJoinText, { color: gradStart }]}>
-                    {isLive ? t('meetings.joinLive') : t('meetings.join')}
+                    {isLive
+                      ? (meeting.meetingType === 'zoom' || meeting.provider === 'zoom' ? 'Join Live on Zoom' : t('meetings.joinLive'))
+                      : (meeting.meetingType === 'zoom' || meeting.provider === 'zoom' ? 'Join Zoom Meeting' : t('meetings.join'))}
                   </Text>
                 </TouchableOpacity>
               )}

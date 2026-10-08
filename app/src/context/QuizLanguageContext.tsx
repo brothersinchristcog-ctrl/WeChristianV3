@@ -23,6 +23,13 @@ export const QuizLanguageProvider: React.FC<{ children: React.ReactNode }> = ({ 
     loadSavedQuizLanguage();
   }, []);
 
+  // When member changes language in Member View, immediately sync quiz language to match
+  useEffect(() => {
+    if (memberViewLanguage && LANGUAGES.some((l) => l.code === memberViewLanguage)) {
+      setQuizLanguageState(memberViewLanguage as SupportedLanguage);
+    }
+  }, [memberViewLanguage]);
+
   const loadSavedQuizLanguage = async () => {
     try {
       const saved = await AsyncStorage.getItem(QUIZ_LANG_STORAGE_KEY);
@@ -40,13 +47,11 @@ export const QuizLanguageProvider: React.FC<{ children: React.ReactNode }> = ({ 
   };
 
   const setQuizLanguage = async (newLang: SupportedLanguage) => {
-    try {
-      // Local to Bible Quiz ONLY - Does NOT modify global Member View language
-      setQuizLanguageState(newLang);
-      await AsyncStorage.setItem(QUIZ_LANG_STORAGE_KEY, newLang);
-    } catch (e) {
+    // Local to Bible Quiz ONLY - Immediately update state (0ms) and persist in background
+    setQuizLanguageState(newLang);
+    AsyncStorage.setItem(QUIZ_LANG_STORAGE_KEY, newLang).catch((e) => {
       console.warn('[QuizLanguageContext] Failed to persist quiz language:', e);
-    }
+    });
   };
 
   const quizLanguageOption =

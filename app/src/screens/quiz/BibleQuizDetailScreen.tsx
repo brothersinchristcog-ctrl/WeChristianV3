@@ -23,61 +23,121 @@ import {
   Sparkles,
   ChevronRight,
   Check,
+  Globe,
+  Lock,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { BibleQuiz, QuizAttempt } from '../../types/Quiz';
 import { QuizService } from '../../services/QuizService';
 import { useAuth } from '../../context/AuthContext';
+import { useChurch } from '../../context/ChurchContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useQuizLanguage } from '../../context/QuizLanguageContext';
+import QuizLanguageModal from './QuizLanguageModal';
 import {
   getLocalizedDailyQuizTitle,
   getLocalizedDailyQuizDescription,
 } from '../../constants/DailyQuizTranslations';
+import {
+  isQuizScheduledLocked,
+  formatQuizTime,
+  getQuizUnlockStatusText,
+} from '../../utils/QuizScheduleUtils';
+import QuizAlertModal from './QuizAlertModal';
 
 export default function BibleQuizDetailScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
   const { user } = useAuth();
+  const { churchId: contextChurchId, activeChurch } = useChurch();
   const { isDark } = useTheme();
-  const { quizLanguage } = useQuizLanguage();
+  const { quizLanguage, quizLanguageOption } = useQuizLanguage();
+  const [langModalVisible, setLangModalVisible] = useState<boolean>(false);
+  const [lockedAlertVisible, setLockedAlertVisible] = useState<boolean>(false);
 
   const passedQuiz: BibleQuiz | undefined = route?.params?.quiz;
   const targetQuizId: string | undefined = route?.params?.quizId || passedQuiz?.id;
-  const targetChurchId: string | undefined = route?.params?.churchId || passedQuiz?.churchId;
-  const [quiz, setQuiz] = useState<BibleQuiz | null>(passedQuiz || null);
+  const targetChurchId: string | undefined =
+    route?.params?.churchId ||
+    passedQuiz?.churchId ||
+    activeChurch?.id ||
+    contextChurchId ||
+    undefined;
+  const [loadedQuiz, setLoadedQuiz] = useState<BibleQuiz | null>(passedQuiz || null);
+  const quiz = loadedQuiz || passedQuiz;
   const [priorAttempt, setPriorAttempt] = useState<QuizAttempt | null>(null);
   const [loading, setLoading] = useState<boolean>(!passedQuiz && Boolean(targetQuizId));
   const [notFound, setNotFound] = useState<boolean>(false);
+  const [now, setNow] = useState<Date>(() => new Date());
+
+  // Live timer so the screen dynamically unlocks the moment the scheduled time arrives (e.g. 2:35 PM)
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(new Date());
+    }, 3000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Strict lock check: Locked until scheduledDate & scheduledTime arrives
+  const isScheduledLocked = isQuizScheduledLocked(quiz, now);
+
+  useEffect(() => {
+    if (passedQuiz) {
+      setLoadedQuiz(passedQuiz);
+      setNotFound(false);
+      setLoading(false);
+    } else if (targetQuizId) {
+      setNotFound(false);
+      if (!loadedQuiz && !quiz) {
+        setLoading(true);
+      }
+      loadQuizDetail();
+    }
+  }, [targetQuizId, targetChurchId, quizLanguage, passedQuiz]);
 
   useFocusEffect(
     useCallback(() => {
-      if (targetQuizId) {
+      if (passedQuiz) {
+        setLoadedQuiz(passedQuiz);
+        setNotFound(false);
+        setLoading(false);
+      } else if (targetQuizId) {
         loadQuizDetail();
       }
-    }, [targetQuizId, user?.uid])
+    }, [targetQuizId, targetChurchId, user?.uid, quizLanguage, passedQuiz])
   );
 
   const loadQuizDetail = async () => {
     try {
-      if (!targetQuizId) return;
-      if (!quiz) setLoading(true);
+      if (!targetQuizId) {
+        if (!quiz && !passedQuiz) setNotFound(true);
+        setLoading(false);
+        return;
+      }
       setNotFound(false);
-      const q = await QuizService.getQuizById(targetQuizId, targetChurchId);
+      if (!quiz && !passedQuiz) setLoading(true);
+
+      let q = await QuizService.getQuizById(targetQuizId, targetChurchId, quizLanguage);
+      // Fallback: If not found with targetChurchId, attempt searching without church restriction
+      if (!q) {
+        q = await QuizService.getQuizById(targetQuizId, undefined, quizLanguage);
+      }
+
       if (q) {
-        setQuiz(q);
+        setLoadedQuiz(q);
+        setNotFound(false);
         if (user?.uid) {
           const attempt = await QuizService.getUserQuizAttempt(user.uid, targetQuizId, targetChurchId || q?.churchId);
           setPriorAttempt(attempt);
         }
-      } else if (!quiz) {
+      } else if (!quiz && !passedQuiz) {
         setNotFound(true);
       }
     } catch (e) {
       console.error('[BibleQuizDetailScreen] Error loading quiz:', e);
-      if (!quiz) setNotFound(true);
+      if (!quiz && !passedQuiz) setNotFound(true);
     } finally {
       setLoading(false);
     }
@@ -106,19 +166,32 @@ export default function BibleQuizDetailScreen() {
         <Text style={[styles.errorSubtitle, { color: isDark ? '#94a3b8' : '#64748B' }]}>
           This quiz could not be loaded or may have been removed.
         </Text>
-        <TouchableOpacity
-          style={styles.errorBtn}
-          onPress={() => {
-            if (navigation.canGoBack()) {
-              navigation.goBack();
-            } else {
-              navigation.navigate('ChurchQuizzes');
-            }
-          }}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.errorBtnTxt}>Back to Quizzes</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
+          <TouchableOpacity
+            style={[styles.errorBtn, { backgroundColor: '#2563eb', paddingHorizontal: 20 }]}
+            onPress={() => {
+              setNotFound(false);
+              setLoading(true);
+              loadQuizDetail();
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.errorBtnTxt}>Retry</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.errorBtn}
+            onPress={() => {
+              if (navigation.canGoBack()) {
+                navigation.goBack();
+              } else {
+                navigation.navigate('ChurchQuizzes');
+              }
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.errorBtnTxt}>Back to Quizzes</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -135,8 +208,13 @@ export default function BibleQuizDetailScreen() {
   const isTimed = quiz.timeLimitMinutes && quiz.timeLimitMinutes > 0;
 
   const handleStartQuiz = () => {
+    if (isScheduledLocked) {
+      setLockedAlertVisible(true);
+      return;
+    }
     navigation.navigate('BibleQuizPlayer', {
       quizId: quiz.id,
+      churchId: quiz.churchId || targetChurchId,
       category: quiz.category,
       difficulty: quiz.difficulty,
       categoryTitle: quiz.title,
@@ -171,7 +249,14 @@ export default function BibleQuizDetailScreen() {
         <Text style={styles.headerTitle} numberOfLines={1}>
           Quiz Details
         </Text>
-        <View style={{ width: 36 }} />
+        <TouchableOpacity
+          style={styles.langPill}
+          onPress={() => setLangModalVisible(true)}
+          activeOpacity={0.8}
+        >
+          <Globe size={13} color="#ffffff" />
+          <Text style={styles.langPillTxt}>{quizLanguageOption.nativeName}</Text>
+        </TouchableOpacity>
       </LinearGradient>
 
       <ScrollView
@@ -212,20 +297,27 @@ export default function BibleQuizDetailScreen() {
                 <Text style={styles.completedHeroBadgeTxt}>Completed</Text>
               </View>
             )}
+            {isScheduledLocked && (
+              <View style={[styles.langBadge, { backgroundColor: '#DBEAFE' }]}>
+                <Clock size={11} color="#2563eb" />
+                <Text style={[styles.langBadgeTxt, { color: '#2563eb' }]}>SCHEDULED</Text>
+              </View>
+            )}
           </View>
 
           {/* Quiz Title */}
           <Text style={[styles.quizTitle, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
             {quiz.isDailyQuiz && quiz.dailyDate
               ? getLocalizedDailyQuizTitle(quiz.dailyDate, quizLanguage)
-              : quiz.title}
+              : (quiz.translations?.[quizLanguage]?.title || quiz.title)}
           </Text>
 
           {/* Description */}
           <Text style={[styles.quizDesc, { color: isDark ? '#94a3b8' : '#475569' }]}>
             {quiz.isDailyQuiz && quiz.dailyDate
               ? getLocalizedDailyQuizDescription(quiz.dailyDate, quizLanguage)
-              : (quiz.description ||
+              : (quiz.translations?.[quizLanguage]?.description ||
+                quiz.description ||
                 'Test and deepen your understanding of scripture with this curated Bible quiz. Study with prayer and devotion.')}
           </Text>
 
@@ -238,6 +330,18 @@ export default function BibleQuizDetailScreen() {
                 {quiz.chapterStart
                   ? `Chapters ${quiz.chapterStart}${quiz.chapterEnd ? `–${quiz.chapterEnd}` : ''}`
                   : ''}
+              </Text>
+            </View>
+          )}
+
+          {/* Scheduled Availability Alert Box */}
+          {isScheduledLocked && (
+            <View style={styles.scheduledBannerBox}>
+              <Clock size={16} color="#2563eb" />
+              <Text style={styles.scheduledBannerTxt}>
+                Scheduled Quiz: Automatically unlocks for congregation members on{' '}
+                <Text style={{ fontWeight: '700' }}>{quiz.scheduledDate}</Text>
+                {quiz.scheduledTime ? ` at ${formatQuizTime(quiz.scheduledTime, quiz.scheduledDate, now)}` : ''}.
               </Text>
             </View>
           )}
@@ -480,6 +584,24 @@ export default function BibleQuizDetailScreen() {
               </LinearGradient>
             </TouchableOpacity>
           </View>
+        ) : isScheduledLocked ? (
+          <TouchableOpacity
+            style={styles.startSingleBtn}
+            onPress={() => setLockedAlertVisible(true)}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={['#475569', '#334155']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.primaryGradientInner}
+            >
+              <Lock size={16} color="#ffffff" />
+              <Text style={styles.primaryActionTxt}>
+                {getQuizUnlockStatusText(quiz?.scheduledDate, quiz?.scheduledTime, now)}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
         ) : (
           <TouchableOpacity
             style={styles.startSingleBtn}
@@ -498,6 +620,24 @@ export default function BibleQuizDetailScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      <QuizLanguageModal
+        visible={langModalVisible}
+        onClose={() => setLangModalVisible(false)}
+      />
+
+      <QuizAlertModal
+        visible={lockedAlertVisible}
+        type="locked"
+        badgeText="QUIZ SCHEDULED"
+        title="Quiz Scheduled"
+        message={`This quiz will start at ${formatQuizTime(quiz?.scheduledTime, quiz?.scheduledDate, now)} on ${quiz?.scheduledDate}.\n\nIt is currently locked and will become accessible to play from ${formatQuizTime(quiz?.scheduledTime, quiz?.scheduledDate, now)} onwards.`}
+        highlightText={`Unlocks on ${quiz?.scheduledDate} at ${formatQuizTime(quiz?.scheduledTime, quiz?.scheduledDate, now)}`}
+        highlightIcon="lock"
+        primaryBtnText="Understood"
+        onPrimary={() => setLockedAlertVisible(false)}
+        onClose={() => setLockedAlertVisible(false)}
+      />
     </View>
   );
 }
@@ -871,5 +1011,42 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '700',
+  },
+  langPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+  },
+  langPillTxt: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  scheduledBannerBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    padding: 12,
+    marginTop: 12,
+  },
+  scheduledBannerTxt: {
+    flex: 1,
+    fontSize: 12.5,
+    color: '#1E40AF',
+    lineHeight: 17,
+  },
+  scheduledLockedBar: {
+    borderRadius: 14,
+    overflow: 'hidden',
   },
 });

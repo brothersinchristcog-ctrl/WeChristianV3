@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { Animated, View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform, Modal, Linking } from 'react-native';
+import { Animated, View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform, Modal, Linking, BackHandler, ToastAndroid, Image } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 import { Bell } from 'lucide-react-native';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -34,6 +34,77 @@ export default function App() {
   const [notification, setNotification] = useState(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const slideAnim = useRef(new Animated.Value(-150)).current;
+
+  // "Please click BACK again to exit" double-tap handler
+  const [showExitToast, setShowExitToast] = useState(false);
+  const lastBackPressRef = useRef(0);
+  const exitToastAnim = useRef(new Animated.Value(0)).current;
+  const exitToastTimerRef = useRef(null);
+
+  const triggerExitToast = () => {
+    setShowExitToast(true);
+    Animated.spring(exitToastAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 8,
+      tension: 60,
+    }).start();
+
+    if (exitToastTimerRef.current) clearTimeout(exitToastTimerRef.current);
+    exitToastTimerRef.current = setTimeout(() => {
+      Animated.timing(exitToastAnim, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }).start(() => setShowExitToast(false));
+    }, 2000);
+  };
+
+  useEffect(() => {
+    const onBackPress = () => {
+      // 1. If screen stack can go back, let standard navigation happen
+      if (navigationRef.isReady() && navigationRef.canGoBack()) {
+        return false;
+      }
+
+      // 2. If inside member tabs but not on Home, navigate to Home first
+      if (navigationRef.isReady()) {
+        const currentRoute = navigationRef.getCurrentRoute()?.name;
+        if (currentRoute && currentRoute !== 'Home' && ['Promise', 'Sermons', 'Prayer', 'Profile'].includes(currentRoute)) {
+          navigationRef.navigate('Home');
+          return true;
+        }
+      }
+
+      // 3. User is on main root screen: Check double-press within 2 seconds
+      const now = Date.now();
+      if (now - lastBackPressRef.current < 2000) {
+        BackHandler.exitApp();
+        return true;
+      }
+
+      // First press on main screen: Show message and wait for second press
+      lastBackPressRef.current = now;
+
+      if (Platform.OS === 'android') {
+        try {
+          ToastAndroid.show('Please click BACK again to exit', ToastAndroid.SHORT);
+        } catch (_) {
+          triggerExitToast();
+        }
+      } else {
+        triggerExitToast();
+      }
+
+      return true; // Intercept exit on first press
+    };
+
+    const sub = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => {
+      sub.remove();
+      if (exitToastTimerRef.current) clearTimeout(exitToastTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     loadTeluguFonts().catch(e => console.warn('Telugu fonts startup preload error:', e));
@@ -177,6 +248,38 @@ export default function App() {
           </View>
         </View>
       </Modal>
+
+      {/* "Please click BACK again to exit" Floating Toast Pill */}
+      {showExitToast && (
+        <Animated.View
+          style={[
+            styles.exitToastContainer,
+            {
+              opacity: exitToastAnim,
+              transform: [
+                {
+                  translateY: exitToastAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [24, 0],
+                  }),
+                },
+              ],
+            },
+          ]}
+          pointerEvents="none"
+        >
+          <View style={styles.exitToastPill}>
+            <View style={styles.exitToastIconWrap}>
+              <Image
+                source={require('./assets/logo.png')}
+                style={styles.exitToastLogo}
+                resizeMode="contain"
+              />
+            </View>
+            <Text style={styles.exitToastTxt}>Please click BACK again to exit</Text>
+          </View>
+        </Animated.View>
+      )}
     </NavigationContainer>
   );
 }
@@ -298,5 +401,49 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 15,
     fontWeight: '600',
-  }
+  },
+  exitToastContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 70 : 50,
+    left: 20,
+    right: 20,
+    alignItems: 'center',
+    zIndex: 999999,
+  },
+  exitToastPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(30, 35, 42, 0.96)',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.14)',
+  },
+  exitToastIconWrap: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    overflow: 'hidden',
+  },
+  exitToastLogo: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+  },
+  exitToastTxt: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+  },
 });

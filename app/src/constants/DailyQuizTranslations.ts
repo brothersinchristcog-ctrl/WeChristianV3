@@ -1095,8 +1095,28 @@ export function getLocalizedDailyQuestion(
     };
   }
 
-  // 1. Check in DAILY_QUIZ_TRANSLATIONS dictionary by bibleReference
-  const refMatch = DAILY_QUIZ_TRANSLATIONS[ref];
+  // 1. Direct question translations dictionary (for uploaded documents & localized admin quizzes)
+  if (q.translations && q.translations[lang]) {
+    const item = q.translations[lang];
+    let localizedCorrect = q.correctAnswer;
+    if (q.correctAnswer && Array.isArray(q.options)) {
+      const idx = q.options.indexOf(q.correctAnswer);
+      if (idx >= 0 && item.options && item.options[idx]) {
+        localizedCorrect = item.options[idx];
+      }
+    }
+
+    return {
+      question: item.question || q.question,
+      options: Array.isArray(item.options) && item.options.length === q.options?.length ? [...item.options] : [...(q.options || [])],
+      explanation: item.explanation || q.explanation,
+      bibleReference: localizedRef,
+      correctAnswer: localizedCorrect,
+    };
+  }
+
+  // 2. Check in DAILY_QUIZ_TRANSLATIONS dictionary by bibleReference (Daily Quizzes only)
+  const refMatch = q.isDailyQuiz ? DAILY_QUIZ_TRANSLATIONS[ref] : undefined;
   if (refMatch && refMatch[lang]) {
     const item = refMatch[lang]!;
     // Find index of canonical correct answer if present

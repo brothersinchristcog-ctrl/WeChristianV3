@@ -251,6 +251,18 @@ export default function UpdatesScreen({ navigation, route }: any) {
               icon = AlertTriangle;
               color = '#ef4444';
               resolvedType = 'emergency';
+            } else if (
+              data.type === 'quiz' ||
+              data.type === 'quiz_scheduled' ||
+              data.type === 'bible_quiz' ||
+              data.screen === 'BibleQuizDetail' ||
+              data.quizId ||
+              data.title?.toLowerCase().includes('quiz') ||
+              data.title?.includes('క్విజ్')
+            ) {
+              icon = BookOpen;
+              color = '#1a2d5a';
+              resolvedType = 'quiz';
             } else if (data.type === 'event' || data.title?.includes('📅')) {
               icon = Calendar;
               color = '#10b981';
@@ -279,10 +291,6 @@ export default function UpdatesScreen({ navigation, route }: any) {
               icon = Mic;
               color = '#6366f1';
               resolvedType = 'sermon';
-            } else if (data.type === 'quiz' || data.type === 'bible_quiz' || data.screen === 'BibleQuizDetail' || data.title?.includes('Quiz') || data.title?.includes('క్విజ్')) {
-              icon = BookOpen;
-              color = '#1a2d5a';
-              resolvedType = 'quiz';
             }
             let dateStr = data.date || new Date().toISOString().split('T')[0];
             
@@ -482,13 +490,19 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     navigation.navigate('Tabs', { screen: 'Promise' });
                   } else if (update.type === 'sermon') {
                     navigation.navigate('Sermons');
+                  } else if (
+                    update.type === 'quiz' ||
+                    update.type === 'quiz_scheduled' ||
+                    update.type === 'bible_quiz' ||
+                    update.screen === 'BibleQuizDetail' ||
+                    update.quizId
+                  ) {
+                    const qId = update.quizId || update.relatedId || update.id;
+                    navigation.navigate('BibleQuizDetail', { quizId: qId, churchId: update.churchId });
                   } else if (update.type === 'event') {
                     navigation.navigate('Events');
                   } else if (update.type === 'attendance') {
                     navigation.navigate('AttendanceScreen');
-                  } else if (update.type === 'quiz' || update.type === 'bible_quiz') {
-                    const qId = update.relatedId || update.id;
-                    navigation.navigate('BibleQuizDetail', { quizId: qId, churchId: update.churchId });
                   } else {
                     setSelectedUpdate(update);
                   }

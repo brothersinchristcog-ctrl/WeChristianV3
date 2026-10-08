@@ -22,6 +22,11 @@ export {
   generateContentImage
 } from './ai.js';
 
+export {
+  createZoomMeeting,
+  createZoomMeetingHttp
+} from './meetings.js';
+
 // Initialize Firebase Admin once at top level
 initializeApp();
 
@@ -1016,7 +1021,8 @@ export const processBroadcastPushNotifications = functionsCompat
         click_action: 'FLUTTER_NOTIFICATION_CLICK',
       };
 
-      // 1. Also broadcast to church topic church_{churchId} if churchId is present and not phone-targeted
+      // 1. Broadcast to church topic church_{churchId} if churchId is present and not phone-targeted
+      let topicDelivered = false;
       if (churchId && !data.targetPhone) {
         try {
           await getMsg().send({
@@ -1046,15 +1052,16 @@ export const processBroadcastPushNotifications = functionsCompat
               },
             },
           });
+          topicDelivered = true;
           console.log(`✅ Broadcast push delivered to topic church_${churchId}`);
         } catch (topicErr) {
           console.warn(`⚠️ Topic broadcast push warning:`, topicErr);
         }
       }
 
-      // 2. Multicast to individual registered devices
+      // 2. Multicast to individual registered devices ONLY IF phone-targeted OR topic send was not used
       const tokens = Array.from(tokenSet);
-      if (tokens.length > 0) {
+      if (tokens.length > 0 && (!topicDelivered || data.targetPhone)) {
         const message = {
           notification: {
             title,

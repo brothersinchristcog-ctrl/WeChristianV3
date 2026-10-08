@@ -280,6 +280,120 @@ export const monitorMeetingLive = onSchedule('* * * * *', async (event) => {
                     await meetingDoc.ref.update(updates);
                 }
             }
+            // ─── 3. Check Scheduled Bible Quizzes (Release & Broadcast at exact scheduled time) ───
+            if (churchId && churchId !== 'global') {
+                try {
+                    const quizzesSnapshot = await churchDoc.ref.collection('bibleQuizzes')
+                        .where('status', '==', 'scheduled')
+                        .get();
+                    const nowStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
+                    const nowTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }); // HH:MM
+                    for (const quizDoc of quizzesSnapshot.docs) {
+                        const quiz = quizDoc.data();
+                        if (quiz.scheduledNotified)
+                            continue;
+                        const qDate = quiz.scheduledDate || '';
+                        const qTime = quiz.scheduledTime || '00:00';
+                        // Check if scheduled time has arrived or passed
+                        if (qDate && (qDate < nowStr || (qDate === nowStr && qTime <= nowTime))) {
+                            const quizTitle = quiz.title || 'Bible Quiz';
+                            const pushTitle = `📖 Bible Quiz is Now Live: ${quizTitle}`;
+                            const pushBody = `The scheduled Bible quiz is now unlocked and available to play! Tap to test your knowledge.`;
+                            const payload = {
+                                notification: { title: pushTitle, body: pushBody },
+                                data: {
+                                    type: 'quiz',
+                                    quizId: quizDoc.id,
+                                    id: quizDoc.id,
+                                    relatedId: quizDoc.id,
+                                    screen: 'BibleQuizDetail',
+                                    churchId: churchId,
+                                },
+                                topic: `church_${churchId}`,
+                            };
+                            await getMessaging().send(payload).catch((e) => console.error('Error sending Quiz Live notification', e));
+                            // Record in broadcasts so members see in Updates
+                            await churchDoc.ref.collection('broadcasts').add({
+                                title: pushTitle,
+                                content: pushBody,
+                                type: 'quiz',
+                                id: quizDoc.id,
+                                quizId: quizDoc.id,
+                                relatedId: quizDoc.id,
+                                screen: 'BibleQuizDetail',
+                                churchId: churchId,
+                                silent: true,
+                                createdAt: FieldValue.serverTimestamp(),
+                            }).catch(() => { });
+                            // Record in notifications
+                            await churchDoc.ref.collection('notifications').add({
+                                title: pushTitle,
+                                body: pushBody,
+                                type: 'quiz',
+                                id: quizDoc.id,
+                                quizId: quizDoc.id,
+                                relatedId: quizDoc.id,
+                                screen: 'BibleQuizDetail',
+                                churchId: churchId,
+                                read: false,
+                                createdAt: FieldValue.serverTimestamp(),
+                            }).catch(() => { });
+                            // Mark quiz as published and notified
+                            await quizDoc.ref.update({
+                                status: 'published',
+                                scheduledNotified: true,
+                                updatedAt: FieldValue.serverTimestamp(),
+                            }).catch(() => { });
+                        }
+                    }
+                }
+                catch (quizErr) {
+                    console.error(`Error checking scheduled quizzes for church ${churchId}:`, quizErr);
+                }
+            }
+        }
+        // ─── 4. Check Super Admin Daily Bible Quiz Scheduled Notification ───
+        try {
+            const dailyScheduleDoc = await db.collection('churches').doc('global').collection('settings').doc('daily_quiz_schedule').get();
+            const dailyConfig = dailyScheduleDoc.exists ? dailyScheduleDoc.data() : null;
+            if (dailyConfig && dailyConfig.enabled !== false) {
+                const targetTime = dailyConfig.time24 || '06:00';
+                const nowStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
+                const nowTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }); // HH:MM
+                if (dailyConfig.lastBroadcastDate !== nowStr && nowTime >= targetTime) {
+                    const pushTitle = dailyConfig.customTitle || '📖 Daily Bible Quiz is Live!';
+                    const pushBody = dailyConfig.customBody || `Today's Scripture challenge (${nowStr}) is ready. Test your knowledge and reflect on God's Word!`;
+                    const payload = {
+                        notification: { title: pushTitle, body: pushBody },
+                        data: {
+                            type: 'bible_quiz',
+                            quizId: `daily_quiz_${nowStr}`,
+                            churchId: 'global',
+                            scheduledDate: nowStr,
+                            screen: 'BibleQuizDetail',
+                        },
+                        topic: 'church_all',
+                    };
+                    await getMessaging().send(payload).catch((e) => console.error('Error sending Daily Quiz notification:', e));
+                    // Also broadcast to each active church topic
+                    for (const cDoc of churchesSnapshot.docs) {
+                        if (cDoc.id !== 'global') {
+                            getMessaging().send({
+                                ...payload,
+                                topic: `church_${cDoc.id}`,
+                            }).catch(() => { });
+                        }
+                    }
+                    // Mark notified for today
+                    await dailyScheduleDoc.ref.set({
+                        lastBroadcastDate: nowStr,
+                        lastBroadcastAt: FieldValue.serverTimestamp(),
+                    }, { merge: true }).catch(() => { });
+                }
+            }
+        }
+        catch (dailySchedErr) {
+            console.warn('Notice checking daily quiz schedule:', dailySchedErr);
         }
     }
     catch (error) {

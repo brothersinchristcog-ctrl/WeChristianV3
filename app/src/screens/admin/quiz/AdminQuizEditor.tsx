@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Modal,
   Platform,
+  Keyboard,
+  KeyboardAvoidingView,
 } from 'react-native';
 import {
   Plus,
@@ -88,6 +90,7 @@ export default function AdminQuizEditor({
   const [language, setLanguage] = useState<string>(initialQuiz?.language || 'en');
   const [description, setDescription] = useState<string>(initialQuiz?.description || '');
   const [sourceFile, setSourceFile] = useState<string>(initialQuiz?.sourceFile || '');
+  const [timeLimitMinutes, setTimeLimitMinutes] = useState<number>(initialQuiz?.timeLimitMinutes || 0);
 
   // Scheduling State (matching Daily Promise workflow)
   const todayStr = (() => {
@@ -116,8 +119,19 @@ export default function AdminQuizEditor({
   };
 
   const handleConfirmTime = (date: Date) => {
-    const hours = String(date.getHours()).padStart(2, '0');
+    let hNum = date.getHours();
     const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    // Smart 12h PM detection: If scheduling for today and selected hour is in the past as AM,
+    // but upcoming as PM (e.g. 2:57 AM while it is currently 2:51 PM), save as PM (14:57)
+    const now = new Date();
+    if (scheduledDate === todayStr && hNum < 12) {
+      if (hNum < now.getHours() && (hNum + 12) >= now.getHours()) {
+        hNum += 12;
+      }
+    }
+
+    const hours = String(hNum).padStart(2, '0');
     setScheduledTime(`${hours}:${minutes}`);
     setShowTimePicker(false);
   };
@@ -154,6 +168,26 @@ export default function AdminQuizEditor({
   const [previewShowAnswers, setPreviewShowAnswers] = useState<boolean>(false);
 
   const scrollViewRef = React.useRef<ScrollView>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState<number>(0);
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => {
+        setKeyboardHeight(e.endCoordinates?.height || 300);
+      }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => {
+        setKeyboardHeight(0);
+      }
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // Upload Celebratory Success Modal state
   const [uploadSuccessData, setUploadSuccessData] = useState<{
@@ -382,10 +416,13 @@ export default function AdminQuizEditor({
         marks: 1,
       }));
 
+      const finalScheduledDate = scheduledDate || todayStr;
+      const finalScheduledTime = scheduledTime || '06:00';
+
       const payload: Partial<BibleQuiz> = {
         id: quizId,
-        churchId,
-        churchName,
+        churchId: initialQuiz?.churchId || churchId,
+        churchName: initialQuiz?.churchName || churchName,
         title: title.trim(),
         description: description.trim(),
         category: topic.trim() || 'General',
@@ -393,14 +430,14 @@ export default function AdminQuizEditor({
         difficulty,
         level: 1,
         language,
-        scheduledDate: finalStatus === 'scheduled' ? scheduledDate : '',
-        scheduledTime: finalStatus === 'scheduled' ? scheduledTime : '',
-        scheduledAt: finalStatus === 'scheduled' ? `${scheduledDate}T${scheduledTime}:00` : null,
+        scheduledDate: finalStatus === 'scheduled' ? finalScheduledDate : (scheduledDate || todayStr),
+        scheduledTime: finalStatus === 'scheduled' ? finalScheduledTime : (scheduledTime || '06:00'),
+        scheduledAt: finalStatus === 'scheduled' ? `${finalScheduledDate}T${finalScheduledTime}:00` : null,
         sourceFile: sourceFile || '',
-        timeLimitMinutes: 0,
+        timeLimitMinutes: Number(timeLimitMinutes) || 0,
         marksPerQuestion: 1,
         passPercentage: 70,
-        isDailyQuiz: false,
+        isDailyQuiz: finalStatus === 'scheduled' ? false : Boolean(initialQuiz?.isDailyQuiz),
         allowMultipleAttempts: true,
         status: finalStatus,
         questions: sanitizedQuestions,
@@ -414,8 +451,8 @@ export default function AdminQuizEditor({
         status: finalStatus,
         title: title.trim(),
         questionCount: sanitizedQuestions.length,
-        scheduledDate: finalStatus === 'scheduled' ? scheduledDate : undefined,
-        scheduledTime: finalStatus === 'scheduled' ? scheduledTime : undefined,
+        scheduledDate: finalStatus === 'scheduled' ? finalScheduledDate : undefined,
+        scheduledTime: finalStatus === 'scheduled' ? finalScheduledTime : undefined,
         savedId,
       });
     } catch (err: any) {
@@ -552,7 +589,10 @@ export default function AdminQuizEditor({
           <Text style={styles.inputLabel}>Release Date</Text>
           <TouchableOpacity
             style={styles.datePickerTrigger}
-            onPress={() => setShowDatePicker(true)}
+            onPress={() => {
+              setShowScheduleModal(false);
+              setTimeout(() => setShowDatePicker(true), 150);
+            }}
             activeOpacity={0.8}
           >
             <CalendarIcon size={18} color="#1a2d5a" />
@@ -564,7 +604,10 @@ export default function AdminQuizEditor({
           <Text style={styles.inputLabel}>Release Time (Clock Picker)</Text>
           <TouchableOpacity
             style={styles.timePickerTrigger}
-            onPress={() => setShowTimePicker(true)}
+            onPress={() => {
+              setShowScheduleModal(false);
+              setTimeout(() => setShowTimePicker(true), 150);
+            }}
             activeOpacity={0.8}
           >
             <View style={styles.timePickerLeft}>
@@ -583,14 +626,71 @@ export default function AdminQuizEditor({
             </View>
           </TouchableOpacity>
 
+          {/* Explicit AM / PM Quick Switcher */}
+          <View style={{ flexDirection: 'row', gap: 10, marginTop: 8, marginBottom: 4 }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 8,
+                borderRadius: 8,
+                alignItems: 'center',
+                backgroundColor: parseInt(scheduledTime.split(':')[0], 10) < 12 ? '#1a2d5a' : '#F1F5F9',
+                borderWidth: 1,
+                borderColor: parseInt(scheduledTime.split(':')[0], 10) < 12 ? '#1a2d5a' : '#CBD5E1',
+              }}
+              onPress={() => {
+                const [h, m] = scheduledTime.split(':');
+                let hNum = parseInt(h, 10) || 0;
+                if (hNum >= 12) hNum -= 12;
+                setScheduledTime(`${String(hNum).padStart(2, '0')}:${m || '00'}`);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={{
+                fontSize: 12,
+                fontWeight: '700',
+                color: parseInt(scheduledTime.split(':')[0], 10) < 12 ? '#ffffff' : '#475569',
+              }}>
+                🌅 AM (Morning)
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                paddingVertical: 8,
+                borderRadius: 8,
+                alignItems: 'center',
+                backgroundColor: parseInt(scheduledTime.split(':')[0], 10) >= 12 ? '#1a2d5a' : '#F1F5F9',
+                borderWidth: 1,
+                borderColor: parseInt(scheduledTime.split(':')[0], 10) >= 12 ? '#1a2d5a' : '#CBD5E1',
+              }}
+              onPress={() => {
+                const [h, m] = scheduledTime.split(':');
+                let hNum = parseInt(h, 10) || 0;
+                if (hNum < 12) hNum += 12;
+                setScheduledTime(`${String(hNum).padStart(2, '0')}:${m || '00'}`);
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={{
+                fontSize: 12,
+                fontWeight: '700',
+                color: parseInt(scheduledTime.split(':')[0], 10) >= 12 ? '#ffffff' : '#475569',
+              }}>
+                🌆 PM (Afternoon/Evening)
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           {/* Quick Time Presets */}
           <Text style={[styles.inputLabel, { marginTop: 4 }]}>Quick Presets</Text>
           <View style={styles.timePresetsRow}>
             {[
-              { time: '05:00', label: '5:00 AM' },
-              { time: '06:00', label: '6:00 AM' },
-              { time: '07:00', label: '7:00 AM' },
               { time: '09:00', label: '9:00 AM' },
+              { time: '12:00', label: '12:00 PM' },
+              { time: '14:30', label: '2:30 PM' },
+              { time: '15:00', label: '3:00 PM' },
               { time: '18:00', label: '6:00 PM' },
               { time: '20:00', label: '8:00 PM' },
             ].map(p => {
@@ -610,6 +710,34 @@ export default function AdminQuizEditor({
             })}
           </View>
 
+          {/* Time Limit Setting in Schedule Modal */}
+          <Text style={[styles.inputLabel, { marginTop: 12 }]}>Time Limit</Text>
+          <View style={styles.timePresetsRow}>
+            {[
+              { label: 'Untimed', value: 0 },
+              { label: '5 Mins', value: 5 },
+              { label: '10 Mins', value: 10 },
+              { label: '15 Mins', value: 15 },
+              { label: '20 Mins', value: 20 },
+              { label: '30 Mins', value: 30 },
+              { label: '60 Mins', value: 60 },
+            ].map(item => {
+              const isSelected = timeLimitMinutes === item.value;
+              return (
+                <TouchableOpacity
+                  key={item.value}
+                  style={[styles.timeChip, isSelected && styles.timeChipActive]}
+                  onPress={() => setTimeLimitMinutes(item.value)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.timeChipTxt, isSelected && styles.timeChipTxtActive]}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
           <View style={styles.scheduleInfoBox}>
             <Clock size={16} color="#1a2d5a" />
             <Text style={styles.scheduleInfoTxt}>
@@ -622,39 +750,33 @@ export default function AdminQuizEditor({
               style={styles.modalCancelBtn}
               onPress={() => setShowScheduleModal(false)}
             >
-              <Text style={styles.modalCancelBtnTxt}>Cancel</Text>
+              <Text style={styles.modalCancelBtnTxt}>Close</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.modalConfirmBtn}
               onPress={() => {
                 setPublishStatus('scheduled');
-                handleSave('scheduled');
+                setShowScheduleModal(false);
+                if (title.trim() && questions.length > 0) {
+                  handleSave('scheduled');
+                } else {
+                  Alert.alert(
+                    'Schedule Configured',
+                    `Scheduled for ${scheduledDate} at ${formatTimeDisplay(scheduledTime)}. Complete your quiz questions below and tap "Schedule Quiz".`
+                  );
+                }
               }}
               disabled={isSaving}
             >
               {isSaving ? (
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Text style={styles.modalConfirmBtnTxt}>Confirm & Schedule</Text>
+                <Text style={styles.modalConfirmBtnTxt}>Confirm Schedule</Text>
               )}
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* Native Interactive Clock Time Picker */}
-        <DateTimePickerModal
-          isVisible={showTimePicker}
-          mode="time"
-          date={(() => {
-            const [h, m] = (scheduledTime || '06:00').split(':');
-            const d = new Date();
-            d.setHours(parseInt(h, 10) || 6, parseInt(m, 10) || 0, 0, 0);
-            return d;
-          })()}
-          onConfirm={handleConfirmTime}
-          onCancel={() => setShowTimePicker(false)}
-        />
       </View>
     </Modal>
   );
@@ -932,7 +1054,18 @@ export default function AdminQuizEditor({
                   <Bell size={13} color="#059669" />
                 </View>
                 <Text style={styles.saveSuccessNotificationTitle}>
-                  Push notification broadcasted to members
+                  Push notification broadcasted live to members
+                </Text>
+              </View>
+            )}
+
+            {isSched && (
+              <View style={[styles.saveSuccessNotificationBox, { backgroundColor: '#EFF6FF', borderColor: '#BFDBFE' }]}>
+                <View style={[styles.saveSuccessBellCircle, { backgroundColor: '#DBEAFE' }]}>
+                  <Clock size={13} color="#1E40AF" />
+                </View>
+                <Text style={[styles.saveSuccessNotificationTitle, { color: '#1E40AF' }]}>
+                  Notification scheduled for {formatTimeDisplay(saveSuccessData.scheduledTime || '')} · Members will be notified at start time
                 </Text>
               </View>
             )}
@@ -995,33 +1128,44 @@ export default function AdminQuizEditor({
 
   return (
     <View style={styles.container}>
-      {/* ── Signature Navy Hero (Matching Daily Promise Header) ── */}
-      <View style={styles.hero}>
-        <View style={styles.heroTitleRow}>
-          <TouchableOpacity onPress={onBack} style={styles.heroBackBtn} activeOpacity={0.7}>
-            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -4, marginRight: 2 }} />
-            <Text style={styles.heroBackTxt}>Back</Text>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        {/* ── Signature Navy Hero (Matching Daily Promise Header) ── */}
+        <View style={styles.hero}>
+          <View style={styles.heroTitleRow}>
+            <TouchableOpacity onPress={onBack} style={styles.heroBackBtn} activeOpacity={0.7}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -4, marginRight: 2 }} />
+              <Text style={styles.heroBackTxt}>Back</Text>
+            </TouchableOpacity>
+            <Text style={styles.heroDivider}>|</Text>
+            <Text style={styles.heroTitle}>{quizId ? 'Edit Bible Quiz' : 'New Bible Quiz'}</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.heroPreviewPill}
+            onPress={() => setPreviewVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Eye size={15} color="#fff" />
+            <Text style={styles.heroPreviewPillTxt}>Preview</Text>
           </TouchableOpacity>
-          <Text style={styles.heroDivider}>|</Text>
-          <Text style={styles.heroTitle}>{quizId ? 'Edit Bible Quiz' : 'New Bible Quiz'}</Text>
         </View>
 
-        <TouchableOpacity
-          style={styles.heroPreviewPill}
-          onPress={() => setPreviewVisible(true)}
-          activeOpacity={0.8}
+        <ScrollView
+          ref={scrollViewRef}
+          style={styles.scrollArea}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: Math.max(keyboardHeight + 100, 420) },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="none"
+          automaticallyAdjustKeyboardInsets={true}
+          showsVerticalScrollIndicator={true}
+          bounces={true}
         >
-          <Eye size={15} color="#fff" />
-          <Text style={styles.heroPreviewPillTxt}>Preview</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        ref={scrollViewRef}
-        style={styles.scrollArea}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
         {/* ── 1. Create Quiz from Uploaded Document (Up to 10 Questions) ── */}
         <View style={[styles.sectionCard, styles.topperCard]}>
           <View style={styles.secHeader}>
@@ -1131,19 +1275,85 @@ export default function AdminQuizEditor({
             })}
           </View>
 
-          {/* Date & Time Row when Scheduled */}
+          {/* Inline Schedule Controls when Scheduled */}
           {publishStatus === 'scheduled' && (
-            <TouchableOpacity
-              style={styles.scheduleInfoRow}
-              onPress={() => setShowScheduleModal(true)}
-              activeOpacity={0.7}
-            >
-              <CalendarIcon size={15} color="#1a2d5a" />
-              <Text style={styles.scheduleInfoRowTxt}>
-                Active on: <Text style={{ fontWeight: '700', color: '#1a2d5a' }}>{scheduledDate}</Text> at <Text style={{ fontWeight: '700', color: '#1a2d5a' }}>{formatTimeDisplay(scheduledTime)}</Text>
-              </Text>
-              <ChevronRight size={16} color="#64748B" style={{ marginLeft: 'auto' }} />
-            </TouchableOpacity>
+            <View style={{ marginTop: 14 }}>
+              <View style={styles.scheduleInfoBox}>
+                <Clock size={16} color="#1a2d5a" />
+                <Text style={styles.scheduleInfoTxt}>
+                  Members will automatically unlock this quiz on{' '}
+                  <Text style={{ fontWeight: '700' }}>{scheduledDate}</Text> at{' '}
+                  <Text style={{ fontWeight: '700' }}>{formatTimeDisplay(scheduledTime)}</Text>.
+                </Text>
+              </View>
+
+              {/* Release Date Trigger */}
+              <Text style={styles.inputLabel}>Release Date</Text>
+              <TouchableOpacity
+                style={styles.datePickerTrigger}
+                onPress={() => setShowDatePicker(true)}
+                activeOpacity={0.8}
+              >
+                <CalendarIcon size={18} color="#1a2d5a" />
+                <Text style={styles.datePickerTriggerTxt}>{scheduledDate}</Text>
+                <Text style={{ marginLeft: 'auto', fontSize: 12, color: '#1a2d5a', fontWeight: '700' }}>
+                  Pick Date 📅
+                </Text>
+              </TouchableOpacity>
+
+              {/* Clock Picker Trigger */}
+              <Text style={styles.inputLabel}>Release Time (Interactive Clock)</Text>
+              <TouchableOpacity
+                style={styles.timePickerTrigger}
+                onPress={() => setShowTimePicker(true)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.timePickerLeft}>
+                  <View style={styles.timePickerIconCircle}>
+                    <Clock size={18} color="#1a2d5a" />
+                  </View>
+                  <View>
+                    <Text style={styles.timePickerLabel}>SCHEDULED TIME</Text>
+                    <Text style={styles.timePickerValueTxt}>
+                      {formatTimeDisplay(scheduledTime)}{' '}
+                      <Text style={{ fontSize: 12, fontWeight: '500', color: '#64748B' }}>
+                        ({scheduledTime})
+                      </Text>
+                    </Text>
+                  </View>
+                </View>
+                <View style={styles.timePickerChangeBtn}>
+                  <Text style={styles.timePickerChangeBtnTxt}>Pick Clock ⏰</Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Quick Time Presets */}
+              <Text style={[styles.inputLabel, { marginTop: 4 }]}>Quick Presets</Text>
+              <View style={styles.timePresetsRow}>
+                {[
+                  { time: '05:00', label: '5:00 AM' },
+                  { time: '06:00', label: '6:00 AM' },
+                  { time: '07:00', label: '7:00 AM' },
+                  { time: '09:00', label: '9:00 AM' },
+                  { time: '18:00', label: '6:00 PM' },
+                  { time: '20:00', label: '8:00 PM' },
+                ].map(p => {
+                  const isSelected = scheduledTime === p.time;
+                  return (
+                    <TouchableOpacity
+                      key={p.time}
+                      style={[styles.timeChip, isSelected && styles.timeChipActive]}
+                      onPress={() => setScheduledTime(p.time)}
+                      activeOpacity={0.7}
+                    >
+                      <Text style={[styles.timeChipTxt, isSelected && styles.timeChipTxtActive]}>
+                        {p.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
           )}
         </View>
 
@@ -1218,6 +1428,39 @@ export default function AdminQuizEditor({
                 >
                   <Text style={[styles.langChipTxt, isSelected && styles.langChipTxtActive]}>
                     {lang.name} ({lang.native})
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+
+          {/* Time Limit Selector */}
+          <Text style={styles.fieldLabel}>Time Limit (Per Attempt)</Text>
+          <Text style={styles.fieldHelpTxt}>
+            A live countdown timer will be displayed during the quiz. Choose "No Limit" for relaxed untimed study.
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.langChipsScroll}>
+            {[
+              { label: 'No Limit (Untimed)', value: 0 },
+              { label: '5 Minutes', value: 5 },
+              { label: '10 Minutes', value: 10 },
+              { label: '15 Minutes', value: 15 },
+              { label: '20 Minutes', value: 20 },
+              { label: '30 Minutes', value: 30 },
+              { label: '45 Minutes', value: 45 },
+              { label: '60 Minutes', value: 60 },
+            ].map(item => {
+              const isSelected = timeLimitMinutes === item.value;
+              return (
+                <TouchableOpacity
+                  key={item.value}
+                  style={[styles.timeLimitChip, isSelected && styles.timeLimitChipActive]}
+                  onPress={() => setTimeLimitMinutes(item.value)}
+                  activeOpacity={0.75}
+                >
+                  <Clock size={12} color={isSelected ? '#ffffff' : '#475569'} />
+                  <Text style={[styles.timeLimitChipTxt, isSelected && styles.timeLimitChipTxtActive]}>
+                    {item.label}
                   </Text>
                 </TouchableOpacity>
               );
@@ -1378,22 +1621,36 @@ export default function AdminQuizEditor({
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={styles.btnPublish}
-            onPress={() => handleSave('published')}
+            style={[
+              styles.btnPublish,
+              publishStatus === 'scheduled' && styles.btnScheduled,
+            ]}
+            onPress={() => handleSave(publishStatus)}
             disabled={isSaving}
             activeOpacity={0.85}
           >
             {isSaving ? (
               <ActivityIndicator size="small" color="#ffffff" />
+            ) : publishStatus === 'scheduled' ? (
+              <>
+                <Clock size={16} color="#ffffff" />
+                <Text style={styles.btnPublishTxt}>Schedule Quiz</Text>
+              </>
+            ) : publishStatus === 'draft' ? (
+              <>
+                <Save size={16} color="#ffffff" />
+                <Text style={styles.btnPublishTxt}>Save Draft</Text>
+              </>
             ) : (
               <>
                 <Send size={16} color="#ffffff" />
-                <Text style={styles.btnPublishTxt}>Publish Quiz</Text>
+                <Text style={styles.btnPublishTxt}>Publish Quiz Live</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* Modals */}
       {renderCalendarModal()}
@@ -1401,6 +1658,28 @@ export default function AdminQuizEditor({
       {renderPreviewModal()}
       {renderSuccessModal()}
       {renderSaveSuccessModal()}
+
+      {/* Native Interactive Clock Time Picker (Root Level - No Modal Nesting Conflicts) */}
+      <DateTimePickerModal
+        isVisible={showTimePicker}
+        mode="time"
+        date={(() => {
+          const d = new Date();
+          if (scheduledTime) {
+            const [h, m] = scheduledTime.split(':');
+            let hNum = parseInt(h, 10);
+            if (scheduledDate === todayStr && hNum < 12 && d.getHours() >= 12) {
+              hNum += 12;
+            }
+            d.setHours(hNum || 12, parseInt(m, 10) || 0, 0, 0);
+          } else {
+            d.setMinutes(d.getMinutes() + 10);
+          }
+          return d;
+        })()}
+        onConfirm={handleConfirmTime}
+        onCancel={() => setShowTimePicker(false)}
+      />
 
       <BibleReferencePickerModal
         visible={pickerVisible}
@@ -1478,7 +1757,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 40,
+    flexGrow: 1,
+    paddingBottom: 400,
   },
   // ── Topper AI Studio Card ──────────────────────────────────────────────────
   topperCard: {
@@ -1836,6 +2116,42 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontWeight: '700',
   },
+  timeLimitChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 14,
+    backgroundColor: '#F1F5F9',
+    marginRight: 8,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  timeLimitChipActive: {
+    backgroundColor: '#1a2d5a',
+    borderColor: '#1a2d5a',
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  timeLimitChipTxt: {
+    fontSize: 11.5,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  timeLimitChipTxtActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
+  fieldHelpTxt: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 8,
+    lineHeight: 15,
+  },
   // ── Question Cards ──────────────────────────────────────────────────────────
   questionCard: {
     borderWidth: 1,
@@ -2043,6 +2359,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
+  },
+  btnScheduled: {
+    backgroundColor: '#1a2d5a',
+    shadowColor: '#1a2d5a',
   },
   btnPublishTxt: {
     color: '#ffffff',

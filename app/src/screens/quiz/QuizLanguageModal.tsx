@@ -24,9 +24,9 @@ export default function QuizLanguageModal({ visible, onClose }: QuizLanguageModa
   const { isDark } = useTheme();
   const ui = getQuizStrings(quizLanguage);
 
-  const handleSelect = async (code: SupportedLanguage) => {
-    await setQuizLanguage(code);
+  const handleSelect = (code: SupportedLanguage) => {
     onClose();
+    setQuizLanguage(code);
   };
 
   return (

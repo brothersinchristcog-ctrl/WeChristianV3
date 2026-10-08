@@ -6,7 +6,7 @@ const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || '';
 const GEMINI_MODELS = ['gemini-2.0-flash', 'gemini-1.5-flash'];
 
 const GROQ_API_KEY = process.env.EXPO_PUBLIC_GROQ_API_KEY || '';
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'openai/gpt-oss-20b';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 export interface DocumentUploadAsset {
@@ -25,6 +25,32 @@ export interface GeneratedQuizPayload {
   questions: QuizQuestion[];
   sourceFileName?: string;
   isFallback?: boolean;
+}
+
+export interface QuizTranslationPayload {
+  title?: string;
+  description?: string;
+  questions: Array<{
+    id: string;
+    question: string;
+    options: string[];
+    correctAnswer?: string | string[];
+    explanation?: string;
+    bibleReference?: string;
+    [key: string]: any;
+  }>;
+}
+
+export interface QuizTranslationResult {
+  title: string;
+  description: string;
+  questions: Array<{
+    id: string;
+    question: string;
+    options: string[];
+    correctAnswer?: string | string[];
+    explanation?: string;
+  }>;
 }
 
 export class QuizAIService {
@@ -704,5 +730,258 @@ Respond ONLY with valid, raw JSON with NO markdown code fences:
       sourceFileName: fileName,
       isFallback: true,
     };
+  }
+
+  /**
+   * Fast, accurate translation of Bible Quiz questions, options, and descriptions into target language.
+   * Preserves canonical option indexing and ID mapping so evaluations remain 100% correct.
+   */
+  static async translateQuiz(
+    payload: QuizTranslationPayload,
+    targetLanguage: string
+  ): Promise<QuizTranslationResult> {
+    const questions = payload.questions || [];
+    if (questions.length === 0) {
+      return {
+        title: payload.title || '',
+        description: payload.description || '',
+        questions: [],
+      };
+    }
+
+    const LANG_LABELS: Record<string, string> = {
+      te: 'Telugu (తెలుగు లిపి)',
+      ta: 'Tamil (தமிழ்)',
+      hi: 'Hindi (हिन्दी)',
+      kn: 'Kannada (ಕನ್ನಡ)',
+      ml: 'Malayalam (മലയാളം)',
+      mr: 'Marathi (मराठी)',
+      en: 'English',
+    };
+
+    const targetLabel = LANG_LABELS[targetLanguage] || targetLanguage;
+
+    const systemPrompt = `You are an expert biblical translator and Christian quiz localization architect.
+Your mission is to translate a Bible Quiz faithfully, respectfully, and reverently into ${targetLabel}.
+CRITICAL TRANSLATION RULES:
+1. Translate "title" and "description" naturally into ${targetLabel}.
+2. For each question in "questions":
+   - "id": MUST match the input question id exactly.
+   - "question": translate the question text faithfully into ${targetLabel}.
+   - "options": translate every option into ${targetLabel}, maintaining the EXACT same number and ordering as the input options array (this is critical so that option index 0, 1, 2, 3 remains identical).
+   - "correctAnswer": translate to exactly match the translated option corresponding to the original answer.
+   - "explanation": translate concisely (1-2 sentences) into ${targetLabel}.
+3. Use orthodox, respected biblical Christian terminology and canonical book names in ${targetLabel}.
+4. Return ONLY valid, raw JSON without any markdown code fences or conversational text:
+{
+  "title": "...",
+  "description": "...",
+  "questions": [
+    {
+      "id": "...",
+      "question": "...",
+      "options": ["...", "..."],
+      "correctAnswer": "...",
+      "explanation": "..."
+    }
+  ]
+}`;
+
+    const userPayloadJson = JSON.stringify({
+      title: payload.title || 'Bible Quiz',
+      description: payload.description || '',
+      questions: questions.map(q => ({
+        id: q.id,
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation || '',
+        bibleReference: q.bibleReference || '',
+      })),
+    });
+
+    // 1. Try Gemini
+    if (GEMINI_API_KEY) {
+      for (const modelName of GEMINI_MODELS) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 14000);
+
+          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+          const res = await fetch(geminiUrl, {
+            method: 'POST',
+            signal: controller.signal,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: 'user',
+                  parts: [
+                    { text: systemPrompt },
+                    { text: `Translate this Quiz JSON into ${targetLabel}:\n${userPayloadJson}` },
+                  ],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 6000,
+                response_mime_type: 'application/json',
+              },
+            }),
+          });
+          clearTimeout(timeoutId);
+
+          if (res.ok) {
+            const data = await res.json();
+            const raw = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (raw) {
+              const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+              const parsed = JSON.parse(cleaned);
+              if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+                console.log(`[QuizAIService] Successfully translated ${parsed.questions.length} questions into ${targetLanguage} via Gemini (${modelName})`);
+                return {
+                  title: parsed.title || payload.title || '',
+                  description: parsed.description || payload.description || '',
+                  questions: parsed.questions,
+                };
+              }
+            }
+          }
+        } catch (err: any) {
+          console.warn(`[QuizAIService] Translation attempt on Gemini (${modelName}) failed:`, err?.message || err);
+        }
+      }
+    }
+
+    // 2. Try Groq Fallback
+    if (GROQ_API_KEY) {
+      try {
+        const groqController = new AbortController();
+        const groqTimeoutId = setTimeout(() => groqController.abort(), 12000);
+        const groqRes = await fetch(GROQ_URL, {
+          method: 'POST',
+          signal: groqController.signal,
+          headers: {
+            Authorization: `Bearer ${GROQ_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: GROQ_MODEL,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: `Translate this Quiz JSON into ${targetLabel}:\n${userPayloadJson}` },
+            ],
+            temperature: 0.2,
+            max_tokens: 6000,
+          }),
+        });
+        clearTimeout(groqTimeoutId);
+
+        if (groqRes.ok) {
+          const data = await groqRes.json();
+          const raw = data.choices?.[0]?.message?.content;
+          if (raw) {
+            const cleaned = raw.replace(/```json/gi, '').replace(/```/g, '').trim();
+            const parsed = JSON.parse(cleaned);
+            if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+              console.log(`[QuizAIService] Successfully translated ${parsed.questions.length} questions into ${targetLanguage} via Groq`);
+              return {
+                title: parsed.title || payload.title || '',
+                description: parsed.description || payload.description || '',
+                questions: parsed.questions,
+              };
+            }
+          }
+        }
+      } catch (groqErr: any) {
+        console.warn('[QuizAIService] Groq translation fallback failed:', groqErr?.message || groqErr);
+      }
+    }
+
+    // 3. Fallback: Ultra-fast Google GTX batch translation (100% reliable, zero API key dependency)
+    try {
+      console.log(`[QuizAIService] Running Google GTX translation fallback for "${targetLanguage}" (${questions.length} questions)...`);
+      const [tTitle, tDesc] = await Promise.all([
+        this.translateTextWithGTX(payload.title || '', targetLanguage),
+        this.translateTextWithGTX(payload.description || '', targetLanguage),
+      ]);
+
+      const tQuestions = await Promise.all(
+        questions.map(async (q) => {
+          const [tQ, tExp, ...tOpts] = await Promise.all([
+            this.translateTextWithGTX(q.question, targetLanguage),
+            this.translateTextWithGTX(q.explanation || '', targetLanguage),
+            ...(q.options || []).map(opt => this.translateTextWithGTX(opt, targetLanguage)),
+          ]);
+
+          // Keep correct answer in sync with the corresponding translated option
+          let tCorrect: string | string[] | undefined = q.correctAnswer;
+          if (q.correctAnswer && Array.isArray(q.options)) {
+            if (Array.isArray(q.correctAnswer)) {
+              tCorrect = q.correctAnswer.map(ans => {
+                const cIdx = q.options.indexOf(ans);
+                return cIdx >= 0 && tOpts[cIdx] ? tOpts[cIdx] : ans;
+              });
+            } else {
+              const cIdx = q.options.indexOf(String(q.correctAnswer));
+              if (cIdx >= 0 && tOpts[cIdx]) {
+                tCorrect = tOpts[cIdx];
+              }
+            }
+          }
+
+          return {
+            id: q.id,
+            question: tQ || q.question,
+            options: tOpts.length === q.options.length ? tOpts : q.options,
+            correctAnswer: tCorrect,
+            explanation: tExp || q.explanation || '',
+          };
+        })
+      );
+
+      if (tQuestions && tQuestions.length > 0) {
+        console.log(`[QuizAIService] Google GTX successfully translated ${tQuestions.length} questions into ${targetLanguage}`);
+        return {
+          title: tTitle || payload.title || '',
+          description: tDesc || payload.description || '',
+          questions: tQuestions,
+        };
+      }
+    } catch (gtxErr: any) {
+      console.warn('[QuizAIService] GTX translation fallback error:', gtxErr?.message || gtxErr);
+    }
+
+    // 4. Ultimate Fallback: Return original untranslated questions
+    return {
+      title: payload.title || '',
+      description: payload.description || '',
+      questions: questions.map(q => ({
+        id: q.id,
+        question: q.question,
+        options: [...q.options],
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation || '',
+      })),
+    };
+  }
+
+  /**
+   * Ultra-fast zero-dependency translation using Google Translate GTX endpoint.
+   * Works for Telugu (te), Tamil (ta), Hindi (hi), Kannada (kn), Malayalam (ml), Marathi (mr), etc.
+   */
+  static async translateTextWithGTX(text: string, targetLang: string): Promise<string> {
+    if (!text || !text.trim() || targetLang === 'en') return text;
+    try {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        return (data[0] || []).map((item: any) => item[0]).join('');
+      }
+    } catch (e: any) {
+      // Quiet failover
+    }
+    return text;
   }
 }

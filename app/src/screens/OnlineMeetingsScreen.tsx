@@ -156,6 +156,21 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
           {/* Decorative circle */}
           <View style={[styles.gradCircle, { backgroundColor: gradEnd }]} />
 
+          {/* Platform Badge */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+            {item.meetingType === 'zoom' || item.provider === 'zoom' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(45, 140, 255, 0.35)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#2D8CFF' }}>
+                <Video size={12} color="#ffffff" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>Zoom Meeting</Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.35)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#10B981' }}>
+                <Video size={12} color="#ffffff" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>Google Meet</Text>
+              </View>
+            )}
+          </View>
+
           {/* Title */}
           <Text style={styles.gradTitle} numberOfLines={2}>
             {item.title || t('meetings.onlineMeeting')}

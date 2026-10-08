@@ -817,6 +817,7 @@ const SEED_QUESTIONS: Record<string, QuizQuestion[]> = {
 
 export class BibleQuizBank {
   private static PROGRESS_KEY_PREFIX = '@wechristian_quiz_progress_';
+  private static progressMemoryCache: Map<string, MemberCategoryProgress> = new Map();
 
   /**
    * Get questions for a specific category, difficulty, and level.
@@ -896,22 +897,29 @@ export class BibleQuizBank {
     difficulty: QuizDifficulty = 'easy'
   ): Promise<MemberCategoryProgress> {
     const key = `${this.PROGRESS_KEY_PREFIX}${userId}_${category}_${difficulty}`;
+    if (this.progressMemoryCache.has(key)) {
+      return this.progressMemoryCache.get(key)!;
+    }
     try {
       const stored = await AsyncStorage.getItem(key);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        this.progressMemoryCache.set(key, parsed);
+        return parsed;
       }
     } catch {
       // fallback
     }
 
     // Default: Level 1 is unlocked, no completed levels yet
-    return {
+    const defaultProgress: MemberCategoryProgress = {
       category,
       difficulty,
       unlockedLevel: 1,
       completedLevels: {},
     };
+    this.progressMemoryCache.set(key, defaultProgress);
+    return defaultProgress;
   }
 
   /**
@@ -972,11 +980,10 @@ export class BibleQuizBank {
     }
 
     const key = `${this.PROGRESS_KEY_PREFIX}${userId}_${category}_${difficulty}`;
-    try {
-      await AsyncStorage.setItem(key, JSON.stringify(currentProgress));
-    } catch (e) {
+    this.progressMemoryCache.set(key, currentProgress);
+    AsyncStorage.setItem(key, JSON.stringify(currentProgress)).catch((e) => {
       console.warn('[BibleQuizBank] Failed to persist progress:', e);
-    }
+    });
 
     return {
       passed,

@@ -612,7 +612,7 @@ export default function SuperAdminDashboard({ navigation }: any) {
             adjustsFontSizeToFit
             minimumFontScale={0.85}
           >
-            Daily Quiz
+            Church Quizzes
           </Text>
         </TouchableOpacity>
       </View>

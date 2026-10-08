@@ -598,7 +598,7 @@ function Navigation() {
               verseId: data.verseId, 
               period: data.period 
             });
-          } else if (type === 'quiz' || type === 'bible_quiz' || data.quizId || data.screen === 'BibleQuizDetail') {
+          } else if (type === 'quiz' || type === 'quiz_scheduled' || type === 'bible_quiz' || data.quizId || data.screen === 'BibleQuizDetail') {
             console.log('📖 [ExpoNotification] Opening Bible Quiz:', quizTargetId);
             if (quizTargetId) {
               navigationRef.navigate('BibleQuizDetail', { quizId: quizTargetId, churchId: data.churchId });

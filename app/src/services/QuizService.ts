@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from 'expo-notifications';
 import { firestore } from './firebaseConfig';
 import {
   BibleQuiz,
@@ -10,11 +11,14 @@ import {
   QuizAnalyticsReport,
   QuizStatus,
 } from '../types/Quiz';
+import { QuizAIService, QuizTranslationResult } from './QuizAIService';
 
 export class QuizService {
   private static QUIZZES_COLLECTION = 'bibleQuizzes';
   private static ATTEMPTS_COLLECTION = 'quizAttempts';
   private static quizzesCache: Map<string, { data: BibleQuiz[]; timestamp: number }> = new Map();
+  private static baseQuizzesCache: Map<string, { data: BibleQuiz[]; timestamp: number }> = new Map();
+  private static localizedQuizCache: Map<string, BibleQuiz> = new Map();
   private static attemptsCache: Map<string, { data: Record<string, QuizAttempt>; timestamp: number }> = new Map();
 
   /**
@@ -22,6 +26,8 @@ export class QuizService {
    */
   static clearCache(): void {
     this.quizzesCache.clear();
+    this.baseQuizzesCache.clear();
+    this.localizedQuizCache.clear();
     this.attemptsCache.clear();
   }
 
@@ -31,8 +37,12 @@ export class QuizService {
   private static async resolveChurchId(churchId?: string): Promise<string> {
     if (churchId && churchId !== 'global') return churchId;
     try {
-      const stored = await AsyncStorage.getItem('@active_church_id');
-      if (stored) return stored;
+      const cached = await AsyncStorage.getItem('@cached_church_id');
+      if (cached && cached !== 'global') return cached;
+      const active = await AsyncStorage.getItem('@active_church_id');
+      if (active && active !== 'global') return active;
+      const church = await AsyncStorage.getItem('church_id');
+      if (church && church !== 'global') return church;
     } catch {
       // Ignore AsyncStorage error
     }
@@ -52,9 +62,10 @@ export class QuizService {
       isAdmin?: boolean;
       scope?: 'church' | 'wechristian' | 'all';
       forceRefresh?: boolean;
+      targetLanguage?: string;
     }
   ): Promise<BibleQuiz[]> {
-    const cacheKey = `${churchId || 'global'}_${JSON.stringify({
+    const baseCacheKey = `${churchId || 'global'}_${JSON.stringify({
       status: options?.status,
       category: options?.category,
       isDaily: options?.isDaily,
@@ -63,9 +74,9 @@ export class QuizService {
     })}`;
 
     if (!options?.forceRefresh) {
-      const cached = this.quizzesCache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < 60000) {
-        return cached.data;
+      const cachedBase = this.baseQuizzesCache.get(baseCacheKey);
+      if (cachedBase && Date.now() - cachedBase.timestamp < 60000) {
+        return this.applyLocalizationToList(cachedBase.data, options?.targetLanguage);
       }
     }
 
@@ -90,128 +101,74 @@ export class QuizService {
         }
       }
 
-      // 2. Fetch from global church subcollection
-      try {
-        if (!options?.isAdmin) {
-          // OPTIMIZATION: For regular church members, do NOT download 700+ future scheduled daily quizzes!
-          // Only fetch released daily quizzes (up to today, limit 60) and non-daily global quizzes
-          const now = new Date();
-          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      // 2. Fetch from global church subcollection (only for members, never for church admin dashboard)
+      if (!options?.isAdmin || targetChurchId === 'global') {
+        try {
+          if (!options?.isAdmin) {
+            // OPTIMIZATION: For regular church members, do NOT download 700+ future scheduled daily quizzes!
+            // Only fetch released daily quizzes (up to today, limit 60) and non-daily global quizzes
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-          try {
-            const dailySnaps = await firestore()
-              .collection('churches')
-              .doc('global')
-              .collection(this.QUIZZES_COLLECTION)
-              .where('dailyDate', '<=', todayStr)
-              .limit(60)
-              .get();
+            try {
+              const dailySnaps = await firestore()
+                .collection('churches')
+                .doc('global')
+                .collection(this.QUIZZES_COLLECTION)
+                .where('dailyDate', '<=', todayStr)
+                .limit(60)
+                .get();
 
-            dailySnaps.docs.forEach((doc: any) => {
-              if (!docsMap.has(doc.id)) {
-                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
-              }
-            });
-          } catch {
-            // where filter fallback
+              dailySnaps.docs.forEach((doc: any) => {
+                if (!docsMap.has(doc.id)) {
+                  docsMap.set(doc.id, { id: doc.id, ...doc.data() });
+                }
+              });
+            } catch {
+              // where filter fallback
+            }
+
+            try {
+              const generalSnaps = await firestore()
+                .collection('churches')
+                .doc('global')
+                .collection(this.QUIZZES_COLLECTION)
+                .where('isDailyQuiz', '==', false)
+                .limit(50)
+                .get();
+
+              generalSnaps.docs.forEach((doc: any) => {
+                if (!docsMap.has(doc.id)) {
+                  docsMap.set(doc.id, { id: doc.id, ...doc.data() });
+                }
+              });
+            } catch {
+              // where filter fallback
+            }
+
+            // If targeted queries yielded no docs, fallback safely with limit 60
+            if (docsMap.size === 0) {
+              const globalSnaps = await firestore()
+                .collection('churches')
+                .doc('global')
+                .collection(this.QUIZZES_COLLECTION)
+                .limit(60)
+                .get();
+
+              globalSnaps.docs.forEach((doc: any) => {
+                if (!docsMap.has(doc.id)) {
+                  docsMap.set(doc.id, { id: doc.id, ...doc.data() });
+                }
+              });
+            }
           }
-
-          try {
-            const generalSnaps = await firestore()
-              .collection('churches')
-              .doc('global')
-              .collection(this.QUIZZES_COLLECTION)
-              .where('isDailyQuiz', '==', false)
-              .limit(50)
-              .get();
-
-            generalSnaps.docs.forEach((doc: any) => {
-              if (!docsMap.has(doc.id)) {
-                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
-              }
-            });
-          } catch {
-            // where filter fallback
-          }
-
-          // If targeted queries yielded no docs, fallback safely with limit 60
-          if (docsMap.size === 0) {
-            const globalSnaps = await firestore()
-              .collection('churches')
-              .doc('global')
-              .collection(this.QUIZZES_COLLECTION)
-              .limit(60)
-              .get();
-
-            globalSnaps.docs.forEach((doc: any) => {
-              if (!docsMap.has(doc.id)) {
-                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
-              }
-            });
-          }
-        } else {
-          // Admin view: fetch global non-daily platform quizzes and recent daily quizzes (avoid downloading 700+ future quizzes)
-          const now = new Date();
-          const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
-          try {
-            const generalSnaps = await firestore()
-              .collection('churches')
-              .doc('global')
-              .collection(this.QUIZZES_COLLECTION)
-              .where('isDailyQuiz', '==', false)
-              .limit(100)
-              .get();
-
-            generalSnaps.docs.forEach((doc: any) => {
-              if (!docsMap.has(doc.id)) {
-                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
-              }
-            });
-          } catch {
-            // fallback
-          }
-
-          try {
-            const dailySnaps = await firestore()
-              .collection('churches')
-              .doc('global')
-              .collection(this.QUIZZES_COLLECTION)
-              .where('dailyDate', '<=', todayStr)
-              .limit(60)
-              .get();
-
-            dailySnaps.docs.forEach((doc: any) => {
-              if (!docsMap.has(doc.id)) {
-                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
-              }
-            });
-          } catch {
-            // fallback
-          }
-
-          // Fallback if targeted queries yielded nothing (limit 60 to prevent downloading 700+ docs)
-          if (docsMap.size === 0) {
-            const globalSnaps = await firestore()
-              .collection('churches')
-              .doc('global')
-              .collection(this.QUIZZES_COLLECTION)
-              .limit(60)
-              .get();
-
-            globalSnaps.docs.forEach((doc: any) => {
-              if (!docsMap.has(doc.id)) {
-                docsMap.set(doc.id, { id: doc.id, ...doc.data() });
-              }
-            });
-          }
+        } catch (e: any) {
+          // Suppress if not found
         }
-      } catch (e: any) {
-        // Suppress if not found
       }
 
-      // 3. Fallback: ONLY try top-level collection if docsMap is STILL empty
-      if (docsMap.size === 0) {
+      // 3. Fallback: ONLY try top-level collection for non-admin if docsMap is STILL empty
+      if (!options?.isAdmin && docsMap.size === 0) {
         try {
           const rootSnaps = await firestore()
             .collection(this.QUIZZES_COLLECTION)
@@ -251,19 +208,19 @@ export class QuizService {
         const currentTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
         list = list.filter(q => {
-          // If it's a daily quiz or a scheduled quiz, enforce release date and 5:00 AM time
-          if (q.isDailyQuiz || q.status === 'scheduled') {
-            const schedDate = q.scheduledDate || q.dailyDate;
+          // If it's a platform daily quiz, enforce release date and 5:00 AM release
+          if (q.isDailyQuiz) {
+            const schedDate = q.dailyDate || q.scheduledDate;
             if (!schedDate) return false;
             if (schedDate < todayStr) return true; // Past days are available
             if (schedDate === todayStr) {
-              // Auto-deliver: default daily quiz early morning is 05:00
-              const schedTime = q.scheduledTime || (q.isDailyQuiz ? '05:00' : '00:00');
+              const schedTime = q.scheduledTime || '05:00';
               return currentTimeStr >= schedTime;
             }
-            return false; // Future dates are scheduled and locked until that morning
+            return false; // Future daily quizzes remain hidden
           }
-          if (q.status === 'published') return true;
+          // For Church Quizzes: Members receive all published AND scheduled quizzes
+          if (q.status === 'published' || q.status === 'scheduled') return true;
           return false;
         });
       }
@@ -285,8 +242,8 @@ export class QuizService {
         return timeB - timeA;
       });
 
-      this.quizzesCache.set(cacheKey, { data: list, timestamp: Date.now() });
-      return list;
+      this.baseQuizzesCache.set(baseCacheKey, { data: list, timestamp: Date.now() });
+      return this.applyLocalizationToList(list, options?.targetLanguage);
     } catch (err: any) {
       console.warn('[QuizService] Handled getQuizzes failure:', err?.message || err);
       return [];
@@ -294,67 +251,175 @@ export class QuizService {
   }
 
   /**
+   * Helper: Synchronously localizes quiz titles and descriptions in memory (0ms latency).
+   */
+  private static applyLocalizationToList(list: BibleQuiz[], targetLanguage?: string): BibleQuiz[] {
+    if (!targetLanguage || targetLanguage === 'en') return list;
+    try {
+      const { getLocalizedDailyQuizTitle, getLocalizedDailyQuizDescription } = require('../constants/DailyQuizTranslations');
+      return list.map(q => {
+        let title = q.title;
+        let description = q.description;
+        if (q.isDailyQuiz && q.dailyDate) {
+          title = getLocalizedDailyQuizTitle(q.dailyDate, targetLanguage as any) || title;
+          description = getLocalizedDailyQuizDescription(q.dailyDate, targetLanguage as any) || description;
+        } else if (q.translations?.[targetLanguage]?.title) {
+          title = q.translations[targetLanguage].title;
+          description = q.translations[targetLanguage].description || description;
+        }
+        if (title !== q.title || description !== q.description) {
+          return { ...q, title, description };
+        }
+        return q;
+      });
+    } catch {
+      return list;
+    }
+  }
+
+  /**
    * Fetch a single quiz by ID (full details with answers for Admin / Scoring).
    */
-  static async getQuizById(quizId: string, churchId?: string): Promise<BibleQuiz | null> {
+  static async getQuizById(quizId: string, churchId?: string, targetLanguage?: string): Promise<BibleQuiz | null> {
     try {
-      const targetChurchId = await this.resolveChurchId(churchId);
+      // 0. Check in-memory baseQuizzesCache & quizzesCache first
+      for (const entry of this.baseQuizzesCache.values()) {
+        const found = entry.data.find(q => q.id === quizId);
+        if (found) {
+          if (targetLanguage && targetLanguage !== 'en') {
+            return await this.localizeQuiz(found, targetLanguage);
+          }
+          return found;
+        }
+      }
+      for (const entry of this.quizzesCache.values()) {
+        const found = entry.data.find(q => q.id === quizId);
+        if (found) {
+          if (targetLanguage && targetLanguage !== 'en') {
+            return await this.localizeQuiz(found, targetLanguage);
+          }
+          return found;
+        }
+      }
 
-      // 1. Check church-scoped collection
-      if (targetChurchId && targetChurchId !== 'global') {
+      let foundQuiz: BibleQuiz | null = null;
+
+      // Collect all candidate church IDs to check
+      const candidateChurchIds: string[] = [];
+      if (churchId && churchId !== 'global') {
+        candidateChurchIds.push(churchId);
+      }
+      try {
+        const cached = await AsyncStorage.getItem('@cached_church_id');
+        if (cached && cached !== 'global' && !candidateChurchIds.includes(cached)) {
+          candidateChurchIds.push(cached);
+        }
+        const active = await AsyncStorage.getItem('@active_church_id');
+        if (active && active !== 'global' && !candidateChurchIds.includes(active)) {
+          candidateChurchIds.push(active);
+        }
+        const storedChurch = await AsyncStorage.getItem('church_id');
+        if (storedChurch && storedChurch !== 'global' && !candidateChurchIds.includes(storedChurch)) {
+          candidateChurchIds.push(storedChurch);
+        }
+      } catch {
+        // ignore storage read errors
+      }
+
+      // 1. Check each candidate church subcollection
+      for (const cId of candidateChurchIds) {
         try {
           const doc = await firestore()
             .collection('churches')
-            .doc(targetChurchId)
+            .doc(cId)
             .collection(this.QUIZZES_COLLECTION)
             .doc(quizId)
             .get();
           const exists = typeof (doc as any).exists === 'function' ? (doc as any).exists() : Boolean((doc as any).exists);
-          if (exists) return { id: doc.id, ...doc.data() } as BibleQuiz;
+          if (exists) {
+            foundQuiz = { id: doc.id, churchId: cId, ...doc.data() } as BibleQuiz;
+            break;
+          }
+        } catch {
+          // ignore error for this candidate
+        }
+      }
+
+      // 2. Check global church subcollection
+      if (!foundQuiz) {
+        try {
+          const doc = await firestore()
+            .collection('churches')
+            .doc('global')
+            .collection(this.QUIZZES_COLLECTION)
+            .doc(quizId)
+            .get();
+          const exists = typeof (doc as any).exists === 'function' ? (doc as any).exists() : Boolean((doc as any).exists);
+          if (exists) {
+            foundQuiz = { id: doc.id, churchId: 'global', ...doc.data() } as BibleQuiz;
+          }
         } catch {
           // ignore
         }
       }
 
-      // 2. Check global church subcollection
-      try {
-        const doc = await firestore()
-          .collection('churches')
-          .doc('global')
-          .collection(this.QUIZZES_COLLECTION)
-          .doc(quizId)
-          .get();
-        const exists = typeof (doc as any).exists === 'function' ? (doc as any).exists() : Boolean((doc as any).exists);
-        if (exists) return { id: doc.id, ...doc.data() } as BibleQuiz;
-      } catch {
-        // ignore
-      }
-
-      // 3. Fallback to top-level collection
-      try {
-        const doc = await firestore().collection(this.QUIZZES_COLLECTION).doc(quizId).get();
-        const exists = typeof (doc as any).exists === 'function' ? (doc as any).exists() : Boolean((doc as any).exists);
-        if (exists) return { id: doc.id, ...doc.data() } as BibleQuiz;
-      } catch {
-        // ignore
-      }
-
-      // 4. Fallback search across all church subcollections via collectionGroup
-      try {
-        const groupSnap = await firestore()
-          .collectionGroup(this.QUIZZES_COLLECTION)
-          .where(firestore.FieldPath.documentId(), '==', quizId)
-          .limit(1)
-          .get();
-        if (!groupSnap.empty) {
-          const doc = groupSnap.docs[0];
-          return { id: doc.id, ...doc.data() } as BibleQuiz;
+      // 3. Fallback search across churches list if churchId was unspecified or mismatched
+      if (!foundQuiz) {
+        try {
+          const churchesSnap = await firestore().collection('churches').limit(25).get();
+          for (const churchDoc of churchesSnap.docs) {
+            if (candidateChurchIds.includes(churchDoc.id) || churchDoc.id === 'global') continue;
+            try {
+              const doc = await firestore()
+                .collection('churches')
+                .doc(churchDoc.id)
+                .collection(this.QUIZZES_COLLECTION)
+                .doc(quizId)
+                .get();
+              const exists = typeof (doc as any).exists === 'function' ? (doc as any).exists() : Boolean((doc as any).exists);
+              if (exists) {
+                foundQuiz = { id: doc.id, churchId: churchDoc.id, ...doc.data() } as BibleQuiz;
+                break;
+              }
+            } catch {
+              // ignore
+            }
+          }
+        } catch {
+          // ignore
         }
-      } catch {
-        // ignore
       }
 
-      return null;
+      // 4. Fallback to top-level collection (safeguard)
+      if (!foundQuiz) {
+        try {
+          const doc = await firestore().collection(this.QUIZZES_COLLECTION).doc(quizId).get();
+          const exists = typeof (doc as any).exists === 'function' ? (doc as any).exists() : Boolean((doc as any).exists);
+          if (exists) foundQuiz = { id: doc.id, ...doc.data() } as BibleQuiz;
+        } catch {
+          // ignore
+        }
+      }
+
+      // 5. Deterministic fallback for Daily Bible Quiz IDs (guarantees instant load on notification tap)
+      if (!foundQuiz && (quizId.startsWith('daily_quiz_') || quizId.startsWith('daily_'))) {
+        try {
+          const { DailyBibleQuizBank } = require('./DailyBibleQuizBank');
+          const dateStr = quizId.replace('daily_quiz_', '').replace('daily_', '');
+          foundQuiz = DailyBibleQuizBank.createDailyQuizEntity(dateStr, churchId || 'global');
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!foundQuiz) return null;
+
+      // Apply on-the-fly and cached localization if member requested non-English language
+      if (targetLanguage && targetLanguage !== 'en') {
+        return await this.localizeQuiz(foundQuiz, targetLanguage);
+      }
+
+      return foundQuiz;
     } catch (err: any) {
       console.warn('[QuizService] Notice in getQuizById:', err?.message || err);
       return null;
@@ -363,10 +428,15 @@ export class QuizService {
 
   /**
    * Fetch a sanitized quiz for members to take (correct answers & explanations removed).
+   * Localizes content into target language (e.g. for uploaded documents in Member View).
    */
-  static async getPublicQuizById(quizId: string, churchId?: string): Promise<{ quiz: Omit<BibleQuiz, 'questions'>; questions: PublicQuizQuestion[] } | null> {
+  static async getPublicQuizById(
+    quizId: string,
+    churchId?: string,
+    targetLanguage?: string
+  ): Promise<{ quiz: Omit<BibleQuiz, 'questions'>; questions: PublicQuizQuestion[] } | null> {
     try {
-      const quiz = await this.getQuizById(quizId, churchId);
+      const quiz = await this.getQuizById(quizId, churchId, targetLanguage);
       if (!quiz) return null;
 
       // Sanitize questions so correct answers are not exposed in client memory
@@ -380,6 +450,7 @@ export class QuizService {
         optionsTelugu: q.optionsTelugu,
         bibleReference: q.bibleReference || '',
         marks: q.marks || 1,
+        translations: q.translations,
       }));
 
       const { questions, ...quizMeta } = quiz;
@@ -391,6 +462,245 @@ export class QuizService {
     } catch (err: any) {
       console.warn('[QuizService] Notice in getPublicQuizById:', err?.message || err);
       return null;
+    }
+  }
+
+  /**
+   * Localize quiz metadata and questions into target language (e.g. te, ta, hi, kn, ml, mr).
+   * Prioritizes Firestore document translations, then local AsyncStorage cache, then high-speed AI translation.
+   */
+  static async localizeQuiz(quiz: BibleQuiz, targetLanguage: string): Promise<BibleQuiz> {
+    if (!targetLanguage || targetLanguage === 'en' || !quiz) {
+      return quiz;
+    }
+
+    if (quiz.language === targetLanguage && !quiz.sourceFile) {
+      return quiz;
+    }
+
+    const memKey = `${quiz.id}_${targetLanguage}`;
+    if (this.localizedQuizCache.has(memKey)) {
+      return this.localizedQuizCache.get(memKey)!;
+    }
+
+    // FAST-PATH: Platform Daily Bible Quizzes are translated synchronously (0ms, zero network latency)
+    if (quiz.isDailyQuiz || quiz.id?.startsWith('daily_quiz_') || quiz.id?.startsWith('daily_')) {
+      try {
+        const {
+          getLocalizedDailyQuestion,
+          getLocalizedDailyQuizTitle,
+          getLocalizedDailyQuizDescription,
+        } = require('../constants/DailyQuizTranslations');
+        const localizedTitle = quiz.dailyDate
+          ? getLocalizedDailyQuizTitle(quiz.dailyDate, targetLanguage as any)
+          : (quiz.translations?.[targetLanguage]?.title || quiz.title);
+        const localizedDescription = quiz.dailyDate
+          ? getLocalizedDailyQuizDescription(quiz.dailyDate, targetLanguage as any)
+          : (quiz.translations?.[targetLanguage]?.description || quiz.description);
+        const localizedQuestions = (quiz.questions || []).map((q: any) => {
+          const locQ = getLocalizedDailyQuestion(q, targetLanguage as any);
+          return {
+            ...q,
+            question: locQ.question,
+            options: locQ.options,
+            explanation: locQ.explanation || q.explanation,
+            bibleReference: locQ.bibleReference || q.bibleReference,
+            correctAnswer: locQ.correctAnswer || q.correctAnswer,
+          };
+        });
+
+        const localizedResult: BibleQuiz = {
+          ...quiz,
+          title: localizedTitle,
+          description: localizedDescription,
+          questions: localizedQuestions,
+        };
+        this.localizedQuizCache.set(memKey, localizedResult);
+        return localizedResult;
+      } catch (e) {
+        console.warn('[QuizService] Notice in daily quiz translation:', e);
+      }
+    }
+
+    // 1. Check if Firestore already has translations for targetLanguage
+    const hasDocTitle = Boolean(quiz.translations?.[targetLanguage]?.title);
+    const hasQuestionTranslations = (quiz.questions || []).length > 0 && (quiz.questions || []).every(
+      q => Boolean(q.translations?.[targetLanguage]?.question) || (targetLanguage === 'te' && Boolean(q.questionTelugu))
+    );
+
+    if (hasDocTitle || hasQuestionTranslations) {
+      const translatedData: QuizTranslationResult = {
+        title: quiz.translations?.[targetLanguage]?.title || quiz.title,
+        description: quiz.translations?.[targetLanguage]?.description || quiz.description,
+        questions: (quiz.questions || []).map(q => {
+          const tq = q.translations?.[targetLanguage];
+          if (tq) {
+            return {
+              id: q.id,
+              question: tq.question || q.question,
+              options: tq.options || q.options,
+              correctAnswer: tq.correctAnswer || q.correctAnswer,
+              explanation: tq.explanation || q.explanation,
+            };
+          }
+          if (targetLanguage === 'te' && q.questionTelugu) {
+            return {
+              id: q.id,
+              question: q.questionTelugu,
+              options: q.optionsTelugu || q.options,
+              correctAnswer: q.correctAnswer,
+              explanation: q.explanationTelugu || q.explanation,
+            };
+          }
+          return {
+            id: q.id,
+            question: q.question,
+            options: q.options,
+            correctAnswer: q.correctAnswer,
+            explanation: q.explanation,
+          };
+        }),
+      };
+      return this.applyTranslationsToQuiz(quiz, targetLanguage, translatedData);
+    }
+
+    // 2. Check local persistent AsyncStorage cache
+    const cacheKey = `@quiz_trans_${quiz.id}_${targetLanguage}`;
+    try {
+      const cached = await AsyncStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed: QuizTranslationResult = JSON.parse(cached);
+        if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+          console.log(`[QuizService] Loaded cached translation for quiz "${quiz.id}" in ${targetLanguage}`);
+          return this.applyTranslationsToQuiz(quiz, targetLanguage, parsed);
+        }
+      }
+    } catch {}
+
+    // 3. Perform AI Translation via QuizAIService
+    try {
+      console.log(`[QuizService] Translating uploaded document quiz "${quiz.id}" into ${targetLanguage}...`);
+      const translated = await QuizAIService.translateQuiz(
+        {
+          title: quiz.title,
+          description: quiz.description,
+          questions: quiz.questions || [],
+        },
+        targetLanguage
+      );
+
+      if (translated && Array.isArray(translated.questions) && translated.questions.length > 0) {
+        // Cache persistently in AsyncStorage for instantaneous offline reuse
+        try {
+          await AsyncStorage.setItem(cacheKey, JSON.stringify(translated));
+        } catch {}
+
+        // Asynchronously persist to Firestore (fire-and-forget)
+        this.saveQuizTranslations(quiz.id, quiz.churchId, targetLanguage, translated).catch(() => {});
+
+        return this.applyTranslationsToQuiz(quiz, targetLanguage, translated);
+      }
+    } catch (err: any) {
+      console.warn(`[QuizService] Translation of quiz ${quiz.id} into ${targetLanguage} failed:`, err?.message || err);
+    }
+
+    return quiz;
+  }
+
+  /**
+   * Standardize and merge translations into the BibleQuiz object.
+   */
+  static applyTranslationsToQuiz(
+    quiz: BibleQuiz,
+    targetLanguage: string,
+    translatedData: QuizTranslationResult
+  ): BibleQuiz {
+    const qMap = new Map<string, any>();
+    (translatedData.questions || []).forEach((tq, idx) => {
+      if (tq.id) qMap.set(tq.id, tq);
+      qMap.set(String(idx), tq);
+    });
+
+    const updatedQuestions: QuizQuestion[] = (quiz.questions || []).map((q, idx) => {
+      const tq = qMap.get(q.id) || qMap.get(String(idx));
+      if (!tq) return q;
+
+      const newTranslations = {
+        ...(q.translations || {}),
+        [targetLanguage]: {
+          question: tq.question || q.question,
+          options: Array.isArray(tq.options) && tq.options.length > 0 ? tq.options : q.options,
+          explanation: tq.explanation || q.explanation,
+          correctAnswer: tq.correctAnswer || q.correctAnswer,
+        },
+      };
+
+      const isTe = targetLanguage === 'te';
+
+      return {
+        ...q,
+        question: tq.question || q.question,
+        options: Array.isArray(tq.options) && tq.options.length > 0 ? tq.options : q.options,
+        explanation: tq.explanation || q.explanation,
+        questionTelugu: isTe ? (tq.question || q.questionTelugu || q.question) : q.questionTelugu,
+        optionsTelugu: isTe ? (Array.isArray(tq.options) && tq.options.length > 0 ? tq.options : (q.optionsTelugu || q.options)) : q.optionsTelugu,
+        explanationTelugu: isTe ? (tq.explanation || q.explanationTelugu || q.explanation) : q.explanationTelugu,
+        translations: newTranslations,
+      };
+    });
+
+    const newDocTranslations = {
+      ...(quiz.translations || {}),
+      [targetLanguage]: {
+        title: translatedData.title || quiz.title,
+        description: translatedData.description || quiz.description,
+      },
+    };
+
+    const result: BibleQuiz = {
+      ...quiz,
+      title: translatedData.title || quiz.title,
+      description: translatedData.description || quiz.description,
+      translations: newDocTranslations,
+      questions: updatedQuestions,
+    };
+    this.localizedQuizCache.set(`${quiz.id}_${targetLanguage}`, result);
+    return result;
+  }
+
+  /**
+   * Persist translated title and description to Firestore for future member visits.
+   */
+  static async saveQuizTranslations(
+    quizId: string,
+    churchId: string | undefined,
+    targetLanguage: string,
+    translatedData: QuizTranslationResult
+  ): Promise<void> {
+    try {
+      const targetChurchId = await this.resolveChurchId(churchId);
+      const updateData: any = {
+        [`translations.${targetLanguage}.title`]: translatedData.title,
+        [`translations.${targetLanguage}.description`]: translatedData.description,
+      };
+
+      if (targetChurchId && targetChurchId !== 'global') {
+        await firestore()
+          .collection('churches')
+          .doc(targetChurchId)
+          .collection(this.QUIZZES_COLLECTION)
+          .doc(quizId)
+          .update(updateData);
+      } else {
+        await firestore()
+          .collection('churches')
+          .doc('global')
+          .collection(this.QUIZZES_COLLECTION)
+          .doc(quizId)
+          .update(updateData);
+      }
+    } catch {
+      // Non-critical background save
     }
   }
 
@@ -422,6 +732,106 @@ export class QuizService {
   }
 
   /**
+   * Deep sanitizer: removes all undefined values and ensures timestamps/dates
+   * are valid Firestore Timestamps so Firestore.set() never throws errors.
+   */
+  static sanitizeForFirestore<T = any>(data: T): T {
+    if (data === undefined) return null as any;
+    if (data === null) return null as any;
+    if (typeof data !== 'object') return data;
+
+    // Convert Date to Firestore Timestamp
+    if (data instanceof Date) {
+      return firestore.Timestamp.fromDate(data) as any;
+    }
+
+    // Convert serialized Timestamp or objects with toMillis / toDate
+    if (typeof (data as any).toMillis === 'function') {
+      try {
+        return firestore.Timestamp.fromMillis((data as any).toMillis()) as any;
+      } catch {
+        return firestore.Timestamp.now() as any;
+      }
+    }
+    if (typeof (data as any).toDate === 'function') {
+      try {
+        return firestore.Timestamp.fromDate((data as any).toDate()) as any;
+      } catch {
+        return firestore.Timestamp.now() as any;
+      }
+    }
+    if (typeof (data as any)._seconds === 'number') {
+      return new firestore.Timestamp((data as any)._seconds, (data as any)._nanoseconds || 0) as any;
+    }
+    if (typeof (data as any).seconds === 'number' && typeof (data as any).nanoseconds === 'number') {
+      return new firestore.Timestamp((data as any).seconds, (data as any).nanoseconds) as any;
+    }
+
+    // Arrays
+    if (Array.isArray(data)) {
+      return data
+        .filter(item => item !== undefined)
+        .map(item => this.sanitizeForFirestore(item)) as any;
+    }
+
+    // Plain Objects
+    const cleaned: Record<string, any> = {};
+    for (const [key, val] of Object.entries(data as Record<string, any>)) {
+      if (val !== undefined) {
+        cleaned[key] = this.sanitizeForFirestore(val);
+      }
+    }
+    return cleaned as T;
+  }
+
+  /**
+   * Schedules a local notification on this device for the exact scheduled date and time
+   * so the member receives it at the scheduled quiz time (e.g. 2:35 PM), NOT immediately.
+   */
+  static async scheduleDeviceQuizNotification(quiz: BibleQuiz): Promise<void> {
+    try {
+      if (!quiz?.scheduledDate) return;
+      const [y, m, d] = quiz.scheduledDate.split('-').map(Number);
+      if (!y || !m || !d) return;
+
+      const [hStr, mStr] = (quiz.scheduledTime || '06:00').split(':');
+      const hour = parseInt(hStr, 10) || 6;
+      const minute = parseInt(mStr, 10) || 0;
+
+      const targetDate = new Date(y, m - 1, d, hour, minute, 0, 0);
+      if (targetDate.getTime() <= Date.now()) {
+        // Scheduled time has already arrived or passed; trigger live notification now
+        await this.notifyMembersQuizPublished(quiz);
+        return;
+      }
+
+      const notifId = `quiz_sched_${quiz.id}`;
+      await Notifications.scheduleNotificationAsync({
+        identifier: notifId,
+        content: {
+          title: `📖 Bible Quiz is Now Live: ${quiz.title || 'Scripture Quiz'}`,
+          body: `The scheduled quiz is now unlocked and available to play! Tap to test your knowledge.`,
+          sound: true,
+          data: {
+            type: 'quiz',
+            screen: 'BibleQuizDetail',
+            quizId: quiz.id,
+            id: quiz.id,
+            churchId: quiz.churchId || 'global',
+          },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: targetDate,
+        },
+      });
+      console.log(`[QuizService] Local quiz notification scheduled for ${targetDate.toISOString()} (ID: ${notifId})`);
+    } catch (e: any) {
+      console.warn('[QuizService] Failed to schedule device quiz notification:', e?.message || e);
+    }
+  }
+
+  /**
    * Save (create or update) a quiz in Firestore.
    */
   static async saveQuiz(quizData: Partial<BibleQuiz>): Promise<string> {
@@ -444,6 +854,9 @@ export class QuizService {
 
       const quizId = quizData.id || firestore().collection('churches').doc(targetChurchId).collection(this.QUIZZES_COLLECTION).doc().id;
 
+      const todayIso = new Date().toISOString().split('T')[0];
+      const finalScheduledDate = quizData.scheduledDate || (quizData.status === 'published' ? todayIso : '');
+
       const payload: BibleQuiz = {
         id: quizId,
         churchId: targetChurchId,
@@ -459,8 +872,8 @@ export class QuizService {
         language: quizData.language || 'en',
         bibleVersion: quizData.bibleVersion || 'NIV',
         isDailyQuiz: quizData.isDailyQuiz || false,
-        dailyDate: quizData.dailyDate || (quizData.isDailyQuiz ? new Date().toISOString().split('T')[0] : ''),
-        scheduledDate: quizData.scheduledDate || '',
+        dailyDate: quizData.dailyDate || (quizData.isDailyQuiz ? todayIso : ''),
+        scheduledDate: finalScheduledDate,
         scheduledTime: quizData.scheduledTime || '',
         scheduledAt: quizData.scheduledAt || null,
         sourceFile: quizData.sourceFile || '',
@@ -475,9 +888,12 @@ export class QuizService {
         quizImageUrl: quizData.quizImageUrl || '',
         questions: enrichedQuestions,
         createdBy: quizData.createdBy || 'Admin',
-        createdAt: quizData.createdAt || now,
+        createdAt: quizData.createdAt ? this.sanitizeForFirestore(quizData.createdAt) : now,
         updatedAt: now,
       };
+
+      // Sanitize payload recursively to prevent ANY undefined or unsupported values
+      const cleanPayload = this.sanitizeForFirestore(payload);
 
       // 1. Save to church-scoped subcollection (primary)
       if (targetChurchId && targetChurchId !== 'global') {
@@ -486,27 +902,33 @@ export class QuizService {
           .doc(targetChurchId)
           .collection(this.QUIZZES_COLLECTION)
           .doc(quizId)
-          .set(payload, { merge: true });
+          .set(cleanPayload, { merge: true });
       } else {
         await firestore()
           .collection('churches')
           .doc('global')
           .collection(this.QUIZZES_COLLECTION)
           .doc(quizId)
-          .set(payload, { merge: true });
+          .set(cleanPayload, { merge: true });
       }
 
       // 2. Also try writing to root collection as safeguard
       firestore()
         .collection(this.QUIZZES_COLLECTION)
         .doc(quizId)
-        .set(payload, { merge: true })
+        .set(cleanPayload, { merge: true })
         .catch(() => {});
 
-      // 3. If published, notify church members via push broadcast & in-app notification
+      // 3. Notification dispatch:
+      // - If PUBLISHED (Live now): notify church members immediately
+      // - If SCHEDULED: schedule notification for the exact release time (e.g. 2:35 PM), NOT immediately!
       if (payload.status === 'published') {
         this.notifyMembersQuizPublished(payload).catch((e: any) => {
           console.warn('[QuizService] Post-save notification warning:', e);
+        });
+      } else if (payload.status === 'scheduled') {
+        this.scheduleDeviceQuizNotification(payload).catch((e: any) => {
+          console.warn('[QuizService] Schedule notification warning:', e);
         });
       }
 
@@ -521,13 +943,13 @@ export class QuizService {
   }
 
   /**
-   * Dispatches push broadcast and in-app notifications when a quiz is published.
+   * Dispatches push broadcast and in-app notifications when a quiz is published live.
    * Creates a broadcast record in churches/{churchId}/broadcasts (triggers Cloud Functions)
    * and logs in churches/{churchId}/notifications for the member notification center.
    */
   static async notifyMembersQuizPublished(quiz: BibleQuiz): Promise<void> {
     try {
-      if (!quiz || !quiz.churchId) return;
+      if (!quiz || !quiz.churchId || quiz.churchId === 'global') return;
       const targetChurchId = quiz.churchId;
       const quizTitle = (quiz.title || 'Bible Quiz').trim();
       const topicInfo = quiz.book
@@ -538,7 +960,7 @@ export class QuizService {
       const pushBody = `A new Bible quiz is now live on ${topicInfo}! Tap to test your knowledge and see your score.`;
 
       // 1. Write to churches/{churchId}/broadcasts to trigger Cloud Function broadcast push
-      if (targetChurchId) {
+      try {
         await firestore()
           .collection('churches')
           .doc(targetChurchId)
@@ -553,13 +975,14 @@ export class QuizService {
             screen: 'BibleQuizDetail',
             churchId: targetChurchId,
             createdAt: firestore.FieldValue.serverTimestamp(),
-          })
-          .catch((e: any) => console.warn('[QuizService] Broadcast creation warning:', e));
+          });
+      } catch (e: any) {
+        console.warn('[QuizService] Broadcast creation warning:', e);
       }
 
       // 2. Also write in-app notification to churches/{churchId}/notifications
-      if (targetChurchId) {
-        firestore()
+      try {
+        await firestore()
           .collection('churches')
           .doc(targetChurchId)
           .collection('notifications')
@@ -576,11 +999,76 @@ export class QuizService {
             category: quiz.category || '',
             read: false,
             createdAt: firestore.FieldValue.serverTimestamp(),
+          });
+      } catch (e: any) {
+        console.warn('[QuizService] In-app notification creation warning:', e);
+      }
+    } catch (err: any) {
+      console.warn('[QuizService] Failed to notify members of quiz:', err);
+    }
+  }
+
+  /**
+   * Dispatches push broadcast and in-app notifications when a quiz is scheduled.
+   * Notifies church members in advance so they anticipate the scheduled release.
+   */
+  static async notifyMembersQuizScheduled(quiz: BibleQuiz): Promise<void> {
+    try {
+      if (!quiz || !quiz.churchId) return;
+      const targetChurchId = quiz.churchId;
+      const quizTitle = (quiz.title || 'Bible Quiz').trim();
+      const schedTimeFormatted = quiz.scheduledTime ? ` at ${quiz.scheduledTime}` : '';
+      const schedDateFormatted = quiz.scheduledDate || 'Upcoming';
+
+      const pushTitle = `📖 Quiz Scheduled: ${quizTitle}`;
+      const pushBody = `A new Bible quiz "${quizTitle}" has been scheduled for ${schedDateFormatted}${schedTimeFormatted}. Get ready to participate!`;
+
+      // 1. Write to churches/{churchId}/broadcasts to trigger Cloud Function broadcast push
+      if (targetChurchId) {
+        await firestore()
+          .collection('churches')
+          .doc(targetChurchId)
+          .collection('broadcasts')
+          .add({
+            title: pushTitle,
+            content: pushBody,
+            type: 'quiz_scheduled',
+            id: quiz.id,
+            quizId: quiz.id,
+            relatedId: quiz.id,
+            screen: 'BibleQuizDetail',
+            churchId: targetChurchId,
+            createdAt: firestore.FieldValue.serverTimestamp(),
+          })
+          .catch((e: any) => console.warn('[QuizService] Scheduled broadcast creation warning:', e));
+      }
+
+      // 2. Also write in-app notification to churches/{churchId}/notifications
+      if (targetChurchId) {
+        firestore()
+          .collection('churches')
+          .doc(targetChurchId)
+          .collection('notifications')
+          .add({
+            type: 'quiz_scheduled',
+            title: pushTitle,
+            body: pushBody,
+            id: quiz.id,
+            quizId: quiz.id,
+            relatedId: quiz.id,
+            screen: 'BibleQuizDetail',
+            churchId: targetChurchId,
+            quizTitle: quizTitle,
+            scheduledDate: quiz.scheduledDate,
+            scheduledTime: quiz.scheduledTime,
+            category: quiz.category || '',
+            read: false,
+            createdAt: firestore.FieldValue.serverTimestamp(),
           })
           .catch(() => {});
       }
     } catch (err: any) {
-      console.warn('[QuizService] Failed to notify members of quiz:', err);
+      console.warn('[QuizService] Failed to notify members of scheduled quiz:', err);
     }
   }
 
@@ -621,6 +1109,46 @@ export class QuizService {
       return true;
     } catch (err: any) {
       console.error('[QuizService] Error deleting quiz:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Delete a quiz attempt / member report.
+   */
+  static async deleteQuizAttempt(attemptId: string, churchId?: string): Promise<boolean> {
+    try {
+      const targetChurchId = await this.resolveChurchId(churchId);
+
+      if (targetChurchId && targetChurchId !== 'global') {
+        await firestore()
+          .collection('churches')
+          .doc(targetChurchId)
+          .collection(this.ATTEMPTS_COLLECTION)
+          .doc(attemptId)
+          .delete()
+          .catch(() => {});
+      }
+
+      await firestore()
+        .collection('churches')
+        .doc('global')
+        .collection(this.ATTEMPTS_COLLECTION)
+        .doc(attemptId)
+        .delete()
+        .catch(() => {});
+
+      firestore()
+        .collection(this.ATTEMPTS_COLLECTION)
+        .doc(attemptId)
+        .delete()
+        .catch(() => {});
+
+      // Invalidate attempt cache so UI updates immediately
+      this.attemptsCache.clear();
+      return true;
+    } catch (err: any) {
+      console.error('[QuizService] Error deleting quiz attempt:', err);
       return false;
     }
   }

@@ -21,6 +21,12 @@ export interface QuizQuestion {
   explanationTelugu?: string;
   marks: number;
   questionHash?: string; // Normalized string hash for duplicate checking
+  translations?: Record<string, {
+    question: string;
+    options: string[];
+    explanation?: string;
+    correctAnswer?: string | string[];
+  }>;
 }
 
 // Client-sanitized question for members taking the quiz (No correct answers or explanations)
@@ -34,6 +40,11 @@ export interface PublicQuizQuestion {
   optionsTelugu?: string[];
   bibleReference?: string;
   marks: number;
+  translations?: Record<string, {
+    question: string;
+    options: string[];
+    explanation?: string;
+  }>;
 }
 
 export interface BibleQuiz {
@@ -42,6 +53,10 @@ export interface BibleQuiz {
   churchName?: string;
   title: string;
   description: string;
+  translations?: Record<string, {
+    title: string;
+    description?: string;
+  }>;
   category: string; // e.g. 'Family', 'Friends', 'Mother', 'Father', 'Love', etc.
   level?: number; // 1 to 30 for Level-Based Quizzes
   book?: string;

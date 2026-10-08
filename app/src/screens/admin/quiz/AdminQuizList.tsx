@@ -36,6 +36,9 @@ import {
   XCircle,
   ArrowUpDown,
   Phone,
+  Eye,
+  PauseCircle,
+  Send,
 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { BibleQuiz, QuizStatus, QuizAttempt } from '../../../types/Quiz';
@@ -44,6 +47,7 @@ import { useChurch } from '../../../context/ChurchContext';
 import { AdminTabContext } from '../../../context/AdminTabContext';
 import AdminQuizEditor from './AdminQuizEditor';
 import AdminQuizReports from './AdminQuizReports';
+import { formatQuizTime } from '../../../utils/QuizScheduleUtils';
 
 export default function AdminQuizList() {
   const navigation = useNavigation<any>();
@@ -74,6 +78,11 @@ export default function AdminQuizList() {
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deleteSuccessTitle, setDeleteSuccessTitle] = useState<string | null>(null);
 
+  // Custom Delete Report / Attempt Flow States
+  const [attemptToDelete, setAttemptToDelete] = useState<QuizAttempt | null>(null);
+  const [isDeletingAttempt, setIsDeletingAttempt] = useState<boolean>(false);
+  const [deleteAttemptSuccessName, setDeleteAttemptSuccessName] = useState<string | null>(null);
+
   const handleGoBack = () => {
     if (adminTabCtx?.goBack) {
       adminTabCtx.goBack();
@@ -99,7 +108,8 @@ export default function AdminQuizList() {
       if (quizzes.length === 0 && !isManualRefresh) {
         setLoading(true);
       }
-      const list = await QuizService.getQuizzes(churchId, { isAdmin: true, forceRefresh: isManualRefresh });
+      QuizService.clearCache();
+      const list = await QuizService.getQuizzes(churchId, { isAdmin: true, forceRefresh: true });
       setQuizzes(list);
     } catch (err) {
       console.error(err);
@@ -154,15 +164,47 @@ export default function AdminQuizList() {
     }
   };
 
+  const handleDeleteAttempt = (attempt: QuizAttempt) => {
+    setAttemptToDelete(attempt);
+  };
+
+  const confirmDeleteAttempt = async () => {
+    if (!attemptToDelete) return;
+    const memberName = attemptToDelete.memberName || 'Member';
+    const targetId = attemptToDelete.id;
+    setIsDeletingAttempt(true);
+    try {
+      await QuizService.deleteQuizAttempt(targetId, churchId);
+      setAttempts(prev => prev.filter(a => a.id !== targetId));
+      if (inspectAttempt?.id === targetId) {
+        setInspectAttempt(null);
+      }
+      setAttemptToDelete(null);
+      setDeleteAttemptSuccessName(memberName);
+    } catch {
+      Alert.alert('Error', 'Failed to delete quiz report. Please try again.');
+    } finally {
+      setIsDeletingAttempt(false);
+    }
+  };
+
   const handleTogglePublish = async (quiz: BibleQuiz) => {
     const newStatus: QuizStatus = quiz.status === 'published' ? 'draft' : 'published';
+    const today = new Date().toISOString().split('T')[0];
     try {
-      await QuizService.saveQuiz({ ...quiz, id: quiz.id, churchId: quiz.churchId || churchId, status: newStatus });
+      await QuizService.saveQuiz({
+        ...quiz,
+        id: quiz.id,
+        churchId: quiz.churchId || churchId,
+        status: newStatus,
+        scheduledDate: quiz.scheduledDate || today,
+      });
       setQuizzes(prev =>
-        prev.map(q => (q.id === quiz.id ? { ...q, status: newStatus } : q))
+        prev.map(q => (q.id === quiz.id ? { ...q, status: newStatus, scheduledDate: q.scheduledDate || today } : q))
       );
-    } catch {
-      Alert.alert('Error', 'Failed to update status.');
+    } catch (err: any) {
+      console.error('[AdminQuizList] handleTogglePublish error:', err);
+      Alert.alert('Error', err?.message || 'Failed to update status.');
     }
   };
 
@@ -404,6 +446,121 @@ export default function AdminQuizList() {
     );
   };
 
+  // ─── Delete Report Confirmation Modal ───────────────────────────────────────
+  const renderDeleteAttemptModal = () => {
+    if (!attemptToDelete) return null;
+
+    return (
+      <Modal visible={!!attemptToDelete} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.deleteCard}>
+            <TouchableOpacity
+              onPress={() => !isDeletingAttempt && setAttemptToDelete(null)}
+              style={styles.deleteCloseBtn}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              disabled={isDeletingAttempt}
+            >
+              <X size={18} color="#64748B" />
+            </TouchableOpacity>
+
+            <View style={styles.deleteIconCircle}>
+              <Trash2 size={24} color="#DC2626" />
+            </View>
+
+            <Text style={styles.deleteTitle}>Delete Quiz Report?</Text>
+            <Text style={styles.deleteSubtitle}>
+              Are you sure you want to delete this member's quiz report?
+            </Text>
+
+            <View style={styles.deleteQuizPreviewBox}>
+              <Text style={styles.deleteQuizPreviewTitle} numberOfLines={2}>
+                {attemptToDelete.memberName || 'Member'}
+              </Text>
+              <View style={styles.deleteQuizBadgesRow}>
+                <View style={styles.deleteQuizBadge}>
+                  <BookOpen size={11} color="#1a2d5a" />
+                  <Text style={styles.deleteQuizBadgeTxt} numberOfLines={1}>
+                    {attemptToDelete.quizTitle || 'Bible Quiz'}
+                  </Text>
+                </View>
+                <View style={styles.deleteQuizBadge}>
+                  <Text style={styles.deleteQuizBadgeTxt}>
+                    {attemptToDelete.score}/{attemptToDelete.totalMarks} ({attemptToDelete.percentage}%)
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.deleteWarningBox}>
+              <AlertTriangle size={13} color="#D97706" />
+              <Text style={styles.deleteWarningTxt}>
+                This member's attempt record, answers, and ranking will be removed.
+              </Text>
+            </View>
+
+            <View style={styles.deleteActionsRow}>
+              <TouchableOpacity
+                style={styles.deleteCancelBtn}
+                onPress={() => setAttemptToDelete(null)}
+                disabled={isDeletingAttempt}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.deleteCancelBtnTxt}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.deleteConfirmBtn}
+                onPress={confirmDeleteAttempt}
+                disabled={isDeletingAttempt}
+                activeOpacity={0.8}
+              >
+                {isDeletingAttempt ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Trash2 size={16} color="#FFFFFF" />
+                    <Text style={styles.deleteConfirmBtnTxt}>Delete</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  // ─── Delete Report Success Modal ───────────────────────────────────────────
+  const renderDeleteAttemptSuccessModal = () => {
+    if (!deleteAttemptSuccessName) return null;
+
+    return (
+      <Modal visible={!!deleteAttemptSuccessName} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.deleteCard}>
+            <View style={styles.deleteSuccessIconCircle}>
+              <CheckCircle size={30} color="#059669" />
+            </View>
+
+            <Text style={styles.deleteTitle}>Report Deleted</Text>
+            <Text style={styles.deleteSubtitle}>
+              The quiz attempt report for "{deleteAttemptSuccessName}" has been removed.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.deleteSuccessBtn}
+              onPress={() => setDeleteAttemptSuccessName(null)}
+              activeOpacity={0.85}
+            >
+              <Check size={16} color="#ffffff" />
+              <Text style={styles.deleteSuccessBtnTxt}>Got It</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   // ─── Reports Section Rendering ──────────────────────────────────────────
   const renderReportsSection = () => {
     const totalAttemptsCount = attempts.length;
@@ -605,6 +762,15 @@ export default function AdminQuizList() {
                       ({attempt.score}/{attempt.totalMarks} pts)
                     </Text>
                   </View>
+
+                  <TouchableOpacity
+                    style={styles.attemptTrashBtn}
+                    onPress={() => handleDeleteAttempt(attempt)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.7}
+                  >
+                    <Trash2 size={15} color="#DC2626" />
+                  </TouchableOpacity>
                 </View>
 
                 {/* Member Profile Row */}
@@ -660,19 +826,32 @@ export default function AdminQuizList() {
                   </View>
                 </View>
 
-                {/* Review Answers Button */}
-                {Array.isArray(attempt.answers) && attempt.answers.length > 0 && (
+                {/* Action Buttons Row: Review Answers & Delete */}
+                <View style={styles.attemptActionsRow}>
+                  {Array.isArray(attempt.answers) && attempt.answers.length > 0 ? (
+                    <TouchableOpacity
+                      style={styles.reviewAnswersBtn}
+                      onPress={() => setInspectAttempt(attempt)}
+                      activeOpacity={0.82}
+                    >
+                      <FileText size={13} color="#1a2d5a" />
+                      <Text style={styles.reviewAnswersBtnTxt}>
+                        Review Answers ({attempt.answers.length} Qs)
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={{ flex: 1 }} />
+                  )}
+
                   <TouchableOpacity
-                    style={styles.reviewAnswersBtn}
-                    onPress={() => setInspectAttempt(attempt)}
+                    style={styles.deleteAttemptBtn}
+                    onPress={() => handleDeleteAttempt(attempt)}
                     activeOpacity={0.82}
                   >
-                    <FileText size={13} color="#1a2d5a" />
-                    <Text style={styles.reviewAnswersBtnTxt}>
-                      Review Answers ({attempt.answers.length} Questions)
-                    </Text>
+                    <Trash2 size={13} color="#DC2626" />
+                    <Text style={styles.deleteAttemptBtnTxt}>Delete Report</Text>
                   </TouchableOpacity>
-                )}
+                </View>
               </View>
             );
           })
@@ -781,14 +960,29 @@ export default function AdminQuizList() {
               })}
             </ScrollView>
 
-            {/* Bottom Done Button */}
-            <TouchableOpacity
-              style={styles.reviewModalDoneBtn}
-              onPress={() => setInspectAttempt(null)}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.reviewModalDoneBtnTxt}>Close Review</Text>
-            </TouchableOpacity>
+            {/* Bottom Actions Row: Delete Report & Close Review */}
+            <View style={styles.reviewModalActionsRow}>
+              <TouchableOpacity
+                style={styles.reviewModalDeleteBtn}
+                onPress={() => {
+                  const target = inspectAttempt;
+                  setInspectAttempt(null);
+                  handleDeleteAttempt(target);
+                }}
+                activeOpacity={0.85}
+              >
+                <Trash2 size={14} color="#DC2626" />
+                <Text style={styles.reviewModalDeleteBtnTxt}>Delete Report</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.reviewModalDoneBtn}
+                onPress={() => setInspectAttempt(null)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.reviewModalDoneBtnTxt}>Close Review</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -881,6 +1075,30 @@ export default function AdminQuizList() {
             </View>
             <Text style={styles.statHintTxt}>
               {statusFilter === 'Published' ? 'Active ✓' : 'Tap to view'}
+            </Text>
+          </TouchableOpacity>
+
+          {/* 3. Scheduled Card */}
+          <TouchableOpacity
+            style={[
+              styles.statBox,
+              statusFilter === 'Scheduled' && styles.statBoxActiveScheduled,
+            ]}
+            onPress={() => setStatusFilter(prev => prev === 'Scheduled' ? 'All' : 'Scheduled')}
+            activeOpacity={0.75}
+          >
+            <View style={[styles.statNotch, { backgroundColor: '#2563eb' }]} />
+            <Text style={[styles.num, { color: '#2563eb' }]}>{scheduledCount}</Text>
+            <View style={styles.statLabelRow}>
+              <Text style={[styles.statLabel, statusFilter === 'Scheduled' && { color: '#2563eb' }]}>
+                Scheduled
+              </Text>
+              {statusFilter === 'Scheduled' && (
+                <View style={[styles.activeIndicatorDot, { backgroundColor: '#2563eb' }]} />
+              )}
+            </View>
+            <Text style={styles.statHintTxt}>
+              {statusFilter === 'Scheduled' ? 'Active ✓' : 'Tap to view'}
             </Text>
           </TouchableOpacity>
 
@@ -983,113 +1201,151 @@ export default function AdminQuizList() {
             const isScheduled = quiz.status === 'scheduled';
             return (
               <View key={quiz.id} style={styles.quizCard}>
-                <View style={styles.cardHeader}>
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <View
-                        style={[
-                          styles.statusBadge,
-                          isPublished
-                            ? styles.statusBadgePub
-                            : isScheduled
-                            ? { backgroundColor: '#DBEAFE', borderColor: '#93C5FD' }
-                            : styles.statusBadgeDraft,
-                        ]}
-                      >
-                        <Text
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    navigation.navigate('BibleQuizDetail', {
+                      quiz,
+                      quizId: quiz.id,
+                      churchId: quiz.churchId || churchId,
+                    });
+                  }}
+                >
+                  <View style={styles.cardHeader}>
+                    <View style={{ flex: 1, marginRight: 8 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <View
                           style={[
-                            styles.statusBadgeTxt,
+                            styles.statusBadge,
                             isPublished
-                              ? { color: '#059669' }
+                              ? styles.statusBadgePub
                               : isScheduled
-                              ? { color: '#2563eb' }
-                              : { color: '#64748b' },
+                              ? { backgroundColor: '#DBEAFE', borderColor: '#93C5FD' }
+                              : styles.statusBadgeDraft,
                           ]}
                         >
-                          {isScheduled && quiz.scheduledDate
-                            ? `📅 ${quiz.scheduledDate}`
-                            : quiz.status.toUpperCase()}
-                        </Text>
+                          <Text
+                            style={[
+                              styles.statusBadgeTxt,
+                              isPublished
+                                ? { color: '#059669' }
+                                : isScheduled
+                                ? { color: '#2563eb' }
+                                : { color: '#64748b' },
+                            ]}
+                          >
+                            {isScheduled && quiz.scheduledDate
+                              ? `📅 ${quiz.scheduledDate}${quiz.scheduledTime ? ` · ⏰ ${formatQuizTime(quiz.scheduledTime, quiz.scheduledDate)}` : ''}`
+                              : quiz.status.toUpperCase()}
+                          </Text>
+                        </View>
+
+                        {quiz.isDailyQuiz && (
+                          <View style={styles.dailyBadge}>
+                            <Text style={styles.dailyBadgeTxt}>☀️ DAILY</Text>
+                          </View>
+                        )}
+
+                        <View style={styles.difficultyBadge}>
+                          <Text style={styles.difficultyBadgeTxt}>{quiz.difficulty.toUpperCase()}</Text>
+                        </View>
+
+                        {quiz.level ? (
+                          <View style={styles.levelBadge}>
+                            <Text style={styles.levelBadgeTxt}>LEVEL {quiz.level}</Text>
+                          </View>
+                        ) : null}
                       </View>
 
-                      {quiz.isDailyQuiz && (
-                        <View style={styles.dailyBadge}>
-                          <Text style={styles.dailyBadgeTxt}>☀️ DAILY</Text>
-                        </View>
-                      )}
-
-                      <View style={styles.difficultyBadge}>
-                        <Text style={styles.difficultyBadgeTxt}>{quiz.difficulty.toUpperCase()}</Text>
-                      </View>
-
-                      {quiz.level ? (
-                        <View style={styles.levelBadge}>
-                          <Text style={styles.levelBadgeTxt}>LEVEL {quiz.level}</Text>
-                        </View>
-                      ) : null}
+                      <Text style={styles.cardTitle}>{quiz.title}</Text>
                     </View>
-
-                    <Text style={styles.cardTitle}>{quiz.title}</Text>
                   </View>
-                </View>
 
-                {/* Sub details: Book / Category / Questions */}
-                <View style={styles.cardMetaRow}>
-                  {quiz.book ? (
+                  {/* Sub details: Book / Category / Questions */}
+                  <View style={styles.cardMetaRow}>
+                    {quiz.book ? (
+                      <Text style={styles.cardMetaItem}>
+                        📖 {quiz.book} {quiz.chapterStart ? `Ch ${quiz.chapterStart}${quiz.chapterEnd ? `-${quiz.chapterEnd}` : ''}` : ''}
+                      </Text>
+                    ) : (
+                      <Text style={styles.cardMetaItem}>🏷️ {quiz.category || 'General'}</Text>
+                    )}
+                    <Text style={styles.cardMetaDot}>·</Text>
+                    <Text style={styles.cardMetaItem}>{quiz.totalQuestions || quiz.questions?.length || 0} Questions</Text>
+                    <Text style={styles.cardMetaDot}>·</Text>
                     <Text style={styles.cardMetaItem}>
-                      📖 {quiz.book} {quiz.chapterStart ? `Ch ${quiz.chapterStart}${quiz.chapterEnd ? `-${quiz.chapterEnd}` : ''}` : ''}
+                      <Clock size={12} color="#64748b" /> {quiz.timeLimitMinutes > 0 ? `${quiz.timeLimitMinutes}m` : 'Untimed'}
                     </Text>
-                  ) : (
-                    <Text style={styles.cardMetaItem}>🏷️ {quiz.category || 'General'}</Text>
-                  )}
-                  <Text style={styles.cardMetaDot}>·</Text>
-                  <Text style={styles.cardMetaItem}>{quiz.totalQuestions || quiz.questions?.length || 0} Questions</Text>
-                  <Text style={styles.cardMetaDot}>·</Text>
-                  <Text style={styles.cardMetaItem}>
-                    <Clock size={12} color="#64748b" /> {quiz.timeLimitMinutes > 0 ? `${quiz.timeLimitMinutes}m` : 'Untimed'}
-                  </Text>
-                </View>
+                  </View>
+                </TouchableOpacity>
 
                 {/* Card Actions */}
                 <View style={styles.cardActionsRow}>
-                  <TouchableOpacity
-                    style={styles.cardActionBtn}
-                    onPress={() => {
-                      setSelectedQuiz(quiz);
-                      setCurrentView('reports');
-                    }}
-                  >
-                    <BarChart2 size={15} color="#2563eb" />
-                    <Text style={[styles.cardActionBtnTxt, { color: '#2563eb' }]}>Report</Text>
-                  </TouchableOpacity>
+                  {/* Left Side: View, Report, Publish / Draft */}
+                  <View style={styles.cardLeftActions}>
+                    <TouchableOpacity
+                      style={styles.cardActionBtn}
+                      onPress={() => {
+                        navigation.navigate('BibleQuizDetail', {
+                          quiz,
+                          quizId: quiz.id,
+                          churchId: quiz.churchId || churchId,
+                        });
+                      }}
+                    >
+                      <Eye size={15} color="#0284c7" />
+                      <Text style={[styles.cardActionBtnTxt, { color: '#0284c7', fontWeight: '700' }]}>View</Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.cardActionBtn}
-                    onPress={() => {
-                      setSelectedQuiz(quiz);
-                      setCurrentView('editor');
-                    }}
-                  >
-                    <Edit2 size={14} color="#475569" />
-                    <Text style={styles.cardActionBtnTxt}>Edit</Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.cardActionBtn}
+                      onPress={() => {
+                        setSelectedQuiz(quiz);
+                        setCurrentView('reports');
+                      }}
+                    >
+                      <BarChart2 size={15} color="#2563eb" />
+                      <Text style={[styles.cardActionBtnTxt, { color: '#2563eb' }]}>Report</Text>
+                    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.cardActionBtn}
-                    onPress={() => handleTogglePublish(quiz)}
-                  >
-                    <CheckCircle size={14} color={isPublished ? '#059669' : '#64748b'} />
-                    <Text style={styles.cardActionBtnTxt}>
-                      {isPublished ? 'Unpublish' : 'Publish'}
-                    </Text>
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.cardActionBtn}
+                      onPress={() => handleTogglePublish(quiz)}
+                    >
+                      {isPublished ? (
+                        <>
+                          <PauseCircle size={14} color="#d97706" />
+                          <Text style={[styles.cardActionBtnTxt, { color: '#d97706' }]}>Move to Draft</Text>
+                        </>
+                      ) : (
+                        <>
+                          <Send size={14} color="#059669" />
+                          <Text style={[styles.cardActionBtnTxt, { color: '#059669' }]}>Publish</Text>
+                        </>
+                      )}
+                    </TouchableOpacity>
+                  </View>
 
-                  <TouchableOpacity
-                    style={[styles.cardActionBtn, { marginLeft: 'auto' }]}
-                    onPress={() => handleDeleteQuiz(quiz)}
-                  >
-                    <Trash2 size={14} color="#dc2626" />
-                  </TouchableOpacity>
+                  {/* Right Side: Edit and Delete */}
+                  <View style={styles.cardRightActions}>
+                    <TouchableOpacity
+                      style={styles.cardEditBtn}
+                      onPress={() => {
+                        setSelectedQuiz(quiz);
+                        setCurrentView('editor');
+                      }}
+                    >
+                      <Edit2 size={13} color="#475569" />
+                      <Text style={styles.cardEditBtnTxt}>Edit</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.cardDeleteBtn}
+                      onPress={() => handleDeleteQuiz(quiz)}
+                    >
+                      <Trash2 size={14} color="#dc2626" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             );
@@ -1101,6 +1357,8 @@ export default function AdminQuizList() {
 
       {renderDeleteModal()}
       {renderDeleteSuccessModal()}
+      {renderDeleteAttemptModal()}
+      {renderDeleteAttemptSuccessModal()}
       {renderAnswerReviewModal()}
     </View>
   );
@@ -1217,6 +1475,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FDF4',
     elevation: 5,
     shadowColor: '#059669',
+    shadowOpacity: 0.18,
+  },
+  statBoxActiveScheduled: {
+    borderColor: '#2563eb',
+    borderWidth: 2,
+    backgroundColor: '#EFF6FF',
+    elevation: 5,
+    shadowColor: '#2563eb',
     shadowOpacity: 0.18,
   },
   statBoxActiveDraft: {
@@ -1457,23 +1723,61 @@ const styles = StyleSheet.create({
   cardActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
     paddingTop: 10,
     marginTop: 4,
-    gap: 12,
+  },
+  cardLeftActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flexShrink: 1,
+  },
+  cardRightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 6,
   },
   cardActionBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingVertical: 4,
-    paddingHorizontal: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 4,
   },
   cardActionBtnTxt: {
     fontSize: 12,
     fontWeight: '600',
     color: '#475569',
+  },
+  cardEditBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  cardEditBtnTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  cardDeleteBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   // ── Custom Delete Modals ────────────────────────────────────────────────
   modalOverlay: {
@@ -2183,7 +2487,65 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginTop: 2,
   },
+  attemptTrashBtn: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  attemptActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
+  deleteAttemptBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  deleteAttemptBtnTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  reviewModalActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 6,
+  },
+  reviewModalDeleteBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+  },
+  reviewModalDeleteBtnTxt: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
   reviewModalDoneBtn: {
+    flex: 1.3,
     backgroundColor: '#1a2d5a',
     borderRadius: 12,
     paddingVertical: 12,

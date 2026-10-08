@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
+  Alert,
 } from 'react-native';
 import {
   ChevronLeft,
@@ -19,6 +20,7 @@ import {
   Clock,
   BookOpen,
   X,
+  Trash2,
 } from 'lucide-react-native';
 import { QuizAnalyticsReport, QuizAttempt } from '../../../types/Quiz';
 import { QuizService } from '../../../services/QuizService';
@@ -49,6 +51,33 @@ export default function AdminQuizReports({ quizId, onBack }: Props) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const confirmDeleteAttempt = (attempt: QuizAttempt) => {
+    Alert.alert(
+      'Delete Quiz Report',
+      `Are you sure you want to delete the report for ${attempt.memberName || 'this member'}? This will remove their score and submission.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await QuizService.deleteQuizAttempt(attempt.id, activeChurch?.id);
+              if (selectedAttempt?.id === attempt.id) {
+                setSelectedAttempt(null);
+              }
+              await loadAnalytics();
+            } catch {
+              Alert.alert('Error', 'Failed to delete report.');
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (loading) {
@@ -201,27 +230,37 @@ export default function AdminQuizReports({ quizId, onBack }: Props) {
                   </Text>
                 </View>
 
-                <View style={{ alignItems: 'flex-end' }}>
-                  <View
-                    style={[
-                      styles.memberScorePill,
-                      att.passed ? styles.memberScorePillPassed : styles.memberScorePillFailed,
-                    ]}
-                  >
-                    <Text
+                <View style={{ alignItems: 'flex-end', flexDirection: 'row', gap: 8 }}>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <View
                       style={[
-                        styles.memberScorePillTxt,
-                        att.passed ? { color: '#059669' } : { color: '#dc2626' },
+                        styles.memberScorePill,
+                        att.passed ? styles.memberScorePillPassed : styles.memberScorePillFailed,
                       ]}
                     >
-                      {att.score}/{att.totalMarks} ({att.percentage}%)
+                      <Text
+                        style={[
+                          styles.memberScorePillTxt,
+                          att.passed ? { color: '#059669' } : { color: '#dc2626' },
+                        ]}
+                      >
+                        {att.score}/{att.totalMarks} ({att.percentage}%)
+                      </Text>
+                    </View>
+                    <Text style={styles.attemptDateTxt}>
+                      {att.submittedAt?.toDate
+                        ? att.submittedAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                        : ''}
                     </Text>
                   </View>
-                  <Text style={styles.attemptDateTxt}>
-                    {att.submittedAt?.toDate
-                      ? att.submittedAt.toDate().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-                      : ''}
-                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.rowDeleteBtn}
+                    onPress={() => confirmDeleteAttempt(att)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Trash2 size={16} color="#dc2626" />
+                  </TouchableOpacity>
                 </View>
               </TouchableOpacity>
             ))
@@ -292,6 +331,16 @@ export default function AdminQuizReports({ quizId, onBack }: Props) {
                     ) : null}
                   </View>
                 ))}
+
+                <TouchableOpacity
+                  style={styles.modalDeleteBtn}
+                  onPress={() => confirmDeleteAttempt(selectedAttempt)}
+                  activeOpacity={0.85}
+                >
+                  <Trash2 size={16} color="#dc2626" />
+                  <Text style={styles.modalDeleteBtnTxt}>Delete This Report</Text>
+                </TouchableOpacity>
+
                 <View style={{ height: 30 }} />
               </ScrollView>
             </View>
@@ -631,5 +680,33 @@ const styles = StyleSheet.create({
     color: '#475569',
     marginTop: 4,
     lineHeight: 15,
+  },
+  rowDeleteBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#fef2f2',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    alignItems: 'center',
+    justifyContent: 'center',
+    alignSelf: 'center',
+  },
+  modalDeleteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#fef2f2',
+    borderWidth: 1.5,
+    borderColor: '#fecaca',
+    marginTop: 12,
+  },
+  modalDeleteBtnTxt: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#dc2626',
   },
 });

@@ -152,6 +152,7 @@ class NotificationService {
           nav.navigate('PrayerWall', { tab: 'public_requests' });
           break;
         case 'quiz':
+        case 'quiz_scheduled':
         case 'bible_quiz': {
           const quizTargetId = rawData.quizId || rawData.relatedId || rawData.id || id;
           const targetChurchId = rawData.churchId;
@@ -275,8 +276,22 @@ class NotificationService {
   setupForegroundListener(navigation?: any) {
     return messaging().onMessage(async remoteMessage => {
       console.log('⚡ Foreground push received:', remoteMessage?.notification?.title);
+      const rawData = remoteMessage?.data || {};
+      const type = ((rawData.type || (rawData.screen === 'BibleQuizDetail' || rawData.quizId ? 'quiz' : '')) as string).toLowerCase();
       const title = remoteMessage?.notification?.title || 'New Notification';
       const body = remoteMessage?.notification?.body || '';
+
+      // Suppress intrusive "New Bible Quiz" Alert.alert popup when quiz is created or published
+      if (
+        type === 'quiz' ||
+        type === 'bible_quiz' ||
+        type === 'quiz_scheduled' ||
+        title.toLowerCase().includes('bible quiz') ||
+        title.toLowerCase().includes('quiz')
+      ) {
+        console.log('🔇 Suppressing foreground "New Bible Quiz" alert popup as requested');
+        return;
+      }
 
       Alert.alert(
         title,

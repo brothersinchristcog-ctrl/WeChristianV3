@@ -49,6 +49,7 @@ import {
 } from '../../constants/DailyQuizTranslations';
 import QuizLanguageModal from './QuizLanguageModal';
 import QuizAlertModal, { QuizAlertModalType } from './QuizAlertModal';
+import { isQuizScheduledLocked, formatQuizTime } from '../../utils/QuizScheduleUtils';
 
 export default function BibleQuizPlayerScreen() {
   const insets = useSafeAreaInsets();
@@ -62,6 +63,7 @@ export default function BibleQuizPlayerScreen() {
 
   // Navigation params: Either quizId (Admin conducted) or Category + Level
   const quizId: string | undefined = route?.params?.quizId;
+  const paramChurchId: string | undefined = route?.params?.churchId;
   const category: string = route?.params?.category || 'Family';
   const difficulty: QuizDifficulty = route?.params?.difficulty || 'easy';
   const level: number = route?.params?.level || 1;
@@ -116,15 +118,17 @@ export default function BibleQuizPlayerScreen() {
       backHandler.remove();
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [quizId, category, difficulty, level]);
+  }, [quizId, category, difficulty, level, quizLanguage]);
 
   const loadQuiz = async () => {
     try {
-      setLoading(true);
+      if (questions.length === 0) {
+        setLoading(true);
+      }
 
       if (quizId) {
-        // Mode A: Admin-conducted Quiz from Firestore
-        const data = await QuizService.getPublicQuizById(quizId, activeChurch?.id);
+        // Mode A: Admin-conducted Quiz from Firestore (Localized to active Member View language)
+        const data = await QuizService.getPublicQuizById(quizId, paramChurchId || activeChurch?.id, quizLanguage);
         if (!data || data.questions.length === 0) {
           setAlertModal({
             visible: true,
@@ -139,6 +143,28 @@ export default function BibleQuizPlayerScreen() {
           });
           return;
         }
+
+        // Enforce scheduled lock: accessible to members only from scheduledDate & scheduledTime onwards
+        if (isQuizScheduledLocked(data.quiz)) {
+          const unlockTimeFormatted = formatQuizTime(data.quiz.scheduledTime, data.quiz.scheduledDate);
+          setAlertModal({
+            visible: true,
+            type: 'info',
+            badgeText: `OPENS AT ${unlockTimeFormatted.toUpperCase()}`,
+            title: 'Quiz Locked',
+            message: `This quiz is scheduled and will be accessible to members starting from ${unlockTimeFormatted} on ${data.quiz.scheduledDate}. Please return once the scheduled time arrives!`,
+            highlightText: `Unlocks on ${data.quiz.scheduledDate} at ${unlockTimeFormatted}`,
+            highlightIcon: 'lock',
+            primaryBtnText: 'Go Back',
+            onPrimary: () => {
+              setAlertModal((prev) => ({ ...prev, visible: false }));
+              navigation.goBack();
+            },
+          });
+          setLoading(false);
+          return;
+        }
+
         setQuizMeta(data.quiz);
         setQuestions(data.questions);
 

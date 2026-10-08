@@ -1,17 +1,163 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { firestore } from './firebaseConfig';
 import { getLocalizedDailyQuizTitle } from '../constants/DailyQuizTranslations';
 import { SupportedLanguage } from '../locales';
 
 const QUIZ_NOTIF_STORAGE_KEY = '@wechristian_scheduled_quiz_notifs';
+const QUIZ_SCHEDULE_SETTINGS_KEY = '@wechristian_daily_quiz_schedule_settings';
 const NOTIF_ID_PREFIX = 'daily_quiz_slot_';
+
+export interface DailyQuizScheduleConfig {
+  enabled: boolean;
+  scheduledTime: string; // e.g. "06:00"
+  time24?: string;
+  hour?: number;
+  minute?: number;
+  customTitle?: string;
+  customBody?: string;
+  targetScope?: 'all' | 'church';
+  updatedAt?: any;
+}
+
+const DEFAULT_SCHEDULE_CONFIG: DailyQuizScheduleConfig = {
+  enabled: true,
+  scheduledTime: '06:00',
+  time24: '06:00',
+  hour: 6,
+  minute: 0,
+  customTitle: 'Daily Bible Quiz is Live!',
+  customBody: "Today's Scripture challenge is ready. Test your knowledge and reflect on God's Word!",
+  targetScope: 'all',
+};
 
 class DailyQuizNotificationService {
   private isScheduling = false;
 
   /**
-   * Initializes the notification channel and schedules upcoming 5:00 AM notifications.
+   * Loads schedule settings from Firestore and caches locally.
+   */
+  async getScheduleConfig(): Promise<DailyQuizScheduleConfig> {
+    try {
+      const snap = await firestore()
+        .collection('churches')
+        .doc('global')
+        .collection('settings')
+        .doc('daily_quiz_schedule')
+        .get();
+
+      const exists = typeof (snap as any).exists === 'function' ? (snap as any).exists() : (snap as any).exists;
+      if (exists) {
+        const data = snap.data() as Partial<DailyQuizScheduleConfig>;
+        const timeVal = data.scheduledTime || data.time24 || '06:00';
+        const parts = timeVal.split(':');
+        const h = typeof data.hour === 'number' ? data.hour : parseInt(parts[0], 10) || 6;
+        const m = typeof data.minute === 'number' ? data.minute : parseInt(parts[1], 10) || 0;
+
+        const config: DailyQuizScheduleConfig = {
+          enabled: typeof data.enabled === 'boolean' ? data.enabled : true,
+          scheduledTime: timeVal,
+          time24: timeVal,
+          hour: h,
+          minute: m,
+          customTitle: data.customTitle || DEFAULT_SCHEDULE_CONFIG.customTitle,
+          customBody: data.customBody || DEFAULT_SCHEDULE_CONFIG.customBody,
+          targetScope: data.targetScope || 'all',
+        };
+        await AsyncStorage.setItem(QUIZ_SCHEDULE_SETTINGS_KEY, JSON.stringify(config)).catch(() => {});
+        return config;
+      }
+    } catch {
+      // offline fallback
+    }
+
+    try {
+      const cached = await AsyncStorage.getItem(QUIZ_SCHEDULE_SETTINGS_KEY);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return {
+          ...DEFAULT_SCHEDULE_CONFIG,
+          ...parsed,
+          scheduledTime: parsed.scheduledTime || parsed.time24 || '06:00',
+        };
+      }
+    } catch {}
+
+    return DEFAULT_SCHEDULE_CONFIG;
+  }
+
+  /**
+   * Super Admin saves schedule settings to Firestore & updates device local notification triggers.
+   */
+  async saveScheduleConfig(config: DailyQuizScheduleConfig): Promise<boolean> {
+    try {
+      const timeVal = config.scheduledTime || config.time24 || '06:00';
+      const parts = timeVal.split(':');
+      const h = typeof config.hour === 'number' ? config.hour : parseInt(parts[0], 10) || 6;
+      const m = typeof config.minute === 'number' ? config.minute : parseInt(parts[1], 10) || 0;
+
+      const cleanConfig: DailyQuizScheduleConfig = {
+        enabled: config.enabled,
+        scheduledTime: timeVal,
+        time24: timeVal,
+        hour: h,
+        minute: m,
+        customTitle: config.customTitle || DEFAULT_SCHEDULE_CONFIG.customTitle,
+        customBody: config.customBody || DEFAULT_SCHEDULE_CONFIG.customBody,
+        targetScope: config.targetScope || 'all',
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      };
+
+      // 1. Write to Firestore global settings
+      await firestore()
+        .collection('churches')
+        .doc('global')
+        .collection('settings')
+        .doc('daily_quiz_schedule')
+        .set(cleanConfig, { merge: true });
+
+      // 2. Also write to root settings for Cloud Functions compatibility
+      await firestore()
+        .collection('settings')
+        .doc('daily_quiz_schedule')
+        .set(cleanConfig, { merge: true })
+        .catch(() => {});
+
+      // 3. Cache locally in AsyncStorage
+      await AsyncStorage.setItem(QUIZ_SCHEDULE_SETTINGS_KEY, JSON.stringify(cleanConfig));
+
+      // 4. Cancel existing local notification triggers
+      await this.cancelAllScheduled();
+
+      // 5. Re-schedule upcoming notifications with the new scheduled time
+      if (cleanConfig.enabled) {
+        await this.syncAndScheduleUpcoming(14);
+      }
+      return true;
+    } catch (err: any) {
+      console.error('[DailyQuizNotificationService] Failed to save schedule settings:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Cancel all existing daily quiz notifications
+   */
+  async cancelAllScheduled(): Promise<void> {
+    try {
+      const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
+      const quizNotifs = allScheduled.filter(n => n.identifier && n.identifier.startsWith(NOTIF_ID_PREFIX));
+      for (const n of quizNotifs) {
+        await Notifications.cancelScheduledNotificationAsync(n.identifier);
+      }
+    } catch (e) {
+      console.warn('[DailyQuizNotificationService] Error cancelling notifications:', e);
+    }
+  }
+
+  /**
+   * Initializes the notification channel and schedules upcoming notifications.
    */
   async initialize(): Promise<void> {
     try {
@@ -56,13 +202,19 @@ class DailyQuizNotificationService {
   }
 
   /**
-   * Schedules 5:00 AM notifications for the next N days (default 14 days).
+   * Schedules notifications for the next N days based on Super Admin configured schedule time.
    */
   async syncAndScheduleUpcoming(daysAhead: number = 14): Promise<{ scheduledCount: number; nextDate: string | null }> {
     if (this.isScheduling) return { scheduledCount: 0, nextDate: null };
     this.isScheduling = true;
 
     try {
+      const config = await this.getScheduleConfig();
+      if (!config.enabled) {
+        await this.cancelAllScheduled();
+        return { scheduledCount: 0, nextDate: null };
+      }
+
       const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
       const existingQuizNotifIds = new Set(
         allScheduled
@@ -83,17 +235,23 @@ class DailyQuizNotificationService {
 
         const notifId = `${NOTIF_ID_PREFIX}${dateStr}`;
 
-        // 5:00 AM delivery time
-        const scheduleDateTime = new Date(targetDate);
-        scheduleDateTime.setHours(5, 0, 0, 0);
+        const hour = typeof config.hour === 'number' ? config.hour : 6;
+        const minute = typeof config.minute === 'number' ? config.minute : 0;
 
-        // If today's 5:00 AM has already passed, skip today and look at tomorrow
+        // Delivery time based on Super Admin schedule
+        const scheduleDateTime = new Date(targetDate);
+        scheduleDateTime.setHours(hour, minute, 0, 0);
+
+        // If today's scheduled time has already passed, skip today and look at tomorrow
         if (scheduleDateTime.getTime() <= Date.now()) {
           continue;
         }
 
         if (!firstUpcomingDate) {
-          firstUpcomingDate = `${dateStr} 05:00 AM`;
+          const ampm = hour >= 12 ? 'PM' : 'AM';
+          const h12 = hour % 12 || 12;
+          const mStr = String(minute).padStart(2, '0');
+          firstUpcomingDate = `${dateStr} ${h12}:${mStr} ${ampm}`;
         }
 
         // Avoid re-scheduling if already registered with the OS
@@ -101,11 +259,14 @@ class DailyQuizNotificationService {
           continue;
         }
 
+        const titleText = config.customTitle || '📖 Daily Bible Quiz is Live!';
+        const bodyText = config.customBody || `Today's Scripture challenge (${dateStr}) is ready. Test your knowledge and reflect on God's Word!`;
+
         await Notifications.scheduleNotificationAsync({
           identifier: notifId,
           content: {
-            title: '📖 Daily Bible Quiz is Live!',
-            body: `Today's Scripture challenge (${dateStr}) is ready. Test your knowledge and reflect on God's Word!`,
+            title: titleText,
+            body: bodyText,
             sound: true,
             data: {
               type: 'bible_quiz',
@@ -124,7 +285,7 @@ class DailyQuizNotificationService {
         scheduledCount++;
       }
 
-      console.log(`[DailyQuizNotificationService] Scheduled ${scheduledCount} 5:00 AM notifications. Next: ${firstUpcomingDate}`);
+      console.log(`[DailyQuizNotificationService] Scheduled ${scheduledCount} notifications for ${config.time24}. Next: ${firstUpcomingDate}`);
       return { scheduledCount, nextDate: firstUpcomingDate };
     } catch (e) {
       console.warn('[DailyQuizNotificationService] Schedule error:', e);
@@ -164,11 +325,14 @@ class DailyQuizNotificationService {
 
       const triggerDate = new Date(Date.now() + Math.max(1, secondsDelay) * 1000);
 
+      const config = await this.getScheduleConfig();
+      const timeDisplay = config.scheduledTime || config.time24 || '06:00';
+
       await Notifications.scheduleNotificationAsync({
         identifier: `test_quiz_${Date.now()}`,
         content: {
-          title: `📖 ${title} is Live! (5:00 AM Test)`,
-          body: `Today's Scripture challenge for ${dateStr} is ready. Tap to test your biblical knowledge!`,
+          title: `📖 ${title} is Live! (${timeDisplay} Test)`,
+          body: config.customBody || `Today's Scripture challenge for ${dateStr} is ready. Tap to test your biblical knowledge!`,
           sound: true,
           data: {
             type: 'bible_quiz',
