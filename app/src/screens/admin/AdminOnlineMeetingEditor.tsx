@@ -28,6 +28,7 @@ import {
   AlertCircle,
   Save,
   Link as LinkIcon,
+  Key,
   X
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
@@ -36,6 +37,7 @@ import { useChurch } from '../../context/ChurchContext';
 import firestore from '@react-native-firebase/firestore';
 import { functions } from '../../services/firebaseConfig';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import { createZoomMeeting } from '../../services/ZoomService';
 
 const { width } = Dimensions.get('window');
 
@@ -188,18 +190,21 @@ export default function AdminOnlineMeetingEditor() {
 
     setGeneratingMeet(true);
     try {
-      const createZoomFn = functions().httpsCallable('createZoomMeeting');
-      const res = await createZoomFn({
+      const data = await createZoomMeeting({
         title: form.title,
         description: form.description || form.bibleBook || '',
-        startTime: form.startTime.toISOString(),
-        endTime: form.endTime.toISOString(),
+        startTime: form.startTime,
+        endTime: form.endTime,
         churchId: activeChurch?.id,
       });
 
-      const data = res.data as any;
       if (data && data.meetingUrl) {
-        setForm(prev => ({ ...prev, meetingLink: data.meetingUrl }));
+        setForm(prev => ({ 
+          ...prev, 
+          meetingLink: data.meetingUrl,
+          meetingId: data.meetingId || '',
+          password: data.password || ''
+        }));
         const passText = data.password ? ` • Passcode: ${data.password}` : '';
         setSuccessMsg({ 
           title: 'Zoom Link Generated!', 
@@ -208,7 +213,7 @@ export default function AdminOnlineMeetingEditor() {
         setShowSuccess(true);
         setTimeout(() => setShowSuccess(false), 3000);
       } else {
-        throw new Error('No Zoom meeting link returned from backend.');
+        throw new Error('No Zoom meeting link returned.');
       }
     } catch (err: any) {
       console.error('[handleGenerateZoomLink] Error:', err);
@@ -239,6 +244,8 @@ export default function AdminOnlineMeetingEditor() {
     description: '',
     provider: 'google_meet',
     meetingLink: '',
+    meetingId: '',
+    password: '',
     date: new Date(),
     startTime: new Date(),
     endTime: new Date(new Date().getTime() + 60 * 60 * 1000)
@@ -254,6 +261,8 @@ export default function AdminOnlineMeetingEditor() {
         description: editingData.description || '',
         provider: editingData.provider || editingData.meetingType || 'google_meet',
         meetingLink: editingData.meetingLink || '',
+        meetingId: editingData.meetingId || '',
+        password: editingData.password || '',
         date: editingData.startTime ? new Date(editingData.startTime.seconds * 1000) : new Date(),
         startTime: editingData.startTime ? new Date(editingData.startTime.seconds * 1000) : new Date(),
         endTime: editingData.endTime ? new Date(editingData.endTime.seconds * 1000) : new Date(new Date().getTime() + 60 * 60 * 1000),
@@ -326,6 +335,8 @@ export default function AdminOnlineMeetingEditor() {
         provider: form.provider || 'google_meet',
         meetingType: form.provider || 'google_meet',
         meetingLink: form.meetingLink,
+        meetingId: form.meetingId || '',
+        password: form.password || '',
         startTime: firestore.Timestamp.fromDate(form.startTime),
         endTime: firestore.Timestamp.fromDate(form.endTime),
         status: 'upcoming',
@@ -339,14 +350,17 @@ export default function AdminOnlineMeetingEditor() {
         
         try {
           const timeStr = form.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          const passNotice = form.password ? ` (Passcode: ${form.password})` : '';
           await firestore().collection('churches').doc(activeChurch.id).collection('broadcasts').add({
             title: `🎥 New Online Meeting`,
-            content: `${form.title} has been scheduled for today at ${timeStr}.`,
+            content: `${form.title} has been scheduled for today at ${timeStr}.${passNotice}`,
             type: 'online_meeting',
             targetChurchId: activeChurch.id,
             createdAt: firestore.FieldValue.serverTimestamp(),
             meetingId: meetingRef.id,
-            url: form.meetingLink || ''
+            url: form.meetingLink || '',
+            password: form.password || '',
+            silent: true
           });
         } catch (bErr) {
           console.warn('Could not create broadcast for meeting:', bErr);
@@ -375,71 +389,43 @@ export default function AdminOnlineMeetingEditor() {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
+      {/* ── Hero Section (Unified Height & Alignment) ── */}
       <View style={styles.hero}>
-        <View style={styles.heroTopRow}>
-          <TouchableOpacity onPress={() => { if (setTabByName) setTabByName('Online Meetings'); }} style={styles.backBtn}>
-            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -4, marginRight: 2 }} />
-            <Text style={styles.backBtnTxt}>Back</Text>
-          </TouchableOpacity>
+        <View style={styles.heroTitleRow}>
           <TouchableOpacity 
-            style={[styles.saveBtn, loading && { opacity: 0.7 }]} 
-            onPress={handleSave}
-            disabled={loading}
+            onPress={() => { if (setTabByName) setTabByName('Online Meetings'); }} 
+            style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 0 }}
           >
-            {loading ? <ActivityIndicator size="small" color="#1a2d5a" /> : <Save size={16} color="#1a2d5a" />}
-            <Text style={styles.saveBtnTxt}>{loading ? 'Scheduling...' : (editingData ? 'Update' : 'Schedule')}</Text>
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -4, marginRight: 2 }} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>
+          <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+          <Text style={styles.heroTitle} numberOfLines={1}>Online Meetings</Text>
         </View>
-        <Text style={styles.heroTitle}>{editingData ? 'Edit Meeting' : 'New Meeting'}</Text>
-        <Text style={styles.heroSub}>{editingData ? 'Update details' : 'Schedule a live session'}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         
-        {/* Meeting Platform Selector */}
-        <View style={styles.card}>
-          <Text style={styles.inputLabel}>Meeting Platform</Text>
-          <View style={styles.platformToggleRow}>
-            <TouchableOpacity
-              style={[
-                styles.platformToggleBtn,
-                form.provider === 'google_meet' && styles.platformToggleBtnActiveMeet,
-              ]}
-              onPress={() => setForm({ ...form, provider: 'google_meet' })}
-              activeOpacity={0.8}
-            >
-              <Video size={16} color={form.provider === 'google_meet' ? '#ffffff' : '#059669'} />
-              <Text
-                style={[
-                  styles.platformToggleTxt,
-                  form.provider === 'google_meet' && styles.platformToggleTxtActive,
-                ]}
-              >
-                Google Meet
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.platformToggleBtn,
-                form.provider === 'zoom' && styles.platformToggleBtnActiveZoom,
-              ]}
-              onPress={() => setForm({ ...form, provider: 'zoom' })}
-              activeOpacity={0.8}
-            >
-              <Video size={16} color={form.provider === 'zoom' ? '#ffffff' : '#2563EB'} />
-              <Text
-                style={[
-                  styles.platformToggleTxt,
-                  form.provider === 'zoom' && styles.platformToggleTxtActive,
-                ]}
-              >
-                Zoom Meeting
-              </Text>
-            </TouchableOpacity>
+        {/* Subtitle & Update Button Bar (below header text) */}
+        <View style={styles.editorActionBar}>
+          <View style={{ flex: 1, paddingRight: 10 }}>
+            <Text style={styles.editorSubText}>
+              {editingData?.id 
+                ? 'Update class schedule and details' 
+                : (form.provider === 'zoom' ? 'Schedule a live session via Zoom API' : 'Schedule a live session via Google Meet')}
+            </Text>
           </View>
+          <TouchableOpacity 
+            style={[styles.saveBtn, loading && { opacity: 0.7 }]} 
+            onPress={handleSave}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            {loading ? <ActivityIndicator size="small" color="#1a2d5a" /> : <Save size={16} color="#1a2d5a" />}
+            <Text style={styles.saveBtnTxt}>{loading ? 'Scheduling...' : (editingData?.id ? 'Update' : 'Schedule')}</Text>
+          </TouchableOpacity>
         </View>
-
+        
         {/* Meeting Details */}
         <View style={styles.card}>
           <Text style={styles.inputLabel}>Topic / Theme <Text style={{ color: '#DC2626' }}>*</Text></Text>
@@ -518,6 +504,23 @@ export default function AdminOnlineMeetingEditor() {
             </TouchableOpacity>
           </View>
 
+          {form.provider === 'zoom' && (
+            <>
+              <Text style={styles.inputLabel}>Zoom Passcode (Required for Members)</Text>
+              <View style={styles.inputWrapper}>
+                <Key size={18} color="#9CA3AF" style={styles.inputIcon} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="e.g., 123456"
+                  placeholderTextColor="#9CA3AF"
+                  value={form.password}
+                  onChangeText={t => setForm({ ...form, password: t })}
+                  autoCapitalize="none"
+                />
+              </View>
+            </>
+          )}
+
           <Text style={styles.inputLabel}>Description / Agenda</Text>
           <View style={[styles.inputWrapper, { height: 100, alignItems: 'flex-start', paddingTop: 12 }]}>
             <FileText size={18} color="#9CA3AF" style={styles.inputIcon} />
@@ -566,7 +569,19 @@ export default function AdminOnlineMeetingEditor() {
           </View>
         </View>
 
-        <View style={{ height: 60 }} />
+        <TouchableOpacity 
+          style={[styles.bottomSaveBtn, loading && { opacity: 0.7 }]} 
+          onPress={handleSave}
+          disabled={loading}
+          activeOpacity={0.85}
+        >
+          {loading ? <ActivityIndicator size="small" color="#1a2d5a" /> : <Save size={18} color="#1a2d5a" />}
+          <Text style={styles.bottomSaveBtnTxt}>
+            {loading ? 'Saving...' : (editingData?.id ? 'Update Meeting' : (form.provider === 'zoom' ? 'Schedule Zoom Meeting' : 'Schedule Google Meet'))}
+          </Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
 
       {/* Date Picker */}
@@ -644,15 +659,87 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#EDE8DC' },
   scroll: { padding: 16, paddingBottom: 60 },
   
-  hero: { backgroundColor: '#1a2d5a', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 24, borderBottomLeftRadius: 26, borderBottomRightRadius: 26 },
-  heroTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  backBtn: { flexDirection: 'row', alignItems: 'center', padding: 6, marginLeft: -6 },
-  backBtnTxt: { color: '#fff', fontSize: 14, fontWeight: '600' },
-  heroTitle: { color: '#fff', fontSize: 26, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600' },
-  heroSub: { color: '#AEB8D4', fontSize: 13, marginTop: 4 },
-  
-  saveBtn: { backgroundColor: '#C9A84C', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, elevation: 4, shadowColor: '#C9A84C', shadowOpacity: 0.4, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } },
-  saveBtnTxt: { color: '#1a2d5a', fontSize: 14, fontWeight: '800' },
+  // Hero Section (Unified across Online Meeting tab)
+  hero: { 
+    backgroundColor: '#1a2d5a', 
+    borderBottomLeftRadius: 26,
+    borderBottomRightRadius: 26,
+    paddingHorizontal: 22,
+    paddingTop: 32,
+    paddingBottom: 32,
+    minHeight: 96,
+    justifyContent: 'center',
+    overflow: 'visible',
+    position: 'relative',
+  },
+  heroTitleRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'flex-start', 
+    marginBottom: 0,
+  },
+  heroTitle: { 
+    color: '#fff', 
+    fontSize: 24, 
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', 
+    fontWeight: '600', 
+    letterSpacing: -0.5, 
+    marginBottom: 0,
+  },
+
+  editorActionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    marginTop: 4,
+    paddingHorizontal: 4,
+  },
+  editorSubText: {
+    fontSize: 13,
+    color: '#6B7593',
+    fontWeight: '500',
+    lineHeight: 18,
+  },
+  saveBtn: { 
+    backgroundColor: '#C9A84C', 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    gap: 6, 
+    paddingHorizontal: 18, 
+    paddingVertical: 9, 
+    borderRadius: 12, 
+    elevation: 4, 
+    shadowColor: '#C9A84C', 
+    shadowOpacity: 0.4, 
+    shadowRadius: 6, 
+    shadowOffset: { width: 0, height: 3 } 
+  },
+  saveBtnTxt: { 
+    color: '#1a2d5a', 
+    fontSize: 14, 
+    fontWeight: '800' 
+  },
+  bottomSaveBtn: {
+    backgroundColor: '#C9A84C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    elevation: 3,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    marginTop: 8,
+  },
+  bottomSaveBtnTxt: {
+    color: '#1a2d5a',
+    fontSize: 15,
+    fontWeight: '800',
+  },
 
   card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: 'rgba(26,45,90,0.06)', shadowColor: '#1a2d5a', shadowOpacity: 0.04, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
   cardTitle: { fontSize: 16, fontWeight: '800', color: '#1a2d5a', marginBottom: 16 },
@@ -683,59 +770,4 @@ const styles = StyleSheet.create({
   toastIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center' },
   toastTitle: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
   toastSub: { fontSize: 12, color: '#6B7280', marginTop: 2, fontWeight: '500' },
-
-  // Platform Selector Tabs
-  platformTabsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(26,45,90,0.06)',
-    shadowColor: '#1a2d5a',
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  platformSectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#4B5563',
-    marginBottom: 10,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  platformToggleRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  platformToggleBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-  },
-  platformToggleBtnActiveMeet: {
-    backgroundColor: '#059669',
-    borderColor: '#059669',
-  },
-  platformToggleBtnActiveZoom: {
-    backgroundColor: '#2563EB',
-    borderColor: '#2563EB',
-  },
-  platformToggleTxt: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#374151',
-  },
-  platformToggleTxtActive: {
-    color: '#FFFFFF',
-  },
 });

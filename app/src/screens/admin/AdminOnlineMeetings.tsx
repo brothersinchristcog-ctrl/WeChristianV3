@@ -1,9 +1,10 @@
 import React, { useContext, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Platform, Linking, Alert, Modal, TouchableWithoutFeedback } from 'react-native';
-import { ChevronLeft, Video, Calendar, Clock, Activity, CheckCircle, Edit, ArrowLeft, Play, XCircle, Trash2, User, BookOpen, X, Sparkles } from 'lucide-react-native';
+import { ChevronLeft, Video, Calendar, Clock, Activity, CheckCircle, Edit, ArrowLeft, Play, XCircle, Trash2, User, BookOpen, X, Sparkles, Key } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { useChurch } from '../../context/ChurchContext';
 import firestore from '@react-native-firebase/firestore';
+import { openZoomMeeting } from '../../utils/ZoomLauncher';
 
 const colors = {
   ink: '#1a2d5a',
@@ -34,10 +35,7 @@ export default function AdminOnlineMeetings() {
   const [selectedMeeting, setSelectedMeeting] = useState<any | null>(null);
   const [listFilter, setListFilter] = useState<'all' | 'upcoming' | 'live' | 'completed'>('all');
   const [attendees, setAttendees] = useState<any[]>([]);
-  const [platformModalVisible, setPlatformModalVisible] = useState<boolean>(false);
-
-  const handleSelectPlatform = (platform: 'google_meet' | 'zoom') => {
-    setPlatformModalVisible(false);
+  const handleOpenScheduleForm = (platform: 'google_meet' | 'zoom') => {
     setEditingData({ provider: platform, meetingType: platform });
     if (setTabByName) setTabByName('New Online Meeting');
   };
@@ -177,25 +175,21 @@ export default function AdminOnlineMeetings() {
       {/* ── Hero Section ── */}
       <View style={styles.hero}>
         <View style={styles.heroTitleRow}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 1 }}>
-            <TouchableOpacity 
-              onPress={() => {
-                if (selectedMeeting) {
-                  setSelectedMeeting(null);
-                } else {
-                  setActiveTab(0);
-                }
-              }} 
-              style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6, flexShrink: 0 }}
-            >
-              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
-              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
-            </TouchableOpacity>
-            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4, flexShrink: 0 }]}>|</Text>
-            <View style={{ flexShrink: 1 }}>
-              <Text style={[styles.heroTitle, { flexShrink: 1 }]} numberOfLines={1}>Online Meetings</Text>
-            </View>
-          </View>
+          <TouchableOpacity 
+            onPress={() => {
+              if (selectedMeeting) {
+                setSelectedMeeting(null);
+              } else {
+                setActiveTab(0);
+              }
+            }} 
+            style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 0 }}
+          >
+            <ChevronLeft size={20} color="#fff" style={{ marginLeft: -4, marginRight: 2 }} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+          </TouchableOpacity>
+          <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+          <Text style={styles.heroTitle} numberOfLines={1}>Online Meetings</Text>
         </View>
       </View>
 
@@ -228,6 +222,12 @@ export default function AdminOnlineMeetings() {
                   <User size={18} color="rgba(255,255,255,0.7)" />
                   <Text style={styles.detailRowText}>Host: {selectedMeeting.teacher || 'TBA'}</Text>
                 </View>
+                {selectedMeeting.password ? (
+                  <View style={styles.detailRow}>
+                    <Key size={18} color="#FCD34D" />
+                    <Text style={[styles.detailRowText, { color: '#FCD34D', fontWeight: '700' }]}>Passcode: {selectedMeeting.password}</Text>
+                  </View>
+                ) : null}
               </View>
 
               {(!selectedMeeting.endTime || selectedMeeting.endTime.toDate() >= new Date()) && (
@@ -243,10 +243,23 @@ export default function AdminOnlineMeetings() {
                           targetChurchId: activeChurch!.id,
                           createdAt: firestore.FieldValue.serverTimestamp(),
                           meetingId: selectedMeeting.id,
-                          url: selectedMeeting.meetingLink || ''
+                          url: selectedMeeting.meetingLink || '',
+                          password: selectedMeeting.password || '',
+                          silent: true
                         });
                       } catch(e) { console.warn(e); }
-                      Linking.openURL(selectedMeeting.meetingLink);
+                      
+                      const isZoom = selectedMeeting.provider === 'zoom' || selectedMeeting.meetingType === 'zoom' || selectedMeeting.meetingLink.includes('zoom.us');
+                      if (isZoom) {
+                        openZoomMeeting({
+                          meetingLink: selectedMeeting.meetingLink,
+                          meetingId: selectedMeeting.meetingId,
+                          password: selectedMeeting.password,
+                          userName: selectedMeeting.teacher || 'Host'
+                        });
+                      } else {
+                        Linking.openURL(selectedMeeting.meetingLink);
+                      }
                     } else {
                       Alert.alert('No link', 'No meeting link provided for this class.');
                     }
@@ -370,61 +383,44 @@ export default function AdminOnlineMeetings() {
           )}
 
           {activeBottomTab === 'create' && (
-            <View style={{ marginTop: 16, alignItems: 'center' }}>
+            <View style={{ marginTop: 20, alignItems: 'center' }}>
               <View style={styles.clockContainer}>
                 <Text style={styles.clockTime}>{formatTime(currentTime)}</Text>
                 <Text style={styles.clockDate}>{formatDate(currentTime)}</Text>
               </View>
 
-              <Text style={styles.createHeading}>Choose Meeting Platform</Text>
-              <Text style={styles.createSubheading}>Select how you want to schedule and host this online class</Text>
-
               {/* 1. Google Meet Card */}
               <TouchableOpacity 
-                style={[styles.platformCard, { borderColor: '#10B981' }]}
-                onPress={() => handleSelectPlatform('google_meet')}
-                activeOpacity={0.85}
+                style={styles.googleMeetCard}
+                onPress={() => handleOpenScheduleForm('google_meet')}
+                activeOpacity={0.88}
               >
-                <View style={styles.platformCardHeader}>
-                  <View style={[styles.platformIconWrap, { backgroundColor: '#ECFDF5' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                  <View style={styles.scheduleIconBg}>
                     <Video size={22} color="#059669" />
                   </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Text style={styles.platformName}>Google Meet</Text>
-                      <View style={[styles.platformBadge, { backgroundColor: '#D1FAE5' }]}>
-                        <Text style={[styles.platformBadgeTxt, { color: '#065F46' }]}>Google Meet</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.platformDesc}>
-                      Generate Google Meet room links using your Google Account space.
-                    </Text>
-                  </View>
+                  <Text style={styles.scheduleCardTitle}>Google Meet</Text>
                 </View>
+                <Text style={styles.scheduleCardDesc}>
+                  Schedule a new Bible class, automatically generate a Google Meet link, and invite members to join in fellowship and study.
+                </Text>
               </TouchableOpacity>
 
               {/* 2. Zoom Meeting Card */}
               <TouchableOpacity 
-                style={[styles.platformCard, { borderColor: '#2D8CFF', marginTop: 12 }]}
-                onPress={() => handleSelectPlatform('zoom')}
-                activeOpacity={0.85}
+                style={styles.zoomMeetingCard}
+                onPress={() => handleOpenScheduleForm('zoom')}
+                activeOpacity={0.88}
               >
-                <View style={styles.platformCardHeader}>
-                  <View style={[styles.platformIconWrap, { backgroundColor: '#EFF6FF' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                  <View style={styles.scheduleIconBg}>
                     <Video size={22} color="#2563EB" />
                   </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Text style={styles.platformName}>Zoom Meeting</Text>
-                      <View style={[styles.platformBadge, { backgroundColor: '#DBEAFE' }]}>
-                        <Text style={[styles.platformBadgeTxt, { color: '#1E40AF' }]}>Zoom API</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.platformDesc}>
-                      Create scheduled Zoom meetings automatically via Zoom Server-to-Server OAuth.
-                    </Text>
-                  </View>
+                  <Text style={styles.scheduleCardTitle}>Zoom Meeting</Text>
                 </View>
+                <Text style={styles.scheduleCardDesc}>
+                  Schedule a new Bible class, automatically generate a Zoom meeting link via Zoom API, and invite members to join.
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -497,14 +493,17 @@ export default function AdminOnlineMeetings() {
           </TouchableOpacity>
 
           <TouchableOpacity 
-            style={[styles.bottomBarBtnCenter, styles.bottomBarBtnActiveCreate]}
-            onPress={() => setPlatformModalVisible(true)}
+            style={[styles.bottomBarBtnCenter, activeBottomTab === 'create' && styles.bottomBarBtnActiveCreate]}
+            onPress={() => setActiveBottomTab('create')}
             activeOpacity={0.85}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <Text style={{ color: '#fff', fontSize: 16, marginTop: -2, marginRight: 4, fontWeight: '700' }}>+</Text>
-              <Text style={styles.bottomBarTextActive}>Create Schedule</Text>
-            </View>
+            {activeBottomTab === 'create' ? null : <Text style={{ color: '#fff', fontSize: 18, marginTop: -2 }}>+</Text>}
+            {activeBottomTab === 'create' && (
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Text style={{ color: '#fff', fontSize: 14, marginTop: -2, marginRight: 4 }}>+</Text>
+                <Text style={styles.bottomBarTextActive}>Create Schedule</Text>
+              </View>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -516,70 +515,6 @@ export default function AdminOnlineMeetings() {
           </TouchableOpacity>
         </View>
       )}
-
-      {/* Platform Selection Modal */}
-      <Modal
-        visible={platformModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setPlatformModalVisible(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setPlatformModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <TouchableWithoutFeedback>
-              <View style={styles.modalSheet}>
-                <View style={styles.modalHeader}>
-                  <Text style={styles.modalTitle}>Create Online Meeting</Text>
-                  <TouchableOpacity onPress={() => setPlatformModalVisible(false)} style={styles.modalCloseBtn}>
-                    <X size={18} color="#6B7593" />
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.modalSubtitle}>Select which meeting platform you want to schedule with:</Text>
-
-                {/* Option 1: Google Meet */}
-                <TouchableOpacity 
-                  style={[styles.modalPlatformOption, { borderColor: '#10B981' }]}
-                  onPress={() => handleSelectPlatform('google_meet')}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.platformIconWrap, { backgroundColor: '#ECFDF5' }]}>
-                    <Video size={22} color="#059669" />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Text style={styles.platformName}>Google Meet</Text>
-                      <View style={[styles.platformBadge, { backgroundColor: '#D1FAE5' }]}>
-                        <Text style={[styles.platformBadgeTxt, { color: '#065F46' }]}>Google Meet</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.platformDesc}>Opens meeting schedule form with Google Meet space generator.</Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* Option 2: Zoom Meeting */}
-                <TouchableOpacity 
-                  style={[styles.modalPlatformOption, { borderColor: '#2D8CFF', marginTop: 12 }]}
-                  onPress={() => handleSelectPlatform('zoom')}
-                  activeOpacity={0.8}
-                >
-                  <View style={[styles.platformIconWrap, { backgroundColor: '#EFF6FF' }]}>
-                    <Video size={22} color="#2563EB" />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <Text style={styles.platformName}>Zoom Meeting</Text>
-                      <View style={[styles.platformBadge, { backgroundColor: '#DBEAFE' }]}>
-                        <Text style={[styles.platformBadgeTxt, { color: '#1E40AF' }]}>Zoom API</Text>
-                      </View>
-                    </View>
-                    <Text style={styles.platformDesc}>Opens meeting schedule form with Zoom Server-to-Server OAuth generator.</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
-      </Modal>
     </View>
   );
 }
@@ -594,12 +529,14 @@ const styles = StyleSheet.create({
     borderBottomLeftRadius: 26,
     borderBottomRightRadius: 26,
     paddingHorizontal: 22,
-    paddingTop: 40,
-    paddingBottom: 16,
+    paddingTop: 32,
+    paddingBottom: 32,
+    minHeight: 96,
+    justifyContent: 'center',
     overflow: 'visible',
     position: 'relative'
   },
-  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 0 },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 0 },
   heroTitle: { color: '#fff', fontSize: 24, fontFamily: serifFont, fontWeight: '600', letterSpacing: -0.5, marginBottom: 0 },
   newBtn: { backgroundColor: '#FCD34D', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3 },
   newBtnTxt: { color: colors.ink, fontSize: 12, fontWeight: '700' },
@@ -634,57 +571,57 @@ const styles = StyleSheet.create({
   // Create Schedule View
   clockContainer: {
     backgroundColor: '#1E2B4D',
-    paddingVertical: 16,
-    paddingHorizontal: 40,
-    borderRadius: 60,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 40,
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.1)',
   },
   clockTime: {
     color: '#fff',
-    fontSize: 42,
+    fontSize: 34,
     fontFamily: serifFont,
     fontWeight: '300',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   clockDate: {
-    color: '#6B7593',
-    fontSize: 14,
+    color: '#94A3B8',
+    fontSize: 13,
     fontWeight: '500',
   },
   scheduleCard: {
     backgroundColor: '#F97316',
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 18,
+    padding: 20,
     width: '100%',
     elevation: 4,
     shadowColor: '#F97316',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
   },
   scheduleIconBg: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    marginRight: 14,
   },
   scheduleCardTitle: {
     color: '#fff',
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '700',
-    lineHeight: 26,
+    lineHeight: 24,
   },
   scheduleCardDesc: {
-    color: 'rgba(255,255,255,0.9)',
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '500',
+    color: 'rgba(255,255,255,0.94)',
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '400',
   },
 
   // Details View
@@ -824,112 +761,29 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
 
-  // Create Screen Platform Cards
-  createHeading: {
-    fontFamily: serifFont,
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.ink,
-    marginTop: 18,
-    textAlign: 'center',
-  },
-  createSubheading: {
-    fontSize: 12,
-    color: colors.inkSoft,
-    marginTop: 4,
-    marginBottom: 16,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  platformCard: {
-    width: '100%',
-    backgroundColor: '#ffffff',
-    borderRadius: 16,
-    borderWidth: 1.5,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  platformCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  platformIconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  platformName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0F172A',
-  },
-  platformBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-  },
-  platformBadgeTxt: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  platformDesc: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 4,
-    lineHeight: 16,
-  },
-
-  // Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  // Google Meet & Zoom Platform Cards
+  googleMeetCard: {
+    backgroundColor: '#059669',
+    borderRadius: 18,
     padding: 20,
-  },
-  modalSheet: {
     width: '100%',
-    maxWidth: 400,
-    backgroundColor: '#ffffff',
-    borderRadius: 20,
+    elevation: 4,
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    marginBottom: 14,
+  },
+  zoomMeetingCard: {
+    backgroundColor: '#2563EB',
+    borderRadius: 18,
     padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.ink,
-  },
-  modalCloseBtn: {
-    padding: 4,
-  },
-  modalSubtitle: {
-    fontSize: 13,
-    color: colors.inkSoft,
-    marginBottom: 16,
-  },
-  modalPlatformOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 14,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    backgroundColor: '#F8FAFC',
+    width: '100%',
+    elevation: 4,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    marginBottom: 14,
   },
 });

@@ -832,6 +832,8 @@ function Navigation() {
             <Stack.Screen name="BibleQuizPlayer" component={BibleQuizPlayerScreen} />
             <Stack.Screen name="BibleQuizResult" component={BibleQuizResultScreen} />
             <Stack.Screen name="BibleQuizReview" component={BibleQuizReviewScreen} />
+            <Stack.Screen name="OnlineMeetings" component={renderPremium(OnlineMeetingsScreen)} />
+            <Stack.Screen name="OnlineMeetingDetail" component={renderPremium(OnlineMeetingDetailScreen)} />
           </>
         ) : onboardingComplete ? (
           <>

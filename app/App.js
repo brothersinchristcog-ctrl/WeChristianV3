@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { Animated, View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform, Modal, Linking, BackHandler, ToastAndroid, Image } from 'react-native';
+import { Animated, View, Text, TouchableOpacity, StyleSheet, Dimensions, Platform, Modal, Linking, BackHandler, ToastAndroid, Image, Clipboard } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
-import { Bell } from 'lucide-react-native';
+import { Bell, Copy, Key } from 'lucide-react-native';
 import RootNavigator from './src/navigation/RootNavigator';
 import * as Application from 'expo-application';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
@@ -12,6 +12,7 @@ import { loadTeluguFonts } from './src/utils/ThumbnailTypography';
 
 // Import Firebase config to initialize it on app start
 import './src/services/firebaseConfig';
+import NotificationService from './src/services/NotificationService';
 
 // Configure Google Sign-In once at app startup (before any screen mounts)
 // In @react-native-google-signin v14+, webClientId is auto-read from google-services.json
@@ -160,8 +161,10 @@ export default function App() {
     const unsubscribe = messaging().onMessage(async remoteMessage => {
       const title = remoteMessage.notification?.title || 'New Notification';
       const body = remoteMessage.notification?.body || 'You have a new message.';
+      const rawData = remoteMessage?.data || {};
+      const password = rawData.password || (body.match(/Passcode:\s*([A-Za-z0-9]+)/i)?.[1]) || '';
       
-      setNotification({ title, body });
+      setNotification({ title, body, password, remoteMessage });
       
       Animated.sequence([
         Animated.timing(slideAnim, {
@@ -169,7 +172,7 @@ export default function App() {
           duration: 350,
           useNativeDriver: true,
         }),
-        Animated.delay(4000),
+        Animated.delay(5000),
         Animated.timing(slideAnim, {
           toValue: -150,
           duration: 350,
@@ -201,14 +204,35 @@ export default function App() {
       {notification && (
         <Animated.View style={[styles.toastContainer, { transform: [{ translateY: slideAnim }] }]}>
           <TouchableOpacity style={styles.toastCard} activeOpacity={0.9} onPress={() => {
-            Animated.timing(slideAnim, { toValue: -150, duration: 250, useNativeDriver: true }).start(() => setNotification(null));
+            const msg = notification.remoteMessage;
+            Animated.timing(slideAnim, { toValue: -150, duration: 250, useNativeDriver: true }).start(() => {
+              setNotification(null);
+              if (msg && navigationRef.isReady()) {
+                NotificationService.handleNotificationNavigation(msg, navigationRef);
+              }
+            });
           }}>
             <View style={styles.toastIconBox}>
               <Bell size={24} color="#1a2d5a" />
             </View>
             <View style={styles.toastContent}>
               <Text style={styles.toastTitle} numberOfLines={1}>{notification.title}</Text>
-              <Text style={styles.toastBody} numberOfLines={3}>{notification.body}</Text>
+              <Text style={styles.toastBody} numberOfLines={2}>{notification.body}</Text>
+              {notification.password ? (
+                <TouchableOpacity 
+                  style={styles.toastCopyBtn} 
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    Clipboard.setString(notification.password);
+                    if (Platform.OS === 'android') {
+                      ToastAndroid.show(`Passcode ${notification.password} copied!`, ToastAndroid.SHORT);
+                    }
+                  }}
+                >
+                  <Copy size={12} color="#1a2d5a" style={{ marginRight: 4 }} />
+                  <Text style={styles.toastCopyBtnTxt}>Copy Passcode: {notification.password}</Text>
+                </TouchableOpacity>
+              ) : null}
             </View>
           </TouchableOpacity>
         </Animated.View>
@@ -335,6 +359,21 @@ const styles = StyleSheet.create({
     color: '#64748B',
     lineHeight: 18,
     fontWeight: '500',
+  },
+  toastCopyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FCD34D',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginTop: 6,
+  },
+  toastCopyBtnTxt: {
+    color: '#1a2d5a',
+    fontSize: 11,
+    fontWeight: '700',
   },
   modalOverlay: {
     flex: 1,

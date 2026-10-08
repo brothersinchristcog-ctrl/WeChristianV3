@@ -48,6 +48,19 @@ async function getZoomServerToServerToken(): Promise<string> {
   return access_token;
 }
 
+function extractZoomUserId(accessToken: string): string {
+  try {
+    const parts = accessToken.split('.');
+    if (parts.length >= 2 && parts[1]) {
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+      if (payload && payload.uid) return payload.uid;
+    }
+  } catch {
+    // fallback
+  }
+  return 'me';
+}
+
 /**
  * 📹 CREATE ZOOM MEETING (Callable Function)
  * Called by the Admin App when clicking "Generate Link" for Zoom Meetings.
@@ -62,13 +75,14 @@ export const createZoomMeeting = onCall({ cors: true, invoker: 'public' }, async
 
   try {
     const accessToken = await getZoomServerToServerToken();
+    const userId = extractZoomUserId(accessToken);
 
     const startDt = startTime ? new Date(startTime) : new Date();
     const endDt = endTime ? new Date(endTime) : new Date(startDt.getTime() + 60 * 60 * 1000);
     const durationMinutes = Math.max(15, Math.round((endDt.getTime() - startDt.getTime()) / 60000));
 
     const response = await axios.post(
-      'https://api.zoom.us/v2/users/me/meetings',
+      `https://api.zoom.us/v2/users/${userId}/meetings`,
       {
         topic: title,
         agenda: description || '',
@@ -76,6 +90,7 @@ export const createZoomMeeting = onCall({ cors: true, invoker: 'public' }, async
         start_time: startDt.toISOString(),
         duration: durationMinutes,
         timezone: 'UTC',
+        password: String(request.data?.password || Math.floor(100000 + Math.random() * 900000)),
         settings: {
           host_video: true,
           participant_video: true,
@@ -125,12 +140,13 @@ export const createZoomMeetingHttp = onRequest({ cors: true, invoker: 'public' }
 
   try {
     const accessToken = await getZoomServerToServerToken();
+    const userId = extractZoomUserId(accessToken);
     const startDt = startTime ? new Date(startTime) : new Date();
     const endDt = endTime ? new Date(endTime) : new Date(startDt.getTime() + 60 * 60 * 1000);
     const durationMinutes = Math.max(15, Math.round((endDt.getTime() - startDt.getTime()) / 60000));
 
     const response = await axios.post(
-      'https://api.zoom.us/v2/users/me/meetings',
+      `https://api.zoom.us/v2/users/${userId}/meetings`,
       {
         topic: title,
         agenda: description || '',
@@ -138,6 +154,7 @@ export const createZoomMeetingHttp = onRequest({ cors: true, invoker: 'public' }
         start_time: startDt.toISOString(),
         duration: durationMinutes,
         timezone: 'UTC',
+        password: String(req.body?.password || Math.floor(100000 + Math.random() * 900000)),
         settings: {
           host_video: true,
           participant_video: true,

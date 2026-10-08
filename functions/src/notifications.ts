@@ -30,7 +30,8 @@ export const pushMeetingLive = onDocumentCreated('churches/{churchId}/online_mee
       meetingId: meetingId,
       churchId: churchId,
       provider: meeting.provider || '',
-      url: meeting.meetingUrl || '',
+      url: meeting.meetingLink || meeting.meetingUrl || '',
+      password: meeting.password || '',
     },
     topic: `church_${churchId}`,
   };

@@ -25,6 +25,7 @@ import {
   Radio,
   CheckCircle,
   ChevronRight,
+  Key,
 } from 'lucide-react-native';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../context/ThemeContext';
@@ -157,7 +158,8 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
           <View style={[styles.gradCircle, { backgroundColor: gradEnd }]} />
 
           {/* Platform Badge */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+          {/* Platform Badge & Passcode Badge */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6, flexWrap: 'wrap' }}>
             {item.meetingType === 'zoom' || item.provider === 'zoom' ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(45, 140, 255, 0.35)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#2D8CFF' }}>
                 <Video size={12} color="#ffffff" style={{ marginRight: 4 }} />
@@ -169,6 +171,12 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
                 <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>Google Meet</Text>
               </View>
             )}
+            {item.password ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(252, 211, 77, 0.25)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#FCD34D' }}>
+                <Key size={11} color="#FCD34D" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#FCD34D', fontSize: 11, fontWeight: '700' }}>Passcode: {item.password}</Text>
+              </View>
+            ) : null}
           </View>
 
           {/* Title */}

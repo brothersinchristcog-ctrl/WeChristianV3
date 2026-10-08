@@ -112,7 +112,15 @@ class NotificationService {
           nav.navigate('Events');
           break;
         case 'online_meeting':
-          nav.navigate('OnlineMeetings');
+          try {
+            nav.navigate('OnlineMeetings');
+          } catch (_) {
+            try {
+              nav.navigate('AdminRoot', { targetTab: 'Online Meetings' });
+            } catch (e) {
+              console.warn('Navigation to online meetings failed:', e);
+            }
+          }
           break;
         case 'invoice':
           nav.navigate('AdminRoot', { targetTab: 'Expense', highlightInvoiceId: id });
@@ -276,37 +284,8 @@ class NotificationService {
   setupForegroundListener(navigation?: any) {
     return messaging().onMessage(async remoteMessage => {
       console.log('⚡ Foreground push received:', remoteMessage?.notification?.title);
-      const rawData = remoteMessage?.data || {};
-      const type = ((rawData.type || (rawData.screen === 'BibleQuizDetail' || rawData.quizId ? 'quiz' : '')) as string).toLowerCase();
-      const title = remoteMessage?.notification?.title || 'New Notification';
-      const body = remoteMessage?.notification?.body || '';
-
-      // Suppress intrusive "New Bible Quiz" Alert.alert popup when quiz is created or published
-      if (
-        type === 'quiz' ||
-        type === 'bible_quiz' ||
-        type === 'quiz_scheduled' ||
-        title.toLowerCase().includes('bible quiz') ||
-        title.toLowerCase().includes('quiz')
-      ) {
-        console.log('🔇 Suppressing foreground "New Bible Quiz" alert popup as requested');
-        return;
-      }
-
-      Alert.alert(
-        title,
-        body,
-        [
-          { text: 'Dismiss', style: 'cancel' },
-          {
-            text: 'View',
-            onPress: () => {
-              this.handleNotificationNavigation(remoteMessage, navigation);
-            },
-          },
-        ],
-        { cancelable: true }
-      );
+      // Foreground notifications are cleanly displayed via the in-app sliding banner in App.js
+      // System modal Alert.alert is suppressed to avoid duplicate intrusive popups
     });
   }
 }

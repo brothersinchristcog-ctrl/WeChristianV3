@@ -28,6 +28,7 @@ import {
   CheckCircle2,
   Navigation
 } from 'lucide-react-native';
+import { openZoomMeeting } from '../utils/ZoomLauncher';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Sharing from 'expo-sharing';
@@ -606,11 +607,20 @@ export default function EventDetailsScreen({ route, navigation }: any) {
         {status === 'live' ? (
           <TouchableOpacity
             style={[styles.mainBtn, { backgroundColor: '#dc2626' }]}
-            onPress={() => Linking.openURL(
-              manualYoutubeId
+            onPress={() => {
+              const url = manualYoutubeId
                 ? `https://www.youtube.com/watch?v=${manualYoutubeId}`
-                : liveUrl || 'https://www.youtube.com'
-            )}
+                : liveUrl || 'https://www.youtube.com';
+              if (url.includes('zoom.us')) {
+                openZoomMeeting({
+                  meetingLink: url,
+                  password: event?.passcode || event?.password,
+                  userName: undefined
+                });
+              } else {
+                Linking.openURL(url);
+              }
+            }}
             activeOpacity={0.85}
           >
             <Text style={styles.mainBtnText}>● JOIN LIVE STREAM</Text>

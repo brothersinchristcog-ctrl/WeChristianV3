@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking, Alert, Image, BackHandler } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking, Alert, Image, BackHandler, Clipboard, ToastAndroid } from 'react-native';
 import { ChevronLeft, ArrowLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic , Video } from 'lucide-react-native';
+import { openZoomMeeting } from '../utils/ZoomLauncher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
@@ -720,6 +721,45 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   >
                     <Text style={styles.joinLiveBtnTxt}>📖 Play Bible Quiz Now</Text>
                   </TouchableOpacity>
+                )}
+
+                {selectedUpdate?.type === 'online_meeting' && (
+                  <View style={{ marginTop: 14 }}>
+                    {selectedUpdate?.password ? (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#F1F5F9', padding: 10, borderRadius: 10, marginBottom: 10, borderWidth: 1, borderColor: '#CBD5E1' }}>
+                        <Text style={{ fontSize: 13, color: '#1E293B', fontWeight: '600' }}>
+                          🔑 Passcode: <Text style={{ color: '#2563EB', fontWeight: '800' }}>{selectedUpdate.password}</Text>
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => {
+                            Clipboard.setString(selectedUpdate.password);
+                            if (Platform.OS === 'android') {
+                              ToastAndroid.show(`Passcode copied: ${selectedUpdate.password}`, ToastAndroid.SHORT);
+                            }
+                          }}
+                          style={{ backgroundColor: '#2563EB', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 }}
+                        >
+                          <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>Copy</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : null}
+
+                    <TouchableOpacity
+                      style={[styles.joinLiveBtn, { backgroundColor: '#10B981' }]}
+                      onPress={() => {
+                        const url = selectedUpdate.url || '';
+                        const pwd = selectedUpdate.password || '';
+                        setSelectedUpdate(null);
+                        openZoomMeeting({
+                          meetingLink: url,
+                          password: pwd,
+                          userName: (member?.name || user?.displayName) || undefined
+                        });
+                      }}
+                    >
+                      <Text style={styles.joinLiveBtnTxt}>🎥 ● Join Live Stream</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
             )}

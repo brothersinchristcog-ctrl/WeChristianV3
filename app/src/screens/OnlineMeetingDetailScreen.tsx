@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, ActivityIndicator, StatusBar, Platform, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, ActivityIndicator, StatusBar, Platform, Alert, Clipboard, ToastAndroid } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Calendar, Clock, User, BookOpen, Radio, ExternalLink, LogOut, Video } from 'lucide-react-native';
+import { Calendar, Clock, User, BookOpen, Radio, ExternalLink, LogOut, Video, Key, Copy } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
 import { useLanguage } from '../context/LanguageContext';
 import firestore from '@react-native-firebase/firestore';
+import { openZoomMeeting } from '../utils/ZoomLauncher';
 
 const BRAND = '#1a2d5a';
 const LIVE_COLOR = '#ef4444';
@@ -70,7 +71,17 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
         }, { merge: true });
         
       if (meeting.meetingLink) {
-        Linking.openURL(meeting.meetingLink);
+        const isZoom = meeting.provider === 'zoom' || meeting.meetingType === 'zoom' || meeting.meetingLink.includes('zoom.us');
+        if (isZoom) {
+          await openZoomMeeting({
+            meetingLink: meeting.meetingLink,
+            meetingId: meeting.meetingId,
+            password: meeting.password,
+            userName: member?.name || user?.displayName || 'Church Member'
+          });
+        } else {
+          Linking.openURL(meeting.meetingLink);
+        }
       } else {
         Alert.alert(t('meetings.alerts.noLinkTitle'), t('meetings.alerts.noLinkMsg'));
       }
@@ -182,6 +193,31 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
               <Text style={styles.gradInfoText}>{t('meetings.hostPrefix')} {meeting.teacher}</Text>
             </View>
           )}
+
+          {meeting.password ? (
+            <View style={[styles.gradInfoRow, { justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, marginTop: 6 }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
+                <Key size={18} color="#FCD34D" />
+                <Text style={[styles.gradInfoText, { marginLeft: 8 }]}>
+                  Passcode: <Text style={{ fontWeight: '800', color: '#FCD34D' }}>{meeting.password}</Text>
+                </Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => {
+                  Clipboard.setString(meeting.password);
+                  if (Platform.OS === 'android') {
+                    ToastAndroid.show(`Passcode ${meeting.password} copied!`, ToastAndroid.SHORT);
+                  } else {
+                    Alert.alert('Copied', `Meeting Passcode ${meeting.password} copied to clipboard!`);
+                  }
+                }}
+                style={{ backgroundColor: 'rgba(255,255,255,0.25)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, flexDirection: 'row', alignItems: 'center' }}
+              >
+                <Copy size={13} color="#fff" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>Copy</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
           
           {meeting.description && (
             <View style={[styles.gradInfoRow, { alignItems: 'flex-start', marginTop: 8 }]}>
@@ -206,7 +242,7 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
                   {/* Joined / Open Link */}
                   <TouchableOpacity
                     style={[styles.gradJoinBtn, { backgroundColor: '#fff' }]}
-                    onPress={() => meeting.meetingLink ? Linking.openURL(meeting.meetingLink) : Alert.alert(t('meetings.alerts.noLinkTitle'), t('meetings.alerts.noLinkMsg'))}
+                    onPress={handleJoin}
                   >
                     <Video size={16} color={gradStart} />
                     <Text style={[styles.gradJoinText, { color: gradStart }]}>{t('meetings.joined')}</Text>
@@ -228,7 +264,7 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
                   <Video size={16} color={gradStart} />
                   <Text style={[styles.gradJoinText, { color: gradStart }]}>
                     {isLive
-                      ? (meeting.meetingType === 'zoom' || meeting.provider === 'zoom' ? 'Join Live on Zoom' : t('meetings.joinLive'))
+                      ? (meeting.meetingType === 'zoom' || meeting.provider === 'zoom' ? '● Join Live Stream' : t('meetings.joinLive'))
                       : (meeting.meetingType === 'zoom' || meeting.provider === 'zoom' ? 'Join Zoom Meeting' : t('meetings.join'))}
                   </Text>
                 </TouchableOpacity>
