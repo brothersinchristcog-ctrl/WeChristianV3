@@ -1,0 +1,327 @@
+================================================================================
+WECHRISTIAN ADMIN DASHBOARD - EXPENSE & FINANCIAL LEDGER SYSTEM MANUAL
+================================================================================
+Document: EXPENSE_GUIDE.txt
+Module: Church Expenses, Budgeting & Invoice Generator (AdminFinanceDashboard)
+Platform: WeChristian Mobile & Admin Ecosystem
+Location: app/src/screens/admin/AdminFinanceDashboard.tsx
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1.  MODULE OVERVIEW & FINANCIAL ARCHITECTURE
+2.  NAVIGATION & SUB-TAB SYSTEM (Dashboard, Expenses, Invoices, Editor)
+3.  FINANCIAL TIME-PERIOD FILTERING & CUSTOM DATE PICKERS
+4.  FINANCIAL DASHBOARD VIEW (SubTab: 'dashboard')
+    4.1 Hero Financial Summary Banner (Total Spent & Active Filter)
+    4.2 High-Contrast Financial Metric Cards
+    4.3 Spending by Category Breakdown Grid
+    4.4 Recent Expense Activity Feed
+5.  EXPENSE DIRECTORY & AUDIT LEDGER (SubTab: 'expenses')
+    5.1 Real-Time Text Search & Vendor Filtering
+    5.2 Category Filter Modal & Multi-Category Selection
+    5.3 Expense Item Card Anatomy (Vendor, Category, Payment Method, Amount, Status)
+    5.4 Detailed Expense Inspection Modal
+6.  EXPENSE ENTRY & EDITOR WIZARD (SubTab: 'editor' & Add Expense Modal)
+    6.1 Category Selection & Dynamic Custom Category Creator
+    6.2 Pre-Configured Expense Groups (General, Vegetables, Groceries)
+    6.3 Custom Expense Line-Item Creator (Item Name, Qty, Unit Price, Total)
+    6.4 Date Picker & Vendor Details
+    6.5 Payment Method (Cash, Online, Bank Transfer, Cheque, UPI)
+    6.6 Status Toggle (Paid vs Pending) & Notes
+    6.7 Receipt & Bill Attachment (Document / Camera Picker)
+7.  CHURCH INVOICE & AUDIT REPORT GENERATOR (SubTab: 'invoices')
+    7.1 Sequential Invoice Numbering System (e.g., INV-WEC-0000001)
+    7.2 Category-Based Expense Bundling
+    7.3 Multi-Expense Selection Checklist for Invoicing
+    7.4 Live Invoice Preview Modal
+    7.5 Professional HTML5 Audit Invoice Layout
+8.  EXPORT, PRINT & SHARING PIPELINE
+    8.1 PDF Compilation & Wireless AirPrint / Direct Print (expo-print)
+    8.2 Pristine PNG Graphic Snapshot (ViewShot Engine)
+    8.3 Save to Mobile Gallery (MediaLibrary Integration)
+    8.4 WhatsApp & Multi-Platform Sharing (expo-sharing)
+9.  DATABASE SCHEMA & FIRESTORE INTEGRATION
+10. AUDITING BEST PRACTICES & TAX COMPLIANCE
+
+================================================================================
+1. MODULE OVERVIEW & FINANCIAL ARCHITECTURE
+================================================================================
+The Expense module (`AdminFinanceDashboard.tsx`) is a comprehensive double-entry 
+financial ledger and expense tracking system designed for church administrators, 
+finance committees, and treasurers.
+
+Core Capabilities:
+* Complete Ledger Management: Track operational costs, utility bills, pastoral 
+  honorariums, sound system maintenance, and food supplies for fellowship meals.
+* Pre-Configured Item Catalogs: Built-in quick selections for church catering 
+  (Vegetables, Groceries) and general operations (Flowers, Sound, Décor, Printing).
+* Documented Receipts: Upload physical receipt snapshots and vendor invoices.
+* Official Church Audit Invoices: Generate branded PDF invoices with church logo, 
+  itemized subtotals, authorized signature lines, and official church seals.
+
+================================================================================
+2. NAVIGATION & SUB-TAB SYSTEM
+================================================================================
+The Expense system is organized into four distinct operational SubTabs:
+
+[Expense Tile in Admin Dashboard] (Wallet Icon)
+             |
+             +---> [AdminFinanceDashboard]
+                       |
+                       +---> [Dashboard] (Financial metrics, cards, categories)
+                       +---> [Expenses] (Tabular ledger, search, filters)
+                       +---> [Invoices] (Generated church audit invoices & PDFs)
+                       +---> [Editor] (Create or edit line-item expenses)
+
+* Top App Header: Left chevron button returning to the Admin Dashboard (`setActiveTab(0)`), 
+  sub-tab pills (`Dashboard`, `Expenses`, `Invoices`), and the `+ Add Expense` button.
+
+================================================================================
+3. FINANCIAL TIME-PERIOD FILTERING & CUSTOM DATE PICKERS
+================================================================================
+A horizontal filter bar allows administrators to isolate finances across 5 periods:
+1. "Today": Expenses incurred on the current calendar day.
+2. "Week": Rolling 7-day operational costs.
+3. "Month": Operational expenses across the current calendar month.
+4. "Year": Annual church expenditure from January 1 to December 31.
+5. "Custom Range": Opens dual start-date and end-date modal calendar pickers 
+   (`DateTimePickerModal`) for exact auditor date range inspections.
+
+================================================================================
+4. FINANCIAL DASHBOARD VIEW (SubTab: 'dashboard')
+================================================================================
+4.1 Hero Financial Summary Banner
+---------------------------------
+* Dark navy card (`#1b2a4a`) with gold accents (`#c9973f`).
+* Displays:
+  - Active Filter Badge (e.g., "THIS MONTH", "TODAY", "YEAR 2026").
+  - Grand Total Spent: Formatted in Indian Rupees (e.g., `₹1,48,500`).
+  - Active church branch name.
+
+4.2 High-Contrast Financial Metric Cards
+----------------------------------------
+* Total Invoices Generated: Number of finalized audit invoices.
+* Recorded Expenses Count: Total number of individual receipts logged.
+* Average Cost Per Event: Calculated cost distribution across services.
+
+4.3 Spending by Category Breakdown Grid
+---------------------------------------
+Dynamic cards representing each operational budget:
+* "Sunday Service": Fellowship snacks, flowers, sound engineering, bulletin printing.
+* "Youth Meeting": Refreshments, retreat logistics, music equipment.
+* "Bible Study": Study materials, workbooks, stationery.
+* "Church Maintenance": Building repairs, plumbing, painting, electricity, generator fuel.
+* "Women's Prayer": Ministry supplies, communion preparation.
+* "Outreach": Tracts, missionary support, charity food distribution.
+Tapping any category card automatically filters the entire ledger to show only that category.
+
+4.4 Recent Expense Activity Feed
+--------------------------------
+Chronological list of the most recent 5 transactions showing vendor name, payment method 
+badge (`Cash` / `Online`), transaction date, and rupee amount.
+
+================================================================================
+5. EXPENSE DIRECTORY & AUDIT LEDGER (SubTab: 'expenses')
+================================================================================
+The master audit table listing every single expense entry with full search and filtering.
+
+5.1 Real-Time Text Search & Vendor Filtering
+--------------------------------------------
+* Search input box: Instantly filters records by:
+  - Expense Title or Item Name
+  - Vendor / Shop Name (e.g., "Reliance Mart", "Sri Lakshmi Electricals")
+  - Admin name who recorded the transaction
+  - Notes content
+
+5.2 Category Filter Modal & Multi-Category Selection
+----------------------------------------------------
+* Category Filter Button: Opens a modal with checkboxes allowing admins to select 
+  one or multiple categories simultaneously (e.g., viewing both "Sunday Service" 
+  and "Outreach" combined).
+
+5.3 Expense Item Card Anatomy
+-----------------------------
+Each card provides full financial transparency:
+* Category Tag: Bold uppercase badge with color coding.
+* Expense Title & Items Summary: Lists item types (e.g., "Flowers, Sound System, Snacks").
+* Vendor Name & Date: e.g., "Vendor: Sri Sai Décor • 14 Oct 2026".
+* Payment Method Badge: Green `Cash` badge or Indigo `Online` / `UPI` badge.
+* Status Badge: Green `Paid` badge or Amber `Pending` badge.
+* Total Amount: Bold rupee figure (e.g., `₹4,500`).
+* Action Buttons:
+  - Eye Icon: Opens detailed inspection modal.
+  - Pencil Icon: Opens expense editor to modify entries.
+  - Trash Icon: Prompts confirmation alert to delete transaction.
+
+5.4 Detailed Expense Inspection Modal
+-------------------------------------
+Presents a complete line-item breakdown:
+* Item Name, Quantity, Price Per Unit, and Line Total.
+* Vendor Contact details and payment receipt preview.
+* Administrator name who logged the entry.
+
+================================================================================
+6. EXPENSE ENTRY & EDITOR WIZARD
+================================================================================
+Accessible via the `+ New Expense` button or editing an existing transaction.
+
+6.1 Category Selection & Custom Category Creator
+------------------------------------------------
+* Dropdown list of existing church categories.
+* "+ Add Custom Category" Button: Allows entering a new custom budget category 
+  (e.g., "Christmas 2026", "VBS Camp", "Auditorium Construction").
+* Automatically syncs new custom categories to the church's Firestore profile.
+
+6.2 Pre-Configured Expense Groups
+---------------------------------
+For rapid data entry without repetitive typing, the editor provides 3 pre-grouped 
+one-tap item chips:
+* General Group: Water, Snacks, Tea, Flowers, Sound System, Décor, Transport, 
+  Printing, Electricity, Stationery, Cleaning Supplies, Musical Instruments, Honorarium.
+* Vegetables Group (Fellowship Meals): Tomato, Onion, Potato, Carrot, Cabbage, 
+  Chilli, Garlic, Ginger, Beans, Brinjal, Lemon, Coriander.
+* Groceries Group: Rice, Sugar, Salt, Cooking Oil, Dal, Spices, Wheat/Atta, 
+  Milk, Tea Powder, Coffee Powder.
+* "+ Add Custom Item": Allows entering any unlisted item name into any group.
+
+6.3 Custom Expense Line-Item Creator
+------------------------------------
+Tapping an item chip creates a live calculated line item:
+* Quantity Input: Defaults to "1". Supports decimal weights (e.g., "25.5" kg).
+* Unit Price Input: Cost per unit (e.g., "₹45").
+* Dynamic Total: Auto-computes `Quantity x Unit Price = Total Amount`.
+
+6.4 Date Picker & Vendor Details
+--------------------------------
+* Expense Date: Calendar picker defaulting to today's date.
+* Vendor Name: Text input for supplier or shop name.
+
+6.5 Payment Method & Status
+---------------------------
+* Payment Method: Cash, Online / UPI, Cheque, Bank Transfer.
+* Status: Paid (completed transaction) or Pending (credit/account bill).
+* Notes: Multi-line text field for additional context or bill reference numbers.
+
+6.6 Receipt & Bill Attachment
+-----------------------------
+* "Attach Bill / Receipt" Button:
+  - Opens device document picker / camera roll via `expo-document-picker`.
+  - Attaches PNG, JPG, or PDF copies of physical receipts for audit compliance.
+
+================================================================================
+7. CHURCH INVOICE & AUDIT REPORT GENERATOR (SubTab: 'invoices')
+================================================================================
+A legal-grade audit invoice generator that converts informal receipts into official 
+church accounting documents.
+
+7.1 Sequential Invoice Numbering System
+---------------------------------------
+* Follows standardized audit formatting:
+  `INV-[CHURCH_CODE]-[SEQUENCE_NUMBER]`
+  (e.g., `INV-WEC-0000042` or `INV-CAL-0000108`).
+
+7.2 Category-Based Expense Bundling
+-----------------------------------
+* Admin selects an operational category (e.g., "Sunday Service").
+* The system retrieves all approved, uninvoiced expense receipts matching that category.
+
+7.3 Multi-Expense Selection Checklist
+-------------------------------------
+* Presents a checklist of all eligible transactions with checkboxes.
+* "Select All" button to bundle the entire week's or month's receipts into one invoice.
+
+7.4 Live Invoice Preview Modal
+------------------------------
+* Opens a rendered high-definition preview of the compiled invoice before printing.
+* Displays church header, invoice number, issue date, category subtotal, itemized lines, 
+  and grand total.
+
+7.5 Professional HTML5 Audit Invoice Layout
+-------------------------------------------
+The compiled template features:
+* Header: High-res Church Crest/Logo, Church Full Name, Registered Address, and Phone.
+* Meta Box: Invoice Number, Invoice Date, Category, Prepared By (Treasurer/Admin), 
+  and Reported By.
+* Table: Columns for `EXPENSE`, `QTY`, `UNIT PRICE`, and `AMOUNT` with clean borders.
+* Grand Total: Deep navy banner with prominent rupee total.
+* Footer Sign-off: Dedicated dotted signature boxes for "Church Seal" and 
+  "Authorized Signature" (Senior Pastor / Secretary).
+
+================================================================================
+8. EXPORT, PRINT & SHARING PIPELINE
+================================================================================
+8.1 PDF Compilation & Wireless Direct Print (expo-print)
+--------------------------------------------------------
+* Tapping "Print PDF" compiles the HTML template into an industry-standard PDF document.
+* Connects directly to wireless Wi-Fi office printers via iOS AirPrint and Android Print Spooler.
+
+8.2 Pristine PNG Graphic Snapshot (ViewShot Engine)
+---------------------------------------------------
+* `ViewShot.capture()` renders the full invoice canvas at 100% native screen resolution 
+  into a high-resolution PNG image.
+
+8.3 Save to Mobile Gallery (MediaLibrary Integration)
+-----------------------------------------------------
+* Tapping "Save Image" prompts camera roll permissions and saves the invoice graphic 
+  directly into the device's native Photos album under "WeChristian".
+
+8.4 WhatsApp & Multi-Platform Sharing (expo-sharing)
+----------------------------------------------------
+* Tapping "Share" opens the native OS sharing sheet.
+* Send invoice PDF or PNG directly to church finance WhatsApp groups, governing council 
+  emails, or cloud storage (Google Drive, OneDrive).
+
+================================================================================
+9. DATABASE SCHEMA & FIRESTORE INTEGRATION
+================================================================================
+Expenses and Invoices are stored in distinct Firestore collections:
+
+1. Collection: `church_expenses`
+Field               | Type             | Description
+--------------------+------------------+------------------------------------------------
+id                  | string           | Unique expense document auto-ID
+churchId            | string           | Associated church document ID
+category            | string           | e.g., 'Sunday Service', 'Youth Meeting'
+title               | string           | Expense summary title
+amount              | number           | Total expense in INR (₹)
+date                | string (YYYY-MM-DD)| Transaction date
+vendorName          | string           | Shop or vendor name
+paymentMethod       | string           | 'Cash' | 'Online' | 'Cheque' | 'Bank Transfer'
+status              | string           | 'Paid' | 'Pending'
+notes               | string           | Additional comments or bill numbers
+lineItems           | array of objects | Itemized [{ type, quantity, pricePerUnit, total }]
+receiptUrl          | string (optional)| Firebase Storage download URL of physical receipt
+recordedBy          | string           | Name or ID of administrator who logged it
+createdAt           | timestamp        | Server creation timestamp
+
+2. Collection: `invoices`
+Field               | Type             | Description
+--------------------+------------------+------------------------------------------------
+id                  | string           | Unique invoice ID (e.g., 'INV-WEC-0000042')
+churchId            | string           | Associated church ID
+category            | string           | Category of bundled expenses
+totalAmount         | number           | Sum of all bundled line items
+expenseIds          | array of strings | References to included `church_expenses` IDs
+preparedBy          | string           | Administrator name
+reportedByNames     | array of strings | List of admins who reported the items
+date                | string           | Issue date
+status              | string           | 'Generated' | 'Approved' | 'Audited'
+
+================================================================================
+10. AUDITING BEST PRACTICES & TAX COMPLIANCE
+================================================================================
+1. Weekly Bundling:
+   - Generate Sunday service expense invoices every Monday to ensure church ledgers 
+     remain balanced weekly.
+2. Maintain Physical Receipts:
+   - Always take a clear smartphone photo of paper bills before discarding them. 
+     Attach the photo in the Editor to ensure auditors have tangible proof.
+3. Dual Signatures:
+   - Print a physical hard copy of high-value invoices (over ₹10,000) and obtain 
+     physical ink signatures from both the Senior Pastor and the Treasurer.
+
+================================================================================
+END OF EXPENSE & FINANCIAL LEDGER GUIDE
+================================================================================

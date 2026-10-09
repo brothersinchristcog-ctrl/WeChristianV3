@@ -2,6 +2,7 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import messaging from '@react-native-firebase/messaging';
 import functions from '@react-native-firebase/functions';
+import storage from '@react-native-firebase/storage';
 
 // Note: With React Native Firebase, you don't need to manually 
 // initializeApp or set persistence. It's handled automatically 
@@ -10,4 +11,4 @@ import functions from '@react-native-firebase/functions';
 export const db = firestore();
 export const FieldValue = firestore.FieldValue;
 
-export { auth, firestore, messaging, functions };
+export { auth, firestore, messaging, functions, storage };

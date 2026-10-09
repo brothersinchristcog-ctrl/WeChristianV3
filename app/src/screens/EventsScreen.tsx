@@ -13,20 +13,24 @@ import {
   Alert,
   Image
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
-  ChevronLeft, 
+  ArrowLeft, 
   MapPin, 
   CalendarCheck,
   Calendar,
+  Clock,
   Play
 } from 'lucide-react-native';
 import FirestoreService, { ScheduleEvent } from '../services/FirestoreService';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 const { width } = Dimensions.get('window');
 
 export default function EventsScreen({ navigation }: any) {
   const { isDark, colors } = useTheme();
+  const { t } = useLanguage();
   const [upcomingEvents, setUpcomingEvents] = useState<ScheduleEvent[]>([]);
   const [pastEvents, setPastEvents] = useState<ScheduleEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,17 +64,38 @@ export default function EventsScreen({ navigation }: any) {
     fetchEvents();
   };
 
-  const formatTime = (timeStr: string) => {
+  const formatTime = (timeStr?: string) => {
     if (!timeStr) return '--:--';
     try {
+      if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
       const timePart = timeStr.includes('T') ? timeStr.split('T')[1].split('.')[0] : timeStr;
       const [hours, minutes] = timePart.split(':');
-      const h = parseInt(hours);
+      const h = parseInt(hours, 10);
       const ampm = h >= 12 ? 'PM' : 'AM';
       const formattedHours = h % 12 || 12;
       return `${formattedHours}:${minutes} ${ampm}`;
     } catch (e) {
       return timeStr;
+    }
+  };
+
+  const formatDate = (dateStr?: string) => {
+    if (!dateStr) return '--';
+    try {
+      if (dateStr.includes('-')) {
+        const parts = dateStr.split('-');
+        if (parts[0].length === 4) {
+          const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+          return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+        } else if (parts[0].length === 2) {
+          const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+          return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+      }
+      const d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch {
+      return dateStr;
     }
   };
 
@@ -107,66 +132,123 @@ export default function EventsScreen({ navigation }: any) {
     return '#64748b';
   };
 
+  const getRelativeDayBg = (label: string | null) => {
+    if (label === 'Today') return '#ffe4e6';
+    if (label === 'Tomorrow') return '#e0f2fe';
+    if (label === 'Yesterday') return '#f1f5f9';
+    return '#f1f5f9';
+  };
+
+  const formatEventDateRange = (startDateStr?: string, endDateStr?: string) => {
+    const startFormatted = formatDate(startDateStr);
+    if (!endDateStr || startDateStr === endDateStr) {
+      return { isMultiDay: false, text: startFormatted };
+    }
+    const endFormatted = formatDate(endDateStr);
+    if (startFormatted === endFormatted) {
+      return { isMultiDay: false, text: startFormatted };
+    }
+    return { isMultiDay: true, text: `${startFormatted} – ${endFormatted}` };
+  };
+
+  const formatEventTimeRange = (startTimeStr?: string, endTimeStr?: string) => {
+    const start = formatTime(startTimeStr);
+    const end = formatTime(endTimeStr);
+    if (!startTimeStr && !endTimeStr) return '--';
+    if (startTimeStr && !endTimeStr) return start;
+    if (!startTimeStr && endTimeStr) return end;
+    return `${start} – ${end}`;
+  };
+
   const renderEvent = (item: ScheduleEvent, isPast: boolean = false) => {
+    const relDay = getRelativeDayLabel(item.date);
+    const dateInfo = formatEventDateRange(item.date, item.endDate);
+    const timeText = formatEventTimeRange(item.startTime, item.endTime);
+
     return (
       <TouchableOpacity 
         key={item.id}
-        style={[styles.eventBanner, isPast && { opacity: 0.8 }]} 
+        activeOpacity={0.88}
+        style={[
+          styles.eventBanner, 
+          isPast && { opacity: 0.85 },
+          isDark && { backgroundColor: '#1e293b', borderColor: '#334155' }
+        ]} 
         onPress={() => navigation.navigate('EventDetails', { event: item })}
       >
         <View style={[styles.ebHd, isPast && { backgroundColor: '#475569' }]}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }}>
-            <Calendar size={14} color="#FCD34D" />
-            <Text style={styles.ebHdLbl}>{isPast ? 'PAST EVENT · ముగిసినవి' : 'EVENT DETAILS · వివరాలు'}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Calendar size={13} color="#FCD34D" />
+            <Text style={styles.ebHdLbl}>
+              {isPast ? t('events.pastEvents').toUpperCase() : t('events.eventDetails').toUpperCase()}
+            </Text>
           </View>
+          {(item.type || item.eventType) && (
+            <View style={styles.typeBadge}>
+              <Text style={styles.typeBadgeTxt} numberOfLines={1}>
+                {item.type || item.eventType}
+              </Text>
+            </View>
+          )}
         </View>
-        <View style={styles.ebBody}>
-          <View style={styles.ebThumbnailContainer}>
+
+        <View style={[styles.ebBody, isDark && { backgroundColor: '#1e293b' }]}>
+          {/* Left Thumbnail Column */}
+          <View style={styles.ebLeftCol}>
             <Image 
               source={{ uri: item.image || item.bannerUrl || 'https://images.unsplash.com/photo-1438232992991-995b7058bbb3?q=80&w=400' }}
               style={styles.ebThumbnail}
               resizeMode="cover"
             />
-            {getRelativeDayLabel(item.date) && (
-              <Text style={{ 
-                fontSize: 10, 
-                fontWeight: '800', 
-                color: getRelativeDayColor(getRelativeDayLabel(item.date)), 
-                marginTop: 8,
-                textTransform: 'uppercase',
-                letterSpacing: 0.5
-              }}>
-                {getRelativeDayLabel(item.date)}
-              </Text>
+            {relDay && (
+              <View style={[styles.dayChip, { backgroundColor: isDark ? '#334155' : getRelativeDayBg(relDay) }]}>
+                <Text style={[styles.dayChipTxt, { color: getRelativeDayColor(relDay) }]}>
+                  {relDay}
+                </Text>
+              </View>
             )}
           </View>
+
+          {/* Right Info Column */}
           <View style={styles.ebInfo}>
-            <Text style={styles.ebTitle} numberOfLines={2}>
+            <Text 
+              style={[styles.ebTitle, isDark && { color: '#f8fafc' }]} 
+              numberOfLines={2}
+            >
               {item.title || item.name || 'Event'}{item.titleTelugu ? ` · ${item.titleTelugu}` : ''}
             </Text>
             
-            <View style={styles.highlightRow}>
-              <View style={styles.dateBadge}>
-                <Calendar size={11} color="#1a2d5a" />
-                <Text style={styles.badgeTextMain}>
-                  {new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} || {formatTeluguDate(item.date)}
+            {/* Unified Date Badge */}
+            <View style={[styles.compactBadge, styles.dateBadge, isDark && { backgroundColor: '#1e3a5f', borderColor: '#2563eb' }]}>
+              <Calendar size={11} color={isDark ? '#93c5fd' : '#1d4ed8'} />
+              <Text style={[styles.badgeLabel, isDark && { color: '#bfdbfe' }]}>
+                {dateInfo.isMultiDay ? 'Dates: ' : 'Date: '}
+              </Text>
+              <Text style={[styles.badgeTextMain, isDark && { color: '#eff6ff' }]} numberOfLines={1}>
+                {dateInfo.text}
+              </Text>
+            </View>
+
+            {/* Unified Time Badge */}
+            <View style={[styles.compactBadge, styles.timeBadge, isDark && { backgroundColor: '#3b1c24', borderColor: '#9f1239' }]}>
+              <Clock size={11} color={isDark ? '#fca5a5' : '#b91c1c'} />
+              <Text style={[styles.timeLabel, isDark && { color: '#fecdd3' }]}>Time: </Text>
+              <Text style={[styles.timeBadgeText, isDark && { color: '#fff1f2' }]} numberOfLines={1}>
+                {timeText}
+              </Text>
+            </View>
+
+            {/* Bottom Row: Location & Details link side-by-side */}
+            <View style={styles.ebFooterRow}>
+              <View style={styles.locationWrap}>
+                <MapPin size={11} color="#64748b" style={{ marginRight: 3, flexShrink: 0 }} />
+                <Text style={[styles.ebLocationText, isDark && { color: '#94a3b8' }]} numberOfLines={1}>
+                  {item.location || item.address || 'Church Main Hall'}
                 </Text>
               </View>
-            </View>
 
-            <View style={[styles.highlightRow, { marginTop: 6 }]}>
-              <View style={styles.timeBadge}>
-                <Play size={8} color="#c0392b" fill="#c0392b" style={{ transform: [{ rotate: '90deg' }] }} />
-                <Text style={styles.timeBadgeText}>{formatTime(item.startTime)} – {formatTime(item.endTime)}</Text>
-              </View>
+              <Text style={[styles.ebDetailsLink, isDark && { color: '#60a5fa' }]}>Details →</Text>
             </View>
-
-            <View style={[styles.ebMetaRow, { marginTop: 6, alignItems: 'flex-start' }]}>
-              <MapPin size={11} color="#64748b" style={{ marginTop: 2 }} />
-              <Text style={styles.ebMetaText}>{item.location || item.address || 'Church Main Hall'}</Text>
-            </View>
-
-            <Text style={styles.ebDetailsLink}>Details →</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -177,7 +259,7 @@ export default function EventsScreen({ navigation }: any) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: isDark ? '#0f172a' : '#1a2d5a' }]}>
         <ActivityIndicator size="large" color="#FCD34D" />
-        <Text style={styles.loadingText}>Loading Events... కార్యక్రమాలు లోడ్ అవుతున్నాయి...</Text>
+        <Text style={styles.loadingText}>{t('events.loading')}</Text>
       </View>
     );
   }
@@ -187,24 +269,30 @@ export default function EventsScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* ── Page Header ── */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
         
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Events Archive</Text>
-          <Text style={styles.headerSub}>కార్యక్రమాల జాబితా</Text>
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
+            <Text style={styles.headerTitle}>{t('events.title')}</Text>
+          </View>
         </View>
-        <View style={{ width: 60 }} />
-      </View>
+
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       {/* Tabs */}
       <View style={styles.tabContainer}>
         {(['thisWeek', 'upcoming', 'past'] as const).map(tab => {
           const isActive = activeTab === tab;
-          let label = tab === 'thisWeek' ? 'This Week' : tab === 'upcoming' ? 'Upcoming' : 'Past';
+          let label = tab === 'thisWeek' ? t('events.thisWeek') : tab === 'upcoming' ? t('events.upcoming') : t('events.past');
           return (
             <TouchableOpacity 
               key={tab} 
@@ -244,8 +332,9 @@ export default function EventsScreen({ navigation }: any) {
           !loading ? (
             <View style={styles.emptyState}>
               <CalendarCheck size={60} color="#cbd5e1" />
-              <Text style={styles.emptyTitle}>No Events Found</Text>
-              <Text style={styles.emptySub}>Check back later for new activities.</Text>
+              <Text style={styles.emptyTitle}>
+                {activeTab === 'past' ? t('events.noPastEvents') : t('events.noUpcomingEvents')}
+              </Text>
             </View>
           ) : null
         }
@@ -262,31 +351,33 @@ const styles = StyleSheet.create({
   // Header
   header: {
     backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 25,
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
     paddingBottom: 25,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5, minWidth: 60 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
+  backBtn: { zIndex: 10, padding: 5 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
   headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
 
   tabContainer: {
     flexDirection: 'row',
     backgroundColor: '#fff',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    gap: 10,
-    elevation: 2,
+    marginTop: 15,
+    marginHorizontal: 16,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    borderRadius: 30,
+    gap: 4,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
     marginBottom: 5,
   },
   tabBtn: {
@@ -308,48 +399,133 @@ const styles = StyleSheet.create({
     color: '#FCD34D',
   },
 
-  listContainer: { paddingBottom: 40, paddingTop: 10 },
+  listContainer: { paddingBottom: 40, paddingTop: 10, flexGrow: 1 },
 
-  // Event Card
-  // Event Card (Sermon Style)
-  eventBanner: { marginHorizontal: 16, marginVertical: 8, backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden', elevation: 4, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, borderWidth: 1, borderColor: '#f1f5f9' },
-  ebHd: { backgroundColor: '#1a2d5a', paddingVertical: 10, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  ebHdLbl: { fontSize: 12, color: '#fff', fontWeight: '700' },
-  ebBody: { flexDirection: 'row', backgroundColor: '#fff', alignItems: 'flex-start', paddingVertical: 15 },
-  ebThumbnailContainer: { width: 100, height: 56, backgroundColor: 'transparent', justifyContent: 'center', alignItems: 'center', marginLeft: 15 },
-  ebThumbnail: { width: 100, height: 56, borderRadius: 8 },
-  ebInfo: { flex: 1, paddingHorizontal: 15 },
-  ebTitle: { fontSize: 13.5, fontWeight: '800', color: '#1a2d5a', marginBottom: 5 },
-  ebDetailsLink: { fontSize: 10, fontWeight: '800', color: '#1a2d5a', marginTop: 8 },
-  highlightRow: { flexDirection: 'row', alignItems: 'center' },
-  dateBadge: { 
+  // Event Card (Compact, Proportional Design)
+  eventBanner: { 
+    marginHorizontal: 16, 
+    marginVertical: 6, 
+    backgroundColor: '#fff', 
+    borderRadius: 16, 
+    overflow: 'hidden', 
+    elevation: 3, 
+    shadowColor: '#000', 
+    shadowOpacity: 0.08, 
+    shadowRadius: 5, 
+    shadowOffset: { width: 0, height: 2 },
+    borderWidth: 1, 
+    borderColor: '#f1f5f9' 
+  },
+  ebHd: { 
+    backgroundColor: '#1a2d5a', 
+    paddingVertical: 7, 
+    paddingHorizontal: 14, 
     flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center' 
+  },
+  ebHdLbl: { fontSize: 11, color: '#fff', fontWeight: '700', letterSpacing: 0.5 },
+  typeBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 8,
+    maxWidth: 140,
+  },
+  typeBadgeTxt: { fontSize: 9.5, color: '#FCD34D', fontWeight: '700' },
+  ebBody: { 
+    flexDirection: 'row', 
+    backgroundColor: '#fff', 
     alignItems: 'center', 
-    backgroundColor: '#fffbeb', 
-    paddingHorizontal: 7, 
-    paddingVertical: 3, 
+    paddingVertical: 10, 
+    paddingHorizontal: 12,
+    gap: 12 
+  },
+  ebLeftCol: { 
+    width: 96, 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
+  ebThumbnail: { 
+    width: 96, 
+    height: 64, 
+    borderRadius: 8,
+    backgroundColor: '#f1f5f9' 
+  },
+  dayChip: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 5,
+    alignSelf: 'center',
+  },
+  dayChipTxt: {
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4
+  },
+  ebInfo: { 
+    flex: 1, 
+    justifyContent: 'center',
+    gap: 4 
+  },
+  ebTitle: { 
+    fontSize: 13, 
+    fontWeight: '800', 
+    color: '#0f172a', 
+    lineHeight: 17 
+  },
+  compactBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
     borderRadius: 5,
     borderWidth: 1,
-    borderColor: '#fef3c7',
-    gap: 4
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    gap: 4,
+  },
+  dateBadge: { 
+    backgroundColor: '#eff6ff', 
+    borderColor: '#dbeafe' 
   },
   timeBadge: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#f8fafc', 
-    paddingHorizontal: 7, 
-    paddingVertical: 3, 
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    gap: 4
+    backgroundColor: '#fff1f2', 
+    borderColor: '#ffe4e6' 
   },
-  badgeTextMain: { fontSize: 9.5, fontWeight: '700', color: '#1a2d5a' },
-  timeBadgeText: { fontSize: 9, fontWeight: '700', color: '#c0392b' },
-  ebMetaRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 4 },
-  ebMetaText: { fontSize: 10, color: '#64748b', fontWeight: '500', lineHeight: 14 },
+  badgeLabel: { fontSize: 9, fontWeight: '800', color: '#1d4ed8' },
+  badgeTextMain: { fontSize: 9.5, fontWeight: '700', color: '#1e3a8a', flexShrink: 1 },
+  timeLabel: { fontSize: 9, fontWeight: '800', color: '#b91c1c' },
+  timeBadgeText: { fontSize: 9.5, fontWeight: '700', color: '#881337', flexShrink: 1 },
+  ebFooterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 2,
+    paddingTop: 2,
+  },
+  locationWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  ebLocationText: { 
+    fontSize: 10, 
+    color: '#64748b', 
+    fontWeight: '500', 
+    flexShrink: 1 
+  },
+  ebDetailsLink: { 
+    fontSize: 10.5, 
+    fontWeight: '800', 
+    color: '#1a2d5a', 
+    flexShrink: 0 
+  },
 
-  emptyState: { padding: 60, alignItems: 'center', marginTop: 60 },
+  emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 40, paddingBottom: 60 },
   emptyTitle: { fontSize: 18, fontWeight: '800', color: '#1a2d5a', marginTop: 15 },
   emptySub: { fontSize: 14, color: '#94a3b8', textAlign: 'center', marginTop: 8 },
 });
