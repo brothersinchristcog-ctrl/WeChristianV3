@@ -42,7 +42,7 @@ import { isQuizScheduledLocked, formatQuizTime } from '../../utils/QuizScheduleU
 import QuizLanguageModal from './QuizLanguageModal';
 import QuizAlertModal from './QuizAlertModal';
 
-type QuizDateFilter = 'all' | 'today' | 'week' | 'month' | 'year';
+type QuizDateFilter = 'all' | 'daily' | 'today' | 'week' | 'month' | 'year';
 
 function getQuizDateString(quiz: BibleQuiz): string {
   if (quiz.dailyDate) return quiz.dailyDate;
@@ -181,12 +181,16 @@ export default function ChurchQuizzesScreen() {
 
   const filterCounts = useMemo(() => {
     const { todayStr, startOfWeekStr, endOfWeekStr, currentYearMonth, currentYear } = dateRanges;
+    let dailyCount = 0;
     let todayCount = 0;
     let weekCount = 0;
     let monthCount = 0;
     let yearCount = 0;
 
     quizzes.forEach(q => {
+      const isDaily = Boolean(q.isDailyQuiz || q.id?.startsWith('daily_') || q.category?.toLowerCase() === 'daily quiz');
+      if (isDaily) dailyCount++;
+
       const qDate = getQuizDateString(q);
       if (!qDate) {
         yearCount++;
@@ -200,6 +204,7 @@ export default function ChurchQuizzesScreen() {
 
     return {
       all: quizzes.length,
+      daily: dailyCount,
       today: todayCount,
       week: weekCount,
       month: monthCount,
@@ -209,6 +214,9 @@ export default function ChurchQuizzesScreen() {
 
   const filteredQuizzes = useMemo(() => {
     if (selectedFilter === 'all') return quizzes;
+    if (selectedFilter === 'daily') {
+      return quizzes.filter(q => Boolean(q.isDailyQuiz || q.id?.startsWith('daily_') || q.category?.toLowerCase() === 'daily quiz'));
+    }
 
     const { todayStr, startOfWeekStr, endOfWeekStr, currentYearMonth, currentYear } = dateRanges;
 
@@ -225,6 +233,7 @@ export default function ChurchQuizzesScreen() {
 
   const filterTabs: Array<{ id: QuizDateFilter; label: string; count: number }> = [
     { id: 'all', label: ui.filterAll, count: filterCounts.all },
+    { id: 'daily', label: quizLanguage === 'te' ? 'రోజువారీ క్విజ్ 📅' : 'Daily Quiz 📅', count: filterCounts.daily },
     { id: 'today', label: ui.filterToday, count: filterCounts.today },
     { id: 'week', label: ui.filterThisWeek, count: filterCounts.week },
     { id: 'month', label: ui.filterThisMonth, count: filterCounts.month },

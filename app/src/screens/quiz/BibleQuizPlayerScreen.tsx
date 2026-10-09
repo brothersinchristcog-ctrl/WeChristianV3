@@ -791,9 +791,17 @@ export default function BibleQuizPlayerScreen() {
 
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle} numberOfLines={1}>
-            {quizMeta?.isDailyQuiz && quizMeta?.dailyDate
-              ? getLocalizedDailyQuizTitle(quizMeta.dailyDate, quizLanguage)
-              : `${categoryDisplayName} · ${difficulty.toUpperCase()} · L${level}`}
+            {(() => {
+              const isDaily = Boolean(quizMeta?.isDailyQuiz || (quizMeta as any)?.id?.startsWith?.('daily_') || quizMeta?.category?.toLowerCase() === 'daily quiz');
+              const dStr = (quizMeta as any)?.dailyDate || (quizMeta as any)?.scheduledDate || ((quizMeta as any)?.id?.startsWith?.('daily_quiz_') ? (quizMeta as any).id.replace('daily_quiz_', '') : '') || ((quizMeta as any)?.id?.startsWith?.('daily_') ? (quizMeta as any).id.replace('daily_', '') : '');
+              if (isDaily && dStr) {
+                return getLocalizedDailyQuizTitle(dStr, quizLanguage);
+              }
+              if (quizMeta?.title) {
+                return quizMeta.translations?.[quizLanguage]?.title || quizMeta.title;
+              }
+              return `${categoryDisplayName} · ${difficulty.toUpperCase()} · L${level}`;
+            })()}
           </Text>
         </View>
 

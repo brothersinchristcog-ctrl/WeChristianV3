@@ -35,6 +35,7 @@ import { useChurch } from '../../context/ChurchContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useQuizLanguage } from '../../context/QuizLanguageContext';
 import QuizLanguageModal from './QuizLanguageModal';
+import { getQuizStrings } from '../../constants/BibleQuizTranslations';
 import {
   getLocalizedDailyQuizTitle,
   getLocalizedDailyQuizDescription,
@@ -88,10 +89,27 @@ export default function BibleQuizDetailScreen() {
   const isScheduledLocked = isQuizScheduledLocked(quiz, now);
 
   useEffect(() => {
+    let isMounted = true;
     if (passedQuiz) {
-      setLoadedQuiz(passedQuiz);
-      setNotFound(false);
-      setLoading(false);
+      if (quizLanguage && quizLanguage !== 'en') {
+        QuizService.localizeQuiz(passedQuiz, quizLanguage).then(loc => {
+          if (isMounted) {
+            setLoadedQuiz(loc);
+            setNotFound(false);
+            setLoading(false);
+          }
+        }).catch(() => {
+          if (isMounted) {
+            setLoadedQuiz(passedQuiz);
+            setNotFound(false);
+            setLoading(false);
+          }
+        });
+      } else {
+        setLoadedQuiz(passedQuiz);
+        setNotFound(false);
+        setLoading(false);
+      }
     } else if (targetQuizId) {
       setNotFound(false);
       if (!loadedQuiz && !quiz) {
@@ -99,12 +117,17 @@ export default function BibleQuizDetailScreen() {
       }
       loadQuizDetail();
     }
+    return () => { isMounted = false; };
   }, [targetQuizId, targetChurchId, quizLanguage, passedQuiz]);
 
   useFocusEffect(
     useCallback(() => {
       if (passedQuiz) {
-        setLoadedQuiz(passedQuiz);
+        if (quizLanguage && quizLanguage !== 'en') {
+          QuizService.localizeQuiz(passedQuiz, quizLanguage).then(loc => setLoadedQuiz(loc)).catch(() => setLoadedQuiz(passedQuiz));
+        } else {
+          setLoadedQuiz(passedQuiz);
+        }
         setNotFound(false);
         setLoading(false);
       } else if (targetQuizId) {
@@ -127,6 +150,9 @@ export default function BibleQuizDetailScreen() {
       // Fallback: If not found with targetChurchId, attempt searching without church restriction
       if (!q) {
         q = await QuizService.getQuizById(targetQuizId, undefined, quizLanguage);
+      }
+      if (q && quizLanguage && quizLanguage !== 'en') {
+        q = await QuizService.localizeQuiz(q, quizLanguage);
       }
 
       // If still not found and retryCount < 2, wait 500ms and retry (absorbs Firestore write sync latency on immediate notification click)
@@ -320,20 +346,29 @@ export default function BibleQuizDetailScreen() {
           </View>
 
           {/* Quiz Title */}
-          <Text style={[styles.quizTitle, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
-            {quiz.isDailyQuiz && quiz.dailyDate
-              ? getLocalizedDailyQuizTitle(quiz.dailyDate, quizLanguage)
-              : (quiz.translations?.[quizLanguage]?.title || quiz.title)}
-          </Text>
+          {(() => {
+            const isDaily = Boolean(quiz?.isDailyQuiz || quiz?.id?.startsWith('daily_') || quiz?.category?.toLowerCase() === 'daily quiz');
+            const dStr = quiz?.dailyDate || quiz?.scheduledDate || (quiz?.id?.startsWith('daily_quiz_') ? quiz.id.replace('daily_quiz_', '') : '') || (quiz?.id?.startsWith('daily_') ? quiz.id.replace('daily_', '') : '');
+            const titleTxt = isDaily && dStr
+              ? getLocalizedDailyQuizTitle(dStr, quizLanguage)
+              : (quiz?.translations?.[quizLanguage]?.title || quiz?.title || 'Bible Quiz');
+            const descTxt = isDaily && dStr
+              ? getLocalizedDailyQuizDescription(dStr, quizLanguage)
+              : (quiz?.translations?.[quizLanguage]?.description ||
+                quiz?.description ||
+                'Test and deepen your understanding of scripture with this curated Bible quiz. Study with prayer and devotion.');
 
-          {/* Description */}
-          <Text style={[styles.quizDesc, { color: isDark ? '#94a3b8' : '#475569' }]}>
-            {quiz.isDailyQuiz && quiz.dailyDate
-              ? getLocalizedDailyQuizDescription(quiz.dailyDate, quizLanguage)
-              : (quiz.translations?.[quizLanguage]?.description ||
-                quiz.description ||
-                'Test and deepen your understanding of scripture with this curated Bible quiz. Study with prayer and devotion.')}
-          </Text>
+            return (
+              <>
+                <Text style={[styles.quizTitle, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
+                  {titleTxt}
+                </Text>
+                <Text style={[styles.quizDesc, { color: isDark ? '#94a3b8' : '#475569' }]}>
+                  {descTxt}
+                </Text>
+              </>
+            );
+          })()}
 
           {/* Scripture Focus Pill if configured */}
           {Boolean(quiz.book) && (

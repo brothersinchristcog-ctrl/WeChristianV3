@@ -17,10 +17,17 @@ import {
   BookOpen,
   Award,
   CheckCircle,
+  Sparkles,
+  Clock,
+  Play,
 } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { QUIZ_CATEGORIES } from '../../constants/BibleQuizCategories';
+import {
+  getLocalizedDailyQuizTitle,
+  getLocalizedDailyQuizDescription,
+} from '../../constants/DailyQuizTranslations';
 import { useQuizLanguage } from '../../context/QuizLanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useChurch } from '../../context/ChurchContext';
@@ -132,6 +139,66 @@ export default function BibleQuizHomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
+        {/* ─── DEDICATED SCHEDULED DAILY QUIZ CARD (MEMBER VIEW) ────────────────── */}
+        <TouchableOpacity
+          style={[
+            styles.dailyQuizEntryCard,
+            isDark && { borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.35)' },
+          ]}
+          onPress={() => {
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            navigation.navigate('BibleQuizDetail', {
+              quizId: `daily_quiz_${todayStr}`,
+              churchId,
+            });
+          }}
+          activeOpacity={0.88}
+        >
+          <LinearGradient
+            colors={['#7c2d12', '#c2410c', '#ea580c']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.dailyQuizGradientBg}
+          >
+            <View style={styles.dailyQuizTopBadgeRow}>
+              <View style={styles.dailyQuizPillBadge}>
+                <Sparkles size={12} color="#fef3c7" />
+                <Text style={styles.dailyQuizPillBadgeTxt}>
+                  {quizLanguage === 'te' ? 'రోజువారీ బైబిల్ క్విజ్' : 'DAILY SCRIPTURE CHALLENGE'}
+                </Text>
+              </View>
+              <View style={styles.dailyQuizTimeBadge}>
+                <Clock size={11} color="#ffffff" />
+                <Text style={styles.dailyQuizTimeBadgeTxt}>6:00 AM</Text>
+              </View>
+            </View>
+
+            <View style={styles.dailyQuizContentRow}>
+              <View style={{ flex: 1, marginRight: 12 }}>
+                <Text style={styles.dailyQuizCardTitle} numberOfLines={1}>
+                  {(() => {
+                    const now = new Date();
+                    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                    return getLocalizedDailyQuizTitle(todayStr, quizLanguage);
+                  })()}
+                </Text>
+                <Text style={styles.dailyQuizCardSub} numberOfLines={2}>
+                  {(() => {
+                    const now = new Date();
+                    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+                    return getLocalizedDailyQuizDescription(todayStr, quizLanguage);
+                  })()}
+                </Text>
+              </View>
+
+              <View style={styles.dailyQuizPlayBtn}>
+                <Play size={18} color="#ea580c" fill="#ea580c" />
+              </View>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* ─── ENTRY POINT CARD: CHURCH QUIZZES (POLISHED & MODERN BANNER) ────────────────── */}
         <TouchableOpacity
           style={[
@@ -283,6 +350,87 @@ const styles = StyleSheet.create({
   },
   scrollArea: {
     flex: 1,
+  },
+
+  // ── Dedicated Daily Bible Quiz Card ─────────────────────────────────────────
+  dailyQuizEntryCard: {
+    width: '100%',
+    borderRadius: 18,
+    overflow: 'hidden',
+    marginBottom: 14,
+    shadowColor: '#ea580c',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  dailyQuizGradientBg: {
+    padding: 16,
+    borderRadius: 18,
+  },
+  dailyQuizTopBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  dailyQuizPillBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 6,
+  },
+  dailyQuizPillBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#ffffff',
+    letterSpacing: 0.5,
+  },
+  dailyQuizTimeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    gap: 4,
+  },
+  dailyQuizTimeBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#fef08a',
+  },
+  dailyQuizContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dailyQuizCardTitle: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  dailyQuizCardSub: {
+    fontSize: 12.5,
+    color: 'rgba(255, 255, 255, 0.88)',
+    lineHeight: 17,
+  },
+  dailyQuizPlayBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
   },
 
   // ── Single Entry Point: Church Quizzes Banner Card ─────────────────────────

@@ -239,12 +239,17 @@ export class QuizService {
         list = list.filter(q => Boolean(q.isDailyQuiz) === options.isDaily);
       }
 
-      // Sort by newest first
-      list.sort((a, b) => {
-        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt || 0).getTime();
-        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt || 0).getTime();
-        return timeB - timeA;
-      });
+      // Ensure today's Daily Bible Quiz is present for members
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const hasTodayDaily = list.some(q => q.dailyDate === todayStr || q.id === `daily_quiz_${todayStr}`);
+      if (!hasTodayDaily && (!options?.category || options.category.toLowerCase() === 'daily quiz' || options.category === 'All')) {
+        try {
+          const { DailyBibleQuizBank } = require('./DailyBibleQuizBank');
+          const todayEntity = DailyBibleQuizBank.createDailyQuizEntity(todayStr, targetChurchId || 'global');
+          list.unshift(todayEntity);
+        } catch {}
+      }
 
       this.baseQuizzesCache.set(baseCacheKey, { data: list, timestamp: Date.now() });
       return this.applyLocalizationToList(list, options?.targetLanguage);
@@ -604,11 +609,12 @@ export class QuizService {
           getLocalizedDailyQuizTitle,
           getLocalizedDailyQuizDescription,
         } = require('../constants/DailyQuizTranslations');
-        const localizedTitle = quiz.dailyDate
-          ? getLocalizedDailyQuizTitle(quiz.dailyDate, targetLanguage as any)
+        const dStr = quiz.dailyDate || quiz.scheduledDate || (quiz.id?.startsWith('daily_quiz_') ? quiz.id.replace('daily_quiz_', '') : '') || (quiz.id?.startsWith('daily_') ? quiz.id.replace('daily_', '') : '');
+        const localizedTitle = dStr
+          ? getLocalizedDailyQuizTitle(dStr, targetLanguage as any)
           : (quiz.translations?.[targetLanguage]?.title || quiz.title);
-        const localizedDescription = quiz.dailyDate
-          ? getLocalizedDailyQuizDescription(quiz.dailyDate, targetLanguage as any)
+        const localizedDescription = dStr
+          ? getLocalizedDailyQuizDescription(dStr, targetLanguage as any)
           : (quiz.translations?.[targetLanguage]?.description || quiz.description);
         const localizedQuestions = (quiz.questions || []).map((q: any) => {
           const locQ = getLocalizedDailyQuestion(q, targetLanguage as any);

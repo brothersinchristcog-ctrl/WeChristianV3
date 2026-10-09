@@ -1115,8 +1115,8 @@ export function getLocalizedDailyQuestion(
     };
   }
 
-  // 2. Check in DAILY_QUIZ_TRANSLATIONS dictionary by bibleReference (Daily Quizzes only)
-  const refMatch = q.isDailyQuiz ? DAILY_QUIZ_TRANSLATIONS[ref] : undefined;
+  // 2. Check in DAILY_QUIZ_TRANSLATIONS dictionary by bibleReference
+  const refMatch = DAILY_QUIZ_TRANSLATIONS[ref] || (ref ? DAILY_QUIZ_TRANSLATIONS[ref.trim()] : undefined);
   if (refMatch && refMatch[lang]) {
     const item = refMatch[lang]!;
     // Find index of canonical correct answer if present
