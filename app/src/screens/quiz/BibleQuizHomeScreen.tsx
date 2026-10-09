@@ -139,7 +139,43 @@ export default function BibleQuizHomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ─── DEDICATED SCHEDULED DAILY QUIZ CARD (MEMBER VIEW) ────────────────── */}
+        {/* ─── ENTRY POINT CARD: CHURCH QUIZZES (POLISHED & MODERN BANNER) ────────────────── */}
+        <TouchableOpacity
+          style={[
+            styles.churchQuizzesEntryCard,
+            isDark && { borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)' },
+          ]}
+          onPress={() => navigation.navigate('ChurchQuizzes')}
+          activeOpacity={0.88}
+        >
+          <ImageBackground
+            source={{ uri: 'https://images.unsplash.com/photo-1438032005730-c779502df39b?w=800&auto=format&fit=crop&q=80' }}
+            style={styles.churchCardImageBg}
+            imageStyle={styles.churchCardImage}
+            resizeMode="cover"
+          >
+            <LinearGradient
+              colors={['transparent', 'rgba(10, 20, 50, 0.35)', 'rgba(8, 15, 38, 0.88)']}
+              locations={[0, 0.48, 1]}
+              style={styles.churchQuizzesOverlay}
+            >
+              {/* Content */}
+              <View style={styles.churchEntryContent}>
+                <Text style={styles.churchEntryTitle} numberOfLines={1}>Church Quizzes</Text>
+                <Text style={styles.churchEntrySub} numberOfLines={2}>
+                  Browse and participate in all available church quizzes
+                </Text>
+              </View>
+
+              {/* Right Action Button */}
+              <View style={styles.arrowCircle}>
+                <ArrowRight size={18} color="#ffffff" />
+              </View>
+            </LinearGradient>
+          </ImageBackground>
+        </TouchableOpacity>
+
+        {/* ─── DEDICATED SCHEDULED DAILY QUIZ CARD (MEMBER VIEW - UNDER CHURCHES QUIZ) ────────────────── */}
         <TouchableOpacity
           style={[
             styles.dailyQuizEntryCard,
@@ -197,42 +233,6 @@ export default function BibleQuizHomeScreen() {
               </View>
             </View>
           </LinearGradient>
-        </TouchableOpacity>
-
-        {/* ─── ENTRY POINT CARD: CHURCH QUIZZES (POLISHED & MODERN BANNER) ────────────────── */}
-        <TouchableOpacity
-          style={[
-            styles.churchQuizzesEntryCard,
-            isDark && { borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)' },
-          ]}
-          onPress={() => navigation.navigate('ChurchQuizzes')}
-          activeOpacity={0.88}
-        >
-          <ImageBackground
-            source={{ uri: 'https://images.unsplash.com/photo-1438032005730-c779502df39b?w=800&auto=format&fit=crop&q=80' }}
-            style={styles.churchCardImageBg}
-            imageStyle={styles.churchCardImage}
-            resizeMode="cover"
-          >
-            <LinearGradient
-              colors={['transparent', 'rgba(10, 20, 50, 0.35)', 'rgba(8, 15, 38, 0.88)']}
-              locations={[0, 0.48, 1]}
-              style={styles.churchQuizzesOverlay}
-            >
-              {/* Content */}
-              <View style={styles.churchEntryContent}>
-                <Text style={styles.churchEntryTitle} numberOfLines={1}>Church Quizzes</Text>
-                <Text style={styles.churchEntrySub} numberOfLines={2}>
-                  Browse and participate in all available church quizzes
-                </Text>
-              </View>
-
-              {/* Right Action Button */}
-              <View style={styles.arrowCircle}>
-                <ArrowRight size={18} color="#ffffff" />
-              </View>
-            </LinearGradient>
-          </ImageBackground>
         </TouchableOpacity>
 
         {/* ─── FAITH CATEGORIES SECTION (CLEAN & MINIMALIST) ────────────────── */}
