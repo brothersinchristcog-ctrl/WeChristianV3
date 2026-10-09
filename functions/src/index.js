@@ -12,6 +12,7 @@ import { randomUUID } from 'crypto';
 export { weCelebrationDailySweepV3, weCelebrationWishCreatedTrigger, weCelebrationBatchedWishes, executeBatchedWishes, triggerMorningCelebrations } from './celebrations.js';
 export { generateSermonV9, generateContentImage } from './ai.js';
 export { createZoomMeeting, createZoomMeetingHttp } from './meetings.js';
+export { getYoutubeAuthUrl, youtubeOAuthCallback, getYouTubeChannelStatus, disconnectYouTubeChannel, createZoomWithYouTubeLive, checkYouTubeLiveStatus, startZoomLiveStream } from './youtubeLive.js';
 // Initialize Firebase Admin once at top level
 initializeApp();
 // TODO: When Salesforce integration becomes multi-tenant, remove this and loop over churches.

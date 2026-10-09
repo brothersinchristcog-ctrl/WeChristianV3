@@ -12,6 +12,7 @@ import { openZoomMeeting } from '../utils/ZoomLauncher';
 const BRAND = '#1a2d5a';
 const LIVE_COLOR = '#ef4444';
 const SUCCESS = '#10b981';
+const SHOW_YOUTUBE_LIVE = false;
 
 export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
   const { meeting } = route.params;
@@ -146,8 +147,8 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
           {/* Decorative circle */}
           <View style={[styles.gradCircle, { backgroundColor: gradEnd }]} />
 
-          {/* Platform Badge */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6 }}>
+          {/* Platform Badge & YouTube Badge */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6, flexWrap: 'wrap' }}>
             {meeting.meetingType === 'zoom' || meeting.provider === 'zoom' ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(45, 140, 255, 0.4)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, borderWidth: 1, borderColor: '#2D8CFF' }}>
                 <Video size={13} color="#ffffff" style={{ marginRight: 5 }} />
@@ -159,6 +160,23 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
                 <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>Google Meet</Text>
               </View>
             )}
+            {SHOW_YOUTUBE_LIVE && meeting.youtubeLive?.enabled ? (
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                backgroundColor: meeting.youtubeLive.status === 'live' ? 'rgba(220, 38, 38, 0.5)' : 'rgba(239, 68, 68, 0.3)', 
+                paddingHorizontal: 10, 
+                paddingVertical: 4, 
+                borderRadius: 8, 
+                borderWidth: 1, 
+                borderColor: '#EF4444' 
+              }}>
+                <Radio size={12} color="#ffffff" style={{ marginRight: 5 }} />
+                <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>
+                  {meeting.youtubeLive.status === 'live' ? '🔴 Live on YouTube' : 'YouTube Live'}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           {/* Title */}
@@ -225,6 +243,39 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
               <Text style={[styles.gradInfoText, { lineHeight: 22, opacity: 0.9 }]}>{meeting.description}</Text>
             </View>
           )}
+
+          {/* YouTube Live Stream Watch Option */}
+          {SHOW_YOUTUBE_LIVE && meeting.youtubeLive?.enabled ? (
+            <TouchableOpacity
+              style={{
+                backgroundColor: meeting.youtubeLive.status === 'live' ? '#DC2626' : '#B91C1C',
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingVertical: 14,
+                borderRadius: 12,
+                marginTop: 16,
+                elevation: 4,
+                shadowColor: '#DC2626',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.35,
+                shadowRadius: 6,
+              }}
+              onPress={() => {
+                const targetUrl = meeting.youtubeLive?.watchUrl || 'https://www.youtube.com';
+                Linking.openURL(targetUrl);
+              }}
+            >
+              <Radio size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 15, letterSpacing: 0.3 }}>
+                {meeting.youtubeLive.status === 'live' 
+                  ? '🔴 Watch Live on YouTube' 
+                  : (meeting.youtubeLive.status === 'ended' 
+                    ? '▶ Watch Replay on YouTube' 
+                    : '📺 Watch on YouTube')}
+              </Text>
+            </TouchableOpacity>
+          ) : null}
 
           {/* Action buttons */}
           {isCompleted ? (

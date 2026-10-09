@@ -1,6 +1,6 @@
 // @ts-nocheck - Forced IDE refresh to clear false positive module error
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Dimensions, ActivityIndicator, Alert, Modal, SafeAreaView, Animated, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, Dimensions, ActivityIndicator, Alert, Modal, SafeAreaView, Animated, TouchableWithoutFeedback, Platform } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ArrowLeft, Share2, Download, Upload, Trash2, X, ChevronLeft, ChevronRight, CheckCircle } from 'lucide-react-native';
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: SPACING,
-    paddingBottom: 100, // Make room for upload button
+    paddingBottom: 150, // Room for elevated upload button
   },
   row: {
     justifyContent: 'space-between',
@@ -564,7 +564,7 @@ const styles = StyleSheet.create({
   },
   bottomOverlay: {
     position: 'absolute',
-    bottom: 30,
+    bottom: Platform.OS === 'ios' ? 76 : 68,
     left: 0,
     right: 0,
     alignItems: 'center',

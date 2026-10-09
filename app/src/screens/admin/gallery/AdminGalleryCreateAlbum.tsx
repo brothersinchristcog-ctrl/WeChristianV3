@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, DeviceEventEmitter } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, Image, ActivityIndicator, DeviceEventEmitter, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { X, UploadCloud, ImageIcon } from 'lucide-react-native';
@@ -226,7 +226,9 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   footer: {
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 68 : 58,
     borderTopWidth: 1,
     borderTopColor: 'rgba(255,255,255,0.05)',
   },

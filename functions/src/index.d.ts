@@ -2,6 +2,7 @@ import * as functionsCompat from 'firebase-functions/v1';
 export { weCelebrationDailySweepV3, weCelebrationWishCreatedTrigger, weCelebrationBatchedWishes, executeBatchedWishes, triggerMorningCelebrations } from './celebrations.js';
 export { generateSermonV9, generateContentImage } from './ai.js';
 export { createZoomMeeting, createZoomMeetingHttp } from './meetings.js';
+export { getYoutubeAuthUrl, youtubeOAuthCallback, getYouTubeChannelStatus, disconnectYouTubeChannel, createZoomWithYouTubeLive, checkYouTubeLiveStatus, startZoomLiveStream } from './youtubeLive.js';
 /**
  * 📖 GET DAILY PROMISE
  */

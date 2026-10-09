@@ -6,7 +6,7 @@ let cachedZoomToken = null;
 /**
  * Helper: Acquire Server-to-Server OAuth access token from Zoom
  */
-async function getZoomServerToServerToken() {
+export async function getZoomServerToServerToken() {
     const accountId = process.env.ZOOM_ACCOUNT_ID;
     const clientId = process.env.ZOOM_CLIENT_ID;
     const clientSecret = process.env.ZOOM_CLIENT_SECRET;
@@ -35,7 +35,7 @@ async function getZoomServerToServerToken() {
     };
     return access_token;
 }
-function extractZoomUserId(accessToken) {
+export function extractZoomUserId(accessToken) {
     try {
         const parts = accessToken.split('.');
         if (parts.length >= 2 && parts[1]) {

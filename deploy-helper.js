@@ -80,9 +80,14 @@ const req = https.request({
     console.log(`Credentials written to: ${configPath}`);
 
     // Now deploy
-    console.log('\nDeploying Firebase Functions...');
+    const rawTarget = process.argv[2];
+    let target = 'functions';
+    if (rawTarget) {
+      target = rawTarget.split(',').map(f => f.trim().startsWith('functions:') ? f.trim() : `functions:${f.trim()}`).join(',');
+    }
+    console.log(`\nDeploying Firebase target: ${target}...`);
     try {
-      execSync('firebase deploy --only functions --project wechristian-67f07', {
+      execSync(`npx firebase deploy --only ${target} --project wechristian-67f07`, {
         stdio: 'inherit',
         env: {
           ...process.env,

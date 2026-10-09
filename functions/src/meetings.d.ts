@@ -1,4 +1,9 @@
 /**
+ * Helper: Acquire Server-to-Server OAuth access token from Zoom
+ */
+export declare function getZoomServerToServerToken(): Promise<string>;
+export declare function extractZoomUserId(accessToken: string): string;
+/**
  * 📹 CREATE ZOOM MEETING (Callable Function)
  * Called by the Admin App when clicking "Generate Link" for Zoom Meetings.
  * Uses Zoom Server-to-Server OAuth on the backend without exposing secrets.

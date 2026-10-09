@@ -12,7 +12,8 @@ import {
   Platform,
   Dimensions,
   StatusBar,
-  Animated
+  Animated,
+  Switch
 } from 'react-native';
 import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { 
@@ -29,7 +30,12 @@ import {
   Save,
   Link as LinkIcon,
   Key,
-  X
+  X,
+  Radio,
+  Tv,
+  Globe,
+  Lock,
+  EyeOff
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { useAuth } from '../../context/AuthContext';
@@ -38,8 +44,12 @@ import firestore from '@react-native-firebase/firestore';
 import { functions } from '../../services/firebaseConfig';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { createZoomMeeting } from '../../services/ZoomService';
+import { YouTubeLiveService } from '../../services/YouTubeLiveService';
 
 const { width } = Dimensions.get('window');
+
+// Feature flag: set to true in future when church upgrades Zoom to Pro
+const SHOW_YOUTUBE_LIVE = false;
 
 
 
@@ -54,7 +64,47 @@ export default function AdminOnlineMeetingEditor() {
   const [errorMsg, setErrorMsg] = useState('');
   
   const [generatingMeet, setGeneratingMeet] = useState(false);
+  const [ytStatus, setYtStatus] = useState<any>(null);
+  const [ytLoading, setYtLoading] = useState(false);
   const toastAnim = useState(new Animated.Value(0))[0];
+
+  useEffect(() => {
+    if (!activeChurch?.id) return;
+    const unsub = firestore()
+      .collection('churches')
+      .doc(activeChurch.id)
+      .collection('settings')
+      .doc('youtube_channel')
+      .onSnapshot(doc => {
+        const exists = typeof (doc as any).exists === 'function' ? (doc as any).exists() : Boolean((doc as any).exists);
+        if (doc && exists) {
+          const data = doc.data();
+          setYtStatus({
+            isConnected: Boolean(data?.isConnected),
+            channelId: data?.channelId,
+            channelTitle: data?.channelTitle,
+          });
+        } else {
+          setYtStatus({ isConnected: false });
+        }
+      });
+    return () => unsub();
+  }, [activeChurch?.id]);
+
+  const handleConnectYouTube = async () => {
+    if (!activeChurch?.id) {
+      Alert.alert('Error', 'Please select an active church.');
+      return;
+    }
+    setYtLoading(true);
+    try {
+      await YouTubeLiveService.connectYouTubeChannel(activeChurch.id);
+    } catch (e: any) {
+      Alert.alert('Connection Failed', e?.message || 'Could not initiate YouTube authorization.');
+    } finally {
+      setYtLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (showSuccess) {
@@ -188,32 +238,73 @@ export default function AdminOnlineMeetingEditor() {
       return;
     }
 
+    if (SHOW_YOUTUBE_LIVE && form.enableYouTubeLive && !ytStatus?.isConnected) {
+      setErrorMsg("Please connect your Church YouTube Channel first using the red button below, or turn off 'Stream to YouTube Live'.");
+      setShowError(true);
+      return;
+    }
+
     setGeneratingMeet(true);
     try {
-      const data = await createZoomMeeting({
-        title: form.title,
-        description: form.description || form.bibleBook || '',
-        startTime: form.startTime,
-        endTime: form.endTime,
-        churchId: activeChurch?.id,
-      });
-
-      if (data && data.meetingUrl) {
-        setForm(prev => ({ 
-          ...prev, 
-          meetingLink: data.meetingUrl,
-          meetingId: data.meetingId || '',
-          password: data.password || ''
-        }));
-        const passText = data.password ? ` • Passcode: ${data.password}` : '';
-        setSuccessMsg({ 
-          title: 'Zoom Link Generated!', 
-          sub: `Meeting ID: ${data.meetingId || ''}${passText}` 
+      if (SHOW_YOUTUBE_LIVE && form.enableYouTubeLive) {
+        // Create Zoom meeting AND provision YouTube Live broadcast + stream
+        const ytData = await YouTubeLiveService.createZoomWithYouTubeLive({
+          churchId: activeChurch?.id || '',
+          title: form.title,
+          description: form.description || form.bibleBook || '',
+          startTime: form.startTime,
+          endTime: form.endTime,
+          durationMinutes: Math.max(15, Math.round((form.endTime.getTime() - form.startTime.getTime()) / (60 * 1000))),
+          enableYouTubeLive: true,
+          privacy: form.youtubePrivacy,
         });
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
+
+        if (ytData && ytData.zoomJoinUrl) {
+          setForm(prev => ({
+            ...prev,
+            meetingLink: ytData.zoomJoinUrl || '',
+            meetingId: ytData.zoomMeetingId || '',
+            password: ytData.zoomPassword || prev.password,
+            youtubeLive: ytData.youtubeLive,
+          }));
+          const passText = ytData.zoomPassword ? ` • Passcode: ${ytData.zoomPassword}` : '';
+          setSuccessMsg({
+            title: 'Zoom + YouTube Live Created!',
+            sub: `Zoom ID: ${ytData.zoomMeetingId || ''}${passText} • Stream linked to YouTube`,
+          });
+          setShowSuccess(true);
+          setTimeout(() => setShowSuccess(false), 3500);
+        } else {
+          throw new Error('Could not create Zoom + YouTube stream.');
+        }
       } else {
-        throw new Error('No Zoom meeting link returned.');
+        // Standard Zoom meeting creation
+        const data = await createZoomMeeting({
+          title: form.title,
+          description: form.description || form.bibleBook || '',
+          startTime: form.startTime,
+          endTime: form.endTime,
+          churchId: activeChurch?.id,
+        });
+
+        if (data && data.meetingUrl) {
+          setForm(prev => ({ 
+            ...prev, 
+            meetingLink: data.meetingUrl,
+            meetingId: data.meetingId || '',
+            password: data.password || '',
+            youtubeLive: null,
+          }));
+          const passText = data.password ? ` • Passcode: ${data.password}` : '';
+          setSuccessMsg({ 
+            title: 'Zoom Link Generated!', 
+            sub: `Meeting ID: ${data.meetingId || ''}${passText}` 
+          });
+          setShowSuccess(true);
+          setTimeout(() => setShowSuccess(false), 3000);
+        } else {
+          throw new Error('No Zoom meeting link returned.');
+        }
       }
     } catch (err: any) {
       console.error('[handleGenerateZoomLink] Error:', err);
@@ -248,7 +339,10 @@ export default function AdminOnlineMeetingEditor() {
     password: '',
     date: new Date(),
     startTime: new Date(),
-    endTime: new Date(new Date().getTime() + 60 * 60 * 1000)
+    endTime: new Date(new Date().getTime() + 60 * 60 * 1000),
+    enableYouTubeLive: false,
+    youtubePrivacy: 'public' as 'public' | 'unlisted' | 'private',
+    youtubeLive: null as any,
   });
 
   useEffect(() => {
@@ -266,6 +360,9 @@ export default function AdminOnlineMeetingEditor() {
         date: editingData.startTime ? new Date(editingData.startTime.seconds * 1000) : new Date(),
         startTime: editingData.startTime ? new Date(editingData.startTime.seconds * 1000) : new Date(),
         endTime: editingData.endTime ? new Date(editingData.endTime.seconds * 1000) : new Date(new Date().getTime() + 60 * 60 * 1000),
+        enableYouTubeLive: Boolean(editingData.youtubeLive?.enabled),
+        youtubePrivacy: editingData.youtubeLive?.privacy || 'public',
+        youtubeLive: editingData.youtubeLive || null,
       }));
     }
   }, [editingData]);
@@ -327,7 +424,7 @@ export default function AdminOnlineMeetingEditor() {
     try {
       if (!activeChurch?.id) throw new Error("No active church found.");
 
-      const payload = {
+      const payload: any = {
         title: form.title,
         bibleBook: form.bibleBook,
         teacher: form.teacher,
@@ -342,6 +439,16 @@ export default function AdminOnlineMeetingEditor() {
         status: 'upcoming',
         createdAt: firestore.FieldValue.serverTimestamp()
       };
+
+      if (form.youtubeLive) {
+        payload.youtubeLive = form.youtubeLive;
+      } else if (form.enableYouTubeLive && form.provider === 'zoom') {
+        payload.youtubeLive = {
+          enabled: true,
+          privacy: form.youtubePrivacy,
+          status: 'scheduled',
+        };
+      }
       
       if (editingData?.id) {
         await firestore().collection('churches').doc(activeChurch.id).collection('online_meetings').doc(editingData.id).update(payload);
@@ -518,6 +625,142 @@ export default function AdminOnlineMeetingEditor() {
                   autoCapitalize="none"
                 />
               </View>
+
+              {SHOW_YOUTUBE_LIVE && (
+                <>
+                  {/* YouTube Channel Connection Card inside Zoom section */}
+                  {!ytStatus?.isConnected ? (
+                    <View style={styles.ytRedConnectCard}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={styles.ytRedIconCircle}>
+                          <Tv size={18} color="#DC2626" />
+                        </View>
+                        <View style={{ flex: 1, marginLeft: 10 }}>
+                          <Text style={styles.ytRedCardTitle}>Connect Church YouTube Channel</Text>
+                          <Text style={styles.ytRedCardDesc}>
+                            Authorize your church YouTube channel to stream this Zoom meeting live.
+                          </Text>
+                        </View>
+                      </View>
+                      <TouchableOpacity
+                        style={styles.ytRedConnectBtn}
+                        onPress={handleConnectYouTube}
+                        disabled={ytLoading}
+                      >
+                        {ytLoading ? (
+                          <ActivityIndicator size="small" color="#FFFFFF" />
+                        ) : (
+                          <>
+                            <Radio size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
+                            <Text style={styles.ytRedConnectBtnTxt}>Connect Church YouTube Channel</Text>
+                          </>
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={styles.ytGreenConnectedCard}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <CheckCircle2 size={16} color="#16A34A" />
+                        <View style={{ marginLeft: 8, flex: 1 }}>
+                          <Text style={styles.ytGreenCardTitle}>
+                            YouTube Connected: {ytStatus.channelTitle || 'Church Channel'}
+                          </Text>
+                          <Text style={styles.ytGreenCardSub}>
+                            Ready to broadcast this Zoom meeting live to members
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* YouTube Live Stream Switch & Options */}
+                  <View style={styles.ytSectionBox}>
+                    <View style={styles.ytSwitchRow}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
+                        <View style={styles.ytIconBadgeSmall}>
+                          <Tv size={16} color="#DC2626" />
+                        </View>
+                        <View style={{ marginLeft: 10, flex: 1 }}>
+                          <Text style={styles.ytSwitchTitle}>Stream to YouTube Live</Text>
+                          <Text style={styles.ytSwitchSub}>
+                            Automatically broadcast this Zoom meeting to YouTube
+                          </Text>
+                        </View>
+                      </View>
+                      <Switch
+                        value={form.enableYouTubeLive}
+                        onValueChange={(val) => setForm({ ...form, enableYouTubeLive: val })}
+                        trackColor={{ false: '#D1D5DB', true: '#FCA5A5' }}
+                        thumbColor={form.enableYouTubeLive ? '#DC2626' : '#9CA3AF'}
+                      />
+                    </View>
+
+                    {form.enableYouTubeLive && (
+                      <View style={styles.ytOptionsContainer}>
+                        <Text style={styles.ytOptionLabel}>YouTube Privacy</Text>
+                        <View style={styles.privacySelectorRow}>
+                          <TouchableOpacity
+                            style={[
+                              styles.privacyOptionBtn,
+                              form.youtubePrivacy === 'public' && styles.privacyOptionBtnActive
+                            ]}
+                            onPress={() => setForm({ ...form, youtubePrivacy: 'public' })}
+                          >
+                            <Globe size={14} color={form.youtubePrivacy === 'public' ? '#FFFFFF' : '#4B5563'} />
+                            <Text style={[
+                              styles.privacyOptionTxt,
+                              form.youtubePrivacy === 'public' && styles.privacyOptionTxtActive
+                            ]}>
+                              Public
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.privacyOptionBtn,
+                              form.youtubePrivacy === 'unlisted' && styles.privacyOptionBtnActive
+                            ]}
+                            onPress={() => setForm({ ...form, youtubePrivacy: 'unlisted' })}
+                          >
+                            <EyeOff size={14} color={form.youtubePrivacy === 'unlisted' ? '#FFFFFF' : '#4B5563'} />
+                            <Text style={[
+                              styles.privacyOptionTxt,
+                              form.youtubePrivacy === 'unlisted' && styles.privacyOptionTxtActive
+                            ]}>
+                              Unlisted
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.privacyOptionBtn,
+                              form.youtubePrivacy === 'private' && styles.privacyOptionBtnActive
+                            ]}
+                            onPress={() => setForm({ ...form, youtubePrivacy: 'private' })}
+                          >
+                            <Lock size={14} color={form.youtubePrivacy === 'private' ? '#FFFFFF' : '#4B5563'} />
+                            <Text style={[
+                              styles.privacyOptionTxt,
+                              form.youtubePrivacy === 'private' && styles.privacyOptionTxtActive
+                            ]}>
+                              Private
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        {form.youtubeLive?.watchUrl && (
+                          <View style={styles.ytGeneratedLinkBox}>
+                            <Radio size={13} color="#16A34A" />
+                            <Text style={styles.ytGeneratedLinkText} numberOfLines={1}>
+                              Live URL: {form.youtubeLive.watchUrl}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  </View>
+                </>
+              )}
             </>
           )}
 
@@ -770,4 +1013,159 @@ const styles = StyleSheet.create({
   toastIconBox: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#ECFDF5', justifyContent: 'center', alignItems: 'center' },
   toastTitle: { fontSize: 14, fontWeight: '800', color: '#1a2d5a' },
   toastSub: { fontSize: 12, color: '#6B7280', marginTop: 2, fontWeight: '500' },
+
+  // YouTube Live Form Section
+  ytSectionBox: {
+    backgroundColor: '#FFF1F2',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#FECDD3',
+  },
+  ytSwitchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  ytIconBadgeSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(220, 38, 38, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ytSwitchTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#991B1B',
+  },
+  ytSwitchSub: {
+    fontSize: 11,
+    color: '#7F1D1D',
+    marginTop: 1,
+    lineHeight: 14,
+  },
+  ytOptionsContainer: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#FECDD3',
+  },
+  ytOptionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#991B1B',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  privacySelectorRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  privacyOptionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingVertical: 8,
+  },
+  privacyOptionBtnActive: {
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
+  },
+  privacyOptionTxt: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  privacyOptionTxtActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  ytGeneratedLinkBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 8,
+    borderRadius: 8,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    gap: 6,
+  },
+  ytGeneratedLinkText: {
+    fontSize: 11,
+    color: '#15803D',
+    fontWeight: '600',
+    flex: 1,
+  },
+
+  // YouTube Channel Connect Card in Zoom Form
+  ytRedConnectCard: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 14,
+  },
+  ytRedIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(220, 38, 38, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ytRedCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#991B1B',
+  },
+  ytRedCardDesc: {
+    fontSize: 11,
+    color: '#7F1D1D',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  ytRedConnectBtn: {
+    backgroundColor: '#DC2626',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  ytRedConnectBtnTxt: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  ytGreenConnectedCard: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 14,
+  },
+  ytGreenCardTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#15803D',
+  },
+  ytGreenCardSub: {
+    fontSize: 11,
+    color: '#166534',
+    marginTop: 1,
+  },
 });

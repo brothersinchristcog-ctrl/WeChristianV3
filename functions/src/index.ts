@@ -27,6 +27,16 @@ export {
   createZoomMeetingHttp
 } from './meetings.js';
 
+export {
+  getYoutubeAuthUrl,
+  youtubeOAuthCallback,
+  getYouTubeChannelStatus,
+  disconnectYouTubeChannel,
+  createZoomWithYouTubeLive,
+  checkYouTubeLiveStatus,
+  startZoomLiveStream
+} from './youtubeLive.js';
+
 // Initialize Firebase Admin once at top level
 initializeApp();
 

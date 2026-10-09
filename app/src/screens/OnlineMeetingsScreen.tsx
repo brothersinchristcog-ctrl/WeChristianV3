@@ -33,6 +33,8 @@ import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
 import { useLanguage } from '../context/LanguageContext';
 
+const SHOW_YOUTUBE_LIVE = false;
+
 const { width } = Dimensions.get('window');
 const BRAND = '#1a2d5a';
 const LIVE_COLOR = '#ef4444';
@@ -157,8 +159,7 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
           {/* Decorative circle */}
           <View style={[styles.gradCircle, { backgroundColor: gradEnd }]} />
 
-          {/* Platform Badge */}
-          {/* Platform Badge & Passcode Badge */}
+          {/* Platform Badge & Passcode Badge & YouTube Badge */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6, flexWrap: 'wrap' }}>
             {item.meetingType === 'zoom' || item.provider === 'zoom' ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(45, 140, 255, 0.35)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#2D8CFF' }}>
@@ -175,6 +176,23 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
               <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(252, 211, 77, 0.25)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#FCD34D' }}>
                 <Key size={11} color="#FCD34D" style={{ marginRight: 4 }} />
                 <Text style={{ color: '#FCD34D', fontSize: 11, fontWeight: '700' }}>Passcode: {item.password}</Text>
+              </View>
+            ) : null}
+            {SHOW_YOUTUBE_LIVE && item.youtubeLive?.enabled ? (
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                backgroundColor: item.youtubeLive.status === 'live' ? 'rgba(220, 38, 38, 0.5)' : 'rgba(239, 68, 68, 0.25)', 
+                paddingHorizontal: 8, 
+                paddingVertical: 3, 
+                borderRadius: 6, 
+                borderWidth: 1, 
+                borderColor: '#EF4444' 
+              }}>
+                <Radio size={11} color="#ffffff" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>
+                  {item.youtubeLive.status === 'live' ? '🔴 Live on YouTube' : 'YouTube Live'}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -224,7 +242,7 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
           )}
 
           {/* Action buttons */}
-          <View style={styles.gradActions}>
+          <View style={[styles.gradActions, { flexWrap: 'wrap', gap: 8 }]}>
             <TouchableOpacity
               style={styles.gradJoinBtn}
               onPress={() => navigation.navigate('OnlineMeetingDetail', { meeting: item })}
@@ -234,6 +252,24 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
                 {isLive ? t('meetings.joinLive') : t('meetings.join')}
               </Text>
             </TouchableOpacity>
+
+            {SHOW_YOUTUBE_LIVE && item.youtubeLive?.watchUrl ? (
+              <TouchableOpacity
+                style={[
+                  styles.gradJoinBtn,
+                  {
+                    backgroundColor: item.youtubeLive.status === 'live' ? '#DC2626' : 'rgba(255, 255, 255, 0.2)',
+                    borderColor: '#DC2626',
+                  }
+                ]}
+                onPress={() => Linking.openURL(item.youtubeLive.watchUrl)}
+              >
+                <Radio size={14} color="#FFFFFF" />
+                <Text style={[styles.gradJoinText, { color: '#FFFFFF', marginLeft: 4 }]}>
+                  {item.youtubeLive.status === 'live' ? 'Watch on YouTube' : 'YouTube Live'}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
 
             {isCompleted ? null : (
               <TouchableOpacity
