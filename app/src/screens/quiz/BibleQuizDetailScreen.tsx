@@ -58,7 +58,11 @@ export default function BibleQuizDetailScreen() {
   const [lockedAlertVisible, setLockedAlertVisible] = useState<boolean>(false);
 
   const passedQuiz: BibleQuiz | undefined = route?.params?.quiz;
-  const targetQuizId: string | undefined = route?.params?.quizId || passedQuiz?.id;
+  const targetQuizId: string | undefined =
+    route?.params?.quizId ||
+    route?.params?.id ||
+    route?.params?.relatedId ||
+    passedQuiz?.id;
   const targetChurchId: string | undefined =
     route?.params?.churchId ||
     passedQuiz?.churchId ||
@@ -109,7 +113,7 @@ export default function BibleQuizDetailScreen() {
     }, [targetQuizId, targetChurchId, user?.uid, quizLanguage, passedQuiz])
   );
 
-  const loadQuizDetail = async () => {
+  const loadQuizDetail = async (retryCount = 0) => {
     try {
       if (!targetQuizId) {
         if (!quiz && !passedQuiz) setNotFound(true);
@@ -125,6 +129,12 @@ export default function BibleQuizDetailScreen() {
         q = await QuizService.getQuizById(targetQuizId, undefined, quizLanguage);
       }
 
+      // If still not found and retryCount < 2, wait 500ms and retry (absorbs Firestore write sync latency on immediate notification click)
+      if (!q && retryCount < 2) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return loadQuizDetail(retryCount + 1);
+      }
+
       if (q) {
         setLoadedQuiz(q);
         setNotFound(false);
@@ -137,6 +147,10 @@ export default function BibleQuizDetailScreen() {
       }
     } catch (e) {
       console.error('[BibleQuizDetailScreen] Error loading quiz:', e);
+      if (retryCount < 2) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return loadQuizDetail(retryCount + 1);
+      }
       if (!quiz && !passedQuiz) setNotFound(true);
     } finally {
       setLoading(false);

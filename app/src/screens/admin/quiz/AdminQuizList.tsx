@@ -1002,10 +1002,7 @@ export default function AdminQuizList() {
               <Text style={styles.heroBackTxt}>Back</Text>
             </TouchableOpacity>
             <Text style={styles.heroDivider}>|</Text>
-            <View style={{ flexShrink: 1 }}>
-              <Text style={styles.heroTitle} numberOfLines={1}>Bible Quizzes</Text>
-              <Text style={styles.heroSub} numberOfLines={1}>{churchName} · Manage & Create</Text>
-            </View>
+            <Text style={styles.heroTitle} numberOfLines={1}>Bible Quizzes</Text>
           </View>
 
           <TouchableOpacity
@@ -1201,6 +1198,77 @@ export default function AdminQuizList() {
             const isScheduled = quiz.status === 'scheduled';
             return (
               <View key={quiz.id} style={styles.quizCard}>
+                {/* Top Row: Badges (Status, Medium) on Left & Edit/Delete on Right (straight in line with Medium) */}
+                <View style={styles.cardTopRow}>
+                  <View style={styles.cardBadgesGroup}>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        isPublished
+                          ? styles.statusBadgePub
+                          : isScheduled
+                          ? { backgroundColor: '#DBEAFE', borderColor: '#93C5FD' }
+                          : styles.statusBadgeDraft,
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.statusBadgeTxt,
+                          isPublished
+                            ? { color: '#059669' }
+                            : isScheduled
+                            ? { color: '#2563eb' }
+                            : { color: '#64748b' },
+                        ]}
+                      >
+                        {isScheduled && quiz.scheduledDate
+                          ? `📅 ${quiz.scheduledDate}${quiz.scheduledTime ? ` · ⏰ ${formatQuizTime(quiz.scheduledTime, quiz.scheduledDate)}` : ''}`
+                          : quiz.status.toUpperCase()}
+                      </Text>
+                    </View>
+
+                    {quiz.isDailyQuiz && (
+                      <View style={styles.dailyBadge}>
+                        <Text style={styles.dailyBadgeTxt}>☀️ DAILY</Text>
+                      </View>
+                    )}
+
+                    <View style={styles.difficultyBadge}>
+                      <Text style={styles.difficultyBadgeTxt}>{quiz.difficulty.toUpperCase()}</Text>
+                    </View>
+
+                    {quiz.level ? (
+                      <View style={styles.levelBadge}>
+                        <Text style={styles.levelBadgeTxt}>LEVEL {quiz.level}</Text>
+                      </View>
+                    ) : null}
+                  </View>
+
+                  {/* Top Right: Edit and Delete Buttons straight in line with Medium */}
+                  <View style={styles.cardTopActions}>
+                    <TouchableOpacity
+                      style={styles.cardEditBtn}
+                      onPress={() => {
+                        setSelectedQuiz(quiz);
+                        setCurrentView('editor');
+                      }}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Edit2 size={13} color="#475569" />
+                      <Text style={styles.cardEditBtnTxt}>Edit</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.cardDeleteBtn}
+                      onPress={() => handleDeleteQuiz(quiz)}
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    >
+                      <Trash2 size={14} color="#dc2626" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Main Content: Title & Meta Info */}
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={() => {
@@ -1211,55 +1279,7 @@ export default function AdminQuizList() {
                     });
                   }}
                 >
-                  <View style={styles.cardHeader}>
-                    <View style={{ flex: 1, marginRight: 8 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                        <View
-                          style={[
-                            styles.statusBadge,
-                            isPublished
-                              ? styles.statusBadgePub
-                              : isScheduled
-                              ? { backgroundColor: '#DBEAFE', borderColor: '#93C5FD' }
-                              : styles.statusBadgeDraft,
-                          ]}
-                        >
-                          <Text
-                            style={[
-                              styles.statusBadgeTxt,
-                              isPublished
-                                ? { color: '#059669' }
-                                : isScheduled
-                                ? { color: '#2563eb' }
-                                : { color: '#64748b' },
-                            ]}
-                          >
-                            {isScheduled && quiz.scheduledDate
-                              ? `📅 ${quiz.scheduledDate}${quiz.scheduledTime ? ` · ⏰ ${formatQuizTime(quiz.scheduledTime, quiz.scheduledDate)}` : ''}`
-                              : quiz.status.toUpperCase()}
-                          </Text>
-                        </View>
-
-                        {quiz.isDailyQuiz && (
-                          <View style={styles.dailyBadge}>
-                            <Text style={styles.dailyBadgeTxt}>☀️ DAILY</Text>
-                          </View>
-                        )}
-
-                        <View style={styles.difficultyBadge}>
-                          <Text style={styles.difficultyBadgeTxt}>{quiz.difficulty.toUpperCase()}</Text>
-                        </View>
-
-                        {quiz.level ? (
-                          <View style={styles.levelBadge}>
-                            <Text style={styles.levelBadgeTxt}>LEVEL {quiz.level}</Text>
-                          </View>
-                        ) : null}
-                      </View>
-
-                      <Text style={styles.cardTitle}>{quiz.title}</Text>
-                    </View>
-                  </View>
+                  <Text style={styles.cardTitle}>{quiz.title}</Text>
 
                   {/* Sub details: Book / Category / Questions */}
                   <View style={styles.cardMetaRow}>
@@ -1279,73 +1299,49 @@ export default function AdminQuizList() {
                   </View>
                 </TouchableOpacity>
 
-                {/* Card Actions */}
+                {/* Card Actions (Bottom row): View, Report, Move to Draft / Publish */}
                 <View style={styles.cardActionsRow}>
-                  {/* Left Side: View, Report, Publish / Draft */}
-                  <View style={styles.cardLeftActions}>
-                    <TouchableOpacity
-                      style={styles.cardActionBtn}
-                      onPress={() => {
-                        navigation.navigate('BibleQuizDetail', {
-                          quiz,
-                          quizId: quiz.id,
-                          churchId: quiz.churchId || churchId,
-                        });
-                      }}
-                    >
-                      <Eye size={15} color="#0284c7" />
-                      <Text style={[styles.cardActionBtnTxt, { color: '#0284c7', fontWeight: '700' }]}>View</Text>
-                    </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cardActionBtn}
+                    onPress={() => {
+                      navigation.navigate('BibleQuizDetail', {
+                        quiz,
+                        quizId: quiz.id,
+                        churchId: quiz.churchId || churchId,
+                      });
+                    }}
+                  >
+                    <Eye size={15} color="#0284c7" />
+                    <Text style={[styles.cardActionBtnTxt, { color: '#0284c7', fontWeight: '700' }]}>View</Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={styles.cardActionBtn}
-                      onPress={() => {
-                        setSelectedQuiz(quiz);
-                        setCurrentView('reports');
-                      }}
-                    >
-                      <BarChart2 size={15} color="#2563eb" />
-                      <Text style={[styles.cardActionBtnTxt, { color: '#2563eb' }]}>Report</Text>
-                    </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.cardActionBtn}
+                    onPress={() => {
+                      setSelectedQuiz(quiz);
+                      setCurrentView('reports');
+                    }}
+                  >
+                    <BarChart2 size={15} color="#2563eb" />
+                    <Text style={[styles.cardActionBtnTxt, { color: '#2563eb' }]}>Report</Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={styles.cardActionBtn}
-                      onPress={() => handleTogglePublish(quiz)}
-                    >
-                      {isPublished ? (
-                        <>
-                          <PauseCircle size={14} color="#d97706" />
-                          <Text style={[styles.cardActionBtnTxt, { color: '#d97706' }]}>Move to Draft</Text>
-                        </>
-                      ) : (
-                        <>
-                          <Send size={14} color="#059669" />
-                          <Text style={[styles.cardActionBtnTxt, { color: '#059669' }]}>Publish</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Right Side: Edit and Delete */}
-                  <View style={styles.cardRightActions}>
-                    <TouchableOpacity
-                      style={styles.cardEditBtn}
-                      onPress={() => {
-                        setSelectedQuiz(quiz);
-                        setCurrentView('editor');
-                      }}
-                    >
-                      <Edit2 size={13} color="#475569" />
-                      <Text style={styles.cardEditBtnTxt}>Edit</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.cardDeleteBtn}
-                      onPress={() => handleDeleteQuiz(quiz)}
-                    >
-                      <Trash2 size={14} color="#dc2626" />
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity
+                    style={styles.cardActionBtn}
+                    onPress={() => handleTogglePublish(quiz)}
+                  >
+                    {isPublished ? (
+                      <>
+                        <PauseCircle size={14} color="#d97706" />
+                        <Text style={[styles.cardActionBtnTxt, { color: '#d97706' }]}>Move to Draft</Text>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={14} color="#059669" />
+                        <Text style={[styles.cardActionBtnTxt, { color: '#059669' }]}>Publish</Text>
+                      </>
+                    )}
+                  </TouchableOpacity>
                 </View>
               </View>
             );
@@ -1388,7 +1384,6 @@ const styles = StyleSheet.create({
   heroBackBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 4,
     paddingRight: 4,
   },
   heroBackTxt: {
@@ -1647,6 +1642,25 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
+  cardTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  cardBadgesGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+    flex: 1,
+    marginRight: 8,
+  },
+  cardTopActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1723,23 +1737,11 @@ const styles = StyleSheet.create({
   cardActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 16,
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
     paddingTop: 10,
     marginTop: 4,
-  },
-  cardLeftActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flexShrink: 1,
-  },
-  cardRightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginLeft: 6,
   },
   cardActionBtn: {
     flexDirection: 'row',

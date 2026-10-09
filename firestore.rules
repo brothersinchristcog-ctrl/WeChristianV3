@@ -26,7 +26,7 @@ service cloud.firestore {
 
     // --- TOP-LEVEL COLLECTIONS ---
 
-    // Collection Group queries for members and attendance
+    // Collection Group queries for members, attendance, and bibleQuizzes
     match /{path=**}/members/{memberId} {
       allow read: if isAuthenticated();
     }
@@ -34,6 +34,12 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
     match /{path=**}/attendees/{attendeeId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /{path=**}/bibleQuizzes/{quizId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /bibleQuizzes/{quizId} {
       allow read, write: if isAuthenticated();
     }
 

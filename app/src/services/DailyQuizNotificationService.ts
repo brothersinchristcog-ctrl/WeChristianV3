@@ -271,8 +271,11 @@ class DailyQuizNotificationService {
             data: {
               type: 'bible_quiz',
               quizId: `daily_quiz_${dateStr}`,
+              id: `daily_quiz_${dateStr}`,
+              relatedId: `daily_quiz_${dateStr}`,
               churchId: 'global',
               scheduledDate: dateStr,
+              screen: 'BibleQuizDetail',
             },
           },
           trigger: {
@@ -285,6 +288,34 @@ class DailyQuizNotificationService {
         scheduledCount++;
       }
 
+      // Also register a recurring daily fallback trigger for exact 6:00 AM delivery
+      try {
+        const hour = typeof config.hour === 'number' ? config.hour : 6;
+        const minute = typeof config.minute === 'number' ? config.minute : 0;
+        await Notifications.scheduleNotificationAsync({
+          identifier: `${NOTIF_ID_PREFIX}repeating_daily`,
+          content: {
+            title: config.customTitle || '📖 Daily Bible Quiz is Live!',
+            body: config.customBody || "Today's Scripture challenge is ready. Test your knowledge and reflect on God's Word!",
+            sound: true,
+            data: {
+              type: 'bible_quiz',
+              quizId: 'daily_today',
+              screen: 'BibleQuizDetail',
+              churchId: 'global',
+            },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour,
+            minute,
+            channelId: 'daily_quiz',
+          },
+        });
+      } catch (dailyErr) {
+        // Optional daily fallback
+      }
+
       console.log(`[DailyQuizNotificationService] Scheduled ${scheduledCount} notifications for ${config.time24}. Next: ${firstUpcomingDate}`);
       return { scheduledCount, nextDate: firstUpcomingDate };
     } catch (e) {
@@ -292,6 +323,93 @@ class DailyQuizNotificationService {
       return { scheduledCount: 0, nextDate: null };
     } finally {
       this.isScheduling = false;
+    }
+  }
+
+  /**
+   * Super Admin action: Instantly broadcasts today's Daily Quiz push notification
+   * to all church members across the entire platform via Cloud Functions / Firestore.
+   */
+  async broadcastDailyQuizPushNow(): Promise<{ success: boolean; message: string; churchCount: number }> {
+    try {
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      const dateStr = `${y}-${m}-${d}`;
+      const quizId = `daily_quiz_${dateStr}`;
+
+      const config = await this.getScheduleConfig();
+      const pushTitle = config.customTitle || '📖 Daily Bible Quiz is Live!';
+      const pushBody = config.customBody || `Today's Scripture challenge (${dateStr}) is ready. Test your knowledge and reflect on God's Word!`;
+
+      // 1. Fetch all active churches
+      const churchesSnap = await firestore().collection('churches').get();
+      const targetChurches: string[] = [];
+      churchesSnap.docs.forEach((doc: any) => {
+        if (doc.id !== 'global') {
+          targetChurches.push(doc.id);
+        }
+      });
+
+      // 2. Add broadcast to each church (triggers Cloud Functions broadcast push to all members)
+      for (const cId of targetChurches) {
+        await firestore()
+          .collection('churches')
+          .doc(cId)
+          .collection('broadcasts')
+          .add({
+            title: pushTitle,
+            content: pushBody,
+            type: 'quiz',
+            quizId: quizId,
+            id: quizId,
+            relatedId: quizId,
+            screen: 'BibleQuizDetail',
+            churchId: cId,
+            createdAt: firestore.FieldValue.serverTimestamp(),
+          })
+          .catch(() => {});
+
+        await firestore()
+          .collection('churches')
+          .doc(cId)
+          .collection('notifications')
+          .add({
+            title: pushTitle,
+            body: pushBody,
+            type: 'quiz',
+            quizId: quizId,
+            id: quizId,
+            relatedId: quizId,
+            screen: 'BibleQuizDetail',
+            churchId: cId,
+            read: false,
+            createdAt: firestore.FieldValue.serverTimestamp(),
+          })
+          .catch(() => {});
+      }
+
+      // 3. Mark lastBroadcastDate in Firestore
+      await firestore()
+        .collection('churches')
+        .doc('global')
+        .collection('settings')
+        .doc('daily_quiz_schedule')
+        .set({
+          lastBroadcastDate: dateStr,
+          lastBroadcastAt: firestore.FieldValue.serverTimestamp(),
+        }, { merge: true })
+        .catch(() => {});
+
+      return {
+        success: true,
+        message: `Live Daily Quiz push broadcasted across ${targetChurches.length} churches!`,
+        churchCount: targetChurches.length,
+      };
+    } catch (e: any) {
+      console.error('[DailyQuizNotificationService] Error in broadcastDailyQuizPushNow:', e);
+      return { success: false, message: e?.message || 'Failed to broadcast', churchCount: 0 };
     }
   }
 

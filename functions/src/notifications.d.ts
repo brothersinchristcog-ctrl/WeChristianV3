@@ -44,4 +44,36 @@ export declare const pushBibleQuizUpdated: import("firebase-functions/core").Clo
     churchId: string;
     quizId: string;
 }>>;
+/**
+ * 📖 SEND DAILY BIBLE QUIZ NOTIFICATION (Core Engine)
+ * Dispatches the daily Bible quiz challenge to church members.
+ * Supports:
+ * - Direct FCM Multicast to all registered device tokens with sound, max priority, and channelId 'daily_quiz'
+ * - FCM Topic broadcast to each active church topic (church_{churchId})
+ * - Logging into broadcasts and notifications subcollections for all churches
+ * - Idempotency tracking via lastBroadcastDate
+ */
+export declare function sendDailyQuizNotificationInternal(force?: boolean): Promise<{
+    success: boolean;
+    sentCount: number;
+    message: string;
+}>;
+/**
+ * ⏰ AUTOMATED DAILY BIBLE QUIZ SCHEDULER
+ * Scheduled to run every day at 06:00 AM IST (12:30 AM UTC)
+ * Automatically delivers the Daily Bible Quiz push notification to members worldwide.
+ */
+export declare const automatedDailyQuiz: import("firebase-functions/v2/scheduler").ScheduleFunction;
+/**
+ * ⏰ PERIODIC SCHEDULED QUIZ SAFETY NET
+ * Runs every 15 minutes between 05:00 AM and 09:00 AM IST
+ * Ensures that if Super Admin configured a custom delivery time or a temporary network glitch occurred at 06:00,
+ * the daily quiz is automatically delivered as soon as the scheduled time is reached.
+ */
+export declare const periodicDailyQuizSafetyNet: import("firebase-functions/v2/scheduler").ScheduleFunction;
+/**
+ * 🚀 TRIGGER DAILY QUIZ NOTIFICATION (HTTP / Super Admin Test Endpoint)
+ * Invokable endpoint for Super Admin to manually trigger or test the daily quiz push immediately.
+ */
+export declare const triggerDailyQuizNotificationHttp: import("firebase-functions/v2/https").HttpsFunction;
 //# sourceMappingURL=notifications.d.ts.map

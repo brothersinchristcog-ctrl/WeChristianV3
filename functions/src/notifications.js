@@ -1,5 +1,6 @@
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
 import { onSchedule } from 'firebase-functions/v2/scheduler';
+import { onRequest } from 'firebase-functions/v2/https';
 import { getMessaging } from 'firebase-admin/messaging';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 /**
@@ -355,46 +356,10 @@ export const monitorMeetingLive = onSchedule('* * * * *', async (event) => {
         }
         // ─── 4. Check Super Admin Daily Bible Quiz Scheduled Notification ───
         try {
-            const dailyScheduleDoc = await db.collection('churches').doc('global').collection('settings').doc('daily_quiz_schedule').get();
-            const dailyConfig = dailyScheduleDoc.exists ? dailyScheduleDoc.data() : null;
-            if (dailyConfig && dailyConfig.enabled !== false) {
-                const targetTime = dailyConfig.time24 || '06:00';
-                const nowStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }); // YYYY-MM-DD
-                const nowTime = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Kolkata' }); // HH:MM
-                if (dailyConfig.lastBroadcastDate !== nowStr && nowTime >= targetTime) {
-                    const pushTitle = dailyConfig.customTitle || '📖 Daily Bible Quiz is Live!';
-                    const pushBody = dailyConfig.customBody || `Today's Scripture challenge (${nowStr}) is ready. Test your knowledge and reflect on God's Word!`;
-                    const payload = {
-                        notification: { title: pushTitle, body: pushBody },
-                        data: {
-                            type: 'bible_quiz',
-                            quizId: `daily_quiz_${nowStr}`,
-                            churchId: 'global',
-                            scheduledDate: nowStr,
-                            screen: 'BibleQuizDetail',
-                        },
-                        topic: 'church_all',
-                    };
-                    await getMessaging().send(payload).catch((e) => console.error('Error sending Daily Quiz notification:', e));
-                    // Also broadcast to each active church topic
-                    for (const cDoc of churchesSnapshot.docs) {
-                        if (cDoc.id !== 'global') {
-                            getMessaging().send({
-                                ...payload,
-                                topic: `church_${cDoc.id}`,
-                            }).catch(() => { });
-                        }
-                    }
-                    // Mark notified for today
-                    await dailyScheduleDoc.ref.set({
-                        lastBroadcastDate: nowStr,
-                        lastBroadcastAt: FieldValue.serverTimestamp(),
-                    }, { merge: true }).catch(() => { });
-                }
-            }
+            await sendDailyQuizNotificationInternal(false);
         }
         catch (dailySchedErr) {
-            console.warn('Notice checking daily quiz schedule:', dailySchedErr);
+            console.warn('Notice checking daily quiz schedule in monitorMeetingLive:', dailySchedErr);
         }
     }
     catch (error) {
@@ -518,6 +483,7 @@ async function sendBibleQuizPublishNotification(churchId, quizId, quiz) {
         type: 'quiz',
         quizId: String(quizId),
         id: String(quizId),
+        relatedId: String(quizId),
         churchId: String(churchId),
         screen: 'BibleQuizDetail',
         click_action: 'FLUTTER_NOTIFICATION_CLICK',
@@ -647,6 +613,245 @@ export const pushBibleQuizUpdated = onDocumentUpdated('churches/{churchId}/bible
             await snap.after.ref.update({ notificationSent: true });
         }
         catch (e) { }
+    }
+});
+/**
+ * 📖 SEND DAILY BIBLE QUIZ NOTIFICATION (Core Engine)
+ * Dispatches the daily Bible quiz challenge to church members.
+ * Supports:
+ * - Direct FCM Multicast to all registered device tokens with sound, max priority, and channelId 'daily_quiz'
+ * - FCM Topic broadcast to each active church topic (church_{churchId})
+ * - Logging into broadcasts and notifications subcollections for all churches
+ * - Idempotency tracking via lastBroadcastDate
+ */
+export async function sendDailyQuizNotificationInternal(force = false) {
+    const db = getFirestore();
+    const messaging = getMessaging();
+    // 1. Current date and time in IST (Asia/Kolkata)
+    const nowIst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    const dStr = `${nowIst.getFullYear()}-${String(nowIst.getMonth() + 1).padStart(2, '0')}-${String(nowIst.getDate()).padStart(2, '0')}`;
+    const nowTime = `${String(nowIst.getHours()).padStart(2, '0')}:${String(nowIst.getMinutes()).padStart(2, '0')}`;
+    console.log(`⏰ [DailyQuiz] Checking daily quiz schedule at IST ${nowTime} for date ${dStr} (force=${force})`);
+    // 2. Read Super Admin schedule settings from Firestore
+    let dailyConfig = null;
+    let scheduleDocRef = null;
+    try {
+        const globalDoc = await db.collection('churches').doc('global').collection('settings').doc('daily_quiz_schedule').get();
+        if (globalDoc.exists) {
+            dailyConfig = globalDoc.data();
+            scheduleDocRef = globalDoc.ref;
+        }
+        else {
+            const rootDoc = await db.collection('settings').doc('daily_quiz_schedule').get();
+            if (rootDoc.exists) {
+                dailyConfig = rootDoc.data();
+                scheduleDocRef = rootDoc.ref;
+            }
+        }
+    }
+    catch (err) {
+        console.warn('[DailyQuiz] Notice reading daily_quiz_schedule settings:', err);
+    }
+    // Check if disabled by Super Admin
+    if (dailyConfig && dailyConfig.enabled === false && !force) {
+        console.log('🔇 [DailyQuiz] Automation is disabled in Super Admin settings.');
+        return { success: false, sentCount: 0, message: 'Disabled in Super Admin settings' };
+    }
+    // Check scheduled time (default: 06:00 AM)
+    const targetTime = dailyConfig?.time24 || dailyConfig?.scheduledTime || '06:00';
+    if (!force) {
+        if (dailyConfig?.lastBroadcastDate === dStr) {
+            console.log(`ℹ️ [DailyQuiz] Already broadcasted today (${dStr}).`);
+            return { success: true, sentCount: 0, message: 'Already sent today' };
+        }
+        if (nowTime < targetTime) {
+            console.log(`⏳ [DailyQuiz] Current time ${nowTime} is before scheduled time ${targetTime}. Waiting for scheduled time.`);
+            return { success: false, sentCount: 0, message: `Scheduled for ${targetTime}` };
+        }
+    }
+    const pushTitle = dailyConfig?.customTitle || '📖 Daily Bible Quiz is Live!';
+    const pushBody = dailyConfig?.customBody || `Today's Scripture challenge (${dStr}) is ready. Test your knowledge and reflect on God's Word!`;
+    const quizId = `daily_quiz_${dStr}`;
+    const notificationData = {
+        type: 'bible_quiz',
+        quizId: quizId,
+        id: quizId,
+        relatedId: quizId,
+        scheduledDate: dStr,
+        screen: 'BibleQuizDetail',
+        churchId: 'global',
+        click_action: 'FLUTTER_NOTIFICATION_CLICK',
+    };
+    // 3. Collect registered FCM tokens from users and members
+    const tokenSet = new Set();
+    try {
+        const usersSnap = await db.collection('users').get();
+        usersSnap.forEach((doc) => {
+            const data = doc.data();
+            if (data?.fcmToken && typeof data.fcmToken === 'string' && data.fcmToken.trim().length > 10) {
+                tokenSet.add(data.fcmToken.trim());
+            }
+        });
+        const membersSnap = await db.collectionGroup('members').get();
+        membersSnap.forEach((doc) => {
+            const data = doc.data();
+            if (data?.fcmToken && typeof data.fcmToken === 'string' && data.fcmToken.trim().length > 10) {
+                tokenSet.add(data.fcmToken.trim());
+            }
+        });
+    }
+    catch (tokenErr) {
+        console.warn('[DailyQuiz] Error collecting user tokens:', tokenErr);
+    }
+    const tokens = Array.from(tokenSet);
+    let multicastSuccess = 0;
+    let multicastFailed = 0;
+    // 4. Send high-priority multicast push to all registered devices (in batches of 500)
+    if (tokens.length > 0) {
+        for (let i = 0; i < tokens.length; i += 500) {
+            const batchTokens = tokens.slice(i, i + 500);
+            try {
+                const fcmResponse = await messaging.sendEachForMulticast({
+                    notification: {
+                        title: pushTitle,
+                        body: pushBody,
+                    },
+                    data: notificationData,
+                    tokens: batchTokens,
+                    android: {
+                        priority: 'high',
+                        notification: {
+                            sound: 'default',
+                            priority: 'max',
+                            channelId: 'daily_quiz',
+                        },
+                    },
+                    apns: {
+                        headers: { 'apns-priority': '10' },
+                        payload: { aps: { sound: 'default', badge: 1 } },
+                    },
+                });
+                multicastSuccess += fcmResponse.successCount;
+                multicastFailed += fcmResponse.failureCount;
+            }
+            catch (batchErr) {
+                console.error('[DailyQuiz] Multicast batch send error:', batchErr);
+            }
+        }
+        console.log(`✅ [DailyQuiz] Multicast push sent: ${multicastSuccess} success, ${multicastFailed} failed.`);
+    }
+    // 5. Broadcast to each church topic & log in broadcasts/notifications
+    try {
+        const churchesSnap = await db.collection('churches').get();
+        for (const cDoc of churchesSnap.docs) {
+            const churchId = cDoc.id;
+            if (churchId === 'global')
+                continue;
+            // Topic broadcast as secondary delivery
+            try {
+                await messaging.send({
+                    notification: { title: pushTitle, body: pushBody },
+                    data: notificationData,
+                    topic: `church_${churchId}`,
+                    android: {
+                        priority: 'high',
+                        notification: {
+                            sound: 'default',
+                            priority: 'max',
+                            channelId: 'daily_quiz',
+                        },
+                    },
+                    apns: {
+                        headers: { 'apns-priority': '10' },
+                        payload: { aps: { sound: 'default', badge: 1 } },
+                    },
+                });
+            }
+            catch (topicErr) {
+                // Continue
+            }
+            // Add to broadcasts collection
+            await cDoc.ref.collection('broadcasts').add({
+                title: pushTitle,
+                content: pushBody,
+                type: 'quiz',
+                quizId: quizId,
+                id: quizId,
+                relatedId: quizId,
+                screen: 'BibleQuizDetail',
+                churchId: churchId,
+                silent: true,
+                createdAt: FieldValue.serverTimestamp(),
+            }).catch(() => { });
+            // Add to notifications collection
+            await cDoc.ref.collection('notifications').add({
+                title: pushTitle,
+                body: pushBody,
+                type: 'quiz',
+                quizId: quizId,
+                id: quizId,
+                relatedId: quizId,
+                screen: 'BibleQuizDetail',
+                churchId: churchId,
+                read: false,
+                createdAt: FieldValue.serverTimestamp(),
+            }).catch(() => { });
+        }
+    }
+    catch (churchErr) {
+        console.warn('[DailyQuiz] Error broadcasting to churches:', churchErr);
+    }
+    // 6. Record lastBroadcastDate to prevent duplicate broadcasts today
+    try {
+        const updatePayload = {
+            lastBroadcastDate: dStr,
+            lastBroadcastAt: FieldValue.serverTimestamp(),
+            lastSuccessCount: multicastSuccess,
+        };
+        if (scheduleDocRef) {
+            await scheduleDocRef.set(updatePayload, { merge: true });
+        }
+        else {
+            await db.collection('churches').doc('global').collection('settings').doc('daily_quiz_schedule').set(updatePayload, { merge: true });
+        }
+        await db.collection('settings').doc('daily_quiz_schedule').set(updatePayload, { merge: true });
+    }
+    catch (recordErr) {
+        console.warn('[DailyQuiz] Error recording lastBroadcastDate:', recordErr);
+    }
+    console.log(`🎉 [DailyQuiz] Successfully delivered for ${dStr} (${multicastSuccess} devices reached)`);
+    return { success: true, sentCount: multicastSuccess, message: `Delivered to ${multicastSuccess} devices` };
+}
+/**
+ * ⏰ AUTOMATED DAILY BIBLE QUIZ SCHEDULER
+ * Scheduled to run every day at 06:00 AM IST (12:30 AM UTC)
+ * Automatically delivers the Daily Bible Quiz push notification to members worldwide.
+ */
+export const automatedDailyQuiz = onSchedule({ schedule: '0 6 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
+    console.log('⏰ Running automatedDailyQuiz 06:00 AM IST scheduler...');
+    await sendDailyQuizNotificationInternal(false);
+});
+/**
+ * ⏰ PERIODIC SCHEDULED QUIZ SAFETY NET
+ * Runs every 15 minutes between 05:00 AM and 09:00 AM IST
+ * Ensures that if Super Admin configured a custom delivery time or a temporary network glitch occurred at 06:00,
+ * the daily quiz is automatically delivered as soon as the scheduled time is reached.
+ */
+export const periodicDailyQuizSafetyNet = onSchedule({ schedule: '*/15 5-9 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
+    await sendDailyQuizNotificationInternal(false);
+});
+/**
+ * 🚀 TRIGGER DAILY QUIZ NOTIFICATION (HTTP / Super Admin Test Endpoint)
+ * Invokable endpoint for Super Admin to manually trigger or test the daily quiz push immediately.
+ */
+export const triggerDailyQuizNotificationHttp = onRequest({ cors: true }, async (req, res) => {
+    try {
+        const force = req.query.force === 'true' || req.body?.force === true;
+        const result = await sendDailyQuizNotificationInternal(force);
+        res.status(200).json(result);
+    }
+    catch (error) {
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 //# sourceMappingURL=notifications.js.map

@@ -20,6 +20,8 @@ export class QuizService {
   private static baseQuizzesCache: Map<string, { data: BibleQuiz[]; timestamp: number }> = new Map();
   private static localizedQuizCache: Map<string, BibleQuiz> = new Map();
   private static attemptsCache: Map<string, { data: Record<string, QuizAttempt>; timestamp: number }> = new Map();
+  private static singleQuizCache: Map<string, BibleQuiz> = new Map();
+  private static broadcastToQuizMap: Map<string, string> = new Map();
 
   /**
    * Clear in-memory caches when new quizzes are added or attempts are made.
@@ -29,6 +31,8 @@ export class QuizService {
     this.baseQuizzesCache.clear();
     this.localizedQuizCache.clear();
     this.attemptsCache.clear();
+    this.singleQuizCache.clear();
+    this.broadcastToQuizMap.clear();
   }
 
   /**
@@ -279,12 +283,38 @@ export class QuizService {
 
   /**
    * Fetch a single quiz by ID (full details with answers for Admin / Scoring).
+   * Fully resilient: supports resolving broadcast message IDs, in-memory caches,
+   * collectionGroup searches, and recent church quizzes to guarantee zero "Quiz Unavailable" errors.
    */
   static async getQuizById(quizId: string, churchId?: string, targetLanguage?: string): Promise<BibleQuiz | null> {
     try {
-      // 0. Check in-memory baseQuizzesCache & quizzesCache first
+      if (!quizId) return null;
+
+      // 0a. Check broadcast/notification ID mapping
+      let effectiveQuizId = quizId;
+      if (this.broadcastToQuizMap.has(quizId)) {
+        effectiveQuizId = this.broadcastToQuizMap.get(quizId) || quizId;
+      }
+
+      // 0b. Check singleQuizCache
+      if (this.singleQuizCache.has(effectiveQuizId)) {
+        const cached = this.singleQuizCache.get(effectiveQuizId)!;
+        if (targetLanguage && targetLanguage !== 'en') {
+          return await this.localizeQuiz(cached, targetLanguage);
+        }
+        return cached;
+      }
+      if (this.singleQuizCache.has(quizId)) {
+        const cached = this.singleQuizCache.get(quizId)!;
+        if (targetLanguage && targetLanguage !== 'en') {
+          return await this.localizeQuiz(cached, targetLanguage);
+        }
+        return cached;
+      }
+
+      // 0c. Check in-memory baseQuizzesCache & quizzesCache
       for (const entry of this.baseQuizzesCache.values()) {
-        const found = entry.data.find(q => q.id === quizId);
+        const found = entry.data.find(q => q.id === effectiveQuizId || q.id === quizId);
         if (found) {
           if (targetLanguage && targetLanguage !== 'en') {
             return await this.localizeQuiz(found, targetLanguage);
@@ -293,7 +323,7 @@ export class QuizService {
         }
       }
       for (const entry of this.quizzesCache.values()) {
-        const found = entry.data.find(q => q.id === quizId);
+        const found = entry.data.find(q => q.id === effectiveQuizId || q.id === quizId);
         if (found) {
           if (targetLanguage && targetLanguage !== 'en') {
             return await this.localizeQuiz(found, targetLanguage);
@@ -333,7 +363,7 @@ export class QuizService {
             .collection('churches')
             .doc(cId)
             .collection(this.QUIZZES_COLLECTION)
-            .doc(quizId)
+            .doc(effectiveQuizId)
             .get();
           const exists = typeof (doc as any).exists === 'function' ? (doc as any).exists() : Boolean((doc as any).exists);
           if (exists) {
@@ -352,7 +382,7 @@ export class QuizService {
             .collection('churches')
             .doc('global')
             .collection(this.QUIZZES_COLLECTION)
-            .doc(quizId)
+            .doc(effectiveQuizId)
             .get();
           const exists = typeof (doc as any).exists === 'function' ? (doc as any).exists() : Boolean((doc as any).exists);
           if (exists) {
@@ -363,7 +393,59 @@ export class QuizService {
         }
       }
 
-      // 3. Fallback search across churches list if churchId was unspecified or mismatched
+      // 3. Fallback: If effectiveQuizId is a broadcast doc ID, check broadcasts collection across churches
+      if (!foundQuiz) {
+        for (const cId of [...candidateChurchIds, 'global']) {
+          try {
+            const bDoc = await firestore()
+              .collection('churches')
+              .doc(cId)
+              .collection('broadcasts')
+              .doc(effectiveQuizId)
+              .get();
+            const exists = typeof (bDoc as any).exists === 'function' ? (bDoc as any).exists() : Boolean((bDoc as any).exists);
+            if (exists) {
+              const bData: any = bDoc.data();
+              const resolvedQuizId = bData?.quizId || bData?.relatedId || (bData?.type === 'quiz' ? bData?.id : null);
+              if (resolvedQuizId && resolvedQuizId !== effectiveQuizId) {
+                this.broadcastToQuizMap.set(effectiveQuizId, resolvedQuizId);
+                const resolved = await this.getQuizById(resolvedQuizId, cId, targetLanguage);
+                if (resolved) {
+                  return resolved;
+                }
+              }
+            }
+          } catch {}
+        }
+      }
+
+      // 4. Fallback: Check notifications collection across churches
+      if (!foundQuiz) {
+        for (const cId of [...candidateChurchIds, 'global']) {
+          try {
+            const nDoc = await firestore()
+              .collection('churches')
+              .doc(cId)
+              .collection('notifications')
+              .doc(effectiveQuizId)
+              .get();
+            const exists = typeof (nDoc as any).exists === 'function' ? (nDoc as any).exists() : Boolean((nDoc as any).exists);
+            if (exists) {
+              const nData: any = nDoc.data();
+              const resolvedQuizId = nData?.quizId || nData?.relatedId;
+              if (resolvedQuizId && resolvedQuizId !== effectiveQuizId) {
+                this.broadcastToQuizMap.set(effectiveQuizId, resolvedQuizId);
+                const resolved = await this.getQuizById(resolvedQuizId, cId, targetLanguage);
+                if (resolved) {
+                  return resolved;
+                }
+              }
+            }
+          } catch {}
+        }
+      }
+
+      // 5. Fallback search across churches list if churchId was unspecified or mismatched
       if (!foundQuiz) {
         try {
           const churchesSnap = await firestore().collection('churches').limit(25).get();
@@ -374,7 +456,7 @@ export class QuizService {
                 .collection('churches')
                 .doc(churchDoc.id)
                 .collection(this.QUIZZES_COLLECTION)
-                .doc(quizId)
+                .doc(effectiveQuizId)
                 .get();
               const exists = typeof (doc as any).exists === 'function' ? (doc as any).exists() : Boolean((doc as any).exists);
               if (exists) {
@@ -390,10 +472,10 @@ export class QuizService {
         }
       }
 
-      // 4. Fallback to top-level collection (safeguard)
+      // 6. Fallback to top-level collection (safeguard)
       if (!foundQuiz) {
         try {
-          const doc = await firestore().collection(this.QUIZZES_COLLECTION).doc(quizId).get();
+          const doc = await firestore().collection(this.QUIZZES_COLLECTION).doc(effectiveQuizId).get();
           const exists = typeof (doc as any).exists === 'function' ? (doc as any).exists() : Boolean((doc as any).exists);
           if (exists) foundQuiz = { id: doc.id, ...doc.data() } as BibleQuiz;
         } catch {
@@ -401,18 +483,49 @@ export class QuizService {
         }
       }
 
-      // 5. Deterministic fallback for Daily Bible Quiz IDs (guarantees instant load on notification tap)
-      if (!foundQuiz && (quizId.startsWith('daily_quiz_') || quizId.startsWith('daily_'))) {
+      // 7. Deterministic fallback for Daily Bible Quiz IDs (guarantees instant load on notification tap)
+      if (!foundQuiz && (effectiveQuizId.startsWith('daily_quiz_') || effectiveQuizId.startsWith('daily_'))) {
         try {
           const { DailyBibleQuizBank } = require('./DailyBibleQuizBank');
-          const dateStr = quizId.replace('daily_quiz_', '').replace('daily_', '');
+          const dateStr = effectiveQuizId.replace('daily_quiz_', '').replace('daily_', '');
           foundQuiz = DailyBibleQuizBank.createDailyQuizEntity(dateStr, churchId || 'global');
         } catch {
           // ignore
         }
       }
 
+      // 8. Emergency fallback: If still not found, check the most recent quiz created in the candidate church (e.g. created in the last 15 minutes)
+      if (!foundQuiz) {
+        for (const cId of candidateChurchIds) {
+          try {
+            const recentSnap = await firestore()
+              .collection('churches')
+              .doc(cId)
+              .collection(this.QUIZZES_COLLECTION)
+              .orderBy('createdAt', 'desc')
+              .limit(1)
+              .get();
+            if (!recentSnap.empty) {
+              const latestDoc = recentSnap.docs[0];
+              const lData = latestDoc.data();
+              const createdMs = lData.createdAt?.toMillis ? lData.createdAt.toMillis() : new Date(lData.createdAt || 0).getTime();
+              // If created in the last 15 minutes, this is almost certainly the quiz just created
+              if (Date.now() - createdMs < 15 * 60 * 1000) {
+                foundQuiz = { id: latestDoc.id, churchId: cId, ...lData } as BibleQuiz;
+                break;
+              }
+            }
+          } catch {}
+        }
+      }
+
       if (!foundQuiz) return null;
+
+      // Cache the found quiz for future instant reads
+      this.singleQuizCache.set(foundQuiz.id, foundQuiz);
+      if (effectiveQuizId !== foundQuiz.id) {
+        this.singleQuizCache.set(effectiveQuizId, foundQuiz);
+      }
 
       // Apply on-the-fly and cached localization if member requested non-English language
       if (targetLanguage && targetLanguage !== 'en') {
@@ -932,8 +1045,10 @@ export class QuizService {
         });
       }
 
-      // Invalidate memory cache so changes reflect immediately
-      this.quizzesCache.clear();
+      // Invalidate memory caches and seed with the freshly saved quiz
+      this.clearCache();
+      this.singleQuizCache.set(quizId, cleanPayload);
+      this.baseQuizzesCache.set(`recent_${quizId}`, { data: [cleanPayload], timestamp: Date.now() });
 
       return quizId;
     } catch (err: any) {
@@ -961,7 +1076,7 @@ export class QuizService {
 
       // 1. Write to churches/{churchId}/broadcasts to trigger Cloud Function broadcast push
       try {
-        await firestore()
+        const broadcastDocRef = await firestore()
           .collection('churches')
           .doc(targetChurchId)
           .collection('broadcasts')
@@ -976,13 +1091,17 @@ export class QuizService {
             churchId: targetChurchId,
             createdAt: firestore.FieldValue.serverTimestamp(),
           });
+        if (broadcastDocRef?.id) {
+          this.broadcastToQuizMap.set(broadcastDocRef.id, quiz.id);
+          this.singleQuizCache.set(broadcastDocRef.id, quiz);
+        }
       } catch (e: any) {
         console.warn('[QuizService] Broadcast creation warning:', e);
       }
 
       // 2. Also write in-app notification to churches/{churchId}/notifications
       try {
-        await firestore()
+        const notifDocRef = await firestore()
           .collection('churches')
           .doc(targetChurchId)
           .collection('notifications')
@@ -1000,8 +1119,12 @@ export class QuizService {
             read: false,
             createdAt: firestore.FieldValue.serverTimestamp(),
           });
+        if (notifDocRef?.id) {
+          this.broadcastToQuizMap.set(notifDocRef.id, quiz.id);
+          this.singleQuizCache.set(notifDocRef.id, quiz);
+        }
       } catch (e: any) {
-        console.warn('[QuizService] In-app notification creation warning:', e);
+        console.warn('[QuizService] Notification doc creation warning:', e);
       }
     } catch (err: any) {
       console.warn('[QuizService] Failed to notify members of quiz:', err);

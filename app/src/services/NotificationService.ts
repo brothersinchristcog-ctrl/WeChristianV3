@@ -98,9 +98,9 @@ class NotificationService {
       return;
     }
 
-    const rawData = remoteMessage?.data || {};
+    const rawData = remoteMessage?.data || remoteMessage || {};
     const type = ((rawData.type || (rawData.screen === 'BibleQuizDetail' || rawData.quizId ? 'quiz' : '')) as string).toLowerCase();
-    const id = rawData.id || rawData.quizId;
+    const id = rawData.quizId || rawData.relatedId || rawData.id;
     console.log('🚀 Navigating for notification type:', type);
 
     try {
@@ -166,7 +166,12 @@ class NotificationService {
           const targetChurchId = rawData.churchId;
           console.log('📖 [NotificationService] Routing directly to Bible quiz:', { quizTargetId, targetChurchId });
           if (quizTargetId) {
-            nav.navigate('BibleQuizDetail', { quizId: quizTargetId, churchId: targetChurchId });
+            nav.navigate('BibleQuizDetail', {
+              quizId: quizTargetId,
+              id: quizTargetId,
+              relatedId: rawData.relatedId || quizTargetId,
+              churchId: targetChurchId,
+            });
           } else {
             nav.navigate('ChurchQuizzes');
           }

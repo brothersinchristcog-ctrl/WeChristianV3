@@ -264,6 +264,31 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
     }
   };
 
+  const handleBroadcastDailyQuizAllNow = async () => {
+    Alert.alert(
+      'Broadcast Daily Quiz to All Members',
+      `Deliver today's Daily Bible Quiz push notification to all church members across the entire platform right now?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Send to All Now 🚀',
+          onPress: async () => {
+            try {
+              const res = await DailyQuizNotificationService.broadcastDailyQuizPushNow();
+              if (res.success) {
+                Alert.alert('Broadcast Sent', res.message);
+              } else {
+                Alert.alert('Broadcast Notice', res.message);
+              }
+            } catch (err: any) {
+              Alert.alert('Error', err?.message || 'Failed to broadcast daily quiz');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleBroadcastQuizNow = async (quiz: ChurchQuizItem) => {
     Alert.alert(
       'Broadcast Quiz Notification',
@@ -590,7 +615,7 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
                 ) : (
                   <>
                     <Check size={16} color="#ffffff" />
-                    <Text style={styles.saveScheduleBtnTxt}>Save Daily Schedule</Text>
+                    <Text style={styles.saveScheduleBtnTxt}>Save Schedule</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -601,9 +626,31 @@ export default function SuperAdminDailyQuizManager({ searchQuery = '' }: { searc
                 activeOpacity={0.8}
               >
                 <Send size={14} color="#38bdf8" />
-                <Text style={styles.testScheduleBtnTxt}>Test (in 3s)</Text>
+                <Text style={styles.testScheduleBtnTxt}>Device Test</Text>
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                borderWidth: 1,
+                borderColor: '#38bdf8',
+                borderRadius: 10,
+                paddingVertical: 10,
+                marginTop: 8,
+                gap: 6,
+              }}
+              onPress={handleBroadcastDailyQuizAllNow}
+              activeOpacity={0.8}
+            >
+              <Send size={15} color="#38bdf8" />
+              <Text style={{ color: '#38bdf8', fontSize: 13, fontWeight: '700' }}>
+                Broadcast Live Push to All Members Now 📢
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
       </LinearGradient>
