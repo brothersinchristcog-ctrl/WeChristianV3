@@ -718,8 +718,10 @@ export async function sendDailyQuizNotificationInternal(force: boolean = false):
     }
   }
 
+  const dParts = dStr.split('-');
+  const displayDateStr = dParts.length === 3 ? `${dParts[2]}-${dParts[1]}-${dParts[0]}` : dStr;
   const pushTitle = dailyConfig?.customTitle || '📖 Daily Bible Quiz is Live!';
-  const pushBody = dailyConfig?.customBody || `Today's Scripture challenge (${dStr}) is ready. Test your knowledge and reflect on God's Word!`;
+  const pushBody = dailyConfig?.customBody || `Today's Scripture challenge (${displayDateStr}) is ready. Test your knowledge and reflect on God's Word!`;
   const quizId = `daily_quiz_${dStr}`;
 
   const notificationData: Record<string, string> = {

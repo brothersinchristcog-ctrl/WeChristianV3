@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { firestore } from './firebaseConfig';
 import { getLocalizedDailyQuizTitle } from '../constants/DailyQuizTranslations';
+import { formatDateDisplay } from '../utils/DateUtils';
 import { SupportedLanguage } from '../locales';
 
 const QUIZ_NOTIF_STORAGE_KEY = '@wechristian_scheduled_quiz_notifs';
@@ -260,7 +261,7 @@ class DailyQuizNotificationService {
         }
 
         const titleText = config.customTitle || '📖 Daily Bible Quiz is Live!';
-        const bodyText = config.customBody || `Today's Scripture challenge (${dateStr}) is ready. Test your knowledge and reflect on God's Word!`;
+        const bodyText = config.customBody || `Today's Scripture challenge (${formatDateDisplay(dateStr)}) is ready. Test your knowledge and reflect on God's Word!`;
 
         await Notifications.scheduleNotificationAsync({
           identifier: notifId,
@@ -341,7 +342,7 @@ class DailyQuizNotificationService {
 
       const config = await this.getScheduleConfig();
       const pushTitle = config.customTitle || '📖 Daily Bible Quiz is Live!';
-      const pushBody = config.customBody || `Today's Scripture challenge (${dateStr}) is ready. Test your knowledge and reflect on God's Word!`;
+      const pushBody = config.customBody || `Today's Scripture challenge (${formatDateDisplay(dateStr)}) is ready. Test your knowledge and reflect on God's Word!`;
 
       // 1. Fetch all active churches
       const churchesSnap = await firestore().collection('churches').get();

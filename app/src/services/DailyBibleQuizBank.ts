@@ -332,13 +332,14 @@ export class DailyBibleQuizBank {
     const questions = this.getQuestionsForDate(dateStr);
     const dateParts = dateStr.split('-');
     const formattedDate = dateParts.length === 3 ? `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}` : dateStr;
+    const displayDate = dateParts.length === 3 ? `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}` : dateStr;
 
     return {
       id: `daily_quiz_${formattedDate}`,
       churchId,
       churchName: 'WeChristian Platform',
-      title: `Daily Bible Quiz · ${formattedDate}`,
-      description: `Daily Scripture Challenge for ${formattedDate}. Test your biblical knowledge and reflect on God's Word.`,
+      title: `Daily Bible Quiz · ${displayDate}`,
+      description: `Daily Scripture Challenge for ${displayDate}. Test your biblical knowledge and reflect on God's Word.`,
       category: 'Daily Quiz',
       difficulty: 'medium', // Intermediate to Moderate
       language: 'en',

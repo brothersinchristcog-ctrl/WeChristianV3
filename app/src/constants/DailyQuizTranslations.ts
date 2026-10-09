@@ -1,6 +1,7 @@
 import { SupportedLanguage } from '../locales';
 import { QuizQuestion, PublicQuizQuestion } from '../types/Quiz';
 import { localizeBibleReference } from './BibleQuizTranslations';
+import { formatDateDisplay } from '../utils/DateUtils';
 
 export interface TranslatedQuestionData {
   question: string;
@@ -1048,21 +1049,22 @@ export function getLocalizedDailyQuizTitle(dateStr: string, lang: SupportedLangu
     mr: 'दैनंदिन बायबल क्विझ',
   };
   const prefix = titles[lang] || titles.en;
-  return `${prefix} · ${dateStr}`;
+  return `${prefix} · ${formatDateDisplay(dateStr)}`;
 }
 
 /**
  * Returns localized description for Daily Bible Quiz.
  */
 export function getLocalizedDailyQuizDescription(dateStr: string, lang: SupportedLanguage): string {
+  const dmy = formatDateDisplay(dateStr);
   const descs: Record<SupportedLanguage, string> = {
-    en: `Daily Scripture Challenge for ${dateStr}. Test your biblical knowledge and reflect on God's Word.`,
-    te: `${dateStr} కొరకు రోజువారీ లేఖన సవాలు. మీ బైబిల్ జ్ఞానాన్ని పరీక్షించుకుని దేవుని వాక్యమును ధ్యానించండి.`,
-    hi: `${dateStr} के लिए दैनिक धर्मग्रंथ चुनौती। अपने बाइबिल ज्ञान को परखें और परमेश्वर के वचन पर मनन करें।`,
-    ta: `${dateStr} தினசரி வேத சவால். உங்கள் பைபிள் அறிவைச் சோதித்து தேவனுடைய வார்த்தையைத் தியானியுங்கள்.`,
-    kn: `${dateStr} ರ ದೈನಂದಿನ ಶಾಸ್ತ್ರ ಸವಾಲು. ನಿಮ್ಮ ಬೈಬಲ್ ಜ್ಞಾನವನ್ನು ಪರೀಕ್ಷಿಸಿ ದೇವರ ವಾಕ್ಯವನ್ನು ಧ್ಯಾನಿಸಿ.`,
-    ml: `${dateStr} തിരുവെഴുത്തു വെല്ലുവിളി. നിങ്ങളുടെ ബൈബിൾ അറിവ് പരിശോധിച്ച് ദൈവവചനം ധ്യാനിക്കുക.`,
-    mr: `${dateStr} साठी दैनंदिन पवित्र शास्त्र आव्हान. आपले बायबल ज्ञान तपासा आणि देवाच्या वचनावर मनन करा.`,
+    en: `Daily Scripture Challenge for ${dmy}. Test your biblical knowledge and reflect on God's Word.`,
+    te: `${dmy} కొరకు రోజువారీ లేఖన సవాలు. మీ బైబిల్ జ్ఞానాన్ని పరీక్షించుకుని దేవుని వాక్యమును ధ్యానించండి.`,
+    hi: `${dmy} के लिए दैनिक धर्मग्रंथ चुनौती। अपने बाइबिल ज्ञान को परखें और परमेश्वर के वचन पर मनन करें।`,
+    ta: `${dmy} தினசரி வேத சவால். உங்கள் பைபிள் அறிவைச் சோதித்து தேவனுடைய வார்த்தையைத் தியானியுங்கள்.`,
+    kn: `${dmy} ರ ದೈನಂದಿನ ಶಾಸ್ತ್ರ ಸವಾಲು. ನಿಮ್ಮ ಬೈಬಲ್ ಜ್ಞಾನವನ್ನು ಪರೀಕ್ಷಿಸಿ ದೇವರ ವಾಕ್ಯವನ್ನು ಧ್ಯಾನಿಸಿ.`,
+    ml: `${dmy} തിരുവെഴുത്തു വെല്ലുവിളി. നിങ്ങളുടെ ബൈബിൾ അറിവ് പരിശോധിച്ച് ദൈവവചനം ധ്യാനിക്കുക.`,
+    mr: `${dmy} साठी दैनंदिन पवित्र शास्त्र आव्हान. आपले बायबल ज्ञान तपासा आणि देवाच्या वचनावर मनन करा.`,
   };
   return descs[lang] || descs.en;
 }

@@ -40,6 +40,7 @@ import {
 import { QuizService } from '../../services/QuizService';
 import { BibleQuiz, QuizAttempt } from '../../types/Quiz';
 import { isQuizScheduledLocked, formatQuizTime } from '../../utils/QuizScheduleUtils';
+import { formatDateDisplay } from '../../utils/DateUtils';
 import QuizLanguageModal from './QuizLanguageModal';
 import QuizAlertModal from './QuizAlertModal';
 
@@ -556,7 +557,7 @@ export default function ChurchQuizzesScreen() {
                       <>
                         <Text style={styles.metaDot}>·</Text>
                         <Calendar size={12} color="#64748b" />
-                        <Text style={styles.metaQCountTxt}>{quiz.scheduledDate}</Text>
+                        <Text style={styles.metaQCountTxt}>{formatDateDisplay(quiz.scheduledDate)}</Text>
                       </>
                     )}
                   </View>
