@@ -175,66 +175,6 @@ export default function BibleQuizHomeScreen() {
           </ImageBackground>
         </TouchableOpacity>
 
-        {/* ─── DEDICATED SCHEDULED DAILY QUIZ CARD (MEMBER VIEW - UNDER CHURCHES QUIZ) ────────────────── */}
-        <TouchableOpacity
-          style={[
-            styles.dailyQuizEntryCard,
-            isDark && { borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.35)' },
-          ]}
-          onPress={() => {
-            const now = new Date();
-            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-            navigation.navigate('BibleQuizDetail', {
-              quizId: `daily_quiz_${todayStr}`,
-              churchId,
-            });
-          }}
-          activeOpacity={0.88}
-        >
-          <LinearGradient
-            colors={['#7c2d12', '#c2410c', '#ea580c']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.dailyQuizGradientBg}
-          >
-            <View style={styles.dailyQuizTopBadgeRow}>
-              <View style={styles.dailyQuizPillBadge}>
-                <Sparkles size={12} color="#fef3c7" />
-                <Text style={styles.dailyQuizPillBadgeTxt}>
-                  {quizLanguage === 'te' ? 'రోజువారీ బైబిల్ క్విజ్' : 'DAILY SCRIPTURE CHALLENGE'}
-                </Text>
-              </View>
-              <View style={styles.dailyQuizTimeBadge}>
-                <Clock size={11} color="#ffffff" />
-                <Text style={styles.dailyQuizTimeBadgeTxt}>6:00 AM</Text>
-              </View>
-            </View>
-
-            <View style={styles.dailyQuizContentRow}>
-              <View style={{ flex: 1, marginRight: 12 }}>
-                <Text style={styles.dailyQuizCardTitle} numberOfLines={1}>
-                  {(() => {
-                    const now = new Date();
-                    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                    return getLocalizedDailyQuizTitle(todayStr, quizLanguage);
-                  })()}
-                </Text>
-                <Text style={styles.dailyQuizCardSub} numberOfLines={2}>
-                  {(() => {
-                    const now = new Date();
-                    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-                    return getLocalizedDailyQuizDescription(todayStr, quizLanguage);
-                  })()}
-                </Text>
-              </View>
-
-              <View style={styles.dailyQuizPlayBtn}>
-                <Play size={18} color="#ea580c" fill="#ea580c" />
-              </View>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
-
         {/* ─── FAITH CATEGORIES SECTION (CLEAN & MINIMALIST) ────────────────── */}
         <View style={[styles.sectionHeadingRow, { marginTop: 20 }]}>
           <Text style={[styles.sectionHeading, { color: isDark ? '#f8fafc' : '#0f172a' }]}>
