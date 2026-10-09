@@ -641,28 +641,33 @@ export class QuizService {
       }
     }
 
-    // 1. Check if Firestore already has translations for targetLanguage
+    // 1. Check if Firestore already has full question translations for targetLanguage
     const hasDocTitle = Boolean(quiz.translations?.[targetLanguage]?.title);
     const hasQuestionTranslations = (quiz.questions || []).length > 0 && (quiz.questions || []).every(
-      q => Boolean(q.translations?.[targetLanguage]?.question) || (targetLanguage === 'te' && Boolean(q.questionTelugu))
+      q => {
+        const tq = q.translations?.[targetLanguage];
+        const hasTq = Boolean(tq?.question && tq.question.trim() !== (q.question || '').trim());
+        const hasTe = targetLanguage === 'te' && Boolean(q.questionTelugu && q.questionTelugu.trim() !== (q.question || '').trim());
+        return hasTq || hasTe;
+      }
     );
 
-    if (hasDocTitle || hasQuestionTranslations) {
+    if (hasQuestionTranslations) {
       const translatedData: QuizTranslationResult = {
         title: quiz.translations?.[targetLanguage]?.title || quiz.title,
         description: quiz.translations?.[targetLanguage]?.description || quiz.description,
         questions: (quiz.questions || []).map(q => {
           const tq = q.translations?.[targetLanguage];
-          if (tq) {
+          if (tq && tq.question && tq.question.trim() !== (q.question || '').trim()) {
             return {
               id: q.id,
-              question: tq.question || q.question,
+              question: tq.question,
               options: tq.options || q.options,
               correctAnswer: tq.correctAnswer || q.correctAnswer,
               explanation: tq.explanation || q.explanation,
             };
           }
-          if (targetLanguage === 'te' && q.questionTelugu) {
+          if (targetLanguage === 'te' && q.questionTelugu && q.questionTelugu.trim() !== (q.question || '').trim()) {
             return {
               id: q.id,
               question: q.questionTelugu,

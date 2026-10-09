@@ -1,6 +1,6 @@
 import { SupportedLanguage } from '../locales';
 import { QuizQuestion, PublicQuizQuestion } from '../types/Quiz';
-import { localizeBibleReference } from './BibleQuizTranslations';
+import { localizeBibleReference, localizeBiblicalName } from './BibleQuizTranslations';
 import { formatDateDisplay } from '../utils/DateUtils';
 
 export interface TranslatedQuestionData {
@@ -14,6 +14,38 @@ export interface TranslatedQuestionData {
  * Indexed by canonical English bibleReference or key.
  */
 export const DAILY_QUIZ_TRANSLATIONS: Record<string, Partial<Record<SupportedLanguage, TranslatedQuestionData>>> = {
+  'Which prophet was swallowed by a great fish?': {
+    te: {
+      question: 'గొప్ప మత్స్యముచేత మింగబడిన ప్రవక్త ఎవరు?',
+      options: ['యోనా', 'దానియేలు', 'ఏలీయా', 'యెహెజ్కేలు'],
+      explanation: 'దేవుని ఆజ్ఞను తప్పించుకోవాలని తర్షీషుకు పారిపోతున్న యోనాను మింగుటకు యెహోవా ఒక గొప్ప మత్స్యమును సిద్ధపరచెను (యోనా 1:17).',
+    },
+    hi: {
+      question: 'किस नबी (भविष्यद्वक्ता) को एक बड़ी मछली ने निगल लिया था?',
+      options: ['योना', 'दानिय्येल', 'एलीया', 'यहेजकेल'],
+      explanation: 'यहोवा ने योना को निगलने के लिए एक बड़ी मछली ठहराई (योना 1:17)।',
+    },
+    ta: {
+      question: 'பெரிய மீனால் விழுங்கப்பட்ட தீர்க்கதரிசி யார்?',
+      options: ['யோனா', 'தானியேல்', 'எலியா', 'எசேக்கியேல்'],
+      explanation: 'யோனாவை விழுங்கும்படி கர்த்தர் ஒரு பெரிய மீனை ஆயத்தப்படுத்தியிருந்தார் (யோனா 1:17).',
+    },
+    kn: {
+      question: 'ದೊಡ್ಡ ಮೀನಿನಿಂದ ನುಂಗಲ್ಪಟ್ಟ ಪ್ರವಾದಿ ಯಾರು?',
+      options: ['ಯೋನ', 'ದಾನಿಯೇಲ', 'ಎಲೀಯ', 'ಎಜೆಕಿಯೇಲ'],
+      explanation: 'ಕರ್ತನು ಯೋನನನ್ನು ನುಂಗಲು ದೊಡ್ಡ ಮೀನನ್ನು ಸಿದ್ಧಮಾಡಿದನು (ಯೋನ 1:17).',
+    },
+    ml: {
+      question: 'വലിയ മീൻ വിഴുങ്ങിയ പ്രവാചകൻ ആരാണ്?',
+      options: ['യോനാ', 'ദാനീയേൽ', 'ഏലിയാവ്', 'യെഹെസ്കേൽ'],
+      explanation: 'യോനായെ വിഴുങ്ങുവാൻ യഹോവ ഒരു വലിയ മത്സ്യത്തെ കല്പിച്ചാക്കിയിരുന്നു (യോനാ 1:17).',
+    },
+    mr: {
+      question: 'कोणत्या संदेष्ट्याला मोठ्या माशाने गिळले होते?',
+      options: ['योना', 'दानीएल', 'एलिया', 'यहेज्केल'],
+      explanation: 'परमेश्वराने योनाला गिळण्यासाठी एक मोठा मासा सज्ज केला होता (योना 1:17).',
+    },
+  },
   // Q1: Jonah 1:17
   'Jonah 1:17': {
     te: {
@@ -1100,32 +1132,39 @@ export function getLocalizedDailyQuestion(
   // 1. Direct question translations dictionary (for uploaded documents & localized admin quizzes)
   if (q.translations && q.translations[lang]) {
     const item = q.translations[lang];
-    let localizedCorrect = q.correctAnswer;
-    if (q.correctAnswer && Array.isArray(q.options)) {
-      const idx = q.options.indexOf(q.correctAnswer);
-      if (idx >= 0 && item.options && item.options[idx]) {
-        localizedCorrect = item.options[idx];
+    const isGenuinelyTranslated = Boolean(item.question && item.question.trim() !== (q.question || '').trim());
+    if (isGenuinelyTranslated) {
+      let localizedCorrect = q.correctAnswer;
+      if (q.correctAnswer && Array.isArray(q.options)) {
+        const idx = q.options.indexOf(q.correctAnswer);
+        if (idx >= 0 && item.options && item.options[idx]) {
+          localizedCorrect = item.options[idx];
+        }
       }
-    }
 
-    return {
-      question: item.question || q.question,
-      options: Array.isArray(item.options) && item.options.length === q.options?.length ? [...item.options] : [...(q.options || [])],
-      explanation: item.explanation || q.explanation,
-      bibleReference: localizedRef,
-      correctAnswer: localizedCorrect,
-    };
+      return {
+        question: item.question,
+        options: Array.isArray(item.options) && item.options.length === q.options?.length ? [...item.options] : [...(q.options || [])],
+        explanation: item.explanation || q.explanation,
+        bibleReference: localizedRef,
+        correctAnswer: localizedCorrect,
+      };
+    }
   }
 
-  // 2. Check in DAILY_QUIZ_TRANSLATIONS dictionary by bibleReference
-  const refMatch = DAILY_QUIZ_TRANSLATIONS[ref] || (ref ? DAILY_QUIZ_TRANSLATIONS[ref.trim()] : undefined);
+  // 2. Check in DAILY_QUIZ_TRANSLATIONS dictionary by exact question text or bibleReference
+  const qText = (q.question || '').trim();
+  const refMatch = DAILY_QUIZ_TRANSLATIONS[qText] ||
+    DAILY_QUIZ_TRANSLATIONS[ref] ||
+    (ref ? DAILY_QUIZ_TRANSLATIONS[ref.trim()] : undefined);
+
   if (refMatch && refMatch[lang]) {
     const item = refMatch[lang]!;
     // Find index of canonical correct answer if present
     let localizedCorrect = q.correctAnswer;
     if (q.correctAnswer && Array.isArray(q.options)) {
       const idx = q.options.indexOf(q.correctAnswer);
-      if (idx >= 0 && item.options[idx]) {
+      if (idx >= 0 && item.options && item.options[idx]) {
         localizedCorrect = item.options[idx];
       }
     }
@@ -1139,8 +1178,8 @@ export function getLocalizedDailyQuestion(
     };
   }
 
-  // 2. Legacy Telugu fields fallback if lang is 'te'
-  if (lang === 'te' && q.questionTelugu) {
+  // 3. Legacy Telugu fields fallback if lang is 'te'
+  if (lang === 'te' && q.questionTelugu && q.questionTelugu.trim() !== (q.question || '').trim()) {
     let localizedCorrect = q.correctAnswer;
     if (q.correctAnswer && q.optionsTelugu && Array.isArray(q.options)) {
       const idx = q.options.indexOf(q.correctAnswer);
@@ -1157,12 +1196,18 @@ export function getLocalizedDailyQuestion(
     };
   }
 
-  // 3. Fallback to English with localized Bible Reference
+  // 4. Fallback with intelligent option localization (e.g. Biblical proper names)
+  const localizedOptions = (q.options || []).map((opt: string) => localizeBiblicalName(opt, lang));
+  let fallbackCorrect = q.correctAnswer;
+  if (q.correctAnswer) {
+    fallbackCorrect = localizeBiblicalName(q.correctAnswer, lang);
+  }
+
   return {
     question: q.question,
-    options: [...(q.options || [])],
+    options: localizedOptions,
     explanation: q.explanation,
     bibleReference: localizedRef,
-    correctAnswer: q.correctAnswer,
+    correctAnswer: fallbackCorrect,
   };
 }

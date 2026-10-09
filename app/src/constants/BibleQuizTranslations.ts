@@ -753,6 +753,47 @@ export function localizeBibleReference(ref: string, lang: SupportedLanguage): st
 }
 
 /**
+ * High-frequency biblical proper names mapping for immediate UI translation
+ */
+export const BIBLICAL_NAMES_TRANSLATIONS: Record<string, Partial<Record<SupportedLanguage, string>>> = {
+  Jonah: { te: 'యోనా', hi: 'योना', ta: 'யோனா', kn: 'ಯೋನ', ml: 'യോനാ', mr: 'योना' },
+  Daniel: { te: 'దానియేలు', hi: 'दानिय्येल', ta: 'தானியேல்', kn: 'ದಾನಿಯೇಲ', ml: 'ദാനീയേൽ', mr: 'दानीएल' },
+  Elijah: { te: 'ఏలీయా', hi: 'एलीया', ta: 'எலியா', kn: 'ಎಲೀಯ', ml: 'ഏലിയാവ്', mr: 'एलिया' },
+  Ezekiel: { te: 'యెహెజ్కేలు', hi: 'यहेजकेल', ta: 'எசேக்கியேல்', kn: 'ಎಜೆಕಿಯೇಲ', ml: 'യെഹെസ്കേൽ', mr: 'यहेज्केल' },
+  Moses: { te: 'మోషే', hi: 'मूसा', ta: 'மோசே', kn: 'ಮೋಶೆ', ml: 'മോശെ', mr: 'मोशे' },
+  David: { te: 'దావీదు', hi: 'दाऊद', ta: 'தாவீது', kn: 'ದಾವೀದ', ml: 'ദാവീദ്', mr: 'दावीद' },
+  Solomon: { te: 'సొలొమోను', hi: 'सुलैमान', ta: 'சாலொமோன்', kn: 'ಸೊಲೊಮೋನ', ml: 'ശലോമോൻ', mr: 'शलमोन' },
+  Abraham: { te: 'అబ్రాహాము', hi: 'इब्राहीम', ta: 'ஆபிரகாம்', kn: 'ಅಬ್ರಹಾಮ', ml: 'അബ്രാഹാം', mr: 'अब्राहाम' },
+  Peter: { te: 'పేతురు', hi: 'पतरस', ta: 'பேதுரு', kn: 'ಪೇತ್ರ', ml: 'പത്രൊസ്', mr: 'पेत्र' },
+  Paul: { te: 'పౌలు', hi: 'पौलुस', ta: 'பவுல்', kn: 'ಪೌಲ', ml: 'പൗലൊസ്', mr: 'पौल' },
+  John: { te: 'యోహాను', hi: 'यूहन्ना', ta: 'யோவான்', kn: 'ಯೋಹಾನ', ml: 'യോഹന്നാൻ', mr: 'योहान' },
+  James: { te: 'యాకోబు', hi: 'याकूब', ta: 'யாக்கோபு', kn: 'ಯಾಕೋಬ', ml: 'യാക്കോബ്', mr: 'याकोब' },
+  Samuel: { te: 'సమూయేలు', hi: 'शमूएल', ta: 'சாமுவேல்', kn: 'ಸಮುವೇಲ', ml: 'ശമുവേൽ', mr: 'शमुवेल' },
+  Isaiah: { te: 'యెషయా', hi: 'यशायाह', ta: 'ஏசாயா', kn: 'ಯೆಶಾಯ', ml: 'യെശയ്യാവു', mr: 'यशया' },
+  Jeremiah: { te: 'యిర్మీయా', hi: 'यिर्मयाह', ta: 'எரேமியா', kn: 'ಯೆರೆమೀಯ', ml: 'യിരെമ്യാവു', mr: 'यिर्मया' },
+  Noah: { te: 'నోవాహు', hi: 'नूह', ta: 'நோவா', kn: 'ನೋಹ', ml: 'நோഹ', mr: 'नोहा' },
+  Joseph: { te: 'యోసేపు', hi: 'यूसुफ', ta: 'யோசேப்பு', kn: 'ಯೋసేಫ', ml: 'യോസేഫ്', mr: 'योसेफ' },
+  Joshua: { te: 'యెహోషువ', hi: 'यहोशू', ta: 'யோசுவா', kn: 'ಯೆಹೋಶುವ', ml: 'യോശുവ', mr: 'यहोशवा' },
+  Gideon: { te: 'గిద్యోను', hi: 'गिदोन', ta: 'கிதியோன்', kn: 'ಗಿದ್ಯೋನ್', ml: 'ഗിദെയോൻ', mr: 'गिदोन' },
+  Samson: { te: 'సమ్సోను', hi: 'शमशोन', ta: 'சிம்சோன்', kn: 'ಸಂಸೋನ್', ml: 'ശിംശോൻ', mr: 'शिमशोन' },
+  Job: { te: 'యోబు', hi: 'अय्यूब', ta: 'யோபு', kn: 'ಯೋಬ', ml: 'ഇയ്യോബ്', mr: 'ईयोब' },
+  Ruth: { te: 'రూతు', hi: 'रुत', ta: 'ரூத்', kn: 'ರೂತ', ml: 'രൂത്ത്', mr: 'रूथ' },
+  Esther: { te: 'ఎస్తేరు', hi: 'एस्तेर', ta: 'எஸ்தர்', kn: 'ಎಸ್ತೇರ', ml: 'ಎസ്ഥೇർ', mr: 'एस्तेर' },
+  Mary: { te: 'మరియ', hi: 'मरियम', ta: 'மரியாள்', kn: 'ಮರಿಯ', ml: 'മറിയ', mr: 'मरीया' },
+  Timothy: { te: 'తిమోతి', hi: 'तीमुथियुस', ta: 'தீமோத்தேயு', kn: 'ತಿಮೊಥೆಯ', ml: 'തിമൊഥെയൊസ്', mr: 'तीमथ्य' },
+};
+
+/**
+ * Localizes a single biblical name (e.g. "Jonah" -> "యోనా")
+ */
+export function localizeBiblicalName(name: string, lang: SupportedLanguage): string {
+  if (!name || lang === 'en') return name;
+  const match = BIBLICAL_NAMES_TRANSLATIONS[name.trim()];
+  if (match && match[lang]) return match[lang]!;
+  return name;
+}
+
+/**
  * Helper to fetch UI translations for the active language with English fallback
  */
 export function getQuizStrings(lang: SupportedLanguage): QuizUIStrings {
