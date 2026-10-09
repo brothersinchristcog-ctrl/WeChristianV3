@@ -598,7 +598,7 @@ export default function ProfileScreen({ navigation }: any) {
         </TouchableOpacity>
 
         <Text style={styles.versionTxt}>
-          {t('profile.version')} {Constants.expoConfig?.version || '1.0.5'}
+          {t('profile.version')} {Constants.expoConfig?.version || '1.0.6'}
         </Text>
       </ScrollView>
 
