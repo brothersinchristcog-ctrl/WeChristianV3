@@ -12,7 +12,7 @@ import {
   StatusBar,
   ScrollView
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import auth from '@react-native-firebase/auth';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
@@ -25,6 +25,7 @@ import { ChevronLeft, ShieldCheck, RefreshCw } from 'lucide-react-native';
 type VerifyOtpScreenProps = NativeStackScreenProps<AuthStackParamList, 'VerifyOtp'>;
 
 export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenProps) {
+  const insets = useSafeAreaInsets();
   const { confirmation, phoneNumber, contactId, memberName, formData, isSignUp } = route.params;
   const { member, setMember } = useAuth();
   const { churchId: activeChurchId } = useChurch();
@@ -153,21 +154,27 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
         
       {/* ── Page Header ── */}
-      <View style={styles.pageHeader}>
-        <SafeAreaView style={styles.pageHeaderInner}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft size={20} color="#aac4e8" />
-            <Text style={styles.backBtnTxt}>Change Number</Text>
+      <View style={[styles.pageHeader, { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 20) }]}>
+        <View style={styles.pageHeaderInner}>
+          <TouchableOpacity 
+            style={styles.backBtn} 
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color="#ffffff" />
           </TouchableOpacity>
-          {/* Absolutely centered title — unaffected by back button width */}
-          <View style={styles.titleCol} pointerEvents="none">
-            <Text style={styles.pageTitle}>OTP Verification</Text>
-            <Text style={styles.pageSub}>ధృవీకరణ</Text>
+
+          <View style={styles.titleCol}>
+            <Text style={styles.pageTitle} numberOfLines={1}>OTP Verification</Text>
+            <Text style={styles.pageSub} numberOfLines={1}>ధృవీకరణ</Text>
           </View>
-        </SafeAreaView>
+
+          <View style={styles.headerRightSpacer} />
+        </View>
       </View>
 
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingBottom: Math.max(insets.bottom, 16) }]}>
 
         <ScrollView 
           showsVerticalScrollIndicator={false} 
@@ -228,7 +235,7 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -247,30 +254,50 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
     elevation: 8,
-    marginBottom: 10,
     zIndex: 10,
   },
   pageHeaderInner: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     width: '100%',
-    paddingTop: Platform.OS === 'ios' ? 10 : 30,
-    paddingBottom: 24,
-    paddingHorizontal: 22,
-    position: 'relative',
+    paddingTop: 8,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    minHeight: 56,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, zIndex: 1 },
-  backBtnTxt: { color: '#aac4e8', fontSize: 12, fontWeight: '500' },
-  // Title is absolutely centered so it's immune to back button width on any screen size
-  titleCol: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
+  backBtn: { 
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center', 
     justifyContent: 'center',
   },
-  pageTitle: { color: '#fff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5, textAlign: 'center' },
-  pageSub: { color: '#aac4e8', fontSize: 11, marginTop: 2, fontWeight: '500', textAlign: 'center' },
+  headerRightSpacer: {
+    width: 40,
+  },
+  titleCol: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  pageTitle: { 
+    color: '#fff', 
+    fontSize: 20, 
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', 
+    fontWeight: '700', 
+    letterSpacing: -0.4, 
+    textAlign: 'center' 
+  },
+  pageSub: { 
+    color: '#aac4e8', 
+    fontSize: 12, 
+    marginTop: 2, 
+    fontWeight: '500', 
+    textAlign: 'center' 
+  },
 
   content: { width: '100%', paddingHorizontal: 25, paddingTop: 40, alignItems: 'center', paddingBottom: 40 },
   scrollContent: { flexGrow: 1 },
