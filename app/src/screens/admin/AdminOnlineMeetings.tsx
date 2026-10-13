@@ -709,19 +709,19 @@ const styles = StyleSheet.create({
   // Hero
   hero: { 
     backgroundColor: colors.ink, 
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    paddingHorizontal: 22,
-    paddingTop: 32,
-    paddingBottom: 32,
-    minHeight: 96,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    marginBottom: 6,
     justifyContent: 'center',
     overflow: 'visible',
     position: 'relative'
   },
   heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start', marginBottom: 0 },
-  heroTitle: { color: '#fff', fontSize: 24, fontFamily: serifFont, fontWeight: '600', letterSpacing: -0.5, marginBottom: 0 },
-  newBtn: { backgroundColor: '#FCD34D', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3 },
+  heroTitle: { color: '#fff', fontSize: 20, fontFamily: serifFont, fontWeight: '600', letterSpacing: -0.5, marginBottom: 0 },
+  newBtn: { backgroundColor: '#FCD34D', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10, elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3 },
   newBtnTxt: { color: colors.ink, fontSize: 12, fontWeight: '700' },
 
   content: { paddingHorizontal: 16 },

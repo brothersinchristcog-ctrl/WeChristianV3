@@ -705,7 +705,7 @@ export default function AdminSongEditor() {
 
       {/* ── Hero Section ── */}
       <View style={styles.hero}>
-        <View style={[styles.heroTitleRow, { alignItems: 'center', width: '100%', gap: 16 }]}>
+        <View style={[styles.heroTitleRow, { alignItems: 'center', justifyContent: 'space-between', width: '100%' }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}>
             <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
               <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
@@ -980,31 +980,31 @@ const styles = StyleSheet.create({
   // Hero Section
   hero: {
     backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    paddingHorizontal: 22,
-    paddingTop: 10,
-    paddingBottom: 24,
-    marginBottom: 14,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    marginBottom: 10,
   },
-  heroTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 0 },
+  heroTitle: { color: '#fff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
   
   newBtn: { 
     backgroundColor: '#C9A84C', 
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 16, 
-    paddingVertical: 10, 
-    borderRadius: 12,
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 10,
     shadowColor: '#C9A84C',
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 4
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3
   },
-  newBtnTxt: { color: '#1a2d5a', fontSize: 13, fontWeight: '800', letterSpacing: 0.3 },
+  newBtnTxt: { color: '#1a2d5a', fontSize: 12, fontWeight: '800', letterSpacing: 0.3 },
 
   // Screen Tab Bar
   screenTabBar: {

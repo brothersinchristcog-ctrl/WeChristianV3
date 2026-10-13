@@ -154,16 +154,16 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
         
       {/* ── Page Header ── */}
       <View style={styles.pageHeader}>
-        <SafeAreaView style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingTop: Platform.OS === 'ios' ? 10 : 30, paddingBottom: 24, paddingHorizontal: 22, justifyContent: 'space-between' }}>
+        <SafeAreaView style={styles.pageHeaderInner}>
           <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
             <ChevronLeft size={20} color="#aac4e8" />
             <Text style={styles.backBtnTxt}>Change Number</Text>
           </TouchableOpacity>
-          <View style={styles.titleCol}>
+          {/* Absolutely centered title — unaffected by back button width */}
+          <View style={styles.titleCol} pointerEvents="none">
             <Text style={styles.pageTitle}>OTP Verification</Text>
             <Text style={styles.pageSub}>ధృవీకరణ</Text>
           </View>
-          <View style={{ width: 60 }} />
         </SafeAreaView>
       </View>
 
@@ -250,11 +250,27 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     zIndex: 10,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minWidth: 60 },
+  pageHeaderInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    paddingTop: Platform.OS === 'ios' ? 10 : 30,
+    paddingBottom: 24,
+    paddingHorizontal: 22,
+    position: 'relative',
+  },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, zIndex: 1 },
   backBtnTxt: { color: '#aac4e8', fontSize: 12, fontWeight: '500' },
-  titleCol: { flex: 1, alignItems: 'center' },
-  pageTitle: { color: '#fff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
-  pageSub: { color: '#aac4e8', fontSize: 11, marginTop: 2, fontWeight: '500' },
+  // Title is absolutely centered so it's immune to back button width on any screen size
+  titleCol: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pageTitle: { color: '#fff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5, textAlign: 'center' },
+  pageSub: { color: '#aac4e8', fontSize: 11, marginTop: 2, fontWeight: '500', textAlign: 'center' },
 
   content: { width: '100%', paddingHorizontal: 25, paddingTop: 40, alignItems: 'center', paddingBottom: 40 },
   scrollContent: { flexGrow: 1 },

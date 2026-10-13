@@ -718,6 +718,23 @@ export async function sendDailyQuizNotificationInternal(force: boolean = false):
     }
   }
 
+  // ── ATOMIC EARLY IDEMPOTENCY GUARD ─────────────────────────────────────────
+  // Write lastBroadcastDate NOW — before any network I/O — so that any other
+  // concurrent scheduler invocation (automatedDailyQuiz / periodicDailyQuizSafetyNet
+  // / monitorMeetingLive) that reads Firestore will see today's date and exit early.
+  try {
+    const earlyLockPayload = { lastBroadcastDate: dStr, lastBroadcastAt: FieldValue.serverTimestamp() };
+    if (scheduleDocRef) {
+      await scheduleDocRef.set(earlyLockPayload, { merge: true });
+    } else {
+      await db.collection('churches').doc('global').collection('settings').doc('daily_quiz_schedule').set(earlyLockPayload, { merge: true });
+    }
+    await db.collection('settings').doc('daily_quiz_schedule').set(earlyLockPayload, { merge: true });
+    console.log(`🔒 [DailyQuiz] Idempotency lock acquired for ${dStr}. Proceeding with delivery...`);
+  } catch (lockErr) {
+    console.warn('[DailyQuiz] Could not acquire idempotency lock; continuing anyway:', lockErr);
+  }
+
   const dParts = dStr.split('-');
   const displayDateStr = dParts.length === 3 ? `${dParts[2]}-${dParts[1]}-${dParts[0]}` : dStr;
   const pushTitle = dailyConfig?.customTitle || '📖 Daily Bible Quiz is Live!';
@@ -795,37 +812,17 @@ export async function sendDailyQuizNotificationInternal(force: boolean = false):
     console.log(`✅ [DailyQuiz] Multicast push sent: ${multicastSuccess} success, ${multicastFailed} failed.`);
   }
 
-  // 5. Broadcast to each church topic & log in broadcasts/notifications
+  // 5. Log in broadcasts/notifications for each church (silent — push already sent via multicast above)
+  // NOTE: Topic broadcast has been intentionally REMOVED to prevent duplicate deliveries.
+  // Users subscribed to church_{churchId} topics would receive BOTH the direct multicast push
+  // AND the topic push, resulting in 2× (or more) notifications. Delivery is solely via multicast.
   try {
     const churchesSnap = await db.collection('churches').get();
     for (const cDoc of churchesSnap.docs) {
       const churchId = cDoc.id;
       if (churchId === 'global') continue;
 
-      // Topic broadcast as secondary delivery
-      try {
-        await messaging.send({
-          notification: { title: pushTitle, body: pushBody },
-          data: notificationData,
-          topic: `church_${churchId}`,
-          android: {
-            priority: 'high' as const,
-            notification: {
-              sound: 'default',
-              priority: 'max' as const,
-              channelId: 'daily_quiz',
-            },
-          },
-          apns: {
-            headers: { 'apns-priority': '10' },
-            payload: { aps: { sound: 'default', badge: 1 } },
-          },
-        });
-      } catch (topicErr) {
-        // Continue
-      }
-
-      // Add to broadcasts collection
+      // Add to broadcasts collection (silent — no secondary push)
       await cDoc.ref.collection('broadcasts').add({
         title: pushTitle,
         content: pushBody,
@@ -854,10 +851,10 @@ export async function sendDailyQuizNotificationInternal(force: boolean = false):
       }).catch(() => {});
     }
   } catch (churchErr) {
-    console.warn('[DailyQuiz] Error broadcasting to churches:', churchErr);
+    console.warn('[DailyQuiz] Error logging to churches:', churchErr);
   }
 
-  // 6. Record lastBroadcastDate to prevent duplicate broadcasts today
+  // 6. Update lastBroadcastDate record with final delivery count (lock was already written at Step 0)
   try {
     const updatePayload = {
       lastBroadcastDate: dStr,
@@ -872,7 +869,7 @@ export async function sendDailyQuizNotificationInternal(force: boolean = false):
     }
     await db.collection('settings').doc('daily_quiz_schedule').set(updatePayload, { merge: true });
   } catch (recordErr) {
-    console.warn('[DailyQuiz] Error recording lastBroadcastDate:', recordErr);
+    console.warn('[DailyQuiz] Error updating lastBroadcastDate record:', recordErr);
   }
 
   console.log(`🎉 [DailyQuiz] Successfully delivered for ${dStr} (${multicastSuccess} devices reached)`);

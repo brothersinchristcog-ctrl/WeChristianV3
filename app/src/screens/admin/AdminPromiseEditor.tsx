@@ -2696,9 +2696,9 @@ export default function AdminPromiseEditor() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#EDE8DC' },
   scroll: { padding: 14, paddingBottom: 100 },
-  hero: { backgroundColor: '#1a2d5a', borderBottomLeftRadius: 26, borderBottomRightRadius: 26, paddingHorizontal: 22, paddingTop: 10, paddingBottom: 24, marginBottom: 6 },
+  hero: { backgroundColor: '#1a2d5a', borderBottomLeftRadius: 18, borderBottomRightRadius: 18, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, marginBottom: 6 },
   heroTitleRow: { flexDirection: 'row', alignItems: 'center' },
-  heroTitle: { color: '#fff', fontSize: 24, fontWeight: '600' },
+  heroTitle: { color: '#fff', fontSize: 20, fontWeight: '600' },
   section: { backgroundColor: '#FFFFFF', borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(26,45,90,0.08)', borderTopWidth: 3, borderTopColor: '#1a2d5a' },
   secNavy: {}, secBlue: {}, secRed: {},
   secHd: { flexDirection: 'row', alignItems: 'center', gap: 9, marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(26,45,90,0.07)', paddingBottom: 10 },

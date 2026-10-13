@@ -1026,16 +1026,16 @@ const styles = StyleSheet.create({
   // ─── Hero ────────────────────────────────────────────────────────────────
   hero: {
     backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    paddingHorizontal: 22,
-    paddingTop: 10,
-    paddingBottom: 22,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
     marginBottom: 4,
   },
   heroTitleRow: { flexDirection: 'row', alignItems: 'center' },
-  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
-  heroSub: { color: '#AEB8D4', fontSize: 13, marginTop: 4 },
+  heroTitle: { color: '#fff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroSub: { color: '#AEB8D4', fontSize: 13, marginTop: 2 },
 
   // ─── Cards ───────────────────────────────────────────────────────────────
   modBox: { 

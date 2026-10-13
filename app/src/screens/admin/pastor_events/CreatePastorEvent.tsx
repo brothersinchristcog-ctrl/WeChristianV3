@@ -679,12 +679,12 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#EDE8DC' },
   hero: {
     backgroundColor: '#1a2d5a',
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
   },
-  heroTitle: { color: '#fff', fontSize: 24, fontWeight: '700' },
+  heroTitle: { color: '#fff', fontSize: 20, fontWeight: '700' },
   heroSub: { color: '#aac4e8', fontSize: 13, fontWeight: '500' },
   header: {
     flexDirection: 'row',

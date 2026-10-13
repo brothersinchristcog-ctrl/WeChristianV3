@@ -814,17 +814,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#EDE8DC' },
   hero: {
     backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    paddingHorizontal: 22,
-    paddingTop: 10,
-    paddingBottom: 24,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
     overflow: 'visible',
     position: 'relative',
     marginBottom: 6,
   },
   heroTitleRow: { flexDirection: 'row', alignItems: 'center' },
-  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroTitle: { color: '#fff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
 
   scroll: { padding: 14, paddingBottom: 150 },
 

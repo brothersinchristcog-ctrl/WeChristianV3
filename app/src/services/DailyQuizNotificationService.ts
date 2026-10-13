@@ -217,9 +217,18 @@ class DailyQuizNotificationService {
       }
 
       const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
+
+      // Cancel the legacy repeating_daily trigger if it was previously registered
+      // (cleanup for devices that had it before this fix was deployed)
+      const legacyRepeatingId = `${NOTIF_ID_PREFIX}repeating_daily`;
+      if (allScheduled.some(n => n.identifier === legacyRepeatingId)) {
+        await Notifications.cancelScheduledNotificationAsync(legacyRepeatingId).catch(() => {});
+        console.log('[DailyQuizNotificationService] Cancelled legacy repeating_daily trigger.');
+      }
+
       const existingQuizNotifIds = new Set(
         allScheduled
-          .filter(n => n.identifier && n.identifier.startsWith(NOTIF_ID_PREFIX))
+          .filter(n => n.identifier && n.identifier.startsWith(NOTIF_ID_PREFIX) && n.identifier !== legacyRepeatingId)
           .map(n => n.identifier)
       );
 
@@ -289,33 +298,9 @@ class DailyQuizNotificationService {
         scheduledCount++;
       }
 
-      // Also register a recurring daily fallback trigger for exact 6:00 AM delivery
-      try {
-        const hour = typeof config.hour === 'number' ? config.hour : 6;
-        const minute = typeof config.minute === 'number' ? config.minute : 0;
-        await Notifications.scheduleNotificationAsync({
-          identifier: `${NOTIF_ID_PREFIX}repeating_daily`,
-          content: {
-            title: config.customTitle || '📖 Daily Bible Quiz is Live!',
-            body: config.customBody || "Today's Scripture challenge is ready. Test your knowledge and reflect on God's Word!",
-            sound: true,
-            data: {
-              type: 'bible_quiz',
-              quizId: 'daily_today',
-              screen: 'BibleQuizDetail',
-              churchId: 'global',
-            },
-          },
-          trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DAILY,
-            hour,
-            minute,
-            channelId: 'daily_quiz',
-          },
-        });
-      } catch (dailyErr) {
-        // Optional daily fallback
-      }
+      // Note: A separate recurring DAILY trigger has been removed because it caused
+      // duplicate local notifications. The per-day DATE triggers above provide reliable
+      // delivery for each upcoming day without double-firing.
 
       console.log(`[DailyQuizNotificationService] Scheduled ${scheduledCount} notifications for ${config.time24}. Next: ${firstUpcomingDate}`);
       return { scheduledCount, nextDate: firstUpcomingDate };

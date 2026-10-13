@@ -41,15 +41,58 @@ const PRESET_COLORS = [
 ];
 
 function generateChurchCode(name: string): string {
-  // Take first letters of each word, max 6 chars
-  const initials = name
-    .replace(/[^a-zA-Z\s]/g, '')
+  // Safe character pool: no visually ambiguous chars (0/O, 1/I/L)
+  const SAFE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+  // Detect Telugu Unicode range and transliterate before extracting initials
+  const isTeluguText = (text: string) => /[\u0C00-\u0C7F]/.test(text);
+
+  let workingName = name.trim();
+  if (isTeluguText(workingName)) {
+    // Transliterate each word's first Telugu character to its English equivalent
+    // using a lightweight built-in map (avoids circular import of TransliterationService)
+    const TELUGU_CONSONANTS: Record<string, string> = {
+      '\u0C15': 'K', '\u0C16': 'K', '\u0C17': 'G', '\u0C18': 'G', '\u0C19': 'N',
+      '\u0C1A': 'C', '\u0C1B': 'C', '\u0C1C': 'J', '\u0C1D': 'J', '\u0C1E': 'N',
+      '\u0C1F': 'T', '\u0C20': 'T', '\u0C21': 'D', '\u0C22': 'D', '\u0C23': 'N',
+      '\u0C24': 'T', '\u0C25': 'T', '\u0C26': 'D', '\u0C27': 'D', '\u0C28': 'N',
+      '\u0C2A': 'P', '\u0C2B': 'P', '\u0C2C': 'B', '\u0C2D': 'B', '\u0C2E': 'M',
+      '\u0C2F': 'Y', '\u0C30': 'R', '\u0C31': 'R', '\u0C32': 'L', '\u0C33': 'L',
+      '\u0C35': 'V', '\u0C36': 'S', '\u0C37': 'S', '\u0C38': 'S', '\u0C39': 'H',
+    };
+    const TELUGU_VOWELS: Record<string, string> = {
+      '\u0C05': 'A', '\u0C06': 'A', '\u0C07': 'I', '\u0C08': 'I', '\u0C09': 'U',
+      '\u0C0A': 'U', '\u0C0E': 'E', '\u0C0F': 'E', '\u0C10': 'A', '\u0C12': 'O',
+      '\u0C13': 'O', '\u0C14': 'A',
+    };
+    // Map word-initial Telugu characters to their English letter
+    workingName = workingName
+      .split(' ')
+      .map(word => {
+        const firstChar = word.trim()[0];
+        if (!firstChar) return '';
+        return TELUGU_CONSONANTS[firstChar] || TELUGU_VOWELS[firstChar] || 'X';
+      })
+      .join(' ');
+  }
+
+  // Extract up to 3 initials from word-initial letters (ASCII A-Z only)
+  const initials = workingName
     .split(' ')
     .filter(Boolean)
-    .map(w => w[0].toUpperCase())
+    .slice(0, 3)
+    .map(w => {
+      const c = w.replace(/[^a-zA-Z]/g, '')[0];
+      return c ? c.toUpperCase() : '';
+    })
     .join('');
-  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
-  return (initials + random).substring(0, 8);
+
+  // Pad with random safe characters so the total is always exactly 5
+  let code = initials;
+  while (code.length < 5) {
+    code += SAFE_CHARS[Math.floor(Math.random() * SAFE_CHARS.length)];
+  }
+  return code.substring(0, 5);
 }
 
 export default function CreateChurchScreen({ navigation }: Props) {

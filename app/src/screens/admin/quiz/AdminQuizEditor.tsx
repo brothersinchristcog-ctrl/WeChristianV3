@@ -1702,11 +1702,11 @@ const styles = StyleSheet.create({
   // ── Hero Header ─────────────────────────────────────────────────────────────
   hero: {
     backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    paddingTop: Platform.OS === 'ios' ? 52 : 22,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    paddingTop: Platform.OS === 'ios' ? 44 : 14,
+    paddingBottom: 12,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

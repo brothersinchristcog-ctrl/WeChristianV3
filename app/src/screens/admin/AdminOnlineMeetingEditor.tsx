@@ -905,12 +905,12 @@ const styles = StyleSheet.create({
   // Hero Section (Unified across Online Meeting tab)
   hero: { 
     backgroundColor: '#1a2d5a', 
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    paddingHorizontal: 22,
-    paddingTop: 32,
-    paddingBottom: 32,
-    minHeight: 96,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    marginBottom: 6,
     justifyContent: 'center',
     overflow: 'visible',
     position: 'relative',
@@ -923,7 +923,7 @@ const styles = StyleSheet.create({
   },
   heroTitle: { 
     color: '#fff', 
-    fontSize: 24, 
+    fontSize: 20, 
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', 
     fontWeight: '600', 
     letterSpacing: -0.5, 

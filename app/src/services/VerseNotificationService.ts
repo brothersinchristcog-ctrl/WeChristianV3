@@ -57,13 +57,23 @@ class VerseNotificationService {
     }
 
     Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: false,
-        shouldShowBanner: true,
-        shouldShowList: true,
-      }),
+      handleNotification: async (notification) => {
+        // For daily verse type: only show alert for locally-scheduled notifications
+        // (identifier starts with NOTIF_ID_PREFIX). FCM backend pushes with type='daily_verse'
+        // are suppressed to prevent duplicate banners when the app is foregrounded.
+        const identifier = notification.request.identifier || '';
+        const dataType = notification.request.content.data?.type;
+        const isLocalVerse = identifier.startsWith(NOTIF_ID_PREFIX);
+        const isBackendVerse = dataType === 'daily_verse' && !isLocalVerse;
+
+        return {
+          shouldShowAlert: !isBackendVerse,
+          shouldPlaySound: !isBackendVerse,
+          shouldSetBadge: false,
+          shouldShowBanner: !isBackendVerse,
+          shouldShowList: !isBackendVerse,
+        };
+      },
     });
 
     await this.syncAndSchedule();
@@ -154,19 +164,21 @@ class VerseNotificationService {
         }
       }
 
-      // 3. Cancel ALL legacy, duplicate, or stale scheduled notifications first!
-      // This wipes out:
-      //  - Old legacy notifications that had random UUIDs and old titles ("Good Morning", sun/moon emojis)
-      //  - Stale notifications from past days or obsolete schedules
+      // 3. Cancel ALL legacy, duplicate, or stale scheduled verse notifications.
+      // Cancels:
+      //  - Old notifications with random UUIDs (not in expectedIds)
+      //  - Stale notifications from past days or old schedules
       //  - Any duplicate notification entries for the same slot
+      // NOTE: We cancel based on identifier prefix (daily_verse_) and expectedIds set,
+      // rather than title emoji — more robust against title format changes.
       const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
       const seenIds = new Set<string>();
       for (const n of allScheduled) {
-        const title = n.content.title || '';
-        const hasCross = title.startsWith('✝️') || title.startsWith('✝');
+        const isVerseNotif = n.identifier.startsWith(NOTIF_ID_PREFIX);
         const isDuplicate = seenIds.has(n.identifier);
-        if (!expectedIds.has(n.identifier) || !hasCross || isDuplicate) {
-          console.log(`[VerseNotificationService] Cancelling legacy/duplicate/stale notification: ${n.identifier} (${title})`);
+        // Cancel if: (a) it's a verse notification not in our expected set, (b) it's a duplicate
+        if ((isVerseNotif && !expectedIds.has(n.identifier)) || isDuplicate) {
+          console.log(`[VerseNotificationService] Cancelling stale/duplicate notification: ${n.identifier}`);
           await Notifications.cancelScheduledNotificationAsync(n.identifier);
         } else {
           seenIds.add(n.identifier);

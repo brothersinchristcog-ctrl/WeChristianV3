@@ -1301,7 +1301,8 @@ export class QuizService {
       churchId: string;
     },
     submissions: UserAnswerSubmission[],
-    timeTakenSeconds: number
+    timeTakenSeconds: number,
+    targetLanguage?: string
   ): Promise<QuizAttempt> {
     const quiz = await this.getQuizById(quizId, memberInfo.churchId);
     if (!quiz) {
@@ -1316,6 +1317,38 @@ export class QuizService {
       }
     }
 
+    // Determine effective evaluation language (passed explicitly or auto-detected from submission text)
+    let effectiveLanguage = (targetLanguage || '').toLowerCase().trim();
+    if (!effectiveLanguage || effectiveLanguage === 'en') {
+      const hasTeluguChars = submissions.some(s => {
+        const text = Array.isArray(s.selectedAnswer) ? s.selectedAnswer.join(' ') : String(s.selectedAnswer || '');
+        return /[\u0C00-\u0C7F]/.test(text);
+      });
+      if (hasTeluguChars) {
+        effectiveLanguage = 'te';
+      }
+    }
+
+    // Resolve localized quiz entity if evaluating in non-English
+    let localizedQuiz: BibleQuiz | null = null;
+    if (effectiveLanguage && effectiveLanguage !== 'en') {
+      try {
+        localizedQuiz = await this.localizeQuiz(quiz, effectiveLanguage);
+      } catch (e) {
+        console.warn('[QuizService] Notice localizing quiz in submit:', e);
+      }
+    }
+
+    const locQuestionMap = new Map<string, any>();
+    if (localizedQuiz && Array.isArray(localizedQuiz.questions)) {
+      localizedQuiz.questions.forEach(lq => {
+        if (lq && lq.id) locQuestionMap.set(lq.id, lq);
+      });
+    }
+
+    const { getLocalizedDailyQuestion } = require('../constants/DailyQuizTranslations');
+    const normalize = (v: any) => String(v ?? '').trim().toLowerCase();
+
     let score = 0;
     let correctCount = 0;
     let wrongCount = 0;
@@ -1326,16 +1359,107 @@ export class QuizService {
 
     const detailedAnswers: QuizAttemptAnswer[] = quiz.questions.map(q => {
       const selected = submissionMap.get(q.id) ?? '';
+
+      // Get localized representation of the question if applicable
+      let locQ = locQuestionMap.get(q.id);
+      if (!locQ && effectiveLanguage && effectiveLanguage !== 'en') {
+        try {
+          locQ = getLocalizedDailyQuestion(q, effectiveLanguage as any);
+        } catch {}
+      }
+
       let isCorrect = false;
 
+      // 1. Direct canonical comparison (English or base language)
       if (Array.isArray(q.correctAnswer)) {
         if (Array.isArray(selected)) {
-          const sortedCorrect = [...q.correctAnswer].sort().join('|');
-          const sortedSelected = [...selected].sort().join('|');
+          const sortedCorrect = [...q.correctAnswer].map(normalize).sort().join('|');
+          const sortedSelected = [...selected].map(normalize).sort().join('|');
           isCorrect = sortedCorrect === sortedSelected;
         }
       } else {
-        isCorrect = String(selected).trim().toLowerCase() === String(q.correctAnswer).trim().toLowerCase();
+        isCorrect = normalize(selected) === normalize(q.correctAnswer);
+      }
+
+      // 2. Direct localized comparison (Telugu translated text comparison)
+      if (!isCorrect && locQ?.correctAnswer) {
+        if (Array.isArray(locQ.correctAnswer)) {
+          if (Array.isArray(selected)) {
+            const sortedLoc = [...locQ.correctAnswer].map(normalize).sort().join('|');
+            const sortedSelected = [...selected].map(normalize).sort().join('|');
+            isCorrect = sortedLoc === sortedSelected;
+          }
+        } else {
+          isCorrect = normalize(selected) === normalize(locQ.correctAnswer);
+        }
+      }
+
+      // 3. Robust Option-Index comparison (Guarantees 100% consistent cross-language validation)
+      if (!isCorrect) {
+        const canonicalOptions: string[] = Array.isArray(q.options) ? q.options : [];
+        const localizedOptions: string[] = locQ && Array.isArray(locQ.options) ? locQ.options : [];
+        const teluguOptions: string[] = Array.isArray((q as any).optionsTelugu) ? (q as any).optionsTelugu : [];
+        const translationOptions: string[] = (q as any).translations?.[effectiveLanguage]?.options || [];
+
+        // Determine ground truth correct index / indices
+        const correctIndices = new Set<number>();
+        if (Array.isArray(q.correctAnswer)) {
+          q.correctAnswer.forEach((ca: string) => {
+            const idx = canonicalOptions.findIndex(o => normalize(o) === normalize(ca));
+            if (idx >= 0) correctIndices.add(idx);
+          });
+        } else if (q.correctAnswer !== undefined) {
+          const idx = canonicalOptions.findIndex(o => normalize(o) === normalize(q.correctAnswer));
+          if (idx >= 0) correctIndices.add(idx);
+        }
+
+        // If not found in canonical options, check in localized options
+        if (correctIndices.size === 0 && locQ?.correctAnswer) {
+          if (Array.isArray(locQ.correctAnswer)) {
+            locQ.correctAnswer.forEach((ca: string) => {
+              const idx = localizedOptions.findIndex(o => normalize(o) === normalize(ca));
+              if (idx >= 0) correctIndices.add(idx);
+            });
+          } else {
+            const idx = localizedOptions.findIndex(o => normalize(o) === normalize(locQ.correctAnswer));
+            if (idx >= 0) correctIndices.add(idx);
+          }
+        }
+
+        // Map selected answer(s) to option indices
+        const selectedList = Array.isArray(selected) ? selected : [selected];
+        const selectedIndices = new Set<number>();
+
+        for (const sel of selectedList) {
+          const nSel = normalize(sel);
+          if (!nSel) continue;
+
+          // 1. Check in localized options
+          let optIdx = localizedOptions.findIndex(o => normalize(o) === nSel);
+          // 2. Check in telugu options
+          if (optIdx === -1 && teluguOptions.length > 0) {
+            optIdx = teluguOptions.findIndex((o: any) => normalize(o) === nSel);
+          }
+          // 3. Check in translation options
+          if (optIdx === -1 && translationOptions.length > 0) {
+            optIdx = translationOptions.findIndex((o: any) => normalize(o) === nSel);
+          }
+          // 4. Check in canonical options
+          if (optIdx === -1 && canonicalOptions.length > 0) {
+            optIdx = canonicalOptions.findIndex(o => normalize(o) === nSel);
+          }
+
+          if (optIdx >= 0) {
+            selectedIndices.add(optIdx);
+          }
+        }
+
+        if (correctIndices.size > 0 && selectedIndices.size === correctIndices.size) {
+          const matchesAll = [...correctIndices].every(ci => selectedIndices.has(ci));
+          if (matchesAll) {
+            isCorrect = true;
+          }
+        }
       }
 
       const qMarks = q.marks || quiz.marksPerQuestion || 1;
@@ -1348,13 +1472,36 @@ export class QuizService {
         wrongCount++;
       }
 
+      // Displayed fields for attempt review & report
+      const isTargetLocalized = Boolean(effectiveLanguage && effectiveLanguage !== 'en');
+      const questionText = (isTargetLocalized && locQ?.question) ? locQ.question : q.question;
+      const refText = (isTargetLocalized && locQ?.bibleReference) ? locQ.bibleReference : (q.bibleReference || '');
+      const expText = (isTargetLocalized && locQ?.explanation) ? locQ.explanation : (q.explanation || '');
+
+      let correctDisplay = q.correctAnswer;
+      if (isTargetLocalized) {
+        if (locQ?.correctAnswer) {
+          correctDisplay = locQ.correctAnswer;
+        } else if (Array.isArray(q.correctAnswer) && locQ?.options) {
+          const idxs = q.correctAnswer.map((ca: string) => (q.options || []).findIndex((o: any) => normalize(o) === normalize(ca)));
+          if (idxs.every((i: number) => i >= 0 && locQ.options[i])) {
+            correctDisplay = idxs.map((i: number) => locQ.options[i]);
+          }
+        } else if (typeof q.correctAnswer === 'string' && locQ?.options) {
+          const idx = (q.options || []).findIndex((o: any) => normalize(o) === normalize(q.correctAnswer));
+          if (idx >= 0 && locQ.options[idx]) {
+            correctDisplay = locQ.options[idx];
+          }
+        }
+      }
+
       return {
         questionId: q.id,
-        question: q.question,
+        question: questionText,
         selectedAnswer: selected,
-        correctAnswer: q.correctAnswer,
-        bibleReference: q.bibleReference || '',
-        explanation: q.explanation || '',
+        correctAnswer: correctDisplay,
+        bibleReference: refText,
+        explanation: expText,
         isCorrect,
         marksAwarded,
         possibleMarks: qMarks,
@@ -1370,7 +1517,7 @@ export class QuizService {
     const attempt: QuizAttempt = {
       id: attemptId,
       quizId,
-      quizTitle: quiz.title,
+      quizTitle: (effectiveLanguage && effectiveLanguage !== 'en' && localizedQuiz?.title) ? localizedQuiz.title : quiz.title,
       churchId: targetChurchId,
       userId,
       memberName: memberInfo.name || 'Member',

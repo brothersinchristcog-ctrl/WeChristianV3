@@ -128,12 +128,14 @@ export default function BibleQuizReviewScreen() {
               question: ans.question,
               bibleReference: ans.bibleReference,
               explanation: ans.explanation,
+              correctAnswer: ans.correctAnswer,
             },
             quizLanguage
           );
           const locRef = localized.bibleReference || localizeBibleReference(ans.bibleReference || '', quizLanguage);
           const displayedQuestion = localized.question || ans.question;
           const displayedExp = localized.explanation || ans.explanation;
+          const displayedCorrect = (quizLanguage !== 'en' && localized.correctAnswer) ? localized.correctAnswer : ans.correctAnswer;
 
           return (
             <View
@@ -261,9 +263,9 @@ export default function BibleQuizReviewScreen() {
                       },
                     ]}
                   >
-                    {Array.isArray(ans.correctAnswer)
-                      ? ans.correctAnswer.join(', ')
-                      : ans.correctAnswer}
+                    {Array.isArray(displayedCorrect)
+                      ? displayedCorrect.join(', ')
+                      : displayedCorrect}
                   </Text>
                 </View>
               )}

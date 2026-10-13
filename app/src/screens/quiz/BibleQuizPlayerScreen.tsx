@@ -369,7 +369,8 @@ export default function BibleQuizPlayerScreen() {
           user?.uid || 'guest_user',
           memberInfo,
           submissions,
-          timeTaken
+          timeTaken,
+          quizLanguage
         );
 
         navigation.replace('BibleQuizResult', {
@@ -381,13 +382,24 @@ export default function BibleQuizPlayerScreen() {
         let earnedScore = 0;
         let totalPossible = 0;
         let correctCount = 0;
+        const normalize = (v: any) => String(v ?? '').trim().toLowerCase();
 
         const reviewAnswers: QuizAttemptAnswer[] = rawQuestions.map((q) => {
           const userAns = answers[q.id] || '';
-          const isCorrect = Array.isArray(q.correctAnswer)
+          let isCorrect = Array.isArray(q.correctAnswer)
             ? Array.isArray(userAns) &&
-              q.correctAnswer.sort().join() === userAns.sort().join()
-            : q.correctAnswer === userAns;
+              [...q.correctAnswer].map(normalize).sort().join('|') ===
+                [...userAns].map(normalize).sort().join('|')
+            : normalize(q.correctAnswer) === normalize(userAns);
+
+          // Index fallback if userAns was localized or canonical option
+          if (!isCorrect && Array.isArray(q.options)) {
+            const cIdx = q.options.findIndex((o) => normalize(o) === normalize(q.correctAnswer));
+            const uIdx = q.options.findIndex((o) => normalize(o) === normalize(userAns));
+            if (cIdx >= 0 && uIdx >= 0 && cIdx === uIdx) {
+              isCorrect = true;
+            }
+          }
 
           const qMarks = q.marks || 1;
           totalPossible += qMarks;
@@ -407,11 +419,11 @@ export default function BibleQuizPlayerScreen() {
           let localizedUserAns = userAns;
           let localizedCorrectAns = q.correctAnswer;
           if (Array.isArray(q.options) && localized.options.length === q.options.length) {
-            const userAnsIdx = q.options.indexOf(userAns as string);
+            const userAnsIdx = q.options.findIndex((o) => normalize(o) === normalize(userAns as string));
             if (userAnsIdx >= 0) {
               localizedUserAns = localized.options[userAnsIdx];
             }
-            const correctAnsIdx = q.options.indexOf(q.correctAnswer as string);
+            const correctAnsIdx = q.options.findIndex((o) => normalize(o) === normalize(q.correctAnswer as string));
             if (correctAnsIdx >= 0) {
               localizedCorrectAns = localized.options[correctAnsIdx];
             }

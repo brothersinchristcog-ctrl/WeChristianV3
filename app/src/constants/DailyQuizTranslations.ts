@@ -1101,6 +1101,19 @@ export function getLocalizedDailyQuizDescription(dateStr: string, lang: Supporte
   return descs[lang] || descs.en;
 }
 
+let intermediateQuestionsCache: any[] | null = null;
+function getCanonicalIntermediateQuestions(): any[] {
+  if (!intermediateQuestionsCache) {
+    try {
+      const { INTERMEDIATE_BIBLE_QUESTIONS } = require('../services/DailyBibleQuizBank');
+      intermediateQuestionsCache = INTERMEDIATE_BIBLE_QUESTIONS || [];
+    } catch {
+      intermediateQuestionsCache = [];
+    }
+  }
+  return intermediateQuestionsCache || [];
+}
+
 /**
  * Resolves a quiz question into the specified language.
  * Checks DAILY_QUIZ_TRANSLATIONS first, then legacy fields (questionTelugu, optionsTelugu),
@@ -1114,7 +1127,7 @@ export function getLocalizedDailyQuestion(
   options: string[];
   explanation?: string;
   bibleReference: string;
-  correctAnswer?: string;
+  correctAnswer?: string | string[];
 } {
   const ref = q.bibleReference || '';
   const localizedRef = localizeBibleReference(ref, lang);
@@ -1129,16 +1142,30 @@ export function getLocalizedDailyQuestion(
     };
   }
 
+  const normalize = (s: any) => String(s ?? '').trim().toLowerCase();
+  const findOptionIndex = (opts: string[] | undefined, target: any): number => {
+    if (!Array.isArray(opts)) return -1;
+    const nTarget = normalize(target);
+    return opts.findIndex(o => normalize(o) === nTarget);
+  };
+
   // 1. Direct question translations dictionary (for uploaded documents & localized admin quizzes)
   if (q.translations && q.translations[lang]) {
     const item = q.translations[lang];
     const isGenuinelyTranslated = Boolean(item.question && item.question.trim() !== (q.question || '').trim());
     if (isGenuinelyTranslated) {
       let localizedCorrect = q.correctAnswer;
-      if (q.correctAnswer && Array.isArray(q.options)) {
-        const idx = q.options.indexOf(q.correctAnswer);
-        if (idx >= 0 && item.options && item.options[idx]) {
-          localizedCorrect = item.options[idx];
+      if (q.correctAnswer && Array.isArray(item.options)) {
+        if (Array.isArray(q.correctAnswer)) {
+          const indices = q.correctAnswer.map((ca: any) => findOptionIndex(q.options, ca));
+          if (indices.every((i: number) => i >= 0 && item.options[i])) {
+            localizedCorrect = indices.map((i: number) => item.options[i]);
+          }
+        } else {
+          const idx = findOptionIndex(q.options, q.correctAnswer);
+          if (idx >= 0 && item.options[idx]) {
+            localizedCorrect = item.options[idx];
+          }
         }
       }
 
@@ -1160,13 +1187,41 @@ export function getLocalizedDailyQuestion(
 
   if (refMatch && refMatch[lang]) {
     const item = refMatch[lang]!;
-    // Find index of canonical correct answer if present
     let localizedCorrect = q.correctAnswer;
-    if (q.correctAnswer && Array.isArray(q.options)) {
-      const idx = q.options.indexOf(q.correctAnswer);
-      if (idx >= 0 && item.options && item.options[idx]) {
-        localizedCorrect = item.options[idx];
+
+    // 2a. If q.correctAnswer already matches one of the translated options, keep it
+    if (typeof q.correctAnswer === 'string') {
+      const alreadyLocIdx = findOptionIndex(item.options, q.correctAnswer);
+      if (alreadyLocIdx >= 0) {
+        localizedCorrect = item.options[alreadyLocIdx];
+      } else if (Array.isArray(q.options)) {
+        const idx = findOptionIndex(q.options, q.correctAnswer);
+        if (idx >= 0 && item.options[idx]) {
+          localizedCorrect = item.options[idx];
+        }
       }
+    } else if (Array.isArray(q.correctAnswer) && Array.isArray(q.options)) {
+      const indices = q.correctAnswer.map((ca: any) => findOptionIndex(q.options, ca));
+      if (indices.every((i: number) => i >= 0 && item.options[i])) {
+        localizedCorrect = indices.map((i: number) => item.options[i]);
+      }
+    }
+
+    // 2b. Fallback: If localizedCorrect is still unmodified and q.options is missing or didn't match, check canonical intermediate pool
+    if (localizedCorrect === q.correctAnswer) {
+      try {
+        const canonicalQuestions = getCanonicalIntermediateQuestions();
+        const matchCanonical = canonicalQuestions.find((cq: any) =>
+          (ref && normalize(cq.bibleReference) === normalize(ref)) ||
+          (qText && normalize(cq.question) === normalize(qText))
+        );
+        if (matchCanonical && Array.isArray(matchCanonical.options)) {
+          const cIdx = findOptionIndex(matchCanonical.options, matchCanonical.correctAnswer || q.correctAnswer);
+          if (cIdx >= 0 && item.options && item.options[cIdx]) {
+            localizedCorrect = item.options[cIdx];
+          }
+        }
+      } catch {}
     }
 
     return {
@@ -1182,14 +1237,14 @@ export function getLocalizedDailyQuestion(
   if (lang === 'te' && q.questionTelugu && q.questionTelugu.trim() !== (q.question || '').trim()) {
     let localizedCorrect = q.correctAnswer;
     if (q.correctAnswer && q.optionsTelugu && Array.isArray(q.options)) {
-      const idx = q.options.indexOf(q.correctAnswer);
+      const idx = findOptionIndex(q.options, q.correctAnswer);
       if (idx >= 0 && q.optionsTelugu[idx]) {
         localizedCorrect = q.optionsTelugu[idx];
       }
     }
     return {
       question: q.questionTelugu,
-      options: q.optionsTelugu && q.optionsTelugu.length === q.options.length ? [...q.optionsTelugu] : [...q.options],
+      options: q.optionsTelugu && q.optionsTelugu.length === q.options.length ? [...q.optionsTelugu] : [...(q.options || [])],
       explanation: q.explanationTelugu || q.explanation,
       bibleReference: localizedRef,
       correctAnswer: localizedCorrect,

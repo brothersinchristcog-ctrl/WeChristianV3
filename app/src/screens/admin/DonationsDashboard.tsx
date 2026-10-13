@@ -1829,16 +1829,16 @@ const styles = StyleSheet.create({
   // Hero Section
   hero: { 
     backgroundColor: '#1a2d5a', 
-    paddingTop: 10, 
-    paddingHorizontal: 22, 
-    paddingBottom: 24, 
-    borderBottomLeftRadius: 26, 
-    borderBottomRightRadius: 26,
+    paddingTop: 8, 
+    paddingHorizontal: 16, 
+    paddingBottom: 12, 
+    borderBottomLeftRadius: 18, 
+    borderBottomRightRadius: 18,
     overflow: 'visible',
     position: 'relative',
     marginBottom: 6,
   },
-  heroTitle: { fontFamily: FONTS.serif, fontSize: 26, color: '#ffffff', fontWeight: '700', letterSpacing: 0.5 },
+  heroTitle: { fontFamily: FONTS.serif, fontSize: 20, color: '#ffffff', fontWeight: '700', letterSpacing: 0.5 },
   heroSub: { fontFamily: FONTS.sans, fontSize: 12, color: '#a89f92', fontWeight: '500', letterSpacing: 0.5 },
   
   mainScroll: { padding: 20, paddingBottom: 100 },
