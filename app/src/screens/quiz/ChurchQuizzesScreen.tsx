@@ -286,7 +286,7 @@ export default function ChurchQuizzesScreen() {
             <ArrowLeft size={22} color="#ffffff" />
           </TouchableOpacity>
 
-          <View style={styles.headerCenter}>
+          <View style={styles.headerCenter} pointerEvents="none">
             <Text style={styles.headerTitle} numberOfLines={1}>
               {ui.churchQuizzes}
             </Text>
@@ -353,7 +353,7 @@ export default function ChurchQuizzesScreen() {
 
                 <View style={styles.dailyQuizContentRow}>
                   <View style={{ flex: 1, marginRight: 12 }}>
-                    <Text style={styles.dailyQuizCardTitle} numberOfLines={1}>
+                    <Text style={styles.dailyQuizCardTitle} numberOfLines={2}>
                       {getLocalizedDailyQuizTitle(todayStr, quizLanguage)}
                     </Text>
                     <Text style={styles.dailyQuizCardSub} numberOfLines={2}>
@@ -674,19 +674,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    position: 'relative',
+    minHeight: 40,
   },
   backBtn: {
-    padding: 4,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
   },
   headerCenter: {
-    flex: 1,
+    position: 'absolute',
+    left: 48,
+    right: 48,
     alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
   },
   headerTitle: {
     color: '#ffffff',
     fontSize: 19,
     fontWeight: '800',
     letterSpacing: 0.2,
+    textAlign: 'center',
   },
   langPill: {
     flexDirection: 'row',
@@ -694,10 +707,11 @@ const styles = StyleSheet.create({
     gap: 5,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
     paddingHorizontal: 10,
-    paddingVertical: 5,
+    paddingVertical: 6,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
+    zIndex: 2,
   },
   langPillTxt: {
     color: '#ffffff',
@@ -835,13 +849,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    rowGap: 8,
+    columnGap: 8,
     paddingTop: 10,
     marginTop: 6,
   },
   metaQCountRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    flexWrap: 'wrap',
+    gap: 4,
+    flexShrink: 1,
   },
   metaQCountTxt: {
     fontSize: 11,
@@ -851,23 +870,24 @@ const styles = StyleSheet.create({
   metaDot: {
     color: '#94a3b8',
     fontSize: 12,
-    marginHorizontal: 2,
+    marginHorizontal: 1,
   },
   startBtnCompact: {
-    borderRadius: 18,
+    borderRadius: 16,
     overflow: 'hidden',
+    flexShrink: 0,
   },
   startBtnGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6.5,
   },
   startBtnTxt: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '700',
   },
   sectionBadgeWrapCompleted: {
@@ -898,12 +918,14 @@ const styles = StyleSheet.create({
   completedActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+    flexShrink: 0,
+    marginLeft: 'auto',
   },
   resultsBtnCompact: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: 9,
+    paddingVertical: 5.5,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: '#cbd5e1',
     flexDirection: 'row',
@@ -912,11 +934,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   resultsBtnTxt: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '700',
   },
   retryBtnCompact: {
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: 'hidden',
   },
   retryBtnGradient: {
@@ -924,8 +946,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6.5,
+    paddingHorizontal: 9,
+    paddingVertical: 6,
   },
   filterBarContainer: {
     marginBottom: 16,
@@ -1086,13 +1108,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   dailyQuizCardTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: '700',
     color: '#ffffff',
     marginBottom: 4,
+    lineHeight: 22,
   },
   dailyQuizCardSub: {
-    fontSize: 12.5,
+    fontSize: 12,
     color: 'rgba(255, 255, 255, 0.88)',
     lineHeight: 17,
   },
@@ -1108,18 +1131,20 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+    flexShrink: 0,
   },
   dailyQuizDoneBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#ffffff',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 5,
+    flexShrink: 0,
   },
   dailyQuizDoneBadgeTxt: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
     color: '#10b981',
   },
