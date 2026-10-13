@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { View, Text, StyleSheet, Modal, TouchableOpacity, Dimensions, Animated, Alert } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { spacing, radius, typography, shadow } from '../theme/Theme';
 import { useTheme } from '../context/ThemeContext';
@@ -147,8 +147,12 @@ export const CustomAlert = forwardRef<CustomAlertRef, CustomAlertProps>((props, 
                     buttons.length === 2 && styles.buttonHalf
                   ]}
                   onPress={() => {
-                    if (btn.onPress) btn.onPress();
-                    if (!btn.onPress || btn.style === 'cancel') handleClose();
+                    handleClose();
+                    if (btn.onPress) {
+                      setTimeout(() => {
+                        btn.onPress!();
+                      }, 100);
+                    }
                   }}
                   activeOpacity={0.8}
                 >
@@ -182,7 +186,11 @@ export const globalAlertRef = React.createRef<CustomAlertRef>();
 
 export const AppAlert = {
   alert: (title: string, message: string, buttons?: AlertButton[], type?: 'success' | 'error' | 'warning' | 'info') => {
-    globalAlertRef.current?.alert(title, message, buttons, type);
+    if (globalAlertRef.current) {
+      globalAlertRef.current.alert(title, message, buttons, type);
+    } else {
+      Alert.alert(title, message, buttons as any);
+    }
   }
 };
 

@@ -1,0 +1,213 @@
+=============================================================================================================================
+                           WECHRISTIAN - COMPLETE HOW-TO GUIDE: SERMONS MODULE
+                             EXHAUSTIVE GUIDE FOR EVERY TAB, SCREEN, FIELD & ACTION
+=============================================================================================================================
+
+
+HOW TO MANAGE, PUBLISH & ARCHIVE SERMONS FROM THE ADMIN DASHBOARD
+=================================================================
+
+1. Starting the Process
+-----------------------
+From the main Admin Dashboard, look under the "Content Management" category:
+- You will see the "Sermons" card with a rich video reel / camera icon.
+- Tapping "Sermons" opens the Sermons Management Center (`AdminSermonList.tsx`).
+- In addition, you have companion tools:
+  * "New Sermon" (`AdminSermonEditor.tsx`): Opens the full-featured sermon publishing and video embedding studio.
+  * "AI Sermon Assistant" (`AISermonAssistant.tsx`): An artificial intelligence tool helping pastors draft 3-point homiletical outlines, biblical exegesis, sermon illustrations, and prayers in English & Telugu.
+
+
+=============================================================================================================================
+2. SERMON LIST SCREEN (AdminSermonList.tsx) - ARCHIVE & TRACKING
+=============================================================================================================================
+
+When you open the Sermons tab, you land on the Sermons Dashboard:
+
+A. Header Statistics Bar:
+   - "Published": Total active sermons currently visible and streaming to church members.
+   - "Scheduled": Sermons queued up to auto-publish on upcoming dates.
+   - "Drafts": Unpublished working drafts hidden from members.
+   - "Categories": Total active sermon series and service categories.
+
+B. Category Filter Ribbon:
+   - Horizontal scrolling pills to filter the archive:
+     * "All" (Full library)
+     * "Sunday Service"
+     * "Bible Study"
+     * "Youth Meeting"
+     * "Women's Fasting Prayer"
+     * "Second Saturday Prayer"
+     * "All-Night Prayer"
+     * "Revival Meeting"
+     * "Special Messages"
+     * "Shorts"
+     * "Testimonies"
+     * Plus any Custom Categories created by the church!
+
+C. Live Search Bar:
+   - Search instantly across sermon titles (English & Telugu), preacher/pastor names, or Bible scripture references.
+
+D. Sermon Card Elements:
+   - Video Thumbnail: Automatically extracted high-resolution thumbnail from YouTube or custom uploaded 16:9 artwork.
+   - Duration Badge: Overlay tag showing run time (e.g., "45 Mins" or "1:15:30").
+   - Sermon Title: Bold display in English with optional Telugu script title underneath.
+   - Preacher Name: Displays the pastor or guest speaker's name.
+   - Delivery Date: Formatted date when the sermon was preached (e.g., "Sep 28, 2026").
+   - Category Pills: Shows series badges (e.g., "Sunday Service", "Revival").
+   - Scripture Reference Badge: e.g., "Romans 8:28-39".
+   - Status Badge: Green ("Published"), Blue ("Scheduled"), or Gray ("Draft").
+
+E. Quick Action Buttons on Each Card:
+   - Play Icon (Red/Teal Button): Instantly launches and plays the video (or audio stream) to verify quality.
+   - Edit (Pencil Icon): Opens the sermon in the full editor with all pre-filled fields.
+   - Delete (Trash Icon): Opens a confirmation modal. Deleting permanently cleans the record and shows an instant success toast!
+
+
+=============================================================================================================================
+3. NEW SERMON STUDIO (AdminSermonEditor.tsx) - COMPLETE FIELD-BY-FIELD GUIDE
+=============================================================================================================================
+
+When you tap "+ New Sermon" or edit an existing entry, the Sermon Editor Studio opens. It is organized into 8 comprehensive sections:
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 1: TITLE & PREACHER DETAILS
+-----------------------------------------------------------------------------------------------------------------------------
+- `Sermon Title (English)` (Required):
+  * The main inspirational title of the sermon (e.g., "Walking in Divine Favor" or "The Power of Persistent Prayer").
+- `Sermon Title (Telugu)` (Optional):
+  * The title written in Telugu script (e.g., "దేవుని కృపలో నడుచుట").
+  * Displayed prominently for Telugu-speaking believers in the mobile app.
+- `Preacher / Speaker Name` (Required):
+  * Full name and title of the minister (e.g., "Rev. Dr. Daniel Raju", "Pastor Mary Margaret", or "Evangelist John").
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 2: DATE & DURATION
+-----------------------------------------------------------------------------------------------------------------------------
+- `Service / Preached Date` (Required):
+  * Tap to open the calendar date picker modal (`DateTimePickerModal`).
+  * Pick the exact Sunday or service date when the message was delivered.
+- `Duration` (Optional):
+  * Running time of the message (e.g., "45 mins", "1 hour 15 mins").
+  * Default placeholder is "45 mins".
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 3: BIBLE PASSAGE & SCRIPTURE REFERENCES
+-----------------------------------------------------------------------------------------------------------------------------
+- `Scripture Reference` (Recommended):
+  * The foundational scripture verses preached during the sermon (e.g., "Romans 8:28-39", "John 14:1-6", "కీర్తనలు 23").
+  * Members can tap this reference in the app to open the built-in Bible directly to those verses!
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 4: YOUTUBE & VIDEO STREAMING INTEGRATION
+-----------------------------------------------------------------------------------------------------------------------------
+- `YouTube Video URL or Video ID` (Required for video playback):
+  * Paste ANY valid YouTube link:
+    - Standard Watch URL: `https://www.youtube.com/watch?v=dQw4w9WgXcQ`
+    - Shortened URL: `https://youtu.be/dQw4w9WgXcQ`
+    - Mobile / Shorts Link: `https://www.youtube.com/shorts/dQw4w9WgXcQ`
+    - YouTube Live Stream URL: `https://www.youtube.com/live/dQw4w9WgXcQ`
+    - Direct 11-character Video ID: `dQw4w9WgXcQ`
+  * Intelligent Auto-Extraction: The system automatically extracts the clean video ID and pulls the high-resolution thumbnail preview!
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 5: CUSTOM THUMBNAIL & POSTER STUDIO
+-----------------------------------------------------------------------------------------------------------------------------
+- Default Behavior: The app automatically pulls the official thumbnail directly from YouTube.
+- Custom Artwork Override:
+  * Tap "Upload Custom Thumbnail" to select custom 16:9 church graphics from your device gallery.
+  * The image is automatically uploaded to Firebase Cloud Storage under `churches/{churchId}/sermons/thumbnails/`.
+  * Allows church media teams to use high-end custom Photoshop designs or AI-generated posters!
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 6: CATEGORIES & SERIES TAGGING
+-----------------------------------------------------------------------------------------------------------------------------
+- Multiple Category Checkboxes: Select all applicable categories:
+  * Bible Study
+  * Sunday Service
+  * Women's Fasting Prayer
+  * Second Saturday Prayer
+  * All-Night Prayer
+  * Youth Meeting
+  * Revival Meeting
+  * Special Messages
+  * Shorts / Clips
+  * Testimonies
+- "Add New Category" Button:
+  * Tap "+ Add Category" to create a custom series (e.g., "Faith Foundation Series", "Marriage Seminar 2026").
+  * Automatically saves to your church's database so it is permanently available for future sermons!
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 7: SERMON OUTLINE, NOTES & DEVOTIONAL REFLECTION
+-----------------------------------------------------------------------------------------------------------------------------
+- `Sermon Description & Message Notes` (Rich Text Field):
+  * Enter the complete sermon notes:
+    - 3 Key Points (e.g., "1. The Promise of God, 2. The Testing of Faith, 3. The Manifestation").
+    - Supporting Scripture Cross-References.
+    - Life Application questions.
+    - Concluding Prayer challenge.
+  * Members can read these notes inside the app while listening or meditating during personal devotion!
+
+
+-----------------------------------------------------------------------------------------------------------------------------
+SECTION 8: PUBLICATION STATUS & AUTOMATED MEMBER NOTIFICATION
+-----------------------------------------------------------------------------------------------------------------------------
+- Publication Status Options:
+  * `Publish now — Live immediately`: Instantly pushes the sermon to all member mobile apps.
+  * `Scheduled — Auto-publish`: Queues sermon to go live automatically on the scheduled date.
+  * `Draft — Save only`: Keeps sermon private for pastoral review.
+
+- Automated Push Notification (`notifyMembers`):
+  * When set to "Publish now", WeChristian AUTOMATICALLY broadcasts a push notification alert to all registered church members:
+    "🎧 New Sermon: [Sermon Title] by [Pastor Name] is now available. Watch/listen now!"
+  * Clicking the notification opens the sermon directly on their phone!
+
+
+=============================================================================================================================
+4. AI SERMON ASSISTANT (AISermonAssistant.tsx) - PASTORAL PREACHING COPILOT
+=============================================================================================================================
+
+Accessible from the Admin Dashboard under "AI Ministry Tools":
+- Step 1: Input Biblical Topic or Passage:
+  * Type a theme (e.g., "Overcoming Spiritual Warfare", "Walking in Faith", "Colossians 3:1-4").
+- Step 2: Select Homiletical Style:
+  * Expository (Verse-by-verse breakdown)
+  * Topical (Theme-focused preaching)
+  * Evangelistic (Salvation call)
+  * Special Occasion (Wedding, Funeral, Communion, Baby Dedication)
+- Step 3: Choose Language (Telugu, English, or Bilingual).
+- AI Generated Sermon Package:
+  1. Catchy Homiletical Sermon Title
+  2. Main Scripture Text with Historical & Cultural Background Context
+  3. Greek / Hebrew Exegesis & Root Word Insights
+  4. 3-Point Preaching Outline with Memorable Alliteration
+  5. Contemporary Real-Life Sermon Illustration
+  6. Practical Life Application for Believers
+  7. Altar Call & Pastoral Closing Prayer
+- One-Tap Copy: Copy the entire generated sermon into the Sermon Editor notes or export to PDF!
+
+
+=============================================================================================================================
+5. HOW CONGREGATION MEMBERS EXPERIENCE SERMONS IN THE APP
+=============================================================================================================================
+
+When a church believer opens the WeChristian mobile app:
+1. Video Streaming Player:
+   - High-definition YouTube embedded video playback with full-screen rotation support.
+2. Background Audio Mode:
+   - Believers can listen to the audio message while driving, working, or cooking.
+3. Sermon Notes Reader:
+   - Full transcript and pastoral outline available below the video player.
+4. Bible Reference Jump:
+   - Tapping any referenced Bible verse opens the built-in Telugu/English Bible directly to that passage.
+5. Social Sharing:
+   - Members can tap the Share button to forward sermon links to friends and family on WhatsApp with custom church branding.
+
+=============================================================================================================================
+                                                 END OF SERMONS MANUAL
+=============================================================================================================================

@@ -13,8 +13,10 @@ import {
   Linking,
   Alert,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { 
   Video, 
+  ArrowLeft,
   ChevronLeft,
   Calendar,
   Clock,
@@ -23,11 +25,15 @@ import {
   Radio,
   CheckCircle,
   ChevronRight,
+  Key,
 } from 'lucide-react-native';
 import firestore from '@react-native-firebase/firestore';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
+import { useLanguage } from '../context/LanguageContext';
+
+const SHOW_YOUTUBE_LIVE = false;
 
 const { width } = Dimensions.get('window');
 const BRAND = '#1a2d5a';
@@ -37,6 +43,7 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
   const { activeChurch } = useChurch();
   const { user, member } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   
   const [meetings, setMeetings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,9 +159,47 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
           {/* Decorative circle */}
           <View style={[styles.gradCircle, { backgroundColor: gradEnd }]} />
 
+          {/* Platform Badge & Passcode Badge & YouTube Badge */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6, flexWrap: 'wrap' }}>
+            {item.meetingType === 'zoom' || item.provider === 'zoom' ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(45, 140, 255, 0.35)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#2D8CFF' }}>
+                <Video size={12} color="#ffffff" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>Zoom Meeting</Text>
+              </View>
+            ) : (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(16, 185, 129, 0.35)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#10B981' }}>
+                <Video size={12} color="#ffffff" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>Google Meet</Text>
+              </View>
+            )}
+            {item.password ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(252, 211, 77, 0.25)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#FCD34D' }}>
+                <Key size={11} color="#FCD34D" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#FCD34D', fontSize: 11, fontWeight: '700' }}>Passcode: {item.password}</Text>
+              </View>
+            ) : null}
+            {SHOW_YOUTUBE_LIVE && item.youtubeLive?.enabled ? (
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                backgroundColor: item.youtubeLive.status === 'live' ? 'rgba(220, 38, 38, 0.5)' : 'rgba(239, 68, 68, 0.25)', 
+                paddingHorizontal: 8, 
+                paddingVertical: 3, 
+                borderRadius: 6, 
+                borderWidth: 1, 
+                borderColor: '#EF4444' 
+              }}>
+                <Radio size={11} color="#ffffff" style={{ marginRight: 4 }} />
+                <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>
+                  {item.youtubeLive.status === 'live' ? '🔴 Live on YouTube' : 'YouTube Live'}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
           {/* Title */}
           <Text style={styles.gradTitle} numberOfLines={2}>
-            {item.title || 'Online Meeting'}
+            {item.title || t('meetings.onlineMeeting')}
           </Text>
 
           {/* Subtitle / Topic */}
@@ -191,29 +236,47 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
             <View style={styles.gradInfoRow}>
               <User size={16} color="rgba(255,255,255,0.75)" />
               <Text style={styles.gradInfoText} numberOfLines={1}>
-                Host: {item.teacher}
+                {t('meetings.hostPrefix')} {item.teacher}
               </Text>
             </View>
           )}
 
           {/* Action buttons */}
-          <View style={styles.gradActions}>
+          <View style={[styles.gradActions, { flexWrap: 'wrap', gap: 8 }]}>
             <TouchableOpacity
               style={styles.gradJoinBtn}
               onPress={() => navigation.navigate('OnlineMeetingDetail', { meeting: item })}
             >
               <Video size={15} color={gradStart} />
               <Text style={[styles.gradJoinText, { color: gradStart }]}>
-                {isLive ? 'Join Live' : 'Join'}
+                {isLive ? t('meetings.joinLive') : t('meetings.join')}
               </Text>
             </TouchableOpacity>
+
+            {SHOW_YOUTUBE_LIVE && item.youtubeLive?.watchUrl ? (
+              <TouchableOpacity
+                style={[
+                  styles.gradJoinBtn,
+                  {
+                    backgroundColor: item.youtubeLive.status === 'live' ? '#DC2626' : 'rgba(255, 255, 255, 0.2)',
+                    borderColor: '#DC2626',
+                  }
+                ]}
+                onPress={() => Linking.openURL(item.youtubeLive.watchUrl)}
+              >
+                <Radio size={14} color="#FFFFFF" />
+                <Text style={[styles.gradJoinText, { color: '#FFFFFF', marginLeft: 4 }]}>
+                  {item.youtubeLive.status === 'live' ? 'Watch on YouTube' : 'YouTube Live'}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
 
             {isCompleted ? null : (
               <TouchableOpacity
                 style={styles.gradLeaveBtn}
                 onPress={() => navigation.navigate('OnlineMeetingDetail', { meeting: item })}
               >
-                <Text style={styles.gradLeaveText}>Details</Text>
+                <Text style={styles.gradLeaveText}>{t('meetings.details')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -223,9 +286,9 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
   };
 
   const tabs: { key: 'live' | 'upcoming' | 'completed'; label: string; count: number; color: string }[] = [
-    { key: 'live', label: 'Live', count: liveMeetings.length, color: LIVE_COLOR },
-    { key: 'upcoming', label: 'Upcoming', count: upcomingMeetings.length, color: BRAND },
-    { key: 'completed', label: 'Completed', count: pastMeetings.length, color: '#64748b' },
+    { key: 'live', label: t('meetings.tabs.live'), count: liveMeetings.length, color: LIVE_COLOR },
+    { key: 'upcoming', label: t('meetings.tabs.upcoming'), count: upcomingMeetings.length, color: BRAND },
+    { key: 'completed', label: t('meetings.tabs.completed'), count: pastMeetings.length, color: '#64748b' },
   ];
 
   return (
@@ -233,15 +296,22 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor={BRAND} />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <ChevronLeft size={22} color="#fff" />
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Online Bible Classes</Text>
-        <TouchableOpacity style={styles.themeToggle} onPress={toggleTheme}>
-          <Text style={styles.themeToggleText}>{isDark ? '🌙' : '☀️'}</Text>
-        </TouchableOpacity>
-      </View>
+        
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+          <View style={styles.headerCenter} pointerEvents="box-none">
+            <Text style={styles.headerTitle}>{t('meetings.title')}</Text>
+          </View>
+        </View>
+      </LinearGradient>
 
       {/* Tab bar — pill style */}
       <View style={[styles.tabBar, { backgroundColor: cardBg, borderColor: border }]}>
@@ -268,13 +338,19 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
       ) : displayList.length === 0 ? (
         <View style={styles.center}>
           <Video size={52} color={textMuted} style={{ opacity: 0.35, marginBottom: 16 }} />
-          <Text style={[styles.emptyTitle, { color: textPrimary }]}>No {activeTab} meetings</Text>
+          <Text style={[styles.emptyTitle, { color: textPrimary }]}>
+            {activeTab === 'live'
+              ? t('meetings.empty.noLiveTitle')
+              : activeTab === 'upcoming'
+              ? t('meetings.empty.noUpcomingTitle')
+              : t('meetings.empty.noCompletedTitle')}
+          </Text>
           <Text style={[styles.emptySubtitle, { color: textMuted }]}>
             {activeTab === 'live'
-              ? 'No meetings are currently live.'
+              ? t('meetings.empty.noLiveSub')
               : activeTab === 'upcoming'
-              ? 'No upcoming meetings scheduled yet.'
-              : 'No completed meetings to show.'}
+              ? t('meetings.empty.noUpcomingSub')
+              : t('meetings.empty.noCompletedSub')}
           </Text>
         </View>
       ) : (
@@ -295,31 +371,19 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
 
   header: {
-    backgroundColor: BRAND,
     paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    paddingBottom: 30,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '800', letterSpacing: 0.2 },
-  themeToggle: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-  },
-  themeToggleText: { fontSize: 14 },
+  headerCenter: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 28 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8, marginBottom: 4 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800' },
 
   // Tab bar — pill style like screenshot
   tabBar: {

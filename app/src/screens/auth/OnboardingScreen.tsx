@@ -16,15 +16,16 @@ import {
 import { firestore, FieldValue } from '../../services/firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { User, Globe, MapPin, ArrowRight, ShieldCheck } from 'lucide-react-native';
 
 const { width } = Dimensions.get('window');
 
 export default function OnboardingScreen() {
   const { user } = useAuth();
+  const { language, setLanguage, languages, t } = useLanguage();
   const [fullName, setFullName] = useState('');
   const [cellGroup, setCellGroup] = useState('');
-  const [language, setLanguage] = useState<'English' | 'Telugu'>('English');
   const [loading, setLoading] = useState(false);
 
   const handleCompleteRegistration = async () => {
@@ -46,7 +47,7 @@ export default function OnboardingScreen() {
         onboardingComplete: true,
         createdAt: FieldValue.serverTimestamp(),
       });
-      await AsyncStorage.setItem('user_language', language);
+      await AsyncStorage.setItem('@user_language', language);
     } catch (error) {
       console.error('Onboarding Save Error:', error);
       Alert.alert('Error', 'Failed to save your profile.');
@@ -61,8 +62,8 @@ export default function OnboardingScreen() {
       
       {/* ── Immersive Header ── */}
       <View style={styles.header}>
-        <Text style={styles.title}>Welcome Home</Text>
-        <Text style={styles.subtitle}>Let's personalize your spiritual journey.</Text>
+        <Text style={styles.title}>{t('auth.welcomeHome')}</Text>
+        <Text style={styles.subtitle}>{t('auth.welcomeSubtitle')}</Text>
       </View>
 
       <KeyboardAvoidingView 
@@ -73,31 +74,35 @@ export default function OnboardingScreen() {
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             
             {/* Language Selection */}
-            <Text style={styles.label}>PREFREED LANGUAGE · భాష</Text>
-            <View style={styles.langRow}>
-              <TouchableOpacity 
-                style={[styles.langBtn, language === 'English' && styles.langBtnActive]}
-                onPress={() => setLanguage('English')}
-              >
-                <Globe size={14} color={language === 'English' ? '#fff' : '#1a2d5a'} />
-                <Text style={[styles.langTxt, language === 'English' && styles.langTxtActive]}>English</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.langBtn, language === 'Telugu' && styles.langBtnActive]}
-                onPress={() => setLanguage('Telugu')}
-              >
-                <Text style={[styles.langTxt, language === 'Telugu' && styles.langTxtActive]}>తెలుగు</Text>
-              </TouchableOpacity>
+            <Text style={styles.label}>{t('auth.preferredLanguage')}</Text>
+            <View style={styles.langGrid}>
+              {languages.map((item) => {
+                const isActive = language === item.code;
+                return (
+                  <TouchableOpacity 
+                    key={item.code}
+                    style={[styles.langBtn, isActive && styles.langBtnActive]}
+                    onPress={() => setLanguage(item.code)}
+                  >
+                    <Text style={[styles.langTxt, isActive && styles.langTxtActive]}>
+                      {item.nativeName}
+                    </Text>
+                    <Text style={[styles.langSubTxt, isActive && styles.langSubTxtActive]}>
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Profile Info */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>FULL NAME</Text>
+              <Text style={styles.label}>{t('auth.fullName')}</Text>
               <View style={styles.inputBox}>
                 <User size={18} color="#9CA3AF" />
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. John Doe"
+                  placeholder={t('auth.fullNamePlaceholder')}
                   value={fullName}
                   onChangeText={setFullName}
                   placeholderTextColor="#9CA3AF"
@@ -106,12 +111,12 @@ export default function OnboardingScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>CELL GROUP / LOCALITY</Text>
+              <Text style={styles.label}>{t('auth.cellGroup')}</Text>
               <View style={styles.inputBox}>
                 <MapPin size={18} color="#9CA3AF" />
                 <TextInput
                   style={styles.input}
-                  placeholder="e.g. Guntur East"
+                  placeholder={t('auth.cellGroupPlaceholder')}
                   value={cellGroup}
                   onChangeText={setCellGroup}
                   placeholderTextColor="#9CA3AF"
@@ -133,7 +138,7 @@ export default function OnboardingScreen() {
                 <ActivityIndicator color="#fff" />
               ) : (
                 <View style={styles.btnContent}>
-                  <Text style={styles.primaryBtnTxt}>Start My Journey</Text>
+                  <Text style={styles.primaryBtnTxt}>{t('auth.completeRegistration')}</Text>
                   <ArrowRight size={20} color="#fff" />
                 </View>
               )}
@@ -157,11 +162,13 @@ const styles = StyleSheet.create({
 
   label: { fontSize: 10, fontWeight: '800', color: '#1a2d5a', letterSpacing: 1, marginBottom: 15 },
   
-  langRow: { flexDirection: 'row', gap: 12, marginBottom: 30 },
-  langBtn: { flex: 1, height: 50, borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#f9fafb' },
-  langBtnActive: { backgroundColor: '#fbbf24', borderColor: '#fbbf24' },
-  langTxt: { fontSize: 14, fontWeight: '700', color: '#1a2d5a' },
-  langTxtActive: { color: '#fff' },
+  langGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 25 },
+  langBtn: { width: '31%', paddingVertical: 10, borderRadius: 12, borderWidth: 1, borderColor: '#e5e7eb', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb' },
+  langBtnActive: { backgroundColor: '#1a2d5a', borderColor: '#1a2d5a' },
+  langTxt: { fontSize: 13, fontWeight: '700', color: '#1a2d5a' },
+  langTxtActive: { color: '#fbbf24' },
+  langSubTxt: { fontSize: 10, fontWeight: '500', color: '#6b7280', marginTop: 2 },
+  langSubTxtActive: { color: '#ffffff' },
 
   inputGroup: { marginBottom: 20 },
   inputBox: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', borderRadius: 12, paddingHorizontal: 15, height: 56 },

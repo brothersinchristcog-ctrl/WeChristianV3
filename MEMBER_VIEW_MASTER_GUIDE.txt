@@ -1,0 +1,534 @@
+================================================================================
+          WECHRISTIAN CONGREGATION APP - MEMBER VIEW MASTER MANUAL
+================================================================================
+File Reference   : MEMBER_VIEW_MASTER_GUIDE.txt
+Target Platform  : WeChristian React Native / Expo Mobile Application
+Core Navigators  : RootNavigator.tsx (TabNavigator, Stack.Navigator)
+Primary Audience : Congregation Members, Visitors, Pastors & Media Teams
+Language Support : English, Telugu (తెలుగు), Hindi, Tamil, Kannada, Malayalam
+Visual Aesthetics: Deep Navy (#1a2d5a), Warm Gold (#C9A84C), Royal Teal (#0F766E)
+================================================================================
+
+[TABLE OF CONTENTS]
+1. Architectural Philosophy & The Member Experience
+2. Onboarding, Church Joining & Biometric Security
+   2.1 App Launch & Splash Screen Animation
+   2.2 Church Code Discovery & Multi-Campus Joining
+   2.3 Biometric App Lock (Fingerprint / Face ID)
+   2.4 Guest Mode vs. Authenticated Covenant Member
+3. Dynamic Floating Pill Bottom Tab Bar (5 Core Hubs)
+   3.1 Floating Pill Design & Dynamic Color Morphing
+   3.2 Dynamic Notification Badges & Pulsing Intercession Ring
+4. TAB 1: HOME SCREEN (The Church Living Room)
+   4.1 Hero Header, Dynamic Greeting & Hexagon Date Badge
+   4.2 Scrolling Announcement Marquee (EventMarquee)
+   4.3 Daily Promise Hero Carousel (Dual Mode Architecture)
+       - Mode A: WeChristian 4-Time Daily Verses Auto-Carousel
+       - Mode B: Church Custom Promise & HD Poster Thumbnail
+       - Slide X: Worship Service Timings Card
+   4.4 Quick Access Action Grid (13 Ministry Power Tools)
+   4.5 The Arched Navigation Gateway (About Us, Gallery, Contact Us)
+   4.6 Congregational Celebrations & Confetti Banner
+   4.7 Upcoming Events Card & One-Tap RSVP
+   4.8 Latest Sermon Video Stream Player
+5. TAB 2: DAILY PROMISE & SCRIPTURE ARCHIVE
+   5.1 Four Daily Prayer Watches (Morning, Noon, Evening, Night)
+   5.2 Telugu & English Dual Scripture Exegesis
+   5.3 Audio Recitation & Holy Spirit Meditation Player
+   5.4 Fullscreen ViewShot Poster Generator & WhatsApp Studio
+   5.5 Promise Calendar Archive & Search History
+6. TAB 3: SERMONS & VIDEO SANCTUARY
+   6.1 Video Library & Embedded YouTube Player
+   6.2 Topic & Preacher Category Filtration
+   6.3 Audio Sermons & Mobile Background Podcast Mode
+   6.4 In-App Sermon Note-Taking Companion
+7. TAB 4: PRAYER WALL & INTERCESSION HUB
+   7.1 Public Community Prayer Requests Wall
+   7.2 Live "I Prayed for You" Real-Time Counter
+   7.3 "Submit Prayer Request" Modal (Private Pastor vs Public Wall)
+   7.4 Answered Prayers & Praise Reports Section
+8. TAB 5: MEMBER PROFILE, FAMILY & SETTINGS
+   8.1 Member Avatar, Digital Identity & Household Directory
+   8.2 My Giving History & Downloadable Tax Invoices
+   8.3 Push Notification Preference Center
+   8.4 Multi-Language Engine (English / Telugu Localization)
+   8.5 "Switch to Admin View" Draggable Gold Pill
+   8.6 Secure Sign Out & Session Teardown
+9. DEEP-DIVE DEDICATED MEMBER MODULES
+   9.1 Holy Bible Module (Offline Reader, Versions, Search, Plans)
+   9.2 Digital Attendance Pass & QR Scanner
+   9.3 Online Giving & Tithe Portal (Razorpay, UPI & Banks)
+   9.4 Worship Hymnal (A-Z Songs, Chords & Telugu Lyrics)
+   9.5 Online Meetings Room (Zoom & Google Meet 1-Tap)
+   9.6 Live Celebrations Congratulatory Chatroom
+   9.7 Personal Spiritual Journal & Sermon Notes Notebook
+   9.8 Church Photo Gallery & Event Album Lightbox
+   9.9 Updates & Pastoral Push Announcements
+10. Subscription Expiration & Church Renewal Safeguards
+11. Member Troubleshooting & Frequently Asked Questions
+
+================================================================================
+1. ARCHITECTURAL PHILOSOPHY & THE MEMBER EXPERIENCE
+================================================================================
+While the WeChristian Admin Console is focused on governance, database entries,
+financial audits, and moderation, the Member View is designed as an intimate,
+spiritually inspiring digital sanctuary.
+
+Every screen in the Member View is crafted to eliminate friction between a
+believer and their local church:
+  - Zero Clutter: Clean, distraction-free typography utilizing Georgia/Serif
+    for scriptures and crisp Sans-Serif for functional controls.
+  - Native Bilingual Design: Complete first-class support for Telugu and English
+    across verses, hymnals, sermon titles, and navigation labels.
+  - Real-Time Pastoral Connection: Direct bridges for prayer, WhatsApp
+    outreach, online worship services, and attendance check-ins.
+  - Offline Resilience: Built-in local caching ensuring the Bible, daily
+    promises, and saved notes remain fully accessible even without internet.
+
+================================================================================
+2. ONBOARDING, CHURCH JOINING & BIOMETRIC SECURITY
+================================================================================
+
+2.1 APP LAUNCH & SPLASH SCREEN ANIMATION
+  - Component: `SplashScreen.tsx`
+  - When the app is launched, a 2.5-second brand splash sequence activates.
+  - Reads stored credentials from `@react-native-async-storage/async-storage`
+    and Firebase Auth state.
+  - Proactive Self-Healing: If a member signs in with a phone number that exists
+    in the church's master member roster but lacks a local profile document,
+    `RootNavigator` queries `FirestoreService.checkContactExists` and
+    automatically repairs the profile document on the fly without user disruption.
+
+2.2 CHURCH CODE DISCOVERY & MULTI-CAMPUS JOINING
+  - Component: `OnboardingScreen.tsx`
+  - First-time visitors and new believers are prompted to enter their church's
+    unique alphanumeric Join Code (e.g. `COGH001`, `BICGUNTUR`).
+  - Validation: Queries Firestore collection `churches` where
+    `churchCode == enteredCode.toUpperCase()`.
+  - Once joined:
+    * The member is instantly bound to that specific local congregation.
+    * The app downloads the church's custom brand colors, logo, and active features.
+    * In multi-campus setups, the member is seamlessly routed to their regional
+      branch.
+
+2.3 BIOMETRIC APP LOCK (FINGERPRINT / FACE ID)
+  - Service: `SecurityService.ts`
+  - Members can activate Biometric Security inside Profile Settings.
+  - AppState Awareness:
+    * When the WeChristian app is minimized or backgrounded and returned to the
+      foreground, the app instantly engages the lock screen (`isLocked: true`).
+    * Displays the gold shield lock prompt with church name branding.
+    * Invokes `expo-local-authentication` (TouchID, FaceID, or Android BiometricPrompt).
+    * Upon successful verification, the lock state unlocks smoothly.
+
+2.4 GUEST MODE VS. AUTHENTICATED COVENANT MEMBER
+  - The app permits seekers and visitors to explore in "Guest Mode" without
+    entering a phone number.
+  - Guest Permissions:
+    * Can view Home, Daily Verses, Church Bio, Contact Us, and public Sermons.
+  - Covenant Guard (`handleGuestProtectedNavigation`):
+    * Tapping interactive community modules (Giving, Prayer Wall, Member Directory,
+      Attendance, Notes, Songs) triggers an elegant prompt:
+      "Sign In Required: Please sign in with your phone number to access community features."
+
+================================================================================
+3. DYNAMIC FLOATING PILL BOTTOM TAB BAR (5 CORE HUBS)
+================================================================================
+
+3.1 FLOATING PILL DESIGN & DYNAMIC COLOR MORPHING
+  - Component: `CustomTabBar` in `RootNavigator.tsx`
+  - Position: Elevated floating bar positioned 50px (Android) / 65px (iOS) above
+    the bottom edge, with 40px border radius, high-elevation drop shadow, and
+    horizontal padding.
+  - Dynamic Color Morphing:
+    The background color of the pill bar dynamically morphs based on which tab
+    is currently active to reflect the mood of that ministry hub:
+    * Tab 1: Home     -> Deep Navy (`#1a2d5a`)
+    * Tab 2: Promise  -> Royal Teal (`#0F766E`)
+    * Tab 3: Sermons  -> Sunset Orange (`#D8632E`)
+    * Tab 4: Prayer   -> Sky Blue (`#0284C7`)
+    * Tab 5: Profile  -> Slate Charcoal (`#27272A`)
+  - Active Tab Animation:
+    The focused tab transforms into a crisp white circular badge (`activeCircle`),
+    popping the icon forward with high-contrast colored iconography and bold label.
+
+3.2 DYNAMIC NOTIFICATION BADGES & PULSING INTERCESSION RING
+  - Monitored Collection: `churches/{churchId}/prayerRequests`
+    (where `isPublic: true` and `isAnswered: true`).
+  - When new answered prayers or community requests arrive that the member has
+    not yet seen:
+    * An animated pulse ring (`styles.pulseRing`) pulses behind the Heart icon.
+    * A vibrant red count pill displays the number of unseen prayer requests.
+    * Tapping the Prayer tab marks prayers as read in `@LastSeenPrayerCount` and
+      navigates directly to the public request stream.
+
+================================================================================
+4. TAB 1: HOME SCREEN (THE CHURCH LIVING ROOM)
+================================================================================
+Component: `HomeScreen.tsx` (147 KB flagship screen)
+
+4.1 HERO HEADER, DYNAMIC GREETING & HEXAGON DATE BADGE
+  - Header Gradient: Deep navy to midnight blue gradient header.
+  - Left Section:
+    * Church Logo: Circular 46px emblem with white border and drop shadow.
+    * Church Title: Displays `activeChurch.name` with verified shield badge.
+  - Right Controls:
+    * Language Switcher: 1-Tap toggle between English ("EN") and Telugu ("తె").
+    * Notification Bell: Triggers the church announcements drawer (`UpdatesScreen`).
+  - Dynamic Time Greeting:
+    * Evaluates device hour: "Good Morning" (5 AM - 12 PM), "Good Afternoon"
+      (12 PM - 5 PM), or "Good Evening" (5 PM - 5 AM).
+    * Rendered via SVG Linear Gradient in elegant Snell Roundhand / cursive script.
+    * Member Name: "John Doe" or "Pastor K. Samuel".
+  - Hexagon Date Badge (`HexagonDate.tsx`):
+    * Custom geometric SVG hexagon displaying the current calendar day number
+      and 3-letter month abbreviation.
+  - Animated Curved Gradient Glow Line:
+    * A curved needle-tapered SVG border line with a continuous sweeping light
+      shimmer animation separating the hero header from the scrollable canvas.
+
+4.2 SCROLLING ANNOUNCEMENT MARQUEE (`EventMarquee`)
+  - Positioned directly below the header.
+  - If church events or special meetings are scheduled for today, an animated
+    ticker scrolls across the screen with an event calendar badge.
+  - Tapping the marquee opens full event logistics in `EventDetailsScreen`.
+
+4.3 DAILY PROMISE HERO CAROUSEL (DUAL-MODE ARCHITECTURE)
+  Managed via the `useWeChristianDailyPromise` church setting:
+
+  MODE A: TIME-BASED 4 DAILY VERSES CAROUSEL (Toggle ON)
+    - Auto-Scrolling Carousel: Automatically cycles through the 4 spiritual
+      watches of the day:
+      1. Morning Watch (6 AM - 12 PM)   -> Golden sunrise gradient
+      2. Afternoon Watch (12 PM - 5 PM) -> Azure midday sky gradient
+      3. Evening Watch (5 PM - 9 PM)    -> Crimson sunset gradient
+      4. Night Watch (9 PM - 6 AM)      -> Deep midnight navy gradient
+    - Card Contents:
+      * Watch Period Badge with custom icon (Sun, Sunset, Moon).
+      * Primary Verse (Telugu script or selected language).
+      * Secondary Verse (English cross-reference).
+      * Scripture Reference (e.g. "కీర్తనలు 23:1 — Psalms 23:1").
+      * `[Share]` Button: Opens native share sheet with formatted verse text.
+      * `[Save Card]` Button: Renders an instant high-resolution graphic poster
+        of the verse and saves it to the member's photo gallery.
+    - 1-Tap Fullscreen View: Tapping the card opens `VerseOfTheDayScreen`.
+
+  MODE B: CHURCH CUSTOM PROMISE & HD POSTER THUMBNAIL (Toggle OFF)
+    - Slide 1 (Scripture Text): Displays the local pastor's custom daily promise
+      in English and Telugu with scripture reference.
+      * `[Share]` Button.
+      * `[Watch Video]` Button: Directly launches the pastor's video explanation.
+    - Slide 2 (Custom Graphic Poster): Displays the high-resolution artwork or
+      AI thumbnail generated by the church media team.
+      * Pinch-to-zoom and full image inspection.
+      * `[Share Image]` button.
+
+  SLIDE X: WORSHIP SERVICE TIMINGS SLIDE
+    - If the church has configured service timings in settings, an additional
+      slide appears in the carousel.
+    - Displays Sunday service times, youth meetings, and mid-week prayer timings
+      so members never miss a gathering.
+
+4.4 QUICK ACCESS ACTION GRID (13 MINISTRY POWER TOOLS)
+  A responsive 3-column or 4-column hybrid grid providing 1-tap entry to all
+  spiritual functions:
+
+  1. 🎙️ Sermons (`#1a2d5a`): Video & audio messages library.
+  2. ❤️ Prayer (`#c0392b`): Prayer wall & urgent intercession.
+  3. 📅 Events (`#0F766E`): Church calendar, conventions, youth camps.
+  4. ✨ Daily Verse (`#1e1b4b`): Four daily scripture watches.
+  5. 💰 Giving (`#f0a500`): Tithes, offerings, building fund via UPI/Razorpay.
+  6. 📖 Holy Bible (`#7C3AED`): Full offline Telugu & English scriptures.
+  7. 🎵 Songs (`#0369a1`): A-Z worship hymnal with chord notations.
+  8. 📝 Sermon Notes (`#854D0E`): Personal spiritual journal & notebook.
+  9. 🏆 Bible Plans (`#374151`): Guided 30-day, 90-day & 1-year reading plans.
+  10. 🔔 Updates (`#0284c7`): Church news bulletins & pastoral letters.
+  11. ▶️ YouTube Live (`#ef4444`): 1-Tap launch into church live broadcast.
+  12. 👥 Members (`#db2777`): Verified member and household directory.
+  13. 📹 Online Meetings (`#3B82F6`): Google Meet & Zoom prayer rooms.
+  14. 🎫 Attendance Pill (`#059669`): Digital QR pass and service check-in.
+
+4.5 THE ARCHED NAVIGATION GATEWAY
+  - Features an elegant dashed SVG arch curve (`M -20 70 Q ...`).
+  - Displays three circular icons:
+    * ⛪ About Us: Church history, senior pastor bio, doctrine & mission.
+    * 📸 Church Gallery: Categorized photo albums of baptism, conventions, retreats.
+    * 📞 Contact Us: Pastoral helpline, Google Map directions, social links.
+
+4.6 CONGREGATIONAL CELEBRATIONS & CONFETTI BANNER
+  - Scans active church member records for today's birthdays & wedding anniversaries.
+  - If members are celebrating:
+    * Renders a festive celebration card with confetti animations.
+    * Displays member photos, names, and milestone years.
+    * `[Send Wishes / Join Chat]`: Launches `LiveCelebrationsChat`, allowing the
+      whole church family to post real-time congratulatory blessings.
+
+4.7 UPCOMING EVENTS CARD & ONE-TAP RSVP
+  - Displays the next major event (e.g. "Annual Spiritual Convention 2026").
+  - Date, time, venue, and speaker highlights.
+  - `[I Am Attending]` Button: Instantly logs member RSVP in Firestore.
+
+4.8 LATEST SERMON VIDEO STREAM PLAYER
+  - Embeds the latest Sunday message with an inline YouTube player thumbnail.
+  - Tapping play launches `SermonVideoScreen` with playback controls and notes.
+
+================================================================================
+5. TAB 2: DAILY PROMISE & SCRIPTURE ARCHIVE
+================================================================================
+Components: `VerseOfTheDayScreen.tsx`, `PromiseArchiveScreen.tsx`
+
+5.1 FOUR DAILY PRAYER WATCHES
+  Believers are nourished throughout the day with 4 dedicated scripture drops:
+  - 🌅 Morning Promise (06:00 AM)  -> Focus: Guidance, protection, daily bread.
+  - ☀️ Midday Strength (12:00 PM)  -> Focus: Perseverance, peace at work.
+  - 🌇 Evening Reflection (05:00 PM)-> Focus: Thanksgiving, family grace.
+  - 🌙 Night Peace (09:00 PM)      -> Focus: Rest, deliverance, sweet sleep.
+
+5.2 TELUGU & ENGLISH DUAL SCRIPTURE EXEGESIS
+  - Every verse is formatted with large, clear font rendering in both Telugu
+    and English.
+  - Includes theological reflection notes explaining how to apply the verse in
+    daily family life.
+
+5.3 AUDIO RECITATION & HOLY SPIRIT MEDITATION PLAYER
+  - Features high-quality audio recitation recorded by native Telugu speakers.
+  - Audio controls: Play, Pause, 10s Rewind, 10s Forward, and Progress Bar.
+  - Plays softly in the background while the believer meditates on the scripture.
+
+5.4 FULLSCREEN VIEWSHOT POSTER GENERATOR & WHATSAPP STUDIO
+  - Powered by `react-native-view-shot` and `expo-sharing`:
+  - With a single tap on `[Share Card]`:
+    1. The screen renders an off-screen, pixel-perfect 1080x1920 poster card
+       with gradient backgrounds, holy cross watermarks, church logo, scripture,
+       and reference.
+    2. Compiles into a PNG image saved in cache.
+    3. Launches WhatsApp directly with the image attached, ready for members to
+       set as their daily WhatsApp Status or share with prayer groups.
+
+5.5 PROMISE CALENDAR ARCHIVE & SEARCH HISTORY
+  - Allows members to browse past promises by calendar month.
+  - Search by keyword (e.g., "Peace", "Healing", "Faith", "సమాధానం").
+
+================================================================================
+6. TAB 3: SERMONS & VIDEO SANCTUARY
+================================================================================
+Components: `SermonsScreen.tsx`, `SermonVideoScreen.tsx`
+
+6.1 VIDEO LIBRARY & EMBEDDED YOUTUBE PLAYER
+  - Displays church sermon archive categorized into:
+    * Sunday Morning Services
+    * Bible Study Expositions
+    * Youth Fellowship Messages
+    * Fasting Prayer Exhortations
+    * Gospel Conventions
+  - Each sermon card displays:
+    * High-resolution video thumbnail.
+    * Sermon Title (Telugu & English).
+    * Preacher Name (e.g. "Senior Pastor David Raju").
+    * Scripture Anchor (e.g. "Romans 8:28-39").
+    * Duration & Date Published.
+
+6.2 EMBEDDED VIDEO PLAYER INTERACTION (`SermonVideoScreen`)
+  - Features an embedded, ad-free video player.
+  - Controls: Fullscreen toggle, playback rate (1x, 1.25x, 1.5x), resolution selector.
+  - Video Notes: Below the video, the pastor's sermon outline and key bible
+    references are displayed.
+  - `[Take Notes]` Button: Slides up a split-screen notepad, allowing members to
+    jot down personal insights while watching the sermon.
+
+================================================================================
+7. TAB 4: PRAYER WALL & INTERCESSION HUB
+================================================================================
+Component: `PrayerWallScreen.tsx`
+
+7.1 PUBLIC COMMUNITY PRAYER REQUESTS WALL
+  - The digital altar where the congregation carries one another's burdens
+    (Galatians 6:2).
+  - Displays approved, moderated prayer requests submitted by church members.
+  - Categories:
+    * 🩺 Healing & Health (స్వస్థత)
+    * 👨‍👩‍👧 Family & Marriage (కుటుంబం)
+    * 💼 Employment & Career (ఉద్యోగం)
+    * ✈️ Travel & Visa (ప్రయాణం)
+    * 🕊️ Spiritual Growth & Deliverance (ఆధ్యాత్మికం)
+    * 🎓 Exams & Education (విద్య)
+
+7.2 LIVE "I PRAYED FOR YOU" REAL-TIME COUNTER
+  - Every prayer card features a prominent heart button with an intercession counter:
+    "🙏 42 Believers Prayed"
+  - When a member reads a request and prays for that family, they tap `[I Prayed]`:
+    * Triggers a subtle tactile haptic vibration.
+    * The counter increments immediately via Firestore atomic transaction
+      (`FieldValue.increment(1)`).
+    * The original requester receives an uplifting push notification:
+      "A church member just prayed for your request!"
+
+7.3 "SUBMIT PRAYER REQUEST" MODAL
+  - Tapping the floating `[+ Request Prayer]` button opens the submission modal:
+    * Text Area: Type details of the prayer need.
+    * Category Dropdown: Select relevant life domain.
+    * Privacy Switch:
+      - Public on Wall: Request is visible to the entire church after admin moderation.
+      - Confidential to Pastor: Request is dispatched exclusively to the senior
+        pastor's private admin console for confidential counseling.
+    * Anonymity Option: "Hide my name (Post as Anonymous)".
+
+7.4 ANSWERED PRAYERS & PRAISE REPORTS
+  - Members can return to their past requests and mark them "Praise God - Answered!".
+  - Moves the card to the "Answered Prayers" tab with a golden checkmark,
+    inspiring greater faith across the congregation.
+
+================================================================================
+8. TAB 5: MEMBER PROFILE, FAMILY & SETTINGS
+================================================================================
+Component: `ProfileScreen.tsx`
+
+8.1 MEMBER AVATAR, DIGITAL IDENTITY & HOUSEHOLD DIRECTORY
+  - Top Card: Displays profile photo, full name, phone number, and join date.
+  - Photo Upload: Tap avatar to pick image from camera or gallery (uploaded to
+    Firebase Storage `users/{uid}/profile.jpg`).
+  - Household Directory: Lists family members (Spouse, Children, Parents) linked
+    under the same family ID.
+
+8.2 MY GIVING HISTORY & DOWNLOADABLE TAX INVOICES
+  - Tapping "Giving History" lists all historical donations made by the member:
+    * Tithes, Sunday Offerings, Thanksgiving, Mission Support.
+    * Payment method (Razorpay, UPI, Cash recorded by admin).
+    * Status: "Verified / Success".
+    * `[Download Receipt]`: Generates an official 80G tax-exempt PDF invoice
+      bearing church registration numbers and treasurer signature.
+
+8.3 PUSH NOTIFICATION PREFERENCE CENTER
+  - Granular notification toggles:
+    * Daily Morning Promise (06:00 AM notification)
+    * New Sermon Published
+    * Upcoming Event Reminders (24h before meeting)
+    * Prayer Wall Intercession Alerts
+    * Sunday Service Live Stream Alert
+
+8.4 MULTI-LANGUAGE ENGINE
+  - 1-Tap Language Selector:
+    * English
+    * Telugu (తెలుగు)
+    * Hindi, Tamil, Kannada, Malayalam
+  - Instantly translates all tabs, buttons, section headers, and system alerts
+    via `LanguageContext`.
+
+8.5 "SWITCH TO ADMIN VIEW" DRAGGABLE GOLD PILL
+  - Visible ONLY if the logged-in member has `userType: 'Admin'` or `'super_admin'`.
+  - Floats discreetly on the screen using `PanResponder` drag physics.
+  - Tapping the pill switches the application context from Member View to
+    `AdminNavigator` in under 100 milliseconds.
+
+8.6 SECURE SIGN OUT & SESSION TEARDOWN
+  - Disconnects Firebase Auth session.
+  - Clears cached biometrics and FCM push notification device tokens.
+  - Safely returns the device to the login phone entry screen.
+
+================================================================================
+9. DEEP-DIVE DEDICATED MEMBER MODULES
+================================================================================
+
+9.1 HOLY BIBLE MODULE
+  - Screens: `BibleScreen`, `BibleReaderScreen`, `BibleChaptersScreen`,
+    `BiblePlansScreen`, `BibleSearchScreen`
+  - Offline Database: Complete Holy Scriptures stored locally in SQLite / JSON.
+  - Testament Switcher: Old Testament (39 Books) & New Testament (27 Books).
+  - Version Selector: 8 English versions (KJV, NKJV, ESV, ASV, WEB, NIRV, YLT, BBE)
+    alongside authentic Telugu Bible text.
+  - Dual Parallel Reading: View Telugu and English verses side-by-side.
+  - Smart Concordance Search: Type any scripture keyword in English or Telugu
+    with Google Transliteration suggestions.
+  - Reading Plans: Structured reading guides with progress completion checkboxes.
+
+9.2 DIGITAL ATTENDANCE PASS & QR SCANNER
+  - Component: `AttendanceScreen.tsx`
+  - Member QR Code: Generates a personalized QR code embedding member ID,
+    church ID, and timestamp hash.
+  - Service Check-in: Ushers scan the member's QR code at church doors, or
+    members scan the sanctuary's kiosk QR code to record Sunday attendance.
+  - Attendance Streak Gauge: Visual SVG circular progress ring showing annual
+    and monthly attendance percentage.
+
+9.3 ONLINE GIVING & TITHE PORTAL
+  - Component: `GivingScreen.tsx`
+  - 1-Tap Giving Options:
+    1. Razorpay Gateway: Credit cards, debit cards, net banking.
+    2. UPI App Chooser: Directly opens Google Pay, PhonePe, or Paytm with
+       pre-populated church VPA and donation amount.
+    3. Direct Bank Wire: Copy account number, IFSC code, and branch details
+       with 1-tap clipboard buttons.
+  - Cause Selection: Tithe, Mission Support, Building Fund, Sunday School.
+
+9.4 WORSHIP HYMNAL (A-Z SONGS & CHORDS)
+  - Component: `SongsScreen.tsx`
+  - Complete digital church hymn book.
+  - A-Z Alphabetical Index & Telugu numerical index.
+  - Musical Key & Chords notation (e.g., "Key: D Major | 4/4 Beat").
+  - Full stanza-by-stanza Telugu lyrics with chorus highlights.
+
+9.5 ONLINE MEETINGS ROOM
+  - Component: `OnlineMeetingsScreen.tsx`
+  - Hub for cottage prayer meetings, morning devotions, and leadership calls.
+  - Direct 1-tap launch into Zoom or Google Meet without typing meeting IDs.
+  - Displays meeting status: "LIVE NOW", "Starts in 15 Minutes", or "Ended".
+
+9.6 LIVE CELEBRATIONS CONGRATULATORY CHATROOM
+  - Component: `LiveCelebrationsChat.tsx`
+  - Real-time congregational celebration room.
+  - Members send birthday blessings, stickers, and celebratory messages.
+  - Fosters family warmth across all generations.
+
+9.7 PERSONAL SPIRITUAL JOURNAL & SERMON NOTES
+  - Component: `MemberNotesScreen.tsx`
+  - Private digital spiritual notebook.
+  - Tag notes by date, sermon topic, or bible verse.
+  - Cloud-synced to member profile; never lost when changing devices.
+
+9.8 CHURCH PHOTO GALLERY & EVENT ALBUMS
+  - Component: `MemberGalleryNavigator.tsx`
+  - High-resolution photo albums of church milestones.
+  - Full-screen lightbox pinch-to-zoom photo viewer.
+  - 1-Tap image download and social sharing.
+
+9.9 UPDATES & PASTORAL ANNOUNCEMENTS
+  - Component: `UpdatesScreen.tsx`
+  - Official church bulletin board.
+  - Pastoral letters, emergency prayer alerts, and event rescheduling updates.
+
+================================================================================
+10. SUBSCRIPTION EXPIRATION & CHURCH RENEWAL SAFEGUARDS
+================================================================================
+Component: `LockedFeatureScreen.tsx`
+  - If a church's subscription expires, member-facing premium modules
+    (Sermons, Daily Verses, Celebrations) transition to an informative lock screen.
+  - Member Notice:
+    "Your church's premium access has ended. Please reach out to your pastor or
+    church administrator to restore these features."
+  - Administrator Notice:
+    If an administrator visits the screen, a prominent golden button appears:
+    `[Renew Subscription]`, routing directly to the renewal payment gateway.
+
+================================================================================
+11. MEMBER TROUBLESHOOTING & FREQUENTLY ASKED QUESTIONS
+================================================================================
+Q1: How do I change the language from English to Telugu?
+A: Tap the "EN / తె" button in the top right corner of the Home screen, or open
+   the Profile tab and select "Language".
+
+Q2: Can I read the Bible without an internet connection?
+A: Yes! The entire Holy Bible (both Old and New Testaments in Telugu and English)
+   is stored locally on your device for complete offline reading.
+
+Q3: Is my financial donation secure?
+A: Yes. All online donations are processed directly through RBI-compliant,
+   bank-grade 256-bit encrypted Razorpay payment gateways and official NPCI
+   UPI protocols. WeChristian never stores credit card or debit card numbers.
+
+Q4: How do I share today's promise on WhatsApp?
+A: Open the Home screen or Promise tab, and tap the `[Save Card]` or `[Share]`
+   button. The app will generate a custom image card and open WhatsApp
+   automatically.
+================================================================================
+                   END OF MEMBER VIEW MASTER MANUAL
+================================================================================

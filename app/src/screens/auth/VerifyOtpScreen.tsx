@@ -12,7 +12,7 @@ import {
   StatusBar,
   ScrollView
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import auth from '@react-native-firebase/auth';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
@@ -25,6 +25,7 @@ import { ChevronLeft, ShieldCheck, RefreshCw } from 'lucide-react-native';
 type VerifyOtpScreenProps = NativeStackScreenProps<AuthStackParamList, 'VerifyOtp'>;
 
 export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenProps) {
+  const insets = useSafeAreaInsets();
   const { confirmation, phoneNumber, contactId, memberName, formData, isSignUp } = route.params;
   const { member, setMember } = useAuth();
   const { churchId: activeChurchId } = useChurch();
@@ -53,6 +54,19 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
       const { firestore, FieldValue } = require('../../services/firebaseConfig');
 
       if (result?.user && isSignUp && formData && activeChurchId) {
+        setStatus('Checking existing memberships...');
+        
+        // Prevent duplicate active memberships
+        const globalCheck = await FirestoreService.getGlobalUser(result.user.uid);
+        if (globalCheck && globalCheck.primaryChurchId && globalCheck.primaryChurchId !== activeChurchId) {
+          Alert.alert(
+            'Membership Active', 
+            'You are currently an active member of another church. You must leave or be removed from your previous church before joining a new one.'
+          );
+          setLoading(false);
+          return;
+        }
+
         setStatus('Creating your member profile...');
         
         // Global users collection is no longer used. Members are strictly stored in the church.
@@ -93,19 +107,19 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
         }
       }
 
+      let hasLinked = false;
       if (result?.user && contactId && !isSignUp) {
         setStatus('Linking church profile...');
         try {
           await FirestoreService.syncMember(activeChurchId || '', contactId, result.user.uid);
-
-          // Global users collection is no longer used.
+          hasLinked = true;
         } catch (syncError) {
           console.error('❌ Sync failed:', syncError);
         }
       }
 
       // After OTP confirmed: if user has no primaryChurchId yet
-      if (result?.user) {
+      if (result?.user && !hasLinked) {
         const globalUser = await FirestoreService.getGlobalUser(result.user.uid);
         
         if (!globalUser?.primaryChurchId) {
@@ -116,6 +130,12 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
           }
         }
         // If primaryChurchId exists, AuthContext will detect the signed-in user and navigate to Main automatically
+      }
+      
+      if (hasLinked) {
+        // Keep loading state active while AuthContext processes the login
+        setStatus('Loading dashboard...');
+        return; // Return here, finally block will run but that's okay.
       }
     } catch (error: any) {
       console.error('❌ Error:', error.code);
@@ -134,21 +154,27 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
         
       {/* ── Page Header ── */}
-      <View style={styles.pageHeader}>
-        <SafeAreaView style={{ flexDirection: 'row', alignItems: 'center', width: '100%', paddingTop: Platform.OS === 'ios' ? 10 : 30, paddingBottom: 24, paddingHorizontal: 22, justifyContent: 'space-between' }}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <ChevronLeft size={20} color="#aac4e8" />
-            <Text style={styles.backBtnTxt}>Change Number</Text>
+      <View style={[styles.pageHeader, { paddingTop: Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 28) : 20) }]}>
+        <View style={styles.pageHeaderInner}>
+          <TouchableOpacity 
+            style={styles.backBtn} 
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            activeOpacity={0.7}
+          >
+            <ChevronLeft size={24} color="#ffffff" />
           </TouchableOpacity>
+
           <View style={styles.titleCol}>
-            <Text style={styles.pageTitle}>OTP Verification</Text>
-            <Text style={styles.pageSub}>ధృవీకరణ</Text>
+            <Text style={styles.pageTitle} numberOfLines={1}>OTP Verification</Text>
+            <Text style={styles.pageSub} numberOfLines={1}>ధృవీకరణ</Text>
           </View>
-          <View style={{ width: 60 }} />
-        </SafeAreaView>
+
+          <View style={styles.headerRightSpacer} />
+        </View>
       </View>
 
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingBottom: Math.max(insets.bottom, 16) }]}>
 
         <ScrollView 
           showsVerticalScrollIndicator={false} 
@@ -209,7 +235,7 @@ export default function VerifyOtpScreen({ route, navigation }: VerifyOtpScreenPr
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -228,14 +254,50 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
     elevation: 8,
-    marginBottom: 10,
     zIndex: 10,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, minWidth: 60 },
-  backBtnTxt: { color: '#aac4e8', fontSize: 12, fontWeight: '500' },
-  titleCol: { flex: 1, alignItems: 'center' },
-  pageTitle: { color: '#fff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
-  pageSub: { color: '#aac4e8', fontSize: 11, marginTop: 2, fontWeight: '500' },
+  pageHeaderInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingTop: 8,
+    paddingBottom: 20,
+    paddingHorizontal: 16,
+    minHeight: 56,
+  },
+  backBtn: { 
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.12)',
+    alignItems: 'center', 
+    justifyContent: 'center',
+  },
+  headerRightSpacer: {
+    width: 40,
+  },
+  titleCol: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  pageTitle: { 
+    color: '#fff', 
+    fontSize: 20, 
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', 
+    fontWeight: '700', 
+    letterSpacing: -0.4, 
+    textAlign: 'center' 
+  },
+  pageSub: { 
+    color: '#aac4e8', 
+    fontSize: 12, 
+    marginTop: 2, 
+    fontWeight: '500', 
+    textAlign: 'center' 
+  },
 
   content: { width: '100%', paddingHorizontal: 25, paddingTop: 40, alignItems: 'center', paddingBottom: 40 },
   scrollContent: { flexGrow: 1 },

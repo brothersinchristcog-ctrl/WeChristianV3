@@ -1,0 +1,77 @@
+=============================================================================================================================
+                     WECHRISTIAN - COMPLETE HOW-TO GUIDE: SERMON NOTES & NOTEPAD (MemberNotesScreen.tsx)
+=============================================================================================================================
+
+
+OVERVIEW: THE IN-APP NOTEPAD & SERMON NOTES SYSTEM
+==================================================
+The Sermon Notes / Notepad feature in WeChristian provides church members and pastors with a dedicated, personal, and offline-ready digital notebook directly inside the app. 
+
+Whether listening to Sunday sermons, attending mid-week Bible studies, or having personal morning devotions, believers can record revelations, sermon outlines, and scripture references in one place.
+
+
+WHERE TO FIND NOTEPAD IN THE APP
+================================
+1. Home Screen:
+   - Tap the "Sermon Notes" icon (Pink card with FileText icon) in the main grid.
+2. From the Bible Reader:
+   - When reading any Bible chapter, tap the notebook icon to immediately record personal study thoughts.
+3. From Bible Search:
+   - When searching scripture verses, tap "Save to Notes" to automatically transfer matching verses into a new sermon note!
+
+
+
+CORE FEATURES & FUNCTIONALITY
+=============================
+
+1. Creating a New Note
+----------------------
+- Tap the floating "+" button or "+ New Note" in the header.
+- Enter a Note Title (e.g., "Sunday Sermon: Walking in Faith - Pastor Daniel", "Youth Revival Day 2 Outline", "Hebrews 11 Study").
+- Type or paste your notes in the spacious multi-line notepad text area.
+- Automatic Timestamping: Saves the exact date and time (e.g., "Sep 16, 2026, 11:30 AM").
+- Tap "Save" to record the note.
+
+
+2. Seamless Bible Integration (Auto Pre-fill)
+---------------------------------------------
+- When you discover inspiring verses in Bible Search or Bible Reader, you can tap "Copy to Notes".
+- The Notepad automatically opens with:
+  * Title: Pre-filled with today's date or the Bible topic.
+  * Content: Pre-filled with the exact Scripture verses and references.
+- You can immediately continue typing your personal insights right below the scripture!
+
+
+3. Offline Storage & Privacy
+----------------------------
+- 100% Offline Accessible: Notes are stored locally on the user's device using high-speed encrypted AsyncStorage (`@SermonPersonalNotes`).
+- No Internet Needed: Believers can take notes inside basements, prayer halls, or remote convention tents without any mobile data or Wi-Fi.
+- Personal Privacy: Notes belong exclusively to that member's device.
+
+
+4. Reading & Editing Modes
+--------------------------
+- Safe Read-Only View: Tapping any note card opens it in clean reading mode to prevent accidental keyboard typing while reading.
+- One-Tap Edit: Tap the "Edit" button (pencil icon) to modify your notes, add further points, or update the sermon outline.
+
+
+5. Multi-Select & Merge Notes (Combine Feature)
+-----------------------------------------------
+- In-App Multi-Select: Tap the multi-select icon in the top header to enter selection mode.
+- Checkboxes appear beside every sermon note.
+- Select 2 or more related notes (e.g., "Part 1: Romans 8" and "Part 2: Romans 8").
+- Tap "Merge Notes": Combines both notes into a single, organized master study document with a custom title!
+
+
+6. Live Search Bar
+------------------
+- Type any keyword, pastor's name, sermon title, or scripture reference in the search bar.
+- The note list filters instantly in real time across both titles and body text.
+
+
+7. Deleting & Managing Notes
+----------------------------
+- Delete with Confirmation: Swipe or tap the trash icon. A confirmation alert ensures notes are never deleted by accident.
+- Green Success Alert: Confirmation animation confirms when notes are saved, merged, or deleted.
+
+=============================================================================================================================

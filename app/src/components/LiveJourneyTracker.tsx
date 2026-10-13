@@ -32,7 +32,7 @@ interface LiveJourneyTrackerProps {
   isDisabled?: boolean;
 }
 
-type TravelStatus = 'Traveling' | 'Stopped' | 'Arrived';
+type TravelStatus = 'Traveling' | 'Stopped' | 'Arrived' | 'Paused';
 
 const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
   home,
@@ -57,9 +57,25 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
   const [status, setStatus] = useState<TravelStatus>('Traveling');
   const [lastMovedAt, setLastMovedAt] = useState<number>(Date.now());
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   
   // Animation for the car
   const carProgress = useRef(new Animated.Value(0)).current;
+  const blinkAnim = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (isTracking && !isPaused && status === 'Traveling') {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(blinkAnim, { toValue: 0.3, duration: 600, useNativeDriver: true }),
+          Animated.timing(blinkAnim, { toValue: 1, duration: 600, useNativeDriver: true })
+        ])
+      ).start();
+    } else {
+      blinkAnim.stopAnimation();
+      blinkAnim.setValue(1);
+    }
+  }, [isTracking, isPaused, status]);
 
   // Initial fetch for Total Distance (Home to Destination)
   useEffect(() => {
@@ -119,7 +135,7 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
     if (activeHome.lat && destination.lat) {
       fetchInitialDistance();
     }
-  }, [activeHome, destination, initialDistanceKm, initialDurationMins, altInitialDistanceKm, altInitialDurationMins, selectedMode]);
+  }, [activeHome.lat, activeHome.lng, destination.lat, destination.lng, initialDistanceKm, initialDurationMins, altInitialDistanceKm, altInitialDurationMins, selectedMode]);
 
   const [isSimulating, setIsSimulating] = useState(false);
 
@@ -151,6 +167,7 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
     if (grantedLocation) {
       setHasPermission(true);
       setIsTracking(true);
+      setIsPaused(false);
       setStatus('Traveling');
       setLastMovedAt(Date.now());
     } else {
@@ -159,6 +176,7 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
       setHasPermission(false);
       setIsSimulating(true);
       setIsTracking(true);
+      setIsPaused(false);
       setStatus('Traveling');
       setLastMovedAt(Date.now());
       
@@ -167,9 +185,21 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
     }
   };
 
+  const handlePauseTracking = () => {
+    setIsPaused(true);
+    setStatus('Paused');
+  };
+
+  const handleResumeTracking = () => {
+    setIsPaused(false);
+    setStatus('Traveling');
+    setLastMovedAt(Date.now());
+  };
+
   const handleStopTracking = () => {
     setIsTracking(false);
     setIsSimulating(false);
+    setIsPaused(false);
   };
 
   // The actual location watching OR simulation
@@ -178,10 +208,10 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
     let locationInterval: ReturnType<typeof setInterval> | null = null;
     let simInterval: ReturnType<typeof setInterval> | null = null;
 
-    if (isSimulating && isTracking) {
+    if (isSimulating && isTracking && !isPaused) {
       // SIMULATION MODE
-      let currentLat = activeHome.lat;
-      let currentLng = activeHome.lng;
+      let currentLat = currentLocation?.lat || activeHome.lat;
+      let currentLng = currentLocation?.lng || activeHome.lng;
       const latStep = (destination.lat - activeHome.lat) / 20; // 20 steps to destination
       const lngStep = (destination.lng - activeHome.lng) / 20;
 
@@ -190,14 +220,14 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
         currentLng += lngStep;
         updateJourney(currentLat, currentLng);
       }, 5000); // Move every 5 seconds
-    } else if (isTracking && hasPermission) {
+    } else if (isTracking && hasPermission && !isPaused) {
       // Fetch instant location on start
       Geolocation.getCurrentPosition(
         (info) => {
           updateJourney(info.coords.latitude, info.coords.longitude);
         },
         (error) => console.warn('Instant location error:', error),
-        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+        { enableHighAccuracy: false, timeout: 30000, maximumAge: 10000 }
       );
 
       // REAL GPS TRACKING (updates on movement)
@@ -209,12 +239,14 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
         {
           enableHighAccuracy: true,
           distanceFilter: 10, // update every 10 meters instead of 50 for more responsiveness
+          timeout: 30000,
+          maximumAge: 10000
         }
       );
 
       locationInterval = setInterval(() => {
         const now = Date.now();
-        if (now - lastMovedAt > 5 * 60 * 1000 && status !== 'Arrived') { // 5 minutes without significant move
+        if (now - lastMovedAt > 5 * 60 * 1000 && status !== 'Arrived' && !isPaused) { // 5 minutes without significant move
           setStatus('Stopped');
         }
       }, 60000);
@@ -225,7 +257,7 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
       if (locationInterval) clearInterval(locationInterval);
       if (simInterval) clearInterval(simInterval);
     };
-  }, [isTracking, hasPermission, isSimulating, lastMovedAt, status, activeHome, destination]);
+  }, [isTracking, hasPermission, isSimulating, isPaused, lastMovedAt, status, activeHome.lat, activeHome.lng, destination.lat, destination.lng]);
 
   const updateJourney = async (lat: number, lng: number) => {
     setCurrentLocation({ lat, lng });
@@ -300,6 +332,10 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
       bgColor = '#FEF7E0'; // light yellow
       textColor = '#B06000'; // dark yellow
       icon = 'alert-circle';
+    } else if (status === 'Paused') {
+      bgColor = '#FFF3E0'; // light orange
+      textColor = '#E65100'; // dark orange
+      icon = 'pause-circle';
     } else if (status === 'Arrived') {
       bgColor = '#E8EAF6'; // light blue
       textColor = '#283593'; // dark blue
@@ -307,10 +343,10 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
     }
 
     return (
-      <View style={[styles.statusBadge, { backgroundColor: bgColor }]}>
+      <Animated.View style={[styles.statusBadge, { backgroundColor: bgColor }, status === 'Traveling' ? { opacity: blinkAnim } : {}]}>
         <Ionicons name={icon as any} size={14} color={textColor} />
         <Text style={[styles.statusText, { color: textColor }]}>{status}</Text>
-      </View>
+      </Animated.View>
     );
   };
 
@@ -381,7 +417,9 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
                 },
               ]}
             >
-              <MaterialCommunityIcons name="car-side" size={26} color={colors.primary} />
+              <Animated.View style={{ opacity: blinkAnim }}>
+                <MaterialCommunityIcons name="car-side" size={26} color={colors.primary} />
+              </Animated.View>
             </Animated.View>
           ) : (
             <View style={[styles.carIconContainer, { left: '0%' }]}>
@@ -433,24 +471,39 @@ const LiveJourneyTracker: React.FC<LiveJourneyTrackerProps> = ({
               <Text style={[styles.startButtonText, { color: colors.textSecondary }]}>Available on event day</Text>
             </View>
           ) : (
-            <TouchableOpacity style={styles.startButton} onPress={handleStartTracking}>
+            <TouchableOpacity style={styles.startButton} onPress={isPaused ? handleResumeTracking : handleStartTracking}>
               <Ionicons name="play" size={18} color="#FFF" />
-              <Text style={styles.startButtonText}>Start Journey</Text>
+              <Text style={styles.startButtonText}>{isPaused ? 'Resume Journey' : 'Start Journey'}</Text>
             </TouchableOpacity>
           )
-        ) : isTracking ? (
-          <TouchableOpacity style={styles.stopButton} onPress={handleStopTracking}>
-            <Ionicons name="stop" size={18} color={colors.error} />
-            <Text style={styles.stopButtonText}>Stop Tracking</Text>
-          </TouchableOpacity>
+        ) : isTracking && !isPaused ? (
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity style={styles.pauseButton} onPress={handlePauseTracking}>
+              <Ionicons name="pause" size={18} color="#D97706" />
+              <Text style={styles.pauseButtonText}>Pause</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.stopButton} onPress={handleStopTracking}>
+              <Ionicons name="stop" size={18} color={colors.error} />
+              <Text style={styles.stopButtonText}>Stop</Text>
+            </TouchableOpacity>
+          </View>
+        ) : isTracking && isPaused ? (
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity style={styles.resumeButton} onPress={handleResumeTracking}>
+              <Ionicons name="play" size={18} color="#FFF" />
+              <Text style={styles.resumeButtonText}>Resume</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.stopButton} onPress={handleStopTracking}>
+              <Ionicons name="stop" size={18} color={colors.error} />
+              <Text style={styles.stopButtonText}>Stop</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={styles.arrivedBox}>
             <Ionicons name="checkmark-circle" size={20} color="#137333" />
             <Text style={styles.arrivedText}>You have arrived at the destination</Text>
           </View>
         )}
-        
-        {isUpdating && <ActivityIndicator size="small" color={colors.primary} style={{ marginLeft: 12 }} />}
       </View>
     </View>
   );
@@ -606,6 +659,36 @@ const styles = StyleSheet.create({
   },
   arrivedText: {
     color: '#137333',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  pauseButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: radius.full,
+    gap: 8,
+  },
+  pauseButtonText: {
+    color: '#D97706',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  resumeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.success,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: radius.full,
+    gap: 8,
+  },
+  resumeButtonText: {
+    color: '#FFF',
     fontSize: 14,
     fontWeight: '700',
   },

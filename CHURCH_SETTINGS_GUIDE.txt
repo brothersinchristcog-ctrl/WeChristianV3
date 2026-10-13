@@ -1,0 +1,303 @@
+================================================================================
+          WECHRISTIAN ADMIN DASHBOARD - CHURCH SETTINGS MANUAL
+================================================================================
+Screen Component : AdminChurchSettings.tsx
+Route Tab Name   : "Church Settings" (AdminDashboard Administration Card)
+Icon             : Sliders / Settings
+Target Database  : Firestore collections: `churches`, `church_secrets`
+Storage Bucket   : Firebase Storage: `churches/{churchId}/brand/`
+Permission Level : Church Administrator / Super Admin
+Theme & Canvas   : Deep Navy (#1a2d5a), Warm Gold (#C9A84C), Parchment (#EDE8DC)
+================================================================================
+
+[TABLE OF CONTENTS]
+1. Module Overview & Platform Control Center
+2. Visual Interface & Navigation Tabs (Info, Brand, Giving, WhatsApp)
+3. TAB 1: INFO (Basic Information, Service Timings & Multi-Branch Linking)
+   - Church Join Code (Copy & Share System Intent)
+   - General Details (Name, Tagline, Address, Phone, Email)
+   - Social & Web Presence Links
+   - Dynamic Service Timings Builder with Native Time Pickers
+   - Daily Promise Source Toggle ("YES" Carousel vs "NO" Custom)
+   - Advanced Features & Multi-Campus Branch Linking
+4. TAB 2: BRAND (Visual Identity & Dynamic Theming)
+   - Church Logo Upload (1:1 Ratio via Firebase Cloud Storage)
+   - Church Banner Upload (16:9 Landscape Hero Ratio)
+   - Primary Theme Color Presets & Dynamic Application
+   - Accent & Secondary Color Swatches
+5. TAB 3: GIVING (Financial Gateways, UPI & Bank Accounts)
+   - Enable Giving / Tithe Global Toggle
+   - Razorpay Payment Gateway Integration (Key ID & Key Secret)
+   - Primary UPI ID & PhonePe Number
+   - Dynamic Additional UPI Accounts Builder
+   - Primary Bank Transfer Details (Account, Bank, Number, IFSC)
+   - Dynamic Multiple Bank Accounts Builder
+6. TAB 4: WHATSAPP & INTEGRATIONS (Meta Graph API & Automation)
+   - Platform WhatsApp vs. Custom Meta Credentials Toggle
+   - Custom WhatsApp Access Token & Phone Number ID Setup
+   - Gatekeeper Restrictions & Onboarding Support
+7. Security Architecture: Secrets vs. Public Configuration
+8. Image Upload Pipeline & Firebase Storage CDN Lifecycle
+9. Live State Refresh & Instant Context Propagation
+10. Admin Troubleshooting & Frequently Asked Questions
+
+================================================================================
+1. MODULE OVERVIEW & PLATFORM CONTROL CENTER
+================================================================================
+"Church Settings" (AdminChurchSettings) is the operational nerve center of the
+WeChristian application for any local congregation. It manages everything from
+visual styling and service schedules to payment gateway keys and WhatsApp
+automation credentials.
+
+Any modification performed within this module propagates immediately across the
+entire member-facing mobile experience:
+  - Changing the Primary Color recalculates headers, buttons, and accents.
+  - Uploading a new Logo updates the splash screen, app bar, and PDF bulletins.
+  - Adding a Sunday Service Timing populates the member schedule calendar.
+  - Entering Razorpay keys enables live tithe collection via credit cards,
+    debit cards, and UPI.
+
+================================================================================
+2. VISUAL INTERFACE & NAVIGATION TABS
+================================================================================
+The screen features a responsive top navigation bar dividing settings into 4
+functional domains:
+
+  +--------------------------------------------------------------------------+
+  | [Back] | Settings                                          [Save / Edit] |  <- Header (#1a2d5a)
+  |          Church info, branding & APIs                                    |
+  +--------------------------------------------------------------------------+
+  |  [Building2] Info   |  [Palette] Brand  |  [$] Giving  |  [Plug] WhatsApp|  <- 4-Tab Bar
+  +--------------------------------------------------------------------------+
+  |  Scrollable Settings Canvas (Parchment #EDE8DC)                          |
+  |                                                                          |
+  |  (Tab contents rendered based on active selection)                       |
+  +--------------------------------------------------------------------------+
+
+  - Mode Switch: The screen opens in Read-Only Preview mode to prevent accidental
+    edits. Tapping the golden `[Edit]` button unlocks all input fields, switches,
+    and image upload touchpoints.
+  - Dynamic Tabs:
+    1. Info        -> Identity, contacts, service timings, branch linking.
+    2. Brand       -> Logo, banner, 8 theme color swatches.
+    3. Giving      -> Razorpay keys, UPI IDs, multiple bank accounts.
+    4. WhatsApp    -> Meta Cloud API credentials or shared platform account.
+
+================================================================================
+3. TAB 1: INFO (BASIC DETAILS, SERVICE TIMINGS & BRANCH LINKING)
+================================================================================
+A. CHURCH JOIN CODE CARD
+   Displayed at the top of the Info tab:
+   - Value: Displays `church.churchCode` (or sanitized uppercase `subdomain`).
+   - Purpose: The master join code congregation members type to attach their app
+     to this specific church during phone login.
+   - `[📋 Copy Code]`: Copies the alphanumeric code to the device clipboard.
+   - `[📤 Share Code]`: Launches system share dialog with pre-written text:
+     "Join [Church Name] on WeChristian! Use church code: [CODE]".
+
+B. BASIC INFORMATION FIELDS
+   - Church Name: Formal ecclesiastical title (e.g. "Brothers in Christ").
+   - Tagline / Motto: Inspirational subtitle (e.g. "A Gateway to Heaven").
+   - About Us: Brief bio and theological overview.
+   - Physical Address: Street, building, landmark, and pin code.
+   - Contact Phone: Primary office contact.
+   - Contact Email: Primary administrative inbox.
+
+C. SOCIAL LINKS
+   - Website URL
+   - YouTube Channel / Stream URL
+   - Facebook Page URL
+   - Instagram Profile URL
+
+D. DYNAMIC SERVICE TIMINGS BUILDER
+   Allows the church to define unlimited worship meetings, cottage prayers,
+   youth fellowships, and fasting prayers:
+   - `[+ Add Service]`: Adds a new service configuration card.
+   - Service Name: e.g. "Sunday Morning First Service", "Friday Fasting Prayer".
+   - Schedule Note / Subtext (Optional): e.g. "(Telugu & English Bilingual)",
+     "(2nd Saturday of every month)".
+   - Start Time & End Time (Native Time Picker Modals):
+     * Tapping either time box triggers `DateTimePickerModal` in `"time"` mode.
+     * Automatically formats the selected time to 12-hour AM/PM format
+       (e.g., "09:30 AM", "12:00 PM").
+   - Remove: `[Trash2]` button deletes that specific timing row.
+
+E. DAILY PROMISE SETTINGS TOGGLE
+   - Switch: "Use WeChristian Daily Promise" (YES / NO)
+   - Behavior:
+     * When YES (Green badge): The app displays the centralized WeChristian
+       4 Daily Verses (Morning, Afternoon, Evening, Night) as an auto-scrolling
+       carousel inside Today's Promise.
+     * When NO (Red badge): The app disables the global carousel and strictly
+       displays your local church's custom promise and graphics.
+
+F. BRANCH MANAGEMENT (LINK TO PARENT CHURCH)
+   - Visible to churches that are not parent organizations:
+   - Field: "Enter Church Code"
+   - `[Link Branch]`: Validates that the target parent church exists, is marked
+     as a parent organization, and is not self-referential.
+   - Links `parentChurchId` to establish a satellite branch hierarchy.
+
+================================================================================
+4. TAB 2: BRAND (VISUAL IDENTITY & DYNAMIC THEMING)
+================================================================================
+A. CHURCH LOGO UPLOAD (1:1 Ratio)
+   - Touch Container: Square card with border styling.
+   - Tapping launches `ImagePicker.launchImageLibraryAsync`:
+     * `mediaTypes: Images`
+     * `allowsEditing: true`
+     * `aspect: [1, 1]` (Square crop)
+     * `quality: 0.8`
+   - Upload Pipeline: Uploads directly to Firebase Storage path:
+     `churches/{churchId}/brand/logo_{timestamp}.jpg`.
+   - Displays real-time upload spinner while transferring.
+   - Updates `form.theme.logoUrl` with the resulting secure CDN download URL.
+
+B. CHURCH BANNER UPLOAD (16:9 Ratio)
+   - Aspect: Landscape `[16, 9]` crop.
+   - Uploads to `churches/{churchId}/brand/banner_{timestamp}.jpg`.
+   - Updates `form.theme.bannerUrl` for wide-format hero banners.
+
+C. THEME COLOR PALETTE (PRIMARY & ACCENT)
+   Offers 8 curated church-grade color presets:
+   1. Deep Navy (#1a2d5a) - Classic, stately, authoritative
+   2. Crimson Red (#c0392b) - Apostolic, passionate, vibrant
+   3. Forest Green (#16a34a) - Living, flourishing, peaceful
+   4. Royal Purple (#7c3aed) - Regal, majestic, worshipful
+   5. Warm Amber / Gold (#b45309) - Rich, traditional, inviting
+   6. Cyan / Sky (#0891b2) - Fresh, modern, open
+   7. Berry Pink (#be185d) - Warm, caring, youth-focused
+   8. Slate Charcoal (#334155) - Minimalist, contemporary, neutral
+
+   - Primary Color: Governs navigation headers, hero banners, active tabs,
+     and primary action buttons.
+   - Accent Color: Governs badges, highlights, secondary cards, and focus rings.
+
+================================================================================
+5. TAB 3: GIVING (FINANCIAL GATEWAYS, UPI & BANK ACCOUNTS)
+================================================================================
+A. GLOBAL GIVING TOGGLE
+   - Switch: "Enable Giving / Tithe"
+   - Controls whether the Giving / Tithe icon and module appear on member devices.
+
+B. RAZORPAY PAYMENT GATEWAY INTEGRATION
+   For online card, netbanking, and wallet donations:
+   - Key ID: Public merchant identifier (`rzp_live_XXXXX`).
+   - Key Secret: Encrypted merchant secret key.
+   - Security: Automatically masked with `secureTextEntry` in View Mode.
+   - Storage: Stored exclusively in the isolated `church_secrets` collection.
+
+C. PRIMARY UPI & MOBILE PAYMENTS
+   - UPI ID: e.g. `church@okicici`, `pastor@upi`.
+   - PhonePe Number: 10-digit mobile number linked to PhonePe business account.
+
+D. DYNAMIC ADDITIONAL UPI ACCOUNTS BUILDER
+   Allows designated giving funds (Building Fund, Mission Outreach, Youth Camp):
+   - `[+ Add]`: Appends a new UPI account card.
+   - Label: e.g. "Church Building Fund", "Sunday School Charity".
+   - UPI ID: Specific UPI address for that ledger.
+   - PhonePe Number: Optional mobile payment number.
+
+E. PRIMARY BANK TRANSFER DETAILS (NEFT / RTGS / IMPS)
+   - Account Name: e.g. "Brothers In Christ Trust"
+   - Bank Name: e.g. "State Bank of India", "HDFC Bank"
+   - Account Number: Bank account number (numeric keyboard)
+   - IFSC Code: 11-character bank code (auto-capitalized)
+
+F. DYNAMIC MULTIPLE BANK ACCOUNTS BUILDER
+   Allows secondary accounts (e.g. Foreign Contribution FCRA Account, Education
+   Trust, Welfare Fund) with distinct labels, account numbers, and IFSC codes.
+
+================================================================================
+6. TAB 4: WHATSAPP & INTEGRATIONS (META GRAPH API)
+================================================================================
+Governs automated WhatsApp notifications (Birthday wishes, Anniversary greetings,
+Meeting reminders, Broadcast bulletins):
+
+A. PLATFORM VS. CUSTOM WHATSAPP TOGGLE
+   - Switch: "Use We Christian WhatsApp Account"
+   - Option 1 (YES - Shared Platform Number):
+     Messages are dispatched via WeChristian's official verified WhatsApp Cloud
+     API infrastructure. Zero setup required by the church.
+   - Option 2 (NO - Custom Church WhatsApp Number):
+     Church connects their own Meta Business Graph API credentials.
+
+B. CUSTOM META CREDENTIALS SETUP
+   - Access Token (Permanent Meta System User Token):
+     Input with secure text masking (`EAAH...`).
+   - Phone Number ID:
+     Numeric Meta WhatsApp Business Account phone ID (e.g. `101452637283`).
+   - Guidance Banner:
+     Displays prominent advisory: "Using your own WhatsApp Business Account?
+     Please contact the We Christian team. We'll assist you in setting up and
+     verifying your Meta API credentials correctly."
+
+================================================================================
+7. SECURITY ARCHITECTURE: SECRETS VS. PUBLIC CONFIGURATION
+================================================================================
+To comply with global data security standards and prevent exposure of API keys,
+WeChristian uses a dual-collection storage split:
+
+1. Public Collection: `churches/{churchId}`
+   - Stores: Name, logo URL, colors, service timings, UPI IDs, bank details.
+   - Readable by: All authenticated church congregation members.
+
+2. Isolated Collection: `church_secrets/{churchId}`
+   - Stores: `razorpayKeyId`, `razorpayKeySecret`, `whatsappAccessToken`,
+     `whatsappPhoneId`.
+   - Readable by: Strictly church administrators and backend cloud functions.
+   - Firestore security rules reject all member-level reads to `church_secrets`.
+
+================================================================================
+8. IMAGE UPLOAD PIPELINE & FIREBASE STORAGE CDN LIFECYCLE
+================================================================================
+```
+[User Device] -> [ImagePicker (Square/16:9)] -> [expo-image-picker (0.8 quality)]
+                                                     |
+                                                     v
+                                          [Firebase Storage]
+                       (churches/{churchId}/brand/logo_{timestamp}.jpg)
+                                                     |
+                                                     v
+                                         [Download URL Generated]
+                                                     |
+                                                     v
+                                        [Firestore doc updated]
+                                                     |
+                                                     v
+                                         [App-wide Context Sync]
+```
+
+================================================================================
+9. LIVE STATE REFRESH & INSTANT CONTEXT PROPAGATION
+================================================================================
+When the administrator taps `[Save]`:
+  ```typescript
+  await ChurchService.updateChurch(churchId, form);
+  await ChurchService.updateChurchSecrets(churchId, secrets);
+  const updated = await ChurchService.getChurchDetails(churchId);
+  if (updated) setActiveChurch(updated);
+  ```
+  Updating `setActiveChurch` in `ChurchContext` forces all mounted screens
+  (including the Admin Dashboard, Member Navigator, and bottom tabs) to re-render
+  immediately with the newly selected theme colors, logos, and features without
+  requiring an app restart.
+
+================================================================================
+10. ADMIN TROUBLESHOOTING & FREQUENTLY ASKED QUESTIONS
+================================================================================
+Q1: Why can't I edit fields when I open Church Settings?
+A: The screen opens in View Mode to prevent accidental modifications. Tap the
+   golden `[Edit]` button in the top right corner to unlock all fields.
+
+Q2: What happens if I change the church primary color?
+A: The entire application (both Admin and Member views) dynamically recalculates
+   its color palette, headers, icon accents, and highlights to match your new
+   primary branding.
+
+Q3: Why is the WhatsApp tab disabled or showing a prompt?
+A: WhatsApp Integration requires activation by the platform team. Contact
+   WeChristian support to enable `whatsappIntegrationEnabled` for your church.
+================================================================================
+                   END OF CHURCH SETTINGS MODULE MANUAL
+================================================================================

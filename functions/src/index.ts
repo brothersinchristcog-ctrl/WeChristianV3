@@ -17,6 +17,26 @@ export {
   triggerMorningCelebrations
 } from './celebrations.js';
 
+export {
+  generateSermonV9,
+  generateContentImage
+} from './ai.js';
+
+export {
+  createZoomMeeting,
+  createZoomMeetingHttp
+} from './meetings.js';
+
+export {
+  getYoutubeAuthUrl,
+  youtubeOAuthCallback,
+  getYouTubeChannelStatus,
+  disconnectYouTubeChannel,
+  createZoomWithYouTubeLive,
+  checkYouTubeLiveStatus,
+  startZoomLiveStream
+} from './youtubeLive.js';
+
 // Initialize Firebase Admin once at top level
 initializeApp();
 
@@ -162,61 +182,61 @@ export const notifyMembersV2 = onRequest(async (request, response) => {
  * ⏰ AUTOMATED DAILY PROMISE SCHEDULER
  * Scheduled to run every day at 07:00 AM IST (01:30 AM UTC)
  */
-export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
+export const automatedDailyPromise = onSchedule({ schedule: '0 7 * * *', timeZone: 'Asia/Kolkata' }, async (event) => {
   try {
-    console.log('⏰ Running automatedDailyPromise scheduler...');
+    console.log('⏰ Running automatedDailyPromise scheduler for all churches...');
     const db = getDb();
     
-    // Check if enabled
-    const settingsDoc = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('settings').doc('notifications').get();
-    const settings = settingsDoc.data();
-    if (settings && settings.dailyPromise && settings.dailyPromise.enabled === false) {
-      console.log('🛑 Daily Promise automation is disabled.');
-      return;
-    }
-
+    // Get date in IST
     const today = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
     const dStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    
-    const promiseSnap = await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('promises').where('date', '==', dStr).limit(1).get();
-    
-    if (promiseSnap.empty) {
-      console.log('⚠️ No daily promise found in Firestore for today (' + dStr + ').');
-      return;
-    }
-
-    const promise = promiseSnap.docs[0].data();
     const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
     
-    // Fallbacks for content based on app schema
-    const content = promise.textEn || promise.text || promise.Promises__c || promise.Promise_text_telugu__c || 'Grace and Peace be multiplied to you today.';
+    // Fetch all churches
+    const churchesSnap = await db.collection('churches').get();
+    
+    for (const churchDoc of churchesSnap.docs) {
+      const churchId = churchDoc.id;
+      
+      // Check if disabled for this specific church
+      const settingsDoc = await db.collection('churches').doc(churchId).collection('settings').doc('notifications').get();
+      const settings = settingsDoc.data();
+      if (settings && settings.dailyPromise && settings.dailyPromise.enabled === false) {
+        console.log(`🛑 Daily Promise automation is disabled for church: ${churchId}`);
+        continue;
+      }
 
-    // Pushed to broadcasts collection
-    await db.collection('churches').doc(DEFAULT_CHURCH_ID).collection('broadcasts').add({
-      title: '📖 Today\'s Promise · ఈ రోజు వాగ్దానం',
-      content: content,
-      date: dateStr,
-      type: 'announcement',
-      silent: true,
-      createdAt: FieldValue.serverTimestamp()
-    });
+      // Check if there's a promise for today for this church
+      const promiseSnap = await db.collection('churches').doc(churchId).collection('promises').where('date', '==', dStr).limit(1).get();
+      
+      if (promiseSnap.empty) {
+        console.log(`⚠️ No daily promise found in Firestore for today (${dStr}) for church: ${churchId}`);
+        continue;
+      }
 
-    // Send push notification
-    const snapshot = await db.collection('users').get();
-    const tokenSet = new Set<string>();
-    snapshot.forEach((doc: any) => {
-      const data = doc.data();
-      if (data.fcmToken) tokenSet.add(data.fcmToken);
-    });
+      const promise = promiseSnap.docs[0].data();
+      
+      // Fallbacks for content based on app schema
+      const content = promise.verse || promise.textEn || promise.text || promise.Promises__c || promise.Promise_text_telugu__c || 'Grace and Peace be multiplied to you today.';
+      const title = promise.verseReferenceEn ? `📖 Daily Promise: ${promise.verseReferenceEn}` : '📖 Today\'s Promise · ఈ రోజు వాగ్దానం';
 
-    const tokens = Array.from(tokenSet);
-    if (tokens.length > 0) {
+      // Push to broadcasts collection for this church
+      await db.collection('churches').doc(churchId).collection('broadcasts').add({
+        title: title,
+        content: content,
+        date: dateStr,
+        type: 'announcement',
+        silent: true,
+        createdAt: FieldValue.serverTimestamp()
+      });
+
+      // Send push notification to the specific church topic
       const message = {
         notification: {
-          title: '📖 Daily Promise · ఈ రోజు వాగ్దానం',
+          title: title,
           body: stripHtml(content).slice(0, 100) + '...'
         },
-        data: { type: 'general' },
+        data: { type: 'general', churchId: churchId },
         android: {
           priority: 'high' as const,
           notification: {
@@ -226,20 +246,14 @@ export const automatedDailyPromise = onSchedule({ schedule: '0 5 * * *', timeZon
           }
         },
         apns: {
-          headers: {
-            'apns-priority': '10'
-          },
-          payload: {
-            aps: {
-              sound: 'default',
-              badge: 1
-            }
-          }
+          headers: { 'apns-priority': '10' },
+          payload: { aps: { sound: 'default', badge: 1 } }
         },
-        tokens: tokens
+        topic: `church_${churchId}`
       };
-      await getMsg().sendEachForMulticast(message);
-      console.log(`✅ Automated Daily Promise sent to ${tokens.length} members`);
+      
+      await getMsg().send(message);
+      console.log(`✅ Automated Daily Promise sent to topic church_${churchId}`);
     }
   } catch (error) {
     console.error('Error in automatedDailyPromise scheduler:', error);
@@ -993,46 +1007,102 @@ export const processBroadcastPushNotifications = functionsCompat
         if (uData.fcmToken) tokenSet.add(uData.fcmToken);
       });
 
-      const tokens = Array.from(tokenSet);
-      if (tokens.length === 0) {
-        console.log('🛑 No registered FCM tokens found.');
-        return;
+      // Also gather tokens from churches/{churchId}/members if not phone-targeted
+      if (!data.targetPhone && churchId) {
+        try {
+          const memSnap = await db.collection('churches').doc(churchId).collection('members').get();
+          memSnap.forEach((doc: any) => {
+            const mData = doc.data();
+            if (mData.fcmToken) tokenSet.add(mData.fcmToken);
+          });
+        } catch (memErr) {
+          console.warn('Could not read church members for broadcast tokens:', memErr);
+        }
       }
 
       const plainBody = stripHtml(body);
-      const message = {
-        notification: {
-          title,
-          body: plainBody.length > 200 ? plainBody.substring(0, 197) + '...' : plainBody
-        },
-        data: {
-          type,
-          id: context.params.messageId
-        },
-        android: {
-          priority: 'high' as const,
-          notification: {
-            sound: 'default',
-            priority: 'max' as const,
-            channelId: 'church_alerts'
-          }
-        },
-        apns: {
-          headers: {
-            'apns-priority': '10'
-          },
-          payload: {
-            aps: {
-              sound: 'default',
-              badge: 1
-            }
-          }
-        },
-        tokens: tokens
+      const targetQuizId = data.quizId || data.relatedId || (data.type === 'quiz' ? data.id : undefined);
+      const notificationData: Record<string, string> = {
+        type,
+        id: String(targetQuizId || context.params.messageId),
+        ...(targetQuizId ? { quizId: String(targetQuizId) } : {}),
+        ...(data.screen ? { screen: String(data.screen) } : {}),
+        ...(churchId ? { churchId: String(churchId) } : {}),
+        click_action: 'FLUTTER_NOTIFICATION_CLICK',
       };
 
-      const response = await getMsg().sendEachForMulticast(message);
-      console.log(`✅ Broadcast push delivered: ${response.successCount} success, ${response.failureCount} failed.`);
+      // 1. Broadcast to church topic church_{churchId} if churchId is present and not phone-targeted
+      let topicDelivered = false;
+      if (churchId && !data.targetPhone) {
+        try {
+          await getMsg().send({
+            notification: {
+              title,
+              body: plainBody.length > 200 ? plainBody.substring(0, 197) + '...' : plainBody,
+            },
+            data: notificationData,
+            topic: `church_${churchId}`,
+            android: {
+              priority: 'high' as const,
+              notification: {
+                sound: 'default',
+                priority: 'max' as const,
+                channelId: 'church_alerts',
+              },
+            },
+            apns: {
+              headers: {
+                'apns-priority': '10',
+              },
+              payload: {
+                aps: {
+                  sound: 'default',
+                  badge: 1,
+                },
+              },
+            },
+          });
+          topicDelivered = true;
+          console.log(`✅ Broadcast push delivered to topic church_${churchId}`);
+        } catch (topicErr) {
+          console.warn(`⚠️ Topic broadcast push warning:`, topicErr);
+        }
+      }
+
+      // 2. Multicast to individual registered devices ONLY IF phone-targeted OR topic send was not used
+      const tokens = Array.from(tokenSet);
+      if (tokens.length > 0 && (!topicDelivered || data.targetPhone)) {
+        const message = {
+          notification: {
+            title,
+            body: plainBody.length > 200 ? plainBody.substring(0, 197) + '...' : plainBody
+          },
+          data: notificationData,
+          android: {
+            priority: 'high' as const,
+            notification: {
+              sound: 'default',
+              priority: 'max' as const,
+              channelId: 'church_alerts'
+            }
+          },
+          apns: {
+            headers: {
+              'apns-priority': '10'
+            },
+            payload: {
+              aps: {
+                sound: 'default',
+                badge: 1
+              }
+            }
+          },
+          tokens: tokens
+        };
+
+        const response = await getMsg().sendEachForMulticast(message);
+        console.log(`✅ Broadcast push delivered: ${response.successCount} success, ${response.failureCount} failed.`);
+      }
     } catch (error) {
       console.error('Error sending broadcast push:', error);
     }
@@ -1592,3 +1662,10 @@ export const createGoogleMeet = onCall({ invoker: 'public' }, async (request) =>
 });
 
 export * from './notifications.js';
+export { createRazorpayOrderV4, razorpayWebhookV1, createRazorpayDonationOrderV6, verifyRazorpayDonationV6, verifyRazorpaySubscriptionV3 } from './razorpay.js';
+
+export * from './subscriptionCron.js';
+
+export * from './verseBackgrounds.js';
+
+export * from './vouchers.js';

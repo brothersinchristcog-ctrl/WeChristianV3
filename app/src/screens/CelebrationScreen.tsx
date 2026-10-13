@@ -9,7 +9,8 @@ import {
   Share,
   Platform,
   ScrollView,
-  Easing
+  Easing,
+  BackHandler
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -235,13 +236,24 @@ const CelebrationScreen = () => {
       navigation.goBack();
     } else {
       // Fallback in case there is no history
-      if (viewMode === 'admin') {
+      const isAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER');
+      const showAdminView = isAdmin && viewMode === 'admin';
+      if (showAdminView) {
         navigation.navigate('AdminRoot');
       } else {
         navigation.navigate('Tabs');
       }
     }
   };
+
+  useEffect(() => {
+    const backAction = () => {
+      handleContinue();
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [navigation, member, viewMode]);
 
   // Generate arrays for random items
   const birthdayConfetti = useMemo(() => Array.from({ length: 34 }).map((_, i) => ({
