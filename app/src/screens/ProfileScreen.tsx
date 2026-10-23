@@ -35,7 +35,9 @@ import {
   Crown,
   Award,
   Shield,
-  Sun
+  Sun,
+  Sparkles,
+  Search
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -51,6 +53,7 @@ import { Lock } from 'lucide-react-native';
 import storage from '@react-native-firebase/storage';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { formatDateDisplay } from '../utils/DateUtils';
+import { CHURCH_SKILL_CATEGORIES, ALL_PREDEFINED_SKILLS } from '../constants/churchSkills';
 
 const { width } = Dimensions.get('window');
 
@@ -75,6 +78,13 @@ export default function ProfileScreen({ navigation }: any) {
   const [newSermonNotify, setNewSermonNotify] = useState(true);
   const [eventReminderNotify, setEventReminderNotify] = useState(true);
   const [prayerNotify, setPrayerNotify] = useState(false);
+  // Skill Picker States
+  const [skillPickerVisible, setSkillPickerVisible] = useState(false);
+  const [activeSkillField, setActiveSkillField] = useState<'primarySkill' | 'secondarySkill' | null>(null);
+  const [skillSearchText, setSkillSearchText] = useState('');
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>('all');
+  const [customSkillInput, setCustomSkillInput] = useState('');
+
   const [editForm, setEditForm] = useState({
     firstName: authMember?.firstName || '',
     lastName: authMember?.lastName || '',
@@ -84,11 +94,29 @@ export default function ProfileScreen({ navigation }: any) {
     mailingState: authMember?.mailingState || '',
     dob: authMember?.dob || '',
     baptismDate: authMember?.baptismDate || '',
-    anniversaryDate: authMember?.anniversaryDate || ''
+    anniversaryDate: authMember?.anniversaryDate || '',
+    primarySkill: authMember?.primarySkill || '',
+    secondarySkill: authMember?.secondarySkill || ''
   });
   const [updating, setUpdating] = useState(false);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [activeDateField, setActiveDateField] = useState<'dob' | 'baptismDate' | 'anniversaryDate' | null>(null);
+
+  const filteredSkillList = React.useMemo(() => {
+    let list: string[] = [];
+    if (selectedCategoryTab === 'all') {
+      list = ALL_PREDEFINED_SKILLS;
+    } else {
+      const cat = CHURCH_SKILL_CATEGORIES.find(c => c.id === selectedCategoryTab);
+      list = cat ? cat.skills : ALL_PREDEFINED_SKILLS;
+    }
+
+    if (skillSearchText.trim()) {
+      const query = skillSearchText.trim().toLowerCase();
+      return ALL_PREDEFINED_SKILLS.filter(s => s.toLowerCase().includes(query));
+    }
+    return list;
+  }, [selectedCategoryTab, skillSearchText]);
 
   const handleConfirmDate = (date: Date) => {
     const formattedDate = date.toISOString().split('T')[0];
@@ -127,7 +155,9 @@ export default function ProfileScreen({ navigation }: any) {
             mailingState: contactCheck.member.mailingState || '',
             dob: contactCheck.member.dob || '',
             baptismDate: contactCheck.member.baptismDate || '',
-            anniversaryDate: contactCheck.member.anniversaryDate || ''
+            anniversaryDate: contactCheck.member.anniversaryDate || '',
+            primarySkill: contactCheck.member.primarySkill || '',
+            secondarySkill: contactCheck.member.secondarySkill || ''
           });
         }
       }
@@ -455,6 +485,28 @@ export default function ProfileScreen({ navigation }: any) {
               </View>
             </View>
           </View>
+
+          {/* Member Skills Badges in Hero */}
+          {(member?.primarySkill || member?.secondarySkill) ? (
+            <View style={{ marginTop: 12, width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+              {member?.primarySkill ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
+                  <Award size={12} color="#FDE68A" style={{ marginRight: 5 }} />
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
+                    {member.primarySkill}
+                  </Text>
+                </View>
+              ) : null}
+              {member?.secondarySkill ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}>
+                  <Sparkles size={12} color="#C7D2FE" style={{ marginRight: 5 }} />
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
+                    {member.secondarySkill}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
         </View>
       </LinearGradient>
 
@@ -710,6 +762,66 @@ export default function ProfileScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
 
+              {/* Primary Skill */}
+              <View style={styles.inputGroup}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <Text style={styles.inputLabel}>Primary Skill</Text>
+                  {editForm.primarySkill ? (
+                    <TouchableOpacity onPress={() => setEditForm({ ...editForm, primarySkill: '' })}>
+                      <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: '600' }}>Clear</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+                <TouchableOpacity 
+                  style={[styles.input, { justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }]}
+                  onPress={() => {
+                    setActiveSkillField('primarySkill');
+                    setSkillSearchText('');
+                    setSelectedCategoryTab('all');
+                    setCustomSkillInput('');
+                    setSkillPickerVisible(true);
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                    <Award size={16} color={editForm.primarySkill ? '#1a2d5a' : '#94a3b8'} style={{ marginRight: 8 }} />
+                    <Text style={{ fontSize: 15, color: editForm.primarySkill ? '#1e293b' : '#94a3b8' }} numberOfLines={1}>
+                      {editForm.primarySkill || 'Select Primary Skill'}
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color="#94a3b8" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Secondary Skill */}
+              <View style={styles.inputGroup}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <Text style={styles.inputLabel}>Secondary Skill</Text>
+                  {editForm.secondarySkill ? (
+                    <TouchableOpacity onPress={() => setEditForm({ ...editForm, secondarySkill: '' })}>
+                      <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: '600' }}>Clear</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+                <TouchableOpacity 
+                  style={[styles.input, { justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }]}
+                  onPress={() => {
+                    setActiveSkillField('secondarySkill');
+                    setSkillSearchText('');
+                    setSelectedCategoryTab('all');
+                    setCustomSkillInput('');
+                    setSkillPickerVisible(true);
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                    <Sparkles size={16} color={editForm.secondarySkill ? '#4338ca' : '#94a3b8'} style={{ marginRight: 8 }} />
+                    <Text style={{ fontSize: 15, color: editForm.secondarySkill ? '#1e293b' : '#94a3b8' }} numberOfLines={1}>
+                      {editForm.secondarySkill || 'Select Secondary Skill'}
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color="#94a3b8" />
+                </TouchableOpacity>
+              </View>
+
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>{t('profile.phoneManagedByAuth')}</Text>
                 <TextInput 
@@ -778,6 +890,142 @@ export default function ProfileScreen({ navigation }: any) {
               }
               maximumDate={new Date()}
             />
+
+            {/* Skill Picker Modal */}
+            <Modal
+              visible={skillPickerVisible}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setSkillPickerVisible(false)}
+            >
+              <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+                <View style={{ width: '100%', backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%', paddingBottom: 24 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      {activeSkillField === 'primarySkill' ? (
+                        <Award size={20} color="#1a2d5a" style={{ marginRight: 8 }} />
+                      ) : (
+                        <Sparkles size={20} color="#4338CA" style={{ marginRight: 8 }} />
+                      )}
+                      <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a2d5a' }}>
+                        {activeSkillField === 'primarySkill' ? 'Select Primary Skill' : 'Select Secondary Skill'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => setSkillPickerVisible(false)} style={{ backgroundColor: '#f1f5f9', padding: 6, borderRadius: 20 }}>
+                      <X size={18} color="#1a2d5a" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Category Tabs */}
+                  <View style={{ paddingVertical: 10, paddingHorizontal: 16 }}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                      <TouchableOpacity
+                        style={[
+                          styles.catTab,
+                          selectedCategoryTab === 'all' && styles.catTabActive
+                        ]}
+                        onPress={() => setSelectedCategoryTab('all')}
+                      >
+                        <Text style={[styles.catTabTxt, selectedCategoryTab === 'all' && styles.catTabTxtActive]}>All Skills</Text>
+                      </TouchableOpacity>
+                      {CHURCH_SKILL_CATEGORIES.map(cat => (
+                        <TouchableOpacity
+                          key={cat.id}
+                          style={[
+                            styles.catTab,
+                            selectedCategoryTab === cat.id && styles.catTabActive
+                          ]}
+                          onPress={() => setSelectedCategoryTab(cat.id)}
+                        >
+                          <Text style={[styles.catTabTxt, selectedCategoryTab === cat.id && styles.catTabTxtActive]}>{cat.name}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+
+                  {/* Search Input */}
+                  <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 10, paddingHorizontal: 12, height: 40 }}>
+                      <Search size={16} color="#94a3b8" style={{ marginRight: 8 }} />
+                      <TextInput
+                        placeholder="Search skill..."
+                        placeholderTextColor="#94a3b8"
+                        value={skillSearchText}
+                        onChangeText={setSkillSearchText}
+                        style={{ flex: 1, fontSize: 13, color: '#1e293b' }}
+                      />
+                      {skillSearchText ? (
+                        <TouchableOpacity onPress={() => setSkillSearchText('')}>
+                          <X size={14} color="#94a3b8" />
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  </View>
+
+                  {/* Skills List */}
+                  <ScrollView style={{ paddingHorizontal: 16, maxHeight: 260 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                    {filteredSkillList.map((skill) => {
+                      const isSelected = activeSkillField && editForm[activeSkillField] === skill;
+                      return (
+                        <TouchableOpacity
+                          key={skill}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            paddingVertical: 12,
+                            paddingHorizontal: 12,
+                            borderBottomWidth: 1,
+                            borderBottomColor: '#f1f5f9',
+                            backgroundColor: isSelected ? '#eff6ff' : 'transparent',
+                            borderRadius: 8
+                          }}
+                          onPress={() => {
+                            if (activeSkillField) {
+                              setEditForm(prev => ({ ...prev, [activeSkillField]: skill }));
+                            }
+                            setSkillPickerVisible(false);
+                          }}
+                        >
+                          <Text style={{ fontSize: 14, fontWeight: isSelected ? '700' : '500', color: isSelected ? '#1a2d5a' : '#334155' }}>
+                            {skill}
+                          </Text>
+                          {isSelected && <Check size={18} color="#1a2d5a" />}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+
+                  {/* Custom Skill Input */}
+                  <View style={{ paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#f1f5f9', marginTop: 8 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b', marginBottom: 6, textTransform: 'uppercase' }}>
+                      Or Add Custom Skill
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TextInput
+                        style={{ flex: 1, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 10, paddingHorizontal: 12, height: 42, color: '#1e293b', fontSize: 13 }}
+                        placeholder="Type custom skill..."
+                        placeholderTextColor="#94a3b8"
+                        value={customSkillInput}
+                        onChangeText={setCustomSkillInput}
+                      />
+                      <TouchableOpacity
+                        style={{ backgroundColor: '#1a2d5a', paddingHorizontal: 14, borderRadius: 10, justifyContent: 'center', alignItems: 'center' }}
+                        onPress={() => {
+                          if (customSkillInput.trim() && activeSkillField) {
+                            setEditForm(prev => ({ ...prev, [activeSkillField]: customSkillInput.trim() }));
+                            setCustomSkillInput('');
+                            setSkillPickerVisible(false);
+                          }
+                        }}
+                      >
+                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>Apply</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </Modal>
           </View>
         </View>
       )}
@@ -1216,4 +1464,23 @@ const styles = StyleSheet.create({
   },
   notifyName: { fontSize: 16, fontWeight: '700', color: '#1e293b' },
   notifyDesc: { fontSize: 12, color: '#64748b', marginTop: 2 },
+
+  catTab: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+  },
+  catTabActive: {
+    backgroundColor: '#1a2d5a',
+  },
+  catTabTxt: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  catTabTxtActive: {
+    color: '#ffffff',
+    fontWeight: '700',
+  },
 });

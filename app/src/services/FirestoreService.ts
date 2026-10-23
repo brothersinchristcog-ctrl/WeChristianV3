@@ -52,6 +52,8 @@ export interface AppMember {
   dob?: string;
   baptismDate?: string;
   anniversaryDate?: string;
+  primarySkill?: string;
+  secondarySkill?: string;
 }
 
 export interface FirestorePromise {
