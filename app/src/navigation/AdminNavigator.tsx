@@ -85,6 +85,7 @@ import AISermonAssistant from '../screens/admin/AISermonAssistant';
 import AIContentCreator from '../screens/admin/AIContentCreator';
 import AdminQuizList from '../screens/admin/quiz/AdminQuizList';
 import ChurchService from '../services/ChurchService';
+import AdminServicePlanner from '../screens/admin/AdminServicePlanner';
 
 const { width } = Dimensions.get('window');
 
@@ -230,6 +231,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     { name: 'Pastor Event', icon: Briefcase, component: PastorEventDashboard },
     { name: 'Prayers', icon: Heart, component: AdminPrayerModeration },
     { name: 'Attendance', icon: ClipboardCheck, component: AdminAttendance },
+    { name: 'Service Roster', icon: ClipboardCheck, component: AdminServicePlanner },
     { name: 'Members', icon: Users, component: AdminMembers },
     { name: 'Celebrations', icon: Gift, component: AdminCelebrations },
     { name: 'Gallery', icon: ImageIcon, component: AdminGalleryNavigator },

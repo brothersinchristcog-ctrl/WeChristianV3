@@ -121,6 +121,13 @@ export interface WorshipSong {
   isHidden?: boolean;
   isChurchOwn?: boolean;
   translations?: Record<string, { title?: string; lyrics?: string }>;
+  timeSignature?: string;
+  tempo?: string;
+  verses?: string;
+  prelude?: string;
+  interlude?: string;
+  notes?: string;
+  ledBy?: string;
 }
 
 export interface ScheduleEvent {
@@ -1595,6 +1602,78 @@ class FirestoreService {
       return true;
     } catch (e) {
       throw e;
+    }
+  }
+
+  // --- 🎵 Worship Services & Setlists (Sunday Service Flow) ---
+  async saveWorshipServices(services: any[]) {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return;
+      const cleanServices = Array.isArray(services) ? services.filter(Boolean) : [];
+      await firestore().collection('churches').doc(churchId).collection('setlists').doc('all_services').set({
+        services: cleanServices,
+        updatedAt: FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      // Backwards-compatible sync for legacy 1S and 2S setlists
+      const s1 = cleanServices.find((s: any) => s && (s.id === '1S' || (s.name && String(s.name).includes('1st'))));
+      if (s1 && s1.songs) {
+        await this.saveChurchSetlist('1S', s1.songs);
+      }
+      const s2 = cleanServices.find((s: any) => s && (s.id === '2S' || (s.name && String(s.name).includes('2nd'))));
+      if (s2 && s2.songs) {
+        await this.saveChurchSetlist('2S', s2.songs);
+      }
+    } catch (e) {
+      console.warn('Failed to save worship services to Firestore:', e);
+    }
+  }
+
+  async getWorshipServices(): Promise<any[] | null> {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return null;
+      const docSnap = await firestore().collection('churches').doc(churchId).collection('setlists').doc('all_services').get();
+      const docExists = typeof (docSnap as any).exists === 'function' ? (docSnap as any).exists() : (docSnap as any).exists;
+      if (docExists && docSnap.data()?.services) {
+        const rawServices = docSnap.data()?.services;
+        return Array.isArray(rawServices) ? rawServices.filter(Boolean) : [];
+      }
+      return null;
+    } catch (e) {
+      console.warn('Failed to get worship services from Firestore:', e);
+      return null;
+    }
+  }
+
+  async saveChurchSetlist(service: '1S' | '2S' | string, items: any[]) {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return;
+      await firestore().collection('churches').doc(churchId).collection('setlists').doc(service).set({
+        service,
+        items,
+        updatedAt: FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (e) {
+      console.warn('Failed to save setlist to Firestore:', e);
+    }
+  }
+
+  async getChurchSetlist(service: '1S' | '2S' | string): Promise<any[] | null> {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return null;
+      const docSnap = await firestore().collection('churches').doc(churchId).collection('setlists').doc(service).get();
+      const docExists = typeof (docSnap as any).exists === 'function' ? (docSnap as any).exists() : (docSnap as any).exists;
+      if (docExists && docSnap.data()?.items) {
+        return docSnap.data()?.items;
+      }
+      return null;
+    } catch (e) {
+      console.warn('Failed to get setlist from Firestore:', e);
+      return null;
     }
   }
 

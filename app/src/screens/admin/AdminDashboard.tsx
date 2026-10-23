@@ -57,6 +57,7 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'Donations': require('../../../assets/admin_cards/donations.png'),
   'Subscription': require('../../../assets/admin_cards/subscription.png'),
   'Schedule': require('../../../assets/admin_cards/schedule.png'),
+  'Service Roster': require('../../../assets/admin_cards/schedule.png'),
   'About Us': require('../../../assets/admin_cards/about_us.png'),
   'Contact Us': require('../../../assets/admin_cards/contact_us.png'),
   'Support Team': require('../../../assets/support_bg.png'),
@@ -85,7 +86,7 @@ const CATEGORIES = [
     title: 'Community & Members',
     icon: Users,
     color: '#581C87', // Deep Royal Purple/Eggplant for excellent contrast
-    keywords: ['Member', 'Attendance', 'Prayer']
+    keywords: ['Member', 'Attendance', 'Prayer', 'Service Roster']
   },
   {
     title: 'Events & Celebrations',
@@ -382,12 +383,12 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
 
                 {/* Hybrid Responsive Grid of Modules */}
                 <View style={[styles.grid, { gap: cardGap }]}>
-                  {tabsInCategory.map((tab) => {
+                  {tabsInCategory.map((tab, tabIdx) => {
                     const isFullWidth = FULL_WIDTH_MODULES.includes(tab.name);
                     
                     return (
                         <TouchableOpacity 
-                          key={tab.index} 
+                          key={`cat_${catIdx}_tab_${tab.name}_${tab.index}_${tabIdx}`} 
                           style={[
                             styles.moduleCard, 
                             isFullWidth && styles.moduleCardFull,
@@ -510,6 +511,8 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
                               >
                                 {tab.name === 'About Us' 
                                   ? 'About\u00A0Us' 
+                                  : tab.name === 'Service Roster'
+                                  ? 'Service Roster\n& Teams'
                                   : (tab.name === 'AI Sermon Assistant' || tab.name === 'AI Sermon') 
                                   ? 'AI Sermon\nAssistant' 
                                   : (tab.name === 'AI Content Creator' || tab.name === 'AI Thumbnail Creation') 
