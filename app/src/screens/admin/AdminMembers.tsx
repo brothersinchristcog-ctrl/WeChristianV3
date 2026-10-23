@@ -17,7 +17,7 @@ import {
   Image,
   Linking
 } from 'react-native';
-import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2, ChevronLeft, UserPlus, Search, MoreVertical, Award, Sparkles, Check, Briefcase, Filter } from 'lucide-react-native';
+import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2, ChevronLeft, UserPlus, Search, MoreVertical, Award, Sparkles, Check, Briefcase } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
 import { formatDateDisplay } from '../../utils/DateUtils';
@@ -73,8 +73,6 @@ export default function AdminMembers() {
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Inactive'>('All');
   const [villageFilter, setVillageFilter] = useState<string>('All');
   const [villageDropdownVisible, setVillageDropdownVisible] = useState(false);
-  const [skillFilter, setSkillFilter] = useState<string>('All');
-  const [skillFilterModalVisible, setSkillFilterModalVisible] = useState(false);
   const [skillPickerModalVisible, setSkillPickerModalVisible] = useState(false);
   const [activeSkillPickerField, setActiveSkillPickerField] = useState<'primarySkill' | 'secondarySkill' | null>(null);
   const [skillSearchText, setSkillSearchText] = useState('');
@@ -257,16 +255,6 @@ export default function AdminMembers() {
     const villages = members.map(m => (m.city || m.village || '').trim()).filter(Boolean);
     const unique = Array.from(new Set(villages)).sort();
     return ['All', ...unique];
-  }, [members]);
-
-  // Compute unique skills present in church
-  const uniqueSkills = useMemo(() => {
-    const set = new Set<string>();
-    members.forEach(m => {
-      if (m.primarySkill?.trim()) set.add(m.primarySkill.trim());
-      if (m.secondarySkill?.trim()) set.add(m.secondarySkill.trim());
-    });
-    return ['All', ...Array.from(set).sort()];
   }, [members]);
 
   // Filter skills for Skill Picker bottom sheet modal
@@ -519,18 +507,13 @@ May God bless you abundantly! ❤️`;
       primarySkillStr.includes(searchQuery.toLowerCase()) ||
       secondarySkillStr.includes(searchQuery.toLowerCase());
 
-    const matchesSkill = 
-      skillFilter === 'All' ||
-      (m.primarySkill && m.primarySkill.trim().toLowerCase() === skillFilter.toLowerCase()) ||
-      (m.secondarySkill && m.secondarySkill.trim().toLowerCase() === skillFilter.toLowerCase());
-
     const isActive = true; // Assuming active by default in Firebase
     const matchesStatus = 
       statusFilter === 'All' || 
       (statusFilter === 'Active' && isActive) ||
       (statusFilter === 'Inactive' && !isActive);
 
-    return matchesSearch && matchesStatus && matchesSkill;
+    return matchesSearch && matchesStatus;
   });
 
   if (loading && members.length === 0) {
@@ -646,20 +629,10 @@ May God bless you abundantly! ❤️`;
             style={[styles.filterChip, { flexDirection: 'row', alignItems: 'center', backgroundColor: villageFilter !== 'All' ? '#1a2d5a' : '#e2e8f0', marginLeft: 8, paddingHorizontal: 12 }, villageFilter !== 'All' && { borderColor: '#1a2d5a' }]}
             onPress={() => setVillageDropdownVisible(true)}
           >
-            <Text style={[styles.filterChipTxt, villageFilter !== 'All' && { color: '#fff' }, { marginRight: 4, maxWidth: 85 }]} numberOfLines={1}>
-              {villageFilter === 'All' ? 'Village' : villageFilter}
+            <Text style={[styles.filterChipTxt, villageFilter !== 'All' && { color: '#fff' }, { marginRight: 4, maxWidth: 100 }]} numberOfLines={1}>
+              {villageFilter === 'All' ? 'Village/City' : villageFilter}
             </Text>
             <ChevronDown size={14} color={villageFilter !== 'All' ? '#fff' : '#1a2d5a'} />
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.filterChip, { flexDirection: 'row', alignItems: 'center', backgroundColor: skillFilter !== 'All' ? '#1a2d5a' : '#e2e8f0', marginLeft: 6, paddingHorizontal: 12 }, skillFilter !== 'All' && { borderColor: '#1a2d5a' }]}
-            onPress={() => setSkillFilterModalVisible(true)}
-          >
-            <Briefcase size={12} color={skillFilter !== 'All' ? '#fff' : '#1a2d5a'} style={{ marginRight: 4 }} />
-            <Text style={[styles.filterChipTxt, skillFilter !== 'All' && { color: '#fff' }, { marginRight: 4, maxWidth: 85 }]} numberOfLines={1}>
-              {skillFilter === 'All' ? 'Skill' : skillFilter}
-            </Text>
-            <ChevronDown size={14} color={skillFilter !== 'All' ? '#fff' : '#1a2d5a'} />
           </TouchableOpacity>
         </View>
 
@@ -1200,67 +1173,6 @@ May God bless you abundantly! ❤️`;
               <Plus size={20} color="#1a2d5a" />
               <Text style={{ fontSize: 16, fontWeight: '600', color: '#1a2d5a', marginLeft: 12 }}>Add Member</Text>
             </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
-      {/* Skill Filter Modal */}
-      <Modal visible={skillFilterModalVisible} transparent animationType="fade" onRequestClose={() => setSkillFilterModalVisible(false)}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }} activeOpacity={1} onPress={() => setSkillFilterModalVisible(false)}>
-          <View style={{ width: '85%', maxHeight: '70%', backgroundColor: '#fff', borderRadius: 16, padding: 18, elevation: 6 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Briefcase size={18} color="#1a2d5a" style={{ marginRight: 8 }} />
-                <Text style={{ fontSize: 16, fontWeight: '800', color: '#1a2d5a' }}>Filter by Skill</Text>
-              </View>
-              <TouchableOpacity onPress={() => setSkillFilterModalVisible(false)}>
-                <X size={18} color="#6B7280" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <TouchableOpacity 
-                style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-                onPress={() => {
-                  setSkillFilter('All');
-                  setSkillFilterModalVisible(false);
-                }}
-              >
-                <Text style={{ fontSize: 14, color: skillFilter === 'All' ? '#1a2d5a' : '#4b5563', fontWeight: skillFilter === 'All' ? '800' : '500' }}>
-                  All Members (No Skill Filter)
-                </Text>
-                {skillFilter === 'All' && <Check size={16} color="#1a2d5a" />}
-              </TouchableOpacity>
-
-              {uniqueSkills.filter(s => s !== 'All').map((skill) => {
-                const count = members.filter(m => 
-                  (m.primarySkill && m.primarySkill.toLowerCase() === skill.toLowerCase()) || 
-                  (m.secondarySkill && m.secondarySkill.toLowerCase() === skill.toLowerCase())
-                ).length;
-                const isSelected = skillFilter.toLowerCase() === skill.toLowerCase();
-
-                return (
-                  <TouchableOpacity 
-                    key={skill} 
-                    style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-                    onPress={() => {
-                      setSkillFilter(skill);
-                      setSkillFilterModalVisible(false);
-                    }}
-                  >
-                    <Text style={{ fontSize: 14, color: isSelected ? '#1a2d5a' : '#4b5563', fontWeight: isSelected ? '800' : '500' }}>
-                      {skill}
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <View style={{ backgroundColor: '#F3F4F6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
-                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#6B7280' }}>{count}</Text>
-                      </View>
-                      {isSelected && <Check size={16} color="#1a2d5a" />}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>
