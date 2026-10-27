@@ -131,7 +131,31 @@ export default function UpdatesScreen({ navigation, route }: any) {
   const [meetingsList, setMeetingsList] = useState<any[]>([]);
 
   useEffect(() => {
-    const combined = [...broadcastsList, ...meetingsList].sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
+    // 1. Gather all meeting IDs from broadcastsList to prevent synthetic duplicate from meetingsList
+    const broadcastMeetingIds = new Set(
+      broadcastsList
+        .filter(b => b.meetingId || (b.type === 'online_meeting' && b.id))
+        .map(b => b.meetingId || b.id)
+    );
+
+    // Filter out synthetic meetings if a broadcast already covers this meeting
+    const filteredMeetings = meetingsList.filter(m => !broadcastMeetingIds.has(m.id));
+
+    // 2. Deduplicate repeated "Live Now" broadcasts for the exact same meeting (keeps only the latest one)
+    const seenLiveMeetingIds = new Set<string>();
+    const deduplicatedBroadcasts = broadcastsList.filter(item => {
+      const isLiveNow = item.type === 'online_meeting' && (item.title?.includes('Live Now') || item.title?.includes('Live'));
+      const mId = item.meetingId || item.id;
+      if (isLiveNow && mId) {
+        if (seenLiveMeetingIds.has(mId)) {
+          return false; // Skip older duplicate "Live Now" entry
+        }
+        seenLiveMeetingIds.add(mId);
+      }
+      return true;
+    });
+
+    const combined = [...deduplicatedBroadcasts, ...filteredMeetings].sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
     setDynamicUpdates(combined);
   }, [broadcastsList, meetingsList]);
   const [selectedUpdate, setSelectedUpdate] = useState<any | null>(null);

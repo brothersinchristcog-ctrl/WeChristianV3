@@ -406,17 +406,28 @@ export default function AdminOnlineMeetings() {
                   onPress={async () => {
                     if (selectedMeeting.meetingLink) {
                       try {
-                        await firestore().collection('churches').doc(activeChurch!.id).collection('broadcasts').add({
-                          title: `🔴 Live Now: ${selectedMeeting.title}`,
-                          content: `The online meeting has started. Tap to join!`,
-                          type: 'online_meeting',
-                          targetChurchId: activeChurch!.id,
-                          createdAt: firestore.FieldValue.serverTimestamp(),
-                          meetingId: selectedMeeting.id,
-                          url: selectedMeeting.meetingLink || '',
-                          password: selectedMeeting.password || '',
-                          silent: true
-                        });
+                        const existingLive = await firestore()
+                          .collection('churches')
+                          .doc(activeChurch!.id)
+                          .collection('broadcasts')
+                          .where('meetingId', '==', selectedMeeting.id)
+                          .where('type', '==', 'online_meeting')
+                          .limit(1)
+                          .get();
+
+                        if (existingLive.empty) {
+                          await firestore().collection('churches').doc(activeChurch!.id).collection('broadcasts').add({
+                            title: `🔴 Live Now: ${selectedMeeting.title}`,
+                            content: `The online meeting has started. Tap to join!`,
+                            type: 'online_meeting',
+                            targetChurchId: activeChurch!.id,
+                            createdAt: firestore.FieldValue.serverTimestamp(),
+                            meetingId: selectedMeeting.id,
+                            url: selectedMeeting.meetingLink || '',
+                            password: selectedMeeting.password || '',
+                            silent: true
+                          });
+                        }
                       } catch(e) { console.warn(e); }
                       
                       const isZoom = selectedMeeting.provider === 'zoom' || selectedMeeting.meetingType === 'zoom' || selectedMeeting.meetingLink.includes('zoom.us');
