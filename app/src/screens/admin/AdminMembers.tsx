@@ -737,24 +737,6 @@ May God bless you abundantly! ❤️`;
                           <Text style={styles.statusTxt}>{isActive ? 'Active' : 'Inactive'}</Text>
                         </View>
                       </View>
-                      {(() => {
-                        const mSkills = getMemberSkills(member);
-                        if (!mSkills || mSkills.length === 0) return null;
-                        return (
-                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                            {mSkills.map((sk: string, skIdx: number) => (
-                              <View key={skIdx} style={skIdx === 0 ? styles.primarySkillPill : styles.secondarySkillPill}>
-                                {skIdx === 0 ? (
-                                  <Award size={10} color="#B45309" style={{ marginRight: 3 }} />
-                                ) : (
-                                  <Sparkles size={10} color="#4338CA" style={{ marginRight: 3 }} />
-                                )}
-                                <Text style={skIdx === 0 ? styles.primarySkillPillTxt : styles.secondarySkillPillTxt} numberOfLines={1}>{sk}</Text>
-                              </View>
-                            ))}
-                          </View>
-                        );
-                      })()}
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
