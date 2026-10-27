@@ -57,6 +57,38 @@ export interface AppMember {
   skills?: string[];
 }
 
+export interface BaptismHistoryItem {
+  status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'completed';
+  note?: string;
+  changedBy?: string;
+  timestamp: string | any;
+}
+
+export interface BaptismRequest {
+  id: string;
+  churchId: string;
+  churchName?: string;
+  memberId: string;
+  memberName: string;
+  memberPhone: string;
+  dob?: string;
+  age?: number | string;
+  gender?: 'Male' | 'Female' | 'Other' | string;
+  address?: string;
+  previousBaptism?: boolean | string;
+  reason: string;
+  preferredDate?: string;
+  additionalNotes?: string;
+  status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'completed';
+  adminRemarks?: string;
+  confirmedDate?: string;
+  confirmedTime?: string;
+  confirmedLocation?: string;
+  history?: BaptismHistoryItem[];
+  createdAt: any;
+  updatedAt: any;
+}
+
 export interface FirestorePromise {
   id: string;
   date: string; // YYYY-MM-DD
@@ -3209,6 +3241,271 @@ class FirestoreService {
     } catch (e) {
       console.error('deleteAIContent error:', e);
       throw e;
+    }
+  }
+
+  // ── Baptism Requests & Approval Management ──
+
+  async createBaptismRequest(churchId: string, data: {
+    memberId: string;
+    memberName: string;
+    memberPhone: string;
+    churchName?: string;
+    dob?: string;
+    age?: number | string;
+    gender?: string;
+    address?: string;
+    previousBaptism?: boolean | string;
+    reason: string;
+    preferredDate?: string;
+    additionalNotes?: string;
+  }): Promise<{ success: boolean; id?: string; error?: string }> {
+    try {
+      const db = firestore();
+      const col = db.collection('churches').doc(churchId).collection('baptism_requests');
+      
+      const newDoc = {
+        ...data,
+        churchId,
+        status: 'pending',
+        adminRemarks: '',
+        confirmedDate: '',
+        confirmedTime: '',
+        confirmedLocation: '',
+        history: [
+          {
+            status: 'pending',
+            note: 'Baptism request submitted by member',
+            changedBy: data.memberName,
+            timestamp: new Date().toISOString()
+          }
+        ],
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
+      };
+
+      const docRef = await col.add(newDoc);
+
+      // 1. Direct in-app notification doc for admins
+      try {
+        await db.collection('churches').doc(churchId).collection('notifications').add({
+          type: 'baptism_request_admin',
+          title: `💧 New Baptism Request: ${data.memberName}`,
+          body: `${data.memberName} (${data.memberPhone}) has submitted a baptism request for ${data.preferredDate || 'upcoming schedule'}.`,
+          memberName: data.memberName,
+          memberPhone: data.memberPhone,
+          requestId: docRef.id,
+          read: false,
+          createdAt: FieldValue.serverTimestamp()
+        });
+      } catch (err) {
+        console.warn('Could not write admin baptism notification:', err);
+      }
+
+      // 2. Broadcast push trigger to admin phones
+      try {
+        const membersSnap = await db.collection('churches').doc(churchId).collection('members').get();
+        const adminPhones: string[] = [];
+        membersSnap.docs.forEach(d => {
+          const m = d.data();
+          const role = String(m.userType || '').toLowerCase();
+          if (role.includes('admin') || role.includes('pastor') || role.includes('super')) {
+            const p = m.phone || m.mobile;
+            if (p) adminPhones.push(p);
+          }
+        });
+
+        const bcastCol = db.collection('churches').doc(churchId).collection('broadcasts');
+        const uniquePhones = Array.from(new Set(adminPhones));
+        for (const phone of uniquePhones) {
+          await bcastCol.add({
+            title: `💧 New Baptism Request: ${data.memberName}`,
+            content: `${data.memberName} has requested baptism. Preferred date: ${data.preferredDate || 'TBD'}. Tap to review.`,
+            type: 'baptism_request_admin',
+            requestId: docRef.id,
+            targetPhone: phone,
+            createdAt: FieldValue.serverTimestamp()
+          });
+        }
+      } catch (bErr) {
+        console.warn('Could not trigger baptism admin push:', bErr);
+      }
+
+      return { success: true, id: docRef.id };
+    } catch (e: any) {
+      console.error('createBaptismRequest error:', e);
+      return { success: false, error: e.message || 'Failed to submit baptism request' };
+    }
+  }
+
+  async getMemberBaptismRequests(churchId: string, memberId: string, phone?: string): Promise<BaptismRequest[]> {
+    try {
+      if (!churchId) return [];
+      const db = firestore();
+      const col = db.collection('churches').doc(churchId).collection('baptism_requests');
+      const snap = await col.get();
+      const list: BaptismRequest[] = [];
+      const cleanPhone = (phone || '').replace(/\D/g, '').slice(-10);
+
+      snap.docs.forEach(doc => {
+        const d = doc.data();
+        const docPhone = (d.memberPhone || '').replace(/\D/g, '').slice(-10);
+        if (d.memberId === memberId || (cleanPhone && docPhone === cleanPhone)) {
+          list.push({
+            id: doc.id,
+            ...d
+          } as BaptismRequest);
+        }
+      });
+
+      return list.sort((a, b) => {
+        const tA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (new Date(a.createdAt || 0).getTime());
+        const tB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (new Date(b.createdAt || 0).getTime());
+        return tB - tA;
+      });
+    } catch (e) {
+      console.error('getMemberBaptismRequests error:', e);
+      return [];
+    }
+  }
+
+  async getChurchBaptismRequests(churchId: string): Promise<BaptismRequest[]> {
+    try {
+      if (!churchId) return [];
+      const db = firestore();
+      const snap = await db.collection('churches').doc(churchId).collection('baptism_requests').get();
+      const list: BaptismRequest[] = snap.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as BaptismRequest));
+
+      return list.sort((a, b) => {
+        const tA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (new Date(a.createdAt || 0).getTime());
+        const tB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (new Date(b.createdAt || 0).getTime());
+        return tB - tA;
+      });
+    } catch (e) {
+      console.error('getChurchBaptismRequests error:', e);
+      return [];
+    }
+  }
+
+  async updateBaptismRequest(
+    churchId: string, 
+    requestId: string, 
+    updates: {
+      status?: 'pending' | 'under_review' | 'approved' | 'rejected' | 'completed';
+      adminRemarks?: string;
+      confirmedDate?: string;
+      confirmedTime?: string;
+      confirmedLocation?: string;
+      historyNote?: string;
+    }, 
+    adminName: string = 'Admin'
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const db = firestore();
+      const docRef = db.collection('churches').doc(churchId).collection('baptism_requests').doc(requestId);
+      const snap = await docRef.get();
+      if (!snap.exists) {
+        return { success: false, error: 'Request not found' };
+      }
+      const existing = snap.data() || {};
+      const newStatus = updates.status || existing.status || 'pending';
+
+      const historyEntry: BaptismHistoryItem = {
+        status: newStatus,
+        note: updates.historyNote || (
+          newStatus === 'approved' 
+            ? `Approved by ${adminName}${updates.confirmedDate ? ` - Scheduled for ${updates.confirmedDate}` : ''}`
+            : newStatus === 'rejected'
+            ? `Rejected by ${adminName}${updates.adminRemarks ? `: ${updates.adminRemarks}` : ''}`
+            : newStatus === 'completed'
+            ? `Marked Completed by ${adminName}`
+            : newStatus === 'under_review'
+            ? `Marked Under Review by ${adminName}`
+            : `Updated by ${adminName}`
+        ),
+        changedBy: adminName,
+        timestamp: new Date().toISOString()
+      };
+
+      const existingHistory: BaptismHistoryItem[] = Array.isArray(existing.history) ? existing.history : [];
+      const updatedHistory = [...existingHistory, historyEntry];
+
+      const updatePayload: any = {
+        ...updates,
+        history: updatedHistory,
+        updatedAt: FieldValue.serverTimestamp()
+      };
+      delete updatePayload.historyNote;
+
+      await docRef.update(updatePayload);
+
+      // Notify Member of status change / schedule update
+      const memberPhone = existing.memberPhone;
+      const memberId = existing.memberId;
+      const memberName = existing.memberName;
+      
+      let notifTitle = `💧 Baptism Request Update`;
+      let notifBody = `Your baptism request status is now: ${newStatus.toUpperCase().replace('_', ' ')}.`;
+      
+      if (newStatus === 'approved') {
+        notifTitle = `🎉 Baptism Request Approved!`;
+        notifBody = `Congratulations ${memberName}! Your baptism has been approved.${updates.confirmedDate ? ` Scheduled for ${updates.confirmedDate}${updates.confirmedTime ? ` at ${updates.confirmedTime}` : ''}${updates.confirmedLocation ? ` at ${updates.confirmedLocation}` : ''}.` : ''}`;
+      } else if (newStatus === 'rejected') {
+        notifTitle = `Baptism Request Update`;
+        notifBody = `Your baptism request status has been updated to rejected.${updates.adminRemarks ? ` Note: ${updates.adminRemarks}` : ''}`;
+      } else if (newStatus === 'completed') {
+        notifTitle = `✝️ Baptism Completed!`;
+        notifBody = `Praise the Lord! Your baptism record has been marked as completed. God bless your spiritual walk!`;
+      } else if (newStatus === 'under_review') {
+        notifTitle = `💧 Baptism Request Under Review`;
+        notifBody = `Your baptism request is currently being reviewed by the pastoral team.`;
+      }
+
+      // 1. Direct in-app notification doc in church notifications collection
+      try {
+        await db.collection('churches').doc(churchId).collection('notifications').add({
+          type: 'baptism_request_member',
+          title: notifTitle,
+          body: notifBody,
+          targetMemberId: memberId,
+          targetPhone: memberPhone,
+          status: newStatus,
+          requestId: requestId,
+          confirmedDate: updates.confirmedDate || existing.confirmedDate || '',
+          confirmedTime: updates.confirmedTime || existing.confirmedTime || '',
+          confirmedLocation: updates.confirmedLocation || existing.confirmedLocation || '',
+          adminRemarks: updates.adminRemarks || existing.adminRemarks || '',
+          read: false,
+          createdAt: FieldValue.serverTimestamp()
+        });
+      } catch (err) {
+        console.warn('Could not write member baptism notification doc:', err);
+      }
+
+      // 2. Broadcast push targeted to member's phone
+      if (memberPhone) {
+        try {
+          await db.collection('churches').doc(churchId).collection('broadcasts').add({
+            title: notifTitle,
+            content: notifBody,
+            type: 'baptism_request_member',
+            requestId: requestId,
+            targetPhone: memberPhone,
+            targetMemberId: memberId,
+            createdAt: FieldValue.serverTimestamp()
+          });
+        } catch (bErr) {
+          console.warn('Could not trigger member baptism push broadcast:', bErr);
+        }
+      }
+
+      return { success: true };
+    } catch (e: any) {
+      console.error('updateBaptismRequest error:', e);
+      return { success: false, error: e.message || 'Failed to update baptism request' };
     }
   }
 }

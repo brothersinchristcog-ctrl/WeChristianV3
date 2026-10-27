@@ -39,7 +39,8 @@ import {
   Sparkles,
   Search,
   Briefcase,
-  Plus
+  Plus,
+  Droplets
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -622,6 +623,15 @@ export default function ProfileScreen({ navigation }: any) {
             sub={t('profile.givingHistorySub')} 
             onPress={() => {
               navigation.navigate('GivingHistory');
+            }}
+          />
+          <MenuItem 
+            icon={<Droplets size={20} color="#0284c7" />} 
+            iconBg="#e0f2fe"
+            title="Baptism Request" 
+            sub="Submit request & track approval status" 
+            onPress={() => {
+              navigation.navigate('BaptismRequest');
             }}
           />
 

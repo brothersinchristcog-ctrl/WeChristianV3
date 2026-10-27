@@ -41,7 +41,8 @@ import {
   X,
   Wand2,
   Image as ImageIcon,
-  Award
+  Award,
+  Droplets
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -86,6 +87,7 @@ import AIContentCreator from '../screens/admin/AIContentCreator';
 import AdminQuizList from '../screens/admin/quiz/AdminQuizList';
 import ChurchService from '../services/ChurchService';
 import AdminServicePlanner from '../screens/admin/AdminServicePlanner';
+import AdminBaptism from '../screens/admin/AdminBaptism';
 
 const { width } = Dimensions.get('window');
 
@@ -155,7 +157,7 @@ export default function AdminNavigator({ navigation, route }: any) {
         'Sermons', 'New Sermon', 'Songs', 'Events', 'New Event', 'Pastor Event',
         'Prayers', 'Celebrations', 'Gallery', 'Expense', 'Donations', 
         'Online Meetings', 'New Online Meeting', 'AI Sermon Assistant', 'AI Thumbnail Creation', 'AI Content Creator',
-        'WeCelebrations', 'WhatsApp', 'Bible Quiz'
+        'WeCelebrations', 'WhatsApp', 'Bible Quiz', 'Baptism'
       ];
       
       if (premiumTabs.includes(tabName) && ChurchService.isSubscriptionExpired(activeChurch)) {
@@ -233,6 +235,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     { name: 'Attendance', icon: ClipboardCheck, component: AdminAttendance },
     { name: 'Service Roster', icon: ClipboardCheck, component: AdminServicePlanner },
     { name: 'Members', icon: Users, component: AdminMembers },
+    { name: 'Baptism', icon: Droplets, component: AdminBaptism },
     { name: 'Celebrations', icon: Gift, component: AdminCelebrations },
     { name: 'Gallery', icon: ImageIcon, component: AdminGalleryNavigator },
     ...(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') ? [{ name: 'WeCelebrations', icon: Sparkles, component: AdminWeCelebrations }] : []),

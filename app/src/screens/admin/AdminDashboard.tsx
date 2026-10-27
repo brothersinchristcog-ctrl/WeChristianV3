@@ -73,6 +73,7 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'AI Content Creator': require('../../../assets/admin_cards/ai_content.jpg'),
   'Bible Quiz': require('../../../assets/admin_cards/bible_quiz.jpg'),
   'Quiz': require('../../../assets/admin_cards/bible_quiz.jpg'),
+  'Baptism': require('../../../assets/admin_cards/prayer.png'),
 };
 
 const CATEGORIES = [
@@ -86,7 +87,7 @@ const CATEGORIES = [
     title: 'Community & Members',
     icon: Users,
     color: '#581C87', // Deep Royal Purple/Eggplant for excellent contrast
-    keywords: ['Member', 'Attendance', 'Prayer']
+    keywords: ['Member', 'Attendance', 'Prayer', 'Baptism']
   },
   {
     title: 'Events & Celebrations',
