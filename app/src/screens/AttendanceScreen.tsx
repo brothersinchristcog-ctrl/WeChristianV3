@@ -194,33 +194,21 @@ export default function AttendanceScreen({ navigation, route }: any) {
     distanceText: undefined,
   });
 
-  // Immediately-marked event IDs (local set for instant UI response after scan and persisted locally)
+  // Immediately-marked event IDs (in-memory local set for instant UI response right after scan)
   const [markedEventIds, setMarkedEventIds] = useState<Set<string>>(new Set());
 
   const markEventAsAttendedLocally = useCallback((evId: string) => {
     if (!evId) return;
     setMarkedEventIds(prev => {
       if (prev.has(evId)) return prev;
-      const next = new Set([...prev, evId]);
-      if (churchId && memberId) {
-        AsyncStorage.setItem(`@attended_events_${churchId}_${memberId}`, JSON.stringify(Array.from(next))).catch(() => {});
-      }
-      return next;
+      return new Set([...prev, evId]);
     });
-  }, [churchId, memberId]);
+  }, []);
 
   useEffect(() => {
     if (!churchId || !memberId) return;
-    AsyncStorage.getItem(`@attended_events_${churchId}_${memberId}`).then((cached: string | null) => {
-      if (cached) {
-        try {
-          const ids: string[] = JSON.parse(cached);
-          if (Array.isArray(ids) && ids.length > 0) {
-            setMarkedEventIds(prev => new Set([...prev, ...ids]));
-          }
-        } catch {}
-      }
-    }).catch(() => {});
+    // Wipe any legacy persistent marked event IDs from AsyncStorage so deleted records are never revived on disk
+    AsyncStorage.removeItem(`@attended_events_${churchId}_${memberId}`).catch(() => {});
   }, [churchId, memberId]);
 
   // QR Code View Modal (for admin/sharing)
@@ -413,7 +401,7 @@ export default function AttendanceScreen({ navigation, route }: any) {
         }
       });
 
-      // Also check recent attendanceRequests responses for this member
+      // Also check recent attendanceRequests responses for this member ONLY if the event record has not been deleted
       try {
         const reqSnap = await firestore()
           .collection('churches')
@@ -439,6 +427,22 @@ export default function AttendanceScreen({ navigation, route }: any) {
             if (isDocExisting && respDoc) {
               const respData = respDoc.data();
               if (respData?.status === 'Present' || respData?.response === 'Yes') {
+                // Verify whether this event exists under events and whether the attendee was deleted there
+                const evAttDoc = await firestore()
+                  .collection('churches')
+                  .doc(churchId)
+                  .collection('events')
+                  .doc(reqDoc.id)
+                  .collection('attendees')
+                  .doc(cId)
+                  .get()
+                  .catch(() => null);
+                const evAttExists = evAttDoc && (typeof (evAttDoc as any).exists === 'function' ? (evAttDoc as any).exists() : Boolean((evAttDoc as any).exists));
+                if (evAttDoc && !evAttExists) {
+                  // Deleted from the event's attendee collection! Do NOT resurrect!
+                  continue;
+                }
+
                 if (!cleanRecords.some(r => r.eventId === reqDoc.id)) {
                   cleanRecords.push({
                     id: respDoc.id,
@@ -457,29 +461,17 @@ export default function AttendanceScreen({ navigation, route }: any) {
         }
       } catch (e) {}
 
-      // Ensure markedEventIds are registered for all verified attendance records
+      // Synchronize markedEventIds to EXACTLY the verified records from Firestore
+      const verifiedIds = new Set<string>();
       cleanRecords.forEach(r => {
-        if (r.eventId) {
-          markEventAsAttendedLocally(r.eventId);
+        if (r.eventId && r.status === 'Present') {
+          verifiedIds.add(r.eventId);
         }
       });
+      setMarkedEventIds(verifiedIds);
 
-      // Also preserve any event already marked in session / locally
-      markedEventIds.forEach(mEvId => {
-        if (!cleanRecords.some(r => r.eventId === mEvId)) {
-          const ev = allEvents.find(e => e.id === mEvId);
-          cleanRecords.push({
-            id: `local_${mEvId}`,
-            eventId: mEvId,
-            eventName: ev?.title || 'Church Event',
-            memberId: targetMemberId,
-            memberName,
-            status: 'Present',
-            timestamp: new Date(),
-            churchId,
-          } as AttendanceRecord);
-        }
-      });
+      // Do NOT synthesize fake local records for items not found in Firestore.
+      // If a record was deleted in Firebase, it must remain deleted.
 
       setAttendanceRecords(cleanRecords);
     } catch (e) {
@@ -806,28 +798,6 @@ export default function AttendanceScreen({ navigation, route }: any) {
                 }
               }
 
-              if (!isAttendedByMe && respSnap && 'docs' in respSnap && Array.isArray((respSnap as any).docs)) {
-                for (const doc of (respSnap as any).docs) {
-                  const d = doc.data();
-                  const dId = d.memberId || doc.id;
-                  const dPhone = d.memberPhone ? String(d.memberPhone).replace(/\D/g, '').slice(-10) : '';
-                  if ((dId && myIds.has(dId)) || (cleanMyPhone && dPhone && cleanMyPhone === dPhone)) {
-                    isAttendedByMe = true;
-                    userAttendeeRecord = {
-                      id: doc.id,
-                      memberId: d.memberId || memberId,
-                      memberName: d.memberName || memberName,
-                      status: 'Present',
-                      timestamp: d.respondedAt || d.submittedAt || new Date(),
-                      churchId,
-                      eventId: item.id,
-                      eventName: item.title,
-                    };
-                    break;
-                  }
-                }
-              }
-
               if (isAttendedByMe) {
                 markEventAsAttendedLocally(item.id);
                 if (userAttendeeRecord) {
@@ -836,9 +806,18 @@ export default function AttendanceScreen({ navigation, route }: any) {
                     return [userAttendeeRecord as AttendanceRecord, ...prev];
                   });
                 }
+              } else {
+                // If not attended in Firestore, actively purge from marked IDs and records
+                setMarkedEventIds(prev => {
+                  if (!prev.has(item.id)) return prev;
+                  const next = new Set(prev);
+                  next.delete(item.id);
+                  return next;
+                });
+                setAttendanceRecords(prev => prev.filter(r => r.eventId !== item.id));
               }
 
-              return { id: item.id, count: Math.max(snap.size, respSnap.size) };
+              return { id: item.id, count: snap?.size || 0 };
             } catch (e) {
               return null;
             }
@@ -869,17 +848,14 @@ export default function AttendanceScreen({ navigation, route }: any) {
   const isEventAttendanceMarked = (event: EventItem) => {
     if (!event || !event.id) return false;
 
-    // 1. Instant check — marked after a scan in the current session or stored locally
-    if (markedEventIds.has(event.id)) return true;
-
     const myIds = new Set([memberId, user?.uid, (member as any)?.sfContactId, (member as any)?.accountId].filter(Boolean));
     const cleanMyPhone = (memberPhone || user?.phoneNumber || '').replace(/\D/g, '').slice(-10);
     const myName = (memberName || '').trim().toLowerCase();
 
-    // 2. Strict check: MUST match a verified record for THIS member and THIS exact eventId
-    return attendanceRecords.some(r => {
+    // 1. Strict check: MUST match a verified record for THIS member and THIS exact eventId
+    const recordMarked = attendanceRecords.some(r => {
       // Must be present
-      if (r.status === 'Absent') return false;
+      if (r.status !== 'Present') return false;
 
       // Check specific eventId strictly: MUST match this event's unique ID
       if (!r.eventId || r.eventId !== event.id) return false;
@@ -891,11 +867,18 @@ export default function AttendanceScreen({ navigation, route }: any) {
       const rName = (r.memberName || '').trim().toLowerCase();
       if (myName && rName && (myName === rName || myName.includes(rName) || rName.includes(myName))) return true;
 
-      // If record is already in this member's filtered list and has no conflicting id
-      if (!r.memberId && !rPhone) return true;
-
       return false;
     });
+
+    if (recordMarked) return true;
+
+    // 2. Instant session check — ONLY if marked in current active session and not contradicted
+    if (markedEventIds.has(event.id)) {
+      const explicitAbsent = attendanceRecords.some(r => r.eventId === event.id && r.status === 'Absent');
+      if (!explicitAbsent) return true;
+    }
+
+    return false;
   };
 
   // Associate member check-ins with events
@@ -918,14 +901,13 @@ export default function AttendanceScreen({ navigation, route }: any) {
       }
 
       const matchedRecord = attendanceRecords.find(r => {
-        if (r.status === 'Absent') return false;
+        if (r.status !== 'Present') return false;
         if (!r.eventId || !ev.id || r.eventId !== ev.id) return false;
         if (r.memberId && myIds.has(r.memberId)) return true;
         const rPhone = r.memberPhone ? String(r.memberPhone).replace(/\D/g, '').slice(-10) : '';
         if (cleanMyPhone && rPhone && cleanMyPhone === rPhone) return true;
         const rName = (r.memberName || '').trim().toLowerCase();
         if (myName && rName && (myName === rName || myName.includes(rName) || rName.includes(myName))) return true;
-        if (!r.memberId && !rPhone) return true;
         return false;
       });
 
@@ -1357,15 +1339,17 @@ export default function AttendanceScreen({ navigation, route }: any) {
                     .collection('attendees')
                     .doc(mId)
                     .get();
-                  if (attDoc && attDoc.data()?.status !== 'Absent') {
+                  const isAttDocExists = attDoc && (typeof (attDoc as any).exists === 'function' ? (attDoc as any).exists() : Boolean((attDoc as any).exists));
+                  const attData = isAttDocExists ? attDoc.data() : null;
+                  if (isAttDocExists && attData && attData.status === 'Present') {
                     isMarked = true;
-                    markTimestamp = attDoc.data()?.timestamp || attDoc.data()?.scannedAt;
+                    markTimestamp = attData.timestamp || attData.scannedAt;
                   }
                 } catch {}
               }
 
               if (!isMarked) {
-                const rec = attendanceRecords.find(r => r.memberId === mId && r.eventId === targetEventId && r.status !== 'Absent');
+                const rec = attendanceRecords.find(r => r.memberId === mId && r.eventId === targetEventId && r.status === 'Present');
                 if (rec) {
                   isMarked = true;
                   markTimestamp = rec.timestamp;
@@ -1551,17 +1535,17 @@ export default function AttendanceScreen({ navigation, route }: any) {
                 .collection('attendees')
                 .doc(fId)
                 .get();
-              if (attDoc && (attDoc.data() !== undefined || (typeof (attDoc as any).exists === 'function' ? (attDoc as any).exists() : (attDoc as any).exists === true))) {
-                if (attDoc.data()?.status !== 'Absent') {
-                  isMarked = true;
-                  markTimestamp = attDoc.data()?.timestamp || attDoc.data()?.scannedAt;
-                }
+              const isAttDocExists = attDoc && (typeof (attDoc as any).exists === 'function' ? (attDoc as any).exists() : Boolean((attDoc as any).exists));
+              const attData = isAttDocExists ? attDoc.data() : null;
+              if (isAttDocExists && attData && attData.status === 'Present') {
+                isMarked = true;
+                markTimestamp = attData.timestamp || attData.scannedAt;
               }
             } catch {}
           }
 
           if (!isMarked) {
-            const rec = attendanceRecords.find(r => r.memberId === fId && r.eventId === targetEventId && r.status !== 'Absent');
+            const rec = attendanceRecords.find(r => r.memberId === fId && r.eventId === targetEventId && r.status === 'Present');
             if (rec) {
               isMarked = true;
               markTimestamp = rec.timestamp;

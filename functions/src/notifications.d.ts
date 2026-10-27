@@ -1,9 +1,26 @@
 /**
  * 🔔 SEND MEETING NOTIFICATION
  * Triggered when a new online meeting is scheduled in Firestore.
- * Sends a notification to the church's topic.
+ * Sends a notification to the church's topic with strict atomic deduplication to prevent 5x duplicates.
  */
 export declare const pushMeetingLive: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+    meetingId: string;
+}>>;
+/**
+ * 🛡️ DEPRECATED DUPLICATE TRIGGERS:
+ * Deployed under old names in Firebase (alertMeetingPush, sendMeetingNotification, sendMeetingPush, meetingPushV1).
+ * Replaced with no-ops here so when deployed they will NEVER send duplicate notifications.
+ */
+export declare const alertMeetingPush: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+    meetingId: string;
+}>>;
+export declare const sendMeetingNotification: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+    meetingId: string;
+}>>;
+export declare const sendMeetingPush: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
     churchId: string;
     meetingId: string;
 }>>;

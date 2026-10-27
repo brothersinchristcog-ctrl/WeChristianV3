@@ -6,29 +6,68 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 /**
  * 🔔 SEND MEETING NOTIFICATION
  * Triggered when a new online meeting is scheduled in Firestore.
- * Sends a notification to the church's topic.
+ * Sends a notification to the church's topic with strict atomic deduplication to prevent 5x duplicates.
  */
 export const pushMeetingLive = onDocumentCreated('churches/{churchId}/online_meetings/{meetingId}', async (event) => {
     const snap = event.data;
     if (!snap)
         return;
-    const meeting = snap.data();
-    const churchId = event.params.churchId;
     const meetingId = event.params.meetingId;
+    const churchId = event.params.churchId;
+    const db = getFirestore();
+    const meetingRef = snap.ref;
+    // 1. ATOMIC DEDUPLICATION: Run transaction to ensure notification is sent EXACTLY ONCE
+    let shouldSend = false;
+    try {
+        shouldSend = await db.runTransaction(async (transaction) => {
+            const freshDoc = await transaction.get(meetingRef);
+            if (!freshDoc.exists)
+                return false;
+            const data = freshDoc.data();
+            if (data?.notificationSent === true) {
+                return false;
+            }
+            transaction.update(meetingRef, {
+                notificationSent: true,
+                notificationSentAt: FieldValue.serverTimestamp(),
+            });
+            return true;
+        });
+    }
+    catch (txErr) {
+        console.warn('Transaction error checking notificationSent:', txErr);
+        // If transaction fails (e.g. concurrent race), check in-memory data
+        if (snap.data()?.notificationSent === true) {
+            return;
+        }
+        shouldSend = true;
+    }
+    if (!shouldSend) {
+        console.log(`🛑 Skipping duplicate meeting push notification for: ${meetingId}`);
+        return;
+    }
+    const meeting = snap.data();
     // Format the start time
-    const startDate = meeting.startTime.toDate();
-    const timeString = startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+    let timeString = '';
+    try {
+        if (meeting.startTime?.toDate) {
+            const startDate = meeting.startTime.toDate();
+            timeString = startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
+        }
+    }
+    catch (_) { }
+    const timeNotice = timeString ? ` for today at ${timeString}` : '';
     const payload = {
         notification: {
             title: `📅 New Online Meeting`,
-            body: `${meeting.title} has been scheduled for today at ${timeString}.`,
+            body: `${meeting.title || 'An online meeting'} has been scheduled${timeNotice}. Tap to join!`,
         },
         data: {
             type: 'online_meeting',
             meetingId: meetingId,
             churchId: churchId,
             provider: meeting.provider || '',
-            url: meeting.meetingLink || meeting.meetingUrl || '',
+            url: meeting.meetingLink || meeting.meetingUrl || meeting.url || '',
             password: meeting.password || '',
         },
         topic: `church_${churchId}`,
@@ -40,6 +79,20 @@ export const pushMeetingLive = onDocumentCreated('churches/{churchId}/online_mee
     catch (error) {
         console.error('Error sending meeting notification:', error);
     }
+});
+/**
+ * 🛡️ DEPRECATED DUPLICATE TRIGGERS:
+ * Deployed under old names in Firebase (alertMeetingPush, sendMeetingNotification, sendMeetingPush, meetingPushV1).
+ * Replaced with no-ops here so when deployed they will NEVER send duplicate notifications.
+ */
+export const alertMeetingPush = onDocumentCreated('churches/{churchId}/online_meetings/{meetingId}', async () => {
+    console.log('alertMeetingPush is deprecated; handled by pushMeetingLive');
+});
+export const sendMeetingNotification = onDocumentCreated('churches/{churchId}/online_meetings/{meetingId}', async () => {
+    console.log('sendMeetingNotification is deprecated; handled by pushMeetingLive');
+});
+export const sendMeetingPush = onDocumentCreated('churches/{churchId}/online_meetings/{meetingId}', async () => {
+    console.log('sendMeetingPush is deprecated; handled by pushMeetingLive');
 });
 /**
  * 🙏 MANDATORY NOTIFICATION: ADMIN NOTIFIED OF EVERY PRAYER REQUEST
@@ -249,7 +302,7 @@ export const monitorMeetingLive = onSchedule('* * * * *', async (event) => {
                             meetingId: meetingDoc.id,
                             churchId: churchId,
                             provider: meeting.provider || '',
-                            url: meeting.meetingUrl || '',
+                            url: meeting.meetingLink || meeting.meetingUrl || meeting.url || '',
                         },
                         topic: `church_${churchId}`,
                     };
@@ -270,7 +323,7 @@ export const monitorMeetingLive = onSchedule('* * * * *', async (event) => {
                             meetingId: meetingDoc.id,
                             churchId: churchId,
                             provider: meeting.provider || '',
-                            url: meeting.meetingUrl || '',
+                            url: meeting.meetingLink || meeting.meetingUrl || meeting.url || '',
                         },
                         topic: `church_${churchId}`,
                     };
@@ -669,6 +722,24 @@ export async function sendDailyQuizNotificationInternal(force = false) {
             return { success: false, sentCount: 0, message: `Scheduled for ${targetTime}` };
         }
     }
+    // ── ATOMIC EARLY IDEMPOTENCY GUARD ─────────────────────────────────────────
+    // Write lastBroadcastDate NOW — before any network I/O — so that any other
+    // concurrent scheduler invocation (automatedDailyQuiz / periodicDailyQuizSafetyNet
+    // / monitorMeetingLive) that reads Firestore will see today's date and exit early.
+    try {
+        const earlyLockPayload = { lastBroadcastDate: dStr, lastBroadcastAt: FieldValue.serverTimestamp() };
+        if (scheduleDocRef) {
+            await scheduleDocRef.set(earlyLockPayload, { merge: true });
+        }
+        else {
+            await db.collection('churches').doc('global').collection('settings').doc('daily_quiz_schedule').set(earlyLockPayload, { merge: true });
+        }
+        await db.collection('settings').doc('daily_quiz_schedule').set(earlyLockPayload, { merge: true });
+        console.log(`🔒 [DailyQuiz] Idempotency lock acquired for ${dStr}. Proceeding with delivery...`);
+    }
+    catch (lockErr) {
+        console.warn('[DailyQuiz] Could not acquire idempotency lock; continuing anyway:', lockErr);
+    }
     const dParts = dStr.split('-');
     const displayDateStr = dParts.length === 3 ? `${dParts[2]}-${dParts[1]}-${dParts[0]}` : dStr;
     const pushTitle = dailyConfig?.customTitle || '📖 Daily Bible Quiz is Live!';
@@ -742,37 +813,17 @@ export async function sendDailyQuizNotificationInternal(force = false) {
         }
         console.log(`✅ [DailyQuiz] Multicast push sent: ${multicastSuccess} success, ${multicastFailed} failed.`);
     }
-    // 5. Broadcast to each church topic & log in broadcasts/notifications
+    // 5. Log in broadcasts/notifications for each church (silent — push already sent via multicast above)
+    // NOTE: Topic broadcast has been intentionally REMOVED to prevent duplicate deliveries.
+    // Users subscribed to church_{churchId} topics would receive BOTH the direct multicast push
+    // AND the topic push, resulting in 2× (or more) notifications. Delivery is solely via multicast.
     try {
         const churchesSnap = await db.collection('churches').get();
         for (const cDoc of churchesSnap.docs) {
             const churchId = cDoc.id;
             if (churchId === 'global')
                 continue;
-            // Topic broadcast as secondary delivery
-            try {
-                await messaging.send({
-                    notification: { title: pushTitle, body: pushBody },
-                    data: notificationData,
-                    topic: `church_${churchId}`,
-                    android: {
-                        priority: 'high',
-                        notification: {
-                            sound: 'default',
-                            priority: 'max',
-                            channelId: 'daily_quiz',
-                        },
-                    },
-                    apns: {
-                        headers: { 'apns-priority': '10' },
-                        payload: { aps: { sound: 'default', badge: 1 } },
-                    },
-                });
-            }
-            catch (topicErr) {
-                // Continue
-            }
-            // Add to broadcasts collection
+            // Add to broadcasts collection (silent — no secondary push)
             await cDoc.ref.collection('broadcasts').add({
                 title: pushTitle,
                 content: pushBody,
@@ -801,9 +852,9 @@ export async function sendDailyQuizNotificationInternal(force = false) {
         }
     }
     catch (churchErr) {
-        console.warn('[DailyQuiz] Error broadcasting to churches:', churchErr);
+        console.warn('[DailyQuiz] Error logging to churches:', churchErr);
     }
-    // 6. Record lastBroadcastDate to prevent duplicate broadcasts today
+    // 6. Update lastBroadcastDate record with final delivery count (lock was already written at Step 0)
     try {
         const updatePayload = {
             lastBroadcastDate: dStr,
@@ -819,7 +870,7 @@ export async function sendDailyQuizNotificationInternal(force = false) {
         await db.collection('settings').doc('daily_quiz_schedule').set(updatePayload, { merge: true });
     }
     catch (recordErr) {
-        console.warn('[DailyQuiz] Error recording lastBroadcastDate:', recordErr);
+        console.warn('[DailyQuiz] Error updating lastBroadcastDate record:', recordErr);
     }
     console.log(`🎉 [DailyQuiz] Successfully delivered for ${dStr} (${multicastSuccess} devices reached)`);
     return { success: true, sentCount: multicastSuccess, message: `Delivered to ${multicastSuccess} devices` };

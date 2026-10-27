@@ -39,7 +39,8 @@ import {
   X,
   Plus,
   Sparkles,
-  QrCode
+  QrCode,
+  Repeat
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AdminTabContext } from '../../context/AdminTabContext';
@@ -65,11 +66,26 @@ const DEFAULT_EVENT_TYPES = [
 
 const RECURRING_OPTIONS = [
   { label: 'One time event', value: 'One-time event' },
+  { label: 'Every day · ప్రతిరోజూ', value: 'Every day' },
   { label: 'Every Sunday', value: 'Every Sunday' },
   { label: 'Every week (specify day)', value: 'Every week' },
   { label: 'First Sunday of every month', value: 'First Sunday' },
   { label: 'Monthly (same date)', value: 'Monthly' }
 ];
+
+const addMonthsToDate = (dStr: string, monthsToAdd: number): string => {
+  try {
+    const parts = dStr.split('-');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      const d = new Date(year, month - 1 + monthsToAdd, day);
+      return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+    }
+  } catch {}
+  return dStr;
+};
 
 const DURATION_OPTIONS = [
   { label: 'For 1 month', value: 1 },
@@ -937,7 +953,19 @@ export default function AdminEventEditor() {
             {showRecurringDropdown && (
               <View style={styles.dropdownMenu}>
                 {RECURRING_OPTIONS.map(r => (
-                  <TouchableOpacity key={r.value} style={[styles.dropdownItem, recurring === r.value && styles.dropdownItemActive]} onPress={() => { setRecurring(r.value); setShowRecurringDropdown(false); }}>
+                  <TouchableOpacity
+                    key={r.value}
+                    style={[styles.dropdownItem, recurring === r.value && styles.dropdownItemActive]}
+                    onPress={() => {
+                      setRecurring(r.value);
+                      setShowRecurringDropdown(false);
+                      if (r.value !== 'One-time event' && date) {
+                        if (endDate === date) {
+                          setEndDate(addMonthsToDate(date, recurrenceDuration || 1));
+                        }
+                      }
+                    }}
+                  >
                     <Text style={[styles.dropdownItemTxt, recurring === r.value && styles.dropdownItemTxtActive]}>{r.label}</Text>
                   </TouchableOpacity>
                 ))}
@@ -955,12 +983,46 @@ export default function AdminEventEditor() {
               {showDurationDropdown && (
                 <View style={styles.dropdownMenu}>
                   {DURATION_OPTIONS.map(o => (
-                    <TouchableOpacity key={o.value} style={[styles.dropdownItem, recurrenceDuration === o.value && styles.dropdownItemActive]} onPress={() => { setRecurrenceDuration(o.value); setShowDurationDropdown(false); }}>
+                    <TouchableOpacity
+                      key={o.value}
+                      style={[styles.dropdownItem, recurrenceDuration === o.value && styles.dropdownItemActive]}
+                      onPress={() => {
+                        setRecurrenceDuration(o.value);
+                        setShowDurationDropdown(false);
+                        if (date) {
+                          setEndDate(addMonthsToDate(date, o.value));
+                        }
+                      }}
+                    >
                       <Text style={[styles.dropdownItemTxt, recurrenceDuration === o.value && styles.dropdownItemTxtActive]}>{o.label}</Text>
                     </TouchableOpacity>
                   ))}
                 </View>
               )}
+            </View>
+          )}
+
+          {recurring !== 'One-time event' && (
+            <View style={styles.recurringInfoCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Repeat size={14} color="#0D9488" style={{ marginRight: 6 }} />
+                <View style={styles.recurringInfoBadge}>
+                  <Text style={styles.recurringInfoBadgeTxt}>
+                    {recurring === 'Every day' ? 'DAILY EVENT SERIES' : 'RECURRING EVENT SERIES'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.recurringInfoHeading}>
+                {recurring === 'Every day'
+                  ? `Repeats Every Day from ${date} to ${endDate}`
+                  : `Repeats (${recurring}) from ${date} to ${endDate}`}
+              </Text>
+              <Text style={styles.recurringInfoSub}>
+                Every day in this period will automatically be generated as its own event occurrence. Attendance is recorded independently for each day.
+              </Text>
+              <Text style={styles.recurringInfoTe}>
+                ఈ కాలంలోని ప్రతి రోజు స్వతంత్ర ఈవెంట్‌గా సృష్టించబడుతుంది మరియు ప్రతి రోజు హాజరు ప్రత్యేకంగా నమోదు చేయబడుతుంది.
+              </Text>
             </View>
           )}
         </View>
@@ -1166,9 +1228,13 @@ export default function AdminEventEditor() {
         isVisible={isDatePickerVisible}
         mode="date"
         onConfirm={(d) => {
-          setDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`);
+          const newDateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+          setDate(newDateStr);
           setDatePickerVisibility(false);
           setValidationError(null);
+          if (recurring && recurring !== 'One-time event') {
+            setEndDate(addMonthsToDate(newDateStr, recurrenceDuration || 1));
+          }
         }}
         onCancel={() => setDatePickerVisibility(false)}
       />
@@ -1948,5 +2014,46 @@ const styles = StyleSheet.create({
   },
 
   sectionHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 16 },
-  sectionHeaderText: { fontFamily: 'Outfit-Bold', fontSize: 14, fontWeight: '700' }
+  sectionHeaderText: { fontFamily: 'Outfit-Bold', fontSize: 14, fontWeight: '700' },
+
+  recurringInfoCard: {
+    backgroundColor: '#F0FDFA',
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  recurringInfoBadge: {
+    backgroundColor: '#CCFBF1',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  recurringInfoBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0F766E',
+    letterSpacing: 0.5,
+  },
+  recurringInfoHeading: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#134E4A',
+    marginBottom: 4,
+  },
+  recurringInfoSub: {
+    fontSize: 12,
+    color: '#0F766E',
+    lineHeight: 17,
+    fontWeight: '500',
+  },
+  recurringInfoTe: {
+    fontSize: 11,
+    color: '#115E59',
+    lineHeight: 16,
+    marginTop: 3,
+    fontWeight: '600',
+  }
 });

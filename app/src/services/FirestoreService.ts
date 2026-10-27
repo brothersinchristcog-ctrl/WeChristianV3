@@ -2324,22 +2324,46 @@ class FirestoreService {
     }
   }
 
-  private generateRecurringDates(startDateStr: string, recurringType: string, monthsAhead: number = 12): string[] {
+  private generateRecurringDates(
+    startDateStr: string,
+    recurringType: string,
+    monthsAhead: number = 1,
+    explicitEndDateStr?: string
+  ): string[] {
     const dates: string[] = [];
+    if (!startDateStr) return dates;
+
     const [year, month, day] = startDateStr.split('-').map(Number);
-    // Note: JavaScript months are 0-indexed
     let current = new Date(year, month - 1, day);
-    const endDate = new Date(year, month - 1 + Number(monthsAhead), day);
-    
-    while (current <= endDate) {
+
+    // If an explicit end date is given and is after start date, use that as the series bound
+    let targetEndDate: Date;
+    if (explicitEndDateStr && explicitEndDateStr > startDateStr) {
+      const [ey, em, ed] = explicitEndDateStr.split('-').map(Number);
+      targetEndDate = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+    } else {
+      // Fallback: use monthsAhead (defaults to 1 month)
+      const durationMonths = Number(monthsAhead) > 0 ? Number(monthsAhead) : 1;
+      targetEndDate = new Date(year, month - 1 + durationMonths, day, 23, 59, 59, 999);
+    }
+
+    const typeLower = (recurringType || '').toLowerCase().trim();
+    const MAX_OCCURRENCES = 366; // Safety ceiling to prevent unbounded loops
+
+    while (current <= targetEndDate && dates.length < MAX_OCCURRENCES) {
       const y = current.getFullYear();
       const m = String(current.getMonth() + 1).padStart(2, '0');
       const d = String(current.getDate()).padStart(2, '0');
       dates.push(`${y}-${m}-${d}`);
-      
-      const typeLower = (recurringType || '').toLowerCase();
 
-      if (typeLower.includes('week') || typeLower.includes('every sunday')) {
+      if (
+        typeLower.includes('daily') ||
+        typeLower.includes('every day') ||
+        typeLower.includes('everyday') ||
+        typeLower === 'daily'
+      ) {
+        current.setDate(current.getDate() + 1);
+      } else if (typeLower.includes('week') || typeLower.includes('every sunday')) {
         current.setDate(current.getDate() + 7);
       } else if (typeLower.includes('monthly') || typeLower === 'month') {
         current.setMonth(current.getMonth() + 1);
@@ -2349,8 +2373,6 @@ class FirestoreService {
         while (current.getDay() !== 0) {
           current.setDate(current.getDate() + 1);
         }
-      } else if (typeLower.includes('daily') || typeLower.includes('every day')) {
-        current.setDate(current.getDate() + 1);
       } else {
         console.warn(`[FirestoreService] Unsupported recurrence type: ${recurringType}`);
         break; // Unsupported recurrence type
@@ -2373,17 +2395,30 @@ class FirestoreService {
         // UPDATING EXISTING
         if (cleanData.recurringGroupId && updateMode === 'future') {
            const allDocs = await col.where('recurringGroupId', '==', cleanData.recurringGroupId).get();
-           const batch = firestore().batch();
-           allDocs.docs.forEach(doc => {
-             const oldData = doc.data();
-             if (oldData.date >= (cleanData.date as string)) {
+           const docsToUpdate = allDocs.docs.filter(d => (d.data().date || '') >= (cleanData.date as string));
+
+           const BATCH_SIZE = 400;
+           for (let i = 0; i < docsToUpdate.length; i += BATCH_SIZE) {
+             const chunk = docsToUpdate.slice(i, i + BATCH_SIZE);
+             const batch = firestore().batch();
+             chunk.forEach(doc => {
+               const oldData = doc.data();
                const docRef = col.doc(doc.id);
-               // Preserve the original specific date of the future occurrence
-               const updatePayload = { ...cleanData, date: oldData.date, id: doc.id, updatedAt: FieldValue.serverTimestamp() };
+               // Preserve the occurrence-specific date and endDate
+               const updatePayload = { 
+                 ...cleanData, 
+                 date: oldData.date, 
+                 endDate: oldData.endDate || oldData.date,
+                 seriesStartDate: oldData.seriesStartDate || cleanData.seriesStartDate,
+                 seriesEndDate: oldData.seriesEndDate || cleanData.seriesEndDate,
+                 recurringGroupId: cleanData.recurringGroupId,
+                 id: doc.id, 
+                 updatedAt: FieldValue.serverTimestamp() 
+               };
                batch.set(docRef, updatePayload, { merge: true });
-             }
-           });
-           await batch.commit();
+             });
+             await batch.commit();
+           }
            return cleanData.id;
         } else {
            await col.doc(cleanData.id as string).set({ ...cleanData, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
@@ -2398,24 +2433,69 @@ class FirestoreService {
           cleanData.recurringGroupId = groupId;
           
           const monthsAhead = (cleanData.recurrenceDuration as number) || 1;
-          const futureDates = this.generateRecurringDates(cleanData.date as string, cleanData.recurring as string, monthsAhead);
-          const batch = firestore().batch();
-          
-          let firstId = '';
-          futureDates.forEach((dateStr, index) => {
-            const docRef = col.doc();
-            if (index === 0) firstId = docRef.id;
-            
-            const instanceData = { 
-              ...cleanData, 
-              id: docRef.id, 
-              date: dateStr, 
-              createdAt: FieldValue.serverTimestamp() 
+          const explicitEndDateStr = cleanData.endDate as string | undefined;
+          const futureDates = this.generateRecurringDates(
+            cleanData.date as string, 
+            cleanData.recurring as string, 
+            monthsAhead,
+            explicitEndDateStr
+          );
+
+          // Check if single occurrence spans overnight
+          let spansOvernight = false;
+          if (cleanData.startTime && cleanData.endTime) {
+            const getMinutes = (t: string) => {
+              try {
+                if (t.includes('Z') || t.includes(':')) {
+                  const parts = t.replace('Z', '').split(':').map(Number);
+                  return (parts[0] || 0) * 60 + (parts[1] || 0);
+                }
+                return 0;
+              } catch { return 0; }
             };
-            batch.set(docRef, instanceData);
-          });
-          
-          await batch.commit();
+            const sM = getMinutes(cleanData.startTime as string);
+            const eM = getMinutes(cleanData.endTime as string);
+            if (eM < sM) spansOvernight = true;
+          }
+
+          let firstId = '';
+          const BATCH_SIZE = 400;
+          for (let i = 0; i < futureDates.length; i += BATCH_SIZE) {
+            const chunk = futureDates.slice(i, i + BATCH_SIZE);
+            const batch = firestore().batch();
+
+            chunk.forEach((dateStr, indexInChunk) => {
+              const docRef = col.doc();
+              if (i === 0 && indexInChunk === 0) firstId = docRef.id;
+
+              let occurrenceEndDate = dateStr;
+              if (spansOvernight) {
+                const [cy, cm, cd] = dateStr.split('-').map(Number);
+                const nextD = new Date(cy, cm - 1, cd + 1);
+                const ny = nextD.getFullYear();
+                const nm = String(nextD.getMonth() + 1).padStart(2, '0');
+                const nd = String(nextD.getDate()).padStart(2, '0');
+                occurrenceEndDate = `${ny}-${nm}-${nd}`;
+              }
+
+              const instanceData = { 
+                ...cleanData, 
+                id: docRef.id, 
+                date: dateStr, 
+                endDate: occurrenceEndDate,
+                seriesStartDate: cleanData.date,
+                seriesEndDate: explicitEndDateStr && explicitEndDateStr > (cleanData.date as string) ? explicitEndDateStr : futureDates[futureDates.length - 1],
+                recurringGroupId: groupId,
+                occurrenceIndex: i + indexInChunk + 1,
+                totalOccurrences: futureDates.length,
+                createdAt: FieldValue.serverTimestamp() 
+              };
+              batch.set(docRef, instanceData);
+            });
+
+            await batch.commit();
+          }
+
           return firstId;
         } else {
           const docRef = await col.add({ ...cleanData, createdAt: FieldValue.serverTimestamp() });
@@ -2434,18 +2514,18 @@ class FirestoreService {
       if (deleteMode === 'future') {
         const doc = await col.doc(id).get();
         const data = doc.data();
-        if (data) {
-          if (data.recurringGroupId) {
-             const allDocs = await col.where('recurringGroupId', '==', data.recurringGroupId).get();
-             const batch = firestore().batch();
-             allDocs.docs.forEach(d => {
-               if (d.data().date >= data.date) {
-                 batch.delete(d.ref);
-               }
-             });
-             await batch.commit();
-             return true;
+        if (data && data.recurringGroupId) {
+          const allDocs = await col.where('recurringGroupId', '==', data.recurringGroupId).get();
+          const docsToDelete = allDocs.docs.filter(d => (d.data().date || '') >= data.date);
+
+          const BATCH_SIZE = 400;
+          for (let i = 0; i < docsToDelete.length; i += BATCH_SIZE) {
+            const chunk = docsToDelete.slice(i, i + BATCH_SIZE);
+            const batch = firestore().batch();
+            chunk.forEach(d => batch.delete(d.ref));
+            await batch.commit();
           }
+          return true;
         }
       }
       

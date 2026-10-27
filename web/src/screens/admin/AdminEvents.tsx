@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, deleteDoc, setDoc, writeBatch } from 'firebase/firestore';
 
 const DEFAULT_EVENT_TYPES = [
   { label: 'Sunday Service', value: 'Sunday Service' },
@@ -19,6 +19,7 @@ const DEFAULT_EVENT_TYPES = [
 
 const RECURRING_OPTIONS = [
   { label: 'One-time event', value: 'One-time event' },
+  { label: 'Every day', value: 'Every day' },
   { label: 'Every Sunday', value: 'Every Sunday' },
   { label: 'Every week', value: 'Every week' },
   { label: 'First Sunday', value: 'First Sunday' },
@@ -191,8 +192,56 @@ export default function AdminEventsPage() {
       if (editingEvent?.id) {
         await setDoc(doc(db, 'churches', churchId, 'events', editingEvent.id), payload, { merge: true });
       } else {
-        const newRef = doc(collection(db, 'churches', churchId, 'events'));
-        await setDoc(newRef, { ...payload, id: newRef.id, createdAt: new Date().toISOString() });
+        const isRecurring = form.recurring && form.recurring !== 'One-time event';
+        if (isRecurring) {
+          const groupId = `req_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+          const [year, month, day] = form.date.split('-').map(Number);
+          let current = new Date(year, month - 1, day);
+          let targetEnd: Date;
+          if (form.endDate && form.endDate > form.date) {
+            const [ey, em, ed] = form.endDate.split('-').map(Number);
+            targetEnd = new Date(ey, em - 1, ed, 23, 59, 59);
+          } else {
+            targetEnd = new Date(year, month - 1 + Number(form.recurrenceDuration || 1), day, 23, 59, 59);
+          }
+          const dates: string[] = [];
+          const typeLower = (form.recurring || '').toLowerCase();
+          while (current <= targetEnd && dates.length < 366) {
+            const y = current.getFullYear();
+            const m = String(current.getMonth() + 1).padStart(2, '0');
+            const d = String(current.getDate()).padStart(2, '0');
+            dates.push(`${y}-${m}-${d}`);
+            if (typeLower.includes('daily') || typeLower.includes('every day')) {
+              current.setDate(current.getDate() + 1);
+            } else if (typeLower.includes('week') || typeLower.includes('every sunday')) {
+              current.setDate(current.getDate() + 7);
+            } else if (typeLower.includes('monthly')) {
+              current.setMonth(current.getMonth() + 1);
+            } else {
+              break;
+            }
+          }
+          const batch = writeBatch(db);
+          dates.forEach((dateStr, idx) => {
+            const newRef = doc(collection(db, 'churches', churchId, 'events'));
+            batch.set(newRef, {
+              ...payload,
+              id: newRef.id,
+              date: dateStr,
+              endDate: dateStr,
+              seriesStartDate: form.date,
+              seriesEndDate: form.endDate,
+              recurringGroupId: groupId,
+              occurrenceIndex: idx + 1,
+              totalOccurrences: dates.length,
+              createdAt: new Date().toISOString()
+            });
+          });
+          await batch.commit();
+        } else {
+          const newRef = doc(collection(db, 'churches', churchId, 'events'));
+          await setDoc(newRef, { ...payload, id: newRef.id, createdAt: new Date().toISOString() });
+        }
       }
 
       await fetchEvents();

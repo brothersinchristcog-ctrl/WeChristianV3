@@ -437,6 +437,7 @@ export default function AdminOnlineMeetingEditor() {
         startTime: firestore.Timestamp.fromDate(form.startTime),
         endTime: firestore.Timestamp.fromDate(form.endTime),
         status: 'upcoming',
+        notificationSent: false,
         createdAt: firestore.FieldValue.serverTimestamp()
       };
 
@@ -459,13 +460,14 @@ export default function AdminOnlineMeetingEditor() {
           const timeStr = form.startTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
           const passNotice = form.password ? ` (Passcode: ${form.password})` : '';
           await firestore().collection('churches').doc(activeChurch.id).collection('broadcasts').add({
-            title: `🎥 New Online Meeting`,
+            title: `📅 New Online Meeting`,
             content: `${form.title} has been scheduled for today at ${timeStr}.${passNotice}`,
             type: 'online_meeting',
             targetChurchId: activeChurch.id,
             createdAt: firestore.FieldValue.serverTimestamp(),
             meetingId: meetingRef.id,
             url: form.meetingLink || '',
+            meetingLink: form.meetingLink || '',
             password: form.password || '',
             silent: true
           });

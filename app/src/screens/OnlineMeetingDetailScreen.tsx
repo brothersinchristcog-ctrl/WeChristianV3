@@ -31,78 +31,103 @@ export default function OnlineMeetingDetailScreen({ navigation, route }: any) {
   const mutedText = isDark ? '#94a3b8' : '#64748b';
 
   useEffect(() => {
-    if (!activeChurch?.id || !meeting?.id || !member?.id) {
+    const churchId = activeChurch?.id || meeting?.churchId || member?.churchId;
+    const attendeeId = user?.uid || member?.id;
+    if (!churchId || !meeting?.id || !attendeeId) {
       setLoading(false);
       return;
     }
 
     const unsubscribe = firestore()
       .collection('churches')
-      .doc(activeChurch.id)
+      .doc(churchId)
       .collection('online_meetings')
       .doc(meeting.id)
       .collection('attendees')
-      .doc(member.id)
+      .doc(attendeeId)
       .onSnapshot((doc) => {
         setHasJoined(doc.exists);
         setLoading(false);
       }, (error) => {
-        console.error("Attendance listener error:", error);
+        console.warn("Attendance listener warning:", error);
         setLoading(false);
       });
 
     return () => unsubscribe();
-  }, [activeChurch?.id, meeting?.id, member?.id]);
+  }, [activeChurch?.id, meeting?.id, meeting?.churchId, member?.id, member?.churchId, user?.uid]);
 
   const handleJoin = async () => {
-    if (!activeChurch?.id || !meeting?.id || !member?.id) return;
-    
+    const rawLink = meeting?.meetingLink || meeting?.meetingUrl || meeting?.url || meeting?.link || '';
+    if (!rawLink || !rawLink.trim()) {
+      Alert.alert(t('meetings.alerts.noLinkTitle'), t('meetings.alerts.noLinkMsg'));
+      return;
+    }
+
+    let cleanUrl = rawLink.trim();
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = `https://${cleanUrl}`;
+    }
+
+    // 1. Immediately launch the meeting so the member is NEVER blocked
+    const isZoom = meeting?.provider === 'zoom' || meeting?.meetingType === 'zoom' || cleanUrl.includes('zoom.us');
     try {
-      await firestore()
+      if (isZoom) {
+        await openZoomMeeting({
+          meetingLink: cleanUrl,
+          meetingId: meeting?.meetingId,
+          password: meeting?.password,
+          userName: member?.name || user?.displayName || 'Church Member'
+        });
+      } else {
+        const canOpen = await Linking.canOpenURL(cleanUrl).catch(() => true);
+        if (canOpen) {
+          await Linking.openURL(cleanUrl);
+        } else {
+          Alert.alert('Cannot Open Link', `Unable to open: ${cleanUrl}`);
+        }
+      }
+    } catch (launchErr: any) {
+      console.error('Failed to open meeting URL:', launchErr);
+      Alert.alert('Error', 'Could not open meeting link. Please make sure Google Meet or a web browser is installed.');
+    }
+
+    // 2. Record attendance in Firestore in background (non-blocking)
+    const churchId = activeChurch?.id || meeting?.churchId || member?.churchId;
+    const attendeeId = user?.uid || member?.id;
+    if (churchId && meeting?.id && attendeeId) {
+      firestore()
         .collection('churches')
-        .doc(activeChurch.id)
+        .doc(churchId)
         .collection('online_meetings')
         .doc(meeting.id)
         .collection('attendees')
-        .doc(member.id)
+        .doc(attendeeId)
         .set({
-          name: member.name || user?.displayName || 'Unknown Member',
-          profilePhoto: (member as any).profilePhoto || (member as any).photoURL || user?.photoURL || null,
+          name: member?.name || user?.displayName || 'Church Member',
+          profilePhoto: (member as any)?.profilePhoto || (member as any)?.photoURL || user?.photoURL || null,
           joinedAt: firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-        
-      if (meeting.meetingLink) {
-        const isZoom = meeting.provider === 'zoom' || meeting.meetingType === 'zoom' || meeting.meetingLink.includes('zoom.us');
-        if (isZoom) {
-          await openZoomMeeting({
-            meetingLink: meeting.meetingLink,
-            meetingId: meeting.meetingId,
-            password: meeting.password,
-            userName: member?.name || user?.displayName || 'Church Member'
-          });
-        } else {
-          Linking.openURL(meeting.meetingLink);
-        }
-      } else {
-        Alert.alert(t('meetings.alerts.noLinkTitle'), t('meetings.alerts.noLinkMsg'));
-      }
-    } catch (e) {
-      console.log('Attendance log error:', e);
-      Alert.alert(t('common.error'), t('meetings.alerts.joinError'));
+        }, { merge: true })
+        .then(() => setHasJoined(true))
+        .catch((e) => {
+          console.warn('Attendance log notice (non-fatal):', e);
+        });
     }
   };
 
   const handleLeave = async () => {
-    if (!activeChurch?.id || !meeting?.id || !member?.id) return;
+    const churchId = activeChurch?.id || meeting?.churchId || member?.churchId;
+    const attendeeId = user?.uid || member?.id;
+    if (!churchId || !meeting?.id || !attendeeId) return;
     try {
       await firestore()
         .collection('churches')
-        .doc(activeChurch.id)
+        .doc(churchId)
         .collection('online_meetings')
         .doc(meeting.id)
         .collection('attendees')
-        .doc(member.id)
+        .doc(attendeeId)
         .delete();
+      setHasJoined(false);
     } catch (e) {
       console.log('Leave error:', e);
       Alert.alert(t('common.error'), t('meetings.alerts.leaveError'));

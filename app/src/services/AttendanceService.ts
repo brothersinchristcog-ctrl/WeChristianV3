@@ -311,31 +311,44 @@ class AttendanceService {
         });
       });
 
-      // Backward compatibility fallback: check attendanceRequests subcollection if empty
+      // Backward compatibility fallback: ONLY check attendanceRequests if this is NOT an event document in 'events'
       if (records.length === 0) {
         try {
-          const reqResponses = await firestore()
+          const evDocSnap = await firestore()
             .collection('churches')
             .doc(churchId)
-            .collection('attendanceRequests')
+            .collection('events')
             .doc(eventId)
-            .collection('responses')
-            .get();
+            .get()
+            .catch(() => null);
+          const evExists = evDocSnap && (typeof (evDocSnap as any).exists === 'function' ? (evDocSnap as any).exists() : Boolean((evDocSnap as any).exists));
 
-          reqResponses.forEach((doc) => {
-            const d = doc.data();
-            records.push({
-              id: doc.id,
-              memberId: d.memberId || doc.id,
-              memberName: d.memberName || 'Unknown Member',
-              memberPhone: d.memberPhone || '',
-              status: d.response === 'No' ? 'Absent' : 'Present',
-              timestamp: d.respondedAt || d.createdAt || null,
-              method: 'SELF_CHECKIN',
-              churchId,
-              eventId,
+          // If the event exists in 'events', its attendees subcollection is the source of truth.
+          // We do NOT resurrect deleted records from attendanceRequests for real events.
+          if (!evExists) {
+            const reqResponses = await firestore()
+              .collection('churches')
+              .doc(churchId)
+              .collection('attendanceRequests')
+              .doc(eventId)
+              .collection('responses')
+              .get();
+
+            reqResponses.forEach((doc) => {
+              const d = doc.data();
+              records.push({
+                id: doc.id,
+                memberId: d.memberId || doc.id,
+                memberName: d.memberName || 'Unknown Member',
+                memberPhone: d.memberPhone || '',
+                status: d.response === 'No' ? 'Absent' : 'Present',
+                timestamp: d.respondedAt || d.createdAt || null,
+                method: 'SELF_CHECKIN',
+                churchId,
+                eventId,
+              });
             });
-          });
+          }
         } catch {
           // Silent fallback
         }
@@ -505,13 +518,15 @@ class AttendanceService {
       }
 
       // Concurrent parallel writes for ultra-fast performance
+      const recordDocId = `${eventId}_${memberId}`;
       await Promise.allSettled([
         attendeeDocRef.set(recordData),
         firestore()
           .collection('churches')
           .doc(churchId)
           .collection('attendanceRecords')
-          .add(recordData)
+          .doc(recordDocId)
+          .set({ ...recordData, id: recordDocId })
           .catch((e: any) => {
             console.warn('[AttendanceService] Note writing to church attendanceRecords:', e?.message);
           }),
@@ -545,7 +560,8 @@ class AttendanceService {
     if (!churchId || !eventId || !memberId) return { success: false };
 
     try {
-      await Promise.allSettled([
+      const recordDocId = `${eventId}_${memberId}`;
+      const deletePromises: Promise<any>[] = [
         firestore()
           .collection('churches')
           .doc(churchId)
@@ -562,7 +578,30 @@ class AttendanceService {
           .collection('responses')
           .doc(memberId)
           .delete(),
-      ]);
+        firestore()
+          .collection('churches')
+          .doc(churchId)
+          .collection('attendanceRecords')
+          .doc(recordDocId)
+          .delete()
+          .catch(() => {}),
+      ];
+
+      // Also clean up any legacy auto-ID records in attendanceRecords
+      try {
+        const legacySnap = await firestore()
+          .collection('churches')
+          .doc(churchId)
+          .collection('attendanceRecords')
+          .where('eventId', '==', eventId)
+          .where('memberId', '==', memberId)
+          .get();
+        legacySnap.forEach(doc => {
+          deletePromises.push(doc.ref.delete().catch(() => {}));
+        });
+      } catch {}
+
+      await Promise.allSettled(deletePromises);
       return { success: true };
     } catch (e) {
       console.warn('[AttendanceService] Error removing attendee:', e);
@@ -590,14 +629,36 @@ class AttendanceService {
           .limit(60)
           .get();
 
-        snap.forEach((doc) => {
+        for (const doc of snap.docs) {
           const d = doc.data();
-          if (d.eventId) seenEventIds.add(d.eventId);
+          if (d.status === 'Absent') continue;
+
+          if (d.eventId) {
+            // Verify if the event's attendee doc still exists or if it was deleted in Firebase
+            const attDoc = await firestore()
+              .collection('churches')
+              .doc(churchId)
+              .collection('events')
+              .doc(d.eventId)
+              .collection('attendees')
+              .doc(memberId)
+              .get()
+              .catch(() => null);
+
+            const isAttExists = attDoc && (typeof (attDoc as any).exists === 'function' ? (attDoc as any).exists() : Boolean((attDoc as any).exists));
+            if (attDoc && !isAttExists) {
+              // The attendee doc was deleted in Firebase! Clean up orphaned attendanceRecord
+              doc.ref.delete().catch(() => {});
+              continue;
+            }
+            seenEventIds.add(d.eventId);
+          }
+
           list.push({
             id: doc.id,
             ...d,
           } as AttendanceRecord);
-        });
+        }
       } catch (recErr) {
         console.warn('[AttendanceService] Note querying attendanceRecords:', recErr);
       }
@@ -631,13 +692,12 @@ class AttendanceService {
             .catch(() => null);
 
           const isDocExisting = attendeeDoc && (
-            (typeof (attendeeDoc as any).exists === 'function' ? (attendeeDoc as any).exists() : Boolean((attendeeDoc as any).exists)) ||
-            attendeeDoc.data() !== undefined
+            typeof (attendeeDoc as any).exists === 'function' ? (attendeeDoc as any).exists() : Boolean((attendeeDoc as any).exists)
           );
 
           if (isDocExisting && attendeeDoc) {
             const aData = attendeeDoc.data();
-            if (aData && aData.status !== 'Absent') {
+            if (aData && aData.status === 'Present') {
               seenEventIds.add(evDoc.id);
               list.push({
                 id: attendeeDoc.id,
@@ -673,7 +733,7 @@ class AttendanceService {
               if (!phoneSnap.empty) {
                 const doc = phoneSnap.docs[0];
                 const aData = doc.data();
-                if (aData && aData.status !== 'Absent') {
+                if (aData && aData.status === 'Present') {
                   seenEventIds.add(evDoc.id);
                   list.push({
                     id: doc.id,
@@ -736,6 +796,8 @@ class AttendanceService {
 
         for (const doc of snap.docs) {
           const d = doc.data();
+          if (d.status === 'Absent') continue;
+
           let recDate: Date | null = null;
           if (d.timestamp?.toDate) {
             recDate = d.timestamp.toDate();
@@ -751,6 +813,25 @@ class AttendanceService {
             recDate.getMonth() === todayM &&
             recDate.getDate() === todayD
           ) {
+            // Verify that the attendee record still exists under the event (not deleted in Firebase)
+            if (d.eventId) {
+              const attDoc = await firestore()
+                .collection('churches')
+                .doc(churchId)
+                .collection('events')
+                .doc(d.eventId)
+                .collection('attendees')
+                .doc(memberId)
+                .get()
+                .catch(() => null);
+
+              const isAttExists = attDoc && (typeof (attDoc as any).exists === 'function' ? (attDoc as any).exists() : Boolean((attDoc as any).exists));
+              if (attDoc && !isAttExists) {
+                doc.ref.delete().catch(() => {});
+                continue;
+              }
+            }
+
             return { isPresent: true, record: { id: doc.id, ...d } as AttendanceRecord };
           }
         }
@@ -773,24 +854,27 @@ class AttendanceService {
           .get()
           .catch(() => null);
 
-        if (genDoc && (genDoc.data() !== undefined || (typeof (genDoc as any).exists === 'function' ? (genDoc as any).exists() : (genDoc as any).exists === true))) {
+        const isGenExists = genDoc && (typeof (genDoc as any).exists === 'function' ? (genDoc as any).exists() : Boolean((genDoc as any).exists));
+        if (isGenExists && genDoc) {
           const d = genDoc.data();
-          let recDate: Date | null = null;
-          if (d?.timestamp?.toDate) {
-            recDate = d.timestamp.toDate();
-          } else if (d?.timestamp?.seconds) {
-            recDate = new Date(d.timestamp.seconds * 1000);
-          } else if (d?.timestamp || d?.scannedAt) {
-            recDate = new Date(d.timestamp || d.scannedAt);
-          }
+          if (d?.status === 'Present') {
+            let recDate: Date | null = null;
+            if (d?.timestamp?.toDate) {
+              recDate = d.timestamp.toDate();
+            } else if (d?.timestamp?.seconds) {
+              recDate = new Date(d.timestamp.seconds * 1000);
+            } else if (d?.timestamp || d?.scannedAt) {
+              recDate = new Date(d.timestamp || d.scannedAt);
+            }
 
-          if (
-            recDate &&
-            recDate.getFullYear() === todayY &&
-            recDate.getMonth() === todayM &&
-            recDate.getDate() === todayD
-          ) {
-            return { isPresent: true, record: { id: genDoc.id, ...d } as AttendanceRecord };
+            if (
+              recDate &&
+              recDate.getFullYear() === todayY &&
+              recDate.getMonth() === todayM &&
+              recDate.getDate() === todayD
+            ) {
+              return { isPresent: true, record: { id: genDoc.id, ...d } as AttendanceRecord };
+            }
           }
         }
       } catch {

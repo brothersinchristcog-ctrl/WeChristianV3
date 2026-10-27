@@ -4,7 +4,7 @@ import { ChevronLeft, ArrowLeft, Bell, Calendar, Info, MessageCircle, AlertTrian
 import { openZoomMeeting } from '../utils/ZoomLauncher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { 
+import firestore, { 
   getFirestore, 
   collection, 
   query, 
@@ -244,7 +244,11 @@ export default function UpdatesScreen({ navigation, route }: any) {
             let color = '#3b82f6';
             let resolvedType = data.type || 'announcement';
 
-            if (data.type === 'youtube_live' || data.type === 'live' || data.title?.includes('🎥')) {
+            if (data.type === 'online_meeting') {
+              icon = Video;
+              color = '#3b82f6';
+              resolvedType = 'online_meeting';
+            } else if (data.type === 'youtube_live' || data.type === 'live' || (data.title?.includes('🎥') && !data.title?.toLowerCase().includes('online meeting') && !data.title?.toLowerCase().includes('google meet') && !data.title?.toLowerCase().includes('zoom'))) {
               icon = Tv;
               color = '#ef4444';
               resolvedType = 'youtube_live';
@@ -746,15 +750,60 @@ export default function UpdatesScreen({ navigation, route }: any) {
 
                     <TouchableOpacity
                       style={[styles.joinLiveBtn, { backgroundColor: '#10B981' }]}
-                      onPress={() => {
-                        const url = selectedUpdate.url || '';
+                      onPress={async () => {
+                        const rawLink = selectedUpdate.url || selectedUpdate.meetingLink || selectedUpdate.link || '';
                         const pwd = selectedUpdate.password || '';
                         setSelectedUpdate(null);
-                        openZoomMeeting({
-                          meetingLink: url,
-                          password: pwd,
-                          userName: (member?.name || user?.displayName) || undefined
-                        });
+
+                        if (!rawLink || !rawLink.trim()) {
+                          Alert.alert('No Meeting Link', 'Meeting link is not available.');
+                          return;
+                        }
+
+                        let cleanUrl = rawLink.trim();
+                        if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+                          cleanUrl = `https://${cleanUrl}`;
+                        }
+
+                        const churchId = activeChurch?.id || selectedUpdate.churchId || member?.churchId;
+                        const attendeeId = user?.uid || member?.id;
+                        if (churchId && selectedUpdate.meetingId && attendeeId) {
+                          firestore()
+                            .collection('churches')
+                            .doc(churchId)
+                            .collection('online_meetings')
+                            .doc(selectedUpdate.meetingId)
+                            .collection('attendees')
+                            .doc(attendeeId)
+                            .set({
+                              name: member?.name || user?.displayName || 'Church Member',
+                              profilePhoto: (member as any)?.profilePhoto || (member as any)?.photoURL || user?.photoURL || null,
+                              joinedAt: firestore.FieldValue.serverTimestamp()
+                            }, { merge: true })
+                            .catch(() => {});
+                        }
+
+                        const isZoom = cleanUrl.includes('zoom.us') || selectedUpdate.provider === 'zoom' || selectedUpdate.meetingType === 'zoom';
+                        try {
+                          if (isZoom) {
+                            await openZoomMeeting({
+                              meetingLink: cleanUrl,
+                              meetingId: selectedUpdate.meetingId,
+                              password: pwd,
+                              userName: (member?.name || user?.displayName) || undefined
+                            });
+                          } else {
+                            const canOpen = await Linking.canOpenURL(cleanUrl).catch(() => true);
+                            if (canOpen) {
+                              await Linking.openURL(cleanUrl);
+                            } else {
+                              Alert.alert('Error', `Cannot open meeting link: ${cleanUrl}`);
+                            }
+                          }
+                        } catch (err) {
+                          console.error('Could not open meeting link', err);
+                          Alert.alert('Error', 'Could not open meeting link. Please make sure Google Meet or a browser is installed.');
+                        }
                       }}
                     >
                       <Text style={styles.joinLiveBtnTxt}>🎥 ● Join Live Stream</Text>

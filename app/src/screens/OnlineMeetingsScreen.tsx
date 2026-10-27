@@ -32,6 +32,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
 import { useLanguage } from '../context/LanguageContext';
+import { openZoomMeeting } from '../utils/ZoomLauncher';
 
 const SHOW_YOUTUBE_LIVE = false;
 
@@ -129,6 +130,58 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
     dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
   const formatTime = (dt: Date) =>
     dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const handleDirectJoin = async (item: any) => {
+    const rawLink = item.meetingLink || item.meetingUrl || item.url || item.link || '';
+    if (!rawLink || !rawLink.trim()) {
+      navigation.navigate('OnlineMeetingDetail', { meeting: item });
+      return;
+    }
+
+    let cleanUrl = rawLink.trim();
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = `https://${cleanUrl}`;
+    }
+
+    const churchId = activeChurch?.id || item.churchId || member?.churchId;
+    const attendeeId = user?.uid || member?.id;
+    if (churchId && item.id && attendeeId) {
+      firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('online_meetings')
+        .doc(item.id)
+        .collection('attendees')
+        .doc(attendeeId)
+        .set({
+          name: member?.name || user?.displayName || 'Church Member',
+          profilePhoto: (member as any)?.profilePhoto || (member as any)?.photoURL || user?.photoURL || null,
+          joinedAt: firestore.FieldValue.serverTimestamp()
+        }, { merge: true })
+        .catch(() => {});
+    }
+
+    const isZoom = item.provider === 'zoom' || item.meetingType === 'zoom' || cleanUrl.includes('zoom.us');
+    try {
+      if (isZoom) {
+        await openZoomMeeting({
+          meetingLink: cleanUrl,
+          meetingId: item.meetingId,
+          password: item.password,
+          userName: member?.name || user?.displayName || 'Church Member'
+        });
+      } else {
+        const canOpen = await Linking.canOpenURL(cleanUrl).catch(() => true);
+        if (canOpen) {
+          await Linking.openURL(cleanUrl);
+        } else {
+          navigation.navigate('OnlineMeetingDetail', { meeting: item });
+        }
+      }
+    } catch {
+      navigation.navigate('OnlineMeetingDetail', { meeting: item });
+    }
+  };
 
   const renderMeeting = ({ item }: { item: any }) => {
     const startDt = parseDate(item.startTime);
@@ -245,7 +298,7 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
           <View style={[styles.gradActions, { flexWrap: 'wrap', gap: 8 }]}>
             <TouchableOpacity
               style={styles.gradJoinBtn}
-              onPress={() => navigation.navigate('OnlineMeetingDetail', { meeting: item })}
+              onPress={() => isLive ? handleDirectJoin(item) : navigation.navigate('OnlineMeetingDetail', { meeting: item })}
             >
               <Video size={15} color={gradStart} />
               <Text style={[styles.gradJoinText, { color: gradStart }]}>

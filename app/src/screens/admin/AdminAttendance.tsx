@@ -16,6 +16,7 @@ import {
   FlatList,
   Image,
   StatusBar,
+  RefreshControl,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Circle, G, Rect } from 'react-native-svg';
@@ -26,6 +27,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ChevronLeft,
+  ChevronDown,
   Calendar,
   Users,
   QrCode,
@@ -103,10 +105,22 @@ interface EventItemWithStats {
   turnoutPercent: number;
   status: 'Today' | 'Upcoming' | 'Past';
   requireEventQR?: boolean;
+  recurringGroupId?: string;
+  recurring?: string;
+  occurrenceIndex?: number;
+  totalOccurrences?: number;
 }
 
-type TimelineFilter = 'All' | 'Upcoming' | 'Past';
+type TimelineFilter = 'All' | 'This Week' | 'Upcoming' | 'Past';
 type MemberReportFilter = 'Absent' | 'Present' | 'Guests' | 'All';
+
+interface CachedAttendance {
+  churchId: string;
+  eventsList: EventItemWithStats[];
+  churchMembers: any[];
+  timestamp: number;
+}
+let memoryAttendanceCache: CachedAttendance | null = null;
 
 const formatAdminDisplayTime = (timeRaw?: string, startTime?: any, endTime?: any, fallbackDateObj?: Date): string => {
   const parseSingle = (val: any): string => {
@@ -225,23 +239,44 @@ export default function AdminAttendance() {
   // Navigation State
   const [selectedEvent, setSelectedEvent] = useState<EventItemWithStats | null>(null);
 
-  // Data Loading States
-  const [loading, setLoading] = useState(true);
+  // Fast in-memory cache initialization (0ms screen mount!)
+  const [eventsList, setEventsList] = useState<EventItemWithStats[]>(() => {
+    if (memoryAttendanceCache && memoryAttendanceCache.churchId === churchId) {
+      return memoryAttendanceCache.eventsList;
+    }
+    return [];
+  });
+  const [churchMembers, setChurchMembers] = useState<any[]>(() => {
+    if (memoryAttendanceCache && memoryAttendanceCache.churchId === churchId) {
+      return memoryAttendanceCache.churchMembers;
+    }
+    return [];
+  });
+
+  // Data Loading States - if cache exists, don't block the screen with a spinner!
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (memoryAttendanceCache && memoryAttendanceCache.churchId === churchId && memoryAttendanceCache.eventsList.length > 0) {
+      return false;
+    }
+    return true;
+  });
   const [refreshing, setRefreshing] = useState(false);
   const [eventDetailLoading, setEventDetailLoading] = useState(false);
-
-  // Events & Members
-  const [eventsList, setEventsList] = useState<EventItemWithStats[]>([]);
-  const [churchMembers, setChurchMembers] = useState<any[]>([]);
 
   // Selected Event Details Data
   const [attendees, setAttendees] = useState<AttendanceRecord[]>([]);
   const [reportFilter, setReportFilter] = useState<MemberReportFilter>('Absent');
   const [searchMemberQuery, setSearchMemberQuery] = useState('');
 
-  // Event List Search & Filter
+  // Event List Search & Filter (Default: 'All' with this week's events sorted first at index 0-5)
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>('All');
+  const [visibleEventsCount, setVisibleEventsCount] = useState<number>(6);
   const [searchEventQuery, setSearchEventQuery] = useState('');
+
+  // Reset pagination to 6 whenever filter or search query changes
+  useEffect(() => {
+    setVisibleEventsCount(6);
+  }, [timelineFilter, searchEventQuery]);
 
   // Unified QR Code Modal (Supports Church permanent QR and Event-specific QR)
   interface QRModalState {
@@ -304,20 +339,20 @@ export default function AdminAttendance() {
     loadAllAttendanceData();
   }, [churchId]);
 
-  const loadAllAttendanceData = async () => {
+  const loadAllAttendanceData = async (forceRefresh = false) => {
     if (!churchId) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    const hasCache = memoryAttendanceCache && memoryAttendanceCache.churchId === churchId && memoryAttendanceCache.eventsList.length > 0;
+    if (!hasCache && !forceRefresh) {
+      setLoading(true);
+    }
     try {
-      // 1. Fetch Church Members Roster
-      const members = await AttendanceService.getChurchMembers(churchId);
-      setChurchMembers(members);
-
-      // 2. Fetch Events from churches/{churchId}/events and attendanceRequests concurrently
-      const [eventsSnap, reqsSnap] = await Promise.allSettled([
+      // 1. Fetch Church Members, Events, Requests, and Church-wide Attendance Records concurrently in PARALLEL
+      const [membersRes, eventsSnapRes, reqsSnapRes, churchRecordsRes] = await Promise.allSettled([
+        AttendanceService.getChurchMembers(churchId),
         firestore()
           .collection('churches')
           .doc(churchId)
@@ -328,18 +363,26 @@ export default function AdminAttendance() {
           .doc(churchId)
           .collection('attendanceRequests')
           .get(),
+        firestore()
+          .collection('churches')
+          .doc(churchId)
+          .collection('attendanceRecords')
+          .get(),
       ]);
+
+      const members = membersRes.status === 'fulfilled' ? membersRes.value : [];
+      setChurchMembers(members);
 
       const rawEventsMap = new Map<string, any>();
 
-      if (eventsSnap.status === 'fulfilled' && !eventsSnap.value.empty) {
-        eventsSnap.value.forEach(doc => {
+      if (eventsSnapRes.status === 'fulfilled' && !eventsSnapRes.value.empty) {
+        eventsSnapRes.value.forEach(doc => {
           rawEventsMap.set(doc.id, { id: doc.id, ...doc.data() });
         });
       }
 
-      if (reqsSnap.status === 'fulfilled' && !reqsSnap.value.empty) {
-        reqsSnap.value.forEach(doc => {
+      if (reqsSnapRes.status === 'fulfilled' && !reqsSnapRes.value.empty) {
+        reqsSnapRes.value.forEach(doc => {
           const d = doc.data();
           if (!rawEventsMap.has(doc.id)) {
             rawEventsMap.set(doc.id, {
@@ -356,111 +399,196 @@ export default function AdminAttendance() {
         });
       }
 
+      // 2. Pre-index church-wide attendance records by eventId in ONE pass (O(N) memory lookup)
+      const statsByEvent = new Map<string, { presentCount: number; guestCount: number; familyCount: number }>();
+      if (churchRecordsRes.status === 'fulfilled' && !churchRecordsRes.value.empty) {
+        churchRecordsRes.value.forEach(doc => {
+          const d = doc.data();
+          const evId = d.eventId || (doc.id.includes('_') ? doc.id.split('_')[0] : '');
+          if (!evId) return;
+          let entry = statsByEvent.get(evId);
+          if (!entry) {
+            entry = { presentCount: 0, guestCount: 0, familyCount: 0 };
+            statsByEvent.set(evId, entry);
+          }
+          entry.presentCount++;
+          const isGuest = Boolean(d.isGuest || doc.id.startsWith('guest_') || (d.memberName && d.memberName.includes('(Guest)')));
+          const isFamily = !isGuest && (d.method === 'FAMILY_CHECKIN' || doc.id.startsWith('fam_') || (d.memberName && d.memberName.includes('Family')));
+          if (isGuest) entry.guestCount++;
+          if (isFamily) entry.familyCount++;
+        });
+      }
+
       const totalExpected = members.length;
       const todayStr = new Date().toISOString().split('T')[0];
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);
 
-      // 3. Enrich events with attendance counts
-      const enrichedEvents: EventItemWithStats[] = await Promise.all(
-        Array.from(rawEventsMap.values()).map(async (ev) => {
-          let dateObj = new Date();
-          let dateStr = 'Upcoming';
-          let timeStr = 'Service Time';
+      // 3. Fast synchronous event enrichment (Zero per-event network waterfalls!)
+      const enrichedEvents: EventItemWithStats[] = Array.from(rawEventsMap.values()).map(ev => {
+        let dateObj = new Date();
+        let dateStr = 'Upcoming';
 
-          if (ev.date) {
-            const parsed = new Date(ev.date);
-            if (!isNaN(parsed.getTime())) dateObj = parsed;
-          } else if (ev.startTime) {
-            const parsed = new Date(ev.startTime);
-            if (!isNaN(parsed.getTime())) dateObj = parsed;
-          } else if (ev.createdAt?.toDate) {
-            dateObj = ev.createdAt.toDate();
+        if (ev.date) {
+          const parsed = new Date(ev.date);
+          if (!isNaN(parsed.getTime())) dateObj = parsed;
+        } else if (ev.startTime) {
+          const parsed = new Date(ev.startTime);
+          if (!isNaN(parsed.getTime())) dateObj = parsed;
+        } else if (ev.createdAt?.toDate) {
+          dateObj = ev.createdAt.toDate();
+        }
+
+        try {
+          dateStr = dateObj.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          });
+        } catch {}
+
+        const timeStr = formatAdminDisplayTime(ev.time, ev.startTime, ev.endTime, dateObj);
+        const evDateOnly = dateObj.toISOString().split('T')[0];
+
+        let status: 'Today' | 'Upcoming' | 'Past' = 'Past';
+        if (evDateOnly === todayStr) {
+          status = 'Today';
+        } else if (dateObj >= startOfToday) {
+          status = 'Upcoming';
+        }
+
+        let presentCount = 0;
+        let guestCount = 0;
+        let familyCount = 0;
+
+        // Upcoming events haven't happened yet -> strictly 0 attendees
+        if (status !== 'Upcoming') {
+          if (statsByEvent.has(ev.id)) {
+            const s = statsByEvent.get(ev.id)!;
+            presentCount = s.presentCount;
+            guestCount = s.guestCount;
+            familyCount = s.familyCount;
+          } else if (typeof ev.presentCount === 'number') {
+            presentCount = ev.presentCount;
+            guestCount = ev.guestCount || 0;
+            familyCount = ev.familyCount || 0;
           }
+        }
 
-          try {
-            dateStr = dateObj.toLocaleDateString('en-US', {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            });
-          } catch {}
+        const absentCount = Math.max(0, totalExpected - Math.max(0, presentCount - guestCount));
+        const turnoutPercent = totalExpected > 0 ? Math.min(100, Math.round((presentCount / totalExpected) * 100)) : 0;
 
-          timeStr = formatAdminDisplayTime(ev.time, ev.startTime, ev.endTime, dateObj);
+        return {
+          id: ev.id,
+          title: ev.title || ev.name || 'Church Service',
+          date: ev.date || evDateOnly,
+          dateObj,
+          dateStr,
+          timeStr,
+          location: ev.location || activeChurch?.address || churchName,
+          description: ev.description || '',
+          presentCount,
+          familyCount,
+          guestCount,
+          totalExpected,
+          absentCount,
+          turnoutPercent,
+          status,
+          requireEventQR: ev.requireEventQR === true || (ev as any).requireEventQr === true,
+          recurringGroupId: ev.recurringGroupId,
+          recurring: ev.recurring,
+          occurrenceIndex: ev.occurrenceIndex,
+          totalOccurrences: ev.totalOccurrences,
+        };
+      });
 
-          // Pre-fetch count of attendees
-          let presentCount = 0;
-          let guestCount = 0;
-          let familyCount = 0;
-
-          try {
-            const attendeesSnap = await firestore()
-              .collection('churches')
-              .doc(churchId)
-              .collection('events')
-              .doc(ev.id)
-              .collection('attendees')
-              .get();
-
-            presentCount = attendeesSnap.size;
-
-            attendeesSnap.forEach(doc => {
-              const d = doc.data();
-              const isGuest = Boolean(d.isGuest || doc.id.startsWith('guest_') || (d.memberName && d.memberName.includes('(Guest)')));
-              const isFamily = !isGuest && (d.method === 'FAMILY_CHECKIN' || doc.id.startsWith('fam_') || (d.memberName && d.memberName.includes('Family')));
-              if (isGuest) guestCount++;
-              if (isFamily) familyCount++;
-            });
-          } catch {
-            presentCount = 0;
-          }
-
-          const evDateOnly = dateObj.toISOString().split('T')[0];
-          let status: 'Today' | 'Upcoming' | 'Past' = 'Past';
-          if (evDateOnly === todayStr) {
-            status = 'Today';
-          } else if (dateObj >= startOfToday) {
-            status = 'Upcoming';
-          }
-
-          const absentCount = Math.max(0, totalExpected - Math.max(0, presentCount - guestCount));
-          const turnoutPercent = totalExpected > 0 ? Math.min(100, Math.round((presentCount / totalExpected) * 100)) : 0;
-
-          return {
-            id: ev.id,
-            title: ev.title || ev.name || 'Church Service',
-            date: ev.date || evDateOnly,
-            dateObj,
-            dateStr,
-            timeStr,
-            location: ev.location || activeChurch?.address || churchName,
-            description: ev.description || '',
-            presentCount,
-            familyCount,
-            guestCount,
-            totalExpected,
-            absentCount,
-            turnoutPercent,
-            status,
-            requireEventQR: ev.requireEventQR === true || (ev as any).requireEventQr === true,
-          };
-        })
-      );
-
-      // Sort: Today first, then Upcoming (asc), then Past (desc)
+      // Sort: Today first, then Upcoming (chronological asc), then Past (reverse chronological desc)
       enrichedEvents.sort((a, b) => {
         if (a.status === 'Today' && b.status !== 'Today') return -1;
         if (b.status === 'Today' && a.status !== 'Today') return 1;
         if (a.status === 'Upcoming' && b.status === 'Past') return -1;
         if (b.status === 'Upcoming' && a.status === 'Past') return 1;
-        return b.dateObj.getTime() - a.dateObj.getTime();
+        if (a.status === 'Upcoming' && b.status === 'Upcoming') {
+          return a.dateObj.getTime() - b.dateObj.getTime(); // closest upcoming first
+        }
+        return b.dateObj.getTime() - a.dateObj.getTime(); // most recent past first
       });
 
+      // Save to fast in-memory cache
+      memoryAttendanceCache = {
+        churchId,
+        eventsList: enrichedEvents,
+        churchMembers: members,
+        timestamp: Date.now(),
+      };
+
+      // Render the events list immediately!
       setEventsList(enrichedEvents);
+      setLoading(false);
+      setRefreshing(false);
+
+      // 4. Background lightweight sync: Only check subcollections for events missing from statsByEvent
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const eventsNeedingDeepCheck = enrichedEvents
+        .filter(ev => !statsByEvent.has(ev.id) && (ev.status === 'Today' || (ev.status === 'Past' && ev.dateObj >= sevenDaysAgo)))
+        .slice(0, 5);
+
+      if (eventsNeedingDeepCheck.length > 0) {
+        Promise.all(
+          eventsNeedingDeepCheck.map(async (ev) => {
+            try {
+              const attendeesSnap = await firestore()
+                .collection('churches')
+                .doc(churchId)
+                .collection('events')
+                .doc(ev.id)
+                .collection('attendees')
+                .get();
+
+              let pCount = attendeesSnap.size;
+              let gCount = 0;
+              let fCount = 0;
+
+              attendeesSnap.forEach(doc => {
+                const d = doc.data();
+                const isGuest = Boolean(d.isGuest || doc.id.startsWith('guest_') || (d.memberName && d.memberName.includes('(Guest)')));
+                const isFamily = !isGuest && (d.method === 'FAMILY_CHECKIN' || doc.id.startsWith('fam_') || (d.memberName && d.memberName.includes('Family')));
+                if (isGuest) gCount++;
+                if (isFamily) fCount++;
+              });
+
+              if (pCount !== ev.presentCount || gCount !== ev.guestCount || fCount !== ev.familyCount) {
+                const aCount = Math.max(0, ev.totalExpected - Math.max(0, pCount - gCount));
+                const tPercent = ev.totalExpected > 0 ? Math.min(100, Math.round((pCount / ev.totalExpected) * 100)) : 0;
+                return {
+                  id: ev.id,
+                  presentCount: pCount,
+                  guestCount: gCount,
+                  familyCount: fCount,
+                  absentCount: aCount,
+                  turnoutPercent: tPercent,
+                };
+              }
+              return null;
+            } catch {
+              return null;
+            }
+          })
+        ).then(reconciledUpdates => {
+          const valid = reconciledUpdates.filter(Boolean);
+          if (valid.length > 0) {
+            setEventsList(prev => prev.map(item => {
+              const u = valid.find(up => up?.id === item.id);
+              return u ? { ...item, ...u } : item;
+            }));
+          }
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error('[AdminAttendance] Error loading attendance events:', error);
-    } finally {
       setLoading(false);
       setRefreshing(false);
     }
@@ -519,6 +647,102 @@ export default function AdminAttendance() {
       console.error(e);
     } finally {
       setEventDetailLoading(false);
+    }
+  };
+
+  const [markingMemberId, setMarkingMemberId] = useState<string | null>(null);
+
+  // ─── Mark Attendance Manually (Independent Per Occurrence) ─────────────────
+  const handleToggleAttendance = async (member: any, targetStatus: 'Present' | 'Absent') => {
+    if (!selectedEvent?.id || !churchId) return;
+    const memberId = member.id || member.Id || member.memberId;
+    if (!memberId) return;
+
+    const name = member.name || member.Name || member.memberName || 'Member';
+    const phone = member.phone || member.MobilePhone || member.memberPhone || '';
+
+    try {
+      setMarkingMemberId(memberId);
+      if (targetStatus === 'Present') {
+        const photo = member.photoURL || member.profilePicture || member.photoUrl || '';
+        const res = await AttendanceService.recordAttendance({
+          churchId,
+          eventId: selectedEvent.id,
+          eventName: selectedEvent.title,
+          memberId,
+          memberName: name,
+          memberPhone: phone,
+          photoUrl: photo,
+          method: 'ADMIN_MANUAL',
+        });
+
+        if (res.success) {
+          const newRecord: AttendanceRecord = {
+            id: memberId,
+            memberId,
+            memberName: name,
+            memberPhone: phone,
+            photoUrl: photo,
+            status: 'Present',
+            timestamp: new Date(),
+            method: 'ADMIN_MANUAL',
+            churchId,
+            eventId: selectedEvent.id,
+            eventName: selectedEvent.title,
+          };
+          setAttendees(prev => [newRecord, ...prev.filter(a => (a.memberId || a.id) !== memberId)]);
+
+          setEventsList(prev => prev.map(ev => {
+            if (ev.id === selectedEvent.id) {
+              const newPresent = (ev.presentCount || 0) + 1;
+              const newAbsent = Math.max(0, (ev.totalExpected || 0) - newPresent);
+              const newTurnout = ev.totalExpected > 0 ? Math.min(100, Math.round((newPresent / ev.totalExpected) * 100)) : 0;
+              return { ...ev, presentCount: newPresent, absentCount: newAbsent, turnoutPercent: newTurnout };
+            }
+            return ev;
+          }));
+
+          if (Platform.OS === 'android') {
+            ToastAndroid.show(`Marked ${name} as Present`, ToastAndroid.SHORT);
+          } else {
+            Alert.alert('Attendance Updated', `Marked ${name} as Present for this service.`);
+          }
+        } else {
+          Alert.alert('Notice', res.message || 'Could not record attendance.');
+        }
+      } else {
+        const res = await AttendanceService.removeAttendee({
+          churchId,
+          eventId: selectedEvent.id,
+          memberId,
+        });
+
+        if (res.success) {
+          setAttendees(prev => prev.filter(a => (a.memberId || a.id) !== memberId));
+
+          setEventsList(prev => prev.map(ev => {
+            if (ev.id === selectedEvent.id) {
+              const newPresent = Math.max(0, (ev.presentCount || 0) - 1);
+              const newAbsent = Math.max(0, (ev.totalExpected || 0) - newPresent);
+              const newTurnout = ev.totalExpected > 0 ? Math.min(100, Math.round((newPresent / ev.totalExpected) * 100)) : 0;
+              return { ...ev, presentCount: newPresent, absentCount: newAbsent, turnoutPercent: newTurnout };
+            }
+            return ev;
+          }));
+
+          if (Platform.OS === 'android') {
+            ToastAndroid.show(`Marked ${name} as Absent`, ToastAndroid.SHORT);
+          } else {
+            Alert.alert('Attendance Updated', `Removed ${name} from attendees for this service.`);
+          }
+        } else {
+          Alert.alert('Error', 'Could not remove attendee.');
+        }
+      }
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Failed to update attendance.');
+    } finally {
+      setMarkingMemberId(null);
     }
   };
 
@@ -622,11 +846,65 @@ export default function AdminAttendance() {
     });
   }, [reportData, reportFilter, searchMemberQuery]);
 
+  // Pre-calculate live counts for timeline filter pills
+  const eventCounts = useMemo(() => {
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    const day = now.getDay();
+    startOfWeek.setDate(now.getDate() - day);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    let thisWeek = 0;
+    let upcoming = 0;
+    let past = 0;
+
+    eventsList.forEach(e => {
+      if (e.status === 'Today' || (e.dateObj && !isNaN(e.dateObj.getTime()) && e.dateObj >= startOfWeek && e.dateObj <= endOfWeek)) {
+        thisWeek++;
+      }
+      if (e.status === 'Today' || e.status === 'Upcoming') {
+        upcoming++;
+      }
+      if (e.status === 'Past') {
+        past++;
+      }
+    });
+
+    return {
+      all: eventsList.length,
+      thisWeek,
+      upcoming,
+      past,
+    };
+  }, [eventsList]);
+
   // Filtered Events List
   const filteredEvents = useMemo(() => {
     let list = eventsList;
 
-    if (timelineFilter === 'Upcoming') {
+    if (timelineFilter === 'This Week') {
+      const now = new Date();
+      // Calculate start of current week (Sunday)
+      const startOfWeek = new Date(now);
+      const day = now.getDay();
+      startOfWeek.setDate(now.getDate() - day);
+      startOfWeek.setHours(0, 0, 0, 0);
+
+      // Calculate end of current week (Saturday 23:59:59.999)
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+
+      list = list.filter(e => {
+        if (e.status === 'Today') return true;
+        if (!e.dateObj || isNaN(e.dateObj.getTime())) return false;
+        return e.dateObj >= startOfWeek && e.dateObj <= endOfWeek;
+      });
+    } else if (timelineFilter === 'Upcoming') {
       list = list.filter(e => e.status === 'Today' || e.status === 'Upcoming');
     } else if (timelineFilter === 'Past') {
       list = list.filter(e => e.status === 'Past');
@@ -641,6 +919,16 @@ export default function AdminAttendance() {
       (e.location && e.location.toLowerCase().includes(q))
     );
   }, [eventsList, timelineFilter, searchEventQuery]);
+
+  const displayedEvents = useMemo(() => {
+    return filteredEvents.slice(0, visibleEventsCount);
+  }, [filteredEvents, visibleEventsCount]);
+
+  const hasMoreEvents = filteredEvents.length > visibleEventsCount;
+
+  const handleShowMoreEvents = () => {
+    setVisibleEventsCount(prev => prev + 6);
+  };
 
   // ─── WhatsApp Deeplink Action ─────────────────────────────────────────────
   const handleWhatsApp = (memberPhone?: string, memberName?: string, eventTitle?: string) => {
@@ -1071,7 +1359,16 @@ export default function AdminAttendance() {
               </TouchableOpacity>
               <Text style={[styles.heroTitle, { marginHorizontal: 10, opacity: 0.4 }]}>|</Text>
               <View style={{ flex: 1 }}>
-                <Text style={styles.heroTitle} numberOfLines={1}>{selectedEvent.title}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <Text style={styles.heroTitle} numberOfLines={1}>{selectedEvent.title}</Text>
+                  {selectedEvent.recurringGroupId && (
+                    <View style={styles.heroRecurringPill}>
+                      <Text style={styles.heroRecurringPillTxt}>
+                        {selectedEvent.recurring === 'Every day' ? '🔁 Daily Series' : '🔁 Recurring'}
+                      </Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={[styles.heroSub, { marginTop: 2 }]} numberOfLines={1}>
                   {selectedEvent.dateStr} · {selectedEvent.timeStr}
                 </Text>
@@ -1098,6 +1395,21 @@ export default function AdminAttendance() {
             <View style={styles.centerLoaderWrap}>
               <ActivityIndicator size="small" color={COLORS.ink} />
               <Text style={styles.smallLoadingTxt}>Updating event statistics...</Text>
+            </View>
+          ) : null}
+
+          {/* Independent Occurrence Notice for Recurring Events */}
+          {selectedEvent.recurringGroupId ? (
+            <View style={styles.independentDayNotice}>
+              <Calendar size={15} color="#0D9488" style={{ marginRight: 8, marginTop: 1 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.independentDayNoticeTitle}>
+                  Daily Occurrence · Independent Attendance Record
+                </Text>
+                <Text style={styles.independentDayNoticeSub}>
+                  Attendance recorded here is recorded specifically for {selectedEvent.dateStr}. It does not affect attendance records for any other day in this recurring series.
+                </Text>
+              </View>
             </View>
           ) : null}
 
@@ -1296,30 +1608,64 @@ export default function AdminAttendance() {
                       </View>
                     </View>
 
-                    {/* Actions Row: WhatsApp Deeplink & Call for Absent Members */}
-                    {isAbsent ? (
-                      <View style={styles.absentActionsRow}>
-                        <TouchableOpacity
-                          style={styles.whatsappBtn}
-                          onPress={() => handleWhatsApp(phone, name, selectedEvent.title)}
-                          activeOpacity={0.8}
-                        >
-                          <MessageCircle size={15} color="#15803D" strokeWidth={2.4} style={{ marginRight: 6 }} />
-                          <Text style={styles.whatsappBtnTxt}>WhatsApp</Text>
-                        </TouchableOpacity>
-
-                        {phone ? (
+                    {/* Actions Row: Mark Present/Absent, WhatsApp Deeplink & Call */}
+                    <View style={styles.memberActionsRow}>
+                      {isAbsent ? (
+                        <>
                           <TouchableOpacity
-                            style={styles.callBtn}
-                            onPress={() => handleCall(phone)}
+                            style={styles.markPresentBtn}
+                            onPress={() => handleToggleAttendance(item, 'Present')}
+                            disabled={markingMemberId === (item.id || item.Id)}
                             activeOpacity={0.8}
                           >
-                            <Phone size={14} color="#1E3A8A" strokeWidth={2.2} style={{ marginRight: 5 }} />
-                            <Text style={styles.callBtnTxt}>Call</Text>
+                            {markingMemberId === (item.id || item.Id) ? (
+                              <ActivityIndicator size="small" color="#FFFFFF" />
+                            ) : (
+                              <>
+                                <CheckCircle2 size={14} color="#FFFFFF" strokeWidth={2.4} style={{ marginRight: 5 }} />
+                                <Text style={styles.markPresentBtnTxt}>Mark Present</Text>
+                              </>
+                            )}
                           </TouchableOpacity>
-                        ) : null}
-                      </View>
-                    ) : null}
+
+                          <TouchableOpacity
+                            style={styles.whatsappBtn}
+                            onPress={() => handleWhatsApp(phone, name, selectedEvent.title)}
+                            activeOpacity={0.8}
+                          >
+                            <MessageCircle size={14} color="#15803D" strokeWidth={2.4} style={{ marginRight: 5 }} />
+                            <Text style={styles.whatsappBtnTxt}>WhatsApp</Text>
+                          </TouchableOpacity>
+
+                          {phone ? (
+                            <TouchableOpacity
+                              style={styles.callBtn}
+                              onPress={() => handleCall(phone)}
+                              activeOpacity={0.8}
+                            >
+                              <Phone size={13} color="#1E3A8A" strokeWidth={2.2} style={{ marginRight: 4 }} />
+                              <Text style={styles.callBtnTxt}>Call</Text>
+                            </TouchableOpacity>
+                          ) : null}
+                        </>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.markAbsentBtn}
+                          onPress={() => handleToggleAttendance(item, 'Absent')}
+                          disabled={markingMemberId === (item.id || item.Id || item.memberId)}
+                          activeOpacity={0.8}
+                        >
+                          {markingMemberId === (item.id || item.Id || item.memberId) ? (
+                            <ActivityIndicator size="small" color="#DC2626" />
+                          ) : (
+                            <>
+                              <UserX size={13} color="#DC2626" strokeWidth={2.2} style={{ marginRight: 5 }} />
+                              <Text style={styles.markAbsentBtnTxt}>Remove / Mark Absent</Text>
+                            </>
+                          )}
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
                 );
               })}
@@ -1367,25 +1713,46 @@ export default function AdminAttendance() {
         style={styles.scrollArea}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              loadAllAttendanceData(true);
+            }}
+            colors={['#1A2D5A']}
+            tintColor="#1A2D5A"
+          />
+        }
       >
-        {/* Timeline Filter Pills: All | Upcoming | Past */}
-        <View style={styles.filterPillRow}>
-          {(['All', 'Upcoming', 'Past'] as TimelineFilter[]).map(tf => {
-            const isActive = timelineFilter === tf;
+        {/* Timeline Filter Pills: All Events | This Week | Upcoming | Past */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterPillScrollContent}
+          style={styles.filterPillScrollView}
+        >
+          {([
+            { id: 'All' as TimelineFilter, label: `All Events (${eventCounts.all})` },
+            { id: 'This Week' as TimelineFilter, label: `This Week (${eventCounts.thisWeek})` },
+            { id: 'Upcoming' as TimelineFilter, label: `Upcoming (${eventCounts.upcoming})` },
+            { id: 'Past' as TimelineFilter, label: `Past (${eventCounts.past})` },
+          ]).map(tab => {
+            const isActive = timelineFilter === tab.id;
             return (
               <TouchableOpacity
-                key={tf}
+                key={tab.id}
                 style={[styles.filterPill, isActive && styles.filterPillActive]}
-                onPress={() => setTimelineFilter(tf)}
+                onPress={() => setTimelineFilter(tab.id)}
                 activeOpacity={0.8}
               >
                 <Text style={[styles.filterPillTxt, isActive && styles.filterPillTxtActive]}>
-                  {tf} Events
+                  {tab.label}
                 </Text>
               </TouchableOpacity>
             );
           })}
-        </View>
+        </ScrollView>
 
         {/* Search Input */}
         <View style={styles.searchBox}>
@@ -1407,7 +1774,9 @@ export default function AdminAttendance() {
         {/* List of Events */}
         <View style={styles.eventsListHeaderRow}>
           <Text style={styles.sectionHeading}>SELECT AN EVENT TO VIEW REPORT</Text>
-          <Text style={styles.eventsCountTxt}>{filteredEvents.length} events</Text>
+          <Text style={styles.eventsCountTxt}>
+            Showing {Math.min(displayedEvents.length, filteredEvents.length)} of {filteredEvents.length}
+          </Text>
         </View>
 
         {filteredEvents.length === 0 ? (
@@ -1422,7 +1791,7 @@ export default function AdminAttendance() {
           </View>
         ) : (
           <View style={styles.eventsCardList}>
-            {filteredEvents.map(event => {
+            {displayedEvents.map(event => {
               const isToday = event.status === 'Today';
 
               return (
@@ -1456,6 +1825,14 @@ export default function AdminAttendance() {
                           <Text style={styles.churchAllowedBadgeTxt}>Church QR Allowed</Text>
                         </View>
                       )}
+
+                      {event.recurringGroupId ? (
+                        <View style={styles.recurringOccurrenceBadge}>
+                          <Text style={styles.recurringOccurrenceBadgeTxt}>
+                            {event.recurring === 'Every day' ? '🔁 Daily' : '🔁 Recurring'}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
@@ -1518,6 +1895,50 @@ export default function AdminAttendance() {
                 </View>
               );
             })}
+          </View>
+        )}
+
+        {/* Show More Events (+6) Button */}
+        {hasMoreEvents && (
+          <TouchableOpacity
+            style={styles.showMoreBtn}
+            onPress={handleShowMoreEvents}
+            activeOpacity={0.85}
+          >
+            <View style={styles.showMoreBtnInner}>
+              <Text style={styles.showMoreBtnTxt}>
+                Show More Events (+{Math.min(6, filteredEvents.length - visibleEventsCount)})
+              </Text>
+              <ChevronDown size={18} color="#1A2D5A" />
+            </View>
+            <Text style={styles.showMoreCountSub}>
+              Showing {displayedEvents.length} of {filteredEvents.length} events
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* If user filtered by This Week and reaches end, provide quick button to load from all 66 events */}
+        {!hasMoreEvents && timelineFilter === 'This Week' && eventsList.length > filteredEvents.length && (
+          <TouchableOpacity
+            style={styles.showMoreFromAllBtn}
+            onPress={() => {
+              setTimelineFilter('All');
+              setVisibleEventsCount(12);
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.showMoreFromAllBtnTxt}>
+              Show Next 6 Events from All ({eventsList.length} total)
+            </Text>
+            <ChevronLeft size={16} color="#0284C7" style={{ transform: [{ rotate: '180deg' }], marginLeft: 4 }} />
+          </TouchableOpacity>
+        )}
+
+        {!hasMoreEvents && filteredEvents.length > 6 && (
+          <View style={styles.allLoadedBox}>
+            <Text style={styles.allLoadedTxt}>
+              All {filteredEvents.length} events loaded
+            </Text>
           </View>
         )}
 
@@ -1854,6 +2275,14 @@ const styles = StyleSheet.create({
   },
 
   // ── Filters & Search ──
+  filterPillScrollView: {
+    marginBottom: 12,
+  },
+  filterPillScrollContent: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 16,
+  },
   filterPillRow: {
     flexDirection: 'row',
     gap: 8,
@@ -2286,7 +2715,92 @@ const styles = StyleSheet.create({
     color: '#6D28D9',
   },
 
-  // ── Absent Follow-up Actions ──
+  // ── Actions Row & Follow-up Actions ──
+  memberActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  markPresentBtn: {
+    flex: 1.2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#10B981',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  markPresentBtnTxt: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  markAbsentBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+  },
+  markAbsentBtnTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  heroRecurringPill: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  heroRecurringPillTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  independentDayNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#F0FDFA',
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  independentDayNoticeTitle: {
+    fontSize: 12.5,
+    fontWeight: '700',
+    color: '#0F766E',
+    marginBottom: 2,
+  },
+  independentDayNoticeSub: {
+    fontSize: 11.5,
+    color: '#115E59',
+    lineHeight: 16,
+  },
+  recurringOccurrenceBadge: {
+    backgroundColor: '#CCFBF1',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  recurringOccurrenceBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0F766E',
+  },
   absentActionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2448,5 +2962,68 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '700',
+  },
+  showMoreBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#1A2D5A',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 14,
+    marginBottom: 6,
+    shadowColor: '#1A2D5A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  showMoreBtnInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  showMoreBtnTxt: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1A2D5A',
+  },
+  showMoreCountSub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 3,
+    fontWeight: '500',
+  },
+  allLoadedBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    marginTop: 10,
+  },
+  allLoadedTxt: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    fontStyle: 'italic',
+  },
+  showMoreFromAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1.5,
+    borderColor: '#0284C7',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  showMoreFromAllBtnTxt: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0284C7',
   },
 });

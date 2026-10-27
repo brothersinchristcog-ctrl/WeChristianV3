@@ -29,13 +29,29 @@ export interface SetlistItem {
   isOffertory?: boolean;
 }
 
+export type TimetableCategory = 
+  | 'starting_prayer'
+  | 'opening_song'
+  | 'worship_songs'
+  | 'bible_reading'
+  | 'sermon'
+  | 'closing_prayer'
+  | 'break'
+  | 'additional';
+
 export interface RunSheetItem {
   id: string;
-  time: string;           // e.g. "08:30 to 08:35"
-  durationMinutes: number;// e.g. 5
-  program: string;        // e.g. "Opening Prayer"
-  assignedTo: string;     // e.g. "Jasper"
-  place?: string;         // e.g. "Main Hall", "1F Church"
+  time: string;           // e.g. "09:00 to 09:20"
+  startTime?: string;     // e.g. "09:00"
+  endTime?: string;       // e.g. "09:20"
+  durationMinutes: number;// e.g. 20
+  program: string;        // e.g. "Flag Hoisting / Prayer for India"
+  category?: TimetableCategory;
+  assignedTo: string;     // e.g. "Ps. Raju / Ps. V. Babu"
+  songTitle?: string;     // For songs/worship
+  musicians?: string;     // Instrumentalists / band members
+  passage?: string;       // For Bible reading (e.g. "Lev 19:2")
+  place?: string;         // e.g. "4F Terrace", "1F Church", "Main Hall"
   notes?: string;
 }
 
@@ -43,10 +59,14 @@ export interface ServicePlan {
   id: string;
   churchId: string;
   churchName?: string;
-  date: string;               // YYYY-MM-DD e.g. "2026-09-27"
-  serviceTitle: string;       // e.g. "1st Service - Telugu", "2nd Service - Bilingual"
+  date: string;               // YYYY-MM-DD e.g. "2026-08-16"
+  serviceTitle: string;       // e.g. "Bethesda Family Conference 2026"
   serviceType: 'sunday_service' | 'special_event' | 'conference';
   status: 'draft' | 'published';
+  startTime?: string;         // e.g. "09:00"
+  endTime?: string;           // e.g. "16:00"
+  location?: string;          // e.g. "Bethesda Church"
+  totalDurationMinutes?: number;
   
   // Dynamic role assignments: map of roleId -> assigned member name(s)
   assignments: Record<string, string>;
@@ -58,6 +78,12 @@ export interface ServicePlan {
     lesson: string;
   }[];
 
+  // Specific anchors
+  startingPrayer?: { person: string; startTime: string; endTime: string };
+  openingSong?: { songTitle: string; leader: string; musicians: string; startTime: string; endTime: string };
+  bibleReading?: { person: string; passage: string; startTime: string; endTime: string };
+  closingPrayer?: { person: string; startTime: string; endTime: string };
+
   // Sermon details
   sermon: {
     title: string;
@@ -65,12 +91,14 @@ export interface ServicePlan {
     keyVerses: string;
     speaker: string;
     translation?: string;
+    startTime?: string;
+    endTime?: string;
   };
 
   // Setlist flow
   setlist: SetlistItem[];
 
-  // Order of Service / Run-sheet
+  // Order of Service / Run-sheet (The full chronological timetable)
   runSheet: RunSheetItem[];
 
   // Custom departments override (if this church customized their layout)
@@ -87,14 +115,14 @@ export const DEFAULT_DEPARTMENTS: ServiceDepartment[] = [
     color: '#4A235A', // Rich Deep Violet/Purple
     badgeBg: '#F4ECF7',
     roles: [
-      { id: 'singer_1', name: 'Singer #1 / Center', placeholder: 'e.g. Richard' },
-      { id: 'singer_2', name: 'Singer #2 / Left', placeholder: 'e.g. Amulya' },
-      { id: 'singer_3', name: 'Singer #3 / Right', placeholder: 'e.g. Dheeraj Paul' },
-      { id: 'acoustic', name: 'Acoustic Guitar', placeholder: 'e.g. Richard' },
-      { id: 'keyboard', name: 'Keyboard', placeholder: 'e.g. Lina' },
-      { id: 'electric', name: 'Electric Guitar', placeholder: 'e.g. Samuel N' },
-      { id: 'bass', name: 'Bass Guitar', placeholder: 'e.g. John Paul' },
-      { id: 'drums', name: 'Drums', placeholder: 'e.g. Shekar P' },
+      { id: 'singer_1', name: 'Singer #1 / Center', placeholder: 'Assign singer' },
+      { id: 'singer_2', name: 'Singer #2 / Left', placeholder: 'Assign singer' },
+      { id: 'singer_3', name: 'Singer #3 / Right', placeholder: 'Assign singer' },
+      { id: 'acoustic', name: 'Acoustic Guitar', placeholder: 'Assign guitarist' },
+      { id: 'keyboard', name: 'Keyboard', placeholder: 'Assign keyboardist' },
+      { id: 'electric', name: 'Electric Guitar', placeholder: 'Assign guitarist' },
+      { id: 'bass', name: 'Bass Guitar', placeholder: 'Assign bassist' },
+      { id: 'drums', name: 'Drums', placeholder: 'Assign drummer' },
     ]
   },
   {
@@ -103,18 +131,18 @@ export const DEFAULT_DEPARTMENTS: ServiceDepartment[] = [
     color: '#3D5A27', // Olive / Forest Green
     badgeBg: '#EAFAF1',
     roles: [
-      { id: 'sound_foh', name: 'Sounds (FOH)', placeholder: 'e.g. Akhil / Nikhil' },
-      { id: 'sound_stage', name: 'Sounds (Stage)', placeholder: 'e.g. Stephen / Oliver' },
-      { id: 'media_pc1', name: 'Media - PC1 (Live)', placeholder: 'e.g. Usha Rani' },
-      { id: 'media_pc2', name: 'Media - PC2 (CG)', placeholder: 'e.g. Bhargavi' },
-      { id: 'media_pc3', name: 'Media - PC3 (Lyrics)', placeholder: 'e.g. Akshaya' },
-      { id: 'media_pc4', name: 'Media - PC4 (Stage)', placeholder: 'e.g. Priya / Shreyesh' },
-      { id: 'cam_main', name: 'V. Camera (Main)', placeholder: 'e.g. Sandhya' },
-      { id: 'cam_right', name: 'V. Camera (Right)', placeholder: 'e.g. Benny' },
-      { id: 'cam_left', name: 'V. Camera (Left)', placeholder: 'e.g. Zion' },
-      { id: 'cam_gimbal', name: 'V. Camera (Gimbal)', placeholder: 'e.g. N/A' },
-      { id: 'video_dir', name: 'Video Direction / Mix', placeholder: 'e.g. Avinash' },
-      { id: 'photo_cam', name: 'Photo Camera', placeholder: 'e.g. SS Paul' },
+      { id: 'sound_foh', name: 'Sounds (FOH)', placeholder: 'Assign sound engineer' },
+      { id: 'sound_stage', name: 'Sounds (Stage)', placeholder: 'Assign stage monitor tech' },
+      { id: 'media_pc1', name: 'Media - PC1 (Live)', placeholder: 'Assign live operator' },
+      { id: 'media_pc2', name: 'Media - PC2 (CG)', placeholder: 'Assign CG operator' },
+      { id: 'media_pc3', name: 'Media - PC3 (Lyrics)', placeholder: 'Assign lyrics operator' },
+      { id: 'media_pc4', name: 'Media - PC4 (Stage)', placeholder: 'Assign stage screen tech' },
+      { id: 'cam_main', name: 'V. Camera (Main)', placeholder: 'Assign camera operator' },
+      { id: 'cam_right', name: 'V. Camera (Right)', placeholder: 'Assign camera operator' },
+      { id: 'cam_left', name: 'V. Camera (Left)', placeholder: 'Assign camera operator' },
+      { id: 'cam_gimbal', name: 'V. Camera (Gimbal)', placeholder: 'Assign camera operator' },
+      { id: 'video_dir', name: 'Video Direction / Mix', placeholder: 'Assign video director' },
+      { id: 'photo_cam', name: 'Photo Camera', placeholder: 'Assign photographer' },
     ]
   },
   {
@@ -127,7 +155,7 @@ export const DEFAULT_DEPARTMENTS: ServiceDepartment[] = [
       { id: 'ss_primary', name: 'Primary Class', placeholder: 'Teacher & Lesson details' },
       { id: 'ss_juniors', name: 'Juniors Class', placeholder: 'Teacher & Lesson details' },
       { id: 'ss_seniors', name: 'Seniors Class', placeholder: 'Teacher & Lesson details' },
-      { id: 'ss_special_needs', name: 'Special Needs Crew', placeholder: 'e.g. Lina, Anvitha, Naysa...' },
+      { id: 'ss_special_needs', name: 'Special Needs Crew', placeholder: 'Assign teachers' },
     ]
   },
   {
@@ -136,13 +164,13 @@ export const DEFAULT_DEPARTMENTS: ServiceDepartment[] = [
     color: '#117864', // Deep Teal
     badgeBg: '#E8F8F5',
     roles: [
-      { id: 'fmh', name: 'FMH (Food / Hospitality)', placeholder: 'e.g. Kranthi, Siddhath, Pooja...' },
-      { id: 'ushering', name: 'Ushering Team', placeholder: 'e.g. Lakshmi, Jyothi, Ravi K...' },
-      { id: 'op_prayer', name: 'Opening Prayer', placeholder: 'e.g. Ps. Raju' },
-      { id: 'cl_prayer', name: 'Closing Prayer', placeholder: 'e.g. Pas. John Paul' },
-      { id: 'devotion', name: 'Devotion', placeholder: 'e.g. Richard' },
-      { id: 'communion', name: 'Communion', placeholder: 'e.g. N/A' },
-      { id: 'announcements', name: 'Announcements', placeholder: 'e.g. Richard' },
+      { id: 'fmh', name: 'FMH (Food / Hospitality)', placeholder: 'Assign hospitality team' },
+      { id: 'ushering', name: 'Ushering Team', placeholder: 'Assign ushers' },
+      { id: 'op_prayer', name: 'Opening Prayer', placeholder: 'Assign minister' },
+      { id: 'cl_prayer', name: 'Closing Prayer', placeholder: 'Assign minister' },
+      { id: 'devotion', name: 'Devotion', placeholder: 'Assign speaker' },
+      { id: 'communion', name: 'Communion', placeholder: 'Assign ministers' },
+      { id: 'announcements', name: 'Announcements', placeholder: 'Assign announcer' },
     ]
   }
 ];
@@ -162,11 +190,70 @@ class ServiceRosterService {
         .limit(limitCount)
         .get();
 
-      return snap.docs.map(doc => ({
+      let list = snap.docs.map(doc => ({
         id: doc.id,
         churchId,
         ...(doc.data() as any)
       })) as ServicePlan[];
+
+      // Filter out any dummy plans (e.g. Richard, Amulya, or old Telugu dummy services)
+      list = list.filter(p => 
+        p.serviceTitle !== '1st Service - Telugu' && 
+        p.assignments?.singer_1 !== 'Richard' &&
+        Boolean(p.serviceTitle) && 
+        Boolean(p.date)
+      );
+
+      // If no valid plans exist in service_plans, auto-import from church's real setlists
+      if (list.length === 0) {
+        try {
+          const setlistDoc = await firestore()
+            .collection('churches')
+            .doc(churchId)
+            .collection('setlists')
+            .doc('all_services')
+            .get();
+
+          const docExists = typeof (setlistDoc as any).exists === 'function' ? (setlistDoc as any).exists() : (setlistDoc as any).exists;
+          if (docExists) {
+            const raw = setlistDoc.data()?.services || [];
+            for (const s of raw) {
+              const formattedPlan: Partial<ServicePlan> = {
+                churchId,
+                churchName: 'We Christian',
+                date: s.date ? (s.date.includes('-') && s.date.length === 10 ? s.date : new Date().toISOString().split('T')[0]) : new Date().toISOString().split('T')[0],
+                serviceTitle: s.name || 'Sunday Service',
+                serviceType: s.category?.toLowerCase().includes('prayer') ? 'special_event' : 'sunday_service',
+                status: 'published',
+                startTime: s.startTime || '09:00',
+                endTime: s.endTime || '11:00',
+                location: 'We Christian Sanctuary',
+                assignments: {},
+                setlist: (s.songs || []).map((song: any, idx: number) => ({
+                  id: song.id || String(idx + 1),
+                  title: song.title || song.titleTe || 'Worship Song',
+                  ledBy: song.ledBy || '',
+                  key: song.key || 'F',
+                  timeSignature: song.timeSignature || '4/4',
+                  tempo: String(song.tempo || '100'),
+                  verses: song.verses || '4V',
+                  prelude: song.prelude || '',
+                  interlude: song.interlude || '',
+                  notes: song.notes || '',
+                  isOffertory: Boolean(song.isOffertory)
+                })),
+                runSheet: this.getStandardSundayServiceSample()
+              };
+              const newId = await this.saveServicePlan(churchId, formattedPlan);
+              list.push({ id: newId, ...formattedPlan } as ServicePlan);
+            }
+          }
+        } catch (err) {
+          console.warn('[ServiceRosterService] Error auto-importing real services:', err);
+        }
+      }
+
+      return list;
     } catch (e) {
       console.error('[ServiceRosterService] getServicePlans error:', e);
       return [];
@@ -327,6 +414,168 @@ class ServiceRosterService {
 
     text += `📲 View full setlist details, chords & live run sheet in the WeChristian App!`;
     return text;
+  }
+
+  /**
+   * Parse time string into minutes from midnight (0 to 1439).
+   * Supports "09:00", "9:00", "09:20 AM", "1:30 PM", "13:30", etc.
+   */
+  parseTimeToMinutes(str: string): number {
+    if (!str || typeof str !== 'string') return 0;
+    const clean = str.trim().toUpperCase();
+    const isPM = clean.includes('PM');
+    const isAM = clean.includes('AM');
+    const parts = clean.replace(/[APM\s]/g, '').split(':');
+    if (parts.length < 2) return 0;
+    let hours = parseInt(parts[0], 10) || 0;
+    const minutes = parseInt(parts[1], 10) || 0;
+
+    if (isPM && hours < 12) hours += 12;
+    if (isAM && hours === 12) hours = 0;
+
+    return Math.min(1439, Math.max(0, hours * 60 + minutes));
+  }
+
+  /**
+   * Convert minutes from midnight back into "HH:mm" formatted string.
+   */
+  minutesToTimeString(totalMinutes: number): string {
+    const mins = Math.max(0, Math.min(1439, Math.round(totalMinutes)));
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  }
+
+  /**
+   * Calculate duration in minutes between start and end time.
+   */
+  calculateDuration(startStr: string, endStr: string): number {
+    const s = this.parseTimeToMinutes(startStr);
+    const e = this.parseTimeToMinutes(endStr);
+    if (e >= s) return e - s;
+    // Crosses midnight
+    return (1440 - s) + e;
+  }
+
+  /**
+   * Format start & end into standardized "09:00 to 09:20" string
+   */
+  formatTimeRange(startStr: string, endStr: string): string {
+    const s = (startStr || '').trim();
+    const e = (endStr || '').trim();
+    if (!s && !e) return '';
+    if (!e) return s;
+    return `${s} to ${e}`;
+  }
+
+  /**
+   * Validates schedule: detects overlaps between items, verifies bounds against overall service start & end,
+   * and calculates durations.
+   */
+  validateSchedule(serviceStart: string, serviceEnd: string, items: RunSheetItem[]): {
+    hasOverlaps: boolean;
+    overlapMessages: string[];
+    exceedsWindow: boolean;
+    windowMessages: string[];
+    totalScheduledMinutes: number;
+    totalServiceMinutes: number;
+  } {
+    const overlapMessages: string[] = [];
+    const windowMessages: string[] = [];
+
+    const svcStartMin = this.parseTimeToMinutes(serviceStart || '09:00');
+    const svcEndMin = this.parseTimeToMinutes(serviceEnd || '12:00');
+    const totalServiceMinutes = svcEndMin >= svcStartMin ? svcEndMin - svcStartMin : (1440 - svcStartMin) + svcEndMin;
+
+    let totalScheduledMinutes = 0;
+
+    // Check individual items
+    const parsedItems = items.map((item, index) => {
+      // Determine start/end from properties or time string
+      let sStr = item.startTime;
+      let eStr = item.endTime;
+      if (!sStr || !eStr) {
+        const split = (item.time || '').split(/to|-/i);
+        sStr = sStr || (split[0] ? split[0].trim() : '09:00');
+        eStr = eStr || (split[1] ? split[1].trim() : '09:00');
+      }
+      const sMin = this.parseTimeToMinutes(sStr);
+      let eMin = this.parseTimeToMinutes(eStr);
+      if (eMin <= sMin && item.durationMinutes > 0) {
+        eMin = sMin + item.durationMinutes;
+      }
+      const duration = Math.max(1, eMin - sMin);
+      totalScheduledMinutes += duration;
+
+      // Check within service window bounds
+      if (serviceStart && sMin < svcStartMin) {
+        windowMessages.push(`"${item.program || 'Activity'}" starts at ${sStr}, before service start (${serviceStart})`);
+      }
+      if (serviceEnd && eMin > svcEndMin) {
+        windowMessages.push(`"${item.program || 'Activity'}" ends at ${eStr}, after service end (${serviceEnd})`);
+      }
+
+      return {
+        index,
+        title: item.program || `Item #${index + 1}`,
+        sMin,
+        eMin,
+        sStr,
+        eStr,
+      };
+    });
+
+    // Check for pairwise overlaps
+    for (let i = 0; i < parsedItems.length; i++) {
+      for (let j = i + 1; j < parsedItems.length; j++) {
+        const a = parsedItems[i];
+        const b = parsedItems[j];
+        if (a.sMin < b.eMin && b.sMin < a.eMin) {
+          overlapMessages.push(`Overlap: "${a.title}" (${a.sStr}-${a.eStr}) conflicts with "${b.title}" (${b.sStr}-${b.eStr})`);
+        }
+      }
+    }
+
+    return {
+      hasOverlaps: overlapMessages.length > 0,
+      overlapMessages,
+      exceedsWindow: windowMessages.length > 0,
+      windowMessages,
+      totalScheduledMinutes,
+      totalServiceMinutes,
+    };
+  }
+
+  /**
+   * Generates a template Conference timetable
+   */
+  getBethesdaConferenceSample(): RunSheetItem[] {
+    return [
+      { id: 'c1', time: '09:00 to 09:20', startTime: '09:00', endTime: '09:20', durationMinutes: 20, program: 'Opening Prayer', category: 'starting_prayer', place: 'Main Hall', assignedTo: '' },
+      { id: 'c2', time: '09:20 to 09:50', startTime: '09:20', endTime: '09:50', durationMinutes: 30, program: 'Praise & Worship', category: 'worship_songs', place: 'Main Hall', assignedTo: '', musicians: '' },
+      { id: 'c3', time: '09:50 to 11:00', startTime: '09:50', endTime: '11:00', durationMinutes: 70, program: 'Conference Session 1', category: 'sermon', place: 'Main Hall', assignedTo: '' },
+      { id: 'c4', time: '11:00 to 11:20', startTime: '11:00', endTime: '11:20', durationMinutes: 20, program: 'Tea Break', category: 'break', place: 'Dining Area', assignedTo: '' },
+      { id: 'c5', time: '11:20 to 12:30', startTime: '11:20', endTime: '12:30', durationMinutes: 70, program: 'Conference Session 2', category: 'sermon', place: 'Main Hall', assignedTo: '' },
+      { id: 'c6', time: '12:30 to 13:30', startTime: '12:30', endTime: '13:30', durationMinutes: 60, program: 'Lunch Break', category: 'break', place: 'Dining Area', assignedTo: '' },
+      { id: 'c7', time: '13:30 to 14:00', startTime: '13:30', endTime: '14:00', durationMinutes: 30, program: 'Worship & Reflection', category: 'worship_songs', place: 'Main Hall', assignedTo: '', musicians: '' },
+      { id: 'c8', time: '14:00 to 15:30', startTime: '14:00', endTime: '15:30', durationMinutes: 90, program: 'Breakout Sessions', category: 'sermon', place: 'Halls', assignedTo: '' },
+      { id: 'c9', time: '15:30 to 16:00', startTime: '15:30', endTime: '16:00', durationMinutes: 30, program: 'Closing Prayer & Benediction', category: 'closing_prayer', place: 'Main Hall', assignedTo: '' }
+    ];
+  }
+
+  /**
+   * Generates a standard Sunday Service timetable template with all core church elements
+   */
+  getStandardSundayServiceSample(): RunSheetItem[] {
+    return [
+      { id: 's1', time: '09:00 to 09:10', startTime: '09:00', endTime: '09:10', durationMinutes: 10, program: 'Starting Prayer', category: 'starting_prayer', place: 'Sanctuary', assignedTo: '' },
+      { id: 's2', time: '09:10 to 09:20', startTime: '09:10', endTime: '09:20', durationMinutes: 10, program: 'Opening Song', category: 'opening_song', songTitle: '', place: 'Sanctuary', assignedTo: '', musicians: '' },
+      { id: 's3', time: '09:20 to 09:50', startTime: '09:20', endTime: '09:50', durationMinutes: 30, program: 'Praise & Worship', category: 'worship_songs', songTitle: '', place: 'Sanctuary', assignedTo: '', musicians: '' },
+      { id: 's4', time: '09:50 to 10:00', startTime: '09:50', endTime: '10:00', durationMinutes: 10, program: 'Bible Reading', category: 'bible_reading', passage: '', place: 'Sanctuary', assignedTo: '' },
+      { id: 's5', time: '10:00 to 10:45', startTime: '10:00', endTime: '10:45', durationMinutes: 45, program: 'Sermon / Message', category: 'sermon', passage: '', place: 'Sanctuary', assignedTo: '' },
+      { id: 's6', time: '10:45 to 10:55', startTime: '10:45', endTime: '10:55', durationMinutes: 10, program: 'Announcements & Offertory', category: 'additional', songTitle: '', place: 'Sanctuary', assignedTo: '' },
+      { id: 's7', time: '10:55 to 11:00', startTime: '10:55', endTime: '11:00', durationMinutes: 5, program: 'Closing Prayer & Benediction', category: 'closing_prayer', place: 'Sanctuary', assignedTo: '' }
+    ];
   }
 }
 
