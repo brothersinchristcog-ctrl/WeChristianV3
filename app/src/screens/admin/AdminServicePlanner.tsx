@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import {
   CalendarDays,
+  Calendar,
   Plus,
   ChevronLeft,
   ChevronRight,
@@ -43,7 +44,11 @@ import {
   Radio,
   Tv,
   Heart,
-  Baby
+  Baby,
+  Type,
+  FileText,
+  Save,
+  Layers
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import firestore from '@react-native-firebase/firestore';
@@ -736,6 +741,24 @@ export default function AdminServicePlanner({ navigation }: any) {
         </View>
       ) : (
         <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* ── Stats Row (Matches AdminEventList & other tabs) ── */}
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={[styles.statNum, { color: '#15803D' }]}>{plans.length}</Text>
+              <Text style={styles.statLbl}>Total Services</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={[styles.statNum, { color: '#c0392b' }]}>{upcomingCount}</Text>
+              <Text style={styles.statLbl}>Upcoming</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={[styles.statNum, { color: '#1A2D5A' }]}>
+                {selectedPlan?.runSheet?.length || 0}
+              </Text>
+              <Text style={styles.statLbl}>Timetable Items</Text>
+            </View>
+          </View>
+
           {/* ── Scheduled Services Switcher (if multiple services) ── */}
           {plans.length > 1 && (
             <View style={styles.serviceSelectorBar}>
@@ -776,63 +799,65 @@ export default function AdminServicePlanner({ navigation }: any) {
             </View>
           )}
 
-          {/* ── Active Service Banner Card ─────────────────────── */}
+          {/* ── Active Service Header Bar (Compact & Sleek) ────────── */}
           <View style={styles.activeServiceCard}>
             <View style={styles.activeServiceTop}>
               <View style={{ flex: 1, marginRight: 8 }}>
-                <View style={styles.badgeRow}>
-                  <View style={styles.dateBadge}>
-                    <CalendarDays size={12} color="#1A2D5A" />
-                    <Text style={styles.dateBadgeTxt}>{selectedPlan.date}</Text>
+                <Text style={styles.activeServiceTitle} numberOfLines={1}>
+                  {selectedPlan.serviceTitle}
+                </Text>
+                <View style={styles.compactMetaRow}>
+                  <View style={styles.compactBadge}>
+                    <CalendarDays size={11} color="#1A2D5A" />
+                    <Text style={styles.compactBadgeTxt}>{selectedPlan.date}</Text>
                   </View>
                   {selectedPlan.startTime && (
-                    <View style={styles.timeBadge}>
-                      <Clock size={12} color="#059669" />
-                      <Text style={styles.timeBadgeTxt}>
-                        {selectedPlan.startTime} {selectedPlan.endTime ? `- ${selectedPlan.endTime}` : ''}
+                    <View style={[styles.compactBadge, { backgroundColor: '#ECFDF5', borderColor: '#A7F3D0' }]}>
+                      <Clock size={11} color="#059669" />
+                      <Text style={[styles.compactBadgeTxt, { color: '#059669' }]}>
+                        {selectedPlan.startTime}{selectedPlan.endTime ? ` - ${selectedPlan.endTime}` : ''}
+                      </Text>
+                    </View>
+                  )}
+                  {selectedPlan.location && (
+                    <View style={styles.compactBadge}>
+                      <MapPin size={11} color="#64748B" />
+                      <Text style={[styles.compactBadgeTxt, { color: '#64748B' }]} numberOfLines={1}>
+                        {selectedPlan.location}
                       </Text>
                     </View>
                   )}
                 </View>
-                <Text style={styles.activeServiceTitle} numberOfLines={2}>
-                  {selectedPlan.serviceTitle}
-                </Text>
-                {selectedPlan.location && (
-                  <View style={styles.locationRow}>
-                    <MapPin size={12} color="#64748B" />
-                    <Text style={styles.locationTxt} numberOfLines={1}>
-                      {selectedPlan.location}
-                    </Text>
-                  </View>
-                )}
               </View>
-            </View>
 
-            {/* Quick Actions Row */}
-            <View style={styles.activeServiceActionsRow}>
-              <TouchableOpacity
-                style={styles.actionBtnEdit}
-                onPress={() => openServiceTimetableModal(selectedPlan)}
-                activeOpacity={0.8}
-              >
-                <Edit2 size={13} color="#FFFFFF" />
-                <Text style={styles.actionBtnEditTxt}>Edit Timetable</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionBtnShare}
-                onPress={handleShareToWhatsApp}
-                activeOpacity={0.8}
-              >
-                <MessageCircle size={14} color="#059669" />
-                <Text style={styles.actionBtnShareTxt}>Share</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.actionBtnDelete}
-                onPress={() => handleDeletePlan(selectedPlan)}
-                activeOpacity={0.8}
-              >
-                <Trash2 size={14} color="#DC2626" />
-              </TouchableOpacity>
+              {/* Compact Quick Actions */}
+              <View style={styles.compactActionsCol}>
+                <TouchableOpacity
+                  style={styles.actionBtnEdit}
+                  onPress={() => openServiceTimetableModal(selectedPlan)}
+                  activeOpacity={0.8}
+                >
+                  <Edit2 size={12} color="#FFFFFF" />
+                  <Text style={styles.actionBtnEditTxt}>Edit</Text>
+                </TouchableOpacity>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  <TouchableOpacity
+                    style={styles.actionBtnShare}
+                    onPress={handleShareToWhatsApp}
+                    activeOpacity={0.8}
+                  >
+                    <MessageCircle size={13} color="#059669" />
+                    <Text style={styles.actionBtnShareTxt}>Share</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.actionBtnDelete}
+                    onPress={() => handleDeletePlan(selectedPlan)}
+                    activeOpacity={0.8}
+                  >
+                    <Trash2 size={13} color="#DC2626" />
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
           </View>
 
@@ -1938,11 +1963,11 @@ export default function AdminServicePlanner({ navigation }: any) {
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { maxHeight: '92%', width: '96%', padding: 0 }]}>
             <View style={styles.builderHeader}>
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, marginRight: 8 }}>
                 <Text style={styles.modalCardTitle}>
-                  {selectedPlan?.id ? 'Edit Service Timetable' : 'New Service Schedule & Timetable'}
+                  {selectedPlan?.id ? 'Edit Service Schedule' : 'New Service Schedule & Timetable'}
                 </Text>
-                <Text style={styles.modalCardSubtitle}>Define complete service schedule from start to finish</Text>
+                <Text style={styles.modalCardSubtitle}>Configure timings, format template & order of service</Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
                 <TouchableOpacity
@@ -1951,120 +1976,152 @@ export default function AdminServicePlanner({ navigation }: any) {
                   onPress={handleSavePlanDetails}
                 >
                   {savingPlan ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color="#1A2D5A" />
                   ) : (
-                    <Text style={styles.saveHeaderBtnTxt}>Save</Text>
+                    <>
+                      <Save size={13} color="#1A2D5A" style={{ marginRight: 4 }} />
+                      <Text style={styles.saveHeaderBtnTxt}>Save</Text>
+                    </>
                   )}
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowCreatePlanModal(false)}>
-                  <X size={20} color="#64748B" />
+                <TouchableOpacity onPress={() => setShowCreatePlanModal(false)} style={styles.modalCloseBtn}>
+                  <X size={18} color="#64748B" />
                 </TouchableOpacity>
               </View>
             </View>
 
-            <ScrollView style={{ paddingHorizontal: 16, paddingTop: 12 }} showsVerticalScrollIndicator={false}>
-              {/* Quick Select from Church Events */}
-              {churchEvents.length > 0 && !selectedPlan?.id && (
-                <View style={styles.quickEventWrap}>
-                  <Text style={styles.quickEventLabel}>📅 Pick from Scheduled Church Events:</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
-                    {churchEvents.map((ev, evIdx) => {
-                      const title = ev.title || ev.name || 'Event';
-                      const isMatch = planFormTitle === title;
-                      return (
-                        <TouchableOpacity
-                          key={`ev_${ev.id || evIdx}`}
-                          style={[styles.quickEventChip, isMatch && styles.quickEventChipActive]}
-                          onPress={() => {
-                            setPlanFormTitle(title);
-                            if (ev.date) {
-                              const d = ev.date.includes('T') ? ev.date.split('T')[0] : ev.date;
-                              setPlanFormDate(d);
-                            }
-                            if (ev.startTime) {
-                              const cleanStart = ev.startTime.includes('T') ? ev.startTime.split('T')[1].substring(0, 5) : ev.startTime;
-                              setPlanFormStartTime(cleanStart);
-                            }
-                            if (ev.endTime) {
-                              const cleanEnd = ev.endTime.includes('T') ? ev.endTime.split('T')[1].substring(0, 5) : ev.endTime;
-                              setPlanFormEndTime(cleanEnd);
-                            }
-                            if (ev.location) {
-                              setPlanFormLocation(ev.location);
-                            }
-                          }}
-                        >
-                          <Text style={[styles.quickEventChipTxt, isMatch && styles.quickEventChipTxtActive]}>
-                            {title}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </ScrollView>
+            <ScrollView style={{ paddingHorizontal: 16, paddingTop: 14 }} showsVerticalScrollIndicator={false}>
+              
+              {/* SECTION 1: Service Details */}
+              <View style={styles.formCard}>
+                <View style={styles.formCardHeader}>
+                  <CalendarDays size={16} color="#1A2D5A" />
+                  <Text style={styles.formCardTitle}>Service Details</Text>
                 </View>
-              )}
 
-              {/* Service Details */}
-              <Text style={styles.inputLabel}>Service Name / Title</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="e.g. Sunday Morning Worship Service"
-                placeholderTextColor="#94A3B8"
-                value={planFormTitle}
-                onChangeText={setPlanFormTitle}
-              />
+                {/* Quick Select from Church Events if available */}
+                {churchEvents.length > 0 && !selectedPlan?.id && (
+                  <View style={styles.quickEventWrap}>
+                    <Text style={styles.quickEventLabel}>⚡ Autofill from Church Calendar:</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 6 }}>
+                      {churchEvents.map((ev, evIdx) => {
+                        const title = ev.title || ev.name || 'Event';
+                        const isMatch = planFormTitle === title;
+                        return (
+                          <TouchableOpacity
+                            key={`ev_${ev.id || evIdx}`}
+                            style={[styles.quickEventChip, isMatch && styles.quickEventChipActive]}
+                            onPress={() => {
+                              setPlanFormTitle(title);
+                              if (ev.date) {
+                                const d = ev.date.includes('T') ? ev.date.split('T')[0] : ev.date;
+                                setPlanFormDate(d);
+                              }
+                              if (ev.startTime) {
+                                const cleanStart = ev.startTime.includes('T') ? ev.startTime.split('T')[1].substring(0, 5) : ev.startTime;
+                                setPlanFormStartTime(cleanStart);
+                              }
+                              if (ev.endTime) {
+                                const cleanEnd = ev.endTime.includes('T') ? ev.endTime.split('T')[1].substring(0, 5) : ev.endTime;
+                                setPlanFormEndTime(cleanEnd);
+                              }
+                              if (ev.location) {
+                                setPlanFormLocation(ev.location);
+                              }
+                            }}
+                          >
+                            <Text style={[styles.quickEventChipTxt, isMatch && styles.quickEventChipTxtActive]}>
+                              {title}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </ScrollView>
+                  </View>
+                )}
 
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-                <View style={{ flex: 1.2 }}>
-                  <Text style={styles.inputLabel}>Date (YYYY-MM-DD)</Text>
+                {/* Service Name Input */}
+                <Text style={styles.inputLabel}>SERVICE TITLE *</Text>
+                <View style={styles.inputWrapper}>
+                  <Type size={16} color="#94A3B8" style={{ marginRight: 8 }} />
                   <TextInput
-                    style={styles.textInput}
+                    style={styles.input}
+                    placeholder="e.g. Sunday Morning Worship Service"
+                    placeholderTextColor="#94A3B8"
+                    value={planFormTitle}
+                    onChangeText={setPlanFormTitle}
+                  />
+                </View>
+
+                {/* Date Input */}
+                <Text style={[styles.inputLabel, { marginTop: 12 }]}>DATE (YYYY-MM-DD) *</Text>
+                <View style={styles.inputWrapper}>
+                  <Calendar size={16} color="#94A3B8" style={{ marginRight: 8 }} />
+                  <TextInput
+                    style={styles.input}
                     placeholder="2026-10-25"
                     placeholderTextColor="#94A3B8"
                     value={planFormDate}
                     onChangeText={setPlanFormDate}
                   />
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Start Time</Text>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="09:00"
-                    placeholderTextColor="#94A3B8"
-                    value={planFormStartTime}
-                    onChangeText={setPlanFormStartTime}
-                  />
+
+                {/* Time Grid: 2 Columns */}
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>START TIME</Text>
+                    <View style={styles.inputWrapper}>
+                      <Clock size={16} color="#94A3B8" style={{ marginRight: 8 }} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="09:00"
+                        placeholderTextColor="#94A3B8"
+                        value={planFormStartTime}
+                        onChangeText={setPlanFormStartTime}
+                      />
+                    </View>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.inputLabel}>END TIME</Text>
+                    <View style={styles.inputWrapper}>
+                      <Clock size={16} color="#94A3B8" style={{ marginRight: 8 }} />
+                      <TextInput
+                        style={styles.input}
+                        placeholder="11:15"
+                        placeholderTextColor="#94A3B8"
+                        value={planFormEndTime}
+                        onChangeText={setPlanFormEndTime}
+                      />
+                    </View>
+                  </View>
                 </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>End Time</Text>
+
+                {/* Location Input */}
+                <Text style={[styles.inputLabel, { marginTop: 12 }]}>SANCTUARY / LOCATION</Text>
+                <View style={styles.inputWrapper}>
+                  <MapPin size={16} color="#94A3B8" style={{ marginRight: 8 }} />
                   <TextInput
-                    style={styles.textInput}
-                    placeholder="11:00"
+                    style={styles.input}
+                    placeholder="e.g. Main Sanctuary"
                     placeholderTextColor="#94A3B8"
-                    value={planFormEndTime}
-                    onChangeText={setPlanFormEndTime}
+                    value={planFormLocation}
+                    onChangeText={setPlanFormLocation}
                   />
                 </View>
               </View>
 
-              <Text style={[styles.inputLabel, { marginTop: 10 }]}>Location / Sanctuary</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="e.g. Sanctuary / Church Hall"
-                placeholderTextColor="#94A3B8"
-                value={planFormLocation}
-                onChangeText={setPlanFormLocation}
-              />
-
-              {/* ── Pre-Built Timetable Format Templates ────────── */}
-              <View style={styles.templatePickerContainer}>
-                <View style={styles.templatePickerHeader}>
-                  <Sparkles size={14} color="#C9A84C" />
-                  <Text style={styles.templatePickerTitle}>Pre-Built Timetable Formats</Text>
+              {/* SECTION 2: Pre-Built Timetable Format Templates */}
+              <View style={styles.formCard}>
+                <View style={styles.formCardHeader}>
+                  <Sparkles size={16} color="#C9A84C" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.formCardTitle}>Pre-Built Timetable Formats</Text>
+                    <Text style={styles.formCardSub}>
+                      Tap any format to auto-fill the standard church activities & timings:
+                    </Text>
+                  </View>
                 </View>
-                <Text style={styles.templatePickerSub}>
-                  Tap any format below to instantly populate church schedule & timings:
-                </Text>
+
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.templateChipsRow}>
                   {ServiceRosterService.getAvailableTemplates().map(tmpl => {
                     const isSelected = selectedTemplateId === tmpl.id;
@@ -2080,6 +2137,11 @@ export default function AdminServicePlanner({ navigation }: any) {
                           <Text style={[styles.templateCardChipName, isSelected && styles.templateCardChipNameActive]}>
                             {tmpl.name}
                           </Text>
+                          {isSelected && (
+                            <View style={styles.templateSelectedBadge}>
+                              <Check size={10} color="#FFFFFF" strokeWidth={3} />
+                            </View>
+                          )}
                         </View>
                         <Text style={[styles.templateCardChipSub, isSelected && styles.templateCardChipSubActive]}>
                           {tmpl.subtitle}
@@ -2090,133 +2152,179 @@ export default function AdminServicePlanner({ navigation }: any) {
                 </ScrollView>
               </View>
 
-              {/* ── Timetable Activities List ────────────────────── */}
-              <View style={styles.builderSectionHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.builderSectionTitle}>Service Timetable & Activities ({planFormTimetable.length})</Text>
-                  <Text style={styles.builderSectionSub}>Chronological run-sheet for pastors, worship team, and AV media</Text>
+              {/* SECTION 3: Order of Service (Timetable Activities) */}
+              <View style={styles.formCard}>
+                <View style={styles.formCardHeader}>
+                  <Clock size={16} color="#1A2D5A" />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.formCardTitle}>
+                      Order of Service ({planFormTimetable.length} Activities)
+                    </Text>
+                    <Text style={styles.formCardSub}>
+                      Timeline run-sheet for pastors, worship team, and AV booth
+                    </Text>
+                  </View>
                 </View>
-              </View>
 
-              {planFormTimetable.length === 0 ? (
-                <View style={styles.emptyTimetableBox}>
-                  <CalendarDays size={30} color="#94A3B8" />
-                  <Text style={styles.emptyTimetableTxt}>
-                    No activities yet. Choose a format template above or use the quick buttons below.
-                  </Text>
-                </View>
-              ) : (
-                planFormTimetable.map((act, aIdx) => {
-                  const theme = getCategoryTheme(act.category);
-                  const isFirst = aIdx === 0;
-                  const isLast = aIdx === planFormTimetable.length - 1;
-                  return (
-                    <View key={`act_${act.id || aIdx}`} style={styles.actBuilderRow}>
-                      {/* Move Up/Down Controls */}
-                      <View style={styles.actReorderCol}>
-                        <TouchableOpacity
-                          disabled={isFirst}
-                          onPress={() => handleMoveTimetableActivity(aIdx, 'up')}
-                          style={[styles.reorderBtn, isFirst && { opacity: 0.25 }]}
-                        >
-                          <ChevronUp size={14} color="#475569" />
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          disabled={isLast}
-                          onPress={() => handleMoveTimetableActivity(aIdx, 'down')}
-                          style={[styles.reorderBtn, isLast && { opacity: 0.25 }]}
-                        >
-                          <ChevronDown size={14} color="#475569" />
-                        </TouchableOpacity>
-                      </View>
-
-                      {/* Time Pill */}
-                      <View style={styles.actBuilderTime}>
-                        <Text style={styles.actBuilderTimeTxt}>
-                          {act.startTime || act.time?.split(/to|-/i)[0]?.trim() || '09:00'}
-                        </Text>
-                        <View style={styles.actBuilderDurBadge}>
-                          <Text style={styles.actBuilderDurTxt}>{act.durationMinutes || 15}m</Text>
-                        </View>
-                      </View>
-
-                      {/* Program Details & Category Badge */}
-                      <View style={{ flex: 1, marginHorizontal: 6 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                          <View style={[styles.catBadge, { backgroundColor: theme.bg, borderColor: theme.border }]}>
-                            <Text style={[styles.catBadgeTxt, { color: theme.text }]}>{theme.label}</Text>
+                {planFormTimetable.length === 0 ? (
+                  <View style={styles.emptyTimetableBox}>
+                    <CalendarDays size={28} color="#94A3B8" />
+                    <Text style={styles.emptyTimetableTxt}>
+                      No activities in schedule yet. Select a pre-built format above or add an activity below.
+                    </Text>
+                  </View>
+                ) : (
+                  planFormTimetable.map((act, aIdx) => {
+                    const theme = getCategoryTheme(act.category);
+                    const isFirst = aIdx === 0;
+                    const isLast = aIdx === planFormTimetable.length - 1;
+                    return (
+                      <View key={`act_${act.id || aIdx}`} style={styles.actBuilderCard}>
+                        {/* Top Line of Card: Time Pill + Category Badge + Actions */}
+                        <View style={styles.actBuilderCardTop}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+                            <View style={styles.actTimePill}>
+                              <Clock size={10} color="#1A2D5A" />
+                              <Text style={styles.actTimePillTxt}>
+                                {act.startTime || act.time?.split(/to|-/i)[0]?.trim() || '09:00'} - {act.endTime || act.time?.split(/to|-/i)[1]?.trim() || '09:20'}
+                              </Text>
+                              <Text style={styles.actDurTxt}>({act.durationMinutes || 15}m)</Text>
+                            </View>
+                            <View style={[styles.catBadge, { backgroundColor: theme.bg, borderColor: theme.border }]}>
+                              <Text style={[styles.catBadgeTxt, { color: theme.text }]}>{theme.label}</Text>
+                            </View>
                           </View>
+
+                          {/* Reorder and Edit/Delete Actions */}
+                          <View style={styles.actActionGroup}>
+                            <TouchableOpacity
+                              disabled={isFirst}
+                              onPress={() => handleMoveTimetableActivity(aIdx, 'up')}
+                              style={[styles.actMiniBtn, isFirst && { opacity: 0.25 }]}
+                            >
+                              <ChevronUp size={13} color="#475569" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              disabled={isLast}
+                              onPress={() => handleMoveTimetableActivity(aIdx, 'down')}
+                              style={[styles.actMiniBtn, isLast && { opacity: 0.25 }]}
+                            >
+                              <ChevronDown size={13} color="#475569" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleEditActivity(aIdx)}
+                              style={[styles.actMiniBtn, { backgroundColor: '#EFF6FF' }]}
+                            >
+                              <Edit2 size={12} color="#1D4ED8" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              onPress={() => handleDeleteTimetableActivity(aIdx)}
+                              style={[styles.actMiniBtn, { backgroundColor: '#FEE2E2' }]}
+                            >
+                              <Trash2 size={12} color="#DC2626" />
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+
+                        {/* Title & Leader */}
+                        <Text style={styles.actBuilderProgram} numberOfLines={1}>{act.program}</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 }}>
+                          <Text style={styles.actBuilderSub} numberOfLines={1}>
+                            {act.assignedTo ? `👤 ${act.assignedTo}` : 'Tap edit to assign leader'}
+                          </Text>
                           {act.passage ? (
-                            <Text style={styles.actPassageTxt} numberOfLines={1}>{act.passage}</Text>
+                            <Text style={styles.actPassageTxt} numberOfLines={1}>📖 {act.passage}</Text>
                           ) : null}
                         </View>
-                        <Text style={styles.actBuilderProgram} numberOfLines={1}>{act.program}</Text>
-                        <Text style={styles.actBuilderSub} numberOfLines={1}>
-                          {act.assignedTo ? `👤 ${act.assignedTo}` : 'Tap edit to assign leader'}
-                        </Text>
                       </View>
+                    );
+                  })
+                )}
 
-                      {/* Action Buttons: Edit and Delete */}
-                      <View style={styles.actBuilderActions}>
-                        <TouchableOpacity onPress={() => handleEditActivity(aIdx)} style={styles.iconBtnSmall}>
-                          <Edit2 size={13} color="#1E293B" />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleDeleteTimetableActivity(aIdx)} style={[styles.iconBtnSmall, { backgroundColor: '#FEE2E2' }]}>
-                          <Trash2 size={13} color="#DC2626" />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  );
-                })
-              )}
+                {/* Add Custom Activity Button */}
+                <TouchableOpacity
+                  style={styles.addCustomActBtn}
+                  onPress={() => handleAddActivity('additional')}
+                  activeOpacity={0.85}
+                >
+                  <Plus size={15} color="#1A2D5A" strokeWidth={2.5} />
+                  <Text style={styles.addCustomActBtnTxt}>Add Custom Activity</Text>
+                </TouchableOpacity>
 
-              {/* ── Quick Add Action Pills ───────────────────────── */}
-              <View style={styles.quickAddSection}>
-                <Text style={styles.quickAddHeaderTitle}>+ Quick Add Service Activity:</Text>
-                <View style={styles.quickAddRow}>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('starting_prayer')}>
-                    <Text style={styles.quickAddPillTxt}>+ Starting Prayer</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('opening_song')}>
-                    <Text style={styles.quickAddPillTxt}>+ Opening Praise</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('worship_songs')}>
-                    <Text style={styles.quickAddPillTxt}>+ Praise & Worship</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('bible_reading')}>
-                    <Text style={styles.quickAddPillTxt}>+ Bible Reading</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('announcements')}>
-                    <Text style={styles.quickAddPillTxt}>+ Announcements</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('offertory')}>
-                    <Text style={styles.quickAddPillTxt}>+ Offertory</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('sermon')}>
-                    <Text style={styles.quickAddPillTxt}>+ Sermon</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('communion')}>
-                    <Text style={styles.quickAddPillTxt}>+ Holy Communion</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('intercession')}>
-                    <Text style={styles.quickAddPillTxt}>+ Intercession</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('testimony')}>
-                    <Text style={styles.quickAddPillTxt}>+ Testimony</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('closing_prayer')}>
-                    <Text style={styles.quickAddPillTxt}>+ Benediction</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('break')}>
-                    <Text style={styles.quickAddPillTxt}>+ Break</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('additional')}>
-                    <Text style={styles.quickAddPillTxt}>+ Custom Activity</Text>
-                  </TouchableOpacity>
+                {/* Quick Add Pills: Clean Horizontal Scroll */}
+                <View style={{ marginTop: 12 }}>
+                  <Text style={styles.quickAddSubHeading}>Or Quick-Insert Activity Category:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingTop: 6 }}>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('starting_prayer')}>
+                      <Text style={styles.quickAddPillTxt}>+ Starting Prayer</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('opening_song')}>
+                      <Text style={styles.quickAddPillTxt}>+ Opening Praise</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('worship_songs')}>
+                      <Text style={styles.quickAddPillTxt}>+ Praise & Worship</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('bible_reading')}>
+                      <Text style={styles.quickAddPillTxt}>+ Scripture Reading</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('sermon')}>
+                      <Text style={styles.quickAddPillTxt}>+ Sermon / Message</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('communion')}>
+                      <Text style={styles.quickAddPillTxt}>+ Holy Communion</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('offertory')}>
+                      <Text style={styles.quickAddPillTxt}>+ Offertory</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('announcements')}>
+                      <Text style={styles.quickAddPillTxt}>+ Announcements</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('intercession')}>
+                      <Text style={styles.quickAddPillTxt}>+ Intercessory Prayer</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('testimony')}>
+                      <Text style={styles.quickAddPillTxt}>+ Testimonies</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('closing_prayer')}>
+                      <Text style={styles.quickAddPillTxt}>+ Benediction</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('break')}>
+                      <Text style={styles.quickAddPillTxt}>+ Fellowship Break</Text>
+                    </TouchableOpacity>
+                  </ScrollView>
                 </View>
               </View>
 
-              <View style={{ height: 30 }} />
+              {/* Bottom Save & Cancel Bar */}
+              <View style={styles.builderBottomBar}>
+                <TouchableOpacity
+                  style={[styles.bottomSaveBtn, savingPlan && { opacity: 0.7 }]}
+                  disabled={savingPlan}
+                  onPress={handleSavePlanDetails}
+                  activeOpacity={0.85}
+                >
+                  {savingPlan ? (
+                    <ActivityIndicator size="small" color="#1A2D5A" />
+                  ) : (
+                    <>
+                      <Save size={16} color="#1A2D5A" />
+                      <Text style={styles.bottomSaveBtnTxt}>
+                        {selectedPlan?.id ? 'Save Service Changes' : 'Create Service Schedule'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.bottomCancelBtn}
+                  onPress={() => setShowCreatePlanModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.bottomCancelBtnTxt}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ height: 24 }} />
             </ScrollView>
           </View>
         </View>
@@ -2494,101 +2602,104 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // ── Active Service Banner Card ─────────────────────────────────
+  // ── Stats Row (Matches AdminEventList & other tabs) ───────────
+  statsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.06)',
+    shadowColor: '#1A2D5A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+  statNum: {
+    fontSize: 20,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  statLbl: {
+    fontSize: 10.5,
+    color: '#6B7280',
+    fontWeight: '600',
+    marginTop: 2,
+    textAlign: 'center',
+  },
+
+  // ── Active Service Banner Card (Compact & Low-Profile) ────────
   activeServiceCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 16,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     shadowColor: '#1A2D5A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
     elevation: 2,
-    marginBottom: 14,
+    marginBottom: 12,
   },
   activeServiceTop: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
   },
-  badgeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
+  activeServiceTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.2,
   },
-  dateBadge: {
+  compactMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  compactBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3.5,
     backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
     borderWidth: 1,
     borderColor: '#DBEAFE',
   },
-  dateBadgeTxt: {
-    fontSize: 11,
+  compactBadgeTxt: {
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#1A2D5A',
   },
-  timeBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  compactActionsCol: {
+    alignItems: 'flex-end',
     gap: 4,
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 8,
-    paddingVertical: 3.5,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#A7F3D0',
-  },
-  timeBadgeTxt: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#059669',
-  },
-  activeServiceTitle: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#0F172A',
-    letterSpacing: -0.3,
-  },
-  locationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  locationTxt: {
-    fontSize: 12,
-    color: '#64748B',
-  },
-  activeServiceActionsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
   },
   actionBtnEdit: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: '#1A2D5A',
-    paddingVertical: 8.5,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 5,
+    paddingHorizontal: 9,
+    borderRadius: 7,
   },
   actionBtnEditTxt: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: '#FFFFFF',
   },
@@ -2596,23 +2707,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
+    gap: 3,
     backgroundColor: '#ECFDF5',
     borderWidth: 1,
     borderColor: '#A7F3D0',
-    paddingVertical: 8.5,
-    paddingHorizontal: 14,
-    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 7,
+    borderRadius: 7,
   },
   actionBtnShareTxt: {
-    fontSize: 12,
+    fontSize: 10.5,
     fontWeight: '700',
     color: '#059669',
   },
   actionBtnDelete: {
-    paddingVertical: 8.5,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 7,
+    borderRadius: 7,
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FECACA',
@@ -3455,15 +3566,25 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
   },
   saveHeaderBtn: {
-    backgroundColor: '#1A2D5A',
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 10,
+    backgroundColor: '#C9A84C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   saveHeaderBtnTxt: {
-    color: '#FFFFFF',
+    color: '#1A2D5A',
     fontSize: 12.5,
     fontWeight: '800',
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   quickEventWrap: {
     backgroundColor: '#F1F5F9',
@@ -3735,6 +3856,176 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     color: '#1E293B',
+  },
+
+  // ── Form Cards & Modal Styling (Modal 3) ────────
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#1A2D5A',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  formCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  formCardTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#1A2D5A',
+  },
+  formCardSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    height: 42,
+  },
+  input: {
+    flex: 1,
+    fontSize: 13,
+    color: '#0F172A',
+    height: 42,
+    paddingVertical: 0,
+  },
+  templateSelectedBadge: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: '#3B82F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 'auto',
+  },
+  actBuilderCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 8,
+  },
+  actBuilderCardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  actTimePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#DBEAFE',
+  },
+  actTimePillTxt: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#1A2D5A',
+  },
+  actDurTxt: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  actActionGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  actMiniBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addCustomActBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 10,
+    paddingVertical: 10,
+    marginTop: 10,
+  },
+  addCustomActBtnTxt: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#1A2D5A',
+  },
+  quickAddSubHeading: {
+    fontSize: 10.5,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  builderBottomBar: {
+    gap: 8,
+    marginTop: 8,
+  },
+  bottomSaveBtn: {
+    backgroundColor: '#C9A84C',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 12,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  bottomSaveBtnTxt: {
+    color: '#1A2D5A',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  bottomCancelBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  bottomCancelBtnTxt: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '600',
   },
 
   // ── Category Picker Chips (Modal 4) ────────────────
