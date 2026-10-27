@@ -54,6 +54,7 @@ export interface AppMember {
   anniversaryDate?: string;
   primarySkill?: string;
   secondarySkill?: string;
+  skills?: string[];
 }
 
 export interface FirestorePromise {

@@ -80,3 +80,14 @@ export const CHURCH_SKILL_CATEGORIES: SkillCategory[] = [
 export const ALL_PREDEFINED_SKILLS: string[] = Array.from(
   new Set(CHURCH_SKILL_CATEGORIES.flatMap(cat => cat.skills))
 ).sort();
+
+export const getMemberSkills = (m: any): string[] => {
+  if (!m) return [];
+  if (Array.isArray(m.skills) && m.skills.length > 0) {
+    return Array.from(new Set(m.skills.map((s: any) => String(s).trim()).filter(Boolean)));
+  }
+  const fallback = [m.primarySkill, m.secondarySkill]
+    .map(s => (s ? String(s).trim() : ''))
+    .filter(Boolean);
+  return Array.from(new Set(fallback));
+};

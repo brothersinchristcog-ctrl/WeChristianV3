@@ -25,7 +25,7 @@ import { CustomAlert, AlertButton } from '../../components/CustomAlert';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import InviteMembersModal from '../../components/InviteMembersModal';
-import { CHURCH_SKILL_CATEGORIES, ALL_PREDEFINED_SKILLS } from '../../constants/churchSkills';
+import { CHURCH_SKILL_CATEGORIES, ALL_PREDEFINED_SKILLS, getMemberSkills } from '../../constants/churchSkills';
 
 const { width } = Dimensions.get('window');
 
@@ -88,7 +88,18 @@ export default function AdminMembers() {
   const [editMemberId, setEditMemberId] = useState<string | null>(null);
   const [addMemberLoading, setAddMemberLoading] = useState(false);
   const isSubmittingRef = useRef(false); // Prevents double-tap race condition
-  const [newMemberForm, setNewMemberForm] = useState({
+  const [newMemberForm, setNewMemberForm] = useState<{
+    name: string;
+    phone: string;
+    userType: string;
+    dob: string;
+    city: string;
+    baptismDate: string;
+    anniversaryDate: string;
+    primarySkill: string;
+    secondarySkill: string;
+    skills: string[];
+  }>({
     name: '',
     phone: '',
     userType: 'member',
@@ -97,7 +108,8 @@ export default function AdminMembers() {
     baptismDate: '',
     anniversaryDate: '',
     primarySkill: '',
-    secondarySkill: ''
+    secondarySkill: '',
+    skills: []
   });
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [activeDateField, setActiveDateField] = useState<'dob' | 'baptismDate' | 'anniversaryDate'>('dob');
@@ -274,12 +286,55 @@ export default function AdminMembers() {
     return list;
   }, [selectedCategoryTab, skillSearchText]);
 
-  const openSkillPicker = (field: 'primarySkill' | 'secondarySkill') => {
-    setActiveSkillPickerField(field);
+  const openSkillPicker = () => {
     setSkillSearchText('');
     setSelectedCategoryTab('all');
     setCustomSkillInput('');
     setSkillPickerModalVisible(true);
+  };
+
+  const toggleMemberSkill = (skill: string) => {
+    setNewMemberForm(prev => {
+      const current = prev.skills || [];
+      const exists = current.includes(skill);
+      const nextSkills = exists ? current.filter(s => s !== skill) : [...current, skill];
+      return {
+        ...prev,
+        skills: nextSkills,
+        primarySkill: nextSkills[0] || '',
+        secondarySkill: nextSkills[1] || ''
+      };
+    });
+  };
+
+  const removeMemberSkill = (skill: string) => {
+    setNewMemberForm(prev => {
+      const current = prev.skills || [];
+      const nextSkills = current.filter(s => s !== skill);
+      return {
+        ...prev,
+        skills: nextSkills,
+        primarySkill: nextSkills[0] || '',
+        secondarySkill: nextSkills[1] || ''
+      };
+    });
+  };
+
+  const addCustomMemberSkill = () => {
+    const trimmed = customSkillInput.trim();
+    if (!trimmed) return;
+    setNewMemberForm(prev => {
+      const current = prev.skills || [];
+      if (current.includes(trimmed)) return prev;
+      const nextSkills = [...current, trimmed];
+      return {
+        ...prev,
+        skills: nextSkills,
+        primarySkill: nextSkills[0] || '',
+        secondarySkill: nextSkills[1] || ''
+      };
+    });
+    setCustomSkillInput('');
   };
 
   // Village Filtered Members (used for stats based on the selected village)
@@ -335,6 +390,10 @@ export default function AdminMembers() {
         }
       }
 
+      const memberSkills = newMemberForm.skills || [];
+      const primarySkill = memberSkills[0] || newMemberForm.primarySkill?.trim() || '';
+      const secondarySkill = memberSkills[1] || newMemberForm.secondarySkill?.trim() || '';
+
       let res;
       if (editMemberId) {
         res = await FirestoreService.adminUpdateMember(activeChurch?.id || '', editMemberId, {
@@ -345,8 +404,9 @@ export default function AdminMembers() {
           city: newMemberForm.city,
           baptismDate: newMemberForm.baptismDate,
           anniversaryDate: newMemberForm.anniversaryDate,
-          primarySkill: newMemberForm.primarySkill?.trim() || '',
-          secondarySkill: newMemberForm.secondarySkill?.trim() || '',
+          primarySkill: primarySkill,
+          secondarySkill: secondarySkill,
+          skills: memberSkills,
         });
       } else {
         res = await FirestoreService.adminAddMember(activeChurch?.id || '', {
@@ -358,15 +418,16 @@ export default function AdminMembers() {
           city: newMemberForm.city,
           baptismDate: newMemberForm.baptismDate,
           anniversaryDate: newMemberForm.anniversaryDate,
-          primarySkill: newMemberForm.primarySkill?.trim() || '',
-          secondarySkill: newMemberForm.secondarySkill?.trim() || '',
+          primarySkill: primarySkill,
+          secondarySkill: secondarySkill,
+          skills: memberSkills,
         });
       }
 
       if (res.success) {
         setAddModalVisible(false);
         setEditMemberId(null);
-        setNewMemberForm({ name: '', phone: '', userType: 'member', dob: '', city: '', baptismDate: '', anniversaryDate: '', primarySkill: '', secondarySkill: '' });
+        setNewMemberForm({ name: '', phone: '', userType: 'member', dob: '', city: '', baptismDate: '', anniversaryDate: '', primarySkill: '', secondarySkill: '', skills: [] });
         fetchMembers();
 
         setTimeout(() => {
@@ -496,16 +557,15 @@ May God bless you abundantly! ❤️`;
     const emailStr = (m.email || '').toLowerCase();
     const phoneStr = m.phone || '';
     const villageStr = (m.city || m.village || '').toLowerCase();
-    const primarySkillStr = (m.primarySkill || '').toLowerCase();
-    const secondarySkillStr = (m.secondarySkill || '').toLowerCase();
+    const mSkills = getMemberSkills(m);
+    const skillsMatch = mSkills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesSearch = 
       nameStr.includes(searchQuery.toLowerCase()) ||
       emailStr.includes(searchQuery.toLowerCase()) ||
       villageStr.includes(searchQuery.toLowerCase()) ||
       phoneStr.includes(searchQuery) ||
-      primarySkillStr.includes(searchQuery.toLowerCase()) ||
-      secondarySkillStr.includes(searchQuery.toLowerCase());
+      skillsMatch;
 
     const isActive = true; // Assuming active by default in Firebase
     const matchesStatus = 
@@ -677,22 +737,24 @@ May God bless you abundantly! ❤️`;
                           <Text style={styles.statusTxt}>{isActive ? 'Active' : 'Inactive'}</Text>
                         </View>
                       </View>
-                      {(member.primarySkill || member.secondarySkill) ? (
-                        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                          {member.primarySkill ? (
-                            <View style={styles.primarySkillPill}>
-                              <Award size={10} color="#B45309" style={{ marginRight: 3 }} />
-                              <Text style={styles.primarySkillPillTxt} numberOfLines={1}>{member.primarySkill}</Text>
-                            </View>
-                          ) : null}
-                          {member.secondarySkill ? (
-                            <View style={styles.secondarySkillPill}>
-                              <Sparkles size={10} color="#4338CA" style={{ marginRight: 3 }} />
-                              <Text style={styles.secondarySkillPillTxt} numberOfLines={1}>{member.secondarySkill}</Text>
-                            </View>
-                          ) : null}
-                        </View>
-                      ) : null}
+                      {(() => {
+                        const mSkills = getMemberSkills(member);
+                        if (!mSkills || mSkills.length === 0) return null;
+                        return (
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                            {mSkills.map((sk: string, skIdx: number) => (
+                              <View key={skIdx} style={skIdx === 0 ? styles.primarySkillPill : styles.secondarySkillPill}>
+                                {skIdx === 0 ? (
+                                  <Award size={10} color="#B45309" style={{ marginRight: 3 }} />
+                                ) : (
+                                  <Sparkles size={10} color="#4338CA" style={{ marginRight: 3 }} />
+                                )}
+                                <Text style={skIdx === 0 ? styles.primarySkillPillTxt : styles.secondarySkillPillTxt} numberOfLines={1}>{sk}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        );
+                      })()}
                     </View>
                   </View>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
@@ -700,6 +762,7 @@ May God bless you abundantly! ❤️`;
                       <TouchableOpacity 
                         onPress={(e) => {
                           e.stopPropagation();
+                          const mSkills = getMemberSkills(member);
                           setEditMemberId(member.id);
                           setNewMemberForm({
                             name: member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim(),
@@ -709,8 +772,9 @@ May God bless you abundantly! ❤️`;
                             city: member.city || member.village || '',
                             baptismDate: member.baptismDate || member.Baptism_Date__c || '',
                             anniversaryDate: member.anniversaryDate || member.Anniversary_Date__c || '',
-                            primarySkill: member.primarySkill || '',
-                            secondarySkill: member.secondarySkill || ''
+                            primarySkill: mSkills[0] || member.primarySkill || '',
+                            secondarySkill: mSkills[1] || member.secondarySkill || '',
+                            skills: mSkills
                           });
                           setAddModalVisible(true);
                         }}
@@ -808,32 +872,45 @@ May God bless you abundantly! ❤️`;
                     </View>
 
                     {/* Skills & Talents Breakdown */}
-                    <View style={styles.skillsSectionBox}>
-                      <View style={styles.skillsSectionHeader}>
-                        <Briefcase size={13} color="#1a2d5a" style={{ marginRight: 6 }} />
-                        <Text style={styles.skillsSectionTitle}>SKILLS & TALENTS</Text>
-                      </View>
-                      <View style={styles.skillsGrid}>
-                        <View style={styles.skillBox}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                            <Award size={12} color="#B45309" style={{ marginRight: 4 }} />
-                            <Text style={styles.skillBoxTag}>PRIMARY SKILL</Text>
+                    {(() => {
+                      const mSkills = getMemberSkills(member);
+                      return (
+                        <View style={styles.skillsSectionBox}>
+                          <View style={styles.skillsSectionHeader}>
+                            <Briefcase size={13} color="#1a2d5a" style={{ marginRight: 6 }} />
+                            <Text style={styles.skillsSectionTitle}>
+                              SKILLS & TALENTS {mSkills.length > 0 ? `(${mSkills.length})` : ''}
+                            </Text>
                           </View>
-                          <Text style={[styles.skillBoxValue, !member.primarySkill && { color: '#9CA3AF', fontStyle: 'italic', fontWeight: '500' }]}>
-                            {member.primarySkill || 'Not specified'}
-                          </Text>
+                          {mSkills.length > 0 ? (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                              {mSkills.map((sk: string, skIdx: number) => (
+                                <View 
+                                  key={skIdx} 
+                                  style={[
+                                    styles.skillTagBox,
+                                    skIdx === 0 ? styles.skillTagBoxPrimary : styles.skillTagBoxSecondary
+                                  ]}
+                                >
+                                  {skIdx === 0 ? (
+                                    <Award size={12} color="#B45309" style={{ marginRight: 5 }} />
+                                  ) : (
+                                    <Sparkles size={12} color="#4338CA" style={{ marginRight: 5 }} />
+                                  )}
+                                  <Text style={[styles.skillTagText, skIdx === 0 ? { color: '#92400E' } : { color: '#3730A3' }]}>
+                                    {sk}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          ) : (
+                            <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', paddingVertical: 4 }}>
+                              No skills specified
+                            </Text>
+                          )}
                         </View>
-                        <View style={styles.skillBox}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-                            <Sparkles size={12} color="#4338CA" style={{ marginRight: 4 }} />
-                            <Text style={styles.skillBoxTag}>SECONDARY SKILL</Text>
-                          </View>
-                          <Text style={[styles.skillBoxValue, !member.secondarySkill && { color: '#9CA3AF', fontStyle: 'italic', fontWeight: '500' }]}>
-                            {member.secondarySkill || 'Not specified'}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
+                      );
+                    })()}
 
                     {/* Household Members breakdown */}
                     <Text style={styles.householdHeader}>
@@ -1021,51 +1098,85 @@ May God bless you abundantly! ❤️`;
                 </TouchableOpacity>
               </View>
 
-              {/* Primary Skill */}
+              {/* Skills & Talents (Multi-Select) */}
               <View style={{ marginBottom: 16 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.5 }}>Primary Skill</Text>
-                  {newMemberForm.primarySkill ? (
-                    <TouchableOpacity onPress={() => setNewMemberForm({ ...newMemberForm, primarySkill: '' })}>
-                      <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600' }}>Clear</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Briefcase size={14} color="#1a2d5a" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Skills & Talents {newMemberForm.skills.length > 0 ? `(${newMemberForm.skills.length})` : ''}
+                    </Text>
+                  </View>
+                  {newMemberForm.skills.length > 0 ? (
+                    <TouchableOpacity onPress={() => setNewMemberForm({ ...newMemberForm, skills: [], primarySkill: '', secondarySkill: '' })}>
+                      <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600' }}>Clear All</Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
-                <TouchableOpacity
-                  style={{ borderWidth: 1.5, borderColor: newMemberForm.primarySkill ? '#1a2d5a' : 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: newMemberForm.primarySkill ? '#F0F4FF' : '#FFFFFF', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-                  onPress={() => openSkillPicker('primarySkill')}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
-                    <Award size={16} color={newMemberForm.primarySkill ? '#1a2d5a' : '#9CA3AF'} style={{ marginRight: 8 }} />
-                    <Text style={{ color: newMemberForm.primarySkill ? '#1a2d5a' : '#9CA3AF', fontWeight: '600', fontSize: 14 }} numberOfLines={1}>
-                      {newMemberForm.primarySkill || 'Select Primary Skill'}
-                    </Text>
-                  </View>
-                  <ChevronDown size={16} color={newMemberForm.primarySkill ? '#1a2d5a' : '#9CA3AF'} />
-                </TouchableOpacity>
-              </View>
 
-              {/* Secondary Skill */}
-              <View style={{ marginBottom: 16 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.5 }}>Secondary Skill</Text>
-                  {newMemberForm.secondarySkill ? (
-                    <TouchableOpacity onPress={() => setNewMemberForm({ ...newMemberForm, secondarySkill: '' })}>
-                      <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600' }}>Clear</Text>
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
+                {/* Selected Skills Chips */}
+                {newMemberForm.skills.length > 0 ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                    {newMemberForm.skills.map((skill, sIdx) => (
+                      <View
+                        key={sIdx}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          backgroundColor: sIdx === 0 ? '#FEF3C7' : '#EEF2FF',
+                          borderColor: sIdx === 0 ? '#FDE68A' : '#E0E7FF',
+                          borderWidth: 1,
+                          paddingVertical: 6,
+                          paddingHorizontal: 10,
+                          borderRadius: 20,
+                        }}
+                      >
+                        {sIdx === 0 ? (
+                          <Award size={13} color="#B45309" style={{ marginRight: 5 }} />
+                        ) : (
+                          <Sparkles size={13} color="#4338CA" style={{ marginRight: 5 }} />
+                        )}
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: sIdx === 0 ? '#92400E' : '#3730A3', marginRight: 6 }}>
+                          {skill}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => removeMemberSkill(skill)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          style={{
+                            backgroundColor: sIdx === 0 ? 'rgba(180,83,9,0.15)' : 'rgba(67,56,202,0.15)',
+                            borderRadius: 10,
+                            padding: 2
+                          }}
+                        >
+                          <X size={12} color={sIdx === 0 ? '#92400E' : '#3730A3'} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {/* Button to open Skill Picker */}
                 <TouchableOpacity
-                  style={{ borderWidth: 1.5, borderColor: newMemberForm.secondarySkill ? '#4338CA' : 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: newMemberForm.secondarySkill ? '#EEF2FF' : '#FFFFFF', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-                  onPress={() => openSkillPicker('secondarySkill')}
+                  style={{
+                    borderWidth: 1.5,
+                    borderStyle: newMemberForm.skills.length > 0 ? 'solid' : 'dashed',
+                    borderColor: newMemberForm.skills.length > 0 ? '#1a2d5a' : 'rgba(26,45,90,0.25)',
+                    borderRadius: 12,
+                    padding: 13,
+                    backgroundColor: newMemberForm.skills.length > 0 ? '#F8FAFC' : '#FFFFFF',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                  onPress={openSkillPicker}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
-                    <Sparkles size={16} color={newMemberForm.secondarySkill ? '#4338CA' : '#9CA3AF'} style={{ marginRight: 8 }} />
-                    <Text style={{ color: newMemberForm.secondarySkill ? '#4338CA' : '#9CA3AF', fontWeight: '600', fontSize: 14 }} numberOfLines={1}>
-                      {newMemberForm.secondarySkill || 'Select Secondary Skill'}
+                    <Plus size={16} color="#1a2d5a" style={{ marginRight: 8 }} />
+                    <Text style={{ color: '#1a2d5a', fontWeight: '700', fontSize: 13 }}>
+                      {newMemberForm.skills.length > 0 ? 'Add / Manage Skills' : 'Select Member Skills & Talents'}
                     </Text>
                   </View>
-                  <ChevronDown size={16} color={newMemberForm.secondarySkill ? '#4338CA' : '#9CA3AF'} />
+                  <ChevronDown size={16} color="#1a2d5a" />
                 </TouchableOpacity>
               </View>
 
@@ -1177,26 +1288,60 @@ May God bless you abundantly! ❤️`;
         </TouchableOpacity>
       </Modal>
 
-      {/* Skill Picker Modal */}
+      {/* Skill Picker Modal (Multi-Select) */}
       <Modal visible={skillPickerModalVisible} transparent animationType="slide" onRequestClose={() => setSkillPickerModalVisible(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(26,45,90,0.6)', justifyContent: 'flex-end' }}>
-          <View style={{ width: '100%', backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '88%', paddingBottom: 24 }}>
+          <View style={{ width: '100%', backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '88%', paddingBottom: 20 }}>
             {/* Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                {activeSkillPickerField === 'primarySkill' ? (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Award size={20} color="#1a2d5a" style={{ marginRight: 8 }} />
-                ) : (
-                  <Sparkles size={20} color="#4338CA" style={{ marginRight: 8 }} />
-                )}
-                <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a2d5a' }}>
-                  {activeSkillPickerField === 'primarySkill' ? 'Select Primary Skill' : 'Select Secondary Skill'}
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a2d5a' }}>
+                    Select Skills & Talents
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2, fontWeight: '500' }}>
+                  {newMemberForm.skills.length === 0 ? 'Tap to select one or more skills' : `${newMemberForm.skills.length} skill${newMemberForm.skills.length > 1 ? 's' : ''} selected`}
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => setSkillPickerModalVisible(false)} style={{ backgroundColor: '#F3F4F6', padding: 6, borderRadius: 20 }}>
-                <X size={18} color="#1a2d5a" />
+              <TouchableOpacity 
+                onPress={() => setSkillPickerModalVisible(false)} 
+                style={{ backgroundColor: '#1a2d5a', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18 }}
+              >
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>Done</Text>
               </TouchableOpacity>
             </View>
+
+            {/* Selected Skills Preview Bar */}
+            {newMemberForm.skills.length > 0 && (
+              <View style={{ paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#F8FAFC', borderBottomWidth: 1, borderBottomColor: '#EDF2F7' }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', marginRight: 4 }}>
+                    Selected:
+                  </Text>
+                  {newMemberForm.skills.map((skill, sIdx) => (
+                    <TouchableOpacity
+                      key={sIdx}
+                      onPress={() => removeMemberSkill(skill)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: '#1a2d5a',
+                        paddingVertical: 5,
+                        paddingHorizontal: 10,
+                        borderRadius: 16,
+                      }}
+                    >
+                      <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600', marginRight: 5 }}>
+                        {skill}
+                      </Text>
+                      <X size={12} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
             {/* Category Tabs */}
             <View style={{ paddingVertical: 10, paddingHorizontal: 16 }}>
@@ -1245,9 +1390,9 @@ May God bless you abundantly! ❤️`;
             </View>
 
             {/* Skills List */}
-            <ScrollView style={{ paddingHorizontal: 16, maxHeight: 260 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <ScrollView style={{ paddingHorizontal: 16, maxHeight: 250 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {filteredSkillList.map((skill) => {
-                const isSelected = activeSkillPickerField && newMemberForm[activeSkillPickerField] === skill;
+                const isSelected = (newMemberForm.skills || []).includes(skill);
                 return (
                   <TouchableOpacity
                     key={skill}
@@ -1262,17 +1407,33 @@ May God bless you abundantly! ❤️`;
                       backgroundColor: isSelected ? '#EFF6FF' : 'transparent',
                       borderRadius: 8
                     }}
-                    onPress={() => {
-                      if (activeSkillPickerField) {
-                        setNewMemberForm(prev => ({ ...prev, [activeSkillPickerField]: skill }));
-                      }
-                      setSkillPickerModalVisible(false);
-                    }}
+                    onPress={() => toggleMemberSkill(skill)}
                   >
-                    <Text style={{ fontSize: 14, fontWeight: isSelected ? '700' : '500', color: isSelected ? '#1a2d5a' : '#374151' }}>
-                      {skill}
-                    </Text>
-                    {isSelected && <Check size={18} color="#1a2d5a" />}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                      <View
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 6,
+                          borderWidth: 1.5,
+                          borderColor: isSelected ? '#1a2d5a' : '#D1D5DB',
+                          backgroundColor: isSelected ? '#1a2d5a' : 'transparent',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 10
+                        }}
+                      >
+                        {isSelected && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
+                      </View>
+                      <Text style={{ fontSize: 14, fontWeight: isSelected ? '700' : '500', color: isSelected ? '#1a2d5a' : '#374151' }}>
+                        {skill}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <View style={{ backgroundColor: '#DBEAFE', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#1E40AF' }}>Selected</Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                 );
               })}
@@ -1292,18 +1453,24 @@ May God bless you abundantly! ❤️`;
                   onChangeText={setCustomSkillInput}
                 />
                 <TouchableOpacity
-                  style={{ backgroundColor: '#1a2d5a', paddingHorizontal: 14, borderRadius: 10, justifyContent: 'center', alignItems: 'center' }}
-                  onPress={() => {
-                    if (customSkillInput.trim() && activeSkillPickerField) {
-                      setNewMemberForm(prev => ({ ...prev, [activeSkillPickerField]: customSkillInput.trim() }));
-                      setCustomSkillInput('');
-                      setSkillPickerModalVisible(false);
-                    }
-                  }}
+                  style={{ backgroundColor: '#1a2d5a', paddingHorizontal: 16, borderRadius: 10, justifyContent: 'center', alignItems: 'center' }}
+                  onPress={addCustomMemberSkill}
                 >
-                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>Apply</Text>
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>+ Add</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+
+            {/* Bottom Done Action Bar */}
+            <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+              <TouchableOpacity
+                style={{ backgroundColor: '#1a2d5a', borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' }}
+                onPress={() => setSkillPickerModalVisible(false)}
+              >
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>
+                  Done ({newMemberForm.skills.length} Selected)
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
@@ -1614,6 +1781,26 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1a2d5a',
     marginTop: 2,
+  },
+  skillTagBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  skillTagBoxPrimary: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+  },
+  skillTagBoxSecondary: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#E0E7FF',
+  },
+  skillTagText: {
+    fontSize: 12,
+    fontWeight: '700',
   },
   catTab: {
     paddingHorizontal: 12,

@@ -37,7 +37,9 @@ import {
   Shield,
   Sun,
   Sparkles,
-  Search
+  Search,
+  Briefcase,
+  Plus
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -53,7 +55,7 @@ import { Lock } from 'lucide-react-native';
 import storage from '@react-native-firebase/storage';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { formatDateDisplay } from '../utils/DateUtils';
-import { CHURCH_SKILL_CATEGORIES, ALL_PREDEFINED_SKILLS } from '../constants/churchSkills';
+import { CHURCH_SKILL_CATEGORIES, ALL_PREDEFINED_SKILLS, getMemberSkills } from '../constants/churchSkills';
 
 const { width } = Dimensions.get('window');
 
@@ -80,12 +82,24 @@ export default function ProfileScreen({ navigation }: any) {
   const [prayerNotify, setPrayerNotify] = useState(false);
   // Skill Picker States
   const [skillPickerVisible, setSkillPickerVisible] = useState(false);
-  const [activeSkillField, setActiveSkillField] = useState<'primarySkill' | 'secondarySkill' | null>(null);
   const [skillSearchText, setSkillSearchText] = useState('');
   const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>('all');
   const [customSkillInput, setCustomSkillInput] = useState('');
 
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<{
+    firstName: string;
+    lastName: string;
+    email: string;
+    city: string;
+    mailingStreet: string;
+    mailingState: string;
+    dob: string;
+    baptismDate: string;
+    anniversaryDate: string;
+    primarySkill: string;
+    secondarySkill: string;
+    skills: string[];
+  }>({
     firstName: authMember?.firstName || '',
     lastName: authMember?.lastName || '',
     email: authMember?.email || '',
@@ -96,8 +110,60 @@ export default function ProfileScreen({ navigation }: any) {
     baptismDate: authMember?.baptismDate || '',
     anniversaryDate: authMember?.anniversaryDate || '',
     primarySkill: authMember?.primarySkill || '',
-    secondarySkill: authMember?.secondarySkill || ''
+    secondarySkill: authMember?.secondarySkill || '',
+    skills: getMemberSkills(authMember)
   });
+
+  const openSkillPicker = () => {
+    setSkillSearchText('');
+    setSelectedCategoryTab('all');
+    setCustomSkillInput('');
+    setSkillPickerVisible(true);
+  };
+
+  const toggleProfileSkill = (skill: string) => {
+    setEditForm(prev => {
+      const current = prev.skills || [];
+      const exists = current.includes(skill);
+      const nextSkills = exists ? current.filter(s => s !== skill) : [...current, skill];
+      return {
+        ...prev,
+        skills: nextSkills,
+        primarySkill: nextSkills[0] || '',
+        secondarySkill: nextSkills[1] || ''
+      };
+    });
+  };
+
+  const removeProfileSkill = (skill: string) => {
+    setEditForm(prev => {
+      const current = prev.skills || [];
+      const nextSkills = current.filter(s => s !== skill);
+      return {
+        ...prev,
+        skills: nextSkills,
+        primarySkill: nextSkills[0] || '',
+        secondarySkill: nextSkills[1] || ''
+      };
+    });
+  };
+
+  const addCustomProfileSkill = () => {
+    const trimmed = customSkillInput.trim();
+    if (!trimmed) return;
+    setEditForm(prev => {
+      const current = prev.skills || [];
+      if (current.includes(trimmed)) return prev;
+      const nextSkills = [...current, trimmed];
+      return {
+        ...prev,
+        skills: nextSkills,
+        primarySkill: nextSkills[0] || '',
+        secondarySkill: nextSkills[1] || ''
+      };
+    });
+    setCustomSkillInput('');
+  };
   const [updating, setUpdating] = useState(false);
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [activeDateField, setActiveDateField] = useState<'dob' | 'baptismDate' | 'anniversaryDate' | null>(null);
@@ -146,6 +212,7 @@ export default function ProfileScreen({ navigation }: any) {
           if (setGlobalMember) {
             setGlobalMember(contactCheck.member);
           }
+          const fetchedSkills = getMemberSkills(contactCheck.member);
           setEditForm({
             firstName: contactCheck.member.firstName || '',
             lastName: contactCheck.member.lastName || '',
@@ -156,8 +223,9 @@ export default function ProfileScreen({ navigation }: any) {
             dob: contactCheck.member.dob || '',
             baptismDate: contactCheck.member.baptismDate || '',
             anniversaryDate: contactCheck.member.anniversaryDate || '',
-            primarySkill: contactCheck.member.primarySkill || '',
-            secondarySkill: contactCheck.member.secondarySkill || ''
+            primarySkill: fetchedSkills[0] || contactCheck.member.primarySkill || '',
+            secondarySkill: fetchedSkills[1] || contactCheck.member.secondarySkill || '',
+            skills: fetchedSkills
           });
         }
       }
@@ -195,8 +263,12 @@ export default function ProfileScreen({ navigation }: any) {
     if (!member) return;
     setUpdating(true);
     try {
+      const selectedSkills = editForm.skills || [];
       const updatedDetails = {
         ...editForm,
+        skills: selectedSkills,
+        primarySkill: selectedSkills[0] || '',
+        secondarySkill: selectedSkills[1] || '',
         mailingCity: editForm.city, // Keep synced for any legacy UI
         name: `${editForm.firstName || ''} ${editForm.lastName || ''}`.trim()
       };
@@ -205,7 +277,7 @@ export default function ProfileScreen({ navigation }: any) {
         await user.updateProfile({ displayName: updatedDetails.name });
       }
       setIsEditModalVisible(false);
-      setSuccessMessage('Your personal details (Name, Email, and Address) have been updated directly in your church record.');
+      setSuccessMessage('Your profile and skills have been updated successfully.');
       setTimeout(() => setSuccessModalVisible(true), 300);
       fetchProfileData();
     } catch (error: any) {
@@ -487,26 +559,38 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
 
           {/* Member Skills Badges in Hero */}
-          {(member?.primarySkill || member?.secondarySkill) ? (
-            <View style={{ marginTop: 12, width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-              {member?.primarySkill ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }}>
-                  <Award size={12} color="#FDE68A" style={{ marginRight: 5 }} />
-                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '700' }}>
-                    {member.primarySkill}
-                  </Text>
-                </View>
-              ) : null}
-              {member?.secondarySkill ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.15)', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)' }}>
-                  <Sparkles size={12} color="#C7D2FE" style={{ marginRight: 5 }} />
-                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600' }}>
-                    {member.secondarySkill}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          ) : null}
+          {(() => {
+            const memberSkills = getMemberSkills(member);
+            if (!memberSkills || memberSkills.length === 0) return null;
+            return (
+              <View style={{ marginTop: 12, width: '100%', flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                {memberSkills.map((sk: string, skIdx: number) => (
+                  <View 
+                    key={skIdx} 
+                    style={{ 
+                      flexDirection: 'row', 
+                      alignItems: 'center', 
+                      backgroundColor: skIdx === 0 ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.15)', 
+                      paddingHorizontal: 10, 
+                      paddingVertical: 5, 
+                      borderRadius: 12, 
+                      borderWidth: 1, 
+                      borderColor: skIdx === 0 ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.25)' 
+                    }}
+                  >
+                    {skIdx === 0 ? (
+                      <Award size={12} color="#FDE68A" style={{ marginRight: 5 }} />
+                    ) : (
+                      <Sparkles size={12} color="#C7D2FE" style={{ marginRight: 5 }} />
+                    )}
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: skIdx === 0 ? '700' : '600' }}>
+                      {sk}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            );
+          })()}
         </View>
       </LinearGradient>
 
@@ -762,63 +846,84 @@ export default function ProfileScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
 
-              {/* Primary Skill */}
+              {/* Skills & Talents (Multi-Select) */}
               <View style={styles.inputGroup}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <Text style={styles.inputLabel}>Primary Skill</Text>
-                  {editForm.primarySkill ? (
-                    <TouchableOpacity onPress={() => setEditForm({ ...editForm, primarySkill: '' })}>
-                      <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: '600' }}>Clear</Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Briefcase size={14} color="#1a2d5a" style={{ marginRight: 6 }} />
+                    <Text style={styles.inputLabel}>
+                      Skills & Talents {editForm.skills.length > 0 ? `(${editForm.skills.length})` : ''}
+                    </Text>
+                  </View>
+                  {editForm.skills.length > 0 ? (
+                    <TouchableOpacity onPress={() => setEditForm({ ...editForm, skills: [], primarySkill: '', secondarySkill: '' })}>
+                      <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: '600' }}>Clear All</Text>
                     </TouchableOpacity>
                   ) : null}
                 </View>
-                <TouchableOpacity 
-                  style={[styles.input, { justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }]}
-                  onPress={() => {
-                    setActiveSkillField('primarySkill');
-                    setSkillSearchText('');
-                    setSelectedCategoryTab('all');
-                    setCustomSkillInput('');
-                    setSkillPickerVisible(true);
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
-                    <Award size={16} color={editForm.primarySkill ? '#1a2d5a' : '#94a3b8'} style={{ marginRight: 8 }} />
-                    <Text style={{ fontSize: 15, color: editForm.primarySkill ? '#1e293b' : '#94a3b8' }} numberOfLines={1}>
-                      {editForm.primarySkill || 'Select Primary Skill'}
-                    </Text>
-                  </View>
-                  <ChevronRight size={18} color="#94a3b8" />
-                </TouchableOpacity>
-              </View>
 
-              {/* Secondary Skill */}
-              <View style={styles.inputGroup}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                  <Text style={styles.inputLabel}>Secondary Skill</Text>
-                  {editForm.secondarySkill ? (
-                    <TouchableOpacity onPress={() => setEditForm({ ...editForm, secondarySkill: '' })}>
-                      <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: '600' }}>Clear</Text>
-                    </TouchableOpacity>
-                  ) : null}
-                </View>
+                {/* Selected Skills Chips */}
+                {editForm.skills.length > 0 ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                    {editForm.skills.map((skill, sIdx) => (
+                      <View
+                        key={sIdx}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          backgroundColor: sIdx === 0 ? '#FEF3C7' : '#EEF2FF',
+                          borderColor: sIdx === 0 ? '#FDE68A' : '#E0E7FF',
+                          borderWidth: 1,
+                          paddingVertical: 6,
+                          paddingHorizontal: 10,
+                          borderRadius: 20,
+                        }}
+                      >
+                        {sIdx === 0 ? (
+                          <Award size={13} color="#B45309" style={{ marginRight: 5 }} />
+                        ) : (
+                          <Sparkles size={13} color="#4338CA" style={{ marginRight: 5 }} />
+                        )}
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: sIdx === 0 ? '#92400E' : '#3730A3', marginRight: 6 }}>
+                          {skill}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => removeProfileSkill(skill)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          style={{
+                            backgroundColor: sIdx === 0 ? 'rgba(180,83,9,0.15)' : 'rgba(67,56,202,0.15)',
+                            borderRadius: 10,
+                            padding: 2
+                          }}
+                        >
+                          <X size={12} color={sIdx === 0 ? '#92400E' : '#3730A3'} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {/* Button to open Skill Picker */}
                 <TouchableOpacity 
-                  style={[styles.input, { justifyContent: 'space-between', flexDirection: 'row', alignItems: 'center' }]}
-                  onPress={() => {
-                    setActiveSkillField('secondarySkill');
-                    setSkillSearchText('');
-                    setSelectedCategoryTab('all');
-                    setCustomSkillInput('');
-                    setSkillPickerVisible(true);
-                  }}
+                  style={[
+                    styles.input, 
+                    { 
+                      justifyContent: 'space-between', 
+                      flexDirection: 'row', 
+                      alignItems: 'center',
+                      borderStyle: editForm.skills.length > 0 ? 'solid' : 'dashed',
+                      borderColor: editForm.skills.length > 0 ? '#1a2d5a' : '#cbd5e1'
+                    }
+                  ]}
+                  onPress={openSkillPicker}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
-                    <Sparkles size={16} color={editForm.secondarySkill ? '#4338ca' : '#94a3b8'} style={{ marginRight: 8 }} />
-                    <Text style={{ fontSize: 15, color: editForm.secondarySkill ? '#1e293b' : '#94a3b8' }} numberOfLines={1}>
-                      {editForm.secondarySkill || 'Select Secondary Skill'}
+                    <Plus size={16} color="#1a2d5a" style={{ marginRight: 8 }} />
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#1a2d5a' }} numberOfLines={1}>
+                      {editForm.skills.length > 0 ? 'Add / Manage Skills' : 'Select Skills & Talents'}
                     </Text>
                   </View>
-                  <ChevronRight size={18} color="#94a3b8" />
+                  <ChevronRight size={18} color="#1a2d5a" />
                 </TouchableOpacity>
               </View>
 
@@ -891,7 +996,7 @@ export default function ProfileScreen({ navigation }: any) {
               maximumDate={new Date()}
             />
 
-            {/* Skill Picker Modal */}
+            {/* Skill Picker Modal (Multi-Select) */}
             <Modal
               visible={skillPickerVisible}
               transparent
@@ -899,22 +1004,57 @@ export default function ProfileScreen({ navigation }: any) {
               onRequestClose={() => setSkillPickerVisible(false)}
             >
               <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-                <View style={{ width: '100%', backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '85%', paddingBottom: 24 }}>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      {activeSkillField === 'primarySkill' ? (
+                <View style={{ width: '100%', backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '88%', paddingBottom: 20 }}>
+                  {/* Header */}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                         <Award size={20} color="#1a2d5a" style={{ marginRight: 8 }} />
-                      ) : (
-                        <Sparkles size={20} color="#4338CA" style={{ marginRight: 8 }} />
-                      )}
-                      <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a2d5a' }}>
-                        {activeSkillField === 'primarySkill' ? 'Select Primary Skill' : 'Select Secondary Skill'}
+                        <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a2d5a' }}>
+                          Select Skills & Talents
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2, fontWeight: '500' }}>
+                        {editForm.skills.length === 0 ? 'Tap to select one or more skills' : `${editForm.skills.length} skill${editForm.skills.length > 1 ? 's' : ''} selected`}
                       </Text>
                     </View>
-                    <TouchableOpacity onPress={() => setSkillPickerVisible(false)} style={{ backgroundColor: '#f1f5f9', padding: 6, borderRadius: 20 }}>
-                      <X size={18} color="#1a2d5a" />
+                    <TouchableOpacity 
+                      onPress={() => setSkillPickerVisible(false)} 
+                      style={{ backgroundColor: '#1a2d5a', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18 }}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>Done</Text>
                     </TouchableOpacity>
                   </View>
+
+                  {/* Selected Skills Preview Bar */}
+                  {editForm.skills.length > 0 && (
+                    <View style={{ paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#f8fafc', borderBottomWidth: 1, borderBottomColor: '#edf2f7' }}>
+                      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: 'center' }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginRight: 4 }}>
+                          Selected:
+                        </Text>
+                        {editForm.skills.map((skill, sIdx) => (
+                          <TouchableOpacity
+                            key={sIdx}
+                            onPress={() => removeProfileSkill(skill)}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              backgroundColor: '#1a2d5a',
+                              paddingVertical: 5,
+                              paddingHorizontal: 10,
+                              borderRadius: 16,
+                            }}
+                          >
+                            <Text style={{ color: '#fff', fontSize: 12, fontWeight: '600', marginRight: 5 }}>
+                              {skill}
+                            </Text>
+                            <X size={12} color="#fff" />
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
 
                   {/* Category Tabs */}
                   <View style={{ paddingVertical: 10, paddingHorizontal: 16 }}>
@@ -948,7 +1088,7 @@ export default function ProfileScreen({ navigation }: any) {
                     <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#f1f5f9', borderRadius: 10, paddingHorizontal: 12, height: 40 }}>
                       <Search size={16} color="#94a3b8" style={{ marginRight: 8 }} />
                       <TextInput
-                        placeholder="Search skill..."
+                        placeholder="Search skill (e.g. Keyboard, Singer, Sound)..."
                         placeholderTextColor="#94a3b8"
                         value={skillSearchText}
                         onChangeText={setSkillSearchText}
@@ -963,9 +1103,9 @@ export default function ProfileScreen({ navigation }: any) {
                   </View>
 
                   {/* Skills List */}
-                  <ScrollView style={{ paddingHorizontal: 16, maxHeight: 260 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                  <ScrollView style={{ paddingHorizontal: 16, maxHeight: 250 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     {filteredSkillList.map((skill) => {
-                      const isSelected = activeSkillField && editForm[activeSkillField] === skill;
+                      const isSelected = (editForm.skills || []).includes(skill);
                       return (
                         <TouchableOpacity
                           key={skill}
@@ -980,17 +1120,33 @@ export default function ProfileScreen({ navigation }: any) {
                             backgroundColor: isSelected ? '#eff6ff' : 'transparent',
                             borderRadius: 8
                           }}
-                          onPress={() => {
-                            if (activeSkillField) {
-                              setEditForm(prev => ({ ...prev, [activeSkillField]: skill }));
-                            }
-                            setSkillPickerVisible(false);
-                          }}
+                          onPress={() => toggleProfileSkill(skill)}
                         >
-                          <Text style={{ fontSize: 14, fontWeight: isSelected ? '700' : '500', color: isSelected ? '#1a2d5a' : '#334155' }}>
-                            {skill}
-                          </Text>
-                          {isSelected && <Check size={18} color="#1a2d5a" />}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                            <View
+                              style={{
+                                width: 20,
+                                height: 20,
+                                borderRadius: 6,
+                                borderWidth: 1.5,
+                                borderColor: isSelected ? '#1a2d5a' : '#cbd5e1',
+                                backgroundColor: isSelected ? '#1a2d5a' : 'transparent',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginRight: 10
+                              }}
+                            >
+                              {isSelected && <Check size={14} color="#fff" strokeWidth={3} />}
+                            </View>
+                            <Text style={{ fontSize: 14, fontWeight: isSelected ? '700' : '500', color: isSelected ? '#1a2d5a' : '#334155' }}>
+                              {skill}
+                            </Text>
+                          </View>
+                          {isSelected && (
+                            <View style={{ backgroundColor: '#dbeafe', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                              <Text style={{ fontSize: 11, fontWeight: '700', color: '#1e40af' }}>Selected</Text>
+                            </View>
+                          )}
                         </TouchableOpacity>
                       );
                     })}
@@ -1010,18 +1166,24 @@ export default function ProfileScreen({ navigation }: any) {
                         onChangeText={setCustomSkillInput}
                       />
                       <TouchableOpacity
-                        style={{ backgroundColor: '#1a2d5a', paddingHorizontal: 14, borderRadius: 10, justifyContent: 'center', alignItems: 'center' }}
-                        onPress={() => {
-                          if (customSkillInput.trim() && activeSkillField) {
-                            setEditForm(prev => ({ ...prev, [activeSkillField]: customSkillInput.trim() }));
-                            setCustomSkillInput('');
-                            setSkillPickerVisible(false);
-                          }
-                        }}
+                        style={{ backgroundColor: '#1a2d5a', paddingHorizontal: 16, borderRadius: 10, justifyContent: 'center', alignItems: 'center' }}
+                        onPress={addCustomProfileSkill}
                       >
-                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>Apply</Text>
+                        <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>+ Add</Text>
                       </TouchableOpacity>
                     </View>
+                  </View>
+
+                  {/* Bottom Done Action Bar */}
+                  <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+                    <TouchableOpacity
+                      style={{ backgroundColor: '#1a2d5a', borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' }}
+                      onPress={() => setSkillPickerVisible(false)}
+                    >
+                      <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>
+                        Done ({editForm.skills.length} Selected)
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
