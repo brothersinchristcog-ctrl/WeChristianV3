@@ -86,7 +86,7 @@ const CATEGORIES = [
     title: 'Community & Members',
     icon: Users,
     color: '#581C87', // Deep Royal Purple/Eggplant for excellent contrast
-    keywords: ['Member', 'Attendance', 'Prayer', 'Service Roster']
+    keywords: ['Member', 'Attendance', 'Prayer']
   },
   {
     title: 'Events & Celebrations',
@@ -122,7 +122,7 @@ const CATEGORIES = [
     title: 'Administration',
     icon: Settings,
     color: '#1E3A8A', // Deep Navy for maximum contrast
-    keywords: ['Church Setting', 'Church Branch', 'App Admin', 'About', 'Contact', 'Schedule', 'Quiz', 'Bible Quiz']
+    keywords: ['Church Setting', 'Church Branch', 'App Admin', 'About', 'Contact', 'Schedule', 'Service Roster', 'Quiz', 'Bible Quiz']
   },
   {
     title: 'Support',

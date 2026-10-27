@@ -19,6 +19,8 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Share2,
   Clock,
   Music,
@@ -55,7 +57,8 @@ import ServiceRosterService, {
   SetlistItem,
   RunSheetItem,
   ServiceDepartment,
-  TimetableCategory
+  TimetableCategory,
+  TimetableTemplateMeta
 } from '../../services/ServiceRosterService';
 
 const { width } = Dimensions.get('window');
@@ -107,6 +110,11 @@ export default function AdminServicePlanner({ navigation }: any) {
   const [selectedPlan, setSelectedPlan] = useState<ServicePlan | null>(null);
   const [activePlanTab, setActivePlanTab] = useState<'roster' | 'setlist' | 'runSheet' | 'export'>('roster');
 
+  const upcomingCount = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return plans.filter(p => !p.date || p.date >= today).length;
+  }, [plans]);
+
   // State: Church Events for quick planning
   const [churchEvents, setChurchEvents] = useState<any[]>([]);
 
@@ -120,6 +128,7 @@ export default function AdminServicePlanner({ navigation }: any) {
 
   // State: Create / Edit Plan Modal & Detailed Timetable
   const [showCreatePlanModal, setShowCreatePlanModal] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('sunday');
   const [planFormDate, setPlanFormDate] = useState(new Date().toISOString().split('T')[0]);
   const [planFormTitle, setPlanFormTitle] = useState('');
   const [planFormType, setPlanFormType] = useState<'sunday_service' | 'special_event' | 'conference'>('sunday_service');
@@ -221,17 +230,65 @@ export default function AdminServicePlanner({ navigation }: any) {
           ? [...planToEdit.runSheet]
           : []
       );
+      const titleLower = (planToEdit.serviceTitle || '').toLowerCase();
+      if (titleLower.includes('night') || titleLower.includes('vigil')) {
+        setSelectedTemplateId('all_night');
+      } else if (titleLower.includes('communion') || titleLower.includes('fasting')) {
+        setSelectedTemplateId('communion');
+      } else if (titleLower.includes('midweek') || titleLower.includes('wednesday') || titleLower.includes('study')) {
+        setSelectedTemplateId('midweek');
+      } else if (titleLower.includes('youth')) {
+        setSelectedTemplateId('youth');
+      } else if (titleLower.includes('conference') || titleLower.includes('revival')) {
+        setSelectedTemplateId('conference');
+      } else {
+        setSelectedTemplateId('sunday');
+      }
     } else {
       setSelectedPlan(null);
-      setPlanFormTitle('');
+      setPlanFormTitle('Sunday Morning Worship Service');
       setPlanFormDate(new Date().toISOString().split('T')[0]);
       setPlanFormType('sunday_service');
       setPlanFormStartTime('09:00');
-      setPlanFormEndTime('11:00');
+      setPlanFormEndTime('11:15');
       setPlanFormLocation(activeChurch?.name || 'Sanctuary');
-      setPlanFormTimetable([]);
+      setSelectedTemplateId('sunday');
+      setPlanFormTimetable(ServiceRosterService.getStandardSundayServiceSample());
     }
     setShowCreatePlanModal(true);
+  };
+
+  // Apply a pre-built timetable template
+  const handleApplyTemplate = (tmpl: TimetableTemplateMeta) => {
+    const doApply = () => {
+      setSelectedTemplateId(tmpl.id);
+      setPlanFormTimetable(tmpl.getItems());
+      setPlanFormStartTime(tmpl.defaultStartTime);
+      setPlanFormEndTime(tmpl.defaultEndTime);
+      setPlanFormType(tmpl.serviceType);
+      if (
+        !planFormTitle.trim() ||
+        planFormTitle.includes('Sunday') ||
+        planFormTitle.includes('Service') ||
+        planFormTitle.includes('Prayer') ||
+        planFormTitle.includes('Bible')
+      ) {
+        setPlanFormTitle(tmpl.defaultTitle);
+      }
+    };
+
+    if (planFormTimetable.length > 0) {
+      Alert.alert(
+        `Load "${tmpl.name}" Timetable?`,
+        `This will load the standard ${tmpl.name} schedule (${tmpl.getItems().length} activities from ${tmpl.defaultStartTime} to ${tmpl.defaultEndTime}).`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Load Template', onPress: doApply }
+        ]
+      );
+    } else {
+      doApply();
+    }
   };
 
   // Add a new activity into the timetable builder
@@ -246,11 +303,16 @@ export default function AdminServicePlanner({ navigation }: any) {
     const defaultDurations: Record<TimetableCategory, number> = {
       starting_prayer: 10,
       opening_song: 10,
-      worship_songs: 20,
+      worship_songs: 30,
       bible_reading: 10,
       sermon: 40,
       closing_prayer: 5,
       break: 15,
+      communion: 20,
+      offertory: 10,
+      announcements: 10,
+      testimony: 15,
+      intercession: 25,
       additional: 15,
     };
     const dur = defaultDurations[category] || 15;
@@ -266,6 +328,11 @@ export default function AdminServicePlanner({ navigation }: any) {
       sermon: 'Sermon / Message',
       closing_prayer: 'Closing Prayer & Benediction',
       break: 'Tea / Fellowship Break',
+      communion: 'Holy Communion (Bread & Wine)',
+      offertory: 'Tithes & Thanksgiving Offertory',
+      announcements: 'Welcome & Church Announcements',
+      testimony: 'Praise Reports & Testimonies',
+      intercession: 'Intercessory Prayer for Church & World',
       additional: 'Special Activity',
     };
 
@@ -280,7 +347,7 @@ export default function AdminServicePlanner({ navigation }: any) {
       assignedTo: '',
       songTitle: '',
       musicians: category === 'worship_songs' || category === 'opening_song' ? 'Keys, Guitars & Drums' : '',
-      passage: '',
+      passage: category === 'communion' ? '1 Cor 11:23-26' : '',
       place: planFormLocation || 'Sanctuary',
       notes: '',
     });
@@ -346,11 +413,6 @@ export default function AdminServicePlanner({ navigation }: any) {
     updated[index] = updated[targetIndex];
     updated[targetIndex] = temp;
     setPlanFormTimetable(updated);
-  };
-
-  // Load clean Sunday service template
-  const handleLoadSundayTemplateInEditor = () => {
-    setPlanFormTimetable(ServiceRosterService.getStandardSundayServiceSample());
   };
 
   // Save Complete Service Schedule and Timetable
@@ -591,6 +653,16 @@ export default function AdminServicePlanner({ navigation }: any) {
         return { bg: '#ECFDF5', border: '#A7F3D0', text: '#047857', label: 'Scripture' };
       case 'sermon':
         return { bg: '#EFF6FF', border: '#BFDBFE', text: '#1D4ED8', label: 'Message' };
+      case 'communion':
+        return { bg: '#FFF1F2', border: '#FECDD3', text: '#BE123C', label: 'Communion' };
+      case 'offertory':
+        return { bg: '#ECFDF5', border: '#BBF7D0', text: '#15803D', label: 'Offertory' };
+      case 'announcements':
+        return { bg: '#FEF9C3', border: '#FEF08A', text: '#A16207', label: 'Announce' };
+      case 'testimony':
+        return { bg: '#F5F3FF', border: '#DDD6FE', text: '#6D28D9', label: 'Testimony' };
+      case 'intercession':
+        return { bg: '#F0F9FF', border: '#BAE6FD', text: '#0369A1', label: 'Intercession' };
       case 'break':
         return { bg: '#F1F5F9', border: '#E2E8F0', text: '#475569', label: 'Break' };
       default:
@@ -602,23 +674,23 @@ export default function AdminServicePlanner({ navigation }: any) {
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1A2D5A" />
 
-      {/* ── Top Hero Header (Consistent Navy & Gold Theme) ─────── */}
-      <View style={[styles.hero, { paddingTop: Math.max(insets.top, 12) }]}>
-        <View style={styles.heroRow}>
-          <View style={styles.heroLeft}>
-            <TouchableOpacity onPress={() => setActiveTab(0)} style={styles.backBtn}>
-              <ChevronLeft size={20} color="#FFFFFF" />
-              <Text style={styles.backBtnTxt}>Back</Text>
+      {/* ── Top Hero Header (Identical to AdminEventList & other admin tabs) ── */}
+      <View style={[styles.hero, { paddingTop: Math.max(insets.top, 8) }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }} activeOpacity={0.7}>
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>
-            <Text style={styles.heroDivider}>|</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.heroTitle} numberOfLines={1}>Service Operations & Roster</Text>
-              <Text style={styles.heroSub} numberOfLines={1}>
-                {activeChurch?.name || 'We Christian'} · {plans.length} Services Scheduled
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View>
+              <Text style={styles.heroTitle}>Service Operations</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]}>
+                {plans.length} total · {upcomingCount} upcoming
               </Text>
             </View>
           </View>
-          <View style={styles.heroActions}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 }}>
             <TouchableOpacity
               style={styles.heroRefreshBtn}
               onPress={loadData}
@@ -631,53 +703,11 @@ export default function AdminServicePlanner({ navigation }: any) {
               onPress={() => openServiceTimetableModal(null)}
               activeOpacity={0.85}
             >
-              <Plus size={15} color="#1A2D5A" strokeWidth={2.5} />
+              <Plus size={16} color="#1a2d5a" />
               <Text style={styles.newBtnTxt}>New</Text>
             </TouchableOpacity>
           </View>
         </View>
-
-        {/* ── Horizontal Service Carousel Cards ────────────────── */}
-        {plans.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.carouselScrollView}
-            contentContainerStyle={styles.carouselContainer}
-          >
-            {plans.map((p, pIdx) => {
-              const isSelected = selectedPlan?.id === p.id;
-              return (
-                <TouchableOpacity
-                  key={`plan_chip_${p.id || ''}_${pIdx}`}
-                  style={[styles.serviceCardChip, isSelected && styles.serviceCardChipActive]}
-                  onPress={() => setSelectedPlan(p)}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.chipTopRow}>
-                    <View style={[styles.chipDatePill, isSelected && styles.chipDatePillActive]}>
-                      <CalendarDays size={10} color={isSelected ? '#1A2D5A' : '#FFFFFF'} />
-                      <Text style={[styles.chipDateTxt, isSelected && styles.chipDateTxtActive]}>
-                        {p.date}
-                      </Text>
-                    </View>
-                    {p.startTime ? (
-                      <Text style={[styles.chipTimeTxt, isSelected && styles.chipTimeTxtActive]}>
-                        {p.startTime}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <Text
-                    style={[styles.chipTitleTxt, isSelected && styles.chipTitleTxtActive]}
-                    numberOfLines={1}
-                  >
-                    {p.serviceTitle}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-        )}
       </View>
 
       {/* ── Main Content Area ──────────────────────────────────── */}
@@ -706,6 +736,46 @@ export default function AdminServicePlanner({ navigation }: any) {
         </View>
       ) : (
         <ScrollView style={styles.scrollArea} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+          {/* ── Scheduled Services Switcher (if multiple services) ── */}
+          {plans.length > 1 && (
+            <View style={styles.serviceSelectorBar}>
+              <View style={styles.serviceSelectorTop}>
+                <CalendarDays size={13} color="#1A2D5A" />
+                <Text style={styles.serviceSelectorHeading}>SCHEDULED SERVICES ({plans.length})</Text>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.serviceSelectorScroll}
+              >
+                {plans.map((p, pIdx) => {
+                  const isSelected = selectedPlan?.id === p.id;
+                  return (
+                    <TouchableOpacity
+                      key={`plan_chip_${p.id || ''}_${pIdx}`}
+                      style={[styles.serviceSelectPill, isSelected && styles.serviceSelectPillActive]}
+                      onPress={() => setSelectedPlan(p)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={[styles.serviceSelectPillDot, isSelected && styles.serviceSelectPillDotActive]} />
+                      <Text
+                        style={[styles.serviceSelectPillTitle, isSelected && styles.serviceSelectPillTitleActive]}
+                        numberOfLines={1}
+                      >
+                        {p.serviceTitle}
+                      </Text>
+                      <View style={[styles.serviceSelectPillDate, isSelected && styles.serviceSelectPillDateActive]}>
+                        <Text style={[styles.serviceSelectPillDateTxt, isSelected && styles.serviceSelectPillDateTxtActive]}>
+                          {p.date}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
           {/* ── Active Service Banner Card ─────────────────────── */}
           <View style={styles.activeServiceCard}>
             <View style={styles.activeServiceTop}>
@@ -818,7 +888,7 @@ export default function AdminServicePlanner({ navigation }: any) {
              ═════════════════════════════════════════════════════ */}
           {activePlanTab === 'roster' && (
             <View style={{ gap: 14 }}>
-              {/* 1. Worship & Music Department */}
+              {/* 1. Worship & Music Department: Clearly separated Worship Team & Band */}
               <View style={styles.sectionCard}>
                 <View style={[styles.sectionCardHeader, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' }]}>
                   <View style={styles.sectionCardHeaderLeft}>
@@ -832,16 +902,75 @@ export default function AdminServicePlanner({ navigation }: any) {
                   </View>
                 </View>
 
+                {/* 1A. Worship Team (Vocalists) */}
+                <View style={styles.subSectionHeader}>
+                  <Text style={styles.subSectionEmoji}>🎤</Text>
+                  <Text style={styles.subSectionTitle}>Worship Team (Vocalists)</Text>
+                  <View style={styles.subSectionLine} />
+                </View>
+
                 <View style={styles.rolesGrid}>
                   {[
-                    { id: 'singer_1', label: 'Singer #1 (Center)', icon: '🎤' },
-                    { id: 'keyboard', label: 'Keyboard', icon: '🎹' },
+                    { id: 'singer_1', label: 'Singer #1 (Lead / Center)', icon: '🎤', isLead: true },
                     { id: 'singer_2', label: 'Singer #2 (Left)', icon: '🎤' },
-                    { id: 'electric', label: 'Electric Guitar', icon: '🎸' },
                     { id: 'singer_3', label: 'Singer #3 (Right)', icon: '🎤' },
-                    { id: 'bass', label: 'Bass Guitar', icon: '🎸' },
+                  ].map(role => {
+                    const assigned = selectedPlan.assignments[role.id];
+                    return (
+                      <TouchableOpacity
+                        key={role.id}
+                        style={[
+                          styles.roleTile,
+                          role.isLead && styles.roleTileLead,
+                          assigned ? styles.roleTileAssigned : styles.roleTileUnassigned
+                        ]}
+                        onPress={() => {
+                          setAssigningRoleId(role.id);
+                          setAssigningRoleName(role.label);
+                          setShowMemberPickerModal(true);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.roleTileTop}>
+                          <Text style={styles.roleIconEmoji}>{role.icon}</Text>
+                          <Text style={styles.roleLabelTxt} numberOfLines={1}>{role.label}</Text>
+                        </View>
+                        {assigned ? (
+                          <View style={styles.assignedPersonRow}>
+                            <View style={[styles.avatarBubble, { backgroundColor: '#4338CA' }]}>
+                              <Text style={styles.avatarBubbleTxt}>
+                                {assigned.charAt(0).toUpperCase()}
+                              </Text>
+                            </View>
+                            <Text style={styles.assignedPersonName} numberOfLines={1}>
+                              {assigned}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={styles.unassignedPromptRow}>
+                            <Plus size={12} color="#6366F1" />
+                            <Text style={[styles.unassignedPromptTxt, { color: '#6366F1' }]}>Assign Vocalist</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* 1B. The Band (Instrumentalists) */}
+                <View style={styles.subSectionHeader}>
+                  <Text style={styles.subSectionEmoji}>🎸</Text>
+                  <Text style={styles.subSectionTitle}>The Band (Instrumentalists)</Text>
+                  <View style={styles.subSectionLine} />
+                </View>
+
+                <View style={styles.rolesGrid}>
+                  {[
+                    { id: 'keyboard', label: 'Keyboard / Piano', icon: '🎹' },
                     { id: 'acoustic', label: 'Acoustic Guitar', icon: '🎸' },
-                    { id: 'drums', label: 'Drums', icon: '🥁' },
+                    { id: 'electric', label: 'Electric Guitar', icon: '🎸' },
+                    { id: 'bass', label: 'Bass Guitar', icon: '🎸' },
+                    { id: 'drums', label: 'Drums / Percussion', icon: '🥁' },
                   ].map(role => {
                     const assigned = selectedPlan.assignments[role.id];
                     return (
@@ -861,7 +990,7 @@ export default function AdminServicePlanner({ navigation }: any) {
                         </View>
                         {assigned ? (
                           <View style={styles.assignedPersonRow}>
-                            <View style={styles.avatarBubble}>
+                            <View style={[styles.avatarBubble, { backgroundColor: '#0284C7' }]}>
                               <Text style={styles.avatarBubbleTxt}>
                                 {assigned.charAt(0).toUpperCase()}
                               </Text>
@@ -872,8 +1001,8 @@ export default function AdminServicePlanner({ navigation }: any) {
                           </View>
                         ) : (
                           <View style={styles.unassignedPromptRow}>
-                            <Plus size={12} color="#64748B" />
-                            <Text style={styles.unassignedPromptTxt}>Assign Member</Text>
+                            <Plus size={12} color="#0284C7" />
+                            <Text style={[styles.unassignedPromptTxt, { color: '#0284C7' }]}>Assign Musician</Text>
                           </View>
                         )}
                       </TouchableOpacity>
@@ -926,16 +1055,119 @@ export default function AdminServicePlanner({ navigation }: any) {
                   </View>
                 </View>
 
+                {/* 2A. Audio */}
+                <View style={styles.subSectionHeader}>
+                  <Text style={styles.subSectionEmoji}>🎛️</Text>
+                  <Text style={styles.subSectionTitle}>Audio & Sound Engineering</Text>
+                  <View style={styles.subSectionLine} />
+                </View>
+
                 <View style={styles.rolesGrid}>
                   {[
-                    { id: 'sound_foh', label: 'Sounds (FOH)', icon: '🎛️' },
-                    { id: 'cam_main', label: 'V. Camera (Main)', icon: '📹' },
-                    { id: 'sound_stage', label: 'Sounds (Stage)', icon: '🔊' },
-                    { id: 'cam_right', label: 'V. Camera (Right)', icon: '📹' },
-                    { id: 'media_pc1', label: 'Media - Live PC', icon: '💻' },
-                    { id: 'cam_left', label: 'V. Camera (Left)', icon: '📹' },
-                    { id: 'media_pc3', label: 'Media - Lyrics PC', icon: '📽️' },
+                    { id: 'sound_foh', label: 'Sound (FOH / Mix)', icon: '🎛️' },
+                    { id: 'sound_stage', label: 'Sound (Stage Monitors)', icon: '🔊' },
+                  ].map(role => {
+                    const assigned = selectedPlan.assignments[role.id];
+                    return (
+                      <TouchableOpacity
+                        key={role.id}
+                        style={[styles.roleTile, assigned ? styles.roleTileAssigned : styles.roleTileUnassigned]}
+                        onPress={() => {
+                          setAssigningRoleId(role.id);
+                          setAssigningRoleName(role.label);
+                          setShowMemberPickerModal(true);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.roleTileTop}>
+                          <Text style={styles.roleIconEmoji}>{role.icon}</Text>
+                          <Text style={styles.roleLabelTxt} numberOfLines={1}>{role.label}</Text>
+                        </View>
+                        {assigned ? (
+                          <View style={styles.assignedPersonRow}>
+                            <View style={[styles.avatarBubble, { backgroundColor: '#059669' }]}>
+                              <Text style={styles.avatarBubbleTxt}>
+                                {assigned.charAt(0).toUpperCase()}
+                              </Text>
+                            </View>
+                            <Text style={styles.assignedPersonName} numberOfLines={1}>
+                              {assigned}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={styles.unassignedPromptRow}>
+                            <Plus size={12} color="#059669" />
+                            <Text style={[styles.unassignedPromptTxt, { color: '#059669' }]}>Assign Sound</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* 2B. Broadcast & Cameras */}
+                <View style={styles.subSectionHeader}>
+                  <Text style={styles.subSectionEmoji}>📹</Text>
+                  <Text style={styles.subSectionTitle}>Broadcast & Camera Operators</Text>
+                  <View style={styles.subSectionLine} />
+                </View>
+
+                <View style={styles.rolesGrid}>
+                  {[
                     { id: 'video_dir', label: 'Video Director', icon: '🎬' },
+                    { id: 'cam_main', label: 'Camera (Main / Center)', icon: '📹' },
+                    { id: 'cam_left', label: 'Camera (Left)', icon: '📹' },
+                    { id: 'cam_right', label: 'Camera (Right)', icon: '📹' },
+                  ].map(role => {
+                    const assigned = selectedPlan.assignments[role.id];
+                    return (
+                      <TouchableOpacity
+                        key={role.id}
+                        style={[styles.roleTile, assigned ? styles.roleTileAssigned : styles.roleTileUnassigned]}
+                        onPress={() => {
+                          setAssigningRoleId(role.id);
+                          setAssigningRoleName(role.label);
+                          setShowMemberPickerModal(true);
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.roleTileTop}>
+                          <Text style={styles.roleIconEmoji}>{role.icon}</Text>
+                          <Text style={styles.roleLabelTxt} numberOfLines={1}>{role.label}</Text>
+                        </View>
+                        {assigned ? (
+                          <View style={styles.assignedPersonRow}>
+                            <View style={[styles.avatarBubble, { backgroundColor: '#059669' }]}>
+                              <Text style={styles.avatarBubbleTxt}>
+                                {assigned.charAt(0).toUpperCase()}
+                              </Text>
+                            </View>
+                            <Text style={styles.assignedPersonName} numberOfLines={1}>
+                              {assigned}
+                            </Text>
+                          </View>
+                        ) : (
+                          <View style={styles.unassignedPromptRow}>
+                            <Plus size={12} color="#059669" />
+                            <Text style={[styles.unassignedPromptTxt, { color: '#059669' }]}>Assign Camera</Text>
+                          </View>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* 2C. Media & Displays */}
+                <View style={styles.subSectionHeader}>
+                  <Text style={styles.subSectionEmoji}>💻</Text>
+                  <Text style={styles.subSectionTitle}>Media, Presentation & Displays</Text>
+                  <View style={styles.subSectionLine} />
+                </View>
+
+                <View style={styles.rolesGrid}>
+                  {[
+                    { id: 'media_pc1', label: 'Live Stream PC', icon: '💻' },
+                    { id: 'media_pc3', label: 'Lyrics Presentation PC', icon: '📽️' },
                     { id: 'media_pc4', label: 'Stage Displays', icon: '🖥️' },
                     { id: 'photo_cam', label: 'Photographer', icon: '📸' },
                   ].map(role => {
@@ -957,7 +1189,7 @@ export default function AdminServicePlanner({ navigation }: any) {
                         </View>
                         {assigned ? (
                           <View style={styles.assignedPersonRow}>
-                            <View style={styles.avatarBubble}>
+                            <View style={[styles.avatarBubble, { backgroundColor: '#059669' }]}>
                               <Text style={styles.avatarBubbleTxt}>
                                 {assigned.charAt(0).toUpperCase()}
                               </Text>
@@ -968,8 +1200,8 @@ export default function AdminServicePlanner({ navigation }: any) {
                           </View>
                         ) : (
                           <View style={styles.unassignedPromptRow}>
-                            <Plus size={12} color="#64748B" />
-                            <Text style={styles.unassignedPromptTxt}>Assign Member</Text>
+                            <Plus size={12} color="#059669" />
+                            <Text style={[styles.unassignedPromptTxt, { color: '#059669' }]}>Assign Media</Text>
                           </View>
                         )}
                       </TouchableOpacity>
@@ -1019,7 +1251,7 @@ export default function AdminServicePlanner({ navigation }: any) {
                         </View>
                         {assigned ? (
                           <View style={styles.assignedPersonRow}>
-                            <View style={styles.avatarBubble}>
+                            <View style={[styles.avatarBubble, { backgroundColor: '#0D9488' }]}>
                               <Text style={styles.avatarBubbleTxt}>
                                 {assigned.charAt(0).toUpperCase()}
                               </Text>
@@ -1030,8 +1262,8 @@ export default function AdminServicePlanner({ navigation }: any) {
                           </View>
                         ) : (
                           <View style={styles.unassignedPromptRow}>
-                            <Plus size={12} color="#64748B" />
-                            <Text style={styles.unassignedPromptTxt}>Assign Member</Text>
+                            <Plus size={12} color="#0D9488" />
+                            <Text style={[styles.unassignedPromptTxt, { color: '#0D9488' }]}>Assign Leader</Text>
                           </View>
                         )}
                       </TouchableOpacity>
@@ -1079,7 +1311,7 @@ export default function AdminServicePlanner({ navigation }: any) {
                         </View>
                         {assigned ? (
                           <View style={styles.assignedPersonRow}>
-                            <View style={styles.avatarBubble}>
+                            <View style={[styles.avatarBubble, { backgroundColor: '#B45309' }]}>
                               <Text style={styles.avatarBubbleTxt}>
                                 {assigned.charAt(0).toUpperCase()}
                               </Text>
@@ -1090,8 +1322,8 @@ export default function AdminServicePlanner({ navigation }: any) {
                           </View>
                         ) : (
                           <View style={styles.unassignedPromptRow}>
-                            <Plus size={12} color="#64748B" />
-                            <Text style={styles.unassignedPromptTxt}>Assign Teacher</Text>
+                            <Plus size={12} color="#B45309" />
+                            <Text style={[styles.unassignedPromptTxt, { color: '#B45309' }]}>Assign Teacher</Text>
                           </View>
                         )}
                       </TouchableOpacity>
@@ -1824,44 +2056,112 @@ export default function AdminServicePlanner({ navigation }: any) {
                 onChangeText={setPlanFormLocation}
               />
 
-              {/* Timetable Items Builder */}
+              {/* ── Pre-Built Timetable Format Templates ────────── */}
+              <View style={styles.templatePickerContainer}>
+                <View style={styles.templatePickerHeader}>
+                  <Sparkles size={14} color="#C9A84C" />
+                  <Text style={styles.templatePickerTitle}>Pre-Built Timetable Formats</Text>
+                </View>
+                <Text style={styles.templatePickerSub}>
+                  Tap any format below to instantly populate church schedule & timings:
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.templateChipsRow}>
+                  {ServiceRosterService.getAvailableTemplates().map(tmpl => {
+                    const isSelected = selectedTemplateId === tmpl.id;
+                    return (
+                      <TouchableOpacity
+                        key={tmpl.id}
+                        style={[styles.templateCardChip, isSelected && styles.templateCardChipActive]}
+                        onPress={() => handleApplyTemplate(tmpl)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={styles.templateCardChipTop}>
+                          <Text style={styles.templateCardChipIcon}>{tmpl.icon}</Text>
+                          <Text style={[styles.templateCardChipName, isSelected && styles.templateCardChipNameActive]}>
+                            {tmpl.name}
+                          </Text>
+                        </View>
+                        <Text style={[styles.templateCardChipSub, isSelected && styles.templateCardChipSubActive]}>
+                          {tmpl.subtitle}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+
+              {/* ── Timetable Activities List ────────────────────── */}
               <View style={styles.builderSectionHeader}>
-                <Text style={styles.builderSectionTitle}>Service Timetable & Activities ({planFormTimetable.length})</Text>
-                <TouchableOpacity
-                  style={styles.sundayTemplateBtn}
-                  onPress={handleLoadSundayTemplateInEditor}
-                >
-                  <Sparkles size={12} color="#1A2D5A" />
-                  <Text style={styles.sundayTemplateBtnTxt}>Sunday Template</Text>
-                </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.builderSectionTitle}>Service Timetable & Activities ({planFormTimetable.length})</Text>
+                  <Text style={styles.builderSectionSub}>Chronological run-sheet for pastors, worship team, and AV media</Text>
+                </View>
               </View>
 
               {planFormTimetable.length === 0 ? (
                 <View style={styles.emptyTimetableBox}>
+                  <CalendarDays size={30} color="#94A3B8" />
                   <Text style={styles.emptyTimetableTxt}>
-                    No activities yet. Click below to add Starting Prayer, Worship, Bible Reading, or Sermon.
+                    No activities yet. Choose a format template above or use the quick buttons below.
                   </Text>
                 </View>
               ) : (
                 planFormTimetable.map((act, aIdx) => {
                   const theme = getCategoryTheme(act.category);
+                  const isFirst = aIdx === 0;
+                  const isLast = aIdx === planFormTimetable.length - 1;
                   return (
                     <View key={`act_${act.id || aIdx}`} style={styles.actBuilderRow}>
-                      <View style={styles.actBuilderTime}>
-                        <Text style={styles.actBuilderTimeTxt}>{act.startTime || act.time?.split(/to|-/i)[0]?.trim() || '09:00'}</Text>
-                        <Text style={styles.actBuilderDurTxt}>{act.durationMinutes || 15}m</Text>
+                      {/* Move Up/Down Controls */}
+                      <View style={styles.actReorderCol}>
+                        <TouchableOpacity
+                          disabled={isFirst}
+                          onPress={() => handleMoveTimetableActivity(aIdx, 'up')}
+                          style={[styles.reorderBtn, isFirst && { opacity: 0.25 }]}
+                        >
+                          <ChevronUp size={14} color="#475569" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          disabled={isLast}
+                          onPress={() => handleMoveTimetableActivity(aIdx, 'down')}
+                          style={[styles.reorderBtn, isLast && { opacity: 0.25 }]}
+                        >
+                          <ChevronDown size={14} color="#475569" />
+                        </TouchableOpacity>
                       </View>
-                      <View style={{ flex: 1 }}>
+
+                      {/* Time Pill */}
+                      <View style={styles.actBuilderTime}>
+                        <Text style={styles.actBuilderTimeTxt}>
+                          {act.startTime || act.time?.split(/to|-/i)[0]?.trim() || '09:00'}
+                        </Text>
+                        <View style={styles.actBuilderDurBadge}>
+                          <Text style={styles.actBuilderDurTxt}>{act.durationMinutes || 15}m</Text>
+                        </View>
+                      </View>
+
+                      {/* Program Details & Category Badge */}
+                      <View style={{ flex: 1, marginHorizontal: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                          <View style={[styles.catBadge, { backgroundColor: theme.bg, borderColor: theme.border }]}>
+                            <Text style={[styles.catBadgeTxt, { color: theme.text }]}>{theme.label}</Text>
+                          </View>
+                          {act.passage ? (
+                            <Text style={styles.actPassageTxt} numberOfLines={1}>{act.passage}</Text>
+                          ) : null}
+                        </View>
                         <Text style={styles.actBuilderProgram} numberOfLines={1}>{act.program}</Text>
                         <Text style={styles.actBuilderSub} numberOfLines={1}>
-                          {act.assignedTo ? `👤 ${act.assignedTo}` : 'Tap edit to assign'}
+                          {act.assignedTo ? `👤 ${act.assignedTo}` : 'Tap edit to assign leader'}
                         </Text>
                       </View>
+
+                      {/* Action Buttons: Edit and Delete */}
                       <View style={styles.actBuilderActions}>
                         <TouchableOpacity onPress={() => handleEditActivity(aIdx)} style={styles.iconBtnSmall}>
-                          <Edit2 size={13} color="#475569" />
+                          <Edit2 size={13} color="#1E293B" />
                         </TouchableOpacity>
-                        <TouchableOpacity onPress={() => handleDeleteTimetableActivity(aIdx)} style={styles.iconBtnSmall}>
+                        <TouchableOpacity onPress={() => handleDeleteTimetableActivity(aIdx)} style={[styles.iconBtnSmall, { backgroundColor: '#FEE2E2' }]}>
                           <Trash2 size={13} color="#DC2626" />
                         </TouchableOpacity>
                       </View>
@@ -1870,23 +2170,50 @@ export default function AdminServicePlanner({ navigation }: any) {
                 })
               )}
 
-              {/* Quick Add Action Pills */}
-              <View style={styles.quickAddRow}>
-                <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('starting_prayer')}>
-                  <Text style={styles.quickAddPillTxt}>+ Starting Prayer</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('worship_songs')}>
-                  <Text style={styles.quickAddPillTxt}>+ Praise & Worship</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('bible_reading')}>
-                  <Text style={styles.quickAddPillTxt}>+ Bible Reading</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('sermon')}>
-                  <Text style={styles.quickAddPillTxt}>+ Sermon</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('closing_prayer')}>
-                  <Text style={styles.quickAddPillTxt}>+ Benediction</Text>
-                </TouchableOpacity>
+              {/* ── Quick Add Action Pills ───────────────────────── */}
+              <View style={styles.quickAddSection}>
+                <Text style={styles.quickAddHeaderTitle}>+ Quick Add Service Activity:</Text>
+                <View style={styles.quickAddRow}>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('starting_prayer')}>
+                    <Text style={styles.quickAddPillTxt}>+ Starting Prayer</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('opening_song')}>
+                    <Text style={styles.quickAddPillTxt}>+ Opening Praise</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('worship_songs')}>
+                    <Text style={styles.quickAddPillTxt}>+ Praise & Worship</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('bible_reading')}>
+                    <Text style={styles.quickAddPillTxt}>+ Bible Reading</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('announcements')}>
+                    <Text style={styles.quickAddPillTxt}>+ Announcements</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('offertory')}>
+                    <Text style={styles.quickAddPillTxt}>+ Offertory</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('sermon')}>
+                    <Text style={styles.quickAddPillTxt}>+ Sermon</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('communion')}>
+                    <Text style={styles.quickAddPillTxt}>+ Holy Communion</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('intercession')}>
+                    <Text style={styles.quickAddPillTxt}>+ Intercession</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('testimony')}>
+                    <Text style={styles.quickAddPillTxt}>+ Testimony</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('closing_prayer')}>
+                    <Text style={styles.quickAddPillTxt}>+ Benediction</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('break')}>
+                    <Text style={styles.quickAddPillTxt}>+ Break</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickAddPill} onPress={() => handleAddActivity('additional')}>
+                    <Text style={styles.quickAddPillTxt}>+ Custom Activity</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               <View style={{ height: 30 }} />
@@ -1914,6 +2241,36 @@ export default function AdminServicePlanner({ navigation }: any) {
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
+              <Text style={styles.inputLabel}>Activity Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 12 }}>
+                {[
+                  { id: 'starting_prayer', label: 'Prayer' },
+                  { id: 'opening_song', label: 'Opening Praise' },
+                  { id: 'worship_songs', label: 'Worship' },
+                  { id: 'bible_reading', label: 'Scripture' },
+                  { id: 'sermon', label: 'Sermon' },
+                  { id: 'communion', label: 'Communion' },
+                  { id: 'offertory', label: 'Offertory' },
+                  { id: 'announcements', label: 'Announcements' },
+                  { id: 'intercession', label: 'Intercession' },
+                  { id: 'testimony', label: 'Testimony' },
+                  { id: 'closing_prayer', label: 'Benediction' },
+                  { id: 'break', label: 'Break' },
+                  { id: 'additional', label: 'Other' },
+                ].map(c => {
+                  const isCat = activityEditorForm.category === c.id;
+                  return (
+                    <TouchableOpacity
+                      key={c.id}
+                      style={[styles.catPickChip, isCat && styles.catPickChipActive]}
+                      onPress={() => setActivityEditorForm(prev => ({ ...prev, category: c.id as TimetableCategory }))}
+                    >
+                      <Text style={[styles.catPickChipTxt, isCat && styles.catPickChipTxtActive]}>{c.label}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
               <Text style={styles.inputLabel}>Program / Activity Name</Text>
               <TextInput
                 style={styles.textInput}
@@ -1997,62 +2354,28 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // ── Hero Header (Navy & Gold) ──────────────────────────────────
+  // ── Hero Header (Matches AdminEventList & other admin tabs) ───
   hero: {
-    backgroundColor: '#1A2D5A',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
     paddingHorizontal: 16,
-    paddingBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-  heroRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-  },
-  heroLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    marginRight: 8,
-  },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingRight: 6,
-  },
-  backBtnTxt: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  heroDivider: {
-    color: 'rgba(255, 255, 255, 0.3)',
-    marginHorizontal: 10,
-    fontSize: 18,
+    paddingTop: 8,
+    paddingBottom: 12,
+    overflow: 'visible',
+    position: 'relative',
+    marginBottom: 6,
   },
   heroTitle: {
-    color: '#FFFFFF',
-    fontSize: 17,
-    fontWeight: '700',
-    letterSpacing: -0.3,
+    color: '#fff',
+    fontSize: 20,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontWeight: '600',
+    letterSpacing: -0.5,
   },
   heroSub: {
-    color: '#CBD5E1',
-    fontSize: 11.5,
-    marginTop: 1,
-  },
-  heroActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    color: '#AEB8D4',
+    fontSize: 13,
   },
   heroRefreshBtn: {
     width: 32,
@@ -2068,88 +2391,98 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
     shadowColor: '#C9A84C',
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
   newBtnTxt: {
-    color: '#1A2D5A',
-    fontSize: 12.5,
+    color: '#1a2d5a',
+    fontSize: 13,
     fontWeight: '800',
+    letterSpacing: 0.3,
   },
 
-  // ── Service Carousel Chips ─────────────────────────────────────
-  carouselScrollView: {
-    marginTop: 10,
+  // ── Scheduled Services Switcher Bar (Content Area) ───────────
+  serviceSelectorBar: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-  carouselContainer: {
+  serviceSelectorTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  serviceSelectorHeading: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1A2D5A',
+    letterSpacing: 0.5,
+  },
+  serviceSelectorScroll: {
     flexDirection: 'row',
     gap: 8,
-    paddingRight: 16,
+    paddingVertical: 2,
   },
-  serviceCardChip: {
-    backgroundColor: 'rgba(255, 255, 255, 0.12)',
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  serviceSelectPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    minWidth: 160,
+    borderColor: '#E2E8F0',
   },
-  serviceCardChipActive: {
-    backgroundColor: '#FFFFFF',
-    borderColor: '#C9A84C',
+  serviceSelectPillActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#3B82F6',
     borderWidth: 1.5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 3,
   },
-  chipTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 4,
+  serviceSelectPillDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#CBD5E1',
   },
-  chipDatePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  serviceSelectPillDotActive: {
+    backgroundColor: '#2563EB',
+  },
+  serviceSelectPillTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    maxWidth: 160,
+  },
+  serviceSelectPillTitleActive: {
+    color: '#1E3A8A',
+  },
+  serviceSelectPillDate: {
+    backgroundColor: '#E2E8F0',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
   },
-  chipDatePillActive: {
-    backgroundColor: '#F1F5F9',
+  serviceSelectPillDateActive: {
+    backgroundColor: '#DBEAFE',
   },
-  chipDateTxt: {
+  serviceSelectPillDateTxt: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#FFFFFF',
+    color: '#64748B',
   },
-  chipDateTxtActive: {
-    color: '#1A2D5A',
-  },
-  chipTimeTxt: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.8)',
-    fontWeight: '600',
-  },
-  chipTimeTxtActive: {
-    color: '#059669',
-  },
-  chipTitleTxt: {
-    fontSize: 12.5,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  chipTitleTxtActive: {
-    color: '#0F172A',
+  serviceSelectPillDateTxtActive: {
+    color: '#1D4ED8',
   },
 
   // ── Scroll Body ────────────────────────────────────────────────
@@ -2192,7 +2525,7 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: '#EFF6FF',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 3.5,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#DBEAFE',
@@ -2208,7 +2541,7 @@ const styles = StyleSheet.create({
     gap: 4,
     backgroundColor: '#ECFDF5',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 3.5,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#A7F3D0',
@@ -2250,7 +2583,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: '#1A2D5A',
-    paddingVertical: 8,
+    paddingVertical: 8.5,
     paddingHorizontal: 12,
     borderRadius: 10,
   },
@@ -2267,7 +2600,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#ECFDF5',
     borderWidth: 1,
     borderColor: '#A7F3D0',
-    paddingVertical: 8,
+    paddingVertical: 8.5,
     paddingHorizontal: 14,
     borderRadius: 10,
   },
@@ -2277,7 +2610,7 @@ const styles = StyleSheet.create({
     color: '#059669',
   },
   actionBtnDelete: {
-    paddingVertical: 8,
+    paddingVertical: 8.5,
     paddingHorizontal: 12,
     borderRadius: 10,
     backgroundColor: '#FEF2F2',
@@ -2290,28 +2623,34 @@ const styles = StyleSheet.create({
   // ── Segmented Tab Bar ──────────────────────────────────────────
   tabBar: {
     flexDirection: 'row',
-    gap: 6,
     backgroundColor: '#FFFFFF',
-    padding: 5,
+    padding: 4,
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#E2E8F0',
     marginBottom: 16,
+    gap: 4,
   },
   tabItem: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
+    gap: 4,
     paddingVertical: 8,
+    paddingHorizontal: 2,
     borderRadius: 10,
   },
   tabItemActive: {
     backgroundColor: '#1A2D5A',
+    shadowColor: '#1A2D5A',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
   },
   tabItemTxt: {
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '700',
     color: '#64748B',
   },
@@ -2337,7 +2676,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 11,
     borderBottomWidth: 1,
   },
   sectionCardHeaderLeft: {
@@ -2362,22 +2701,66 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
 
+  // ── Subsection Headers inside cards ────────────────────────────
+  subSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  subSectionEmoji: {
+    fontSize: 13,
+  },
+  subSectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#475569',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  subSectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+    marginLeft: 6,
+  },
+
   // ── Roles Grid ─────────────────────────────────────────────────
   rolesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    padding: 10,
+    padding: 12,
     gap: 8,
+    justifyContent: 'space-between',
   },
   roleTile: {
-    width: (width - 32 - 20 - 8) / 2,
-    padding: 10,
+    width: '48.5%',
+    minHeight: 68,
+    paddingHorizontal: 11,
+    paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
+    justifyContent: 'center',
+  },
+  roleTileLead: {
+    width: '100%',
+    minHeight: 66,
+    paddingHorizontal: 13,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    marginBottom: 2,
   },
   roleTileAssigned: {
     backgroundColor: '#FFFFFF',
     borderColor: '#CBD5E1',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   roleTileUnassigned: {
     backgroundColor: '#F8FAFC',
@@ -2388,7 +2771,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 6,
+    marginBottom: 5,
   },
   roleIconEmoji: {
     fontSize: 13,
@@ -3114,39 +3497,108 @@ const styles = StyleSheet.create({
   quickEventChipTxtActive: {
     color: '#FFFFFF',
   },
+  // ── Pre-Built Timetable Format Templates ──────────
+  templatePickerContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 12,
+    marginBottom: 6,
+  },
+  templatePickerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  templatePickerTitle: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#1A2D5A',
+  },
+  templatePickerSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 10,
+  },
+  templateChipsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingVertical: 2,
+  },
+  templateCardChip: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 140,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  templateCardChipActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#3B82F6',
+    borderWidth: 1.5,
+  },
+  templateCardChipTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  templateCardChipIcon: {
+    fontSize: 14,
+  },
+  templateCardChipName: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  templateCardChipNameActive: {
+    color: '#1D4ED8',
+  },
+  templateCardChipSub: {
+    fontSize: 10,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  templateCardChipSubActive: {
+    color: '#3B82F6',
+  },
+
+  // ── Timetable Activities List Builder ──────────────
   builderSectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginTop: 14,
     marginBottom: 8,
   },
   builderSectionTitle: {
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '800',
     color: '#0F172A',
   },
-  sundayTemplateBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  sundayTemplateBtnTxt: {
-    fontSize: 10.5,
-    fontWeight: '800',
-    color: '#1A2D5A',
+  builderSectionSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
   },
   emptyTimetableBox: {
     backgroundColor: '#F8FAFC',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    padding: 16,
+    padding: 20,
     alignItems: 'center',
+    gap: 6,
   },
   emptyTimetableTxt: {
     fontSize: 12,
@@ -3157,60 +3609,154 @@ const styles = StyleSheet.create({
   actBuilderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     padding: 10,
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginBottom: 6,
+    marginBottom: 7,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  actReorderCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 6,
+    gap: 2,
+  },
+  reorderBtn: {
+    padding: 2,
   },
   actBuilderTime: {
     alignItems: 'center',
-    width: 44,
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    minWidth: 50,
   },
   actBuilderTimeTxt: {
     fontSize: 11.5,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#0F172A',
   },
+  actBuilderDurBadge: {
+    backgroundColor: '#EDE8DC',
+    borderRadius: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    marginTop: 2,
+  },
   actBuilderDurTxt: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#1A2D5A',
+  },
+  catBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
+    borderWidth: 1,
+  },
+  catBadgeTxt: {
     fontSize: 9.5,
-    color: '#64748B',
+    fontWeight: '800',
+  },
+  actPassageTxt: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#047857',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
   },
   actBuilderProgram: {
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '700',
     color: '#0F172A',
   },
   actBuilderSub: {
     fontSize: 11,
-    color: '#059669',
+    color: '#64748B',
+    marginTop: 2,
   },
   actBuilderActions: {
     flexDirection: 'row',
-    gap: 4,
+    alignItems: 'center',
+    gap: 6,
+    marginLeft: 4,
   },
   iconBtnSmall: {
-    padding: 5,
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // ── Quick Add Section ──────────────────────────────
+  quickAddSection: {
+    marginTop: 12,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  quickAddHeaderTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#1A2D5A',
+    marginBottom: 8,
+    letterSpacing: 0.2,
   },
   quickAddRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginTop: 10,
   },
   quickAddPill: {
-    backgroundColor: '#EFF6FF',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#BFDBFE',
-    borderRadius: 12,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
     paddingHorizontal: 9,
     paddingVertical: 5,
   },
   quickAddPillTxt: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#1D4ED8',
+    color: '#1E293B',
+  },
+
+  // ── Category Picker Chips (Modal 4) ────────────────
+  catPickChip: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    marginRight: 6,
+  },
+  catPickChipActive: {
+    backgroundColor: '#1A2D5A',
+    borderColor: '#1A2D5A',
+  },
+  catPickChipTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  catPickChipTxtActive: {
+    color: '#FFFFFF',
   },
 });

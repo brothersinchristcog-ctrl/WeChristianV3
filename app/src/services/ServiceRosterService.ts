@@ -37,7 +37,24 @@ export type TimetableCategory =
   | 'sermon'
   | 'closing_prayer'
   | 'break'
+  | 'communion'
+  | 'offertory'
+  | 'announcements'
+  | 'testimony'
+  | 'intercession'
   | 'additional';
+
+export interface TimetableTemplateMeta {
+  id: string;
+  name: string;
+  subtitle: string;
+  icon: string;
+  defaultStartTime: string;
+  defaultEndTime: string;
+  defaultTitle: string;
+  serviceType: 'sunday_service' | 'special_event' | 'conference';
+  getItems: () => RunSheetItem[];
+}
 
 export interface RunSheetItem {
   id: string;
@@ -568,13 +585,148 @@ class ServiceRosterService {
    */
   getStandardSundayServiceSample(): RunSheetItem[] {
     return [
-      { id: 's1', time: '09:00 to 09:10', startTime: '09:00', endTime: '09:10', durationMinutes: 10, program: 'Starting Prayer', category: 'starting_prayer', place: 'Sanctuary', assignedTo: '' },
-      { id: 's2', time: '09:10 to 09:20', startTime: '09:10', endTime: '09:20', durationMinutes: 10, program: 'Opening Song', category: 'opening_song', songTitle: '', place: 'Sanctuary', assignedTo: '', musicians: '' },
+      { id: 's1', time: '09:00 to 09:10', startTime: '09:00', endTime: '09:10', durationMinutes: 10, program: 'Starting Prayer & Invocation', category: 'starting_prayer', place: 'Sanctuary', assignedTo: '' },
+      { id: 's2', time: '09:10 to 09:20', startTime: '09:10', endTime: '09:20', durationMinutes: 10, program: 'Opening Praise Song', category: 'opening_song', songTitle: '', place: 'Sanctuary', assignedTo: '', musicians: '' },
       { id: 's3', time: '09:20 to 09:50', startTime: '09:20', endTime: '09:50', durationMinutes: 30, program: 'Praise & Worship', category: 'worship_songs', songTitle: '', place: 'Sanctuary', assignedTo: '', musicians: '' },
-      { id: 's4', time: '09:50 to 10:00', startTime: '09:50', endTime: '10:00', durationMinutes: 10, program: 'Bible Reading', category: 'bible_reading', passage: '', place: 'Sanctuary', assignedTo: '' },
-      { id: 's5', time: '10:00 to 10:45', startTime: '10:00', endTime: '10:45', durationMinutes: 45, program: 'Sermon / Message', category: 'sermon', passage: '', place: 'Sanctuary', assignedTo: '' },
-      { id: 's6', time: '10:45 to 10:55', startTime: '10:45', endTime: '10:55', durationMinutes: 10, program: 'Announcements & Offertory', category: 'additional', songTitle: '', place: 'Sanctuary', assignedTo: '' },
-      { id: 's7', time: '10:55 to 11:00', startTime: '10:55', endTime: '11:00', durationMinutes: 5, program: 'Closing Prayer & Benediction', category: 'closing_prayer', place: 'Sanctuary', assignedTo: '' }
+      { id: 's4', time: '09:50 to 10:00', startTime: '09:50', endTime: '10:00', durationMinutes: 10, program: 'Scripture / Bible Reading', category: 'bible_reading', passage: '', place: 'Sanctuary', assignedTo: '' },
+      { id: 's5', time: '10:00 to 10:10', startTime: '10:00', endTime: '10:10', durationMinutes: 10, program: 'Welcome & Announcements', category: 'announcements', place: 'Sanctuary', assignedTo: '' },
+      { id: 's6', time: '10:10 to 10:20', startTime: '10:10', endTime: '10:20', durationMinutes: 10, program: 'Offertory & Tithes', category: 'offertory', songTitle: '', place: 'Sanctuary', assignedTo: '' },
+      { id: 's7', time: '10:20 to 11:00', startTime: '10:20', endTime: '11:00', durationMinutes: 40, program: 'Sermon / Message', category: 'sermon', passage: '', place: 'Sanctuary', assignedTo: '' },
+      { id: 's8', time: '11:00 to 11:10', startTime: '11:00', endTime: '11:10', durationMinutes: 10, program: 'Altar Call & Pastoral Prayer', category: 'intercession', place: 'Sanctuary', assignedTo: '' },
+      { id: 's9', time: '11:10 to 11:15', startTime: '11:10', endTime: '11:15', durationMinutes: 5, program: 'Closing Prayer & Benediction', category: 'closing_prayer', place: 'Sanctuary', assignedTo: '' }
+    ];
+  }
+
+  /**
+   * Generates an All-Night Prayer Vigil timetable template
+   */
+  getAllNightPrayerSample(): RunSheetItem[] {
+    return [
+      { id: 'an1', time: '21:00 to 21:20', startTime: '21:00', endTime: '21:20', durationMinutes: 20, program: 'Call to Worship & Opening Prayer', category: 'starting_prayer', place: 'Sanctuary', assignedTo: '' },
+      { id: 'an2', time: '21:20 to 22:15', startTime: '21:20', endTime: '22:15', durationMinutes: 55, program: 'Warfare Praise & High Worship', category: 'worship_songs', songTitle: '', place: 'Sanctuary', assignedTo: '', musicians: '' },
+      { id: 'an3', time: '22:15 to 22:50', startTime: '22:15', endTime: '22:50', durationMinutes: 35, program: 'Scriptural Exhortation', category: 'sermon', passage: '', place: 'Sanctuary', assignedTo: '' },
+      { id: 'an4', time: '22:50 to 23:40', startTime: '22:50', endTime: '23:40', durationMinutes: 50, program: 'Repentance & Cleansing Intercession', category: 'intercession', place: 'Sanctuary', assignedTo: '' },
+      { id: 'an5', time: '23:40 to 00:10', startTime: '23:40', endTime: '00:10', durationMinutes: 30, program: 'Tea & Fellowship Break', category: 'break', place: 'Dining Area', assignedTo: '' },
+      { id: 'an6', time: '00:10 to 01:10', startTime: '00:10', endTime: '01:10', durationMinutes: 60, program: 'Midnight Deliverance & Healing Prayer', category: 'intercession', place: 'Sanctuary', assignedTo: '' },
+      { id: 'an7', time: '01:10 to 01:45', startTime: '01:10', endTime: '01:45', durationMinutes: 35, program: 'Prophetic Word & Testimonies', category: 'testimony', place: 'Sanctuary', assignedTo: '' },
+      { id: 'an8', time: '01:45 to 02:00', startTime: '01:45', endTime: '02:00', durationMinutes: 15, program: 'Dawn Thanksgiving & Benediction', category: 'closing_prayer', place: 'Sanctuary', assignedTo: '' }
+    ];
+  }
+
+  /**
+   * Generates a Mid-Week Bible Study & Prayer timetable template
+   */
+  getMidweekBibleStudySample(): RunSheetItem[] {
+    return [
+      { id: 'mw1', time: '19:00 to 19:10', startTime: '19:00', endTime: '19:10', durationMinutes: 10, program: 'Opening Prayer', category: 'starting_prayer', place: 'Sanctuary', assignedTo: '' },
+      { id: 'mw2', time: '19:10 to 19:30', startTime: '19:10', endTime: '19:30', durationMinutes: 20, program: 'Worship & Devotional Songs', category: 'worship_songs', songTitle: '', place: 'Sanctuary', assignedTo: '', musicians: '' },
+      { id: 'mw3', time: '19:30 to 20:15', startTime: '19:30', endTime: '20:15', durationMinutes: 45, program: 'In-Depth Bible Study Exposition', category: 'sermon', passage: '', place: 'Sanctuary', assignedTo: '' },
+      { id: 'mw4', time: '20:15 to 20:35', startTime: '20:15', endTime: '20:35', durationMinutes: 20, program: 'Church Needs & Intercessory Prayer', category: 'intercession', place: 'Sanctuary', assignedTo: '' },
+      { id: 'mw5', time: '20:35 to 20:45', startTime: '20:35', endTime: '20:45', durationMinutes: 10, program: 'Closing Benediction & Fellowship', category: 'closing_prayer', place: 'Sanctuary', assignedTo: '' }
+    ];
+  }
+
+  /**
+   * Generates a Holy Communion & Fasting timetable template
+   */
+  getCommunionFastingSample(): RunSheetItem[] {
+    return [
+      { id: 'cm1', time: '10:00 to 10:20', startTime: '10:00', endTime: '10:20', durationMinutes: 20, program: 'Opening Devotion & Fasting Prayer', category: 'starting_prayer', place: 'Sanctuary', assignedTo: '' },
+      { id: 'cm2', time: '10:20 to 10:55', startTime: '10:20', endTime: '10:55', durationMinutes: 35, program: 'Solemn Praise & Worship', category: 'worship_songs', songTitle: '', place: 'Sanctuary', assignedTo: '', musicians: '' },
+      { id: 'cm3', time: '10:55 to 11:05', startTime: '10:55', endTime: '11:05', durationMinutes: 10, program: 'Scripture Reading (1 Corinthians 11)', category: 'bible_reading', passage: '1 Cor 11:23-26', place: 'Sanctuary', assignedTo: '' },
+      { id: 'cm4', time: '11:05 to 11:40', startTime: '11:05', endTime: '11:40', durationMinutes: 35, program: 'The Lord’s Table Exhortation', category: 'sermon', passage: '', place: 'Sanctuary', assignedTo: '' },
+      { id: 'cm5', time: '11:40 to 12:00', startTime: '11:40', endTime: '12:00', durationMinutes: 20, program: 'Holy Communion (Bread & Wine)', category: 'communion', place: 'Sanctuary', assignedTo: '' },
+      { id: 'cm6', time: '12:00 to 12:10', startTime: '12:00', endTime: '12:10', durationMinutes: 10, program: 'Tithes & Thanksgiving Offertory', category: 'offertory', place: 'Sanctuary', assignedTo: '' },
+      { id: 'cm7', time: '12:10 to 12:15', startTime: '12:10', endTime: '12:15', durationMinutes: 5, program: 'Pastoral Blessing & Benediction', category: 'closing_prayer', place: 'Sanctuary', assignedTo: '' }
+    ];
+  }
+
+  /**
+   * Generates a Youth & Worship Night timetable template
+   */
+  getYouthWorshipNightSample(): RunSheetItem[] {
+    return [
+      { id: 'yn1', time: '18:00 to 18:15', startTime: '18:00', endTime: '18:15', durationMinutes: 15, program: 'Icebreaker & Welcome', category: 'additional', place: 'Youth Hall', assignedTo: '' },
+      { id: 'yn2', time: '18:15 to 18:25', startTime: '18:15', endTime: '18:25', durationMinutes: 10, program: 'Opening Prayer', category: 'starting_prayer', place: 'Youth Hall', assignedTo: '' },
+      { id: 'yn3', time: '18:25 to 19:15', startTime: '18:25', endTime: '19:15', durationMinutes: 50, program: 'Extended Contemporary Worship', category: 'worship_songs', songTitle: '', place: 'Youth Hall', assignedTo: '', musicians: '' },
+      { id: 'yn4', time: '19:15 to 19:30', startTime: '19:15', endTime: '19:30', durationMinutes: 15, program: 'Youth Testimony & Creative Feature', category: 'testimony', place: 'Youth Hall', assignedTo: '' },
+      { id: 'yn5', time: '19:30 to 20:05', startTime: '19:30', endTime: '20:05', durationMinutes: 35, program: 'Youth Message / Living Word', category: 'sermon', passage: '', place: 'Youth Hall', assignedTo: '' },
+      { id: 'yn6', time: '20:05 to 20:25', startTime: '20:05', endTime: '20:25', durationMinutes: 20, program: 'Altar Ministry & Impartation', category: 'intercession', place: 'Youth Hall', assignedTo: '' },
+      { id: 'yn7', time: '20:25 to 20:30', startTime: '20:25', endTime: '20:30', durationMinutes: 5, program: 'Closing Benediction & Social', category: 'closing_prayer', place: 'Youth Hall', assignedTo: '' }
+    ];
+  }
+
+  /**
+   * Returns list of all available service timetable templates
+   */
+  getAvailableTemplates(): TimetableTemplateMeta[] {
+    return [
+      {
+        id: 'sunday',
+        name: 'Sunday Worship',
+        subtitle: '2 Hours · Standard Sunday Service',
+        icon: '🌟',
+        defaultStartTime: '09:00',
+        defaultEndTime: '11:15',
+        defaultTitle: 'Sunday Morning Worship Service',
+        serviceType: 'sunday_service',
+        getItems: () => this.getStandardSundayServiceSample()
+      },
+      {
+        id: 'all_night',
+        name: 'All-Night Prayer',
+        subtitle: '5 Hours · Vigil & Deliverance',
+        icon: '🌙',
+        defaultStartTime: '21:00',
+        defaultEndTime: '02:00',
+        defaultTitle: 'Monthly All-Night Prayer Vigil',
+        serviceType: 'special_event',
+        getItems: () => this.getAllNightPrayerSample()
+      },
+      {
+        id: 'midweek',
+        name: 'Midweek Study',
+        subtitle: '1.5 Hours · Word & Intercession',
+        icon: '📖',
+        defaultStartTime: '19:00',
+        defaultEndTime: '20:45',
+        defaultTitle: 'Wednesday Bible Study & Prayer',
+        serviceType: 'sunday_service',
+        getItems: () => this.getMidweekBibleStudySample()
+      },
+      {
+        id: 'communion',
+        name: 'Communion Service',
+        subtitle: '2.25 Hours · Bread, Wine & Fasting',
+        icon: '🍞',
+        defaultStartTime: '10:00',
+        defaultEndTime: '12:15',
+        defaultTitle: 'Holy Communion & Fasting Service',
+        serviceType: 'sunday_service',
+        getItems: () => this.getCommunionFastingSample()
+      },
+      {
+        id: 'youth',
+        name: 'Youth Night',
+        subtitle: '2 Hours · Worship & Testimony',
+        icon: '🎸',
+        defaultStartTime: '18:00',
+        defaultEndTime: '20:30',
+        defaultTitle: 'Youth Praise & Worship Night',
+        serviceType: 'special_event',
+        getItems: () => this.getYouthWorshipNightSample()
+      },
+      {
+        id: 'conference',
+        name: 'Revival Conference',
+        subtitle: 'Full Day · Multi-Session',
+        icon: '🕊️',
+        defaultStartTime: '09:00',
+        defaultEndTime: '16:00',
+        defaultTitle: 'Bethesda Annual Revival Conference',
+        serviceType: 'conference',
+        getItems: () => this.getBethesdaConferenceSample()
+      }
     ];
   }
 }
