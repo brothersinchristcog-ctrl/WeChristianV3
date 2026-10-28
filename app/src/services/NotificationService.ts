@@ -131,6 +131,10 @@ class NotificationService {
         case 'attendance':
           nav.navigate('AttendanceScreen');
           break;
+        case 'baptism_request_admin':
+          nav.navigate('AdminRoot', { targetTab: 'Baptism' });
+          break;
+        case 'baptism_request_member':
         case 'birthday':
         case 'anniversary':
         case 'baptism':

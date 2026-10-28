@@ -628,7 +628,7 @@ export default function ProfileScreen({ navigation }: any) {
           <MenuItem 
             icon={<Droplets size={20} color="#0284c7" />} 
             iconBg="#e0f2fe"
-            title="Baptism Request" 
+            title="Baptism" 
             sub="Submit request & track approval status" 
             onPress={() => {
               navigation.navigate('BaptismRequest');

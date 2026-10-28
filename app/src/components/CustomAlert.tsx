@@ -14,13 +14,13 @@ interface CustomAlertProps {
   visible?: boolean;
   title?: string;
   message?: string;
-  type?: 'success' | 'error' | 'warning' | 'info';
+  type?: 'success' | 'error' | 'warning' | 'info' | 'confirm';
   buttons?: AlertButton[];
   onClose?: () => void;
 }
 
 export interface CustomAlertRef {
-  alert: (title: string, message: string, buttons?: AlertButton[], type?: 'success' | 'error' | 'warning' | 'info') => void;
+  alert: (title: string, message: string, buttons?: AlertButton[], type?: 'success' | 'error' | 'warning' | 'info' | 'confirm') => void;
 }
 
 export const CustomAlert = forwardRef<CustomAlertRef, CustomAlertProps>((props, ref) => {
@@ -30,7 +30,7 @@ export const CustomAlert = forwardRef<CustomAlertRef, CustomAlertProps>((props, 
   const [internalVisible, setInternalVisible] = useState(false);
   const [internalTitle, setInternalTitle] = useState('');
   const [internalMessage, setInternalMessage] = useState('');
-  const [internalType, setInternalType] = useState<'success' | 'error' | 'warning' | 'info'>('info');
+  const [internalType, setInternalType] = useState<'success' | 'error' | 'warning' | 'info' | 'confirm'>('info');
   const [internalButtons, setInternalButtons] = useState<AlertButton[] | undefined>(undefined);
 
   const visible = props.visible !== undefined ? props.visible : internalVisible;
@@ -43,7 +43,7 @@ export const CustomAlert = forwardRef<CustomAlertRef, CustomAlertProps>((props, 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useImperativeHandle(ref, () => ({
-    alert: (t: string, m: string, b?: AlertButton[], ty?: 'success' | 'error' | 'warning' | 'info') => {
+    alert: (t: string, m: string, b?: AlertButton[], ty?: 'success' | 'error' | 'warning' | 'info' | 'confirm') => {
       setInternalTitle(t);
       setInternalMessage(m);
       if (b) setInternalButtons(b);
@@ -95,6 +95,7 @@ export const CustomAlert = forwardRef<CustomAlertRef, CustomAlertProps>((props, 
       case 'success': return <Ionicons name="checkmark-circle" size={56} color={colors.primary} />;
       case 'error': return <Ionicons name="close-circle" size={56} color="#ef4444" />;
       case 'warning': return <Ionicons name="warning" size={56} color="#f59e0b" />;
+      case 'confirm': return <Ionicons name="help-circle" size={56} color="#f59e0b" />;
       default: return <Ionicons name="information-circle" size={56} color={colors.primary} />;
     }
   };
@@ -104,6 +105,7 @@ export const CustomAlert = forwardRef<CustomAlertRef, CustomAlertProps>((props, 
       case 'success': return colors.primary;
       case 'error': return '#ef4444';
       case 'warning': return '#f59e0b';
+      case 'confirm': return '#f59e0b';
       default: return colors.primary;
     }
   };
@@ -113,6 +115,7 @@ export const CustomAlert = forwardRef<CustomAlertRef, CustomAlertProps>((props, 
       case 'success': return colors.primary + '15';
       case 'error': return '#fee2e2';
       case 'warning': return '#fef3c7';
+      case 'confirm': return '#fef3c7';
       default: return colors.primary + '15';
     }
   };

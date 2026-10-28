@@ -522,6 +522,8 @@ function TabNavigator() {
   );
 }
 
+let hasHandledColdStartNotification = false;
+
 function Navigation() {
   const { user, member, loading, viewMode, setViewMode, signOut } = useAuth();
   const { activeChurch } = useChurch();
@@ -626,34 +628,38 @@ function Navigation() {
       handleExpoNotificationPayload(data);
     });
 
-    // Cold-start: app was fully closed when user tapped the notification.
-    Notifications.getLastNotificationResponseAsync().then(response => {
-      if (!response) return;
-      const data = response.notification?.request?.content?.data;
-      handleExpoNotificationPayload(data);
-    }).catch(() => {});
+    if (!hasHandledColdStartNotification) {
+      hasHandledColdStartNotification = true;
+
+      // Cold-start (Expo): app was fully closed when user tapped the notification.
+      Notifications.getLastNotificationResponseAsync().then(response => {
+        if (!response) return;
+        const data = response.notification?.request?.content?.data;
+        handleExpoNotificationPayload(data);
+      }).catch(() => {});
+
+      // Cold-start (FCM): When app was closed and user clicked notification
+      NotificationService.messaging().getInitialNotification().then(remoteMessage => {
+        if (remoteMessage) {
+          setPendingNotification(remoteMessage);
+        }
+      }).catch(() => {});
+    }
 
     // 1. When app is in background and user clicks notification
     const unsubscribeOnOpen = NotificationService.messaging().onNotificationOpenedApp(remoteMessage => {
       setPendingNotification(remoteMessage);
     });
 
-    // 2. When app is closed and user clicks notification
-    NotificationService.messaging().getInitialNotification().then(remoteMessage => {
-      if (remoteMessage) {
-        setPendingNotification(remoteMessage);
-      }
-    });
-
     // 3. When app is in foreground and notification arrives
-    const unsubscribeForeground = NotificationService.setupForegroundListener(navigation);
+    const unsubscribeForeground = NotificationService.setupForegroundListener();
 
     return () => {
       unsubscribeOnOpen();
       unsubscribeForeground();
       subscription.remove();
     };
-  }, [navigation]);
+  }, []);
 
   useEffect(() => {
     if (user && !loading && pendingNotification) {
@@ -663,7 +669,7 @@ function Navigation() {
         if (navigationRef && navigationRef.isReady()) {
           const type = pendingNotification?.data?.type;
           
-          if (type === 'invoice' && isAdmin && viewMode !== 'admin') {
+          if ((type === 'invoice' || type === 'baptism_request_admin' || type === 'new_church' || type === 'prayer_request_admin') && isAdmin && viewMode !== 'admin') {
             console.log('Switching to admin view to handle invoice notification');
             setViewMode('admin');
             return; // Exit early, the re-render will trigger this effect again

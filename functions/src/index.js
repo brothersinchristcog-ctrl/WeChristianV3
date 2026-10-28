@@ -875,28 +875,85 @@ export const processBroadcastPushNotifications = functionsCompat
             // We do NOT use query.where() here because if the DB stores +91... it will fail the lexicographical >= check
             // We will rely on the in-memory .includes() check below instead.
         }
+        const isTargetedToAdmin = data.type === 'baptism_request_admin' || data.type === 'prayer_request_admin' || data.targetRole === 'admin';
+        const isTargetedToMember = data.type === 'baptism_request_member' || Boolean(data.targetMemberId) || Boolean(data.targetPhone);
+        const isTargeted = isTargetedToAdmin || isTargetedToMember;
+        const phonesMatch = (target, userPhone) => {
+            if (!target || !userPhone)
+                return false;
+            const rawTarget = String(target).replace(/\D/g, '');
+            const rawUser = String(userPhone).replace(/\D/g, '');
+            if (rawTarget.length < 6 || rawUser.length < 6)
+                return false;
+            const last10Target = rawTarget.slice(-10);
+            const last10User = rawUser.slice(-10);
+            return last10Target === last10User || rawUser.endsWith(last10Target) || rawTarget.endsWith(last10User);
+        };
         const snapshotUsers = await query.get();
         const tokenSet = new Set();
         snapshotUsers.forEach((doc) => {
             const uData = doc.data();
-            // If targetPhone is provided, we do a stricter match since Firestore where clauses on strings can be imprecise
-            if (data.targetPhone && uData.phone) {
-                const rawDigits = data.targetPhone.replace(/\D/g, '');
-                const last10 = rawDigits.slice(-10);
-                if (!uData.phone.includes(last10))
+            if (!uData.fcmToken)
+                return;
+            const uRole = String(uData.userType || uData.role || '').toLowerCase();
+            const isAdminUser = uRole.includes('admin') || uRole.includes('pastor') || uRole.includes('super');
+            const userPhone = uData.phone || uData.phoneNumber || uData.mobile || '';
+            if (isTargetedToAdmin) {
+                if (!isAdminUser)
                     return;
-            }
-            if (uData.fcmToken)
+                if (data.targetPhone && !phonesMatch(data.targetPhone, userPhone))
+                    return;
                 tokenSet.add(uData.fcmToken);
+                return;
+            }
+            if (isTargetedToMember) {
+                let matched = false;
+                if (data.targetMemberId && (uData.memberId === data.targetMemberId || doc.id === data.targetMemberId)) {
+                    matched = true;
+                }
+                if (data.targetPhone && phonesMatch(data.targetPhone, userPhone)) {
+                    matched = true;
+                }
+                if (matched) {
+                    tokenSet.add(uData.fcmToken);
+                }
+                return;
+            }
+            tokenSet.add(uData.fcmToken);
         });
-        // Also gather tokens from churches/{churchId}/members if not phone-targeted
-        if (!data.targetPhone && churchId) {
+        // Also gather tokens from churches/{churchId}/members
+        if (churchId) {
             try {
                 const memSnap = await db.collection('churches').doc(churchId).collection('members').get();
                 memSnap.forEach((doc) => {
                     const mData = doc.data();
-                    if (mData.fcmToken)
+                    if (!mData.fcmToken)
+                        return;
+                    const mRole = String(mData.userType || mData.role || '').toLowerCase();
+                    const isMemAdmin = mRole.includes('admin') || mRole.includes('pastor') || mRole.includes('super');
+                    const memPhone = mData.phone || mData.mobile || mData.phoneNumber || '';
+                    if (isTargetedToAdmin) {
+                        if (!isMemAdmin)
+                            return;
+                        if (data.targetPhone && !phonesMatch(data.targetPhone, memPhone))
+                            return;
                         tokenSet.add(mData.fcmToken);
+                        return;
+                    }
+                    if (isTargetedToMember) {
+                        let matched = false;
+                        if (data.targetMemberId && (doc.id === data.targetMemberId || mData.memberId === data.targetMemberId)) {
+                            matched = true;
+                        }
+                        if (data.targetPhone && phonesMatch(data.targetPhone, memPhone)) {
+                            matched = true;
+                        }
+                        if (matched) {
+                            tokenSet.add(mData.fcmToken);
+                        }
+                        return;
+                    }
+                    tokenSet.add(mData.fcmToken);
                 });
             }
             catch (memErr) {
@@ -915,7 +972,7 @@ export const processBroadcastPushNotifications = functionsCompat
         };
         // 1. Broadcast to church topic church_{churchId} if churchId is present and not phone-targeted
         let topicDelivered = false;
-        if (churchId && !data.targetPhone) {
+        if (churchId && !isTargeted) {
             try {
                 await getMsg().send({
                     notification: {
@@ -953,7 +1010,7 @@ export const processBroadcastPushNotifications = functionsCompat
         }
         // 2. Multicast to individual registered devices ONLY IF phone-targeted OR topic send was not used
         const tokens = Array.from(tokenSet);
-        if (tokens.length > 0 && (!topicDelivered || data.targetPhone)) {
+        if (tokens.length > 0 && (!topicDelivered || isTargeted)) {
             const message = {
                 notification: {
                     title,

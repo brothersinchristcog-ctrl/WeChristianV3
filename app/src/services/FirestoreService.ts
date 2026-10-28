@@ -1,5 +1,6 @@
 import { firestore, FieldValue } from './firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { formatDateDisplay } from '../utils/DateUtils';
 
 // ─── Data Interfaces ─────────────────────────────────────────────────────────
 
@@ -1859,7 +1860,7 @@ class FirestoreService {
           const m = doc.data();
           const role = String(m.userType || '').toLowerCase();
           if (role.includes('admin') || role.includes('pastor') || role.includes('super')) {
-            const p = m.phone || m.mobile;
+            const p = m.phone || m.mobile || m.phoneNumber;
             if (p) adminPhones.push(p);
           }
         });
@@ -1874,6 +1875,7 @@ class FirestoreService {
             type: 'prayer_request_admin',
             prayerId: docRef.id,
             targetPhone: phone,
+            targetRole: 'admin',
             createdAt: FieldValue.serverTimestamp()
           });
         }
@@ -3286,12 +3288,14 @@ class FirestoreService {
 
       const docRef = await col.add(newDoc);
 
+      const formattedPrefDate = data.preferredDate ? formatDateDisplay(data.preferredDate) : 'upcoming schedule';
+
       // 1. Direct in-app notification doc for admins
       try {
         await db.collection('churches').doc(churchId).collection('notifications').add({
           type: 'baptism_request_admin',
           title: `💧 New Baptism Request: ${data.memberName}`,
-          body: `${data.memberName} (${data.memberPhone}) has submitted a baptism request for ${data.preferredDate || 'upcoming schedule'}.`,
+          body: `${data.memberName} (${data.memberPhone}) has submitted a baptism request for ${formattedPrefDate}.`,
           memberName: data.memberName,
           memberPhone: data.memberPhone,
           requestId: docRef.id,
@@ -3310,7 +3314,7 @@ class FirestoreService {
           const m = d.data();
           const role = String(m.userType || '').toLowerCase();
           if (role.includes('admin') || role.includes('pastor') || role.includes('super')) {
-            const p = m.phone || m.mobile;
+            const p = m.phone || m.mobile || m.phoneNumber;
             if (p) adminPhones.push(p);
           }
         });
@@ -3320,10 +3324,11 @@ class FirestoreService {
         for (const phone of uniquePhones) {
           await bcastCol.add({
             title: `💧 New Baptism Request: ${data.memberName}`,
-            content: `${data.memberName} has requested baptism. Preferred date: ${data.preferredDate || 'TBD'}. Tap to review.`,
+            content: `${data.memberName} has requested baptism. Preferred date: ${formattedPrefDate}. Tap to review.`,
             type: 'baptism_request_admin',
             requestId: docRef.id,
             targetPhone: phone,
+            targetRole: 'admin',
             createdAt: FieldValue.serverTimestamp()
           });
         }
@@ -3417,7 +3422,7 @@ class FirestoreService {
         status: newStatus,
         note: updates.historyNote || (
           newStatus === 'approved' 
-            ? `Approved by ${adminName}${updates.confirmedDate ? ` - Scheduled for ${updates.confirmedDate}` : ''}`
+            ? `Approved by ${adminName}${updates.confirmedDate ? ` - Scheduled for ${formatDateDisplay(updates.confirmedDate)}` : ''}`
             : newStatus === 'rejected'
             ? `Rejected by ${adminName}${updates.adminRemarks ? `: ${updates.adminRemarks}` : ''}`
             : newStatus === 'completed'
@@ -3450,9 +3455,11 @@ class FirestoreService {
       let notifTitle = `💧 Baptism Request Update`;
       let notifBody = `Your baptism request status is now: ${newStatus.toUpperCase().replace('_', ' ')}.`;
       
+      const formattedConfirmedDate = updates.confirmedDate ? formatDateDisplay(updates.confirmedDate) : '';
+
       if (newStatus === 'approved') {
         notifTitle = `🎉 Baptism Request Approved!`;
-        notifBody = `Congratulations ${memberName}! Your baptism has been approved.${updates.confirmedDate ? ` Scheduled for ${updates.confirmedDate}${updates.confirmedTime ? ` at ${updates.confirmedTime}` : ''}${updates.confirmedLocation ? ` at ${updates.confirmedLocation}` : ''}.` : ''}`;
+        notifBody = `Congratulations ${memberName}! Your baptism has been approved.${formattedConfirmedDate ? ` Scheduled for ${formattedConfirmedDate}${updates.confirmedTime ? ` at ${updates.confirmedTime}` : ''}${updates.confirmedLocation ? ` at ${updates.confirmedLocation}` : ''}.` : ''}`;
       } else if (newStatus === 'rejected') {
         notifTitle = `Baptism Request Update`;
         notifBody = `Your baptism request status has been updated to rejected.${updates.adminRemarks ? ` Note: ${updates.adminRemarks}` : ''}`;
@@ -3486,15 +3493,15 @@ class FirestoreService {
       }
 
       // 2. Broadcast push targeted to member's phone
-      if (memberPhone) {
+      if (memberPhone || memberId) {
         try {
           await db.collection('churches').doc(churchId).collection('broadcasts').add({
             title: notifTitle,
             content: notifBody,
             type: 'baptism_request_member',
             requestId: requestId,
-            targetPhone: memberPhone,
-            targetMemberId: memberId,
+            targetPhone: memberPhone || '',
+            targetMemberId: memberId || '',
             createdAt: FieldValue.serverTimestamp()
           });
         } catch (bErr) {
@@ -3506,6 +3513,20 @@ class FirestoreService {
     } catch (e: any) {
       console.error('updateBaptismRequest error:', e);
       return { success: false, error: e.message || 'Failed to update baptism request' };
+    }
+  }
+
+  async deleteBaptismRequest(churchId: string, requestId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!churchId || !requestId) {
+        return { success: false, error: 'Missing churchId or requestId' };
+      }
+      const db = firestore();
+      await db.collection('churches').doc(churchId).collection('baptism_requests').doc(requestId).delete();
+      return { success: true };
+    } catch (e: any) {
+      console.error('deleteBaptismRequest error:', e);
+      return { success: false, error: e.message || 'Failed to delete baptism request' };
     }
   }
 }

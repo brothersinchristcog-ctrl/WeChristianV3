@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking, Alert, Image, BackHandler, Clipboard, ToastAndroid } from 'react-native';
-import { ChevronLeft, ArrowLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic , Video } from 'lucide-react-native';
+import { ChevronLeft, ArrowLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic, Video, Droplets } from 'lucide-react-native';
 import { openZoomMeeting } from '../utils/ZoomLauncher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +16,12 @@ import { useAuth } from '../context/AuthContext';
 import { formatDateDisplay } from '../utils/DateUtils';
 import { useChurch } from '../context/ChurchContext';
 import { useLanguage } from '../context/LanguageContext';
+
+// Helper to convert any ISO dates (YYYY-MM-DD) inside text to DD-MM-YYYY format
+function formatDatesInText(text: string): string {
+  if (!text) return '';
+  return text.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3-$2-$1');
+}
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.35;
@@ -121,6 +127,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
   const { t } = useLanguage();
 
   const getTypeName = (type: string) => {
+    if (type === 'baptism_request_admin' || type === 'baptism_request') return 'BAPTISM REQUEST';
+    if (type === 'baptism' || type === 'baptism_request_member') return 'BAPTISM';
     if (!type) return (t('updates.types.announcement') || 'ANNOUNCEMENT').toUpperCase();
     const trans = t(`updates.types.${type}`);
     return trans && trans !== `updates.types.${type}` ? trans.toUpperCase() : type.toUpperCase();
@@ -162,7 +170,11 @@ export default function UpdatesScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
-  const { user, member } = useAuth();
+  const { user, member, viewMode, setViewMode } = useAuth();
+  const isAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || 
+                  String(member?.userType || '').toUpperCase().includes('SUPER') ||
+                  String(member?.userType || '').toUpperCase().includes('PASTOR');
+  const showAdminView = isAdmin && viewMode === 'admin';
   const { activeChurch } = useChurch();
 
   const handleBack = () => {
@@ -173,7 +185,11 @@ export default function UpdatesScreen({ navigation, route }: any) {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      navigation.navigate('Tabs', { screen: 'Home' });
+      if (showAdminView) {
+        navigation.navigate('AdminRoot');
+      } else {
+        navigation.navigate('Tabs', { screen: 'Home' });
+      }
     }
   };
 
@@ -187,14 +203,18 @@ export default function UpdatesScreen({ navigation, route }: any) {
         navigation.goBack();
         return true;
       } else {
+        if (showAdminView) {
+        navigation.navigate('AdminRoot');
+      } else {
         navigation.navigate('Tabs', { screen: 'Home' });
+      }
         return true;
       }
     };
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
     return () => backHandler.remove();
-  }, [selectedUpdate, navigation]);
+  }, [selectedUpdate, navigation, showAdminView]);
 
   useEffect(() => {
     const loadDeletedIds = async () => {
@@ -246,20 +266,53 @@ export default function UpdatesScreen({ navigation, route }: any) {
               return null;
             }
 
-            // SECURITY: If broadcast is targeted to a specific phone, skip it if not for this user
-            const isTargeted = data.targetPhone && typeof data.targetPhone === 'string' && data.targetPhone.trim().length > 0;
-            if (isTargeted) {
-              const uPhone = user?.phoneNumber || '';
-              const mPhone = member?.phone || '';
-              const target = data.targetPhone.replace(/\D/g, ''); // strip non-digits for comparison
-              
-              const match1 = uPhone && uPhone.replace(/\D/g, '').endsWith(target);
-              const match2 = mPhone && mPhone.replace(/\D/g, '').endsWith(target);
-              const match3 = target.endsWith(uPhone.replace(/\D/g, '')) && uPhone.length > 5;
-              const match4 = target.endsWith(mPhone.replace(/\D/g, '')) && mPhone.length > 5;
-              
-              if (!match1 && !match2 && !match3 && !match4) {
-                return null; // Skip if not targeted to current user
+            // SECURITY 2: Admin-only broadcasts (e.g. New Baptism Request)
+            const isForAdmin = data.type === 'baptism_request_admin' || data.type === 'prayer_request_admin' || data.targetRole === 'admin';
+            if (isForAdmin && !isAdmin) {
+              return null; // Non-admin members must NEVER see admin notifications
+            }
+
+            // Phone matcher helper
+            const uPhone = user?.phoneNumber || '';
+            const mPhone = member?.phone || (member as any)?.mobile || '';
+            const checkPhoneMatch = (targetPhoneStr?: string) => {
+              if (!targetPhoneStr || typeof targetPhoneStr !== 'string') return false;
+              const target = targetPhoneStr.replace(/\D/g, '');
+              if (target.length < 6) return false;
+              const m1 = uPhone && uPhone.replace(/\D/g, '').endsWith(target);
+              const m2 = mPhone && mPhone.replace(/\D/g, '').endsWith(target);
+              const m3 = target.endsWith(uPhone.replace(/\D/g, '')) && uPhone.length >= 6;
+              const m4 = target.endsWith(mPhone.replace(/\D/g, '')) && mPhone.length >= 6;
+              return Boolean(m1 || m2 || m3 || m4);
+            };
+
+            // SECURITY 3: Member-specific status updates (e.g. Baptism Request Approved / Rejected / Under Review)
+            const isMemberBaptismUpdate = data.type === 'baptism_request_member' ||
+              (data.title?.includes('Baptism Request') && (data.title?.includes('Update') || data.title?.includes('Approved') || data.title?.includes('Declined')));
+            if (isMemberBaptismUpdate) {
+              const currentMemberId = member?.id || user?.uid || '';
+              const idMatches = data.targetMemberId && currentMemberId && data.targetMemberId === currentMemberId;
+              const phoneMatches = checkPhoneMatch(data.targetPhone);
+              // Only visible to the particular member who made the request
+              if (!idMatches && !phoneMatches) {
+                return null;
+              }
+            }
+
+            // SECURITY 4: Any targeted notification by member ID
+            if (data.targetMemberId) {
+              const currentMemberId = member?.id || user?.uid || '';
+              const idMatches = currentMemberId && data.targetMemberId === currentMemberId;
+              const phoneMatches = checkPhoneMatch(data.targetPhone);
+              if (!idMatches && !phoneMatches) {
+                return null;
+              }
+            }
+
+            // SECURITY 5: Targeted notification by phone
+            if (data.targetPhone && typeof data.targetPhone === 'string' && data.targetPhone.trim().length > 0) {
+              if (!checkPhoneMatch(data.targetPhone)) {
+                return null;
               }
             }
 
@@ -296,13 +349,26 @@ export default function UpdatesScreen({ navigation, route }: any) {
               icon = Calendar;
               color = '#10b981';
               resolvedType = 'event';
+            } else if (data.type === 'baptism_request_admin' || data.title?.includes('New Baptism Request')) {
+              icon = Droplets;
+              color = '#0284c7';
+              resolvedType = 'baptism_request_admin';
+            } else if (
+              data.type === 'baptism_request_member' || 
+              data.type === 'baptism_request' || 
+              data.title?.includes('Baptism Request Update') || 
+              data.title?.includes('Baptism Request Approved')
+            ) {
+              icon = Droplets;
+              color = '#0284c7';
+              resolvedType = 'baptism';
             } else if (data.title?.includes('🎂') || data.content?.includes('Birthday') || data.type === 'birthday') {
               icon = Gift;
               color = '#d97706';
               resolvedType = 'birthday';
-            } else if (data.title?.includes('🎉') || data.title?.includes('🕊️') || data.content?.includes('Baptism') || data.title?.includes('Baptism') || data.type === 'baptism' || data.type === 'celebration') {
-              icon = Sparkles;
-              color = '#3b82f6';
+            } else if (data.title?.includes('🎉') || data.title?.includes('🕊️') || data.content?.includes('Baptism') || data.title?.includes('Baptism') || data.type === 'celebration') {
+              icon = Droplets;
+              color = '#0284c7';
               resolvedType = 'celebration';
             } else if (data.title?.includes('💐') || data.content?.includes('Anniversary') || data.title?.includes('Anniversary') || data.type === 'anniversary') {
               icon = Heart;
@@ -339,7 +405,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
             return {
               id: doc.id,
               title: data.title || t('updates.announcement'),
-              content: stripHtml(data.content || ''),
+              content: formatDatesInText(stripHtml(data.content || '')),
               date: dateStr,
               type: resolvedType,
               icon: icon,
@@ -516,7 +582,11 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   if (update.type === 'song') {
                     navigation.navigate('Songs', { songId: update.relatedId });
                   } else if (update.type === 'promise') {
-                    navigation.navigate('Tabs', { screen: 'Promise' });
+                    if (showAdminView) {
+                      navigation.navigate('AdminRoot', { targetTab: 'Promises' });
+                    } else {
+                      navigation.navigate('Tabs', { screen: 'Promise' });
+                    }
                   } else if (update.type === 'sermon') {
                     navigation.navigate('Sermons');
                   } else if (
@@ -532,6 +602,25 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     navigation.navigate('Events');
                   } else if (update.type === 'attendance') {
                     navigation.navigate('AttendanceScreen');
+                  } else if (update.type === 'baptism_request_admin' || update.title?.includes('New Baptism Request')) {
+                    if (showAdminView) {
+                      navigation.navigate('AdminRoot', { targetTab: 'Baptism' });
+                    } else if (isAdmin) {
+                      setViewMode('admin');
+                    } else {
+                      setSelectedUpdate(update);
+                    }
+                  } else if (
+                    update.type === 'baptism_request_member' || 
+                    update.type === 'baptism_request' || 
+                    update.title?.includes('Baptism Request Update') ||
+                    (update.type === 'baptism' && update.title?.includes('Baptism Request Approved'))
+                  ) {
+                    if (!showAdminView) {
+                      navigation.navigate('BaptismRequest');
+                    } else {
+                      navigation.navigate('AdminRoot', { targetTab: 'Baptism' });
+                    }
                   } else {
                     setSelectedUpdate(update);
                   }
@@ -546,7 +635,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     <Text style={styles.dateTxt}>{formatDateDisplay(update.date)}</Text>
                   </View>
                   <Text style={styles.updateTitle}>{update.title}</Text>
-                  <Text style={styles.updateContent} numberOfLines={2}>{update.content}</Text>
+                  <Text style={styles.updateContent} numberOfLines={2}>{formatDatesInText(update.content)}</Text>
                 </View>
               </TouchableOpacity>
             </SwipeableRow>
@@ -647,7 +736,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   <Text style={[styles.footerBlessing, { color: '#be185d' }]}>{t('updates.anniversaryBlessing')}</Text>
                 </View>
               </View>
-            ) : selectedUpdate?.type === 'celebration' ? (
+            ) : (selectedUpdate?.type === 'celebration' || selectedUpdate?.type === 'baptism' || (selectedUpdate?.title?.includes('Baptism') && !selectedUpdate?.title?.includes('Update') && !selectedUpdate?.title?.includes('Request'))) ? (
               // --- 🎉 BAPTISM / CELEBRATION UI ---
               <View style={styles.celebrationContainer}>
                 <View style={styles.balloonRow}>
@@ -655,16 +744,15 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   <Text style={[styles.emojiDecor, { fontSize: 44, marginTop: -15 }]}>🎉</Text>
                   <Text style={styles.emojiDecor}>🕊️</Text>
                 </View>
-                <Sparkles size={32} color="#3b82f6" style={styles.sparkleIcon} />
-                <Text style={[styles.celebrationTitleEn, { color: '#3b82f6' }]}>{selectedUpdate?.title || t('updates.celebrationDefault')}</Text>
-                <View style={styles.dividerBlue} />
+                <Text style={[styles.celebrationTitleEn, { color: '#0284c7' }]}>{selectedUpdate?.title || t('updates.celebrationDefault')}</Text>
+                <View style={[styles.dividerBlue, { backgroundColor: '#0284c7' }]} />
 
                 <ScrollView style={[styles.modalScroll, { maxHeight: 400 }]} showsVerticalScrollIndicator={false}>
                   {selectedUpdate?.imageUrl && (
                     <Image source={{ uri: selectedUpdate.imageUrl }} style={styles.modalImage} resizeMode="cover" />
                   )}
                   <Text style={[styles.celebrationGreeting, { color: '#1e3a8a' }]}>
-                    {selectedUpdate?.content}
+                    {formatDatesInText(selectedUpdate?.content)}
                   </Text>
                 </ScrollView>
 

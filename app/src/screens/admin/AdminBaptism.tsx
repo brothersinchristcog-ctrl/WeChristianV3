@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
 import {
   StyleSheet,
   View,
@@ -13,7 +13,8 @@ import {
   Modal,
   Linking,
   Dimensions,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  StatusBar
 } from 'react-native';
 import {
   Droplets,
@@ -36,13 +37,17 @@ import {
   Sparkles,
   History,
   Info,
-  Check
+  Check,
+  Trash2,
+  ChevronLeft,
+  RefreshCw
 } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useChurch } from '../../context/ChurchContext';
+import { AdminTabContext } from '../../context/AdminTabContext';
 import FirestoreService, { BaptismRequest, BaptismHistoryItem } from '../../services/FirestoreService';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
-import { formatDateDisplay } from '../../utils/DateUtils';
+import { formatDateDisplay, formatDateTimeDisplay } from '../../utils/DateUtils';
 import { CustomAlert } from '../../components/CustomAlert';
 
 const { width } = Dimensions.get('window');
@@ -52,6 +57,7 @@ type StatusType = 'all' | 'pending' | 'under_review' | 'approved' | 'rejected' |
 export default function AdminBaptism({ navigation }: any) {
   const { user, member } = useAuth();
   const { activeChurch } = useChurch();
+  const { setActiveTab } = useContext(AdminTabContext) || {};
 
   const [requests, setRequests] = useState<BaptismRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +83,7 @@ export default function AdminBaptism({ navigation }: any) {
     visible: boolean;
     title: string;
     message: string;
-    type: 'success' | 'info' | 'error' | 'warning';
+    type: 'success' | 'info' | 'error' | 'warning' | 'confirm';
     onConfirm?: () => void;
   }>({ visible: false, title: '', message: '', type: 'info' });
 
@@ -194,6 +200,42 @@ export default function AdminBaptism({ navigation }: any) {
     }
   };
 
+  const promptDeleteRequest = (req: BaptismRequest) => {
+    setAlertConfig({
+      visible: true,
+      title: 'Delete Baptism Request?',
+      message: `Are you sure you want to delete the baptism request for ${req.memberName || 'this member'}? This cannot be undone.`,
+      type: 'confirm',
+      onConfirm: () => executeDeleteRequest(req.id)
+    });
+  };
+
+  const executeDeleteRequest = async (requestId: string) => {
+    if (!activeChurch?.id || !requestId) return;
+    try {
+      const res = await FirestoreService.deleteBaptismRequest(activeChurch.id, requestId);
+      if (res.success) {
+        setDetailModalVisible(false);
+        setSelectedRequest(null);
+        fetchRequests(true);
+      } else {
+        setAlertConfig({
+          visible: true,
+          title: 'Error',
+          message: res.error || 'Failed to delete request',
+          type: 'error'
+        });
+      }
+    } catch (err: any) {
+      setAlertConfig({
+        visible: true,
+        title: 'Error',
+        message: err.message || 'Failed to delete request',
+        type: 'error'
+      });
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'approved':
@@ -242,70 +284,97 @@ export default function AdminBaptism({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      {/* Top Bar Header */}
-      <View style={styles.topHeader}>
-        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          <View style={styles.iconCircle}>
-            <Droplets size={22} color="#0F4C5C" />
+      <StatusBar barStyle="light-content" />
+
+      {/* ── Hero Section ── */}
+      <View style={styles.hero}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 1 }}>
+            <TouchableOpacity
+              onPress={() => (setActiveTab ? setActiveTab(0) : navigation?.goBack?.())}
+              style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={styles.heroTitle} numberOfLines={1}>Baptism</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]} numberOfLines={1}>
+                {requests.length} total · {stats.pending} pending
+              </Text>
+            </View>
           </View>
-          <View style={{ marginLeft: 10 }}>
-            <Text style={styles.topHeaderTitle}>Baptism Management</Text>
-            <Text style={styles.topHeaderSub}>
-              {activeChurch?.name || 'WeChristian Church'} • {requests.length} Total Requests
-            </Text>
-          </View>
+          <TouchableOpacity
+            style={styles.refreshHeroBtn}
+            onPress={() => fetchRequests(true)}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <RefreshCw size={15} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
 
-      {/* Stats Cards Row */}
-      <View style={styles.statsContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 10 }}>
+      {/* ── Stats Filter Row ── */}
+      <View style={{ marginBottom: 4 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.statsRow}
+        >
           <TouchableOpacity
-            style={[styles.statCard, statusFilter === 'all' && styles.statCardActive]}
+            style={[styles.statCard, statusFilter === 'all' && styles.activeStatCard]}
             onPress={() => setStatusFilter('all')}
+            activeOpacity={0.7}
           >
-            <Text style={styles.statCount}>{stats.total}</Text>
-            <Text style={styles.statLabel}>ALL</Text>
+            <Text style={[styles.statNum, { color: '#1a2d5a' }]}>{stats.total}</Text>
+            <Text style={styles.statLbl}>ALL</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.statCard, statusFilter === 'pending' && styles.statCardActive, { borderLeftColor: '#F59E0B' }]}
+            style={[styles.statCard, statusFilter === 'pending' && styles.activeStatCard]}
             onPress={() => setStatusFilter('pending')}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.statCount, { color: '#B45309' }]}>{stats.pending}</Text>
-            <Text style={styles.statLabel}>PENDING</Text>
+            <Text style={[styles.statNum, { color: '#D97706' }]}>{stats.pending}</Text>
+            <Text style={styles.statLbl}>PENDING</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.statCard, statusFilter === 'under_review' && styles.statCardActive, { borderLeftColor: '#2563EB' }]}
+            style={[styles.statCard, statusFilter === 'under_review' && styles.activeStatCard]}
             onPress={() => setStatusFilter('under_review')}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.statCount, { color: '#1D4ED8' }]}>{stats.underReview}</Text>
-            <Text style={styles.statLabel}>REVIEW</Text>
+            <Text style={[styles.statNum, { color: '#2563EB' }]}>{stats.underReview}</Text>
+            <Text style={styles.statLbl}>REVIEW</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.statCard, statusFilter === 'approved' && styles.statCardActive, { borderLeftColor: '#10B981' }]}
+            style={[styles.statCard, statusFilter === 'approved' && styles.activeStatCard]}
             onPress={() => setStatusFilter('approved')}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.statCount, { color: '#047857' }]}>{stats.approved}</Text>
-            <Text style={styles.statLabel}>APPROVED</Text>
+            <Text style={[styles.statNum, { color: '#059669' }]}>{stats.approved}</Text>
+            <Text style={styles.statLbl}>APPROVED</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.statCard, statusFilter === 'completed' && styles.statCardActive, { borderLeftColor: '#6366F1' }]}
+            style={[styles.statCard, statusFilter === 'completed' && styles.activeStatCard]}
             onPress={() => setStatusFilter('completed')}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.statCount, { color: '#4338CA' }]}>{stats.completed}</Text>
-            <Text style={styles.statLabel}>COMPLETED</Text>
+            <Text style={[styles.statNum, { color: '#6366F1' }]}>{stats.completed}</Text>
+            <Text style={styles.statLbl}>COMPLETED</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.statCard, statusFilter === 'rejected' && styles.statCardActive, { borderLeftColor: '#EF4444' }]}
+            style={[styles.statCard, statusFilter === 'rejected' && styles.activeStatCard]}
             onPress={() => setStatusFilter('rejected')}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.statCount, { color: '#B91C1C' }]}>{stats.rejected}</Text>
-            <Text style={styles.statLabel}>DECLINED</Text>
+            <Text style={[styles.statNum, { color: '#DC2626' }]}>{stats.rejected}</Text>
+            <Text style={styles.statLbl}>DECLINED</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -368,9 +437,22 @@ export default function AdminBaptism({ navigation }: any) {
                       Phone: {req.memberPhone} {req.gender ? `• ${req.gender}` : ''} {req.age ? `• ${req.age} yrs` : ''}
                     </Text>
                   </View>
-                  <View style={[styles.statusBadge, { backgroundColor: badge.bg, borderColor: badge.border }]}>
-                    <BadgeIcon size={12} color={badge.text} style={{ marginRight: 4 }} />
-                    <Text style={[styles.statusBadgeTxt, { color: badge.text }]}>{badge.label}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <View style={[styles.statusBadge, { backgroundColor: badge.bg, borderColor: badge.border, marginRight: 8 }]}>
+                      <BadgeIcon size={12} color={badge.text} style={{ marginRight: 4 }} />
+                      <Text style={[styles.statusBadgeTxt, { color: badge.text }]}>{badge.label}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.cardDeleteBtn}
+                      activeOpacity={0.7}
+                      onPress={(e) => {
+                        e.stopPropagation();
+                        promptDeleteRequest(req);
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Trash2 size={16} color="#DC2626" />
+                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -636,6 +718,15 @@ export default function AdminBaptism({ navigation }: any) {
                         </View>
                       )}
                     </TouchableOpacity>
+
+                    {/* Delete Request Button */}
+                    <TouchableOpacity
+                      style={styles.deleteModalBtn}
+                      onPress={() => promptDeleteRequest(selectedRequest)}
+                    >
+                      <Trash2 size={16} color="#DC2626" style={{ marginRight: 6 }} />
+                      <Text style={styles.deleteModalBtnTxt}>Delete This Request</Text>
+                    </TouchableOpacity>
                   </View>
 
                   {/* Complete History Timeline */}
@@ -654,7 +745,7 @@ export default function AdminBaptism({ navigation }: any) {
                             </Text>
                             <Text style={styles.historyNoteTxt}>{h.note}</Text>
                             <Text style={styles.historyByTxt}>
-                              By: {h.changedBy || 'Admin'} • {formatDateDisplay(h.timestamp)}
+                              By: {h.changedBy || 'Admin'} • {formatDateTimeDisplay(h.timestamp)}
                             </Text>
                           </View>
                         </View>
@@ -685,15 +776,33 @@ export default function AdminBaptism({ navigation }: any) {
         title={alertConfig.title}
         message={alertConfig.message}
         type={alertConfig.type}
-        buttons={[
-          {
-            text: 'OK',
-            onPress: () => {
-              setAlertConfig(prev => ({ ...prev, visible: false }));
-              if (alertConfig.onConfirm) alertConfig.onConfirm();
-            }
-          }
-        ]}
+        buttons={
+          alertConfig.type === 'confirm'
+            ? [
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                  onPress: () => setAlertConfig(prev => ({ ...prev, visible: false }))
+                },
+                {
+                  text: 'Delete',
+                  style: 'destructive',
+                  onPress: () => {
+                    setAlertConfig(prev => ({ ...prev, visible: false }));
+                    if (alertConfig.onConfirm) alertConfig.onConfirm();
+                  }
+                }
+              ]
+            : [
+                {
+                  text: 'OK',
+                  onPress: () => {
+                    setAlertConfig(prev => ({ ...prev, visible: false }));
+                    if (alertConfig.onConfirm) alertConfig.onConfirm();
+                  }
+                }
+              ]
+        }
       />
     </View>
   );
@@ -702,66 +811,74 @@ export default function AdminBaptism({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC'
+    backgroundColor: '#f0f2f7'
   },
-  topHeader: {
-    backgroundColor: '#FFFFFF',
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
     paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center'
+    paddingTop: 8,
+    paddingBottom: 14,
+    marginBottom: 10,
+    overflow: 'visible',
+    position: 'relative'
   },
-  iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: '#E0F2FE',
+  heroTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontWeight: '600',
+    letterSpacing: -0.5
+  },
+  heroSub: {
+    color: '#AEB8D4',
+    fontSize: 13
+  },
+  refreshHeroBtn: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    marginTop: 4
   },
-  topHeaderTitle: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#0F172A'
-  },
-  topHeaderSub: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2
-  },
-  statsContainer: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F1F5F9'
+  statsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 2,
+    marginBottom: 4
   },
   statCard: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    paddingHorizontal: 14,
     paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    borderLeftWidth: 4,
-    borderLeftColor: '#0F4C5C',
-    minWidth: 80,
-    alignItems: 'center'
+    borderColor: 'rgba(26,45,90,0.08)',
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 1,
+    minWidth: 84
   },
-  statCardActive: {
-    backgroundColor: '#F0FDFA',
-    borderColor: '#0F4C5C'
+  activeStatCard: {
+    borderColor: '#1a2d5a',
+    borderWidth: 1.5,
+    backgroundColor: '#F8FAFC'
   },
-  statCount: {
-    fontSize: 18,
+  statNum: {
+    fontSize: 20,
     fontWeight: '800',
-    color: '#0F172A'
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif'
   },
-  statLabel: {
-    fontSize: 9,
-    fontWeight: '800',
+  statLbl: {
+    fontSize: 10,
+    fontWeight: '700',
     color: '#64748B',
     marginTop: 2,
     letterSpacing: 0.5
@@ -1169,5 +1286,31 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: '#94A3B8',
     marginTop: 2
+  },
+  cardDeleteBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#FECACA'
+  },
+  deleteModalBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FEF2F2',
+    marginTop: 10
+  },
+  deleteModalBtnTxt: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#DC2626'
   }
 });
