@@ -133,7 +133,7 @@ const CATEGORIES = [
   },
 ];
 
-const FULL_WIDTH_MODULES = ['Songs', 'Members', 'Subscription', 'WeCelebrations'];
+const FULL_WIDTH_MODULES = ['Songs', 'Members', 'Subscription', 'WeCelebrations', 'Baptism'];
 
 const FONTS = {
   serif: Platform.OS === 'ios' ? 'Georgia' : 'serif',
@@ -356,6 +356,14 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
             const tabsInCategory = categorizedTabs[category.title];
             if (!tabsInCategory || tabsInCategory.length === 0) return null;
 
+            // Ensure full-width cards always sit at the end of the section for a clean, balanced grid layout
+            const sortedTabs = [...tabsInCategory].sort((a, b) => {
+              const aFull = FULL_WIDTH_MODULES.includes(a.name);
+              const bFull = FULL_WIDTH_MODULES.includes(b.name);
+              if (aFull === bFull) return 0;
+              return aFull ? 1 : -1;
+            });
+
             return (
               <View key={catIdx} style={[styles.categoryBlock, { marginBottom: isSmallDevice ? 18 : 24 }]}>
                 
@@ -384,7 +392,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
 
                 {/* Hybrid Responsive Grid of Modules */}
                 <View style={[styles.grid, { gap: cardGap }]}>
-                  {tabsInCategory.map((tab, tabIdx) => {
+                  {sortedTabs.map((tab, tabIdx) => {
                     const isFullWidth = FULL_WIDTH_MODULES.includes(tab.name);
                     
                     return (
