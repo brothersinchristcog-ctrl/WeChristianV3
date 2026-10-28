@@ -14,9 +14,12 @@ import {
 } from 'react-native';
 // Removed SafeAreaView as padding is handled by the header
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ChevronLeft, Calendar, Award, CheckCircle, Circle, BookOpen, Clock, Heart } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { ArrowLeft, ChevronLeft, Calendar, Award, CheckCircle, Circle, BookOpen, Clock, Heart } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { BibleService } from '../services/BibleService';
 import FirestoreService from '../services/FirestoreService';
 
 const { width } = Dimensions.get('window');
@@ -26,6 +29,7 @@ interface PlanDay {
   labelEn: string;
   labelTe: string;
   book: string;
+  bookIndex: number;
   chapter: number;
 }
 
@@ -54,15 +58,15 @@ const BIBLE_PLANS: BiblePlan[] = [
     color: '#1a2d5a',
     icon: Clock,
     days: [
-      { day: 1, labelEn: 'Matthew Chapter 1', labelTe: 'మత్తయి 1వ అధ్యాయం', book: 'Matthew', chapter: 1 },
-      { day: 2, labelEn: 'Matthew Chapter 2', labelTe: 'మత్తయి 2వ అధ్యాయం', book: 'Matthew', chapter: 2 },
-      { day: 3, labelEn: 'Matthew Chapter 5 (Sermon on Mount)', labelTe: 'మత్తయి 5వ అధ్యాయం', book: 'Matthew', chapter: 5 },
-      { day: 5, labelEn: 'John Chapter 1 (The Word of Life)', labelTe: 'యోహాను 1వ అధ్యాయం', book: 'John', chapter: 1 },
-      { day: 10, labelEn: 'John Chapter 3 (Born Again)', labelTe: 'యోహాను 3వ అధ్యాయం', book: 'John', chapter: 3 },
-      { day: 15, labelEn: 'John Chapter 14 (The Way & Truth)', labelTe: 'యోహాను 14వ అధ్యాయం', book: 'John', chapter: 14 },
-      { day: 20, labelEn: 'Psalms 23 (The Good Shepherd)', labelTe: 'కీర్తనల గ్రంథము 23వ అధ్యాయం', book: 'Psalms', chapter: 23 },
-      { day: 25, labelEn: 'Romans Chapter 12 (Living Sacrifices)', labelTe: 'రోమీయులకు 12వ అధ్యాయం', book: 'Romans', chapter: 12 },
-      { day: 30, labelEn: 'Revelation Chapter 22 (River of Life)', labelTe: 'ప్రకటన గ్రంథము 22వ అధ్యాయం', book: 'Revelation', chapter: 22 }
+      { day: 1, labelEn: 'Matthew Chapter 1', labelTe: 'మత్తయి 1వ అధ్యాయం', book: 'Matthew', bookIndex: 39, chapter: 1 },
+      { day: 2, labelEn: 'Matthew Chapter 2', labelTe: 'మత్తయి 2వ అధ్యాయం', book: 'Matthew', bookIndex: 39, chapter: 2 },
+      { day: 3, labelEn: 'Matthew Chapter 5 (Sermon on Mount)', labelTe: 'మత్తయి 5వ అధ్యాయం', book: 'Matthew', bookIndex: 39, chapter: 5 },
+      { day: 5, labelEn: 'John Chapter 1 (The Word of Life)', labelTe: 'యోహాను 1వ అధ్యాయం', book: 'John', bookIndex: 42, chapter: 1 },
+      { day: 10, labelEn: 'John Chapter 3 (Born Again)', labelTe: 'యోహాను 3వ అధ్యాయం', book: 'John', bookIndex: 42, chapter: 3 },
+      { day: 15, labelEn: 'John Chapter 14 (The Way & Truth)', labelTe: 'యోహాను 14వ అధ్యాయం', book: 'John', bookIndex: 42, chapter: 14 },
+      { day: 20, labelEn: 'Psalms 23 (The Good Shepherd)', labelTe: 'కీర్తనల గ్రంథము 23వ అధ్యాయం', book: 'Psalms', bookIndex: 18, chapter: 23 },
+      { day: 25, labelEn: 'Romans Chapter 12 (Living Sacrifices)', labelTe: 'రోమీయులకు 12వ అధ్యాయం', book: 'Romans', bookIndex: 44, chapter: 12 },
+      { day: 30, labelEn: 'Revelation Chapter 22 (River of Life)', labelTe: 'ప్రకటన గ్రంథము 22వ అధ్యాయం', book: 'Revelation', bookIndex: 65, chapter: 22 }
     ]
   },
   {
@@ -76,14 +80,14 @@ const BIBLE_PLANS: BiblePlan[] = [
     color: '#D97706',
     icon: Calendar,
     days: [
-      { day: 1, labelEn: 'Matthew Chapter 1', labelTe: 'మత్తయి 1వ అధ్యాయం', book: 'Matthew', chapter: 1 },
-      { day: 10, labelEn: 'Mark Chapter 1', labelTe: 'మార్కు 1వ అధ్యాయం', book: 'Mark', chapter: 1 },
-      { day: 20, labelEn: 'Luke Chapter 1', labelTe: 'లూకా 1వ అధ్యాయం', book: 'Luke', chapter: 1 },
-      { day: 30, labelEn: 'John Chapter 1', labelTe: 'యోహాను 1వ అధ్యాయం', book: 'John', chapter: 1 },
-      { day: 45, labelEn: 'Acts Chapter 1', labelTe: 'అపొస్తలుల కార్యములు 1వ అధ్యాయం', book: 'Acts', chapter: 1 },
-      { day: 60, labelEn: 'Romans Chapter 12', labelTe: 'రోమీయులకు 12వ అధ్యాయం', book: 'Romans', chapter: 12 },
-      { day: 75, labelEn: 'Hebrews Chapter 11', labelTe: 'హెబ్రీయులకు 11వ అధ్యాయం', book: 'Hebrews', chapter: 11 },
-      { day: 90, labelEn: 'Revelation Chapter 22', labelTe: 'ప్రకటన గ్రంథము 22వ అధ్యాయం', book: 'Revelation', chapter: 22 }
+      { day: 1, labelEn: 'Matthew Chapter 1', labelTe: 'మత్తయి 1వ అధ్యాయం', book: 'Matthew', bookIndex: 39, chapter: 1 },
+      { day: 10, labelEn: 'Mark Chapter 1', labelTe: 'మార్కు 1వ అధ్యాయం', book: 'Mark', bookIndex: 40, chapter: 1 },
+      { day: 20, labelEn: 'Luke Chapter 1', labelTe: 'లూకా 1వ అధ్యాయం', book: 'Luke', bookIndex: 41, chapter: 1 },
+      { day: 30, labelEn: 'John Chapter 1', labelTe: 'యోహాను 1వ అధ్యాయం', book: 'John', bookIndex: 42, chapter: 1 },
+      { day: 45, labelEn: 'Acts Chapter 1', labelTe: 'అపొస్తలుల కార్యములు 1వ అధ్యాయం', book: 'Acts', bookIndex: 43, chapter: 1 },
+      { day: 60, labelEn: 'Romans Chapter 12', labelTe: 'రోమీయులకు 12వ అధ్యాయం', book: 'Romans', bookIndex: 44, chapter: 12 },
+      { day: 75, labelEn: 'Hebrews Chapter 11', labelTe: 'హెబ్రీయులకు 11వ అధ్యాయం', book: 'Hebrews', bookIndex: 57, chapter: 11 },
+      { day: 90, labelEn: 'Revelation Chapter 22', labelTe: 'ప్రకటన గ్రంథము 22వ అధ్యాయం', book: 'Revelation', bookIndex: 65, chapter: 22 }
     ]
   },
   {
@@ -97,15 +101,15 @@ const BIBLE_PLANS: BiblePlan[] = [
     color: '#0F766E',
     icon: BookOpen,
     days: [
-      { day: 1, labelEn: 'Matthew Chapter 1-2', labelTe: 'మత్తయి 1-2 అధ్యాయాలు', book: 'Matthew', chapter: 1 },
-      { day: 15, labelEn: 'Mark Chapter 1', labelTe: 'మార్కు 1వ అధ్యాయం', book: 'Mark', chapter: 1 },
-      { day: 30, labelEn: 'Luke Chapter 1', labelTe: 'లూకా 1వ అధ్యాయం', book: 'Luke', chapter: 1 },
-      { day: 45, labelEn: 'John Chapter 1', labelTe: 'యోహాను 1వ అధ్యాయం', book: 'John', chapter: 1 },
-      { day: 60, labelEn: 'Acts Chapter 1', labelTe: 'అపొస్తలుల కార్యములు 1వ అధ్యాయం', book: 'Acts', chapter: 1 },
-      { day: 90, labelEn: 'Romans Chapter 1', labelTe: 'రోమీయులకు 1వ అధ్యాయం', book: 'Romans', chapter: 1 },
-      { day: 120, labelEn: 'Ephesians Chapter 1', labelTe: 'ఎఫెసీయులకు 1వ అధ్యాయం', book: 'Ephesians', chapter: 1 },
-      { day: 150, labelEn: 'James Chapter 1', labelTe: 'యాకోబు 1వ అధ్యాయం', book: 'James', chapter: 1 },
-      { day: 180, labelEn: 'Revelation Chapter 22', labelTe: 'ప్రకటన గ్రంథము 22వ అధ్యాయం', book: 'Revelation', chapter: 22 }
+      { day: 1, labelEn: 'Matthew Chapter 1-2', labelTe: 'మత్తయి 1-2 అధ్యాయాలు', book: 'Matthew', bookIndex: 39, chapter: 1 },
+      { day: 15, labelEn: 'Mark Chapter 1', labelTe: 'మార్కు 1వ అధ్యాయం', book: 'Mark', bookIndex: 40, chapter: 1 },
+      { day: 30, labelEn: 'Luke Chapter 1', labelTe: 'లూకా 1వ అధ్యాయం', book: 'Luke', bookIndex: 41, chapter: 1 },
+      { day: 45, labelEn: 'John Chapter 1', labelTe: 'యోహాను 1వ అధ్యాయం', book: 'John', bookIndex: 42, chapter: 1 },
+      { day: 60, labelEn: 'Acts Chapter 1', labelTe: 'అపొస్తలుల కార్యములు 1వ అధ్యాయం', book: 'Acts', bookIndex: 43, chapter: 1 },
+      { day: 90, labelEn: 'Romans Chapter 1', labelTe: 'రోమీయులకు 1వ అధ్యాయం', book: 'Romans', bookIndex: 44, chapter: 1 },
+      { day: 120, labelEn: 'Ephesians Chapter 1', labelTe: 'ఎఫెసీయులకు 1వ అధ్యాయం', book: 'Ephesians', bookIndex: 48, chapter: 1 },
+      { day: 150, labelEn: 'James Chapter 1', labelTe: 'యాకోబు 1వ అధ్యాయం', book: 'James', bookIndex: 58, chapter: 1 },
+      { day: 180, labelEn: 'Revelation Chapter 22', labelTe: 'ప్రకటన గ్రంథము 22వ అధ్యాయం', book: 'Revelation', bookIndex: 65, chapter: 22 }
     ]
   },
   {
@@ -119,25 +123,25 @@ const BIBLE_PLANS: BiblePlan[] = [
     color: '#c0392b',
     icon: Award,
     days: [
-      { day: 1, labelEn: 'Genesis Chapter 1-3', labelTe: 'ఆదికాండము 1-3 అధ్యాయాలు', book: 'Genesis', chapter: 1 },
-      { day: 50, labelEn: 'Exodus Chapter 1', labelTe: 'నిర్గమకాండము 1వ అధ్యాయం', book: 'Exodus', chapter: 1 },
-      { day: 100, labelEn: 'Joshua Chapter 1', labelTe: 'యెహోషువ 1వ అధ్యాయం', book: 'Joshua', chapter: 1 },
-      { day: 150, labelEn: 'Psalms Chapter 1', labelTe: 'కీర్తనల గ్రంథము 1వ అధ్యాయం', book: 'Psalms', chapter: 1 },
-      { day: 200, labelEn: 'Isaiah Chapter 1', labelTe: 'యెషయా 1వ అధ్యాయం', book: 'Isaiah', chapter: 1 },
-      { day: 250, labelEn: 'Matthew Chapter 1', labelTe: 'మత్తయి 1వ అధ్యాయం', book: 'Matthew', chapter: 1 },
-      { day: 300, labelEn: 'John Chapter 1', labelTe: 'యోహాను 1వ అధ్యాయం', book: 'John', chapter: 1 },
-      { day: 365, labelEn: 'Revelation Chapter 22', labelTe: 'ప్రకటన గ్రంథము 22వ అధ్యాయం', book: 'Revelation', chapter: 22 }
+      { day: 1, labelEn: 'Genesis Chapter 1-3', labelTe: 'ఆదికాండము 1-3 అధ్యాయాలు', book: 'Genesis', bookIndex: 0, chapter: 1 },
+      { day: 50, labelEn: 'Exodus Chapter 1', labelTe: 'నిర్గమకాండము 1వ అధ్యాయం', book: 'Exodus', bookIndex: 1, chapter: 1 },
+      { day: 100, labelEn: 'Joshua Chapter 1', labelTe: 'యెహోషువ 1వ అధ్యాయం', book: 'Joshua', bookIndex: 5, chapter: 1 },
+      { day: 150, labelEn: 'Psalms Chapter 1', labelTe: 'కీర్తనల గ్రంథము 1వ అధ్యాయం', book: 'Psalms', bookIndex: 18, chapter: 1 },
+      { day: 200, labelEn: 'Isaiah Chapter 1', labelTe: 'యెషయా 1వ అధ్యాయం', book: 'Isaiah', bookIndex: 22, chapter: 1 },
+      { day: 250, labelEn: 'Matthew Chapter 1', labelTe: 'మత్తయి 1వ అధ్యాయం', book: 'Matthew', bookIndex: 39, chapter: 1 },
+      { day: 300, labelEn: 'John Chapter 1', labelTe: 'యోహాను 1వ అధ్యాయం', book: 'John', bookIndex: 42, chapter: 1 },
+      { day: 365, labelEn: 'Revelation Chapter 22', labelTe: 'ప్రకటన గ్రంథము 22వ అధ్యాయం', book: 'Revelation', bookIndex: 65, chapter: 22 }
     ]
   }
 ];
 
 export default function BiblePlansScreen({ navigation }: any) {
   const { isDark } = useTheme();
+  const { language, t } = useLanguage();
   const { member, setMember } = useAuth();
   const [selectedPlanId, setSelectedPlanId] = useState<string>('30_day');
   const [progress, setProgress] = useState<Record<string, string[]>>({});
   const [loadingProgress, setLoadingProgress] = useState(true);
-  const [lang, setLang] = useState<'English' | 'Telugu'>('Telugu');
   const [isSaving, setIsSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -218,6 +222,7 @@ export default function BiblePlansScreen({ navigation }: any) {
     }
   };
 
+  const isTelugu = language === 'te';
   const activePlanCompletedDays = progress[selectedPlanId] || [];
   const percentComplete = activePlan.days.length > 0 
     ? Math.round((activePlanCompletedDays.length / activePlan.days.length) * 100)
@@ -228,22 +233,19 @@ export default function BiblePlansScreen({ navigation }: any) {
       <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
       
       {/* Premium Navy Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <ChevronLeft size={24} color="#fff" />
-          <Text style={styles.backText}>Back</Text>
-        </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Bible Reading Plans</Text>
-          <Text style={styles.headerSub}>బైబిల్ పఠన ప్రణాళికలు</Text>
+      <LinearGradient 
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, paddingBottom: 10 }}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} hitSlop={{top:10, bottom:10, left:10, right:10}}>
+            <ArrowLeft size={24} color="#fff" />
+          </TouchableOpacity>
+          <Text style={[styles.headerTitle, { marginLeft: 32 }]} numberOfLines={1}>{t('home.quickBiblePlans')}</Text>
         </View>
-        <TouchableOpacity 
-          style={styles.langToggle} 
-          onPress={() => setLang(lang === 'English' ? 'Telugu' : 'English')}
-        >
-          <Text style={styles.langToggleTxt}>{lang === 'English' ? 'తెలుగు' : 'English'}</Text>
-        </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Selector Tabs */}
@@ -269,7 +271,7 @@ export default function BiblePlansScreen({ navigation }: any) {
                   { color: isDark ? '#fff' : '#1e293b' },
                   isActive && { fontWeight: '800' }
                 ]}>
-                  {lang === 'English' ? plan.durationEn : plan.durationTe}
+                  {isTelugu && plan.durationTe ? plan.durationTe : plan.durationEn}
                 </Text>
               </TouchableOpacity>
             );
@@ -284,22 +286,22 @@ export default function BiblePlansScreen({ navigation }: any) {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.detailsTitle}>
-                {lang === 'English' ? activePlan.titleEn : activePlan.titleTe}
+                {isTelugu && activePlan.titleTe ? activePlan.titleTe : activePlan.titleEn}
               </Text>
               <Text style={styles.detailsDuration}>
-                {lang === 'English' ? activePlan.durationEn : activePlan.durationTe} · {activePlan.days.length} milestones
+                {(isTelugu && activePlan.durationTe ? activePlan.durationTe : activePlan.durationEn)} · {activePlan.days.length} milestones
               </Text>
             </View>
           </View>
           <Text style={styles.detailsDesc}>
-            {lang === 'English' ? activePlan.descEn : activePlan.descTe}
+            {isTelugu && activePlan.descTe ? activePlan.descTe : activePlan.descEn}
           </Text>
 
           {/* Progress Bar */}
           <View style={styles.progressContainer}>
             <View style={styles.progressLabelRow}>
               <Text style={styles.progressLabel}>
-                {lang === 'English' ? 'Overall Progress' : 'మొత్తం ప్రగతి'}
+                {t('bible.overallProgress')}
               </Text>
               <Text style={styles.progressPercent}>{percentComplete}%</Text>
             </View>
@@ -314,7 +316,7 @@ export default function BiblePlansScreen({ navigation }: any) {
 
         {/* Milestones / Days List */}
         <Text style={[styles.sectionHeading, { color: isDark ? '#fff' : '#1a2d5a' }]}>
-          {lang === 'English' ? 'Reading Checkpoints' : 'పఠన మైలురాళ్ళు'}
+          {t('bible.readingCheckpoints')}
         </Text>
 
         <View style={styles.daysList}>
@@ -345,18 +347,19 @@ export default function BiblePlansScreen({ navigation }: any) {
                   activeOpacity={0.7}
                   onPress={() => {
                     navigation.navigate('BibleReader', {
-                      bookName: item.book,
+                      bookName: BibleService.getBookName(item.bookIndex, language),
+                      bookIndex: item.bookIndex,
                       chapter: item.chapter,
-                      lang: lang === 'English' ? 'English' : 'Telugu'
+                      lang: language
                     });
                   }}
                 >
                   <View style={styles.dayHeaderRow}>
-                    <Text style={[styles.dayLabel, { color: activePlan.color }]}>
-                      {lang === 'English' ? `DAY ${item.day}` : `రోజు ${item.day}`}
+                    <Text style={styles.dayLabel}>
+                      {t('bible.day')} {item.day}
                     </Text>
                     <Text style={styles.readPrompt}>
-                      {lang === 'English' ? 'TAP TO READ' : 'చదవడానికి నొక్కండి'} →
+                      {t('bible.tapToRead')} →
                     </Text>
                   </View>
                   <Text style={[
@@ -364,7 +367,7 @@ export default function BiblePlansScreen({ navigation }: any) {
                     { color: isDark ? '#fff' : '#1e293b' },
                     isCompleted && styles.completedText
                   ]}>
-                    {lang === 'English' ? item.labelEn : item.labelTe}
+                    {`${BibleService.getBookName(item.bookIndex, language)} ${item.chapter}`}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -381,7 +384,7 @@ export default function BiblePlansScreen({ navigation }: any) {
             <ActivityIndicator size="small" color="#1a2d5a" />
           ) : (
             <Text style={styles.saveBtnTxt}>
-              {lang === 'English' ? 'Save Progress' : 'ప్రగతిని సేవ్ చేయండి'}
+              {t('bible.saveProgress')}
             </Text>
           )}
         </TouchableOpacity>
@@ -399,16 +402,14 @@ export default function BiblePlansScreen({ navigation }: any) {
                </View>
             </View>
             <Text style={[styles.successTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>
-              {lang === 'English' ? 'Hallelujah!' : 'హల్లెలూయ!'}
+              {t('bible.hallelujah')}
             </Text>
             <Text style={styles.successSub}>
-              {lang === 'English' 
-                ? 'Your Bible reading progress has been successfully saved.' 
-                : 'మీ బైబిల్ పఠన ప్రగతి విజయవంతంగా సేవ్ చేయబడింది.'}
+              {t('bible.progressSaved')}
             </Text>
             <TouchableOpacity style={styles.doneBtn} onPress={() => setShowSuccess(false)}>
               <Text style={styles.doneBtnTxt}>
-                {lang === 'English' ? 'Amen' : 'ఆమేన్'}
+                {t('bible.amen')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -421,21 +422,18 @@ export default function BiblePlansScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: {
-    backgroundColor: '#1a2d5a',
-    paddingTop: Platform.OS === 'ios' ? 60 : 45,
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 30,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between'
+    minHeight: Platform.OS === 'ios' ? 140 : 120,
   },
-  backBtn: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 5 },
-  backText: { color: '#fff', fontSize: 15, fontWeight: '500' },
-  headerCenter: { alignItems: 'center' },
-  headerTitle: { color: '#fff', fontSize: 18, fontWeight: '700' },
-  headerSub: { color: '#aac4e8', fontSize: 11, marginTop: 2 },
+  backBtn: { zIndex: 10, padding: 5, marginLeft: -8 },
+  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '800', flexShrink: 1, marginRight: 10 },
   
   langToggle: {
     backgroundColor: 'rgba(0,0,0,0.3)',
@@ -555,8 +553,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 4
   },
-  dayLabel: { fontSize: 11, fontWeight: '900' },
-  readPrompt: { fontSize: 9, color: '#94a3b8', fontWeight: '800' },
+  dayLabel: { fontSize: 13, color: '#94a3b8', fontWeight: '900', letterSpacing: 0.5 },
+  readPrompt: { fontSize: 10, color: '#94a3b8', fontWeight: '800' },
   dayScripture: { fontSize: 14, fontWeight: '700' },
   completedText: { textDecorationLine: 'line-through', opacity: 0.6 },
   

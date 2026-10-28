@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -17,13 +17,15 @@ import {
   Image,
   Linking
 } from 'react-native';
-import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2, ChevronLeft, UserPlus, Search, MoreVertical } from 'lucide-react-native';
+import { Users, Phone, Mail, ChevronDown, ChevronUp, Clock, UserCheck, UserX, Shield, Plus, X, Trash2, Edit2, ChevronLeft, UserPlus, Search, MoreVertical, Award, Sparkles, Check, Briefcase } from 'lucide-react-native';
 import FirestoreService from '../../services/FirestoreService';
 import { useChurch } from '../../context/ChurchContext';
+import { formatDateDisplay } from '../../utils/DateUtils';
 import { CustomAlert, AlertButton } from '../../components/CustomAlert';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import InviteMembersModal from '../../components/InviteMembersModal';
+import { CHURCH_SKILL_CATEGORIES, ALL_PREDEFINED_SKILLS, getMemberSkills } from '../../constants/churchSkills';
 
 const { width } = Dimensions.get('window');
 
@@ -71,6 +73,11 @@ export default function AdminMembers() {
   const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Inactive'>('All');
   const [villageFilter, setVillageFilter] = useState<string>('All');
   const [villageDropdownVisible, setVillageDropdownVisible] = useState(false);
+  const [skillPickerModalVisible, setSkillPickerModalVisible] = useState(false);
+  const [activeSkillPickerField, setActiveSkillPickerField] = useState<'primarySkill' | 'secondarySkill' | null>(null);
+  const [skillSearchText, setSkillSearchText] = useState('');
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>('all');
+  const [customSkillInput, setCustomSkillInput] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [expandedHouseholdIds, setExpandedHouseholdIds] = useState<Record<string, boolean>>({});
   const [headerMenuVisible, setHeaderMenuVisible] = useState(false);
@@ -80,14 +87,29 @@ export default function AdminMembers() {
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
   const [editMemberId, setEditMemberId] = useState<string | null>(null);
   const [addMemberLoading, setAddMemberLoading] = useState(false);
-  const [newMemberForm, setNewMemberForm] = useState({
+  const isSubmittingRef = useRef(false); // Prevents double-tap race condition
+  const [newMemberForm, setNewMemberForm] = useState<{
+    name: string;
+    phone: string;
+    userType: string;
+    dob: string;
+    city: string;
+    baptismDate: string;
+    anniversaryDate: string;
+    primarySkill: string;
+    secondarySkill: string;
+    skills: string[];
+  }>({
     name: '',
     phone: '',
     userType: 'member',
     dob: '',
     city: '',
     baptismDate: '',
-    anniversaryDate: ''
+    anniversaryDate: '',
+    primarySkill: '',
+    secondarySkill: '',
+    skills: []
   });
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
   const [activeDateField, setActiveDateField] = useState<'dob' | 'baptismDate' | 'anniversaryDate'>('dob');
@@ -247,6 +269,74 @@ export default function AdminMembers() {
     return ['All', ...unique];
   }, [members]);
 
+  // Filter skills for Skill Picker bottom sheet modal
+  const filteredSkillList = useMemo(() => {
+    let list: string[] = [];
+    if (selectedCategoryTab === 'all') {
+      list = ALL_PREDEFINED_SKILLS;
+    } else {
+      const cat = CHURCH_SKILL_CATEGORIES.find(c => c.id === selectedCategoryTab);
+      list = cat ? cat.skills : ALL_PREDEFINED_SKILLS;
+    }
+
+    if (skillSearchText.trim()) {
+      const query = skillSearchText.trim().toLowerCase();
+      return ALL_PREDEFINED_SKILLS.filter(s => s.toLowerCase().includes(query));
+    }
+    return list;
+  }, [selectedCategoryTab, skillSearchText]);
+
+  const openSkillPicker = () => {
+    setSkillSearchText('');
+    setSelectedCategoryTab('all');
+    setCustomSkillInput('');
+    setSkillPickerModalVisible(true);
+  };
+
+  const toggleMemberSkill = (skill: string) => {
+    setNewMemberForm(prev => {
+      const current = prev.skills || [];
+      const exists = current.includes(skill);
+      const nextSkills = exists ? current.filter(s => s !== skill) : [...current, skill];
+      return {
+        ...prev,
+        skills: nextSkills,
+        primarySkill: nextSkills[0] || '',
+        secondarySkill: nextSkills[1] || ''
+      };
+    });
+  };
+
+  const removeMemberSkill = (skill: string) => {
+    setNewMemberForm(prev => {
+      const current = prev.skills || [];
+      const nextSkills = current.filter(s => s !== skill);
+      return {
+        ...prev,
+        skills: nextSkills,
+        primarySkill: nextSkills[0] || '',
+        secondarySkill: nextSkills[1] || ''
+      };
+    });
+  };
+
+  const addCustomMemberSkill = () => {
+    const trimmed = customSkillInput.trim();
+    if (!trimmed) return;
+    setNewMemberForm(prev => {
+      const current = prev.skills || [];
+      if (current.includes(trimmed)) return prev;
+      const nextSkills = [...current, trimmed];
+      return {
+        ...prev,
+        skills: nextSkills,
+        primarySkill: nextSkills[0] || '',
+        secondarySkill: nextSkills[1] || ''
+      };
+    });
+    setCustomSkillInput('');
+  };
+
   // Village Filtered Members (used for stats based on the selected village)
   const villageFilteredMembers = useMemo(() => {
     return members.filter(m => villageFilter === 'All' || (m.city || m.village || '').trim() === villageFilter);
@@ -269,14 +359,41 @@ export default function AdminMembers() {
       return;
     }
     
-    let formattedPhone = newMemberForm.phone.trim();
-    if (!formattedPhone.startsWith('+')) {
-       formattedPhone = `+91${formattedPhone}`;
-    }
+    const digitsOnly = newMemberForm.phone.replace(/\D/g, '');
+    const last10 = digitsOnly.slice(-10);
+    const formattedPhone = `+91${last10}`;
 
     try {
+      // ── Guard: block concurrent submissions (double-tap / fast network race) ──
+      if (isSubmittingRef.current) return;
+      isSubmittingRef.current = true;
+
       setAddMemberLoading(true);
-      
+
+      // ── Real-time Firestore duplicate check (source of truth, not stale local array) ──
+      if (!editMemberId) {
+        const isDuplicate = await FirestoreService.checkMemberExistsInChurch(
+          activeChurch?.id || '',
+          formattedPhone
+        );
+        if (isDuplicate) {
+          setAlertConfig({
+            visible: true,
+            title: 'Duplicate Member',
+            message: 'A member with this phone number already exists in this church.',
+            type: 'warning',
+            buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
+          });
+          setAddMemberLoading(false);
+          isSubmittingRef.current = false;
+          return;
+        }
+      }
+
+      const memberSkills = newMemberForm.skills || [];
+      const primarySkill = memberSkills[0] || newMemberForm.primarySkill?.trim() || '';
+      const secondarySkill = memberSkills[1] || newMemberForm.secondarySkill?.trim() || '';
+
       let res;
       if (editMemberId) {
         res = await FirestoreService.adminUpdateMember(activeChurch?.id || '', editMemberId, {
@@ -287,6 +404,9 @@ export default function AdminMembers() {
           city: newMemberForm.city,
           baptismDate: newMemberForm.baptismDate,
           anniversaryDate: newMemberForm.anniversaryDate,
+          primarySkill: primarySkill,
+          secondarySkill: secondarySkill,
+          skills: memberSkills,
         });
       } else {
         res = await FirestoreService.adminAddMember(activeChurch?.id || '', {
@@ -298,13 +418,16 @@ export default function AdminMembers() {
           city: newMemberForm.city,
           baptismDate: newMemberForm.baptismDate,
           anniversaryDate: newMemberForm.anniversaryDate,
+          primarySkill: primarySkill,
+          secondarySkill: secondarySkill,
+          skills: memberSkills,
         });
       }
 
       if (res.success) {
         setAddModalVisible(false);
         setEditMemberId(null);
-        setNewMemberForm({ name: '', phone: '', userType: 'member', dob: '', city: '', baptismDate: '', anniversaryDate: '' });
+        setNewMemberForm({ name: '', phone: '', userType: 'member', dob: '', city: '', baptismDate: '', anniversaryDate: '', primarySkill: '', secondarySkill: '', skills: [] });
         fetchMembers();
 
         setTimeout(() => {
@@ -320,10 +443,35 @@ export default function AdminMembers() {
                 if (!editMemberId) {
                   // Share functionality after OK for new members
                   const churchName = activeChurch?.name || 'WeChristian Church';
-                  const churchCode = activeChurch?.subdomain?.toUpperCase() || (activeChurch as any)?.churchCode || '';
+                  const churchCode = activeChurch?.subdomain?.toUpperCase() || (activeChurch as any)?.churchCode?.toUpperCase() || '';
+                  const memberPhone = newMemberForm.phone || '';
+                  const memberDigits = memberPhone.replace(/\D/g, '').slice(-10);
+                  const churchCodeParam = encodeURIComponent(churchCode);
+                  const churchInviteLink = `https://wechristian.app/invite?code=${churchCodeParam}`;
+                  const playStoreLink = `https://play.google.com/store/apps/details?id=com.wechristian.app&referrer=${churchCodeParam}`;
+
+                  const shareMsg = 
+`Greetings in Jesus' Name! 🙏✨
+
+Dear ${newMemberForm.name || 'Brother/Sister'},
+
+You are warmly invited to join our ${churchName} Mobile Application! ⛪
+
+Your church profile has already been registered for you, so you DO NOT need to sign up. Simply download the app and Sign In directly with your mobile number${memberDigits ? `: ${memberDigits}` : ''}.
+
+🏛️ Church Code: ${churchCode}
+
+🔗 Church Invitation Link:
+${churchInviteLink}
+
+📲 Download App from Google Play Store:
+${playStoreLink}
+
+May God bless you abundantly! ❤️`;
+
                   Share.share({
-                    message: `Hello ${newMemberForm.name},\n\nYou have been added to "${churchName}" on We Christian!\n\nChurch Code: *${churchCode}*\n\nDownload the app:\nhttps://play.google.com/store/apps/details?id=com.wechristian.app`,
-                    title: `Join ${churchName}`,
+                    message: shareMsg,
+                    title: `Church Invitation - ${churchName}`,
                   });
                 }
               }
@@ -335,7 +483,7 @@ export default function AdminMembers() {
         setAlertConfig({
           visible: true,
           title: 'Error',
-          message: res.error || 'Failed to add member',
+          message: res.error === 'DUPLICATE_MEMBER' ? 'A member with this phone number already exists in this church.' : (res.error || 'Failed to add member'),
           type: 'error',
           buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
         });
@@ -344,12 +492,13 @@ export default function AdminMembers() {
       setAlertConfig({
         visible: true,
         title: 'Error',
-        message: e.message,
+        message: e.message === 'DUPLICATE_MEMBER' ? 'A member with this phone number already exists in this church.' : e.message,
         type: 'error',
         buttons: [{ text: 'OK', onPress: () => setAlertConfig(prev => ({ ...prev, visible: false })) }]
       });
     } finally {
       setAddMemberLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -408,12 +557,15 @@ export default function AdminMembers() {
     const emailStr = (m.email || '').toLowerCase();
     const phoneStr = m.phone || '';
     const villageStr = (m.city || m.village || '').toLowerCase();
+    const mSkills = getMemberSkills(m);
+    const skillsMatch = mSkills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
     
     const matchesSearch = 
       nameStr.includes(searchQuery.toLowerCase()) ||
       emailStr.includes(searchQuery.toLowerCase()) ||
       villageStr.includes(searchQuery.toLowerCase()) ||
-      phoneStr.includes(searchQuery);
+      phoneStr.includes(searchQuery) ||
+      skillsMatch;
 
     const isActive = true; // Assuming active by default in Firebase
     const matchesStatus = 
@@ -534,13 +686,13 @@ export default function AdminMembers() {
             ))}
           </ScrollView>
           <TouchableOpacity 
-            style={[styles.filterChip, { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e2e8f0', marginLeft: 8, paddingHorizontal: 12 }]}
+            style={[styles.filterChip, { flexDirection: 'row', alignItems: 'center', backgroundColor: villageFilter !== 'All' ? '#1a2d5a' : '#e2e8f0', marginLeft: 8, paddingHorizontal: 12 }, villageFilter !== 'All' && { borderColor: '#1a2d5a' }]}
             onPress={() => setVillageDropdownVisible(true)}
           >
-            <Text style={[styles.filterChipTxt, { marginRight: 4, maxWidth: 100 }]} numberOfLines={1}>
+            <Text style={[styles.filterChipTxt, villageFilter !== 'All' && { color: '#fff' }, { marginRight: 4, maxWidth: 100 }]} numberOfLines={1}>
               {villageFilter === 'All' ? 'Village/City' : villageFilter}
             </Text>
-            <ChevronDown size={14} color="#1a2d5a" />
+            <ChevronDown size={14} color={villageFilter !== 'All' ? '#fff' : '#1a2d5a'} />
           </TouchableOpacity>
         </View>
 
@@ -592,6 +744,7 @@ export default function AdminMembers() {
                       <TouchableOpacity 
                         onPress={(e) => {
                           e.stopPropagation();
+                          const mSkills = getMemberSkills(member);
                           setEditMemberId(member.id);
                           setNewMemberForm({
                             name: member.name || `${member.firstName || ''} ${member.lastName || ''}`.trim(),
@@ -600,7 +753,10 @@ export default function AdminMembers() {
                             dob: member.dob || '',
                             city: member.city || member.village || '',
                             baptismDate: member.baptismDate || member.Baptism_Date__c || '',
-                            anniversaryDate: member.anniversaryDate || member.Anniversary_Date__c || ''
+                            anniversaryDate: member.anniversaryDate || member.Anniversary_Date__c || '',
+                            primarySkill: mSkills[0] || member.primarySkill || '',
+                            secondarySkill: mSkills[1] || member.secondarySkill || '',
+                            skills: mSkills
                           });
                           setAddModalVisible(true);
                         }}
@@ -663,7 +819,7 @@ export default function AdminMembers() {
                         {member.userType?.trim().toLowerCase() === 'super_admin' || member.userType?.trim().toLowerCase() === 'super admin' ? (
                           <View style={[styles.promoteBtn, { backgroundColor: '#7c3aed', opacity: 0.8 }]}>
                             <Shield size={14} color="#fff" />
-                            <Text style={styles.promoteBtnTxt}>Super Admin</Text>
+                            <Text style={styles.promoteBtnTxt}>App Admin</Text>
                           </View>
                         ) : displayRole.toLowerCase() === 'admin' ? (
                           <TouchableOpacity 
@@ -696,6 +852,47 @@ export default function AdminMembers() {
                         </View>
                       )}
                     </View>
+
+                    {/* Skills & Talents Breakdown */}
+                    {(() => {
+                      const mSkills = getMemberSkills(member);
+                      return (
+                        <View style={styles.skillsSectionBox}>
+                          <View style={styles.skillsSectionHeader}>
+                            <Briefcase size={13} color="#1a2d5a" style={{ marginRight: 6 }} />
+                            <Text style={styles.skillsSectionTitle}>
+                              SKILLS & TALENTS {mSkills.length > 0 ? `(${mSkills.length})` : ''}
+                            </Text>
+                          </View>
+                          {mSkills.length > 0 ? (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                              {mSkills.map((sk: string, skIdx: number) => (
+                                <View 
+                                  key={skIdx} 
+                                  style={[
+                                    styles.skillTagBox,
+                                    skIdx === 0 ? styles.skillTagBoxPrimary : styles.skillTagBoxSecondary
+                                  ]}
+                                >
+                                  {skIdx === 0 ? (
+                                    <Award size={12} color="#B45309" style={{ marginRight: 5 }} />
+                                  ) : (
+                                    <Sparkles size={12} color="#4338CA" style={{ marginRight: 5 }} />
+                                  )}
+                                  <Text style={[styles.skillTagText, skIdx === 0 ? { color: '#92400E' } : { color: '#3730A3' }]}>
+                                    {sk}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          ) : (
+                            <Text style={{ fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', paddingVertical: 4 }}>
+                              No skills specified
+                            </Text>
+                          )}
+                        </View>
+                      );
+                    })()}
 
                     {/* Household Members breakdown */}
                     <Text style={styles.householdHeader}>
@@ -746,7 +943,7 @@ export default function AdminMembers() {
                                   {details.dob ? (
                                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
                                       <Text style={{ fontSize: 14, marginRight: 8 }}>🎂</Text>
-                                      <Text style={{ color: '#4B5563', fontSize: 13 }}>DOB: {details.dob}</Text>
+                                      <Text style={{ color: '#4B5563', fontSize: 13 }}>DOB: {formatDateDisplay(details.dob)}</Text>
                                     </View>
                                   ) : null}
                                   {details.gender ? (
@@ -781,17 +978,18 @@ export default function AdminMembers() {
         visible={inviteModalVisible}
         onClose={() => setInviteModalVisible(false)}
         churchName={activeChurch?.name || 'Our Church'}
-        churchCode={activeChurch?.subdomain?.toUpperCase() || ''}
+        churchCode={activeChurch?.subdomain?.toUpperCase() || (activeChurch as any)?.churchCode?.toUpperCase() || ''}
         churchId={activeChurch?.id || ''}
         onMembersAdded={() => fetchMembers(true)}
         existingMembers={members}
       />
 
       {/* Add/Edit Member Modal */}
-      <Modal visible={addModalVisible} transparent animationType="fade" onRequestClose={() => { setAddModalVisible(false); setEditMemberId(null); }}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(26,45,90,0.6)', justifyContent: 'center', alignItems: 'center' }}>
-          <View style={{ width: width * 0.92, backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 20, shadowOffset: { width: 0, height: 10 }, elevation: 10 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+      <Modal visible={addModalVisible} transparent animationType="slide" onRequestClose={() => { setAddModalVisible(false); setEditMemberId(null); }}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(26,45,90,0.6)', justifyContent: 'flex-end' }}>
+          <View style={{ width: '100%', backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '92%', shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 20, shadowOffset: { width: 0, height: -6 }, elevation: 10 }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingTop: 20, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
               <Text style={{ fontSize: 20, fontWeight: '800', color: '#1a2d5a', letterSpacing: -0.5 }}>
                 {editMemberId ? 'Edit Member' : 'Add New Member'}
               </Text>
@@ -800,107 +998,196 @@ export default function AdminMembers() {
               </TouchableOpacity>
             </View>
 
-            <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 20, fontWeight: '500' }}>
-              {editMemberId ? 'Update member details below.' : `They will receive a shareable link to join ${activeChurch?.name}`}
-            </Text>
+            {/* Scrollable Form */}
+            <ScrollView
+              contentContainerStyle={{ paddingHorizontal: 24, paddingTop: 16, paddingBottom: 32 }}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 20, fontWeight: '500' }}>
+                {editMemberId ? 'Update member details below.' : `They will receive a shareable link to join ${activeChurch?.name}`}
+              </Text>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Full Name</Text>
-              <TextInput
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
-                placeholder="Enter member's name"
-                placeholderTextColor="#9CA3AF"
-                value={newMemberForm.name}
-                onChangeText={(t) => setNewMemberForm({...newMemberForm, name: t})}
-              />
-            </View>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Full Name</Text>
+                <TextInput
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
+                  placeholder="Enter member's name"
+                  placeholderTextColor="#9CA3AF"
+                  value={newMemberForm.name}
+                  onChangeText={(t) => setNewMemberForm({...newMemberForm, name: t})}
+                />
+              </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Phone Number</Text>
-              <TextInput
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
-                placeholder="e.g. 9876543210"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="phone-pad"
-                value={newMemberForm.phone}
-                onChangeText={(t) => setNewMemberForm({...newMemberForm, phone: t})}
-              />
-            </View>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Phone Number</Text>
+                <TextInput
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
+                  placeholder="e.g. 9876543210"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="phone-pad"
+                  value={newMemberForm.phone}
+                  onChangeText={(t) => setNewMemberForm({...newMemberForm, phone: t})}
+                />
+              </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>City / Village</Text>
-              <TextInput
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
-                placeholder="Enter city or village"
-                placeholderTextColor="#9CA3AF"
-                value={newMemberForm.city}
-                onChangeText={(t) => setNewMemberForm({...newMemberForm, city: t})}
-              />
-            </View>
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>City / Village</Text>
+                <TextInput
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF', color: '#1a2d5a', fontWeight: '600' }}
+                  placeholder="Enter city or village"
+                  placeholderTextColor="#9CA3AF"
+                  value={newMemberForm.city}
+                  onChangeText={(t) => setNewMemberForm({...newMemberForm, city: t})}
+                />
+              </View>
 
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Date of Birth (DOB)</Text>
-              <TouchableOpacity
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
-                onPress={() => setDatePickerVisibility(true)}
-              >
-                <Text style={{ color: newMemberForm.dob ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
-                  {newMemberForm.dob || 'Select Date'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Baptism Date */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Baptism Date</Text>
-              <TouchableOpacity
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
-                onPress={() => { setActiveDateField('baptismDate'); setDatePickerVisibility(true); }}
-              >
-                <Text style={{ color: newMemberForm.baptismDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
-                  {newMemberForm.baptismDate || 'Select Date'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Anniversary Date */}
-            <View style={{ marginBottom: 16 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Wedding Anniversary Date</Text>
-              <TouchableOpacity
-                style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
-                onPress={() => { setActiveDateField('anniversaryDate'); setDatePickerVisibility(true); }}
-              >
-                <Text style={{ color: newMemberForm.anniversaryDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
-                  {newMemberForm.anniversaryDate || 'Select Date'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ marginBottom: 24 }}>
-              <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Role</Text>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                <TouchableOpacity 
-                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : '#FFFFFF' }}
-                  onPress={() => setNewMemberForm({...newMemberForm, userType: 'member'})}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Date of Birth (DOB)</Text>
+                <TouchableOpacity
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
+                  onPress={() => setDatePickerVisibility(true)}
                 >
-                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#FFFFFF' : '#6B7280' }}>Member</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#1a2d5a' : '#FFFFFF' }}
-                  onPress={() => setNewMemberForm({...newMemberForm, userType: 'admin'})}
-                >
-                  <Text style={{ fontWeight: '800', color: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#FFFFFF' : '#6B7280' }}>Admin</Text>
+                  <Text style={{ color: newMemberForm.dob ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
+                    {newMemberForm.dob ? formatDateDisplay(newMemberForm.dob) : 'Select Date'}
+                  </Text>
                 </TouchableOpacity>
               </View>
-            </View>
 
-            <TouchableOpacity 
-              style={{ backgroundColor: '#1a2d5a', padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 4, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }}
-              onPress={handleAddMember}
-              disabled={addMemberLoading}
-            >
-              {addMemberLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '800', letterSpacing: 0.5, fontSize: 14 }}>{editMemberId ? 'SAVE CHANGES' : 'ADD MEMBER'}</Text>}
-            </TouchableOpacity>
+              {/* Baptism Date */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Baptism Date</Text>
+                <TouchableOpacity
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
+                  onPress={() => { setActiveDateField('baptismDate'); setDatePickerVisibility(true); }}
+                >
+                  <Text style={{ color: newMemberForm.baptismDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
+                    {newMemberForm.baptismDate ? formatDateDisplay(newMemberForm.baptismDate) : 'Select Date'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Anniversary Date */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Wedding Anniversary Date</Text>
+                <TouchableOpacity
+                  style={{ borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 12, padding: 14, backgroundColor: '#FFFFFF' }}
+                  onPress={() => { setActiveDateField('anniversaryDate'); setDatePickerVisibility(true); }}
+                >
+                  <Text style={{ color: newMemberForm.anniversaryDate ? '#1a2d5a' : '#9CA3AF', fontWeight: '600' }}>
+                    {newMemberForm.anniversaryDate ? formatDateDisplay(newMemberForm.anniversaryDate) : 'Select Date'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Skills & Talents (Multi-Select) */}
+              <View style={{ marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Briefcase size={14} color="#1a2d5a" style={{ marginRight: 6 }} />
+                    <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      Skills & Talents {newMemberForm.skills.length > 0 ? `(${newMemberForm.skills.length})` : ''}
+                    </Text>
+                  </View>
+                  {newMemberForm.skills.length > 0 ? (
+                    <TouchableOpacity onPress={() => setNewMemberForm({ ...newMemberForm, skills: [], primarySkill: '', secondarySkill: '' })}>
+                      <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600' }}>Clear All</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                {/* Selected Skills Chips */}
+                {newMemberForm.skills.length > 0 ? (
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                    {newMemberForm.skills.map((skill, sIdx) => (
+                      <View
+                        key={sIdx}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          backgroundColor: sIdx === 0 ? '#FEF3C7' : '#EEF2FF',
+                          borderColor: sIdx === 0 ? '#FDE68A' : '#E0E7FF',
+                          borderWidth: 1,
+                          paddingVertical: 6,
+                          paddingHorizontal: 10,
+                          borderRadius: 20,
+                        }}
+                      >
+                        {sIdx === 0 ? (
+                          <Award size={13} color="#B45309" style={{ marginRight: 5 }} />
+                        ) : (
+                          <Sparkles size={13} color="#4338CA" style={{ marginRight: 5 }} />
+                        )}
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: sIdx === 0 ? '#92400E' : '#3730A3', marginRight: 6 }}>
+                          {skill}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={() => removeMemberSkill(skill)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          style={{
+                            backgroundColor: sIdx === 0 ? 'rgba(180,83,9,0.15)' : 'rgba(67,56,202,0.15)',
+                            borderRadius: 10,
+                            padding: 2
+                          }}
+                        >
+                          <X size={12} color={sIdx === 0 ? '#92400E' : '#3730A3'} />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+
+                {/* Button to open Skill Picker */}
+                <TouchableOpacity
+                  style={{
+                    borderWidth: 1.5,
+                    borderStyle: newMemberForm.skills.length > 0 ? 'solid' : 'dashed',
+                    borderColor: newMemberForm.skills.length > 0 ? '#1a2d5a' : 'rgba(26,45,90,0.25)',
+                    borderRadius: 12,
+                    padding: 13,
+                    backgroundColor: newMemberForm.skills.length > 0 ? '#F8FAFC' : '#FFFFFF',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                  onPress={openSkillPicker}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                    <Plus size={16} color="#1a2d5a" style={{ marginRight: 8 }} />
+                    <Text style={{ color: '#1a2d5a', fontWeight: '700', fontSize: 13 }}>
+                      {newMemberForm.skills.length > 0 ? 'Add / Manage Skills' : 'Select Member Skills & Talents'}
+                    </Text>
+                  </View>
+                  <ChevronDown size={16} color="#1a2d5a" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={{ marginBottom: 24 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Role</Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                  <TouchableOpacity
+                    style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#1a2d5a' : '#FFFFFF' }}
+                    onPress={() => setNewMemberForm({...newMemberForm, userType: 'member'})}
+                  >
+                    <Text style={{ fontWeight: '800', color: newMemberForm.userType.trim().toLowerCase() === 'member' ? '#FFFFFF' : '#6B7280' }}>Member</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ flex: 1, padding: 14, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', borderColor: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#1a2d5a' : 'rgba(26,45,90,0.1)', backgroundColor: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#1a2d5a' : '#FFFFFF' }}
+                    onPress={() => setNewMemberForm({...newMemberForm, userType: 'admin'})}
+                  >
+                    <Text style={{ fontWeight: '800', color: newMemberForm.userType.trim().toLowerCase() === 'admin' ? '#FFFFFF' : '#6B7280' }}>Admin</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={{ backgroundColor: '#1a2d5a', padding: 16, borderRadius: 14, alignItems: 'center', marginTop: 4, shadowColor: '#1a2d5a', shadowOpacity: 0.2, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }}
+                onPress={handleAddMember}
+                disabled={addMemberLoading}
+              >
+                {addMemberLoading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '800', letterSpacing: 0.5, fontSize: 14 }}>{editMemberId ? 'SAVE CHANGES' : 'ADD MEMBER'}</Text>}
+              </TouchableOpacity>
+            </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
@@ -966,7 +1253,7 @@ export default function AdminMembers() {
               }}
             >
               <UserPlus size={20} color="#1a2d5a" />
-              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1a2d5a', marginLeft: 12 }}>Add Contacts</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: '#1a2d5a', marginLeft: 12 }}>Add From Contacts</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -981,6 +1268,194 @@ export default function AdminMembers() {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Skill Picker Modal (Multi-Select) */}
+      <Modal visible={skillPickerModalVisible} transparent animationType="slide" onRequestClose={() => setSkillPickerModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1, backgroundColor: 'rgba(26,45,90,0.6)', justifyContent: 'flex-end' }}>
+          <View style={{ width: '100%', backgroundColor: '#FFFFFF', borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '88%', paddingBottom: 20 }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingTop: 18, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+              <View>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <Award size={20} color="#1a2d5a" style={{ marginRight: 8 }} />
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#1a2d5a' }}>
+                    Select Skills & Talents
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2, fontWeight: '500' }}>
+                  {newMemberForm.skills.length === 0 ? 'Tap to select one or more skills' : `${newMemberForm.skills.length} skill${newMemberForm.skills.length > 1 ? 's' : ''} selected`}
+                </Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => setSkillPickerModalVisible(false)} 
+                style={{ backgroundColor: '#1a2d5a', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 18 }}
+              >
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 13 }}>Done</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Selected Skills Preview Bar */}
+            {newMemberForm.skills.length > 0 && (
+              <View style={{ paddingVertical: 10, paddingHorizontal: 16, backgroundColor: '#F8FAFC', borderBottomWidth: 1, borderBottomColor: '#EDF2F7' }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 11, fontWeight: '700', color: '#64748B', textTransform: 'uppercase', marginRight: 4 }}>
+                    Selected:
+                  </Text>
+                  {newMemberForm.skills.map((skill, sIdx) => (
+                    <TouchableOpacity
+                      key={sIdx}
+                      onPress={() => removeMemberSkill(skill)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: '#1a2d5a',
+                        paddingVertical: 5,
+                        paddingHorizontal: 10,
+                        borderRadius: 16,
+                      }}
+                    >
+                      <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '600', marginRight: 5 }}>
+                        {skill}
+                      </Text>
+                      <X size={12} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* Category Tabs */}
+            <View style={{ paddingVertical: 10, paddingHorizontal: 16 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+                <TouchableOpacity
+                  style={[
+                    styles.catTab,
+                    selectedCategoryTab === 'all' && styles.catTabActive
+                  ]}
+                  onPress={() => setSelectedCategoryTab('all')}
+                >
+                  <Text style={[styles.catTabTxt, selectedCategoryTab === 'all' && styles.catTabTxtActive]}>All Skills</Text>
+                </TouchableOpacity>
+                {CHURCH_SKILL_CATEGORIES.map(cat => (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[
+                      styles.catTab,
+                      selectedCategoryTab === cat.id && styles.catTabActive
+                    ]}
+                    onPress={() => setSelectedCategoryTab(cat.id)}
+                  >
+                    <Text style={[styles.catTabTxt, selectedCategoryTab === cat.id && styles.catTabTxtActive]}>{cat.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {/* Search Input */}
+            <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 10, paddingHorizontal: 12, height: 40 }}>
+                <Search size={16} color="#9CA3AF" style={{ marginRight: 8 }} />
+                <TextInput
+                  placeholder="Search skill (e.g. Keyboard, Singer, Sound)..."
+                  placeholderTextColor="#9CA3AF"
+                  value={skillSearchText}
+                  onChangeText={setSkillSearchText}
+                  style={{ flex: 1, fontSize: 13, color: '#1a2d5a' }}
+                />
+                {skillSearchText ? (
+                  <TouchableOpacity onPress={() => setSkillSearchText('')}>
+                    <X size={14} color="#9CA3AF" />
+                  </TouchableOpacity>
+                ) : null}
+              </View>
+            </View>
+
+            {/* Skills List */}
+            <ScrollView style={{ paddingHorizontal: 16, maxHeight: 250 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {filteredSkillList.map((skill) => {
+                const isSelected = (newMemberForm.skills || []).includes(skill);
+                return (
+                  <TouchableOpacity
+                    key={skill}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingVertical: 12,
+                      paddingHorizontal: 12,
+                      borderBottomWidth: 1,
+                      borderBottomColor: '#F3F4F6',
+                      backgroundColor: isSelected ? '#EFF6FF' : 'transparent',
+                      borderRadius: 8
+                    }}
+                    onPress={() => toggleMemberSkill(skill)}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                      <View
+                        style={{
+                          width: 20,
+                          height: 20,
+                          borderRadius: 6,
+                          borderWidth: 1.5,
+                          borderColor: isSelected ? '#1a2d5a' : '#D1D5DB',
+                          backgroundColor: isSelected ? '#1a2d5a' : 'transparent',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 10
+                        }}
+                      >
+                        {isSelected && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
+                      </View>
+                      <Text style={{ fontSize: 14, fontWeight: isSelected ? '700' : '500', color: isSelected ? '#1a2d5a' : '#374151' }}>
+                        {skill}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <View style={{ backgroundColor: '#DBEAFE', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#1E40AF' }}>Selected</Text>
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+
+            {/* Custom Skill Input */}
+            <View style={{ paddingHorizontal: 16, paddingTop: 12, borderTopWidth: 1, borderTopColor: '#F3F4F6', marginTop: 8 }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: '#6B7280', marginBottom: 6, textTransform: 'uppercase' }}>
+                Or Add Custom Skill
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TextInput
+                  style={{ flex: 1, borderWidth: 1.5, borderColor: 'rgba(26,45,90,0.1)', borderRadius: 10, paddingHorizontal: 12, height: 42, color: '#1a2d5a', fontSize: 13 }}
+                  placeholder="Type custom skill..."
+                  placeholderTextColor="#9CA3AF"
+                  value={customSkillInput}
+                  onChangeText={setCustomSkillInput}
+                />
+                <TouchableOpacity
+                  style={{ backgroundColor: '#1a2d5a', paddingHorizontal: 16, borderRadius: 10, justifyContent: 'center', alignItems: 'center' }}
+                  onPress={addCustomMemberSkill}
+                >
+                  <Text style={{ color: '#fff', fontWeight: '700', fontSize: 12 }}>+ Add</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Bottom Done Action Bar */}
+            <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+              <TouchableOpacity
+                style={{ backgroundColor: '#1a2d5a', borderRadius: 12, paddingVertical: 13, alignItems: 'center', justifyContent: 'center' }}
+                onPress={() => setSkillPickerModalVisible(false)}
+              >
+                <Text style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 14 }}>
+                  Done ({newMemberForm.skills.length} Selected)
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
     </View>
@@ -1003,16 +1478,16 @@ const styles = StyleSheet.create({
 
   hero: {
     backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    paddingHorizontal: 22,
-    paddingTop: 10,
-    paddingBottom: 24,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
     overflow: 'visible',
     position: 'relative',
     marginBottom: 6,
   },
-  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroTitle: { color: '#fff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
   heroSub: { color: '#AEB8D4', fontSize: 13 },
   
   newBtn: { 
@@ -1020,12 +1495,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 16, 
-    paddingVertical: 10, 
-    borderRadius: 12,
+    paddingHorizontal: 12, 
+    paddingVertical: 6, 
+    borderRadius: 10,
     shadowColor: '#C9A84C',
-    shadowOpacity: 0.4,
-    shadowRadius: 6,
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
     shadowOffset: { width: 0, height: 3 },
     elevation: 4
   },
@@ -1214,6 +1689,119 @@ const styles = StyleSheet.create({
   },
   hiRelation: { fontSize: 9, color: '#1a2d5a', fontWeight: '700' },
   emptyHouseholdTxt: { fontSize: 11, color: '#9CA3AF', fontStyle: 'italic', paddingLeft: 4 },
+  primarySkillPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  primarySkillPillTxt: {
+    color: '#92400E',
+    fontSize: 10,
+    fontWeight: '700',
+    maxWidth: 120,
+  },
+  secondarySkillPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  secondarySkillPillTxt: {
+    color: '#4338CA',
+    fontSize: 10,
+    fontWeight: '700',
+    maxWidth: 120,
+  },
+  skillsSectionBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 14,
+  },
+  skillsSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  skillsSectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    letterSpacing: 0.6,
+  },
+  skillsGrid: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  skillBox: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  skillBoxTag: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#6B7280',
+    letterSpacing: 0.5,
+  },
+  skillBoxValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1a2d5a',
+    marginTop: 2,
+  },
+  skillTagBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  skillTagBoxPrimary: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FDE68A',
+  },
+  skillTagBoxSecondary: {
+    backgroundColor: '#EEF2FF',
+    borderColor: '#E0E7FF',
+  },
+  skillTagText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  catTab: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+  },
+  catTabActive: {
+    backgroundColor: '#1a2d5a',
+  },
+  catTabTxt: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  catTabTxtActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
 
   footerBranding: { fontSize: 10, color: '#9CA3AF', textAlign: 'center', marginTop: 20 }
 });

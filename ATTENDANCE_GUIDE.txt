@@ -1,0 +1,159 @@
+=============================================================================================================================
+                           WECHRISTIAN - COMPLETE HOW-TO GUIDE: ATTENDANCE & CHECK-IN
+                             EXHAUSTIVE GUIDE FOR EVERY TAB, SCREEN, FIELD & ACTION
+=============================================================================================================================
+
+
+HOW TO MANAGE, TRACK & RECORD SERVICE ATTENDANCE FROM THE ADMIN DASHBOARD
+=========================================================================
+
+1. Starting the Process
+-----------------------
+From the main Admin Dashboard, look under the "Community & Members" category:
+- You will see the "Attendance" card with a clipboard checkmark icon.
+- Tapping "Attendance" opens the Church Attendance Center (`AdminAttendance.tsx`).
+- Here pastors, ushers, and church administrators can launch digital attendance check-ins, generate sanctuary QR codes, monitor live service headcounts, and review historical registers.
+
+
+=============================================================================================================================
+2. ATTENDANCE DASHBOARD OVERVIEW & SCREEN LAYOUT (AdminAttendance.tsx)
+=============================================================================================================================
+
+When you open the Attendance screen, it provides real-time oversight of current and past church gatherings:
+
+A. Hero Banner Section:
+   - "Attendance" Title with Church Name.
+   - Real-Time Summary Pill: Shows live stats (e.g., "48 responses · 12 pending").
+   - "Church QR" Button (Top Right): Opens the official Church Attendance QR Code studio.
+
+B. Active Service / Session Card (When a Service is Live):
+   - Event Title (e.g., "Sunday Morning Service" or "All-Night Prayer").
+   - Service Date & Check-in Time Window (e.g., "Today • 09:30 AM – 12:30 PM").
+   - Live Countdown & Status:
+     * Green Badge ("Active"): Check-in window is currently open; members can mark attendance.
+     * Gray Badge ("Closed"): Check-in time has elapsed.
+   - 4 Live Metric Cards:
+     * `Total Responses`: Cumulative number of member submissions.
+     * `Attending (Yes)` (Green): Confirmed believers present in the sanctuary.
+     * `Not Attending (No)` (Red): Believers unable to attend (with optional reason).
+     * `Pending Members` (Yellow): Church members who have not yet responded.
+
+C. Action Buttons on Active Service:
+   - "Edit Event": Updates start/end times or meeting notes.
+   - "+ New Request": Closes the current session and launches a fresh attendance call for a new service.
+
+
+=============================================================================================================================
+3. CREATING / LAUNCHING AN ATTENDANCE SESSION (+ New Request Form)
+=============================================================================================================================
+
+When you tap "+ New Request" or "+ Create Attendance", the session creation modal opens:
+
+-----------------------------------------------------------------------------------------------------------------------------
+A. Service / Event Type Selector:
+-----------------------------------------------------------------------------------------------------------------------------
+- Choose the specific gathering from 11 pre-configured church meetings:
+  * `Sunday Service` (Primary morning or evening congregational worship)
+  * `Bible Study` (Midweek doctrine and scripture class)
+  * `Women's Fasting Prayer` (Weekly sisterhood prayer meetings)
+  * `Prayer Meeting` (Cottage prayer or corporate intercession)
+  * `Youth Event` (Youth fellowship, camps, campus ministry)
+  * `Women's Ministry` (Women's fellowship gatherings)
+  * `Fasting Prayer` (Friday / monthly church-wide fasts)
+  * `Special Service` (Communion, Watch Night, New Year, Thanksgiving)
+  * `Conference` (Annual convention or leadership summit)
+  * `Outreach` (Gospel crusades, medical camps, tract distribution)
+  * `Other` (Custom church meetings)
+
+-----------------------------------------------------------------------------------------------------------------------------
+B. Date & Time Window Pickers:
+-----------------------------------------------------------------------------------------------------------------------------
+- `Service Date`: Date of the gathering (defaults to Today).
+- `Start Time`: Time the check-in window opens (e.g., 09:00 AM).
+- `End Time`: Time check-in closes (e.g., 12:30 PM). End time must be after start time.
+- `Description / Meeting Notes (Optional)`:
+  * Additional instructions (e.g., "Please join us in the main sanctuary for communion service").
+
+-----------------------------------------------------------------------------------------------------------------------------
+C. Automated Congregation Push Notification:
+-----------------------------------------------------------------------------------------------------------------------------
+- When you tap "Create Attendance Request", WeChristian AUTOMATICALLY broadcasts a push notification to all congregation members:
+  "🔔 Attendance Request: Are you attending Sunday Service today? (Open until 12:30 PM)"
+- Believers receive the alert on their phone lock screens and can tap to check in with a single touch!
+
+
+=============================================================================================================================
+4. CHURCH ATTENDANCE QR CODE SYSTEM (SANCTUARY ENTRANCE CHECK-IN)
+=============================================================================================================================
+
+Tapping the "Church QR" button at the top right of the hero banner opens the Church QR Studio:
+
+A. Dedicated QR Code Generation:
+   - The app dynamically generates a secure, high-resolution QR code encoded with your church credentials:
+     * Church ID, Official Church Name, Unique Church Code (e.g., "COG01").
+     * Linked directly to the active Sunday service.
+
+B. Entrance Standee / Foyer Display:
+   - Print the QR code and display it on an acrylic standee or poster at the church sanctuary entrance doors.
+   - As believers enter the church, they simply open the WeChristian app, tap the built-in scanner, and scan the QR code.
+   - Their attendance is instantly validated and logged with an exact second-precision check-in timestamp!
+
+C. QR Actions:
+   - "Download QR": Saves the high-resolution QR code PNG directly to your phone's photo gallery for printing.
+   - "Share QR": Forwards the QR code image via WhatsApp to church ushers or volunteers.
+
+
+=============================================================================================================================
+5. LIVE MEMBER RESPONSE ROSTER & MANUAL USHER MARKING
+=============================================================================================================================
+
+Below the live metrics, the dashboard displays 3 interactive member lists:
+
+A. "Attending" Tab (Green List):
+   - Lists all members who confirmed attendance (via app tap or QR scan).
+   - Shows Member Name, Phone Number, and exact Check-in Time (e.g., "Checked in at 09:42 AM").
+
+B. "Not Attending" Tab (Red List):
+   - Lists believers who indicated they cannot make it (traveling, unwell, work duty).
+   - Allows pastoral care teams to follow up with absentee members for home visitation or hospital prayers.
+
+C. "Pending" Tab (Yellow List):
+   - Lists enrolled church members who haven't responded yet.
+   - Manual Pastoral / Usher Marking:
+     * If an elderly believer without a smartphone walks into the sanctuary, the usher can simply locate their name on the Pending list and tap "Mark Present" (Green Checkmark).
+     * Instantly moves them from Pending to Attending!
+
+
+=============================================================================================================================
+6. ATTENDANCE HISTORY & ANNUAL SERVICE ARCHIVES
+=============================================================================================================================
+
+Below the active service card, you will find the "Attendance History" register:
+- Chronological list of every past Sunday service, revival meeting, and fasting prayer conducted throughout the year.
+- Historical Card Elements:
+  * Service Title (e.g., "Sunday Service - Sep 21, 2026").
+  * Service Date and Time Window.
+  * Final Attendee Count: Total Present (Yes) vs Absent (No).
+  * Status Badge: "Closed" or "Completed".
+- Historical Actions:
+  * "View Details": Expands the complete member roster for that historical service.
+  * "Delete Record" (Trash Icon): Prompts a confirmation alert before permanently removing old test records.
+
+
+=============================================================================================================================
+7. HOW CONGREGATION MEMBERS CHECK IN ON THEIR MOBILE APP
+=============================================================================================================================
+
+When a believer attends service or receives the morning notification:
+1. One-Tap In-App Check-In:
+   - The member app displays a banner: "Sunday Service Attendance is Live!".
+   - Two quick buttons: "Yes, I am Attending" (Green) or "No, Cannot Attend" (Red).
+2. Sanctuary QR Code Scanner:
+   - Members can tap the QR icon in their app profile and scan the printed entrance poster.
+   - A celebratory checkmark appears: "Welcome to Church! Attendance Recorded 🙏".
+3. Attendance Milestones:
+   - Members can view their personal attendance streak and faithfulness percentage throughout the year!
+
+=============================================================================================================================
+                                                 END OF ATTENDANCE MANUAL
+=============================================================================================================================

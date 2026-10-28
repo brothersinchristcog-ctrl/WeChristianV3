@@ -173,8 +173,10 @@ export default function AdminWeCelebrations({ navigation }: any) {
   }
 
   const handleSendWhatsApp = async (localImageUri?: string) => {
-    if (!selectedMember?.phone) {
-      Alert.alert('Error', 'This member does not have a phone number on record.');
+    // Resolve the effective phone: direct phone first, then referencePhone (parent)
+    const effectivePhone = selectedMember?.phone || selectedMember?.referencePhone;
+    if (!effectivePhone) {
+      Alert.alert('Error', 'This member does not have a phone number on record. For kids, please ensure a parent reference number is assigned in the Household section.');
       return;
     }
 
@@ -223,7 +225,7 @@ export default function AdminWeCelebrations({ navigation }: any) {
         WA_PHONE_NUMBER_ID = secrets.whatsappPhoneId;
       }
 
-      let formattedPhone = selectedMember.phone.replace(/\D/g, '');
+      let formattedPhone = effectivePhone.replace(/\D/g, '');
       if (formattedPhone.length === 10) {
         formattedPhone = `91${formattedPhone}`; 
       }
@@ -664,11 +666,11 @@ const styles = StyleSheet.create({
   },
   header: { 
     backgroundColor: '#1a2d5a', 
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingHorizontal: 20,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
+    paddingTop: Platform.OS === 'ios' ? 50 : 20,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -677,33 +679,33 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   heroTitles: { flex: 1, paddingLeft: 4 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: '#fff' },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: '#fff' },
   headerSub: { fontSize: 11, color: '#F3EAD9', marginTop: 2, letterSpacing: 1.5, fontWeight: '800' },
   heroCard: {
     backgroundColor: '#162057', // Deep navy
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 32,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 16,
   },
   heroEyebrow: {
     color: '#D4AF37', // Gold
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1.5,
-    marginBottom: 12,
+    marginBottom: 6,
   },
   heroTitle: {
     color: '#FFFFFF',
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '700',
-    lineHeight: 34,
-    marginBottom: 16,
+    lineHeight: 28,
+    marginBottom: 8,
   },
   heroDesc: {
     color: '#8B96C3',
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 32,
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
   },
   statsRow: {
     flexDirection: 'row',

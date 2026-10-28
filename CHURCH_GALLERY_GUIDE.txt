@@ -1,0 +1,271 @@
+================================================================================
+WECHRISTIAN ADMIN DASHBOARD - CHURCH GALLERY SYSTEM MANUAL
+================================================================================
+Document: CHURCH_GALLERY_GUIDE.txt
+Module: Church Gallery, Photo Albums & Media Management (AdminGallery)
+Platform: WeChristian Mobile & Admin Ecosystem
+Location: app/src/screens/admin/gallery/
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1.  MODULE OVERVIEW & MEDIA ARCHITECTURE
+2.  NAVIGATION & STACK STRUCTURE (AdminGalleryNavigator)
+3.  GALLERY DASHBOARD (AdminGalleryDashboard.tsx)
+    3.1 Header Navigation & Hero Banner ("Moments of Faith")
+    3.2 Media Metrics (Total Albums, Total Photos, Latest Upload Activity)
+    3.3 "Create Album" Primary Action
+    3.4 Album Card Anatomy (Cover Photo, Visibility, Date, Photo Count)
+    3.5 Album Deletion Modal & Confirmation Flow
+4.  CREATING A NEW CHURCH ALBUM (AdminGalleryCreateAlbum.tsx)
+    4.1 Album Name Input & Conventions
+    4.2 Album Description & Event Context
+    4.3 Cover Photo Picker & 16:9 Cropping (Expo ImagePicker)
+    4.4 Firebase Storage Upload & Real-Time Device Event Notification
+5.  ALBUM PHOTO BROWSER & MANAGEMENT (AdminGalleryAlbumDetail.tsx)
+    5.1 Header Controls & Album Name Navigation
+    5.2 2-Column Responsive Photo Grid Layout
+    5.3 Multi-Image Batch Upload Engine (Up to 20 Photos Per Batch)
+    5.4 Image Compression & Optimized Cloud Upload Pipeline
+6.  FULL-SCREEN INTERACTIVE PHOTO VIEWER
+    6.1 High-Definition Swipeable Image Carousel
+    6.2 Photo Index Indicator & Quick Controls
+    6.3 Download to Device Camera Roll (MediaLibrary Integration)
+    6.4 Direct Social & WhatsApp Photo Sharing (expo-sharing)
+    6.5 Photo Deletion with Cloud Cleanup
+7.  DATABASE SCHEMA & FIREBASE STORAGE INTEGRATION
+8.  CHURCH MEDIA BEST PRACTICES & OPTIMIZATION
+
+================================================================================
+1. MODULE OVERVIEW & MEDIA ARCHITECTURE
+================================================================================
+The Church Gallery module provides church administrators, media ministries, and 
+pastors with a central digital asset management system to preserve, organize, and 
+publish photographic records of church life.
+
+Key Capabilities:
+* Event-Based Albums: Categorize memories into distinct albums (e.g., "Christmas Eve 2026", 
+  "Annual Youth Camp", "Water Baptism Service", "Missionary Conference").
+* Fast Multi-Image Batch Upload: Upload up to 20 high-resolution photos in a single 
+  batch with automated background compression for instant cloud synchronization.
+* Full-Screen Touch Carousel: Native full-screen image viewer with pinch-to-zoom, 
+  swipe navigation, and image actions.
+* Device Camera Roll Export: One-tap saving of official church photos directly to the 
+  phone's native Photos library.
+* Church Member App Sync: Albums marked "Public" immediately reflect in the member 
+  app gallery for all congregation families to view and enjoy.
+
+================================================================================
+2. NAVIGATION & STACK STRUCTURE (AdminGalleryNavigator.tsx)
+================================================================================
+The Gallery module operates as a dedicated native stack within the Admin Dashboard:
+
+[Gallery Tile in Admin Dashboard] (ImageIcon)
+             |
+             +---> [AdminGalleryNavigator]
+                       |
+                       +---> [AdminGalleryDashboard] (Master album list & metrics)
+                       |         |
+                       |         +---> [AdminGalleryCreateAlbum] (New album modal)
+                       |
+                       +---> [AdminGalleryAlbumDetail] (Album photo grid & viewer)
+
+* Root Stack Param List:
+  - `AdminGalleryDashboard`: Root dashboard showing all albums.
+  - `AdminGalleryCreateAlbum`: Album metadata and cover image creator.
+  - `AdminGalleryAlbumDetail`: Takes `{ albumId, albumName, albumDescription }`.
+
+================================================================================
+3. GALLERY DASHBOARD (AdminGalleryDashboard.tsx)
+================================================================================
+3.1 Header Navigation & Hero Banner ("Moments of Faith")
+-------------------------------------------------------
+* Deep royal navy header with gold accent badge:
+  `★ Moments of Faith`
+* Heading: "Church Gallery" with subtitle "Preserving precious moments from every church event."
+* Left chevron button returning cleanly to the main Admin Dashboard (`setActiveTab(0)`).
+
+3.2 Media Metrics
+-----------------
+A 3-column stats card at the top of the screen:
+1. "ALBUMS": Total count of created church photo albums.
+2. "PHOTOS": Grand total of individual photos across all albums.
+3. "LATEST": Recent upload activity indicator (e.g., "Recently" or relative date).
+
+3.3 "Create Album" Primary Action
+---------------------------------
+* Button positioned beside "Your albums": Deep navy pill with plus icon.
+* Immediately launches the `AdminGalleryCreateAlbum` screen.
+
+3.4 Album Card Anatomy
+----------------------
+Each album card in the feed displays:
+* Cover Photo Container:
+  - 16:9 widescreen thumbnail image.
+  - If no cover photo is uploaded, renders a reverent dark slate placeholder icon.
+* Visibility Tag: Top-right badge with Globe icon: `Public` (accessible to members) 
+  or `Private` (archival).
+* Album Title Overlay: Dark gradient scrim with bold album title.
+* Card Footer:
+  - Calendar Icon with formatted creation date (e.g., "Oct 14, 2026").
+  - Photo Count: Shows total pictures (e.g., "48 photos · by Admin").
+  - Red Trash Icon: Prompts deletion confirmation dialog.
+
+3.5 Album Deletion Modal & Confirmation Flow
+--------------------------------------------
+* Tapping the trash icon prompts a custom modal:
+  - Header: "Delete Album?"
+  - Body: "Are you sure you want to permanently delete '[Album Name]' and all its photos? 
+    This action cannot be undone."
+  - Buttons: "Cancel" and destructive red "Delete Album".
+  - Automatically purges the album document and all underlying images from 
+    Firebase Storage.
+
+================================================================================
+4. CREATING A NEW CHURCH ALBUM (AdminGalleryCreateAlbum.tsx)
+================================================================================
+A dedicated dark-mode modal for setting up a new photo collection.
+
+4.1 Album Name Input
+--------------------
+* Text input with placeholder: "e.g. Christmas Eve Service" or "Youth Retreat 2026".
+* Required field: The "Create Album" button remains disabled until a title is entered.
+
+4.2 Album Description & Event Context
+-------------------------------------
+* Multi-line text input with placeholder: "A short note about this album...".
+* Allows entering guest speaker names, event themes, or ministerial acknowledgments.
+
+4.3 Cover Photo Picker & 16:9 Cropping
+--------------------------------------
+* Dashed upload container with cloud upload icon: "Tap to select image (JPG, PNG up to 20MB)".
+* Launches native photo library via `ImagePicker.launchImageLibraryAsync`.
+* Enforces an exact 16:9 aspect ratio cropping tool so album covers fit screens uniformly.
+* Previews the selected cover image inside the upload box.
+
+4.4 Firebase Storage Upload & Event Dispatch
+--------------------------------------------
+When tapping "Create Album":
+1. Uploads cover image to Firebase Storage (`churches/{churchId}/gallery/covers/`).
+2. Creates the album document in Firestore with initial `photoCount: 0`.
+3. Dispatches a system event `DeviceEventEmitter.emit('GALLERY_ALBUM_CREATED')`.
+4. Closes the modal and triggers a green floating success toast: "Album created successfully!".
+
+================================================================================
+5. ALBUM PHOTO BROWSER & MANAGEMENT (AdminGalleryAlbumDetail.tsx)
+================================================================================
+Tapping any album opens its complete gallery.
+
+5.1 Header Controls
+-------------------
+* Back arrow returning to the album list.
+* Prominent Album Title heading with subtitle showing total photo count.
+* "+ Add Photos" Button: Uploads new pictures directly into this album.
+
+5.2 2-Column Responsive Photo Grid Layout
+-----------------------------------------
+* Photos are rendered in an adaptive 2-column square grid.
+* Crisp spacing (`SPACING = 10`) with rounded corners (`borderRadius: 12`).
+* Each photo shows a subtle dark overlay on long-press to reveal the delete action.
+* Tapping any image launches the full-screen interactive viewer at that exact photo index.
+
+5.3 Multi-Image Batch Upload Engine
+-----------------------------------
+* Tapping "+ Add Photos" opens device gallery with multi-selection enabled 
+  (`allowsMultipleSelection: true`).
+* Batch Limit: Configured to support up to 20 photos per batch (`selectionLimit: 20`) 
+  to prevent device memory pressure and app crashes.
+
+5.4 Image Compression & Cloud Upload Pipeline
+---------------------------------------------
+1. Selected photos are processed through Expo ImagePicker with 50% lossy compression 
+   (`quality: 0.5`). This reduces a 12MB raw smartphone photo to ~600KB without 
+   visible loss in mobile screen fidelity.
+2. Uploads asynchronously to Firebase Storage (`churches/{churchId}/gallery/{albumId}/`).
+3. Updates the parent album's `photoCount` counter in real time.
+4. Triggers a confirmation toast: "X images uploaded successfully!".
+
+================================================================================
+6. FULL-SCREEN INTERACTIVE PHOTO VIEWER
+================================================================================
+6.1 High-Definition Swipeable Image Carousel
+--------------------------------------------
+* Full-screen black background modal (`isViewerVisible`).
+* Horizontal swipeable `FlatList` with paging enabled (`pagingEnabled: true`).
+* Seamlessly swipe left or right to browse through all pictures in the album.
+
+6.2 Photo Index Indicator & Quick Controls
+------------------------------------------
+* Top Bar: Displays current photo position (e.g., "14 / 48") and close (X) button.
+* Single-tap anywhere on the image toggles the control bars on and off for 
+  distraction-free viewing.
+
+6.3 Download to Device Camera Roll (MediaLibrary Integration)
+-------------------------------------------------------------
+* Download Icon Button (Top right):
+  1. Requests device gallery permissions (`MediaLibrary.requestPermissionsAsync`).
+  2. Downloads the cloud image file to the local cache directory.
+  3. Writes file to the device's native Camera Roll / Photos album.
+  4. Displays an alert: "Photo saved to camera roll!".
+
+6.4 Direct Social & WhatsApp Photo Sharing (expo-sharing)
+---------------------------------------------------------
+* Share Icon Button:
+  1. Downloads image to cache.
+  2. Launches native OS share sheet via `Sharing.shareAsync`.
+  3. Pre-selects WhatsApp, Instagram Stories, Telegram, or AirDrop.
+
+6.5 Photo Deletion with Cloud Cleanup
+-------------------------------------
+* Red Trash Icon in viewer:
+  - Prompts confirmation alert: "Delete Photo? Are you sure you want to delete this photo?".
+  - Confirmed deletion removes the Firestore photo document, decrements the album's 
+    `photoCount`, and purges the file from Firebase Storage.
+
+================================================================================
+7. DATABASE SCHEMA & FIREBASE STORAGE INTEGRATION
+================================================================================
+Gallery data is structured hierarchically in Firestore:
+
+1. Collection: `gallery_albums` (or subcollection under `churches/{churchId}/albums`)
+Field               | Type             | Description
+--------------------+------------------+------------------------------------------------
+id                  | string           | Unique album document ID
+name                | string           | Album title (e.g., "Youth Camp 2026")
+description         | string           | Context, pastor notes, event summary
+coverPhotoUrl       | string           | Firebase Storage download URL for cover
+photoCount          | number           | Total number of photos in album
+visibility          | string           | 'Public' | 'Private'
+createdAt           | timestamp        | Server creation timestamp
+date                | string           | Formatted date string
+
+2. Subcollection: `gallery_albums/{albumId}/photos`
+Field               | Type             | Description
+--------------------+------------------+------------------------------------------------
+id                  | string           | Unique photo document ID
+albumId             | string           | Parent album ID
+url                 | string           | Firebase Storage download URL of photo
+uploadedBy          | string           | 'Admin' or uploader name
+createdAt           | timestamp        | Upload timestamp
+
+3. Firebase Storage File Structure:
+* Album Covers: `churches/{churchId}/gallery/covers/{timestamp}.jpg`
+* Album Photos: `churches/{churchId}/gallery/{albumId}/{photoId}.jpg`
+
+================================================================================
+8. CHURCH MEDIA BEST PRACTICES & OPTIMIZATION
+================================================================================
+1. High-Quality Covers:
+   - Always choose a bright, high-energy 16:9 photo for the album cover (such as the 
+     full congregation or worship team in action).
+2. Curate Before Uploading:
+   - Rather than uploading 300 unedited burst photos, curate the best 30 to 50 
+     impactful moments. This ensures faster loading times on members' mobile devices.
+3. Event Titling Convention:
+   - Use consistent naming: `[Event Name] - [Month/Year]` 
+     (e.g., "Annual Convention - Nov 2026" or "Good Friday Service - 2026").
+
+================================================================================
+END OF CHURCH GALLERY SYSTEM MANUAL
+================================================================================

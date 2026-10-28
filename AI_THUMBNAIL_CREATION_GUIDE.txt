@@ -1,0 +1,420 @@
+================================================================================
+WECHRISTIAN ADMIN DASHBOARD - AI THUMBNAIL & POSTER CREATOR SYSTEM MANUAL
+================================================================================
+Document: AI_THUMBNAIL_CREATION_GUIDE.txt
+Module: AI Thumbnail & Social Media Poster Studio (AIContentCreator)
+Platform: WeChristian Mobile & Admin Ecosystem
+Location: app/src/screens/admin/AIContentCreator.tsx
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1.  MODULE OVERVIEW & DESIGN CAPABILITIES
+2.  NAVIGATION & TWO-SCREEN ARCHITECTURE (STUDIO VS. HISTORY)
+3.  SERVICE TEMPLATE LIBRARY & INTELLIGENT CONTENT ROTATION
+    3.1 20+ Pre-Configured Church Service Presets
+    3.2 Non-Repeating AI Visual Prompt Variations (visualVariations)
+    3.3 One-Tap Scripture Variation Cycling (scriptureVariations)
+4.  SPEAKER PROFILE & BRANDING CONTROLS
+    4.1 Speaker Photo Upload & Circular Gold Ring Framing
+    4.2 Speaker Name & Ministry Title Input
+    4.3 Preaching Microphone Badge Toggle
+5.  SERVICE SCHEDULE & SMART TELUGU TIME ARCHITECTURE
+    5.1 Start & End Date Pickers
+    5.2 Duplicate-Free Date Range Formatter (formatDateRange)
+    5.3 Start & End Time Pickers
+    5.4 Accurate Telugu Time Periods (ఉదయం, మధ్యాహ్నం, సాయంత్రం, రాత్రి)
+    5.5 Multi-Period Time Range Formatter (formatTimeRange)
+    5.6 Venue & GPS Pin Badge
+6.  MULTI-VERSION BIBLE SCRIPTURE ENGINE
+    6.1 6 Supported Bible Versions (BSI, ERV, KJV, NIV, ESV, NKJV)
+    6.2 3-Step Interactive Bible Navigator (Book, Chapter, Verse)
+    6.3 66-Book Bilingual Search Engine (English & Telugu Names)
+    6.4 Direct Scripture Editing & Reference Formatting
+7.  ADVANCED TYPOGRAPHY & TELUGU FONT STUDIO
+    7.1 Authentic Telugu Google Fonts Library (Suranna, Ramabhadra, etc.)
+    7.2 Font Size Controls & Stepper
+    7.3 Font Weight, Italic & Alignment (Left, Center, Right)
+    7.4 Vertical Text Positioning (Top, Center, Bottom)
+    7.5 Curated Text Color Palette & Luminance Contrast Engine
+8.  COLOR GRADING & BACKGROUND MODES
+    8.1 Solid Color Families (Purples, Blues, Golds, Emeralds, Maroons)
+    8.2 Gradient Presets & Custom 2-Stop Gradient Designer
+    8.3 AI Image Generator (Photorealistic Backgrounds via DALL-E)
+    8.4 Custom Gallery Background Upload
+9.  LIVE 16:9 THUMBNAIL CANVAS & LAYER COMPOSITE
+    9.1 16:9 YouTube & Social Media Aspect Ratio
+    9.2 Multi-Layer Visual Stack Breakdown
+    9.3 Church Watermark & Logo Integration
+10. HIGH-RESOLUTION VIEWSHOT EXPORT & DISPATCH
+    10.1 Pristine PNG Snapshot Capture (ViewShot Engine)
+    10.2 Save to Device Gallery (MediaLibrary Integration)
+    10.3 Direct System Share & WhatsApp Export
+    10.4 Download Success Modal
+11. CREATIONS HISTORY VAULT & ARCHIVE
+    11.1 Real-Time Search in Saved Creations
+    11.2 Full-Screen Image Inspection Modal
+    11.3 Re-download, Share, & Deletion
+12. DATABASE SCHEMA & FIRESTORE INTEGRATION
+13. BEST PRACTICES FOR HIGH-CLICKTHROUGH CHURCH POSTERS
+
+================================================================================
+1. MODULE OVERVIEW & DESIGN CAPABILITIES
+================================================================================
+The AI Thumbnail Creation Studio (AIContentCreator) is an enterprise-grade graphic 
+design and content engine built specifically for churches, media teams, and pastors.
+
+Instead of requiring complex third-party tools like Photoshop, Canva, or Illustrator, 
+church leaders can create high-impact, professional 16:9 YouTube thumbnails, 
+Facebook/Instagram banners, Sunday service posters, and convention flyers directly 
+on their phone in less than 60 seconds.
+
+Key Design Highlights:
+* 16:9 Broadcast Format: Tailored for YouTube live streams, TV broadcasts, and social posts.
+* Authentic Telugu Typography: Deep integration with Telugu Google Fonts ensuring vowels, 
+  combining glyphs, and ligatures render flawlessly.
+* Cultural Time Accuracy: First church app with automated Telugu period detection 
+  (ఉదయం for morning, మధ్యాహ్నం for afternoon, సాయంత్రం for evening, and రాత్రి for night).
+* Built-In Multilingual Bible: Direct access to 6 Bible translations (Telugu BSI/ERV and 
+  English KJV/NIV/ESV/NKJV) with zero external searching.
+* AI Generative Visuals: Integrates AI image models to produce reverent, sacred church 
+  backgrounds without copyright concerns.
+
+================================================================================
+2. NAVIGATION & TWO-SCREEN ARCHITECTURE (STUDIO VS. HISTORY)
+================================================================================
+Located in the Admin Dashboard under "AI Ministry Tools" as "AI Thumbnail Creation":
+
+[AI Thumbnail Creation Tile] (Wand2 Icon)
+             |
+             +---> [AIContentCreator Screen]
+                       |
+                       +---> Tab 1: "Studio" / "Creator" (Active design canvas)
+                       |
+                       +---> Tab 2: "History" (Saved creation library)
+
+* Top Header: Left chevron button returning to the Admin Dashboard, module title 
+  "AI Content Creator", and quick tab switcher.
+
+================================================================================
+3. SERVICE TEMPLATE LIBRARY & INTELLIGENT CONTENT ROTATION
+================================================================================
+3.1 20+ Pre-Configured Church Service Presets
+--------------------------------------------
+Tapping any service pill instantly populates the entire canvas with coordinated 
+theological themes, Telugu/English titles, taglines, curated Scripture verses, and 
+matching color palettes:
+
+1.  Sunday Worship (ఆదివారపు ఆరాధన)
+2.  Bible Study (బైబిల్ అధ్యయనం)
+3.  Prayer Meeting (ప్రార్థనా కూడిక)
+4.  Youth Meeting (యవ్వనస్థుల కూటం)
+5.  Holy Communion (పరిశుద్ధ సంస్కార ఆరాధన)
+6.  Fasting Prayer (ఉపవాస ప్రార్థన)
+7.  All Night Prayer (రాత్రి అంతటి ప్రార్థన)
+8.  Gospel Meeting / Crusade (సువార్త కూడిక)
+9.  Revival Meeting (ఉజ్జీవ కూడిక)
+10. Healing Service (స్వస్థత ఆరాధన)
+11. Worship Night (స్తుతి ఆరాధన)
+12. Women's Fellowship (స్త్రీల కూడిక)
+13. Children's Camp / VBS (పిల్లల వేసవి క్యాంప్)
+14. Baptism Service (బాప్తిస్మ ఆరాధన)
+15. Wedding Service (వివాహ ఆరాధన)
+16. Thanksgiving Meeting (కృతజ్ఞతా కూడిక)
+17. Christmas Service (క్రిస్మస్ ఆరాధన)
+18. New Year Watch Night (నూతన సంవత్సర రాత్రి కూడిక)
+19. Good Friday (శుభ శుక్రవారం)
+20. Resurrection / Easter Sunday (పునరుత్థాన ఆరాధన)
+21. Daily Promise Card (నేటి దేవుని వాగ్దానం)
+
+3.2 Non-Repeating AI Visual Prompt Variations (visualVariations)
+----------------------------------------------------------------
+* Each service preset contains a pool of 4 to 6 diverse visual prompt descriptions.
+* An internal rotation counter ensures that consecutive generations for the same service 
+  type produce fresh, non-repeating backgrounds (e.g., alternating between communion bread, 
+  golden chalice, stained glass cross, and sacred altar).
+
+3.3 One-Tap Scripture Variation Cycling (scriptureVariations)
+-------------------------------------------------------------
+* Beside the service selector, a "Rotate Scripture" chip cycles through 3-5 curated 
+  Bible verses tailored to that specific service type.
+* Tapping updates the theme title, tagline, verse text, and reference simultaneously 
+  in both English and Telugu.
+
+================================================================================
+4. SPEAKER PROFILE & BRANDING CONTROLS
+================================================================================
+4.1 Speaker Photo Upload & Circular Gold Ring Framing
+-----------------------------------------------------
+* Tap upload box to pick a portrait of the Senior Pastor or guest preacher from the 
+  device camera or photo library.
+* Automatically rendered on the canvas in an elegant circular badge with an ornate 
+  gold / white border.
+
+4.2 Speaker Name & Ministry Title Input
+---------------------------------------
+* Speaker Name Input: e.g., "Rev. Dr. P. Johnson" or "పాస్టర్ జాన్సన్ గారు".
+* Speaker Title Input: e.g., "Senior Pastor", "Guest Evangelist", "Founder & President".
+* Formatted with clean dropped shadow on the poster canvas for readability against 
+  any background.
+
+4.3 Preaching Microphone Badge Toggle
+-------------------------------------
+* Toggle switch to overlay a microphone icon badge on the speaker profile card, 
+  visually signaling to viewers that this minister is the keynote speaker.
+
+================================================================================
+5. SERVICE SCHEDULE & SMART TELUGU TIME ARCHITECTURE
+================================================================================
+5.1 Start & End Date Pickers
+----------------------------
+* Tap date buttons to open native date pickers (`DateTimePickerModal`).
+* Supports single-day services or multi-day conventions (e.g., 3-day Revival Meetings).
+
+5.2 Duplicate-Free Date Range Formatter (formatDateRange)
+---------------------------------------------------------
+Intelligently avoids awkward date repetitions common in amateur posters:
+* Single Day: "సెప్టెంబర్ 13, 2026" (Month name appears once).
+* Same Month Multi-Day: "సెప్టెంబర్ 13 - 15, 2026" (Month name NEVER repeated twice).
+* Cross-Month Multi-Day: "సెప్టెంబర్ 30 - అక్టోబర్ 2, 2026".
+
+5.3 Start & End Time Pickers
+----------------------------
+* Time pickers with 12-hour AM/PM selection.
+
+5.4 Accurate Telugu Time Periods (getTeluguTimePeriod)
+------------------------------------------------------
+Automatically detects and assigns the culturally correct Telugu period based on 
+the 24-hour hour value:
+* 04:00 - 11:59: "ఉదయం" (Morning)
+* 12:00 - 15:59: "మధ్యాహ్నం" (Afternoon)
+* 16:00 - 19:59: "సాయంత్రం" (Evening - e.g., 7:00 PM is సాయంత్రం)
+* 20:00 - 03:59: "రాత్రి" (Night - e.g., 8:30 PM is night / రాత్రి!)
+
+5.5 Multi-Period Time Range Formatter (formatTimeRange)
+-------------------------------------------------------
+Intelligently handles time intervals:
+* Same Period: "సాయంత్రం 5:00 - 7:00" (Period appears once).
+* Cross-Period: "సాయంత్రం 6:30 - రాత్రి 9:30" (Distinguishes evening from night).
+
+5.6 Venue & GPS Pin Badge
+-------------------------
+* Venue Input: e.g., "Calvary Temple, Arundelpet, Guntur" or "Church Main Sanctuary".
+* Rendered at the bottom of the poster canvas alongside a map pin icon.
+
+================================================================================
+6. MULTI-VERSION BIBLE SCRIPTURE ENGINE
+================================================================================
+Pastors can browse and insert exact Scripture verses directly into the poster.
+
+6.1 6 Supported Bible Versions
+------------------------------
+1. Telugu (BSI) - బైబిల్ సొసైటీ ఆఫ్ ఇండియా (Standard classic translation)
+2. Telugu (ERV) - సులభ వచన బైబిల్ (Easy-to-Read Version)
+3. English (KJV) - King James Version (Reverent classic)
+4. English (NIV) - New International Version (Modern clear)
+5. English (ESV) - English Standard Version (Word-for-word)
+6. English (NKJV) - New King James Version
+* Plus integrated local Telugu Bible JSON for instant offline lookup.
+
+6.2 3-Step Interactive Bible Navigator
+--------------------------------------
+* Step 1 (Book Modal): Lists all 66 books of the Old and New Testaments.
+* Step 2 (Chapter Modal): Select chapter number.
+* Step 3 (Verse Modal): Select starting verse number.
+* The system instantly queries the Scripture engine and populates the verse text 
+  and reference directly into the poster canvas!
+
+6.3 66-Book Bilingual Search Engine
+-----------------------------------
+* The Book selection modal features a live search bar matching:
+  - English names (e.g., "Genesis", "Romans", "Psalms")
+  - Telugu names (e.g., "ఆదికాండము", "రోమీయులకు", "కీర్తనలు")
+
+6.4 Direct Scripture Editing
+----------------------------
+* Both the Scripture verse text and reference citation fields are editable text areas, 
+  allowing pastors to adjust phrasing, add emphasis, or combine multi-verse passages.
+
+================================================================================
+7. ADVANCED TYPOGRAPHY & TELUGU FONT STUDIO
+================================================================================
+7.1 Authentic Telugu Google Fonts Library (loadTeluguFonts)
+-----------------------------------------------------------
+Loaded dynamically via Expo Font:
+* Suranna: Elegant, high-contrast serif font ideal for main headings.
+* Ramabhadra: Bold, authoritative display font.
+* Mandali: Smooth, flowing devotional typography.
+* Gidugu: Stylized modern headline font.
+* Dhurjati: Traditional script font with classical flourishes.
+* Noto Sans Telugu: Clean, legible sans-serif for body verses.
+* Tenali Ramakrishna: Artistic, dramatic title font.
+
+7.2 Font Size Controls & Stepper
+--------------------------------
+* Stepper buttons (`+` and `-`) and quick presets (Small, Medium, Large, Extra Large).
+* Range: 8.0pt to 24.0pt with live canvas scaling.
+
+7.3 Font Weight, Italic & Alignment
+-----------------------------------
+* Font Weight toggles: Regular, Medium, Semi-Bold, Bold (700, 800, 900).
+* Italic toggle.
+* Text Alignment: Left, Center, Right.
+
+7.4 Vertical Text Positioning
+-----------------------------
+* Position switch: Top, Center, Bottom (allows moving title away from speaker photo).
+
+7.5 Curated Text Color Palette & Luminance Contrast Engine
+----------------------------------------------------------
+* Palette includes: Pure White (`#FFFFFF`), Warm Gold (`#F3D98B`), Amber (`#F59E0B`), 
+  Cyan (`#06B6D4`), Lime (`#84CC16`), and Custom HEX input.
+* Automatic Luminance Contrast: Computes background luminance (`getLuminance`). If a dark 
+  background is detected, ensures light text with drop shadows for 100% legibility.
+
+================================================================================
+8. COLOR GRADING & BACKGROUND MODES
+================================================================================
+Pastors can style the background in 4 distinct ways:
+
+8.1 Solid Color Families
+------------------------
+Organized into 5 curated spiritual color families:
+* Sacred Purples (`#3B225C`, `#5B3FA6`, `#7C3AED`)
+* Royal Blues (`#0F172A`, `#1E3A8A`, `#1D4ED8`)
+* Majestic Golds (`#B45309`, `#D97706`, `#E3A83B`)
+* Sanctuary Emeralds (`#064E3B`, `#059669`, `#10B981`)
+* Communion Maroons (`#5B1527`, `#881337`, `#BE123C`)
+
+8.2 Gradient Presets & Custom 2-Stop Gradient Designer
+-------------------------------------------------------
+* 12 pre-configured 2-stop linear gradients (Midnight Royal, Golden Glory, Purple Sanctuary, 
+  Ocean Grace, etc.).
+* Custom Gradient Tool: Enter Start HEX color and End HEX color with interactive angle.
+
+8.3 AI Image Generator (Photorealistic Backgrounds via DALL-E)
+--------------------------------------------------------------
+* Tapping "Generate AI Background":
+  - Pulls the tailored visual prompt from the selected church service.
+  - Sends request to DALL-E / `AIService.generateImage`.
+  - Generates a cinematic, high-resolution sacred image (e.g., golden sunburst cross, 
+    communion chalice with wheat, candlelit cathedral altar).
+  - Automatically loads image onto canvas with gradient darkening overlay.
+
+8.4 Custom Gallery Background Upload
+------------------------------------
+* Tap "Upload Background" to select a photo from your church's own events, sanctuary, 
+  or worship team.
+
+================================================================================
+9. LIVE 16:9 THUMBNAIL CANVAS & LAYER COMPOSITE
+================================================================================
+The live canvas updates in real time with every tap or keystroke.
+
+9.1 16:9 Aspect Ratio
+---------------------
+* Precision 16:9 widescreen ratio matching YouTube's 1280x720 / 1920x1080 specifications.
+
+9.2 Multi-Layer Visual Stack
+----------------------------
+1. Layer 1 (Base): Selected solid color, gradient, custom upload, or AI image.
+2. Layer 2 (Vignette): Gradient shading layer ensuring text areas have high contrast.
+3. Layer 3 (Watermark & Header): Church name banner at top.
+4. Layer 4 (Speaker Card): Circular speaker portrait with gold border, name, and designation.
+5. Layer 5 (Main Title & Tagline): Rendered in the selected Telugu font with drop shadow.
+6. Layer 6 (Scripture Card): Bible passage in italics with reference badge.
+7. Layer 7 (Footer Badges): Date range badge, Telugu time period badge, and Venue pin.
+
+================================================================================
+10. HIGH-RESOLUTION VIEWSHOT EXPORT & DISPATCH
+================================================================================
+10.1 Pristine PNG Snapshot Capture (ViewShot Engine)
+----------------------------------------------------
+* When tapping "Download" or "Share", `ViewShot.capture()` renders the 16:9 canvas 
+  off-screen at high DPI.
+* Generates a crystal-clear, uncompressed PNG file saved to local app cache.
+
+10.2 Save to Device Gallery (MediaLibrary Integration)
+------------------------------------------------------
+* Automatically exports image to the mobile device's native Gallery / Camera Roll.
+* Creates or syncs with the "WeChristian" album.
+
+10.3 Direct System Share & WhatsApp Export
+------------------------------------------
+* Tapping "Share" opens the native operating system share tray (`Sharing.shareAsync` 
+  and `Share.share`).
+* Send directly to WhatsApp Status, YouTube Studio, Instagram, Facebook, or Church 
+  Broadcast groups.
+
+10.4 Download Success Modal
+---------------------------
+* Displays an animated celebration card with image thumbnail preview:
+  - "Thumbnail Saved to Gallery!"
+  - Buttons: "Share Image", "Copy Image Link", and "Done".
+
+================================================================================
+11. CREATIONS HISTORY VAULT & ARCHIVE
+================================================================================
+Switching to the "History" tab opens the church's digital poster archive:
+
+11.1 Real-Time Search in Saved Creations
+----------------------------------------
+* Search by service name, sermon title, scripture reference, or speaker name.
+
+11.2 Full-Screen Image Inspection Modal
+---------------------------------------
+* Tap any saved creation card to view it in full 16:9 resolution.
+
+11.3 Re-download, Share, & Deletion
+-----------------------------------
+* Re-download any historical poster directly to gallery.
+* Delete outdated thumbnails with confirmation dialog (`FirestoreService.deleteAIContent`).
+
+================================================================================
+12. DATABASE SCHEMA & FIRESTORE INTEGRATION
+================================================================================
+Thumbnail creations are stored in the Firestore collection `ai_content`:
+
+Field               | Type             | Description
+--------------------+------------------+------------------------------------------------
+id                  | string           | Unique document ID
+churchId            | string           | Associated church ID
+contentType         | string           | Service type (e.g., 'Sunday Worship', 'Bible Study')
+topic               | string           | Main theme or title
+tagline             | string           | Subtitle or tagline
+verseText           | string           | Scripture verse text
+verseRef            | string           | Scripture reference citation
+speakerName         | string           | Minister / speaker name
+speakerTitle        | string           | Speaker title / designation
+speakerPhotoUrl     | string           | Firebase Storage URL of speaker portrait
+bgImageUrl          | string           | Firebase Storage / DALL-E URL of background
+colorMode           | string           | 'solid' | 'gradient' | 'custom'
+solidColor          | string           | HEX color code
+gradientColors      | array of strings | [startHex, endHex]
+fontFamily          | string           | Telugu Google Font name
+fontSize            | number           | Font size
+textColor           | string           | Text HEX color code
+dateRange           | string           | Formatted date range string
+timeRange           | string           | Formatted Telugu time range string
+venue               | string           | Venue location string
+createdAt           | timestamp        | Server creation timestamp
+
+================================================================================
+13. BEST PRACTICES FOR HIGH-CLICKTHROUGH CHURCH POSTERS
+================================================================================
+1. Keep Headings Concise:
+   - For YouTube thumbnails, 3-5 bold words in Telugu (e.g., "దేవుని అద్భుత కార్యం") 
+     yield significantly higher click-through rates than long paragraphs.
+2. High-Contrast Typography:
+   - Use Pure White (`#FFFFFF`) or Warm Gold (`#F3D98B`) text over dark background 
+     vignettes to ensure readability on small smartphone screens.
+3. Accurate Time Periods:
+   - Always verify that night meetings (8 PM onwards) reflect "రాత్రి" and evening 
+     services (5 PM - 7 PM) reflect "సాయంత్రం" to prevent congregational confusion.
+4. Speaker Framing:
+   - Ensure the speaker's photo is a clean, front-facing portrait with good lighting.
+
+================================================================================
+END OF AI THUMBNAIL CREATION GUIDE
+================================================================================

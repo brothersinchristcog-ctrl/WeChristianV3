@@ -5,9 +5,16 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Load fonts
-const robotoRegular = fs.readFileSync(path.join(__dirname, 'fonts', 'Roboto-Regular.ttf'));
-const robotoBold = fs.readFileSync(path.join(__dirname, 'fonts', 'Roboto-Bold.ttf'));
+// Lazy load fonts to prevent timeout during Firebase discovery
+let robotoRegular = null;
+let robotoBold = null;
+function getFonts() {
+    if (!robotoRegular) {
+        robotoRegular = fs.readFileSync(path.join(__dirname, 'fonts', 'Roboto-Regular.ttf'));
+        robotoBold = fs.readFileSync(path.join(__dirname, 'fonts', 'Roboto-Bold.ttf'));
+    }
+    return { robotoRegular, robotoBold: robotoBold };
+}
 const TITLES = {
     anniversary: 'WISHING YOU A\nHAPPY ANNIVERSARY',
     baptism: 'CELEBRATING YOUR\nBAPTISM ANNIVERSARY',
@@ -16,6 +23,7 @@ const TITLES = {
 export async function generateCelebrationImage(data) {
     const { themeColor, type, name, message, churchName } = data;
     const titleLines = (TITLES[type] || 'CELEBRATING WITH YOU').split('\n');
+    const { robotoRegular: regFont, robotoBold: boldFont } = getFonts();
     const svg = await satori({
         type: 'div',
         props: {
@@ -129,13 +137,13 @@ export async function generateCelebrationImage(data) {
         fonts: [
             {
                 name: 'Roboto',
-                data: robotoRegular,
+                data: regFont,
                 weight: 400,
                 style: 'normal',
             },
             {
                 name: 'Roboto',
-                data: robotoBold,
+                data: boldFont,
                 weight: 700,
                 style: 'normal',
             }
