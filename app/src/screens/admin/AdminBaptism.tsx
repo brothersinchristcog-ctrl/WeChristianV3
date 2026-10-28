@@ -31,7 +31,8 @@ import {
   User,
   X,
   ChevronRight,
-  ChevronDown,
+  ChevronDown,
+  ChevronUp,
   Edit2,
   MessageSquare,
   Sparkles,
@@ -64,6 +65,20 @@ export default function AdminBaptism({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusType>('all');
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const handleToggleExpand = (id: string) => {
+    setExpandedId(prev => (prev === id ? null : id));
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'B';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
   // Detail & Approval Modal State
   const [selectedRequest, setSelectedRequest] = useState<BaptismRequest | null>(null);
@@ -413,96 +428,205 @@ export default function AdminBaptism({ navigation }: any) {
             <Text style={styles.emptyText}>No baptism requests match the filter.</Text>
           </View>
         ) : (
-          filteredRequests.map(req => {
-            const badge = getStatusBadge(req.status);
-            const BadgeIcon = badge.icon;
+          <View style={styles.membersList}>
+            {filteredRequests.map(req => {
+              const isExpanded = expandedId === req.id;
+              const badge = getStatusBadge(req.status);
+              const BadgeIcon = badge.icon;
+              const initials = getInitials(req.memberName);
+              const isScheduled = (req.status === 'approved' || req.status === 'completed') && Boolean(req.confirmedDate);
 
-            return (
-              <TouchableOpacity
-                key={req.id}
-                style={styles.card}
-                activeOpacity={0.7}
-                onPress={() => openRequestDetail(req)}
-              >
-                {/* Top Info */}
-                <View style={styles.cardTop}>
-                  <View style={styles.avatarCircle}>
-                    <Text style={styles.avatarTxt}>
-                      {(req.memberName || 'M')[0].toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={styles.memberName}>{req.memberName}</Text>
-                    <Text style={styles.memberMeta}>
-                      Phone: {req.memberPhone} {req.gender ? `• ${req.gender}` : ''} {req.age ? `• ${req.age} yrs` : ''}
-                    </Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={[styles.statusBadge, { backgroundColor: badge.bg, borderColor: badge.border, marginRight: 8 }]}>
-                      <BadgeIcon size={12} color={badge.text} style={{ marginRight: 4 }} />
-                      <Text style={[styles.statusBadgeTxt, { color: badge.text }]}>{badge.label}</Text>
+              return (
+                <View
+                  key={req.id}
+                  style={[styles.memberCard, isExpanded && styles.memberCardExpanded]}
+                >
+                  {/* Card Header (Expand / Collapse) */}
+                  <TouchableOpacity
+                    style={styles.cardHeader}
+                    activeOpacity={0.7}
+                    onPress={() => handleToggleExpand(req.id)}
+                  >
+                    <View style={styles.profileSection}>
+                      <View style={styles.avatar}>
+                        <Text style={styles.avatarTxt}>{initials}</Text>
+                      </View>
+                      <View style={styles.nameSection}>
+                        <Text style={styles.name}>{req.memberName}</Text>
+                        {req.address ? (
+                          <Text style={{ fontSize: 12, color: '#6B7280', marginTop: 2, marginBottom: 4 }} numberOfLines={1}>
+                            📍 {req.address.trim()}
+                          </Text>
+                        ) : null}
+                        <View style={styles.badgeRow}>
+                          <View style={[styles.statusBadge, { backgroundColor: badge.bg, borderColor: badge.border }]}>
+                            <BadgeIcon size={11} color={badge.text} style={{ marginRight: 4 }} />
+                            <Text style={[styles.statusTxt, { color: badge.text }]}>{badge.label.toUpperCase()}</Text>
+                          </View>
+                          <View style={styles.roleBadge}>
+                            <Text style={styles.roleTxt}>
+                              {req.previousBaptism ? 'PREVIOUS BAPTISM' : 'FIRST TIME'}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
                     </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          openRequestDetail(req);
+                        }}
+                        style={{ padding: 4 }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Edit2 size={18} color="#2563EB" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          promptDeleteRequest(req);
+                        }}
+                        style={{ padding: 4 }}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      >
+                        <Trash2 size={18} color="#DC2626" />
+                      </TouchableOpacity>
+                      <View style={styles.chevronWrap}>
+                        {isExpanded ? (
+                          <ChevronUp size={18} color="#6B7280" />
+                        ) : (
+                          <ChevronDown size={18} color="#6B7280" />
+                        )}
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Contact Details Row */}
+                  <View style={styles.contactDetails}>
                     <TouchableOpacity
-                      style={styles.cardDeleteBtn}
-                      activeOpacity={0.7}
-                      onPress={(e) => {
-                        e.stopPropagation();
-                        promptDeleteRequest(req);
-                      }}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      style={styles.contactRow}
+                      onPress={() => req.memberPhone && Linking.openURL(`tel:${req.memberPhone.replace(/[^0-9+]/g, '')}`)}
                     >
-                      <Trash2 size={16} color="#DC2626" />
+                      <Phone size={12} color="#6B7280" />
+                      <Text style={styles.contactTxt}>{req.memberPhone || 'No Phone'}</Text>
                     </TouchableOpacity>
+                    <View style={styles.contactRow}>
+                      <Calendar size={12} color="#6B7280" />
+                      <Text style={styles.contactTxt}>Pref: {formatDateDisplay(req.preferredDate) || 'TBD'}</Text>
+                    </View>
+                    {(req.gender || req.age) ? (
+                      <View style={styles.contactRow}>
+                        <User size={12} color="#6B7280" />
+                        <Text style={styles.contactTxt}>
+                          {req.gender ? req.gender : ''}{req.gender && req.age ? ' • ' : ''}{req.age ? `${req.age} yrs` : ''}
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
+
+                  {/* Confirmed Schedule Pill (if scheduled) */}
+                  {isScheduled ? (
+                    <View style={styles.confirmedPill}>
+                      <Calendar size={13} color="#047857" style={{ marginRight: 6 }} />
+                      <Text style={styles.confirmedPillTxt} numberOfLines={1}>
+                        Scheduled: {formatDateDisplay(req.confirmedDate)} {req.confirmedTime ? `@ ${req.confirmedTime}` : ''} {req.confirmedLocation ? `(${req.confirmedLocation})` : ''}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {/* In-Place Expanded Content */}
+                  {isExpanded && (
+                    <View style={styles.expandedContent}>
+                      {/* Activity Stats SubGrid */}
+                      <View style={styles.statsSubGrid}>
+                        <View style={styles.subStatBox}>
+                          <View style={styles.subStatLabelRow}>
+                            <Clock size={12} color="#c0392b" />
+                            <Text style={styles.subStatLabel}>Requested On</Text>
+                          </View>
+                          <Text style={styles.subStatValue}>{formatDateDisplay(req.createdAt)}</Text>
+                        </View>
+                        <View style={styles.subStatBox}>
+                          <View style={styles.subStatLabelRow}>
+                            <Award size={12} color="#15803D" />
+                            <Text style={styles.subStatLabel}>Previous Baptism</Text>
+                          </View>
+                          <Text style={styles.subStatValue}>
+                            {req.previousBaptism ? 'Yes (Has Baptized)' : 'No (First Time)'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Schedule Details if available */}
+                      {isScheduled && (
+                        <View style={styles.scheduleInfoBox}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+                            <Calendar size={14} color="#047857" style={{ marginRight: 6 }} />
+                            <Text style={{ fontSize: 13, fontWeight: '700', color: '#047857' }}>Confirmed Baptism Service</Text>
+                          </View>
+                          <Text style={{ fontSize: 12, color: '#065F46', marginBottom: 2 }}>
+                            📅 Date: <Text style={{ fontWeight: '700' }}>{formatDateDisplay(req.confirmedDate)}</Text>
+                            {req.confirmedTime ? `  ⏰ Time: ${req.confirmedTime}` : ''}
+                          </Text>
+                          {req.confirmedLocation ? (
+                            <Text style={{ fontSize: 12, color: '#065F46' }}>
+                              📍 Location: <Text style={{ fontWeight: '600' }}>{req.confirmedLocation}</Text>
+                            </Text>
+                          ) : null}
+                        </View>
+                      )}
+
+                      {/* Reason / Statement */}
+                      {req.reason ? (
+                        <View style={styles.modalReasonBox}>
+                          <Text style={styles.reasonBoxLabel}>Reason / Testimony for Baptism:</Text>
+                          <Text style={styles.reasonBoxText}>"{req.reason}"</Text>
+                        </View>
+                      ) : null}
+
+                      {/* Additional Notes / Admin Remarks */}
+                      {req.additionalNotes ? (
+                        <View style={styles.notesBox}>
+                          <Text style={styles.notesBoxLabel}>Candidate Notes:</Text>
+                          <Text style={styles.notesBoxText}>{req.additionalNotes}</Text>
+                        </View>
+                      ) : null}
+
+                      {req.adminRemarks ? (
+                        <View style={[styles.notesBox, { backgroundColor: '#F0F9FF', borderColor: '#BAE6FD' }]}>
+                          <Text style={[styles.notesBoxLabel, { color: '#0369A1' }]}>Pastoral / Admin Remarks:</Text>
+                          <Text style={[styles.notesBoxText, { color: '#0C4A6E' }]}>{req.adminRemarks}</Text>
+                        </View>
+                      ) : null}
+
+                      {/* Action Buttons */}
+                      <View style={styles.actionBtnRow}>
+                        <TouchableOpacity
+                          style={styles.reviewBtn}
+                          activeOpacity={0.7}
+                          onPress={() => openRequestDetail(req)}
+                        >
+                          <Edit2 size={14} color="#fff" />
+                          <Text style={styles.reviewBtnTxt}>Review & Update Status</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={styles.deleteActionBtn}
+                          activeOpacity={0.7}
+                          onPress={() => promptDeleteRequest(req)}
+                        >
+                          <Trash2 size={14} color="#fff" />
+                          <Text style={styles.deleteActionBtnTxt}>Delete</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  )}
                 </View>
-
-                {/* Preferred Date & Previous Status */}
-                <View style={styles.cardMiddle}>
-                  <View style={styles.cardDataCol}>
-                    <Text style={styles.cardDataLabel}>PREFERRED DATE</Text>
-                    <Text style={styles.cardDataVal}>
-                      {formatDateDisplay(req.preferredDate) || 'Not set'}
-                    </Text>
-                  </View>
-                  <View style={styles.cardDataCol}>
-                    <Text style={styles.cardDataLabel}>PREVIOUS BAPTISM</Text>
-                    <Text style={styles.cardDataVal}>
-                      {req.previousBaptism ? 'Yes' : 'No (First Time)'}
-                    </Text>
-                  </View>
-                  <View style={styles.cardDataCol}>
-                    <Text style={styles.cardDataLabel}>REQUEST DATE</Text>
-                    <Text style={styles.cardDataVal}>
-                      {formatDateDisplay(req.createdAt)}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Confirmed Schedule Pill (if scheduled) */}
-                {(req.status === 'approved' || req.status === 'completed') && req.confirmedDate ? (
-                  <View style={styles.confirmedPill}>
-                    <Calendar size={13} color="#047857" style={{ marginRight: 6 }} />
-                    <Text style={styles.confirmedPillTxt}>
-                      Scheduled: {formatDateDisplay(req.confirmedDate)} {req.confirmedTime ? `@ ${req.confirmedTime}` : ''} {req.confirmedLocation ? `(${req.confirmedLocation})` : ''}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {/* Reason Preview */}
-                {req.reason ? (
-                  <Text style={styles.reasonExcerpt} numberOfLines={2}>
-                    "{req.reason}"
-                  </Text>
-                ) : null}
-
-                {/* Bottom Action Hint */}
-                <View style={styles.cardBottom}>
-                  <Text style={styles.cardBottomHint}>Tap to view details, update status & schedule</Text>
-                  <ChevronRight size={16} color="#0F4C5C" />
-                </View>
-              </TouchableOpacity>
-            );
-          })
+              );
+            })}
+          </View>
         )}
       </ScrollView>
 
@@ -583,14 +707,14 @@ export default function AdminBaptism({ navigation }: any) {
                     </View>
 
                     {/* Reason for Baptism Box */}
-                    <View style={styles.reasonBox}>
+                    <View style={styles.modalReasonBox}>
                       <Text style={styles.reasonBoxLabel}>REASON FOR BAPTISM:</Text>
                       <Text style={styles.reasonBoxText}>{selectedRequest.reason || 'None provided'}</Text>
                     </View>
 
                     {/* Additional Notes Box */}
                     {selectedRequest.additionalNotes ? (
-                      <View style={[styles.reasonBox, { backgroundColor: '#F8FAFC', marginTop: 8 }]}>
+                      <View style={[styles.modalReasonBox, { backgroundColor: '#F8FAFC', marginTop: 8 }]}>
                         <Text style={styles.reasonBoxLabel}>MEMBER NOTES:</Text>
                         <Text style={styles.reasonBoxText}>{selectedRequest.additionalNotes}</Text>
                       </View>
@@ -914,80 +1038,119 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     marginTop: 10
   },
-  card: {
+  membersList: {
+    gap: 12,
+    paddingBottom: 20
+  },
+  memberCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    borderColor: 'rgba(26,45,90,0.08)',
+    padding: 14,
+    shadowColor: '#1a2d5a',
     shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    marginBottom: 12
   },
-  cardTop: {
+  memberCardExpanded: {
+    borderColor: '#C9A84C',
+    borderWidth: 1.5,
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 }
+  },
+  cardHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10
+    justifyContent: 'space-between',
+    alignItems: 'flex-start'
   },
-  avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#0F4C5C',
-    alignItems: 'center',
-    justifyContent: 'center'
+  profileSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#1a2d5a',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   avatarTxt: {
-    color: '#FFFFFF',
+    color: '#fff',
     fontSize: 16,
     fontWeight: '800'
   },
-  memberName: {
+  nameSection: {
+    flex: 1,
+    flexDirection: 'column',
+    gap: 4,
+    marginTop: 2
+  },
+  name: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#0F172A'
+    color: '#1a2d5a'
   },
-  memberMeta: {
-    fontSize: 12,
-    color: '#64748B',
-    marginTop: 2
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    alignItems: 'center',
+    marginTop: 4
+  },
+  roleBadge: {
+    backgroundColor: '#F9F6F0',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2DDD5'
+  },
+  roleTxt: {
+    color: '#1a2d5a',
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
   },
   statusBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 16,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
     borderWidth: 1
   },
-  statusBadgeTxt: {
-    fontSize: 11,
-    fontWeight: '700'
-  },
-  cardMiddle: {
-    flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: 10
-  },
-  cardDataCol: {
-    flex: 1
-  },
-  cardDataLabel: {
+  statusTxt: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#94A3B8',
-    letterSpacing: 0.5
+    letterSpacing: 0.3
   },
-  cardDataVal: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1E293B',
-    marginTop: 2
+  chevronWrap: {
+    padding: 2
+  },
+  contactDetails: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 12,
+    alignItems: 'center'
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  contactTxt: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '600'
   },
   confirmedPill: {
     flexDirection: 'row',
@@ -998,32 +1161,135 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#A7F3D0',
-    marginBottom: 8
+    marginTop: 10
   },
   confirmedPillTxt: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#065F46'
-  },
-  reasonExcerpt: {
-    fontSize: 12,
-    color: '#475569',
-    fontStyle: 'italic',
-    lineHeight: 17,
-    marginBottom: 10
-  },
-  cardBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    paddingTop: 10
-  },
-  cardBottomHint: {
     fontSize: 11,
-    fontWeight: '600',
-    color: '#0F4C5C'
+    fontWeight: '700',
+    color: '#065F46',
+    flex: 1
+  },
+  expandedContent: {
+    marginTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(26,45,90,0.08)',
+    paddingTop: 14
+  },
+  statsSubGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12
+  },
+  subStatBox: {
+    flex: 1,
+    backgroundColor: '#F9F6F0',
+    borderRadius: 10,
+    padding: 10
+  },
+  subStatLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 4
+  },
+  subStatLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
+  },
+  subStatValue: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1a2d5a'
+  },
+  scheduleInfoBox: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    marginBottom: 12
+  },
+  reasonBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 12
+  },
+  reasonBoxLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
+  },
+  reasonBoxText: {
+    fontSize: 12,
+    color: '#334155',
+    fontStyle: 'italic',
+    lineHeight: 18
+  },
+  notesBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 12
+  },
+  notesBoxLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3
+  },
+  notesBoxText: {
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 17
+  },
+  actionBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4
+  },
+  reviewBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1a2d5a',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 6
+  },
+  reviewBtnTxt: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700'
+  },
+  deleteActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DC2626',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 8,
+    gap: 6
+  },
+  deleteActionBtnTxt: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700'
   },
   // Modal Styles
   modalBackdrop: {
@@ -1142,19 +1408,19 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     marginTop: 2
   },
-  reasonBox: {
+  modalReasonBox: {
     backgroundColor: '#F1F5F9',
     borderRadius: 10,
     padding: 12
   },
-  reasonBoxLabel: {
+  modalReasonBoxLabel: {
     fontSize: 10,
     fontWeight: '800',
     color: '#64748B',
     letterSpacing: 0.5,
     marginBottom: 4
   },
-  reasonBoxText: {
+  modalReasonBoxText: {
     fontSize: 13,
     color: '#334155',
     lineHeight: 18
