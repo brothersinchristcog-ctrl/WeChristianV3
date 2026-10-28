@@ -845,6 +845,9 @@ function Navigation() {
             <Stack.Screen name="BibleQuizReview" component={BibleQuizReviewScreen} />
             <Stack.Screen name="OnlineMeetings" component={renderPremium(OnlineMeetingsScreen)} />
             <Stack.Screen name="OnlineMeetingDetail" component={renderPremium(OnlineMeetingDetailScreen)} />
+            <Stack.Screen name="BaptismRequest" component={renderPremium(BaptismRequestScreen)} />
+            <Stack.Screen name="Songs" component={renderPremium(SongsScreen)} />
+            <Stack.Screen name="PrayerWall" component={renderPremium(PrayerWallScreen)} />
           </>
         ) : onboardingComplete ? (
           <>

@@ -170,10 +170,12 @@ export default function UpdatesScreen({ navigation, route }: any) {
   const [loading, setLoading] = useState(true);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
-  const { user, member, viewMode, setViewMode } = useAuth();
-  const isAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || 
-                  String(member?.userType || '').toUpperCase().includes('SUPER') ||
-                  String(member?.userType || '').toUpperCase().includes('PASTOR');
+  const { user, member, viewMode, setViewMode, isPlatformSuperAdmin } = useAuth();
+  const memberUserType = String(member?.userType || '').toUpperCase();
+  const isAdmin = memberUserType.includes('ADMIN') || 
+                  memberUserType.includes('SUPER') ||
+                  memberUserType.includes('PASTOR') ||
+                  Boolean(isPlatformSuperAdmin);
   const showAdminView = isAdmin && viewMode === 'admin';
   const { activeChurch } = useChurch();
 
@@ -185,10 +187,22 @@ export default function UpdatesScreen({ navigation, route }: any) {
     if (navigation.canGoBack()) {
       navigation.goBack();
     } else {
-      if (showAdminView) {
-        navigation.navigate('AdminRoot');
-      } else {
-        navigation.navigate('Tabs', { screen: 'Home' });
+      try {
+        const state = navigation.getState();
+        const routeNames = state?.routeNames || [];
+        if (showAdminView && routeNames.includes('AdminRoot')) {
+          navigation.navigate('AdminRoot');
+        } else if (routeNames.includes('Tabs')) {
+          navigation.navigate('Tabs', { screen: 'Home' });
+        } else if (routeNames.includes('AdminRoot')) {
+          navigation.navigate('AdminRoot');
+        } else if (showAdminView) {
+          navigation.navigate('AdminRoot');
+        } else {
+          navigation.navigate('Tabs', { screen: 'Home' });
+        }
+      } catch (err) {
+        console.warn('handleBack error:', err);
       }
     }
   };
@@ -203,11 +217,23 @@ export default function UpdatesScreen({ navigation, route }: any) {
         navigation.goBack();
         return true;
       } else {
-        if (showAdminView) {
-        navigation.navigate('AdminRoot');
-      } else {
-        navigation.navigate('Tabs', { screen: 'Home' });
-      }
+        try {
+          const state = navigation.getState();
+          const routeNames = state?.routeNames || [];
+          if (showAdminView && routeNames.includes('AdminRoot')) {
+            navigation.navigate('AdminRoot');
+          } else if (routeNames.includes('Tabs')) {
+            navigation.navigate('Tabs', { screen: 'Home' });
+          } else if (routeNames.includes('AdminRoot')) {
+            navigation.navigate('AdminRoot');
+          } else if (showAdminView) {
+            navigation.navigate('AdminRoot');
+          } else {
+            navigation.navigate('Tabs', { screen: 'Home' });
+          }
+        } catch (err) {
+          console.warn('backAction error:', err);
+        }
         return true;
       }
     };
@@ -266,15 +292,9 @@ export default function UpdatesScreen({ navigation, route }: any) {
               return null;
             }
 
-            // SECURITY 2: Admin-only broadcasts (e.g. New Baptism Request)
-            const isForAdmin = data.type === 'baptism_request_admin' || data.type === 'prayer_request_admin' || data.targetRole === 'admin';
-            if (isForAdmin && !isAdmin) {
-              return null; // Non-admin members must NEVER see admin notifications
-            }
-
             // Phone matcher helper
             const uPhone = user?.phoneNumber || '';
-            const mPhone = member?.phone || (member as any)?.mobile || '';
+            const mPhone = member?.phone || (member as any)?.mobile || (member as any)?.phoneNumber || '';
             const checkPhoneMatch = (targetPhoneStr?: string) => {
               if (!targetPhoneStr || typeof targetPhoneStr !== 'string') return false;
               const target = targetPhoneStr.replace(/\D/g, '');
@@ -286,13 +306,34 @@ export default function UpdatesScreen({ navigation, route }: any) {
               return Boolean(m1 || m2 || m3 || m4);
             };
 
+            // SECURITY 2: Admin-only broadcasts (e.g. New Baptism Request)
+            const isForAdmin = data.type === 'baptism_request_admin' || 
+                               data.type === 'prayer_request_admin' || 
+                               data.targetRole === 'admin' ||
+                               data.title?.includes('New Baptism Request') ||
+                               data.title?.includes('New Prayer Request');
+            if (isForAdmin && (!isAdmin || !showAdminView)) {
+              return null; // Non-admin members AND admins in member view must NEVER see admin notifications
+            }
+
             // SECURITY 3: Member-specific status updates (e.g. Baptism Request Approved / Rejected / Under Review)
-            const isMemberBaptismUpdate = data.type === 'baptism_request_member' ||
-              (data.title?.includes('Baptism Request') && (data.title?.includes('Update') || data.title?.includes('Approved') || data.title?.includes('Declined')));
+            const isMemberBaptismUpdate = 
+              data.type === 'baptism_request_member' || 
+              data.type === 'baptism_request' || 
+              (data.title && (
+                data.title.includes('Baptism Request') ||
+                data.title.includes('Baptism Approved') ||
+                data.title.includes('Baptism Rejected')
+              ));
+
             if (isMemberBaptismUpdate) {
+              // Admin view should NOT display private member status updates
+              if (showAdminView) {
+                return null;
+              }
               const currentMemberId = member?.id || user?.uid || '';
-              const idMatches = data.targetMemberId && currentMemberId && data.targetMemberId === currentMemberId;
-              const phoneMatches = checkPhoneMatch(data.targetPhone);
+              const idMatches = Boolean(data.targetMemberId && currentMemberId && data.targetMemberId === currentMemberId);
+              const phoneMatches = Boolean(checkPhoneMatch(data.targetPhone));
               // Only visible to the particular member who made the request
               if (!idMatches && !phoneMatches) {
                 return null;
@@ -607,6 +648,13 @@ export default function UpdatesScreen({ navigation, route }: any) {
                       navigation.navigate('AdminRoot', { targetTab: 'Baptism' });
                     } else if (isAdmin) {
                       setViewMode('admin');
+                      setTimeout(() => {
+                        try {
+                          navigation.navigate('AdminRoot', { targetTab: 'Baptism' });
+                        } catch (e) {
+                          console.warn(e);
+                        }
+                      }, 100);
                     } else {
                       setSelectedUpdate(update);
                     }
@@ -616,11 +664,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     update.title?.includes('Baptism Request Update') ||
                     (update.type === 'baptism' && update.title?.includes('Baptism Request Approved'))
                   ) {
-                    if (!showAdminView) {
-                      navigation.navigate('BaptismRequest');
-                    } else {
-                      navigation.navigate('AdminRoot', { targetTab: 'Baptism' });
-                    }
+                    setSelectedUpdate(update);
                   } else {
                     setSelectedUpdate(update);
                   }
@@ -756,6 +800,21 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   </Text>
                 </ScrollView>
 
+                <TouchableOpacity
+                  style={[styles.joinLiveBtn, { backgroundColor: '#0284c7', marginTop: 14 }]}
+                  onPress={() => {
+                    const isAdm = showAdminView;
+                    setSelectedUpdate(null);
+                    if (isAdm) {
+                      navigation.navigate('AdminRoot', { targetTab: 'Baptism' });
+                    } else {
+                      navigation.navigate('BaptismRequest');
+                    }
+                  }}
+                >
+                  <Text style={styles.joinLiveBtnTxt}>💧 View Baptism Request</Text>
+                </TouchableOpacity>
+
                 <View style={[styles.celebrationFooter, { borderTopColor: '#3b82f6' }]}>
                   <Text style={[styles.footerBlessing, { color: '#1e3a8a' }]}>{t('updates.baptismBlessing')}</Text>
                 </View>
@@ -822,6 +881,23 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     }}
                   >
                     <Text style={styles.joinLiveBtnTxt}>📺 {t('updates.joinLiveStream')}</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(selectedUpdate?.type === 'baptism_request_member' || selectedUpdate?.type === 'baptism_request' || selectedUpdate?.title?.includes('Baptism')) && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#0284c7', marginTop: 14 }]}
+                    onPress={() => {
+                      const isAdm = showAdminView;
+                      setSelectedUpdate(null);
+                      if (isAdm) {
+                        navigation.navigate('AdminRoot', { targetTab: 'Baptism' });
+                      } else {
+                        navigation.navigate('BaptismRequest');
+                      }
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>💧 View Baptism Request</Text>
                   </TouchableOpacity>
                 )}
 
