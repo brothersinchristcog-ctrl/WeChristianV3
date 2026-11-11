@@ -56,6 +56,7 @@ export const mr: TranslationSchema = {
     events: 'कार्यक्रम',
     adminView: 'अॅडमिन व्ह्यू',
     memberView: 'सदस्य व्ह्यू',
+    serviceRoster: 'सर्व्हिस रोस्टर',
   },
 
   auth: {

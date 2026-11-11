@@ -56,6 +56,7 @@ export const te: TranslationSchema = {
     events: 'కార్యక్రమాలు',
     adminView: 'అడ్మిన్ వ్యూ',
     memberView: 'సభ్యుల వ్యూ',
+    serviceRoster: 'సర్వీస్ రోస్టర్',
   },
 
   auth: {

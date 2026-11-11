@@ -290,6 +290,62 @@ service cloud.firestore {
         allow read, write: if isAuthenticated() && (isOwner(memberId) || isChurchAdmin());
       }
 
+      // Member Notifications (Roster assignments, alerts, reminders)
+      match /members/{memberId}/notifications/{notifId} {
+        allow read, write: if isAuthenticated();
+      }
+
+      // Service Roster: Service Plans & Subcollections
+      match /servicePlans/{planId} {
+        allow read: if isAuthenticated();
+        allow create, delete: if isChurchAdmin();
+        allow update: if isAuthenticated();
+
+        match /assignmentQueues/{roleId} {
+          allow read, write: if isAuthenticated();
+        }
+
+        match /rehearsals/{rehearsalId} {
+          allow read: if isAuthenticated();
+          allow write: if isChurchAdmin();
+        }
+
+        match /attendance/{docId} {
+          allow read, write: if isAuthenticated();
+        }
+
+        match /volunteerAttendance/{docId} {
+          allow read, write: if isAuthenticated();
+        }
+      }
+
+      // Service Roster: Templates, Ministry Teams, Categories
+      match /serviceTemplates/{templateId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      match /ministryTeams/{teamId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      match /activityCategories/{catId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Service Roster: Member Skills & Blockout Availability
+      match /memberSkills/{skillId} {
+        allow read: if isAuthenticated();
+        allow create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin();
+      }
+
+      match /memberAvailability/{availId} {
+        allow read, write: if isAuthenticated();
+      }
+
       // Prayer Requests (church-scoped)
       match /prayerRequests/{reqId} {
         allow read: if isAuthenticated() && (resource.data.type == 'public' || isOwner(resource.data.uid));

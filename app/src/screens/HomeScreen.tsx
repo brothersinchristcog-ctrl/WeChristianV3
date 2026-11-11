@@ -23,7 +23,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { formatDateDisplay } from '../utils/DateUtils';
+import { formatDateDisplay, formatDateMonthYear, formatTimeTo12Hour } from '../utils/DateUtils';
 import { 
   Bell, 
   Hexagon,
@@ -60,7 +60,9 @@ import {
   Download,
   Image as LucideImage,
   Clock,
-  CalendarCheck
+  CalendarCheck,
+  AlertCircle,
+  Layers
 } from 'lucide-react-native';
 import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
@@ -80,6 +82,8 @@ import Theme from '../theme/Theme';
 import FirestoreService, { DailyPromise, ScheduleEvent, AppMember, Sermon } from '../services/FirestoreService';
 import VerseNotificationService, { DailyVerse } from '../services/VerseNotificationService';
 import { BibleService } from '../services/BibleService';
+import ServiceRosterService from '../services/ServiceRosterService';
+import { MemberServiceDuty } from '../types/serviceRoster';
 import { SupportedLanguage } from '../locales';
 import { CustomAlert } from '../components/CustomAlert';
 import Svg, { Path, Circle, Rect, Polygon, Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText, Mask } from 'react-native-svg';
@@ -733,6 +737,28 @@ export default function HomeScreen() {
   const [dynamicHeaderHeight, setDynamicHeaderHeight] = useState(0);
   const [todayVerse, setTodayVerse] = useState<DailyVerse | null>(null);
   const [todayPeriod, setTodayPeriod] = useState<string>(getCurrentPeriod());
+  const [upcomingDuty, setUpcomingDuty] = useState<MemberServiceDuty | null>(null);
+
+  useEffect(() => {
+    const cId = activeChurch?.id || (authMember as any)?.churchId || (member as any)?.churchId;
+    const mId = authMember?.id || (member as any)?.id || user?.uid;
+    if (!cId || !mId) {
+      setUpcomingDuty(null);
+      return;
+    }
+
+    const memberDisplayName = (authMember as any)?.name || (member as any)?.name;
+    const unsub = ServiceRosterService.listenMemberUpcomingDuties(
+      cId,
+      mId,
+      (duties) => {
+        setUpcomingDuty(duties[0] || null);
+      },
+      memberDisplayName
+    );
+
+    return () => unsub();
+  }, [activeChurch?.id, (authMember as any)?.churchId, (member as any)?.churchId, authMember?.id, (member as any)?.id, user?.uid, (authMember as any)?.name]);
   // Floating Live Celebrations State
   const [liveCelebrations, setLiveCelebrations] = useState<any[]>([]);
   const [unreadLiveMsgs, setUnreadLiveMsgs] = useState(0);
@@ -2157,6 +2183,42 @@ export default function HomeScreen() {
             })()}
           </View>
 
+          {/* Service Roster Alert Banner (Pending Action Required) */}
+          {upcomingDuty && upcomingDuty.status === 'pending' && (
+            <TouchableOpacity
+              style={[
+                styles.memberDutyBanner,
+                styles.memberDutyBannerPending,
+              ]}
+              onPress={() => navigation.navigate('MyService', {
+                serviceId: upcomingDuty.serviceId,
+                initialTab: 'responsibilities',
+              })}
+              activeOpacity={0.88}
+            >
+              <View style={styles.memberDutyIconWrap}>
+                <AlertCircle size={22} color="#FFFFFF" />
+              </View>
+
+              <View style={{ flex: 1, paddingHorizontal: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.memberDutyTag}>ACTION REQUIRED</Text>
+                  <Text style={styles.memberDutyDate}>
+                    {formatDateMonthYear(upcomingDuty.date)}
+                  </Text>
+                </View>
+                <Text style={styles.memberDutyTitle} numberOfLines={1}>
+                  {upcomingDuty.roleTitle}
+                </Text>
+                <Text style={styles.memberDutySub} numberOfLines={1}>
+                  {upcomingDuty.serviceTitle} · Tap to accept or decline
+                </Text>
+              </View>
+
+              <ChevronRight size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+
           <Text style={[styles.secLbl, isDark && { color: '#e2e8f0' }]}>{t('home.quickAccess')}</Text>
           <View style={styles.iconGrid}>
             <GridItem isDark={isDark} icon={<Mic size={26} color="#fff" />} label={t('home.quickSermons')} color="#1a2d5a" onPress={() => navigation.navigate('Sermons')} />
@@ -2344,6 +2406,120 @@ export default function HomeScreen() {
               >
                 {t('nav.attendance')}
               </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* ── Service Roster Banner Card ── */}
+          <View style={{ paddingHorizontal: 16, marginTop: 4, marginBottom: 14 }}>
+            <TouchableOpacity
+              activeOpacity={0.88}
+              onPress={() =>
+                navigation.navigate(
+                  'MyService',
+                  upcomingDuty && upcomingDuty.status !== 'declined'
+                    ? {
+                        serviceId: upcomingDuty.serviceId,
+                        initialTab: upcomingDuty.status === 'pending' ? 'responsibilities' : 'roster',
+                      }
+                    : undefined
+                )
+              }
+              style={{
+                borderRadius: 18,
+                overflow: 'hidden',
+                elevation: 4,
+                shadowColor: '#1a2d5a',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.2,
+                shadowRadius: 8,
+              }}
+            >
+              <LinearGradient
+                colors={['#1a2d5a', '#0f172a']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderWidth: 1,
+                  borderColor: 'rgba(251, 191, 36, 0.28)',
+                  borderRadius: 18,
+                }}
+              >
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 14,
+                    backgroundColor: 'rgba(251, 191, 36, 0.16)',
+                    borderWidth: 1,
+                    borderColor: 'rgba(251, 191, 36, 0.35)',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Layers size={22} color="#fbbf24" />
+                </View>
+
+                <View style={{ flex: 1, marginLeft: 12, marginRight: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
+                    <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '800' }} numberOfLines={1}>
+                      {t('nav.serviceRoster') === 'nav.serviceRoster' ? 'Service Roster' : t('nav.serviceRoster')}
+                    </Text>
+
+                    {upcomingDuty && upcomingDuty.status !== 'declined' && (
+                      <View
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                          paddingHorizontal: 7,
+                          paddingVertical: 2,
+                          borderRadius: 999,
+                          backgroundColor: upcomingDuty.status === 'pending' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.24)',
+                          borderWidth: 1,
+                          borderColor: upcomingDuty.status === 'pending' ? 'rgba(252, 211, 77, 0.6)' : 'rgba(110, 231, 183, 0.55)',
+                        }}
+                      >
+                        {upcomingDuty.status === 'pending' ? (
+                          <AlertCircle size={10} color="#FCD34D" strokeWidth={2.5} />
+                        ) : (
+                          <CheckCircle size={10} color="#6EE7B7" strokeWidth={2.5} />
+                        )}
+                        <Text
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: '800',
+                            letterSpacing: 0.4,
+                            color: upcomingDuty.status === 'pending' ? '#FEF3C7' : '#D1FAE5',
+                          }}
+                        >
+                          {upcomingDuty.status === 'pending' ? 'ACTION NEEDED' : 'CONFIRMED'}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  {upcomingDuty && upcomingDuty.status !== 'declined' ? (
+                    <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '600', marginTop: 3 }} numberOfLines={1}>
+                      {upcomingDuty.roleTitle} · {formatDateMonthYear(upcomingDuty.date)}
+                      {upcomingDuty.callTime
+                        ? ` · Call ${formatTimeTo12Hour(upcomingDuty.callTime)}`
+                        : upcomingDuty.startTime
+                        ? ` · ${formatTimeTo12Hour(upcomingDuty.startTime)}`
+                        : ''}
+                    </Text>
+                  ) : (
+                    <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '500', marginTop: 2 }} numberOfLines={1}>
+                      View service schedules, worship setlists & your duties
+                    </Text>
+                  )}
+                </View>
+
+                <ChevronRight size={18} color="#fbbf24" />
+              </LinearGradient>
             </TouchableOpacity>
           </View>
 
@@ -3524,6 +3700,53 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#64748b',
+    marginTop: 2,
+  },
+  memberDutyBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+  },
+  memberDutyBannerPending: {
+    backgroundColor: '#D97706',
+  },
+  memberDutyIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  memberDutyTag: {
+    color: 'rgba(255, 255, 255, 0.92)',
+    fontSize: 9.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  memberDutyDate: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 10.5,
+    fontWeight: '700',
+  },
+  memberDutyTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 1,
+  },
+  memberDutySub: {
+    color: 'rgba(255, 255, 255, 0.92)',
+    fontSize: 11.5,
     marginTop: 2,
   },
 });

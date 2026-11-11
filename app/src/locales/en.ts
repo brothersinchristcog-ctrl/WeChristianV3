@@ -54,6 +54,7 @@ export const en = {
     events: 'Events',
     adminView: 'Admin View',
     memberView: 'Member View',
+    serviceRoster: 'Service Roster',
   },
 
   auth: {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking, Alert, Image, BackHandler, Clipboard, ToastAndroid } from 'react-native';
-import { ChevronLeft, ArrowLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic, Video, Droplets } from 'lucide-react-native';
+import { ChevronLeft, ArrowLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic, Video, Droplets, Layers, UserCheck, Zap } from 'lucide-react-native';
 import { openZoomMeeting } from '../utils/ZoomLauncher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,7 @@ import firestore, {
   getFirestore, 
   collection, 
   query, 
+  where,
   orderBy, 
   limit, 
   onSnapshot 
@@ -25,6 +26,14 @@ function formatDatesInText(text: string): string {
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const SWIPE_THRESHOLD = SCREEN_WIDTH * 0.35;
+const ROSTER_NOTIFICATION_TYPES = [
+  'admin_roster_alert',
+  'service_roster',
+  'service_assignment',
+  'service_responsibility_broadcast',
+  'service_reminder',
+  'rehearsal_alert',
+];
 
 function SwipeableRow({ children, onDelete }: { children: React.ReactNode; onDelete: () => void }) {
   const { t } = useLanguage();
@@ -129,6 +138,12 @@ export default function UpdatesScreen({ navigation, route }: any) {
   const getTypeName = (type: string) => {
     if (type === 'baptism_request_admin' || type === 'baptism_request') return 'BAPTISM REQUEST';
     if (type === 'baptism' || type === 'baptism_request_member') return 'BAPTISM';
+    if (type === 'admin_roster_alert') return 'SERVICE ROSTER ALERT';
+    if (type === 'service_roster') return 'SERVICE ROSTER';
+    if (type === 'service_assignment') return 'SERVICE ASSIGNMENT';
+    if (type === 'service_responsibility_broadcast') return 'OPEN DUTY AVAILABLE';
+    if (type === 'service_reminder') return 'SERVICE REMINDER';
+    if (type === 'rehearsal_alert') return 'REHEARSAL SCHEDULED';
     if (!type) return (t('updates.types.announcement') || 'ANNOUNCEMENT').toUpperCase();
     const trans = t(`updates.types.${type}`);
     return trans && trans !== `updates.types.${type}` ? trans.toUpperCase() : type.toUpperCase();
@@ -136,7 +151,9 @@ export default function UpdatesScreen({ navigation, route }: any) {
 
   const [dynamicUpdates, setDynamicUpdates] = useState<any[]>([]);
   const [broadcastsList, setBroadcastsList] = useState<any[]>([]);
+  const [churchNotifsList, setChurchNotifsList] = useState<any[]>([]);
   const [meetingsList, setMeetingsList] = useState<any[]>([]);
+  const [memberNotifsList, setMemberNotifsList] = useState<any[]>([]);
 
   useEffect(() => {
     // 1. Gather all meeting IDs from broadcastsList to prevent synthetic duplicate from meetingsList
@@ -163,9 +180,22 @@ export default function UpdatesScreen({ navigation, route }: any) {
       return true;
     });
 
-    const combined = [...deduplicatedBroadcasts, ...filteredMeetings].sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
-    setDynamicUpdates(combined);
-  }, [broadcastsList, meetingsList]);
+    const combined = [...deduplicatedBroadcasts, ...churchNotifsList, ...filteredMeetings, ...memberNotifsList].sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
+    const seenIds = new Set<string>();
+    const seenRosterAlertKeys = new Set<string>();
+    const deduplicated = combined.filter(item => {
+      if (!item || !item.id) return false;
+      if (seenIds.has(item.id)) return false;
+      seenIds.add(item.id);
+      if (item.type === 'admin_roster_alert') {
+        const rosterKey = `${item.serviceId || ''}|${item.title || ''}|${item.content || ''}`;
+        if (seenRosterAlertKeys.has(rosterKey)) return false;
+        seenRosterAlertKeys.add(rosterKey);
+      }
+      return true;
+    });
+    setDynamicUpdates(deduplicated);
+  }, [broadcastsList, churchNotifsList, meetingsList, memberNotifsList]);
   const [selectedUpdate, setSelectedUpdate] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
@@ -273,6 +303,212 @@ export default function UpdatesScreen({ navigation, route }: any) {
       return;
     }
 
+    const parseUpdateDoc = (docId: string, data: any, hasPendingWrite: boolean = false) => {
+      if (!data) return null;
+
+      // SECURITY: If broadcast is targeted to a specific church, skip it if not for this user's church
+      if (data.targetChurchId && churchToQuery && data.targetChurchId !== churchToQuery) {
+        return null;
+      }
+
+      // Phone matcher helper
+      const uPhone = user?.phoneNumber || '';
+      const mPhone = member?.phone || (member as any)?.mobile || (member as any)?.phoneNumber || '';
+      const checkPhoneMatch = (targetPhoneStr?: string) => {
+        if (!targetPhoneStr || typeof targetPhoneStr !== 'string') return false;
+        const target = targetPhoneStr.replace(/\D/g, '');
+        if (target.length < 6) return false;
+        const m1 = uPhone && uPhone.replace(/\D/g, '').endsWith(target);
+        const m2 = mPhone && mPhone.replace(/\D/g, '').endsWith(target);
+        const m3 = target.endsWith(uPhone.replace(/\D/g, '')) && uPhone.length >= 6;
+        const m4 = target.endsWith(mPhone.replace(/\D/g, '')) && mPhone.length >= 6;
+        return Boolean(m1 || m2 || m3 || m4);
+      };
+
+      // SECURITY 2: Admin-only broadcasts (e.g. New Baptism Request, Admin Service Roster Alerts)
+      const isForAdmin = data.type === 'baptism_request_admin' || 
+                         data.type === 'prayer_request_admin' || 
+                         data.type === 'admin_roster_alert' ||
+                         data.targetRole === 'admin' ||
+                         data.title?.includes('New Baptism Request') ||
+                         data.title?.includes('New Prayer Request');
+      if (isForAdmin && (!isAdmin || !showAdminView)) {
+        return null; // Non-admin members AND admins in member view must NEVER see admin notifications
+      }
+
+      // SECURITY 3: Member-specific status updates (e.g. Baptism Request Approved / Rejected / Under Review)
+      const isMemberBaptismUpdate = 
+        data.type === 'baptism_request_member' || 
+        data.type === 'baptism_request' || 
+        (data.title && (
+          data.title.includes('Baptism Request') ||
+          data.title.includes('Baptism Approved') ||
+          data.title.includes('Baptism Rejected')
+        ));
+
+      if (isMemberBaptismUpdate) {
+        if (showAdminView) {
+          return null;
+        }
+        const currentMemberId = member?.id || user?.uid || '';
+        const idMatches = Boolean(data.targetMemberId && currentMemberId && data.targetMemberId === currentMemberId);
+        const phoneMatches = Boolean(checkPhoneMatch(data.targetPhone));
+        if (!idMatches && !phoneMatches) {
+          return null;
+        }
+      }
+
+      // SECURITY 4: Any targeted notification by member ID
+      if (data.targetMemberId) {
+        const currentMemberId = member?.id || user?.uid || '';
+        const idMatches = currentMemberId && data.targetMemberId === currentMemberId;
+        const phoneMatches = checkPhoneMatch(data.targetPhone);
+        if (!idMatches && !phoneMatches) {
+          return null;
+        }
+      }
+
+      // SECURITY 5: Targeted notification by phone
+      if (data.targetPhone && typeof data.targetPhone === 'string' && data.targetPhone.trim().length > 0) {
+        if (!checkPhoneMatch(data.targetPhone)) {
+          return null;
+        }
+      }
+
+      // Determine icon, color and type classification
+      let icon = Bell;
+      let color = '#3b82f6';
+      let resolvedType = data.type || 'announcement';
+
+      if (data.type === 'online_meeting') {
+        icon = Video;
+        color = '#3b82f6';
+        resolvedType = 'online_meeting';
+      } else if (data.type === 'youtube_live' || data.type === 'live' || (data.title?.includes('🎥') && !data.title?.toLowerCase().includes('online meeting') && !data.title?.toLowerCase().includes('google meet') && !data.title?.toLowerCase().includes('zoom'))) {
+        icon = Tv;
+        color = '#ef4444';
+        resolvedType = 'youtube_live';
+      } else if (data.type === 'emergency' || data.title?.includes('🚨')) {
+        icon = AlertTriangle;
+        color = '#ef4444';
+        resolvedType = 'emergency';
+      } else if (
+        data.type === 'quiz' ||
+        data.type === 'quiz_scheduled' ||
+        data.type === 'bible_quiz' ||
+        data.screen === 'BibleQuizDetail' ||
+        data.quizId ||
+        data.title?.toLowerCase().includes('quiz') ||
+        data.title?.includes('క్విజ్')
+      ) {
+        icon = BookOpen;
+        color = '#1a2d5a';
+        resolvedType = 'quiz';
+      } else if (data.type === 'event' || data.title?.includes('📅')) {
+        icon = Calendar;
+        color = '#10b981';
+        resolvedType = 'event';
+      } else if (data.type === 'admin_roster_alert' || data.title?.includes('Response Deadline Expired') || data.title?.includes('No Volunteers:') || data.title?.includes('All Volunteers Declined') || data.title?.includes('Unfilled Dut')) {
+        icon = Layers;
+        color = '#c0392b';
+        resolvedType = 'admin_roster_alert';
+      } else if (data.type === 'service_roster' || data.title?.includes('Service Roster') || data.title?.includes('Roster Published')) {
+        icon = Layers;
+        color = '#059669';
+        resolvedType = 'service_roster';
+      } else if (data.type === 'service_assignment' || data.title?.includes('Service Assignment') || data.title?.includes('Ministry Responsibility')) {
+        icon = UserCheck;
+        color = '#1a2d5a';
+        resolvedType = 'service_assignment';
+      } else if (data.type === 'service_responsibility_broadcast' || data.title?.includes('Responsibility Available')) {
+        icon = Zap;
+        color = '#d97706';
+        resolvedType = 'service_responsibility_broadcast';
+      } else if (data.type === 'service_reminder' || data.title?.includes('Serving Tomorrow')) {
+        icon = Bell;
+        color = '#059669';
+        resolvedType = 'service_reminder';
+      } else if (data.type === 'rehearsal_alert' || data.title?.includes('Rehearsal Scheduled')) {
+        icon = Music;
+        color = '#7C3AED';
+        resolvedType = 'rehearsal_alert';
+      } else if (data.type === 'baptism_request_admin' || data.title?.includes('New Baptism Request')) {
+        icon = Droplets;
+        color = '#0284c7';
+        resolvedType = 'baptism_request_admin';
+      } else if (
+        data.type === 'baptism_request_member' || 
+        data.type === 'baptism_request' || 
+        data.title?.includes('Baptism Request Update') || 
+        data.title?.includes('Baptism Request Approved')
+      ) {
+        icon = Droplets;
+        color = '#0284c7';
+        resolvedType = 'baptism';
+      } else if (data.title?.includes('🎂') || data.content?.includes('Birthday') || data.type === 'birthday') {
+        icon = Gift;
+        color = '#d97706';
+        resolvedType = 'birthday';
+      } else if (data.title?.includes('🎉') || data.title?.includes('🕊️') || data.content?.includes('Baptism') || data.title?.includes('Baptism') || data.type === 'celebration') {
+        icon = Droplets;
+        color = '#0284c7';
+        resolvedType = 'celebration';
+      } else if (data.title?.includes('💐') || data.content?.includes('Anniversary') || data.title?.includes('Anniversary') || data.type === 'anniversary') {
+        icon = Heart;
+        color = '#be185d';
+        resolvedType = 'anniversary';
+      } else if (data.type === 'promise' || data.title?.includes('Promise') || data.title?.includes('వాగ్దానం')) {
+        icon = BookOpen;
+        color = '#8b5cf6';
+        resolvedType = 'promise';
+      } else if (data.type === 'song' || data.title?.includes('Song') || data.title?.includes('🎵')) {
+        icon = Music;
+        color = '#ec4899';
+        resolvedType = 'song';
+      } else if (data.type === 'sermon' || data.title?.includes('Sermon') || data.title?.includes('Message')) {
+        icon = Mic;
+        color = '#6366f1';
+        resolvedType = 'sermon';
+      }
+      let dateStr = data.date || data.serviceDate || new Date().toISOString().split('T')[0];
+
+      // Try to extract exact time if available
+      if (data.createdAt && typeof data.createdAt.toDate === 'function') {
+        const dt = data.createdAt.toDate();
+        const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        dateStr = `${dateStr} • ${timeStr}`;
+      } else if (typeof data.createdAt === 'number' || typeof data.createdAt === 'string') {
+        const dt = new Date(data.createdAt);
+        if (!isNaN(dt.getTime())) {
+          const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+          dateStr = `${dateStr} • ${timeStr}`;
+        }
+      }
+
+      return {
+        id: docId,
+        title: data.title || t('updates.announcement'),
+        content: formatDatesInText(stripHtml(data.content || data.body || '')),
+        date: dateStr,
+        type: resolvedType,
+        icon,
+        color,
+        url: data.url || '',
+        imageUrl: data.imageUrl || null,
+        password: data.password || null,
+        meetingId: data.meetingId || null,
+        quizId: data.quizId || null,
+        relatedId: data.quizId || data.relatedId || null,
+        serviceId: data.serviceId || null,
+        roleId: data.roleId || null,
+        roleTitle: data.roleTitle || null,
+        serviceTitle: data.serviceTitle || null,
+        serviceDate: data.serviceDate || null,
+        churchId: data.churchId || null,
+        rawDate: data.createdAt?.toMillis?.() || (typeof data.createdAt === 'number' ? data.createdAt : (hasPendingWrite ? Date.now() : 0)),
+      };
+    };
+
     const db = getFirestore();
     const q = query(
       collection(db, 'churches', churchToQuery, 'broadcasts'),
@@ -284,180 +520,9 @@ export default function UpdatesScreen({ navigation, route }: any) {
       q,
       (snapshot) => {
         if (snapshot) {
-          const list = snapshot.docs.map(doc => {
-            const data = doc.data();
-            
-            // SECURITY: If broadcast is targeted to a specific church, skip it if not for this user's church
-            if (data.targetChurchId && churchToQuery && data.targetChurchId !== churchToQuery) {
-              return null;
-            }
-
-            // Phone matcher helper
-            const uPhone = user?.phoneNumber || '';
-            const mPhone = member?.phone || (member as any)?.mobile || (member as any)?.phoneNumber || '';
-            const checkPhoneMatch = (targetPhoneStr?: string) => {
-              if (!targetPhoneStr || typeof targetPhoneStr !== 'string') return false;
-              const target = targetPhoneStr.replace(/\D/g, '');
-              if (target.length < 6) return false;
-              const m1 = uPhone && uPhone.replace(/\D/g, '').endsWith(target);
-              const m2 = mPhone && mPhone.replace(/\D/g, '').endsWith(target);
-              const m3 = target.endsWith(uPhone.replace(/\D/g, '')) && uPhone.length >= 6;
-              const m4 = target.endsWith(mPhone.replace(/\D/g, '')) && mPhone.length >= 6;
-              return Boolean(m1 || m2 || m3 || m4);
-            };
-
-            // SECURITY 2: Admin-only broadcasts (e.g. New Baptism Request)
-            const isForAdmin = data.type === 'baptism_request_admin' || 
-                               data.type === 'prayer_request_admin' || 
-                               data.targetRole === 'admin' ||
-                               data.title?.includes('New Baptism Request') ||
-                               data.title?.includes('New Prayer Request');
-            if (isForAdmin && (!isAdmin || !showAdminView)) {
-              return null; // Non-admin members AND admins in member view must NEVER see admin notifications
-            }
-
-            // SECURITY 3: Member-specific status updates (e.g. Baptism Request Approved / Rejected / Under Review)
-            const isMemberBaptismUpdate = 
-              data.type === 'baptism_request_member' || 
-              data.type === 'baptism_request' || 
-              (data.title && (
-                data.title.includes('Baptism Request') ||
-                data.title.includes('Baptism Approved') ||
-                data.title.includes('Baptism Rejected')
-              ));
-
-            if (isMemberBaptismUpdate) {
-              // Admin view should NOT display private member status updates
-              if (showAdminView) {
-                return null;
-              }
-              const currentMemberId = member?.id || user?.uid || '';
-              const idMatches = Boolean(data.targetMemberId && currentMemberId && data.targetMemberId === currentMemberId);
-              const phoneMatches = Boolean(checkPhoneMatch(data.targetPhone));
-              // Only visible to the particular member who made the request
-              if (!idMatches && !phoneMatches) {
-                return null;
-              }
-            }
-
-            // SECURITY 4: Any targeted notification by member ID
-            if (data.targetMemberId) {
-              const currentMemberId = member?.id || user?.uid || '';
-              const idMatches = currentMemberId && data.targetMemberId === currentMemberId;
-              const phoneMatches = checkPhoneMatch(data.targetPhone);
-              if (!idMatches && !phoneMatches) {
-                return null;
-              }
-            }
-
-            // SECURITY 5: Targeted notification by phone
-            if (data.targetPhone && typeof data.targetPhone === 'string' && data.targetPhone.trim().length > 0) {
-              if (!checkPhoneMatch(data.targetPhone)) {
-                return null;
-              }
-            }
-
-            // Determine icon, color and type classification
-            let icon = Bell;
-            let color = '#3b82f6';
-            let resolvedType = data.type || 'announcement';
-
-            if (data.type === 'online_meeting') {
-              icon = Video;
-              color = '#3b82f6';
-              resolvedType = 'online_meeting';
-            } else if (data.type === 'youtube_live' || data.type === 'live' || (data.title?.includes('🎥') && !data.title?.toLowerCase().includes('online meeting') && !data.title?.toLowerCase().includes('google meet') && !data.title?.toLowerCase().includes('zoom'))) {
-              icon = Tv;
-              color = '#ef4444';
-              resolvedType = 'youtube_live';
-            } else if (data.type === 'emergency' || data.title?.includes('🚨')) {
-              icon = AlertTriangle;
-              color = '#ef4444';
-              resolvedType = 'emergency';
-            } else if (
-              data.type === 'quiz' ||
-              data.type === 'quiz_scheduled' ||
-              data.type === 'bible_quiz' ||
-              data.screen === 'BibleQuizDetail' ||
-              data.quizId ||
-              data.title?.toLowerCase().includes('quiz') ||
-              data.title?.includes('క్విజ్')
-            ) {
-              icon = BookOpen;
-              color = '#1a2d5a';
-              resolvedType = 'quiz';
-            } else if (data.type === 'event' || data.title?.includes('📅')) {
-              icon = Calendar;
-              color = '#10b981';
-              resolvedType = 'event';
-            } else if (data.type === 'baptism_request_admin' || data.title?.includes('New Baptism Request')) {
-              icon = Droplets;
-              color = '#0284c7';
-              resolvedType = 'baptism_request_admin';
-            } else if (
-              data.type === 'baptism_request_member' || 
-              data.type === 'baptism_request' || 
-              data.title?.includes('Baptism Request Update') || 
-              data.title?.includes('Baptism Request Approved')
-            ) {
-              icon = Droplets;
-              color = '#0284c7';
-              resolvedType = 'baptism';
-            } else if (data.title?.includes('🎂') || data.content?.includes('Birthday') || data.type === 'birthday') {
-              icon = Gift;
-              color = '#d97706';
-              resolvedType = 'birthday';
-            } else if (data.title?.includes('🎉') || data.title?.includes('🕊️') || data.content?.includes('Baptism') || data.title?.includes('Baptism') || data.type === 'celebration') {
-              icon = Droplets;
-              color = '#0284c7';
-              resolvedType = 'celebration';
-            } else if (data.title?.includes('💐') || data.content?.includes('Anniversary') || data.title?.includes('Anniversary') || data.type === 'anniversary') {
-              icon = Heart;
-              color = '#be185d';
-              resolvedType = 'anniversary';
-            } else if (data.type === 'promise' || data.title?.includes('Promise') || data.title?.includes('వాగ్దానం')) {
-              icon = BookOpen;
-              color = '#8b5cf6';
-              resolvedType = 'promise';
-            } else if (data.type === 'song' || data.title?.includes('Song') || data.title?.includes('🎵')) {
-              icon = Music;
-              color = '#ec4899';
-              resolvedType = 'song';
-            } else if (data.type === 'sermon' || data.title?.includes('Sermon') || data.title?.includes('Message')) {
-              icon = Mic;
-              color = '#6366f1';
-              resolvedType = 'sermon';
-            }
-            let dateStr = data.date || new Date().toISOString().split('T')[0];
-            
-            // Try to extract exact time if available
-            if (data.createdAt && typeof data.createdAt.toDate === 'function') {
-              const dt = data.createdAt.toDate();
-              const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-              dateStr = `${dateStr} • ${timeStr}`;
-            } else if (typeof data.createdAt === 'number' || typeof data.createdAt === 'string') {
-              const dt = new Date(data.createdAt);
-              if (!isNaN(dt.getTime())) {
-                const timeStr = dt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                dateStr = `${dateStr} • ${timeStr}`;
-              }
-            }
-
-            return {
-              id: doc.id,
-              title: data.title || t('updates.announcement'),
-              content: formatDatesInText(stripHtml(data.content || '')),
-              date: dateStr,
-              type: resolvedType,
-              icon: icon,
-              color: color,
-              url: data.url || '',
-              imageUrl: data.imageUrl || null,
-              relatedId: data.quizId || data.relatedId || null,
-              churchId: data.churchId || null,
-              rawDate: data.createdAt?.toMillis?.() || (typeof data.createdAt === 'number' ? data.createdAt : 0)
-            };
-          }).filter(item => item !== null);
+          const list = snapshot.docs
+            .map(doc => parseUpdateDoc(doc.id, doc.data(), Boolean((doc as any).metadata?.hasPendingWrites)))
+            .filter(item => item !== null);
           setBroadcastsList(list);
         }
         setLoading(false);
@@ -468,7 +533,52 @@ export default function UpdatesScreen({ navigation, route }: any) {
       }
     );
 
-        const qMeetings = query(
+    const qRosterNotifs = query(
+      collection(db, 'churches', churchToQuery, 'notifications'),
+      where('type', 'in', ROSTER_NOTIFICATION_TYPES)
+    );
+
+    const unsubscribeChurchNotifs = onSnapshot(
+      qRosterNotifs,
+      (snapshot) => {
+        if (snapshot) {
+          const list = snapshot.docs
+            .map(doc => parseUpdateDoc(doc.id, doc.data(), Boolean((doc as any).metadata?.hasPendingWrites)))
+            .filter(item => item !== null);
+          setChurchNotifsList(list);
+        }
+      },
+      (error) => {
+        console.warn('Note: Roster notifications listener:', error);
+      }
+    );
+
+    const currentMemberId = member?.id || user?.uid;
+    let unsubscribeMemberNotifs = () => {};
+    if (currentMemberId) {
+      const qMemberNotifs = query(
+        collection(db, 'churches', churchToQuery, 'members', currentMemberId, 'notifications'),
+        orderBy('createdAt', 'desc'),
+        limit(20)
+      );
+
+      unsubscribeMemberNotifs = onSnapshot(
+        qMemberNotifs,
+        (snapshot) => {
+          if (snapshot) {
+            const list = snapshot.docs
+              .map(doc => parseUpdateDoc(doc.id, doc.data(), Boolean((doc as any).metadata?.hasPendingWrites)))
+              .filter(item => item !== null);
+            setMemberNotifsList(list);
+          }
+        },
+        (error) => {
+          console.warn('Note: Member notifications listener:', error);
+        }
+      );
+    }
+
+    const qMeetings = query(
       collection(db, 'churches', churchToQuery, 'online_meetings'),
       orderBy('createdAt', 'desc'),
       limit(10)
@@ -506,8 +616,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
       }
     );
 
-    return () => { unsubscribe(); unsubscribeMeetings(); };
-  }, [activeChurch?.id, member?.churchId, user?.phoneNumber, member?.phone]);
+    return () => { unsubscribe(); unsubscribeChurchNotifs(); unsubscribeMeetings(); unsubscribeMemberNotifs(); };
+  }, [activeChurch?.id, member?.churchId, user?.phoneNumber, member?.phone, member?.id, user?.uid, isAdmin, showAdminView]);
   const allUpdates = dynamicUpdates;
   const visibleUpdates = allUpdates.filter(update => !deletedIds.includes(update.id));
 
@@ -641,6 +751,45 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     navigation.navigate('BibleQuizDetail', { quizId: qId, churchId: update.churchId });
                   } else if (update.type === 'event') {
                     navigation.navigate('Events');
+                  } else if (update.type === 'admin_roster_alert') {
+                    if (showAdminView) {
+                      navigation.navigate('AdminRoot', {
+                        targetTab: 'Service Roster',
+                        serviceId: update.serviceId,
+                        roleId: update.roleId,
+                        timestamp: Date.now(),
+                      });
+                    } else if (isAdmin) {
+                      setViewMode('admin');
+                      setTimeout(() => {
+                        try {
+                          navigation.navigate('AdminRoot', {
+                            targetTab: 'Service Roster',
+                            serviceId: update.serviceId,
+                            roleId: update.roleId,
+                            timestamp: Date.now(),
+                          });
+                        } catch (e) {
+                          console.warn(e);
+                        }
+                      }, 100);
+                    } else {
+                      setSelectedUpdate(update);
+                    }
+                  } else if (update.type === 'service_roster' || update.type === 'rehearsal_alert') {
+                    navigation.navigate('MyService', {
+                      serviceId: update.serviceId,
+                      initialTab: 'roster',
+                    });
+                  } else if (
+                    update.type === 'service_assignment' ||
+                    update.type === 'service_responsibility_broadcast' ||
+                    update.type === 'service_reminder'
+                  ) {
+                    navigation.navigate('MyService', {
+                      serviceId: update.serviceId,
+                      initialTab: 'responsibilities',
+                    });
                   } else if (update.type === 'attendance') {
                     navigation.navigate('AttendanceScreen');
                   } else if (update.type === 'baptism_request_admin' || update.title?.includes('New Baptism Request')) {
@@ -825,20 +974,37 @@ export default function UpdatesScreen({ navigation, route }: any) {
                 <View style={styles.standardModalHeader}>
                   <View style={[
                     styles.stdIconBox, 
-                    (selectedUpdate?.type === 'emergency' || selectedUpdate?.title?.includes('🚨') || selectedUpdate?.type === 'youtube_live') && styles.stdIconBoxEmergency
+                    (selectedUpdate?.type === 'emergency' || selectedUpdate?.title?.includes('🚨') || selectedUpdate?.type === 'youtube_live' || selectedUpdate?.type === 'admin_roster_alert') && styles.stdIconBoxEmergency,
+                    (selectedUpdate?.type === 'service_roster' || selectedUpdate?.type === 'service_reminder') && { backgroundColor: '#ECFDF5' },
+                    (selectedUpdate?.type === 'service_assignment' || selectedUpdate?.type === 'service_responsibility_broadcast') && { backgroundColor: '#EFF6FF' },
+                    selectedUpdate?.type === 'rehearsal_alert' && { backgroundColor: '#F3E8FF' }
                   ]}>
                     {selectedUpdate?.type === 'emergency' || selectedUpdate?.title?.includes('🚨') ? (
                       <AlertTriangle size={24} color="#ef4444" />
                     ) : selectedUpdate?.type === 'youtube_live' ? (
                       <Tv size={24} color="#ef4444" />
+                    ) : selectedUpdate?.type === 'admin_roster_alert' ? (
+                      <Layers size={24} color="#c0392b" />
+                    ) : selectedUpdate?.type === 'service_roster' ? (
+                      <Layers size={24} color="#059669" />
+                    ) : selectedUpdate?.type === 'rehearsal_alert' ? (
+                      <Music size={24} color="#7C3AED" />
+                    ) : selectedUpdate?.type === 'service_assignment' ? (
+                      <UserCheck size={24} color="#1a2d5a" />
+                    ) : selectedUpdate?.type === 'service_responsibility_broadcast' ? (
+                      <Zap size={24} color="#d97706" />
                     ) : (
-                      <Bell size={24} color="#1a2d5a" />
+                      <Bell size={24} color={selectedUpdate?.color || '#1a2d5a'} />
                     )}
                   </View>
                   <View style={styles.stdHeaderMeta}>
                     <Text style={[
                       styles.stdTypeTag,
-                      (selectedUpdate?.type === 'emergency' || selectedUpdate?.title?.includes('🚨') || selectedUpdate?.type === 'youtube_live') && { color: '#ef4444' }
+                      (selectedUpdate?.type === 'emergency' || selectedUpdate?.title?.includes('🚨') || selectedUpdate?.type === 'youtube_live') && { color: '#ef4444' },
+                      selectedUpdate?.type === 'admin_roster_alert' && { color: '#c0392b' },
+                      (selectedUpdate?.type === 'service_roster' || selectedUpdate?.type === 'service_reminder') && { color: '#059669' },
+                      selectedUpdate?.type === 'rehearsal_alert' && { color: '#7C3AED' },
+                      (selectedUpdate?.type === 'service_assignment' || selectedUpdate?.type === 'service_responsibility_broadcast') && { color: '#1a2d5a' }
                     ]}>
                       {getTypeName(selectedUpdate?.type || 'announcement')}
                     </Text>
@@ -912,6 +1078,60 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     }}
                   >
                     <Text style={styles.joinLiveBtnTxt}>📖 Play Bible Quiz Now</Text>
+                  </TouchableOpacity>
+                )}
+
+                {selectedUpdate?.type === 'admin_roster_alert' && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#c0392b', marginTop: 16 }]}
+                    onPress={() => {
+                      const sId = selectedUpdate?.serviceId;
+                      const rId = selectedUpdate?.roleId;
+                      setSelectedUpdate(null);
+                      if (isAdmin && !showAdminView) setViewMode('admin');
+                      setTimeout(() => {
+                        navigation.navigate('AdminRoot', {
+                          targetTab: 'Service Roster',
+                          serviceId: sId,
+                          roleId: rId,
+                          timestamp: Date.now(),
+                        });
+                      }, isAdmin && !showAdminView ? 100 : 0);
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>📋 Open Service Roster</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(selectedUpdate?.type === 'service_roster' || selectedUpdate?.type === 'rehearsal_alert') && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#059669', marginTop: 16 }]}
+                    onPress={() => {
+                      const sId = selectedUpdate?.serviceId;
+                      setSelectedUpdate(null);
+                      navigation.navigate('MyService', {
+                        serviceId: sId,
+                        initialTab: 'roster',
+                      });
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>📋 View Service Roster & Order</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(selectedUpdate?.type === 'service_assignment' || selectedUpdate?.type === 'service_responsibility_broadcast' || selectedUpdate?.type === 'service_reminder') && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#1a2d5a', marginTop: 16 }]}
+                    onPress={() => {
+                      const sId = selectedUpdate?.serviceId;
+                      setSelectedUpdate(null);
+                      navigation.navigate('MyService', {
+                        serviceId: sId,
+                        initialTab: 'responsibilities',
+                      });
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>⚡ View Duties & Respond</Text>
                   </TouchableOpacity>
                 )}
 

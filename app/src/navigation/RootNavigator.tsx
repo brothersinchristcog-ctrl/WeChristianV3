@@ -77,6 +77,8 @@ import BibleQuizDetailScreen from '../screens/quiz/BibleQuizDetailScreen';
 import BibleQuizPlayerScreen from '../screens/quiz/BibleQuizPlayerScreen';
 import BibleQuizResultScreen from '../screens/quiz/BibleQuizResultScreen';
 import BibleQuizReviewScreen from '../screens/quiz/BibleQuizReviewScreen';
+import MyServiceScreen from '../screens/MyServiceScreen';
+import LiveStageHUD from '../screens/LiveStageHUD';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -669,7 +671,7 @@ function Navigation() {
         if (navigationRef && navigationRef.isReady()) {
           const type = pendingNotification?.data?.type;
           
-          if ((type === 'invoice' || type === 'baptism_request_admin' || type === 'new_church' || type === 'prayer_request_admin') && isAdmin && viewMode !== 'admin') {
+          if ((type === 'invoice' || type === 'baptism_request_admin' || type === 'new_church' || type === 'prayer_request_admin' || type === 'admin_roster_alert') && isAdmin && viewMode !== 'admin') {
             console.log('Switching to admin view to handle invoice notification');
             setViewMode('admin');
             return; // Exit early, the re-render will trigger this effect again
@@ -848,6 +850,9 @@ function Navigation() {
             <Stack.Screen name="BaptismRequest" component={renderPremium(BaptismRequestScreen)} />
             <Stack.Screen name="Songs" component={renderPremium(SongsScreen)} />
             <Stack.Screen name="PrayerWall" component={renderPremium(PrayerWallScreen)} />
+            <Stack.Screen name="LiveStageHUD" component={LiveStageHUD} />
+            <Stack.Screen name="MyService" component={MyServiceScreen} />
+            <Stack.Screen name="MyServiceDuties" component={MyServiceScreen} />
           </>
         ) : onboardingComplete ? (
           <>
@@ -890,6 +895,9 @@ function Navigation() {
             <Stack.Screen name="BibleQuizPlayer" component={BibleQuizPlayerScreen} />
             <Stack.Screen name="BibleQuizResult" component={BibleQuizResultScreen} />
             <Stack.Screen name="BibleQuizReview" component={BibleQuizReviewScreen} />
+            <Stack.Screen name="MyService" component={renderPremium(MyServiceScreen)} />
+            <Stack.Screen name="MyServiceDuties" component={renderPremium(MyServiceScreen)} />
+            <Stack.Screen name="LiveStageHUD" component={LiveStageHUD} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />

@@ -56,6 +56,7 @@ export const hi: TranslationSchema = {
     events: 'कार्यक्रम',
     adminView: 'व्यवस्थापक दृश्य',
     memberView: 'सदस्य दृश्य',
+    serviceRoster: 'सर्विस रोस्टर',
   },
 
   auth: {

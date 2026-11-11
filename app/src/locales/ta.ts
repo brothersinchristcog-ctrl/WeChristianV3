@@ -56,6 +56,7 @@ export const ta: TranslationSchema = {
     events: 'நிகழ்வுகள்',
     adminView: 'நிர்வாகி பார்வை',
     memberView: 'உறுப்பினர் பார்வை',
+    serviceRoster: 'சர்வீஸ் ரோஸ்டர்',
   },
 
   auth: {

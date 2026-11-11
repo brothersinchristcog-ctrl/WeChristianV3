@@ -137,3 +137,90 @@ export const formatDatesInText = (text: string): string => {
   return text.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, (_match, y, m, d) => `${d}-${m}-${y}`);
 };
 
+/**
+ * Formats any date string, Date object, or timestamp to Date Month Year format
+ * e.g., "15 November 2026"
+ */
+export const formatDateMonthYear = (dateVal: any): string => {
+  if (!dateVal) return '';
+  const MONTHS = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  try {
+    let y = 0, m = -1, d = 0;
+    if (typeof dateVal === 'string') {
+      const clean = dateVal.trim();
+      if (/^\d{1,2}\s+[A-Za-z]+\s+\d{4}$/.test(clean)) return clean;
+      const parts = clean.split('T')[0].split(/[-/]/);
+      if (parts.length === 3) {
+        if (parts[0].length === 4) {
+          y = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10) - 1;
+          d = parseInt(parts[2], 10);
+        } else if (parts[2].length === 4) {
+          d = parseInt(parts[0], 10);
+          m = parseInt(parts[1], 10) - 1;
+          y = parseInt(parts[2], 10);
+        }
+      }
+    } else if (dateVal instanceof Date && !isNaN(dateVal.getTime())) {
+      y = dateVal.getFullYear();
+      m = dateVal.getMonth();
+      d = dateVal.getDate();
+    } else if (dateVal?.toDate && typeof dateVal.toDate === 'function') {
+      const dt: Date = dateVal.toDate();
+      y = dt.getFullYear();
+      m = dt.getMonth();
+      d = dt.getDate();
+    }
+    if (y > 0 && d > 0 && m >= 0 && m < 12) {
+      const dayStr = String(d).padStart(2, '0');
+      return `${dayStr} ${MONTHS[m]} ${y}`;
+    }
+  } catch {}
+  return String(dateVal || '');
+};
+
+const formatSingleTimeTokenTo12Hour = (token: string): string => {
+  const trimmed = token.trim();
+  if (!trimmed) return '';
+  const withoutDate = trimmed.includes('T') ? trimmed.split('T')[1] || trimmed : trimmed;
+  const match = withoutDate.trim().match(/^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?\s*(AM|PM|Z)?$/i);
+  if (!match) return trimmed;
+
+  const rawH = parseInt(match[1], 10);
+  const rawM = parseInt(match[2], 10);
+  const meridiem = (match[3] || '').toUpperCase();
+  if (isNaN(rawH) || isNaN(rawM) || rawH > 23 || rawM > 59) return trimmed;
+
+  let period = 'AM';
+  if (meridiem === 'PM') period = 'PM';
+  else if (meridiem === 'AM') period = 'AM';
+  else period = rawH >= 12 ? 'PM' : 'AM';
+
+  const displayH = rawH % 12 === 0 ? 12 : rawH % 12;
+  return `${String(displayH).padStart(2, '0')}:${String(rawM).padStart(2, '0')} ${period}`;
+};
+
+/**
+ * Formats a 24-hour, ISO/UTC time (e.g. "12:00:00.000Z"), or time range into clean 12-hour AM/PM format
+ * e.g., "10:00" -> "10:00 AM", "12:00:00.000Z" -> "12:00 PM", "14:30" -> "02:30 PM"
+ */
+export const formatTimeTo12Hour = (timeVal: any): string => {
+  if (!timeVal) return '';
+  try {
+    const clean = String(timeVal).trim();
+    if (!clean) return '';
+
+    const rangeParts = clean.split(/\s*(?:–|—|\s-\s|(?<=:\d{2}(?::\d{2}(?:\.\d+)?)?(?:\s*(?:AM|PM|Z))?)-(?=\d{1,2}:))\s*/i);
+    if (rangeParts.length > 1) {
+      return rangeParts.map(formatSingleTimeTokenTo12Hour).filter(Boolean).join(' – ');
+    }
+
+    return formatSingleTimeTokenTo12Hour(clean);
+  } catch {}
+  return String(timeVal || '');
+};
+
+

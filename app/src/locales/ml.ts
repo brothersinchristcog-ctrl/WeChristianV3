@@ -56,6 +56,7 @@ export const ml: TranslationSchema = {
     events: 'പരിപാടികൾ',
     adminView: 'അഡ്മിൻ വ്യൂ',
     memberView: 'മെമ്പർ വ്യൂ',
+    serviceRoster: 'സർവീസ് റോസ്റ്റർ',
   },
 
   auth: {

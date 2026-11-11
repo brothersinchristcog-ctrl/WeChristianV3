@@ -181,6 +181,33 @@ class NotificationService {
           }
           break;
         }
+        case 'admin_roster_alert': {
+          nav.navigate('AdminRoot', {
+            targetTab: 'Service Roster',
+            serviceId: rawData.serviceId,
+            roleId: rawData.roleId,
+            timestamp: Date.now(),
+          });
+          break;
+        }
+        case 'service_responsibility_broadcast':
+        case 'service_reminder':
+        case 'rehearsal_alert':
+        case 'service_assignment':
+        case 'service_roster':
+        case 'roster_assignment': {
+          const initialTab =
+            type === 'service_assignment' ||
+            type === 'service_responsibility_broadcast' ||
+            type === 'service_reminder'
+              ? 'responsibilities'
+              : 'roster';
+          nav.navigate('MyService', {
+            serviceId: rawData.serviceId,
+            initialTab,
+          });
+          break;
+        }
         default:
           if (id) {
             nav.navigate('Updates', { highlightId: id, highlightType: type });

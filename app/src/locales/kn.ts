@@ -56,6 +56,7 @@ export const kn: TranslationSchema = {
     events: 'ಕಾರ್ಯಕ್ರಮಗಳು',
     adminView: 'ಅಡ್ಮಿನ್ ವ್ಯೂ',
     memberView: 'ಸದಸ್ಯ ವ್ಯೂ',
+    serviceRoster: 'ಸರ್ವೀಸ್ ರೋಸ್ಟರ್',
   },
 
   auth: {
