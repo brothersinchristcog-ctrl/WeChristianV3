@@ -203,6 +203,11 @@ export interface Sermon {
   series?: string;
   categories?: string;
   audioUrl?: string;
+  notesUrl?: string;
+  notesFileName?: string;
+  notesFileType?: string;
+  notesText?: string;
+  notesFileSize?: number;
   thumbnailUrl?: string;
   imageUrl?: string;
 }

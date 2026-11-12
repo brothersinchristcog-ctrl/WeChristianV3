@@ -1,5 +1,13 @@
+const extractYoutubeId = (url: string) => {
+  if (!url || typeof url !== 'string') return '';
+  const cleanUrl = url.trim();
+  const match = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([\w-]{11})/);
+  if (match) return match[1];
+  return cleanUrl;
+};
+import YoutubePlayer from 'react-native-youtube-iframe';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Platform, StatusBar, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Platform, StatusBar, Linking, Alert, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, ChevronLeft, Bookmark, Globe, Sliders, ExternalLink } from 'lucide-react-native';
 import { useLanguage } from '../context/LanguageContext';
@@ -170,20 +178,33 @@ export default function SongDetailModal({
               </View>
             ) : null}
 
-            {/* ── YouTube Video Banner Button ── */}
-            {song.youtubeId ? (
-              <TouchableOpacity
-                style={styles.youtubeBtn}
-                onPress={() => openYouTube(song.youtubeId!)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.youtubeIconBadge}>
-                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '900' }}>▶</Text>
+            {/* ── In-App Embedded YouTube Video Player ── */}
+            {(() => {
+              const yId = song.youtubeId ? extractYoutubeId(song.youtubeId) : '';
+              if (!yId || yId.length !== 11) return null;
+              const playerWidth = Math.min(Dimensions.get('window').width - 40, 480);
+              const playerHeight = Math.round((playerWidth * 9) / 16);
+              return (
+                <View style={{
+                  marginBottom: 16,
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  backgroundColor: '#000',
+                  borderWidth: 1,
+                  borderColor: isDark ? '#334155' : '#e2e8f0',
+                  alignItems: 'center',
+                  height: playerHeight,
+                }}>
+                  <YoutubePlayer
+                    key={`${song.id}-${yId}`}
+                    height={playerHeight}
+                    width={playerWidth}
+                    videoId={yId}
+                    play={false}
+                  />
                 </View>
-                <Text style={styles.youtubeBtnTxt}>Watch & Listen on YouTube</Text>
-                <ExternalLink size={14} color="#DC2626" />
-              </TouchableOpacity>
-            ) : null}
+              );
+            })()}
 
             {/* ── Musical Arrangement Chart ── */}
             {hasArrangement ? (

@@ -40,7 +40,8 @@ import {
   Search,
   Briefcase,
   Plus,
-  Droplets
+  Droplets,
+  HeartHandshake
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -632,6 +633,15 @@ export default function ProfileScreen({ navigation }: any) {
             sub="Submit request & track approval status" 
             onPress={() => {
               navigation.navigate('BaptismRequest');
+            }}
+          />
+          <MenuItem 
+            icon={<HeartHandshake size={20} color="#EA580C" />} 
+            iconBg="#FFEDD5"
+            title="Care Cells" 
+            sub="My fellowship group and house visits" 
+            onPress={() => {
+              navigation.navigate('CareCell');
             }}
           />
 

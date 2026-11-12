@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -11,9 +11,11 @@ import {
   Linking, 
   Share, 
   StatusBar, 
-  Platform 
+  Platform,
+  Modal
 } from 'react-native';
 import YoutubePlayer from 'react-native-youtube-iframe';
+import { WebView } from 'react-native-webview';
 import { LinearGradient } from 'expo-linear-gradient';
 import { 
   ChevronLeft, 
@@ -24,13 +26,46 @@ import {
   Video, 
   ExternalLink,
   ChevronRight,
-  Heart
+  Heart,
+  BookOpen,
+  Maximize2,
+  ChevronUp,
+  ChevronDown,
+  X
 } from 'lucide-react-native';
 import FirestoreService from '../services/FirestoreService';
 import { useChurch } from '../context/ChurchContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useTheme } from '../context/ThemeContext';
 
 const { width } = Dimensions.get('window');
+
+const formatNotesTitle = (fileName?: string) => {
+  if (!fileName) return 'Sermon Study Notes';
+  let name = fileName.replace(/\.(pdf|docx?|txt)$/i, '');
+  name = name.replace(/[_-]+/g, ' ').trim();
+  name = name.replace(/sermonpdf$/i, 'Sermon Notes');
+  name = name.replace(/pdf$/i, '');
+  name = name.split(' ')
+    .filter(Boolean)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+  if (!name.toLowerCase().includes('note') && !name.toLowerCase().includes('sermon')) {
+    name += ' Notes';
+  }
+  return name.trim() || 'Sermon Study Notes';
+};
+
+const injectedGviewCSS = `
+  (function() {
+    try {
+      var style = document.createElement('style');
+      style.innerHTML = "body, html, #drive-viewer-root, .drive-viewer-paginated-scrollable { background: #FFFFFF !important; background-color: #FFFFFF !important; margin: 0 !important; padding: 0 !important; } .drive-viewer-toolstrip { display: none !important; } .drive-viewer-page-container { margin: 6px auto !important; box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important; border: 1px solid #E5E7EB !important; } img { max-width: 100% !important; }";
+      document.head.appendChild(style);
+    } catch(e) {}
+  })();
+  true;
+`;
 
 const extractYoutubeId = (url: string) => {
   if (!url || typeof url !== 'string') return '';
@@ -49,7 +84,15 @@ export default function SermonVideoScreen({ navigation, route }: any) {
   const [activeVideo, setActiveVideo] = useState<any | null>(null);
   const { activeChurch } = useChurch();
   const { t } = useLanguage();
+  const { isDark, colors } = useTheme();
   const insets = useSafeAreaInsets();
+
+  const [inlineNotesText, setInlineNotesText] = useState<string>('');
+  const [loadingTextNotes, setLoadingTextNotes] = useState(false);
+  const [isNotesExpanded, setIsNotesExpanded] = useState(false);
+  const [showFullscreenNotes, setShowFullscreenNotes] = useState(false);
+  const [readerKey, setReaderKey] = useState(0);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   // Initial load from params or fetch
   useEffect(() => {
@@ -65,6 +108,10 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           duration: p.duration || '',
           pastor: p.pastor || 'Pastor',
           thumbnailUrl: p.thumbnailUrl || p.imageUrl || '',
+          notesUrl: p.notesUrl || '',
+          notesFileName: p.notesFileName || '',
+          notesFileType: p.notesFileType || '',
+          notesText: p.notesText || '',
         }));
       setVideos(data);
       
@@ -77,7 +124,11 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           youtubeId: sermonData.youtubeId || '',
           date: sermonData.date || 'Today',
           duration: sermonData.duration || '',
-          pastor: sermonData.pastor || 'Pastor'
+          pastor: sermonData.pastor || 'Pastor',
+          notesUrl: sermonData.notesUrl || '',
+          notesFileName: sermonData.notesFileName || '',
+          notesFileType: sermonData.notesFileType || '',
+          notesText: sermonData.notesText || '',
         });
       } else if (data.length > 0) {
         setActiveVideo(data[0]);
@@ -86,6 +137,22 @@ export default function SermonVideoScreen({ navigation, route }: any) {
     };
     init();
   }, [route?.params?.youtubeId]);
+
+  // Load text notes if needed
+  useEffect(() => {
+    if (activeVideo?.notesText) {
+      setInlineNotesText(activeVideo.notesText);
+    } else if (activeVideo?.notesUrl && (activeVideo?.notesFileType === 'txt' || activeVideo?.notesFileName?.toLowerCase()?.endsWith('.txt'))) {
+      setLoadingTextNotes(true);
+      fetch(activeVideo.notesUrl)
+        .then(res => res.text())
+        .then(txt => setInlineNotesText(txt))
+        .catch(err => console.warn('Could not load text notes:', err))
+        .finally(() => setLoadingTextNotes(false));
+    } else {
+      setInlineNotesText('');
+    }
+  }, [activeVideo]);
 
   const onStateChange = useCallback((state: string) => {
     if (state === 'ended') setPlaying(false);
@@ -117,6 +184,18 @@ export default function SermonVideoScreen({ navigation, route }: any) {
 
   const finalVideoId = extractYoutubeId(activeVideo?.youtubeId || '');
   const hasValidVideo = finalVideoId.length > 0;
+
+  const hasNotes = !!(activeVideo?.notesUrl || activeVideo?.notesText || activeVideo?.notesFileName);
+  const detectedFileType = (
+    activeVideo?.notesFileType ||
+    (activeVideo?.notesFileName?.toLowerCase()?.endsWith('.pdf') ? 'pdf' :
+     activeVideo?.notesFileName?.toLowerCase()?.endsWith('.docx') ? 'docx' :
+     activeVideo?.notesFileName?.toLowerCase()?.endsWith('.doc') ? 'doc' :
+     activeVideo?.notesFileName?.toLowerCase()?.endsWith('.txt') ? 'txt' : 'pdf')
+  ).toLowerCase();
+  const isTextDoc = detectedFileType === 'txt' || (inlineNotesText && !activeVideo?.notesUrl);
+  const cleanDocTitle = formatNotesTitle(activeVideo?.notesFileName);
+  const safeNotesUrl = (activeVideo?.notesUrl || '').trim();
 
   return (
     <View style={styles.container}>
@@ -193,6 +272,68 @@ export default function SermonVideoScreen({ navigation, route }: any) {
           </TouchableOpacity>
         </View>
 
+        {/* ── Sermon Notes (in-app viewer) ── */}
+        {hasNotes && (
+          <View style={styles.notesSection}>
+            <View style={[styles.notesCard, { backgroundColor: isDark ? '#1e293b' : '#fff', borderColor: isDark ? '#334155' : '#e2e8f0' }]}>
+              <View style={styles.notesHeaderBar}>
+                <BookOpen size={20} color={isDark ? '#fff' : '#1a2d5a'} />
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.notesHeaderTitle, { color: isDark ? '#fff' : '#1a2d5a' }]}>Sermon Notes · {detectedFileType.toUpperCase()}</Text>
+                  <Text style={[styles.notesFileName, { color: isDark ? '#94a3b8' : '#64748b' }]} numberOfLines={1}>{cleanDocTitle}</Text>
+                </View>
+              </View>
+              <View style={styles.notesActionBox}>
+                <TouchableOpacity style={styles.notesBadgeBtn} onPress={() => { setReaderKey(k => k + 1); setShowFullscreenNotes(true); }} activeOpacity={0.75}>
+                  <Text style={styles.notesBadgeBtnTxt}>Read In-App</Text>
+                  <Maximize2 size={12} color="#94A3B8" style={{ marginLeft: 6 }} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.notesBadgeBtn}
+                  onPress={() => {
+                    const next = !isNotesExpanded;
+                    setIsNotesExpanded(next);
+                    if (next) setTimeout(() => scrollViewRef.current?.scrollToEnd({ animated: true }), 100);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.notesBadgeBtnTxt}>{isNotesExpanded ? 'Hide Preview' : 'Inline Preview'}</Text>
+                  {isNotesExpanded ? <ChevronUp size={13} color="#94A3B8" style={{ marginLeft: 5 }} /> : <ChevronDown size={13} color="#94A3B8" style={{ marginLeft: 5 }} />}
+                </TouchableOpacity>
+              </View>
+
+              {isTextDoc && isNotesExpanded && (
+                <View style={[styles.notesContentWrap, { backgroundColor: isDark ? '#0f172a' : '#FAFAF9' }]}>
+                  {loadingTextNotes ? (
+                    <ActivityIndicator style={{ padding: 20 }} color="#1a2d5a" />
+                  ) : (
+                    <ScrollView style={styles.notesTextScroll} nestedScrollEnabled>
+                      <Text style={[styles.notesTextContent, { color: isDark ? '#f1f5f9' : '#1F2937' }]} selectable>
+                        {inlineNotesText || 'No text content available.'}
+                      </Text>
+                    </ScrollView>
+                  )}
+                </View>
+              )}
+
+              {!isTextDoc && !!safeNotesUrl && isNotesExpanded && (
+                <View style={styles.notesWebViewBox}>
+                  <WebView
+                    source={{ uri: (detectedFileType === 'pdf' && Platform.OS === 'ios') ? safeNotesUrl : `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(safeNotesUrl)}` }}
+                    style={{ flex: 1, backgroundColor: '#fff' }}
+                    originWhitelist={['*']}
+                    injectedJavaScript={injectedGviewCSS}
+                    nestedScrollEnabled
+                    javaScriptEnabled
+                    domStorageEnabled
+                    startInLoadingState
+                  />
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
         {/* ── Archive ── */}
         <Text style={styles.secLbl}>{t('sermons.pastSermons')}</Text>
         <View style={styles.archiveList}>
@@ -225,11 +366,66 @@ export default function SermonVideoScreen({ navigation, route }: any) {
         </View>
 
       </ScrollView>
+
+      <Modal visible={showFullscreenNotes} animationType="slide" onRequestClose={() => setShowFullscreenNotes(false)}>
+        <View style={{ flex: 1, backgroundColor: '#000' }}>
+          <StatusBar barStyle="light-content" backgroundColor="#000" />
+          <View style={styles.fullscreenModalHeader}>
+            <TouchableOpacity style={styles.fullscreenCloseBtn} onPress={() => setShowFullscreenNotes(false)} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+              <ArrowLeft size={22} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.fullscreenCenterTitle} numberOfLines={1}>{cleanDocTitle}</Text>
+            <View style={{ width: 44, height: 44 }} />
+          </View>
+          <View style={{ flex: 1, backgroundColor: '#000' }}>
+            {isTextDoc ? (
+              <ScrollView style={{ flex: 1, padding: 18 }}>
+                <Text style={[styles.notesTextContent, { color: '#F8FAFC', fontSize: 16, lineHeight: 26 }]} selectable>
+                  {inlineNotesText || 'No text content available.'}
+                </Text>
+              </ScrollView>
+            ) : safeNotesUrl ? (
+              <WebView
+                key={`fs-${readerKey}`}
+                source={{ uri: (detectedFileType === 'pdf' && Platform.OS === 'ios') ? safeNotesUrl : `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(safeNotesUrl)}` }}
+                style={{ flex: 1, backgroundColor: '#000' }}
+                originWhitelist={['*']}
+                injectedJavaScript={injectedGviewCSS}
+                javaScriptEnabled
+                domStorageEnabled
+                startInLoadingState
+                mixedContentMode="always"
+                renderLoading={() => (
+                  <View style={styles.notesLoadingBox}>
+                    <ActivityIndicator size="large" color="#fff" />
+                  </View>
+                )}
+              />
+            ) : null}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  notesSection: { marginTop: 14, marginHorizontal: 16 },
+  notesCard: { borderRadius: 16, overflow: 'hidden', borderWidth: 1, elevation: 3 },
+  notesHeaderBar: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 16, paddingBottom: 8, gap: 12 },
+  notesHeaderTitle: { fontSize: 14, fontWeight: '800' },
+  notesFileName: { fontSize: 11.5, fontWeight: '600', marginTop: 2 },
+  notesActionBox: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 4, paddingBottom: 16, gap: 10 },
+  notesBadgeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#1a2d5a', borderWidth: 1, borderColor: '#64748B', borderRadius: 22, paddingVertical: 9, paddingHorizontal: 12 },
+  notesBadgeBtnTxt: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  notesContentWrap: { borderTopWidth: 1, borderTopColor: '#E2E8F0' },
+  notesTextScroll: { maxHeight: 320, padding: 16 },
+  notesTextContent: { fontSize: 14, lineHeight: 23, color: '#1F2937' },
+  notesWebViewBox: { width: '100%', height: 380, backgroundColor: '#FFFFFF' },
+  notesLoadingBox: { ...StyleSheet.absoluteFillObject, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' },
+  fullscreenModalHeader: { paddingTop: Platform.OS === 'ios' ? 52 : (StatusBar.currentHeight ?? 24) + 8, paddingHorizontal: 16, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#000', borderBottomWidth: 1, borderBottomColor: '#27272A' },
+  fullscreenCloseBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'flex-start' },
+  fullscreenCenterTitle: { flex: 1, color: '#FFFFFF', fontSize: 15, fontWeight: '700', textAlign: 'center', paddingHorizontal: 8 },
   container: { flex: 1, backgroundColor: '#f0f2f7' },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#1a2d5a' },
   

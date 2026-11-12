@@ -88,6 +88,9 @@ import AdminQuizList from '../screens/admin/quiz/AdminQuizList';
 import ChurchService from '../services/ChurchService';
 import AdminServicePlanner from '../screens/admin/AdminServicePlanner';
 import AdminBaptism from '../screens/admin/AdminBaptism';
+import AdminCareCellsHub from '../screens/admin/care_cells/AdminCareCellsHub';
+import CareCellService from '../services/CareCellService';
+import { firestore } from '../services/firebaseConfig';
 
 const { width } = Dimensions.get('window');
 
@@ -118,6 +121,54 @@ export default function AdminNavigator({ navigation, route }: any) {
   const [tabHistory, setTabHistory] = useState<number[]>([]);
   const [editingData, setEditingData] = useState(null);
   const [dashboardScrollY, setDashboardScrollY] = useState(0);
+  const [hasCareCellAccess, setHasCareCellAccess] = useState(false);
+
+  const isSuperAdminUser = 
+    String(member?.userType || '').toUpperCase().includes('ADMIN') || 
+    String(member?.userType || '').toUpperCase().includes('SUPER') ||
+    isPlatformSuperAdmin;
+
+  useEffect(() => {
+    if (isSuperAdminUser) {
+      setHasCareCellAccess(true);
+      return;
+    }
+    if (!user?.uid) {
+      setHasCareCellAccess(false);
+      return;
+    }
+
+    const churchId = activeChurch?.id;
+    if (!churchId) {
+      setHasCareCellAccess(false);
+      return;
+    }
+
+    // Initial check
+    CareCellService.checkAdminHasCareCellAccess(churchId, user.uid)
+      .then(hasAccess => setHasCareCellAccess(hasAccess))
+      .catch(() => setHasCareCellAccess(false));
+
+    // Real-time listener for cell assignments
+    const unsubscribe = firestore()
+      .collection('churches')
+      .doc(churchId)
+      .collection('careCells')
+      .onSnapshot((snap) => {
+        if (snap) {
+          const matching = snap.docs.some(doc => {
+            const d = doc.data() || {};
+            const assigned = Array.isArray(d.assignedAdminIds) ? d.assignedAdminIds : [];
+            return assigned.includes(user.uid) || d.leaderId === user.uid || d.assistantLeaderId === user.uid;
+          });
+          setHasCareCellAccess(matching);
+        }
+      }, (err) => {
+        console.warn('⚠️ [AdminNavigator] Care Cells access listener error:', err);
+      });
+
+    return () => unsubscribe();
+  }, [activeChurch?.id, user?.uid, isSuperAdminUser]);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -233,6 +284,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     { name: 'Pastor Event', icon: Briefcase, component: PastorEventDashboard },
     { name: 'Prayers', icon: Heart, component: AdminPrayerModeration },
     { name: 'Attendance', icon: ClipboardCheck, component: AdminAttendance },
+    ...(isSuperAdminUser || hasCareCellAccess ? [{ name: 'Care Cells', icon: HeartHandshake, component: AdminCareCellsHub }] : []),
     { name: 'Service Roster', icon: ClipboardCheck, component: AdminServicePlanner },
     { name: 'Members', icon: Users, component: AdminMembers },
     { name: 'Baptism', icon: Droplets, component: AdminBaptism },

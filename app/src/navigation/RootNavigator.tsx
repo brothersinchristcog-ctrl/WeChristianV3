@@ -43,6 +43,7 @@ import PrayerWallScreen from '../screens/PrayerWallScreen';
 import GivingScreen from '../screens/GivingScreen';
 import GivingHistoryScreen from '../screens/GivingHistoryScreen';
 import BaptismRequestScreen from '../screens/BaptismRequestScreen';
+import CareCellScreen from '../screens/care_cells/CareCellScreen';
 import SermonsScreen from '../screens/SermonsScreen';
 import SongsScreen from '../screens/SongsScreen';
 import EventDetailsScreen from '../screens/EventDetailsScreen';
@@ -848,6 +849,8 @@ function Navigation() {
             <Stack.Screen name="OnlineMeetings" component={renderPremium(OnlineMeetingsScreen)} />
             <Stack.Screen name="OnlineMeetingDetail" component={renderPremium(OnlineMeetingDetailScreen)} />
             <Stack.Screen name="BaptismRequest" component={renderPremium(BaptismRequestScreen)} />
+            <Stack.Screen name="CareCell" component={renderPremium(CareCellScreen)} />
+            <Stack.Screen name="CareCellScreen" component={renderPremium(CareCellScreen)} />
             <Stack.Screen name="Songs" component={renderPremium(SongsScreen)} />
             <Stack.Screen name="PrayerWall" component={renderPremium(PrayerWallScreen)} />
             <Stack.Screen name="LiveStageHUD" component={LiveStageHUD} />
@@ -867,6 +870,8 @@ function Navigation() {
             <Stack.Screen name="Give" component={renderPremium(GivingScreen)} />
             <Stack.Screen name="GivingHistory" component={renderPremium(GivingHistoryScreen)} />
             <Stack.Screen name="BaptismRequest" component={renderPremium(BaptismRequestScreen)} />
+            <Stack.Screen name="CareCell" component={renderPremium(CareCellScreen)} />
+            <Stack.Screen name="CareCellScreen" component={renderPremium(CareCellScreen)} />
             <Stack.Screen name="Sermons" component={renderPremium(SermonsScreen)} />
             <Stack.Screen name="Songs" component={renderPremium(SongsScreen)} />
             <Stack.Screen name="EventDetails" component={renderPremium(EventDetailsScreen)} />

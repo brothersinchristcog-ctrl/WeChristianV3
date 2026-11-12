@@ -47,7 +47,10 @@ import {
   Save,
   Send,
   Check,
-  User
+  User,
+  Paperclip,
+  Trash2,
+  BookOpen
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 
@@ -87,6 +90,12 @@ export default function AdminSermonEditor() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [audioFile, setAudioFile] = useState<any>(null);
   const [thumbnailFile, setThumbnailFile] = useState<any>(null);
+  const [notesFile, setNotesFile] = useState<any>(null);
+  const [notesUrl, setNotesUrl] = useState<string>('');
+  const [notesFileName, setNotesFileName] = useState<string>('');
+  const [notesFileType, setNotesFileType] = useState<string>('');
+  const [notesText, setNotesText] = useState<string>('');
+  const [notesFileSize, setNotesFileSize] = useState<number | undefined>(undefined);
   
   const [form, setForm] = useState({
     titleEn: '',
@@ -169,6 +178,12 @@ export default function AdminSermonEditor() {
         status: editingData.status || 'Published'
       }));
       // Load existing categories
+      setNotesUrl(editingData.notesUrl || '');
+      setNotesFileName(editingData.notesFileName || '');
+      setNotesFileType(editingData.notesFileType || '');
+      setNotesText(editingData.notesText || '');
+      setNotesFileSize(editingData.notesFileSize);
+      setNotesFile(null);
       if (editingData.categories) {
         const loaded = typeof editingData.categories === 'string'
           ? editingData.categories.split(';').map((c: string) => c.trim()).filter(Boolean)
@@ -182,6 +197,13 @@ export default function AdminSermonEditor() {
           return merged;
         });
       }
+    } else {
+      setNotesUrl('');
+      setNotesFileName('');
+      setNotesFileType('');
+      setNotesText('');
+      setNotesFileSize(undefined);
+      setNotesFile(null);
     }
   }, [editingData]);
 
@@ -236,6 +258,110 @@ export default function AdminSermonEditor() {
     }
   };
 
+  const uploadNotesToCloud = async (localUri: string, fileName: string): Promise<string> => {
+    try {
+      const storage = require('@react-native-firebase/storage').default;
+      const churchId = await FirestoreService.getChurchId();
+      const cleanName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const storagePath = `churches/${churchId || 'common'}/sermons/notes/${Date.now()}_${cleanName}`;
+      
+      const reference = storage().ref(storagePath);
+      try {
+        await reference.putFile(localUri);
+      } catch (putErr) {
+        const res = await fetch(localUri);
+        const blob = await res.blob();
+        await reference.put(blob);
+      }
+      const downloadURL = await reference.getDownloadURL();
+      return downloadURL;
+    } catch (error) {
+      console.error('Notes upload failed:', error);
+      throw new Error('Cloud notes upload failed');
+    }
+  };
+
+  const handlePickNotesDocument = async () => {
+    try {
+      const DocumentPicker = require('expo-document-picker');
+      const res = await DocumentPicker.getDocumentAsync({
+        type: [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'text/plain',
+          '*/*'
+        ],
+        copyToCacheDirectory: true,
+      });
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const asset = res.assets[0];
+        const name = asset.name || 'sermon_notes';
+        const ext = name.split('.').pop()?.toLowerCase() || '';
+
+        if (!['pdf', 'doc', 'docx', 'txt'].includes(ext)) {
+          Alert.alert(
+            'Unsupported File Format',
+            'Please select a PDF (.pdf), Word document (.doc, .docx), or Text document (.txt).'
+          );
+          return;
+        }
+
+        // Max file size limit: 20 MB
+        const MAX_DOC_SIZE_BYTES = 20 * 1024 * 1024;
+        if (asset.size && asset.size > MAX_DOC_SIZE_BYTES) {
+          Alert.alert(
+            'Document Limit Exceeded',
+            `The selected file is ${(asset.size / (1024 * 1024)).toFixed(1)} MB. The maximum allowed file size for sermon notes is 20 MB. Please upload a file within 20 MB.`
+          );
+          return;
+        }
+
+        let fType = 'pdf';
+        if (ext === 'doc' || ext === 'docx') fType = ext;
+        else if (ext === 'txt') fType = 'txt';
+
+        setNotesFile(asset);
+        setNotesFileName(name);
+        setNotesFileType(fType);
+        setNotesFileSize(asset.size);
+
+        if (ext === 'txt') {
+          try {
+            let text = '';
+            try {
+              const { readAsStringAsync } = require('expo-file-system/legacy');
+              text = await readAsStringAsync(asset.uri);
+            } catch (e1) {
+              const resp = await fetch(asset.uri);
+              text = await resp.text();
+            }
+            if (text) {
+              setNotesText(text);
+            }
+          } catch (textErr) {
+            console.warn('Could not read txt file content:', textErr);
+          }
+        } else {
+          setNotesText('');
+        }
+      }
+    } catch (err: any) {
+      console.error('Pick Document Error:', err);
+      Alert.alert('Error', 'Unable to pick document. Please try again.');
+    }
+  };
+
+  const handleRemoveNotes = () => {
+    setNotesFile(null);
+    setNotesUrl('');
+    setNotesFileName('');
+    setNotesFileType('');
+    setNotesText('');
+    setNotesFileSize(undefined);
+  };
+
   const handleConfirm = (date: Date) => {
     // Avoid toISOString() as it shifts the date to UTC, causing it to display the previous day in some timezones.
     const year = date.getFullYear();
@@ -259,6 +385,17 @@ export default function AdminSermonEditor() {
     );
     setLoading(true);
     try {
+      let finalNotesUrl = notesUrl;
+      if (notesFile && notesFile.uri) {
+        try {
+          finalNotesUrl = await uploadNotesToCloud(notesFile.uri, notesFileName || notesFile.name || 'sermon_notes.pdf');
+        } catch (notesErr) {
+          console.warn('Could not upload sermon notes document:', notesErr);
+          Alert.alert('Notes Upload Warning', 'Failed to upload sermon notes document to cloud storage. Saving sermon without notes.');
+          finalNotesUrl = '';
+        }
+      }
+
       const payload = {
         id: editingData?.id,
         ...form,
@@ -269,6 +406,11 @@ export default function AdminSermonEditor() {
         categories: selectedCategories.join(';'),
         thumbnailUrl: form.thumbnailUrl || '',
         imageUrl: form.thumbnailUrl || '',
+        notesUrl: finalNotesUrl || '',
+        notesFileName: notesFileName || '',
+        notesFileType: notesFileType || '',
+        notesText: notesText || '',
+        notesFileSize: notesFileSize || 0,
       };
       await FirestoreService.createSermon(payload);
 
@@ -511,6 +653,114 @@ export default function AdminSermonEditor() {
             <Text style={styles.fLabel}>Description <Text style={styles.fHint}>Shown below title in app</Text></Text>
             <TextInput style={[styles.input, { fontFamily: 'monospace', fontSize: 12 }]} multiline numberOfLines={3} value={form.description} onChangeText={(v) => setForm({...form, description: v})} placeholder="Brief summary of this sermon..." />
           </View>
+        </View>
+
+        {/* 3. Sermon Notes Document */}
+        <View style={styles.modBox}>
+          <View style={[styles.modHd, { backgroundColor: '#F5F3FF' }]}>
+            <BookOpen size={14} color="#7C3AED" />
+            <Text style={[styles.modHdTxt, { color: '#7C3AED' }]}>Sermon Notes Document</Text>
+            <View style={styles.optionalBadge}>
+              <Text style={styles.optionalBadgeTxt}>Optional</Text>
+            </View>
+          </View>
+
+          <Text style={styles.notesSectionSubtitle}>
+            Attach sermon notes or study outline in PDF, Word, or Text format (Max 20 MB). Members can read these notes directly inside the app while watching.
+          </Text>
+
+          {/* Format pills */}
+          <View style={styles.formatPillsRow}>
+            <View style={[styles.formatPill, { borderColor: '#FCA5A5', backgroundColor: '#FEF2F2' }]}>
+              <Text style={[styles.formatPillTxt, { color: '#DC2626' }]}>PDF</Text>
+              <Text style={styles.formatPillExt}>.pdf</Text>
+            </View>
+            <View style={[styles.formatPill, { borderColor: '#93C5FD', backgroundColor: '#EFF6FF' }]}>
+              <Text style={[styles.formatPillTxt, { color: '#2563EB' }]}>Word</Text>
+              <Text style={styles.formatPillExt}>.doc, .docx</Text>
+            </View>
+            <View style={[styles.formatPill, { borderColor: '#86EFAC', backgroundColor: '#F0FDF4' }]}>
+              <Text style={[styles.formatPillTxt, { color: '#16A34A' }]}>Text</Text>
+              <Text style={styles.formatPillExt}>.txt</Text>
+            </View>
+          </View>
+
+          {notesFileName || notesUrl || notesFile ? (
+            <View style={styles.notesDocCard}>
+              <View style={styles.notesDocHeader}>
+                <View style={[
+                  styles.notesDocTypeBadge,
+                  notesFileType === 'pdf' ? { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' } :
+                  (notesFileType === 'doc' || notesFileType === 'docx') ? { backgroundColor: '#DBEAFE', borderColor: '#93C5FD' } :
+                  { backgroundColor: '#DCFCE7', borderColor: '#86EFAC' }
+                ]}>
+                  <Text style={[
+                    styles.notesDocTypeTxt,
+                    notesFileType === 'pdf' ? { color: '#DC2626' } :
+                    (notesFileType === 'doc' || notesFileType === 'docx') ? { color: '#2563EB' } :
+                    { color: '#16A34A' }
+                  ]}>
+                    {(notesFileType || 'DOC').toUpperCase()}
+                  </Text>
+                </View>
+
+                <View style={styles.notesDocMeta}>
+                  <Text style={styles.notesDocName} numberOfLines={1}>
+                    {notesFileName || 'Attached Sermon Notes'}
+                  </Text>
+                  <View style={styles.notesDocSubRow}>
+                    <CheckCircle2 size={11} color="#16A34A" />
+                    <Text style={styles.notesDocStatusTxt}>
+                      {notesFile ? 'Ready to upload on save' : 'Saved & attached'}
+                    </Text>
+                    {notesFileSize ? (
+                      <Text style={styles.notesDocSizeTxt}>
+                        • {(notesFileSize / (1024 * 1024)).toFixed(2)} MB
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              </View>
+
+              {notesText ? (
+                <View style={styles.notesTextPreviewBox}>
+                  <Text style={styles.notesTextPreviewLabel}>Text Content Preview:</Text>
+                  <Text style={styles.notesTextPreviewContent} numberOfLines={3}>
+                    {notesText}
+                  </Text>
+                </View>
+              ) : null}
+
+              <View style={styles.notesDocActions}>
+                <TouchableOpacity 
+                  style={styles.notesDocChangeBtn} 
+                  onPress={handlePickNotesDocument}
+                >
+                  <Paperclip size={13} color="#1a2d5a" />
+                  <Text style={styles.notesDocChangeBtnTxt}>Replace Document</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                  style={styles.notesDocRemoveBtn} 
+                  onPress={handleRemoveNotes}
+                >
+                  <Trash2 size={13} color="#DC2626" />
+                  <Text style={styles.notesDocRemoveBtnTxt}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.notesUploadDashedBox} 
+              onPress={handlePickNotesDocument}
+            >
+              <View style={styles.notesUploadIconCircle}>
+                <Paperclip size={20} color="#6366F1" />
+              </View>
+              <Text style={styles.notesUploadTitle}>Choose Sermon Notes Document</Text>
+              <Text style={styles.notesUploadHint}>Supports PDF, Word (.doc, .docx) & Notepad (.txt) up to 20 MB</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* 4. Notifications */}
@@ -1561,5 +1811,184 @@ const styles = StyleSheet.create({
   newCatBtnCancelTxt: { fontSize: 13, fontWeight: '600', color: '#64748b' },
   newCatBtnSave: { backgroundColor: '#1a2d5a', paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, minWidth: 110, alignItems: 'center', justifyContent: 'center' },
   newCatBtnSaveTxt: { fontSize: 13, fontWeight: '700', color: '#fff' },
+
+  // Sermon Notes Styles
+  optionalBadge: {
+    marginLeft: 'auto',
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F1F5F9',
+  },
+  optionalBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  notesSectionSubtitle: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 17,
+    marginBottom: 12,
+  },
+  formatPillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+  },
+  formatPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  formatPillTxt: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  formatPillExt: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#64748B',
+  },
+  notesUploadDashedBox: {
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    paddingVertical: 22,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  notesUploadIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  notesUploadTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginBottom: 3,
+  },
+  notesUploadHint: {
+    fontSize: 11,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  notesDocCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+  },
+  notesDocHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  notesDocTypeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginRight: 10,
+  },
+  notesDocTypeTxt: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  notesDocMeta: {
+    flex: 1,
+  },
+  notesDocName: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  notesDocSubRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  notesDocStatusTxt: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#16A34A',
+  },
+  notesDocSizeTxt: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  notesTextPreviewBox: {
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  notesTextPreviewLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  notesTextPreviewContent: {
+    fontSize: 11,
+    color: '#334155',
+    lineHeight: 16,
+  },
+  notesDocActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  notesDocChangeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F0F4FF',
+  },
+  notesDocChangeBtnTxt: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#1a2d5a',
+  },
+  notesDocRemoveBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#FEF2F2',
+  },
+  notesDocRemoveBtnTxt: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
 });
 
