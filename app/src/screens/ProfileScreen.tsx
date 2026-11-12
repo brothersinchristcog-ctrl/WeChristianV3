@@ -644,6 +644,24 @@ export default function ProfileScreen({ navigation }: any) {
               navigation.navigate('CareCell');
             }}
           />
+          <MenuItem 
+            icon={<HeartHandshake size={20} color="#059669" />} 
+            iconBg="#DCFCE7"
+            title="Church Volunteering" 
+            sub="Apply to serve & view volunteer assignments" 
+            onPress={() => {
+              navigation.navigate('Volunteer');
+            }}
+          />
+          <MenuItem 
+            icon={<Sparkles size={20} color="#7C3AED" />} 
+            iconBg="#EDE9FE"
+            title="Testimonies" 
+            sub="Read & share praise reports" 
+            onPress={() => {
+              navigation.navigate('Testimonies');
+            }}
+          />
 
           {(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') || String(member?.userType || '').toUpperCase().includes('PASTOR')) && (
             <MenuItem 

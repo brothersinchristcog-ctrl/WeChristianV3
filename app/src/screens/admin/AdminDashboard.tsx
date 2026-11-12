@@ -87,7 +87,7 @@ const CATEGORIES = [
     title: 'Community & Members',
     icon: Users,
     color: '#581C87', // Deep Royal Purple/Eggplant for excellent contrast
-    keywords: ['Member', 'Attendance', 'Prayer', 'Care Cell']
+    keywords: ['Member', 'Attendance', 'Prayer', 'Care Cell', 'Testimon', 'Volunteer']
   },
   {
     title: 'Events & Celebrations',

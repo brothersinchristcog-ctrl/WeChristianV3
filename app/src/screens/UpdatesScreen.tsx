@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Modal, PanResponder, Animated, Dimensions, Linking, Alert, Image, BackHandler, Clipboard, ToastAndroid } from 'react-native';
-import { ChevronLeft, ArrowLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic, Video, Droplets, Layers, UserCheck, Zap } from 'lucide-react-native';
+import { ChevronLeft, ArrowLeft, Bell, Calendar, Info, MessageCircle, AlertTriangle, X, Gift, Heart, Sparkles, Trash2, Tv, BookOpen, Music, Mic, Video, Droplets, Layers, UserCheck, Zap, HeartHandshake } from 'lucide-react-native';
 import { openZoomMeeting } from '../utils/ZoomLauncher';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -136,6 +136,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
   const { t } = useLanguage();
 
   const getTypeName = (type: string) => {
+    if (type === 'testimony_admin' || type === 'testimony_member_status' || type === 'testimony_published' || type === 'testimony') return 'TESTIMONY';
+    if (type && type.startsWith('volunteer')) return 'VOLUNTEER';
     if (type === 'baptism_request_admin' || type === 'baptism_request') return 'BAPTISM REQUEST';
     if (type === 'baptism' || type === 'baptism_request_member') return 'BAPTISM';
     if (type === 'admin_roster_alert') return 'SERVICE ROSTER ALERT';
@@ -340,9 +342,13 @@ export default function UpdatesScreen({ navigation, route }: any) {
       const isForAdmin = data.type === 'baptism_request_admin' || 
                          data.type === 'prayer_request_admin' || 
                          data.type === 'admin_roster_alert' ||
+                         data.type === 'testimony_admin' ||
+                         data.type === 'volunteer_application_admin' ||
                          data.targetRole === 'admin' ||
                          data.title?.includes('New Baptism Request') ||
-                         data.title?.includes('New Prayer Request');
+                         data.title?.includes('New Prayer Request') ||
+                         data.title?.includes('New Testimony Submitted') ||
+                         data.title?.includes('New Volunteer Application');
       if (isForAdmin && (!isAdmin || !showAdminView)) {
         return null; // Non-admin members AND admins in member view must NEVER see admin notifications
       }
@@ -480,6 +486,24 @@ export default function UpdatesScreen({ navigation, route }: any) {
         icon = Mic;
         color = '#6366f1';
         resolvedType = 'sermon';
+      } else if (
+        data.type === 'testimony_admin' || 
+        data.type === 'testimony_member_status' || 
+        data.type === 'testimony_published' || 
+        data.type === 'testimony' || 
+        data.title?.toLowerCase().includes('testimony') || 
+        data.title?.includes('సాక్ష్యం')
+      ) {
+        icon = Sparkles;
+        color = '#d97706';
+        resolvedType = data.type || 'testimony';
+      } else if (
+        data.type?.startsWith('volunteer') || 
+        data.title?.toLowerCase().includes('volunteer')
+      ) {
+        icon = HeartHandshake;
+        color = '#059669';
+        resolvedType = data.type || 'volunteer';
       }
       let dateStr = data.date || data.serviceDate || new Date().toISOString().split('T')[0];
 
@@ -516,6 +540,11 @@ export default function UpdatesScreen({ navigation, route }: any) {
         serviceTitle: data.serviceTitle || null,
         serviceDate: data.serviceDate || null,
         churchId: data.churchId || null,
+        testimonyId: data.testimonyId || null,
+        volunteerId: data.volunteerId || null,
+        eventId: data.eventId || null,
+        targetTab: data.targetTab || null,
+        screen: data.screen || null,
         rawDate: data.createdAt?.toMillis?.() || (typeof data.createdAt === 'number' ? data.createdAt : (hasPendingWrite ? Date.now() : 0)),
       };
     };
@@ -825,6 +854,56 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     (update.type === 'baptism' && update.title?.includes('Baptism Request Approved'))
                   ) {
                     setSelectedUpdate(update);
+                  } else if (
+                    update.type === 'testimony_admin' ||
+                    update.title?.includes('New Testimony Submitted')
+                  ) {
+                    if (showAdminView) {
+                      navigation.navigate('AdminRoot', { targetTab: 'Testimonies' });
+                    } else if (isAdmin) {
+                      setViewMode('admin');
+                      setTimeout(() => {
+                        navigation.navigate('AdminRoot', { targetTab: 'Testimonies' });
+                      }, 100);
+                    } else {
+                      setSelectedUpdate(update);
+                    }
+                  } else if (
+                    update.type === 'testimony_member_status' ||
+                    update.type === 'testimony_published' ||
+                    update.type === 'testimony'
+                  ) {
+                    if (update.testimonyId) {
+                      navigation.navigate('TestimonyDetail', { testimonyId: update.testimonyId });
+                    } else {
+                      navigation.navigate('Testimonies', { initialTab: 'mine' });
+                    }
+                  } else if (
+                    update.type === 'volunteer_application_admin' ||
+                    update.title?.includes('New Volunteer Application')
+                  ) {
+                    if (showAdminView) {
+                      navigation.navigate('AdminRoot', { targetTab: 'Volunteer Management' });
+                    } else if (isAdmin) {
+                      setViewMode('admin');
+                      setTimeout(() => {
+                        navigation.navigate('AdminRoot', { targetTab: 'Volunteer Management' });
+                      }, 100);
+                    } else {
+                      setSelectedUpdate(update);
+                    }
+                  } else if (
+                    update.type === 'volunteer_application_member' ||
+                    update.type === 'volunteer_assignment' ||
+                    update.type === 'volunteer_reminder' ||
+                    update.type === 'volunteer_event_change' ||
+                    update.type === 'volunteer'
+                  ) {
+                    if (update.eventId) {
+                      navigation.navigate('EventDetails', { eventId: update.eventId });
+                    } else {
+                      navigation.navigate('Volunteer');
+                    }
                   } else {
                     setSelectedUpdate(update);
                   }
@@ -1143,6 +1222,70 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     }}
                   >
                     <Text style={styles.joinLiveBtnTxt}>⚡ View Duties & Respond</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(selectedUpdate?.type === 'testimony_admin' || selectedUpdate?.title?.includes('New Testimony Submitted')) && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#d97706', marginTop: 16 }]}
+                    onPress={() => {
+                      setSelectedUpdate(null);
+                      if (isAdmin && !showAdminView) setViewMode('admin');
+                      setTimeout(() => {
+                        navigation.navigate('AdminRoot', { targetTab: 'Testimonies' });
+                      }, isAdmin && !showAdminView ? 100 : 0);
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>✨ Review Testimonies</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(selectedUpdate?.type === 'testimony_member_status' || selectedUpdate?.type === 'testimony_published' || selectedUpdate?.type === 'testimony') && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#d97706', marginTop: 16 }]}
+                    onPress={() => {
+                      const tId = selectedUpdate?.testimonyId;
+                      setSelectedUpdate(null);
+                      if (tId) {
+                        navigation.navigate('TestimonyDetail', { testimonyId: tId });
+                      } else {
+                        navigation.navigate('Testimonies', { initialTab: 'mine' });
+                      }
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>✨ View Testimony</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(selectedUpdate?.type === 'volunteer_application_admin' || selectedUpdate?.title?.includes('New Volunteer Application')) && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#059669', marginTop: 16 }]}
+                    onPress={() => {
+                      setSelectedUpdate(null);
+                      if (isAdmin && !showAdminView) setViewMode('admin');
+                      setTimeout(() => {
+                        navigation.navigate('AdminRoot', { targetTab: 'Volunteer Management' });
+                      }, isAdmin && !showAdminView ? 100 : 0);
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>🤝 Manage Volunteers</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(selectedUpdate?.type === 'volunteer_application_member' || selectedUpdate?.type === 'volunteer_assignment' || selectedUpdate?.type === 'volunteer_reminder' || selectedUpdate?.type === 'volunteer_event_change' || selectedUpdate?.type === 'volunteer') && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#059669', marginTop: 16 }]}
+                    onPress={() => {
+                      const evId = selectedUpdate?.eventId;
+                      setSelectedUpdate(null);
+                      if (evId) {
+                        navigation.navigate('EventDetails', { eventId: evId });
+                      } else {
+                        navigation.navigate('Volunteer');
+                      }
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>🤝 View Volunteering</Text>
                   </TouchableOpacity>
                 )}
 

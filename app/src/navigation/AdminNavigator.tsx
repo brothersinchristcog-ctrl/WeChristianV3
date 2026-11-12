@@ -89,6 +89,8 @@ import ChurchService from '../services/ChurchService';
 import AdminServicePlanner from '../screens/admin/AdminServicePlanner';
 import AdminBaptism from '../screens/admin/AdminBaptism';
 import AdminCareCellsHub from '../screens/admin/care_cells/AdminCareCellsHub';
+import AdminTestimonies from '../screens/admin/AdminTestimonies';
+import AdminVolunteerManagement from '../screens/admin/AdminVolunteerManagement';
 import CareCellService from '../services/CareCellService';
 import { firestore } from '../services/firebaseConfig';
 
@@ -283,9 +285,11 @@ export default function AdminNavigator({ navigation, route }: any) {
     { name: 'New Event', icon: CalendarPlus, component: AdminEventEditor },
     { name: 'Pastor Event', icon: Briefcase, component: PastorEventDashboard },
     { name: 'Prayers', icon: Heart, component: AdminPrayerModeration },
+    { name: 'Testimonies', icon: Sparkles, component: AdminTestimonies },
     { name: 'Attendance', icon: ClipboardCheck, component: AdminAttendance },
     ...(isSuperAdminUser || hasCareCellAccess ? [{ name: 'Care Cells', icon: HeartHandshake, component: AdminCareCellsHub }] : []),
     { name: 'Service Roster', icon: ClipboardCheck, component: AdminServicePlanner },
+    { name: 'Volunteer Management', icon: HeartHandshake, component: AdminVolunteerManagement },
     { name: 'Members', icon: Users, component: AdminMembers },
     { name: 'Baptism', icon: Droplets, component: AdminBaptism },
     { name: 'Celebrations', icon: Gift, component: AdminCelebrations },

@@ -44,6 +44,9 @@ import GivingScreen from '../screens/GivingScreen';
 import GivingHistoryScreen from '../screens/GivingHistoryScreen';
 import BaptismRequestScreen from '../screens/BaptismRequestScreen';
 import CareCellScreen from '../screens/care_cells/CareCellScreen';
+import VolunteerScreen from '../screens/VolunteerScreen';
+import TestimoniesScreen from '../screens/TestimoniesScreen';
+import TestimonyDetailScreen from '../screens/TestimonyDetailScreen';
 import SermonsScreen from '../screens/SermonsScreen';
 import SongsScreen from '../screens/SongsScreen';
 import EventDetailsScreen from '../screens/EventDetailsScreen';
@@ -851,6 +854,10 @@ function Navigation() {
             <Stack.Screen name="BaptismRequest" component={renderPremium(BaptismRequestScreen)} />
             <Stack.Screen name="CareCell" component={renderPremium(CareCellScreen)} />
             <Stack.Screen name="CareCellScreen" component={renderPremium(CareCellScreen)} />
+            <Stack.Screen name="Volunteer" component={renderPremium(VolunteerScreen)} />
+            <Stack.Screen name="VolunteerScreen" component={renderPremium(VolunteerScreen)} />
+            <Stack.Screen name="Testimonies" component={renderPremium(TestimoniesScreen)} />
+            <Stack.Screen name="TestimonyDetail" component={renderPremium(TestimonyDetailScreen)} />
             <Stack.Screen name="Songs" component={renderPremium(SongsScreen)} />
             <Stack.Screen name="PrayerWall" component={renderPremium(PrayerWallScreen)} />
             <Stack.Screen name="LiveStageHUD" component={LiveStageHUD} />
@@ -872,6 +879,10 @@ function Navigation() {
             <Stack.Screen name="BaptismRequest" component={renderPremium(BaptismRequestScreen)} />
             <Stack.Screen name="CareCell" component={renderPremium(CareCellScreen)} />
             <Stack.Screen name="CareCellScreen" component={renderPremium(CareCellScreen)} />
+            <Stack.Screen name="Volunteer" component={renderPremium(VolunteerScreen)} />
+            <Stack.Screen name="VolunteerScreen" component={renderPremium(VolunteerScreen)} />
+            <Stack.Screen name="Testimonies" component={renderPremium(TestimoniesScreen)} />
+            <Stack.Screen name="TestimonyDetail" component={renderPremium(TestimonyDetailScreen)} />
             <Stack.Screen name="Sermons" component={renderPremium(SermonsScreen)} />
             <Stack.Screen name="Songs" component={renderPremium(SongsScreen)} />
             <Stack.Screen name="EventDetails" component={renderPremium(EventDetailsScreen)} />

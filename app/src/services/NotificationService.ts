@@ -134,6 +134,66 @@ class NotificationService {
         case 'baptism_request_admin':
           nav.navigate('AdminRoot', { targetTab: 'Baptism' });
           break;
+        case 'testimony_admin': {
+          const testimonyId = rawData.testimonyId || rawData.id || id;
+          nav.navigate('AdminRoot', {
+            targetTab: 'Testimonies',
+            testimonyId,
+            timestamp: Date.now(),
+          });
+          break;
+        }
+        case 'testimony_member_status': {
+          const testimonyId = rawData.testimonyId || rawData.id || id;
+          if (testimonyId) {
+            nav.navigate('TestimonyDetail', {
+              testimonyId,
+              churchId: rawData.churchId,
+            });
+          } else {
+            nav.navigate('Testimonies', { initialTab: 'mine' });
+          }
+          break;
+        }
+        case 'testimony_published':
+        case 'testimony': {
+          const testimonyId = rawData.testimonyId || rawData.id || id;
+          nav.navigate('TestimonyDetail', {
+            testimonyId,
+            churchId: rawData.churchId,
+          });
+          break;
+        }
+        case 'volunteer_application_admin': {
+          const appId = rawData.applicationId || rawData.requestId || id;
+          nav.navigate('AdminRoot', {
+            targetTab: 'Volunteer Management',
+            applicationId: appId,
+            subType: rawData.volunteerType || rawData.subType || 'general',
+            timestamp: Date.now(),
+          });
+          break;
+        }
+        case 'volunteer_application_member': {
+          const eventId = rawData.eventId;
+          if (eventId) {
+            nav.navigate('EventDetails', { eventId, id: eventId });
+          } else {
+            nav.navigate('Volunteer');
+          }
+          break;
+        }
+        case 'volunteer_assignment':
+        case 'volunteer_reminder':
+        case 'volunteer_event_change': {
+          const eventId = rawData.eventId || id;
+          if (eventId) {
+            nav.navigate('EventDetails', { eventId, id: eventId });
+          } else {
+            nav.navigate('Volunteer');
+          }
+          break;
+        }
         case 'baptism_request_member':
         case 'birthday':
         case 'anniversary':
