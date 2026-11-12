@@ -191,8 +191,8 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
 
   const churchId = activeChurch?.id || '';
 
-  // Navigation / Tab state: 'calendar', 'builder', 'setlist', 'queue', 'attendance', 'analytics', 'teams', 'skills', 'templates'
-  const [activePlannerTab, setActivePlannerTab] = useState<'calendar' | 'builder' | 'setlist' | 'queue' | 'attendance' | 'analytics' | 'teams' | 'skills' | 'templates'>('calendar');
+  // Navigation / Tab state: 'calendar', 'builder', 'setlist', 'queue', 'teams', 'skills', 'templates'
+  const [activePlannerTab, setActivePlannerTab] = useState<'calendar' | 'builder' | 'setlist' | 'queue' | 'teams' | 'skills' | 'templates'>('calendar');
 
   // Service Plans state
   const [plans, setPlans] = useState<ServicePlan[]>([]);
@@ -3686,12 +3686,10 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
             <Text style={[styles.headerTitle, { color: '#FFFFFF', marginTop: 0 }]} numberOfLines={1}>
               {activePlannerTab === 'setlist' ? 'Worship Setlist' :
                 activePlannerTab === 'queue' ? 'Assignments' :
-                  activePlannerTab === 'attendance' ? 'Volunteer Attendance' :
-                    activePlannerTab === 'analytics' ? 'Roster Analytics' :
-                      activePlannerTab === 'teams' ? 'Ministry Teams' :
-                        activePlannerTab === 'skills' ? 'Verified Skills' :
-                          activePlannerTab === 'templates' ? 'Service Templates' :
-                            'Service Roster'}
+                  activePlannerTab === 'teams' ? 'Ministry Teams' :
+                    activePlannerTab === 'skills' ? 'Verified Skills' :
+                      activePlannerTab === 'templates' ? 'Service Templates' :
+                        'Service Roster'}
             </Text>
             <Text style={[styles.heroSub, { color: '#CBD5E1' }]} numberOfLines={1}>
               {activeChurch?.name || 'Church Worship & Roster Operations'}
@@ -3709,8 +3707,6 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
               }
             ]}
             onPress={
-              activePlannerTab === 'attendance' ? handleCheckInAllVolunteers :
-              activePlannerTab === 'analytics' ? fetchAnalytics :
               activePlannerTab === 'setlist' ? openSongPicker :
               activePlannerTab === 'teams' ? openCreateTeamModal :
               activePlannerTab === 'skills' ? () => setShowAddSkillModal(true) :
@@ -3718,13 +3714,7 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
             }
             activeOpacity={0.85}
           >
-            {activePlannerTab === 'analytics' ? (
-              <RefreshCw size={14} color="#1A2D5A" strokeWidth={2.5} />
-            ) : activePlannerTab === 'attendance' ? (
-              <UserCheck size={14} color="#1A2D5A" strokeWidth={2.5} />
-            ) : (
-              <Plus size={14} color="#1A2D5A" strokeWidth={2.5} />
-            )}
+            <Plus size={14} color="#1A2D5A" strokeWidth={2.5} />
             <Text
               style={[
                 styles.newServiceBtnTxt,
@@ -3732,9 +3722,7 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
               ]}
               numberOfLines={1}
             >
-              {activePlannerTab === 'attendance' ? 'Check-In' :
-               activePlannerTab === 'analytics' ? 'Refresh' :
-               activePlannerTab === 'setlist' ? 'Add Song' :
+              {activePlannerTab === 'setlist' ? 'Add Song' :
                activePlannerTab === 'teams' ? 'Add Team' :
                activePlannerTab === 'skills' ? 'Add Skill' :
                'New Service'}
@@ -3834,51 +3822,6 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
               activePlannerTab === 'queue' ? { color: primaryBtnText, fontWeight: '800' } : { color: secondaryText }
             ]}>
               Assignments {selectedPlan ? `(${assignmentQueues.length})` : ''}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tabBtn,
-              activePlannerTab === 'attendance' ? {
-                backgroundColor: primaryBtnBg,
-                borderColor: primaryBtnBg,
-              } : {
-                backgroundColor: cardSurface,
-                borderColor: cardBorder,
-              }
-            ]}
-            onPress={() => setActivePlannerTab('attendance')}
-            disabled={!selectedPlan}
-          >
-            <UserCheck size={14} color={activePlannerTab === 'attendance' ? primaryBtnText : secondaryText} />
-            <Text style={[
-              styles.tabBtnTxt,
-              activePlannerTab === 'attendance' ? { color: primaryBtnText, fontWeight: '800' } : { color: secondaryText }
-            ]}>
-              Attendance {selectedPlan ? `(${serviceVolunteers.length})` : ''}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.tabBtn,
-              activePlannerTab === 'analytics' ? {
-                backgroundColor: primaryBtnBg,
-                borderColor: primaryBtnBg,
-              } : {
-                backgroundColor: cardSurface,
-                borderColor: cardBorder,
-              }
-            ]}
-            onPress={() => setActivePlannerTab('analytics')}
-          >
-            <BarChart2 size={14} color={activePlannerTab === 'analytics' ? primaryBtnText : secondaryText} />
-            <Text style={[
-              styles.tabBtnTxt,
-              activePlannerTab === 'analytics' ? { color: primaryBtnText, fontWeight: '800' } : { color: secondaryText }
-            ]}>
-              Analytics
             </Text>
           </TouchableOpacity>
 
@@ -4284,41 +4227,6 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
                           <Text style={[styles.printSheetBtnTxt, { color: secondaryBtnText }]}>Print</Text>
                         </>
                       )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.printSheetBtn, { backgroundColor: secondaryBtnBg, borderColor: secondaryBtnBorder }]}
-                      onPress={handleExportPdf}
-                      disabled={exportingPdf}
-                    >
-                      {exportingPdf ? (
-                        <ActivityIndicator size="small" color={primaryText} />
-                      ) : (
-                        <>
-                          <FileText size={13} color={secondaryBtnText} />
-                          <Text style={[styles.printSheetBtnTxt, { color: secondaryBtnText }]}>PDF</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.printSheetBtn, { backgroundColor: secondaryBtnBg, borderColor: secondaryBtnBorder }]}
-                      onPress={handleExportCsv}
-                      disabled={exportingCsv}
-                    >
-                      {exportingCsv ? (
-                        <ActivityIndicator size="small" color={primaryText} />
-                      ) : (
-                        <>
-                          <Download size={13} color={secondaryBtnText} />
-                          <Text style={[styles.printSheetBtnTxt, { color: secondaryBtnText }]}>CSV</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.printSheetBtn, { backgroundColor: '#1A2D5A', borderColor: '#1A2D5A' }]}
-                      onPress={() => stackNavigation?.navigate?.('LiveStageHUD', { serviceId: selectedPlan.id, plan: selectedPlan, churchId })}
-                    >
-                      <Radio size={13} color="#FBBF24" />
-                      <Text style={[styles.printSheetBtnTxt, { color: '#FFFFFF' }]}>Live HUD</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -5247,414 +5155,6 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
         )}
 
           {/* TAB: VOLUNTEER ATTENDANCE (PHASE 9) */}
-          {activePlannerTab === 'attendance' && selectedPlan && (
-            <View style={styles.tabContent}>
-              {/* Service Summary Banner */}
-              <View style={[styles.selectedBanner, { backgroundColor: cardSurface, borderColor }]}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={styles.selectedBannerTag}>VOLUNTEER ATTENDANCE ROSTER</Text>
-                    <Text style={[styles.selectedBannerTitle, { color: primaryText }]}>
-                      {selectedPlan.serviceTitle}
-                    </Text>
-                    <Text style={[styles.selectedBannerMeta, { color: secondaryText }]}>
-                      📅 {formatDateMonthYear(selectedPlan.date)} · ⏰ {formatDisplayTime(selectedPlan.startTime)} - {formatDisplayTime(selectedPlan.endTime)} · 📍 {selectedPlan.location}
-                    </Text>
-                  </View>
-                  <View style={styles.turnoutCircle}>
-                    <Text style={styles.turnoutCirclePercent}>{attendanceStats.turnoutRate}%</Text>
-                    <Text style={styles.turnoutCircleLabel}>Turnout</Text>
-                  </View>
-                </View>
-
-                {/* Counters Bar */}
-                <View style={styles.attCountersBar}>
-                  <View style={styles.attCounterItem}>
-                    <Text style={[styles.attCounterVal, { color: '#059669' }]}>{attendanceStats.present}</Text>
-                    <Text style={styles.attCounterLbl}>Present</Text>
-                  </View>
-                  <View style={styles.attCounterItem}>
-                    <Text style={[styles.attCounterVal, { color: '#D97706' }]}>{attendanceStats.late}</Text>
-                    <Text style={styles.attCounterLbl}>Late</Text>
-                  </View>
-                  <View style={styles.attCounterItem}>
-                    <Text style={[styles.attCounterVal, { color: '#DC2626' }]}>{attendanceStats.absent}</Text>
-                    <Text style={styles.attCounterLbl}>Absent</Text>
-                  </View>
-                  <View style={styles.attCounterItem}>
-                    <Text style={[styles.attCounterVal, { color: '#64748B' }]}>{attendanceStats.excused}</Text>
-                    <Text style={styles.attCounterLbl}>Excused</Text>
-                  </View>
-                  <View style={styles.attCounterItem}>
-                    <Text style={[styles.attCounterVal, { color: '#64748B' }]}>{attendanceStats.unmarked}</Text>
-                    <Text style={styles.attCounterLbl}>Unchecked</Text>
-                  </View>
-                </View>
-
-                {/* Quick Check-In All Button */}
-                <TouchableOpacity
-                  style={styles.bulkCheckInBtn}
-                  onPress={handleCheckInAllVolunteers}
-                  disabled={savingAttendance || serviceVolunteers.length === 0}
-                >
-                  {savingAttendance ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <>
-                      <UserCheck size={14} color="#FFFFFF" />
-                      <Text style={styles.bulkCheckInBtnTxt}>
-                        Check-In All {serviceVolunteers.length} Volunteer(s) as Present
-                      </Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-
-              {/* Volunteer List */}
-              <View style={styles.sectionHeaderRow}>
-                <View>
-                  <Text style={[styles.sectionHeading, { color: primaryText }]}>Scheduled Roster & Crew</Text>
-                  <Text style={[styles.sectionSubheading, { color: secondaryText }]}>
-                    {serviceVolunteers.length} volunteer(s) assigned across runsheet and worship band
-                  </Text>
-                </View>
-              </View>
-
-              {serviceVolunteers.length === 0 ? (
-                <View style={[styles.emptyCard, { backgroundColor: cardSurface, borderColor }]}>
-                  <Users size={36} color="#94A3B8" />
-                  <Text style={[styles.emptyTitle, { color: primaryText }]}>No Volunteers Assigned Yet</Text>
-                  <Text style={[styles.emptySubtitle, { color: secondaryText }]}>
-                    Assign ministers and leaders in Order Builder or praise members in Worship Setlist to track duty attendance.
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.createEmptyBtn}
-                    onPress={() => setActivePlannerTab('builder')}
-                  >
-                    <Layers size={15} color="#FFFFFF" />
-                    <Text style={styles.createEmptyBtnTxt}>Go to Order Builder</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                serviceVolunteers.map(v => {
-                  const rec = attendanceRecords.find(r =>
-                    (r.roleId === v.roleId && r.memberId === v.memberId) ||
-                    (r.memberName === v.memberName && r.roleTitle === v.roleTitle)
-                  );
-                  const currentStatus = rec?.attendanceStatus || 'unmarked';
-
-                  return (
-                    <View
-                      key={v.key}
-                      style={[styles.volunteerAttCard, { backgroundColor: cardSurface, borderColor }]}
-                    >
-                      <View style={{ flex: 1, paddingRight: 8 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                          <Text style={[styles.volCardName, { color: primaryText }]}>{v.memberName}</Text>
-                          <View style={styles.volTeamBadge}>
-                            <Text style={styles.volTeamBadgeTxt}>{v.teamName}</Text>
-                          </View>
-                        </View>
-                        <Text style={[styles.volRoleTitle, { color: secondaryText }]}>{v.roleTitle}</Text>
-                        {rec?.markedAt && (
-                          <Text style={[styles.volMarkedMeta, { color: secondaryText }]}>
-                            Updated by {rec.markedByName || 'Admin'}
-                          </Text>
-                        )}
-                      </View>
-
-                      {/* Status Pills */}
-                      <View style={styles.attStatusPillGroup}>
-                        <TouchableOpacity
-                          style={[
-                            styles.attStatusPill,
-                            currentStatus === 'present' && styles.attStatusPillPresent
-                          ]}
-                          onPress={() => handleMarkVolunteerAttendance(v, 'present')}
-                        >
-                          <Text style={[
-                            styles.attStatusPillTxt,
-                            currentStatus === 'present' && styles.attStatusPillTxtActive
-                          ]}>Present</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.attStatusPill,
-                            currentStatus === 'late' && styles.attStatusPillLate
-                          ]}
-                          onPress={() => handleMarkVolunteerAttendance(v, 'late')}
-                        >
-                          <Text style={[
-                            styles.attStatusPillTxt,
-                            currentStatus === 'late' && styles.attStatusPillTxtActive
-                          ]}>Late</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.attStatusPill,
-                            currentStatus === 'absent' && styles.attStatusPillAbsent
-                          ]}
-                          onPress={() => handleMarkVolunteerAttendance(v, 'absent')}
-                        >
-                          <Text style={[
-                            styles.attStatusPillTxt,
-                            currentStatus === 'absent' && styles.attStatusPillTxtActive
-                          ]}>Absent</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={[
-                            styles.attStatusPill,
-                            currentStatus === 'excused' && styles.attStatusPillExcused
-                          ]}
-                          onPress={() => handleMarkVolunteerAttendance(v, 'excused')}
-                        >
-                          <Text style={[
-                            styles.attStatusPillTxt,
-                            currentStatus === 'excused' && styles.attStatusPillTxtActive
-                          ]}>Excused</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  );
-                })
-              )}
-            </View>
-          )}
-
-          {/* TAB: ANALYTICS & VOLUNTEER HEALTH (PHASE 9) */}
-          {activePlannerTab === 'analytics' && (
-            <View style={styles.tabContent}>
-              <View style={styles.sectionHeaderRow}>
-                <View>
-                  <Text style={[styles.sectionHeading, { color: primaryText }]}>Worship Operations Analytics</Text>
-                  <Text style={[styles.sectionSubheading, { color: secondaryText }]}>
-                    Volunteer turnout, burnout fatigue detection, and worship song frequency
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.refreshAnalyticsBtn}
-                  onPress={fetchAnalytics}
-                  disabled={loadingAnalytics}
-                >
-                  <RefreshCw size={13} color={secondaryBtnText} />
-                  <Text style={styles.refreshAnalyticsBtnTxt}>Reload</Text>
-                </TouchableOpacity>
-              </View>
-
-              {loadingAnalytics ? (
-                <View style={styles.analyticsLoadingBox}>
-                  <ActivityIndicator size="large" color={primaryBtnBg} />
-                  <Text style={[styles.analyticsLoadingTxt, { color: secondaryText }]}>
-                    Analyzing church volunteer health and service metrics...
-                  </Text>
-                </View>
-              ) : !analyticsData ? (
-                <View style={[styles.emptyCard, { backgroundColor: cardSurface, borderColor }]}>
-                  <BarChart2 size={36} color="#94A3B8" />
-                  <Text style={[styles.emptyTitle, { color: primaryText }]}>No Analytics Available</Text>
-                  <Text style={[styles.emptySubtitle, { color: secondaryText }]}>
-                    Create and publish services to view volunteer turnout and worship metrics.
-                  </Text>
-                </View>
-              ) : (
-                <>
-                  {/* KPI Grid */}
-                  <View style={styles.kpiGrid}>
-                    <View style={[styles.kpiCard, { backgroundColor: cardSurface, borderColor }]}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={[styles.kpiLabel, { color: secondaryText }]}>Avg. Turnout</Text>
-                        <UserCheck size={16} color="#059669" />
-                      </View>
-                      <Text style={[styles.kpiValue, { color: '#059669' }]}>
-                        {analyticsData.averageTurnoutPercent}%
-                      </Text>
-                      <Text style={[styles.kpiSub, { color: secondaryText }]}>Roster attendance rate</Text>
-                    </View>
-
-                    <View style={[styles.kpiCard, { backgroundColor: cardSurface, borderColor }]}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={[styles.kpiLabel, { color: secondaryText }]}>Acceptance</Text>
-                        <CheckCircle2 size={16} color={isDark ? '#10B981' : '#059669'} />
-                      </View>
-                      <Text style={[styles.kpiValue, { color: primaryText }]}>
-                        {analyticsData.acceptanceRatePercent}%
-                      </Text>
-                      <Text style={[styles.kpiSub, { color: secondaryText }]}>
-                        {analyticsData.totalAccepted} of {analyticsData.totalQueueInvites} accepted
-                      </Text>
-                    </View>
-
-                    <View style={[styles.kpiCard, { backgroundColor: cardSurface, borderColor }]}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={[styles.kpiLabel, { color: secondaryText }]}>Active Volunteers</Text>
-                        <Users size={16} color={isDark ? '#FBBF24' : '#1A2D5A'} />
-                      </View>
-                      <Text style={[styles.kpiValue, { color: isDark ? '#FBBF24' : '#1A2D5A' }]}>
-                        {analyticsData.volunteerServingCounts.length}
-                      </Text>
-                      <Text style={[styles.kpiSub, { color: secondaryText }]}>
-                        {analyticsData.totalVolunteerAssignments} duties assigned
-                      </Text>
-                    </View>
-
-                    <View style={[styles.kpiCard, { backgroundColor: cardSurface, borderColor }]}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Text style={[styles.kpiLabel, { color: secondaryText }]}>Services</Text>
-                        <Calendar size={16} color="#D97706" />
-                      </View>
-                      <Text style={[styles.kpiValue, { color: '#D97706' }]}>
-                        {analyticsData.completedServices} / {analyticsData.totalServices}
-                      </Text>
-                      <Text style={[styles.kpiSub, { color: secondaryText }]}>Completed / Total</Text>
-                    </View>
-                  </View>
-
-                  {/* Queue Response Breakdown Bar */}
-                  <View style={[styles.analyticsSectionCard, { backgroundColor: cardSurface, borderColor }]}>
-                    <Text style={[styles.analyticsCardTitle, { color: primaryText }]}>
-                      Assignment Cascade Acceptance Ladder
-                    </Text>
-                    <Text style={[styles.analyticsCardSub, { color: secondaryText }]}>
-                      Summary of volunteer invite responses across automated queues
-                    </Text>
-
-                    <View style={styles.cascadeBreakdownRow}>
-                      <View style={styles.cascadeBreakdownItem}>
-                        <View style={[styles.breakdownDot, { backgroundColor: '#059669' }]} />
-                        <Text style={[styles.breakdownTxt, { color: primaryText }]}>
-                          Accepted: <Text style={{ fontWeight: '800' }}>{analyticsData.totalAccepted}</Text>
-                        </Text>
-                      </View>
-                      <View style={styles.cascadeBreakdownItem}>
-                        <View style={[styles.breakdownDot, { backgroundColor: '#D97706' }]} />
-                        <Text style={[styles.breakdownTxt, { color: primaryText }]}>
-                          Timed Out: <Text style={{ fontWeight: '800' }}>{analyticsData.totalTimedOut}</Text>
-                        </Text>
-                      </View>
-                      <View style={styles.cascadeBreakdownItem}>
-                        <View style={[styles.breakdownDot, { backgroundColor: '#DC2626' }]} />
-                        <Text style={[styles.breakdownTxt, { color: primaryText }]}>
-                          Declined: <Text style={{ fontWeight: '800' }}>{analyticsData.totalDeclined}</Text>
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Volunteer Burnout & Fatigue Risk Tracker */}
-                  <View style={[styles.analyticsSectionCard, { backgroundColor: cardSurface, borderColor }]}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <View>
-                        <Text style={[styles.analyticsCardTitle, { color: primaryText }]}>
-                          Volunteer Burnout & Fatigue Tracker
-                        </Text>
-                        <Text style={[styles.analyticsCardSub, { color: secondaryText }]}>
-                          Identifies leaders serving frequently (≥ 3 services in past 30 days)
-                        </Text>
-                      </View>
-                    </View>
-
-                    {analyticsData.volunteerServingCounts.some(v => v.fatigueRisk) && (
-                      <View style={styles.fatigueAlertBanner}>
-                        <AlertTriangle size={15} color="#DC2626" />
-                        <Text style={styles.fatigueAlertTxt}>
-                          {analyticsData.volunteerServingCounts.filter(v => v.fatigueRisk).length} volunteer(s) flagged for potential serving fatigue. Consider rotating roles.
-                        </Text>
-                      </View>
-                    )}
-
-                    {analyticsData.volunteerServingCounts.length === 0 ? (
-                      <Text style={[styles.analyticsCardSub, { color: secondaryText, marginTop: 8 }]}>
-                        No volunteer duty assignments recorded yet.
-                      </Text>
-                    ) : (
-                      analyticsData.volunteerServingCounts.slice(0, 8).map(v => (
-                        <View
-                          key={v.memberId}
-                          style={[styles.volunteerStatRow, { borderColor }]}
-                        >
-                          <View style={{ flex: 1, paddingRight: 8 }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                              <Text style={[styles.statVolunteerName, { color: primaryText }]}>
-                                {v.memberName}
-                              </Text>
-                              {v.fatigueRisk ? (
-                                <View style={styles.fatigueBadge}>
-                                  <Text style={styles.fatigueBadgeTxt}>⚠️ Fatigue Risk</Text>
-                                </View>
-                              ) : (
-                                <View style={styles.balancedBadge}>
-                                  <Text style={styles.balancedBadgeTxt}>✅ Balanced</Text>
-                                </View>
-                              )}
-                            </View>
-                            <Text style={[styles.statVolunteerMeta, { color: secondaryText }]}>
-                              Served {v.servingCount} time(s) · Last served: {v.lastServedDate || 'N/A'}
-                            </Text>
-                            {v.rolesServed && v.rolesServed.length > 0 && (
-                              <View style={styles.rolesServedWrap}>
-                                {v.rolesServed.map((r, ri) => (
-                                  <View key={ri} style={styles.roleServedChip}>
-                                    <Text style={styles.roleServedChipTxt}>{r}</Text>
-                                  </View>
-                                ))}
-                              </View>
-                            )}
-                          </View>
-                          <View style={styles.servesCountPill}>
-                            <Text style={styles.servesCountVal}>{v.servingCount}</Text>
-                            <Text style={styles.servesCountLbl}>serves</Text>
-                          </View>
-                        </View>
-                      ))
-                    )}
-                  </View>
-
-                  {/* Top Sung Worship Songs */}
-                  <View style={[styles.analyticsSectionCard, { backgroundColor: cardSurface, borderColor }]}>
-                    <Text style={[styles.analyticsCardTitle, { color: primaryText }]}>
-                      Most Frequently Sung Worship Songs
-                    </Text>
-                    <Text style={[styles.analyticsCardSub, { color: secondaryText }]}>
-                      Top 10 songs curated from service setlists
-                    </Text>
-
-                    {analyticsData.topWorshipSongs.length === 0 ? (
-                      <Text style={[styles.analyticsCardSub, { color: secondaryText, marginTop: 8 }]}>
-                        No setlist songs recorded yet.
-                      </Text>
-                    ) : (
-                      analyticsData.topWorshipSongs.map((song, sIdx) => (
-                        <View key={song.songId ? `top_${song.songId}_${sIdx}` : `top_${sIdx}`} style={[styles.topSongRow, { borderColor }]}>
-                          <View style={styles.songRankBadge}>
-                            <Text style={styles.songRankTxt}>#{sIdx + 1}</Text>
-                          </View>
-                          <View style={{ flex: 1, paddingHorizontal: 10 }}>
-                            <Text style={[styles.topSongTitle, { color: primaryText }]}>
-                              {song.title}
-                            </Text>
-                            {song.titleTe ? (
-                              <Text style={styles.topSongTeTitle}>{song.titleTe}</Text>
-                            ) : null}
-                            <Text style={[styles.topSongMeta, { color: secondaryText }]}>
-                              Key: {song.key || 'Standard'} · Last sung: {song.lastSungDate || 'N/A'}
-                            </Text>
-                          </View>
-                          <View style={styles.songCountBadge}>
-                            <Music size={12} color={secondaryText} />
-                            <Text style={styles.songCountTxt}>{song.count}x</Text>
-                          </View>
-                        </View>
-                      ))
-                    )}
-                  </View>
-                </>
-              )}
-            </View>
-          )}
-
           {/* TAB 4: MINISTRY TEAMS MANAGEMENT (PHASE 2) */}
           {activePlannerTab === 'teams' && (
             <View style={styles.tabContent}>

@@ -57,7 +57,7 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'Donations': require('../../../assets/admin_cards/donations.png'),
   'Subscription': require('../../../assets/admin_cards/subscription.png'),
   'Schedule': require('../../../assets/admin_cards/schedule.png'),
-  'Service Roster': require('../../../assets/admin_cards/schedule.png'),
+  'Service Roster': require('../../../assets/admin_cards/service_roster.png'),
   'About Us': require('../../../assets/admin_cards/about_us.png'),
   'Contact Us': require('../../../assets/admin_cards/contact_us.png'),
   'Support Team': require('../../../assets/support_bg.png'),

@@ -11,7 +11,10 @@ import {
   ActivityIndicator,
   RefreshControl,
   StatusBar,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   ArrowLeft,
@@ -382,6 +385,7 @@ export default function MyServiceScreen({ navigation, route }: any) {
   // Availability state
   const [blockouts, setBlockouts] = useState<Array<{ date: string; reason?: string }>>([]);
   const [showAddBlockoutModal, setShowAddBlockoutModal] = useState<boolean>(false);
+  const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
   const [newBlockoutDate, setNewBlockoutDate] = useState<string>('');
   const [newBlockoutReason, setNewBlockoutReason] = useState<string>('Traveling / Family commitment');
   const [savingBlockout, setSavingBlockout] = useState<boolean>(false);
@@ -586,7 +590,7 @@ export default function MyServiceScreen({ navigation, route }: any) {
   // ── Blockout Dates Handlers ──
   const handleSaveBlockout = async () => {
     if (!newBlockoutDate.trim()) {
-      Alert.alert('Required', 'Please enter unavailable date (YYYY-MM-DD).');
+      Alert.alert('Required', 'Please select your unavailable date.');
       return;
     }
     try {
@@ -2073,7 +2077,10 @@ export default function MyServiceScreen({ navigation, route }: any) {
 
       {/* ── MODAL: ADD BLOCKOUT DATE ── */}
       <Modal visible={showAddBlockoutModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
           <View style={[styles.modalSheet, { backgroundColor: cardSurface }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: primaryText }]}>Add Blockout Date</Text>
@@ -2082,52 +2089,98 @@ export default function MyServiceScreen({ navigation, route }: any) {
               </TouchableOpacity>
             </View>
 
-            <Text style={[styles.fieldLabel, { color: primaryText, marginTop: 12 }]}>
-              Unavailable Date (YYYY-MM-DD)
-            </Text>
-            <TextInput
-              style={[styles.inputBox, { borderColor, color: primaryText }]}
-              placeholder="e.g. 2026-11-15"
-              placeholderTextColor={secondaryText}
-              value={newBlockoutDate}
-              onChangeText={setNewBlockoutDate}
-            />
-
-            <Text style={[styles.fieldLabel, { color: primaryText, marginTop: 10 }]}>
-              Reason (Optional)
-            </Text>
-            <TextInput
-              style={[styles.inputBox, { borderColor, color: primaryText }]}
-              placeholder="e.g. Family wedding / Traveling"
-              placeholderTextColor={secondaryText}
-              value={newBlockoutReason}
-              onChangeText={setNewBlockoutReason}
-            />
-
-            <View style={styles.modalActionsRow}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 16 }}
+            >
+              <Text style={[styles.fieldLabel, { color: primaryText, marginTop: 12 }]}>
+                Unavailable Date
+              </Text>
               <TouchableOpacity
-                style={[styles.modalCancelBtn, { borderColor }]}
-                onPress={() => setShowAddBlockoutModal(false)}
-                activeOpacity={0.8}
+                style={[
+                  styles.inputBox,
+                  {
+                    borderColor,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  },
+                ]}
+                onPress={() => setShowDatePicker(true)}
+                activeOpacity={0.7}
               >
-                <Text style={[styles.modalCancelBtnTxt, { color: primaryText }]}>Cancel</Text>
+                <Text style={{ fontSize: 13, color: newBlockoutDate ? primaryText : secondaryText, fontWeight: newBlockoutDate ? '700' : '400' }}>
+                  {newBlockoutDate || 'Tap to select unavailable date'}
+                </Text>
+                <Calendar size={18} color={primaryBtnBg} />
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.modalSaveBtn}
-                onPress={handleSaveBlockout}
-                activeOpacity={0.85}
-                disabled={savingBlockout}
-              >
-                {savingBlockout ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.modalSaveBtnTxt}>Save Blockout</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+              <Text style={[styles.fieldLabel, { color: primaryText, marginTop: 10 }]}>
+                Reason (Optional)
+              </Text>
+              <TextInput
+                style={[
+                  styles.inputBox,
+                  {
+                    borderColor,
+                    color: primaryText,
+                    minHeight: 80,
+                    textAlignVertical: 'top',
+                    paddingTop: 10,
+                  },
+                ]}
+                placeholder="e.g. Traveling / Family commitment / Out of station"
+                placeholderTextColor={secondaryText}
+                value={newBlockoutReason}
+                onChangeText={setNewBlockoutReason}
+                multiline
+                numberOfLines={3}
+              />
+
+              <View style={styles.modalActionsRow}>
+                <TouchableOpacity
+                  style={[styles.modalCancelBtn, { borderColor }]}
+                  onPress={() => setShowAddBlockoutModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.modalCancelBtnTxt, { color: primaryText }]}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.modalSaveBtn}
+                  onPress={handleSaveBlockout}
+                  activeOpacity={0.85}
+                  disabled={savingBlockout}
+                >
+                  {savingBlockout ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <Text style={styles.modalSaveBtnTxt}>Save Blockout</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
+
+        {/* Date Picker Modal */}
+        <DateTimePickerModal
+          isVisible={showDatePicker}
+          mode="date"
+          minimumDate={new Date()}
+          date={newBlockoutDate ? new Date(newBlockoutDate) : new Date()}
+          onConfirm={(date) => {
+            setShowDatePicker(false);
+            if (date) {
+              const yyyy = date.getFullYear();
+              const mm = String(date.getMonth() + 1).padStart(2, '0');
+              const dd = String(date.getDate()).padStart(2, '0');
+              setNewBlockoutDate(`${yyyy}-${mm}-${dd}`);
+            }
+          }}
+          onCancel={() => setShowDatePicker(false)}
+        />
       </Modal>
     </View>
   );
