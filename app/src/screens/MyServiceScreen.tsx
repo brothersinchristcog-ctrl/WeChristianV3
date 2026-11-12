@@ -666,11 +666,6 @@ export default function MyServiceScreen({ navigation, route }: any) {
           <Text style={styles.headerTitle} numberOfLines={1}>
             Service Roster
           </Text>
-          {activeChurch?.name ? (
-            <Text style={styles.headerSub} numberOfLines={1}>
-              {activeChurch.name}
-            </Text>
-          ) : null}
         </View>
 
         {pendingInvitations.length > 0 && (
@@ -2078,10 +2073,10 @@ export default function MyServiceScreen({ navigation, route }: any) {
       {/* ── MODAL: ADD BLOCKOUT DATE ── */}
       <Modal visible={showAddBlockoutModal} animationType="slide" transparent>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalOverlay}
         >
-          <View style={[styles.modalSheet, { backgroundColor: cardSurface }]}>
+          <View style={[styles.modalSheet, { backgroundColor: cardSurface, maxHeight: '90%' }]}>
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: primaryText }]}>Add Blockout Date</Text>
               <TouchableOpacity onPress={() => setShowAddBlockoutModal(false)}>
@@ -2092,7 +2087,7 @@ export default function MyServiceScreen({ navigation, route }: any) {
             <ScrollView
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: 16 }}
+              contentContainerStyle={{ paddingBottom: 32 }}
             >
               <Text style={[styles.fieldLabel, { color: primaryText, marginTop: 12 }]}>
                 Unavailable Date
