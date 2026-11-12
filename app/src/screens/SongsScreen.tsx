@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -57,11 +57,18 @@ export default function SongsScreen({ navigation, route }: any) {
   const { activeChurch } = useChurch();
 
   // ── Tabs ──────────────────────────────────────────
-  const [activeTab, setActiveTab] = useState<'browse' | 'setlist' | 'churchOwn' | 'theme' | 'songbook'>('browse');
+  const [activeTab, setActiveTab] = useState<'browse' | 'eventSongs' | 'churchOwn' | 'theme' | 'songbook'>('browse');
 
   // ── Setlist State ─────────────────────────────────
   const [worshipServices, setWorshipServices] = useState<any[]>([]);
   const [activeServiceId, setActiveServiceId] = useState<string>('1S');
+  const [eventSongGroups, setEventSongGroups] = useState<Array<{
+    eventId: string;
+    eventName: string;
+    eventDate: string;
+    services: Array<{ id: string; name: string; songs: any[] }>;
+  }>>([]);
+  const [loadingEventSongs, setLoadingEventSongs] = useState(false);
 
   // ── All Songs ─────────────────────────────────────
   const [songs, setSongs] = useState<WorshipSong[]>([]);
@@ -201,6 +208,53 @@ export default function SongsScreen({ navigation, route }: any) {
     }
   };
 
+  // ── Load Event Songs (songs linked to published events) ─────────────────
+  const fetchEventSongs = async () => {
+    if (!activeChurch?.id) return;
+    setLoadingEventSongs(true);
+    try {
+      const { getApp } = require('@react-native-firebase/app');
+      const { getFirestore } = require('@react-native-firebase/firestore');
+      const db = getFirestore(getApp());
+      const snap = await db
+        .collection('churches')
+        .doc(activeChurch.id)
+        .collection('events')
+        .where('status', '==', 'Published')
+        .orderBy('date', 'desc')
+        .limit(20)
+        .get();
+      
+      const groups: Array<{
+        eventId: string;
+        eventName: string;
+        eventDate: string;
+        services: Array<{ id: string; name: string; songs: any[] }>;
+      }> = [];
+
+      snap.forEach((doc: any) => {
+        const data = doc.data();
+        if (data.services && Array.isArray(data.services) && data.services.length > 0) {
+          const servicesWithSongs = data.services.filter((s: any) => s.songs && s.songs.length > 0);
+          if (servicesWithSongs.length > 0) {
+            groups.push({
+              eventId: doc.id,
+              eventName: data.name || data.titleEn || 'Event',
+              eventDate: data.date || '',
+              services: servicesWithSongs,
+            });
+          }
+        }
+      });
+
+      setEventSongGroups(groups);
+    } catch (e) {
+      console.warn('Failed to load event songs:', e);
+    } finally {
+      setLoadingEventSongs(false);
+    }
+  };
+
   const handleShareSetlist = async () => {
     const activeService: any = worshipServices.find(s => s.id === activeServiceId) || worshipServices[0];
     const serviceName = activeService?.name || 'Sunday Service';
@@ -273,6 +327,7 @@ export default function SongsScreen({ navigation, route }: any) {
     fetchSongs();
     loadSavedIds();
     loadSetlists();
+    fetchEventSongs();
   }, []);
 
   // ── Open specific song from notification ──────────
@@ -288,7 +343,7 @@ export default function SongsScreen({ navigation, route }: any) {
     }
   }, [songId, songs, navigation, enrichSongWithSetlist]);
 
-  const onRefresh = () => { setRefreshing(true); fetchSongs(true); loadSetlists(); };
+  const onRefresh = () => { setRefreshing(true); fetchSongs(true); loadSetlists(); fetchEventSongs(); };
 
   // ── Toggle save/unsave song ───────────────────────
   const toggleSave = async (song: WorshipSong) => {
@@ -466,458 +521,135 @@ export default function SongsScreen({ navigation, route }: any) {
     return categories[0];
   };
 
-  const validServices = Array.isArray(worshipServices) ? worshipServices.filter(Boolean) : [];
-  const activeService: any = validServices.find((s: any) => s && s.id === activeServiceId) || (validServices.length > 0 ? validServices[0] : null);
-  const activeSetlist: any[] = activeService?.songs || [];
-  const activeList = activeTab === 'browse' ? filteredBrowse : activeTab === 'songbook' ? filteredSongbook : activeTab === 'theme' ? filteredTheme : activeTab === 'churchOwn' ? filteredChurchOwn : activeSetlist;
-  const currentSongIndex = selectedSong ? activeList.findIndex(s => s.id === selectedSong.id) : -1;
+  const allEventSongs = useMemo(() => {
+    const list: any[] = [];
+    eventSongGroups.forEach(g => {
+      g.services.forEach(s => {
+        s.songs.forEach(song => {
+          list.push(song);
+        });
+      });
+    });
+    return list;
+  }, [eventSongGroups]);
+
+  const activeList = activeTab === 'browse' ? filteredBrowse : activeTab === 'songbook' ? filteredSongbook : activeTab === 'theme' ? filteredTheme : activeTab === 'churchOwn' ? filteredChurchOwn : allEventSongs;
+  const currentSongIndex = selectedSong ? activeList.findIndex((s: any) => s.id === selectedSong.id) : -1;
   const totalSongs = activeList.length;
 
-  // ── Setlist Flow UI (Member View) ───────────────────
-  const renderSetlistFlow = () => {
-    if (!activeService || validServices.length === 0) {
+  // ── Event Songs Tab UI ───────────────────────────────────────────────────
+  const renderEventSongsTab = () => {
+    if (loadingEventSongs) {
       return (
-        <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 60, alignItems: 'center' }}>
-          <View style={{
-            width: 72,
-            height: 72,
-            borderRadius: 36,
-            backgroundColor: isDark ? '#1e293b' : '#EFF6FF',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 16,
-            borderWidth: 1,
-            borderColor: isDark ? '#334155' : '#BFDBFE'
-          }}>
-            <CalendarDays size={34} color="#2563EB" />
-          </View>
-          <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFFFFF' : '#1a2d5a', textAlign: 'center' }}>
-            No Services Scheduled Yet
-          </Text>
-          <Text style={{ fontSize: 13, color: isDark ? '#94A3B8' : '#64748B', textAlign: 'center', marginTop: 8, lineHeight: 20, maxWidth: 300 }}>
-            Your worship team has not published any church services or song sets yet. Please check back soon!
-          </Text>
+        <View style={{ flex: 1, alignItems: 'center', paddingTop: 60 }}>
+          <ActivityIndicator size="large" color="#1a2d5a" />
+          <Text style={{ color: isDark ? '#94A3B8' : '#64748B', marginTop: 12, fontSize: 13 }}>Loading event songs...</Text>
         </View>
       );
     }
 
-    const activeCat = getServiceCategoryMeta(activeService?.category, activeService?.name);
-
-    // Format display date: handles start & end date range if present
-    const displayServiceDate = (() => {
-      if (activeService?.startDate && activeService?.endDate && activeService.startDate !== activeService.endDate) {
-        return `${activeService.startDate} – ${activeService.endDate}`;
-      }
-      return activeService?.date || '';
-    })();
+    if (eventSongGroups.length === 0) {
+      return (
+        <View style={{ flex: 1, paddingHorizontal: 24, paddingTop: 60, alignItems: 'center' }}>
+          <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: isDark ? '#1e293b' : '#EFF6FF', alignItems: 'center', justifyContent: 'center', marginBottom: 16, borderWidth: 1, borderColor: isDark ? '#334155' : '#BFDBFE' }}>
+            <Music size={34} color="#2563EB" />
+          </View>
+          <Text style={{ fontSize: 18, fontWeight: '800', color: isDark ? '#FFFFFF' : '#1a2d5a', textAlign: 'center' }}>
+            No Event Songs Yet
+          </Text>
+          <Text style={{ fontSize: 13, color: isDark ? '#94A3B8' : '#64748B', textAlign: 'center', marginTop: 8, lineHeight: 20, maxWidth: 300 }}>
+            Songs assigned to published church events will appear here, organized by event.
+          </Text>
+        </View>
+      );
+    }
 
     return (
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 14, paddingBottom: 60 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Service Switcher & Header Card */}
-        <View style={{
-          backgroundColor: isDark ? '#1e293b' : '#FFFFFF',
-          borderRadius: 16,
-          padding: 16,
-          marginBottom: 16,
-          borderWidth: 1,
-          borderColor: isDark ? '#334155' : '#E2E8F0',
-          borderLeftWidth: 4,
-          borderLeftColor: activeCat.color || '#2563EB',
-          elevation: 2,
-          shadowColor: '#000',
-          shadowOpacity: 0.05,
-          shadowRadius: 6,
-          shadowOffset: { width: 0, height: 2 }
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: worshipServices.length > 0 ? 14 : 4 }}>
-            <View style={{ flex: 1, marginRight: 10 }}>
-              {/* Category & Time Pills */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-                <View style={{
-                  backgroundColor: isDark ? '#334155' : activeCat.bg,
-                  borderColor: isDark ? '#475569' : activeCat.border,
-                  borderWidth: 1,
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                  borderRadius: 6,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 4
-                }}>
-                  <Text style={{ fontSize: 11 }}>{activeCat.icon}</Text>
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#93C5FD' : activeCat.color }}>
-                    {activeService?.category || activeCat.type}
-                  </Text>
-                </View>
-
-                {activeService?.time ? (
-                  <View style={{
-                    backgroundColor: isDark ? '#0f172a' : '#F1F5F9',
-                    paddingHorizontal: 8,
-                    paddingVertical: 3,
-                    borderRadius: 6,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 4
-                  }}>
-                    <Clock size={11} color={isDark ? '#94A3B8' : '#64748B'} />
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: isDark ? '#CBD5E1' : '#475569' }}>
-                      {activeService.time}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-
-              {/* Service Title */}
-              <Text style={{ fontSize: 18, fontWeight: '900', color: isDark ? '#FFFFFF' : '#1a2d5a', letterSpacing: -0.2 }}>
-                {activeService?.name || 'Church Service Flow'}
+        {eventSongGroups.map((group) => (
+          <View key={group.eventId} style={{ marginBottom: 20 }}>
+            {/* Event Header */}
+            <View style={{ backgroundColor: isDark ? '#1e293b' : '#1a2d5a', borderRadius: 12, padding: 12, marginBottom: 10 }}>
+              <Text style={{ fontSize: 15, fontWeight: '900', color: '#FFFFFF', letterSpacing: -0.2 }} numberOfLines={1}>
+                📅 {group.eventName}
               </Text>
-
-              {/* Service Date & Song Count */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                {displayServiceDate ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <CalendarDays size={13} color="#2563EB" />
-                    <Text style={{ fontSize: 12, color: isDark ? '#93C5FD' : '#2563EB', fontWeight: '700' }}>
-                      {displayServiceDate}
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={{ fontSize: 11, color: isDark ? '#94A3B8' : '#64748B', fontWeight: '600' }}>
-                    Order of Service & Band Charts
-                  </Text>
-                )}
-
-                {activeSetlist.length > 0 && (
-                  <View style={{ backgroundColor: isDark ? '#334155' : '#E0E7FF', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: isDark ? '#C7D2FE' : '#4338CA' }}>
-                      {activeSetlist.length} {activeSetlist.length === 1 ? 'song' : 'songs'}
-                    </Text>
-                  </View>
-                )}
-              </View>
+              {group.eventDate ? (
+                <Text style={{ fontSize: 11, color: 'rgba(255,255,255,0.75)', marginTop: 2, fontWeight: '600' }}>
+                  {group.eventDate}
+                </Text>
+              ) : null}
             </View>
 
-            {/* Share Setlist Button */}
-            <TouchableOpacity
-              onPress={handleShareSetlist}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 5,
-                backgroundColor: isDark ? '#334155' : '#EFF6FF',
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: isDark ? '#475569' : '#BFDBFE'
-              }}
-            >
-              <Share2 size={13} color={isDark ? '#93C5FD' : '#1D4ED8'} />
-              <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#93C5FD' : '#1D4ED8' }}>Share</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Dynamic Services Switcher Ribbon */}
-          {validServices.length > 0 && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: 8, paddingTop: 6, alignItems: 'center' }}
-            >
-              {validServices.map((srv: any) => {
-                if (!srv) return null;
-                const isSelected = (srv?.id || srv?.name) === (activeService?.id || activeService?.name);
-                const srvCat = getServiceCategoryMeta(srv?.category, srv?.name);
-                const srvDateStr = (srv.startDate && srv.endDate && srv.startDate !== srv.endDate)
-                  ? `${srv.startDate} – ${srv.endDate}`
-                  : (srv.date || '');
-
-                return (
-                  <TouchableOpacity
-                    key={srv?.id || srv?.name || Math.random().toString()}
-                    style={[{
-                      paddingHorizontal: 12,
-                      paddingVertical: 8,
-                      borderRadius: 12,
-                      backgroundColor: isDark ? '#0f172a' : '#F8FAFC',
-                      borderWidth: 1.5,
-                      borderColor: isDark ? '#334155' : '#E2E8F0',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 8
-                    }, isSelected && {
-                      backgroundColor: '#1a2d5a',
-                      borderColor: '#1a2d5a',
-                      shadowColor: '#1a2d5a',
-                      shadowOpacity: 0.25,
-                      shadowRadius: 4,
-                      shadowOffset: { width: 0, height: 2 },
-                      elevation: 3
-                    }]}
-                    onPress={() => setActiveServiceId(srv?.id)}
-                  >
-                    <Text style={{ fontSize: 14 }}>{srvCat.icon}</Text>
-                    <View>
-                      <Text style={[{ fontSize: 12, fontWeight: '800', color: isDark ? '#CBD5E1' : '#334155' }, isSelected && { color: '#FFFFFF' }]}>
-                        {srv?.name || 'Service'}
-                      </Text>
-                      {srvDateStr ? (
-                        <Text style={[{ fontSize: 10, fontWeight: '600', color: isDark ? '#64748B' : '#94A3B8' }, isSelected && { color: '#93C5FD' }]}>
-                          {srvDateStr}
-                        </Text>
-                      ) : null}
-                    </View>
-                    <View style={{
-                      backgroundColor: isSelected ? 'rgba(255,255,255,0.22)' : (isDark ? '#1e293b' : '#E2E8F0'),
-                      paddingHorizontal: 6,
-                      paddingVertical: 1,
-                      borderRadius: 6,
-                      marginLeft: 2
-                    }}>
-                      <Text style={{ fontSize: 10, fontWeight: '800', color: isSelected ? '#FFFFFF' : (isDark ? '#94A3B8' : '#64748B') }}>
-                        {srv.songs?.length || 0}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-          )}
-        </View>
-
-        {/* Setlist Song Items */}
-        {activeSetlist.length === 0 ? (
-          <View style={{ alignItems: 'center', paddingVertical: 50, paddingHorizontal: 20 }}>
-            <Music size={42} color={isDark ? '#475569' : '#cbd5e1'} />
-            <Text style={{ fontSize: 16, fontWeight: '800', color: isDark ? '#94A3B8' : '#1a2d5a', marginTop: 12 }}>
-              No Songs in {activeService?.name || 'this service'}
-            </Text>
-            <Text style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', marginTop: 6, lineHeight: 18, maxWidth: 280 }}>
-              The song arrangement for {activeService?.name || 'this service'} will appear here once published by your worship team.
-            </Text>
-          </View>
-        ) : (
-          activeSetlist.map((s, idx) => (
-            <TouchableOpacity
-              key={s.id || idx}
-              activeOpacity={0.85}
-              onPress={() => {
-                const match = songs.find(libSong =>
-                  libSong.title.toLowerCase().trim() === s.title.toLowerCase().trim()
-                );
-                if (match) {
-                  setSelectedSong({
-                    ...match,
-                    key: s.key || match.key,
-                    timeSignature: s.timeSignature || match.timeSignature,
-                    tempo: s.tempo || match.tempo,
-                    verses: s.verses || match.verses,
-                    prelude: s.prelude || match.prelude,
-                    interlude: s.interlude || match.interlude,
-                    notes: s.notes || match.notes,
-                    ledBy: s.ledBy || match.ledBy
-                  });
-                } else {
-                  setSelectedSong({
-                    id: s.id || `setlist-${idx}`,
-                    title: s.title,
-                    key: s.key,
-                    timeSignature: s.timeSignature,
-                    tempo: s.tempo,
-                    verses: s.verses,
-                    prelude: s.prelude,
-                    interlude: s.interlude,
-                    notes: s.notes,
-                    ledBy: s.ledBy,
-                    lyrics: `Lyrics for "${s.title}" are being prepared for Sunday Service.`
-                  } as WorshipSong);
-                }
-              }}
-              style={{
-                backgroundColor: isDark ? '#1e293b' : '#FFFFFF',
-                borderRadius: 14,
-                padding: 14,
-                marginBottom: 10,
-                borderWidth: 1,
-                borderColor: isDark ? '#334155' : '#E2E8F0',
-                elevation: 1.5,
-                shadowColor: '#000',
-                shadowOpacity: 0.04,
-                shadowRadius: 4,
-                shadowOffset: { width: 0, height: 1 }
-              }}
-            >
-              {/* Header: Number, Title (English & Telugu), Offertory, Chevron */}
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, flex: 1, marginRight: 8 }}>
-                  <View style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: 14,
-                    backgroundColor: isDark ? '#2563EB' : '#1a2d5a',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginTop: 1
-                  }}>
-                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>{idx + 1}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 15, fontWeight: '800', color: isDark ? '#FFFFFF' : '#1a2d5a', lineHeight: 20 }} numberOfLines={2}>
-                      {s.title}
-                    </Text>
-                    {s.titleTe ? (
-                      <Text style={{ fontSize: 13, color: isDark ? '#94A3B8' : '#64748B', marginTop: 2, fontWeight: '600' }} numberOfLines={1}>
-                        {s.titleTe}
-                      </Text>
-                    ) : null}
-                  </View>
-                </View>
-
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  {s.isOffertory ? (
-                    <View style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#FDE68A' }}>
-                      <Text style={{ fontSize: 9, fontWeight: '900', color: '#B45309' }}>🪙 OFFERTORY</Text>
-                    </View>
-                  ) : null}
-                  <ChevronRight size={16} color={isDark ? '#64748B' : '#94A3B8'} />
-                </View>
-              </View>
-
-              {/* Song Leader */}
-              {s.ledBy ? (
-                <View style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 5,
-                  marginBottom: 8,
-                  backgroundColor: isDark ? '#1e3a5f' : '#EFF6FF',
-                  paddingHorizontal: 8,
-                  paddingVertical: 3,
-                  borderRadius: 6,
-                  alignSelf: 'flex-start',
-                  borderWidth: 0.5,
-                  borderColor: isDark ? '#2563EB' : '#BFDBFE'
-                }}>
-                  <Mic size={11} color={isDark ? '#93C5FD' : '#1D4ED8'} />
-                  <Text style={{ fontSize: 11, fontWeight: '800', color: isDark ? '#93C5FD' : '#1D4ED8' }}>
-                    Lead: {s.ledBy}
+            {group.services.map((service) => (
+              <View key={service.id} style={{ marginBottom: 10 }}>
+                {/* Service Sub-Header */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, paddingHorizontal: 4 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10B981', marginRight: 8 }} />
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: isDark ? '#6EE7B7' : '#065F46', letterSpacing: 0.5 }}>
+                    {service.name.toUpperCase()}
                   </Text>
                 </View>
-              ) : null}
 
-              {/* Musical Arrangement Row */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: (s.prelude || s.interlude || s.notes) ? 8 : 0 }}>
-                {s.key ? (
-                  <View style={{
-                    backgroundColor: isDark ? '#1e293b' : '#EFF6FF',
-                    paddingHorizontal: 8,
-                    paddingVertical: 3,
-                    borderRadius: 6,
-                    borderWidth: 1,
-                    borderColor: isDark ? '#3b82f6' : '#BFDBFE'
-                  }}>
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: isDark ? '#93C5FD' : '#1D4ED8' }}>
-                      Key: {s.key}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {s.timeSignature ? (
-                  <View style={{
-                    backgroundColor: isDark ? '#0f172a' : '#F8FAFC',
-                    paddingHorizontal: 8,
-                    paddingVertical: 3,
-                    borderRadius: 6,
-                    borderWidth: 1,
-                    borderColor: isDark ? '#334155' : '#E2E8F0'
-                  }}>
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: isDark ? '#CBD5E1' : '#475569' }}>
-                      Time: {s.timeSignature}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {s.tempo ? (
-                  <View style={{
-                    backgroundColor: isDark ? '#291e0a' : '#FFFBEB',
-                    paddingHorizontal: 8,
-                    paddingVertical: 3,
-                    borderRadius: 6,
-                    borderWidth: 1,
-                    borderColor: isDark ? '#78350f' : '#FDE68A'
-                  }}>
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: isDark ? '#FCD34D' : '#B45309' }}>
-                      ⏱️ {s.tempo} BPM
-                    </Text>
-                  </View>
-                ) : null}
-
-                {s.verses ? (
-                  <View style={{
-                    backgroundColor: isDark ? '#062817' : '#F0FDF4',
-                    paddingHorizontal: 8,
-                    paddingVertical: 3,
-                    borderRadius: 6,
-                    borderWidth: 1,
-                    borderColor: isDark ? '#166534' : '#BBF7D0'
-                  }}>
-                    <Text style={{ fontSize: 10, fontWeight: '800', color: isDark ? '#86EFAC' : '#15803D' }}>
-                      {s.verses}
-                    </Text>
-                  </View>
-                ) : null}
+                {/* Songs */}
+                {service.songs.map((s: any, songIdx: number) => {
+                  const match = songs.find(libSong => libSong.title.toLowerCase().trim() === s.title.toLowerCase().trim());
+                  return (
+                    <TouchableOpacity
+                      key={s.id || songIdx}
+                      activeOpacity={0.85}
+                      onPress={() => {
+                        if (match) {
+                          setSelectedSong({
+                            ...match,
+                            key: s.key || match.key,
+                            timeSignature: s.timeSignature || match.timeSignature,
+                            tempo: s.tempo || match.tempo,
+                          });
+                        } else {
+                          setSelectedSong({
+                            id: s.id || `evtsong-${songIdx}`,
+                            title: s.title,
+                            titleTe: s.titleTe,
+                            key: s.key,
+                            timeSignature: s.timeSignature,
+                            tempo: s.tempo,
+                            lyrics: `Lyrics for "${s.title}" will be available soon.`,
+                          } as any);
+                        }
+                      }}
+                      style={{
+                        backgroundColor: isDark ? '#1e293b' : '#FFFFFF',
+                        borderRadius: 12,
+                        padding: 12,
+                        marginBottom: 8,
+                        borderWidth: 1,
+                        borderColor: isDark ? '#334155' : '#E2E8F0',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        elevation: 1,
+                      }}
+                    >
+                      <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: isDark ? '#10B981' : '#D1FAE5', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                        <Text style={{ color: isDark ? '#FFFFFF' : '#065F46', fontSize: 11, fontWeight: '900' }}>{songIdx + 1}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: isDark ? '#FFFFFF' : '#1a2d5a' }} numberOfLines={1}>{s.title}</Text>
+                        {s.titleTe ? <Text style={{ fontSize: 12, color: isDark ? '#94A3B8' : '#64748B', marginTop: 1 }} numberOfLines={1}>{s.titleTe}</Text> : null}
+                        {s.key ? <Text style={{ fontSize: 10, color: '#10B981', fontWeight: '700', marginTop: 2 }}>Key: {s.key}</Text> : null}
+                      </View>
+                      <ChevronRight size={16} color={isDark ? '#475569' : '#D1D5DB'} />
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
-
-              {/* Prelude & Interlude */}
-              {(s.prelude || s.interlude) ? (
-                <View style={{
-                  flexDirection: 'row',
-                  gap: 8,
-                  paddingTop: 8,
-                  borderTopWidth: 0.5,
-                  borderTopColor: isDark ? '#334155' : '#F1F5F9'
-                }}>
-                  {s.prelude ? (
-                    <View style={{ flex: 1, backgroundColor: isDark ? '#042f2e' : '#F0FDFA', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 0.5, borderColor: isDark ? '#115e59' : '#99F6E4' }}>
-                      <Text style={{ fontSize: 10, color: isDark ? '#5EEAD4' : '#0F766E', fontWeight: '700' }} numberOfLines={1}>
-                        🎵 Prelude: {s.prelude}
-                      </Text>
-                    </View>
-                  ) : null}
-                  {s.interlude ? (
-                    <View style={{ flex: 1, backgroundColor: isDark ? '#172554' : '#EFF6FF', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, borderWidth: 0.5, borderColor: isDark ? '#1e40af' : '#BFDBFE' }}>
-                      <Text style={{ fontSize: 10, color: isDark ? '#93C5FD' : '#1D4ED8', fontWeight: '700' }} numberOfLines={1}>
-                        🎸 Interlude: {s.interlude}
-                      </Text>
-                    </View>
-                  ) : null}
-                </View>
-              ) : null}
-
-              {/* Notes */}
-              {s.notes ? (
-                <View style={{
-                  marginTop: 8,
-                  backgroundColor: isDark ? '#2e2008' : '#FEFCE8',
-                  paddingHorizontal: 9,
-                  paddingVertical: 5,
-                  borderRadius: 6,
-                  borderWidth: 0.5,
-                  borderColor: isDark ? '#713f12' : '#FEF08A'
-                }}>
-                  <Text style={{ fontSize: 11, color: isDark ? '#FDE68A' : '#92400E', fontWeight: '600' }}>
-                    💡 Note: {s.notes}
-                  </Text>
-                </View>
-              ) : null}
-            </TouchableOpacity>
-          ))
-        )}
+            ))}
+          </View>
+        ))}
       </ScrollView>
     );
   };
@@ -968,12 +700,12 @@ export default function SongsScreen({ navigation, route }: any) {
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.tabPill, { backgroundColor: isDark ? '#1e293b' : '#E2E8F0' }, activeTab === 'setlist' && styles.tabPillActive]}
-            onPress={() => { setActiveTab('setlist'); setSearch(''); }}
+            style={[styles.tabPill, { backgroundColor: isDark ? '#1e293b' : '#E2E8F0' }, activeTab === 'eventSongs' && styles.tabPillActive]}
+            onPress={() => { setActiveTab('eventSongs'); setSearch(''); }}
           >
-            <Sliders size={13} color={activeTab === 'setlist' ? '#fff' : (isDark ? '#94a3b8' : '#64748b')} />
-            <Text style={[styles.tabPillTxt, activeTab === 'setlist' && styles.tabPillTxtActive]}>
-              Setlist Flow
+            <CalendarDays size={13} color={activeTab === 'eventSongs' ? '#fff' : (isDark ? '#94a3b8' : '#64748b')} />
+            <Text style={[styles.tabPillTxt, activeTab === 'eventSongs' && styles.tabPillTxtActive]}>
+              Event Songs
             </Text>
           </TouchableOpacity>
 
@@ -1009,8 +741,8 @@ export default function SongsScreen({ navigation, route }: any) {
         </ScrollView>
       </View>
 
-      {/* ── Category Chips & Search Bar (Non-Setlist Tabs) ── */}
-      {activeTab !== 'setlist' && (
+      {/* ── Category Chips & Search Bar (Non-Event-Songs Tabs) ── */}
+      {activeTab !== 'eventSongs' && (
         <>
           {/* Category Chips (Browse only) */}
           {activeTab === 'browse' && (
@@ -1080,8 +812,8 @@ export default function SongsScreen({ navigation, route }: any) {
         </>
       )}
 
-      {/* ── Setlist Flow Tab ── */}
-      {activeTab === 'setlist' && renderSetlistFlow()}
+      {/* ── Event Songs Tab ── */}
+      {activeTab === 'eventSongs' && renderEventSongsTab()}
 
       {/* ── Browse List ── */}
       {activeTab === 'browse' && (

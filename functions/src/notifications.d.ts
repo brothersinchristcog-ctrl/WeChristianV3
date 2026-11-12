@@ -93,4 +93,93 @@ export declare const periodicDailyQuizSafetyNet: import("firebase-functions/v2/s
  * Invokable endpoint for Super Admin to manually trigger or test the daily quiz push immediately.
  */
 export declare const triggerDailyQuizNotificationHttp: import("firebase-functions/v2/https").HttpsFunction;
+/**
+ * 📖 AUTOMATED DAILY VERSE MULTICAST PUSH (English & Telugu)
+ * Determines the current slot (Morning, Afternoon, Evening, Night) or uses slotOverride.
+ * Queries today's verse and dispatches FCM push notifications.
+ */
+export declare function sendDailyVersePushInternal(slotOverride?: string, targetChurchId?: string, force?: boolean): Promise<{
+    success: boolean;
+    message: string;
+    skipped: boolean;
+    error?: never;
+    slot?: never;
+    targetIndex?: never;
+    totalTokens?: never;
+} | {
+    success: boolean;
+    error: string;
+    message?: never;
+    skipped?: never;
+    slot?: never;
+    targetIndex?: never;
+    totalTokens?: never;
+} | {
+    success: boolean;
+    slot: string;
+    targetIndex: number;
+    totalTokens: number;
+    message?: never;
+    skipped?: never;
+    error?: never;
+}>;
+/**
+ * ⏰ SCHEDULED DAILY VERSE PUSH
+ * Automatically dispatches Daily Verse push notifications 4 times a day.
+ */
+export declare const sendDailyVersePushScheduled: import("firebase-functions/v2/scheduler").ScheduleFunction;
+/**
+ * 🧪 HTTP endpoint to manually trigger the Daily Verse push
+ */
+export declare const triggerDailyVersePushHttp: import("firebase-functions/v2/https").HttpsFunction;
+/**
+ * 📢 CARE CELL ANNOUNCEMENT PUSH
+ */
+export declare const pushCareCellAnnouncement: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+    announcementId: string;
+}>>;
+/**
+ * 📅 CARE CELL MEETING PUSH
+ */
+export declare const pushCareCellMeeting: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+    meetingId: string;
+}>>;
+/**
+ * 🙏 CARE CELL PRAYER REQUEST PUSH
+ */
+export declare const pushCareCellPrayerRequest: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+    requestId: string;
+}>>;
+/**
+ * 🏡 CARE CELL PASTORAL VISIT PUSH
+ */
+export declare const pushCareCellVisit: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+    visitId: string;
+}>>;
+export declare const onTestimonyCreatedAdmin: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+    testimonyId: string;
+}>>;
+export declare const onTestimonyUpdatedWorkflow: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").Change<import("firebase-functions/v2/firestore").QueryDocumentSnapshot> | undefined, {
+    churchId: string;
+    testimonyId: string;
+}>>;
+export declare const onVolunteerApplicationCreated: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+    applicationId: string;
+}>>;
+export declare const onVolunteerApplicationUpdated: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").Change<import("firebase-functions/v2/firestore").QueryDocumentSnapshot> | undefined, {
+    churchId: string;
+    applicationId: string;
+}>>;
+export declare const onEventUpdatedForVolunteers: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").Change<import("firebase-functions/v2/firestore").QueryDocumentSnapshot> | undefined, {
+    churchId: string;
+    eventId: string;
+}>>;
+export declare const scheduledVolunteerReminders: import("firebase-functions/v2/scheduler").ScheduleFunction;
+export declare const triggerVolunteerPushTestHttp: import("firebase-functions/v2/https").HttpsFunction;
 //# sourceMappingURL=notifications.d.ts.map

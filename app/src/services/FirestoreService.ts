@@ -165,6 +165,13 @@ export interface WorshipSong {
   notes?: string;
   ledBy?: string;
 }
+export interface EventServiceItem {
+  id: string;
+  name: string;
+  time?: string;
+  songLeader?: string;
+  songs: WorshipSong[];
+}
 
 export interface ScheduleEvent {
   id: string;

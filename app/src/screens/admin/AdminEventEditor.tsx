@@ -40,13 +40,22 @@ import {
   Plus,
   Sparkles,
   QrCode,
-  Repeat
+  Repeat,
+  Music,
+  ArrowUp,
+  ArrowDown,
+  Search,
+  Check,
+  Sliders,
+  Users,
+  HeartHandshake
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { AppAlert } from '../../components/CustomAlert';
 
-import FirestoreService from '../../services/FirestoreService';
+import FirestoreService, { WorshipSong, EventServiceItem } from '../../services/FirestoreService';
+import EventRsvpService from '../../services/EventRsvpService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -106,6 +115,14 @@ export default function AdminEventEditor() {
   const [loading, setLoading] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [requireEventQR, setRequireEventQR] = useState(false);
+
+  // ── Multi-Service & Setlist State ──
+  const [eventServices, setEventServices] = useState<EventServiceItem[]>([]);
+  const [allAvailableSongs, setAllAvailableSongs] = useState<WorshipSong[]>([]);
+  const [showSongPicker, setShowSongPicker] = useState(false);
+  const [targetServiceIdForPicker, setTargetServiceIdForPicker] = useState<string | null>(null);
+  const [songPickerSearch, setSongPickerSearch] = useState('');
+  const [tempSelectedSongs, setTempSelectedSongs] = useState<WorshipSong[]>([]);
 
   // Form State
   const [titleEn, setTitleEn] = useState('');
@@ -187,10 +204,21 @@ export default function AdminEventEditor() {
   const [address, setAddress] = useState('');
   const [mode, setMode] = useState('In person');
 
-  const [rsvpEnabled, setRsvpEnabled] = useState(true);
+  const [rsvpEnabled, setRsvpEnabled] = useState(false);
+  const [rsvpDeadline, setRsvpDeadline] = useState('');
+  const [isRsvpDeadlinePickerVisible, setRsvpDeadlinePickerVisible] = useState(false);
   const [rsvpPublic, setRsvpPublic] = useState(true);
   const [capAttendance, setCapAttendance] = useState(false);
   const [audience, setAudience] = useState('All members');
+
+  // Volunteer Registration State
+  const [volunteerEnabled, setVolunteerEnabled] = useState(false);
+  const [volunteerRoles, setVolunteerRoles] = useState<Array<{ id: string; name: string; slotsNeeded: number }>>([
+    { id: 'role_1', name: 'Ushering & Welcome', slotsNeeded: 4 },
+    { id: 'role_2', name: 'Sound & Audio Engineer', slotsNeeded: 2 },
+  ]);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleSlots, setNewRoleSlots] = useState('2');
 
   const [bannerColor, setBannerColor] = useState('#c0392b');
   const [bannerUrl, setBannerUrl] = useState('');
@@ -305,8 +333,18 @@ export default function AdminEventEditor() {
       setEndTime(formatFromSFTime(editingData.endTime || '12:00 PM'));
       setEventType(editingData.type || editingData.eventType || 'Sunday Service');
       setMode(editingData.mode || 'In person');
-      setRsvpEnabled(editingData.rsvpEnabled ?? true);
+      setRsvpEnabled(editingData.rsvpEnabled === true);
+      setRsvpDeadline(editingData.rsvpDeadline || '');
       setRsvpPublic(editingData.rsvpPublic ?? true);
+      setVolunteerEnabled(editingData.volunteerEnabled === true);
+      if (Array.isArray(editingData.volunteerRoles) && editingData.volunteerRoles.length > 0) {
+        setVolunteerRoles(editingData.volunteerRoles);
+      }
+      if (Array.isArray(editingData.services) && editingData.services.length > 0) {
+        setEventServices(editingData.services);
+      } else {
+        setEventServices([]);
+      }
       setAudience(editingData.audience || 'All members');
       setPublishStatus(editingData.status || 'Published');
       setRecurring(editingData.recurring || 'One-time event');
@@ -316,6 +354,84 @@ export default function AdminEventEditor() {
       setBannerColor(editingData.bannerColor || '#c0392b');
     }
   }, [editingData]);
+
+  // ── Event Services & Song Helpers ──
+  const handleAddService = () => {
+    const nextNum = eventServices.length + 1;
+    const defaultName = nextNum === 1 ? '1st Service' : nextNum === 2 ? '2nd Service' : `${nextNum}th Service`;
+    const newService: EventServiceItem = {
+      id: 'srv_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+      name: defaultName,
+      time: '',
+      songLeader: '',
+      songs: []
+    };
+    setEventServices(prev => [...prev, newService]);
+  };
+
+  const handleRemoveService = (serviceId: string) => {
+    setEventServices(prev => prev.filter(s => s.id !== serviceId));
+  };
+
+  const handleUpdateServiceName = (serviceId: string, name: string) => {
+    setEventServices(prev => prev.map(s => s.id === serviceId ? { ...s, name } : s));
+  };
+
+  const handleUpdateServiceTime = (serviceId: string, time: string) => {
+    setEventServices(prev => prev.map(s => s.id === serviceId ? { ...s, time } : s));
+  };
+
+  const handleUpdateServiceLeader = (serviceId: string, songLeader: string) => {
+    setEventServices(prev => prev.map(s => s.id === serviceId ? { ...s, songLeader } : s));
+  };
+
+  const handleRemoveSongFromService = (serviceId: string, songIdx: number) => {
+    setEventServices(prev => prev.map(s => {
+      if (s.id !== serviceId) return s;
+      const updated = [...s.songs];
+      updated.splice(songIdx, 1);
+      return { ...s, songs: updated };
+    }));
+  };
+
+  const handleMoveSongInService = (serviceId: string, songIdx: number, direction: 'up' | 'down') => {
+    setEventServices(prev => prev.map(s => {
+      if (s.id !== serviceId) return s;
+      const targetIdx = direction === 'up' ? songIdx - 1 : songIdx + 1;
+      if (targetIdx < 0 || targetIdx >= s.songs.length) return s;
+      const updated = [...s.songs];
+      const temp = updated[songIdx];
+      updated[songIdx] = updated[targetIdx];
+      updated[targetIdx] = temp;
+      return { ...s, songs: updated };
+    }));
+  };
+
+  const openSongPickerForService = async (serviceId: string) => {
+    setTargetServiceIdForPicker(serviceId);
+    const srv = eventServices.find(s => s.id === serviceId);
+    setTempSelectedSongs(srv?.songs ? [...srv.songs] : []);
+    setSongPickerSearch('');
+    setShowSongPicker(true);
+    if (!allAvailableSongs || allAvailableSongs.length === 0) {
+      try {
+        const songs = await FirestoreService.getWorshipSongs();
+        if (Array.isArray(songs)) setAllAvailableSongs(songs);
+      } catch (e) {
+        console.warn('Failed to load songs on modal open:', e);
+      }
+    }
+  };
+
+  const handleSavePickedSongs = () => {
+    if (!targetServiceIdForPicker) return;
+    setEventServices(prev => prev.map(s => {
+      if (s.id !== targetServiceIdForPicker) return s;
+      return { ...s, songs: tempSelectedSongs };
+    }));
+    setShowSongPicker(false);
+    setTargetServiceIdForPicker(null);
+  };
 
   const handleAddNewEventType = async () => {
     const trimmedEn = newTypeNameEn.trim();
@@ -504,6 +620,19 @@ export default function AdminEventEditor() {
       }
     }
 
+    if (eventServices.length > 0) {
+      const unnamedIdx = eventServices.findIndex(s => !s.name || !s.name.trim());
+      if (unnamedIdx !== -1) {
+        reportError(
+          'Service Name Required',
+          'సర్వీస్ పేరు అవసరం',
+          `Please enter a Service Name for Service #${unnamedIdx + 1}.`,
+          `దయచేసి సర్వీస్ #${unnamedIdx + 1} కొరకు పేరును నమోదు చేయండి.`
+        );
+        return;
+      }
+    }
+
     setValidationError(null);
     setErrorModal(null);
 
@@ -575,7 +704,11 @@ export default function AdminEventEditor() {
       eventType: resolveValue('types', eventType),
       type: resolveValue('types', eventType),
       mode: resolveValue('modes', mode),
-      rsvpEnabled, rsvpPublic,
+      rsvpEnabled: rsvpEnabled === true,
+      rsvpDeadline: rsvpDeadline || null,
+      rsvpPublic,
+      volunteerEnabled: volunteerEnabled === true,
+      volunteerRoles: volunteerEnabled ? volunteerRoles : [],
       audience: resolveValue('audiences', audience),
       publishStatus: resolveStatus(status),
       status: resolveStatus(status),
@@ -587,11 +720,14 @@ export default function AdminEventEditor() {
       requireEventQR,
       notifyOnPublish, reminder1Day, reminder1Hour,
       rsvpCap: capAttendance ? 100 : 0,
-      updateMode
+      updateMode,
+      hasWorshipServices: eventServices.length > 0,
+      services: eventServices.length > 0 ? eventServices : []
     };
 
     try {
-      await FirestoreService.createEvent(payload);
+      const savedResult = await FirestoreService.createEvent(payload);
+      const finalEventId = (typeof savedResult === 'string' && savedResult) ? savedResult : (editingData?.id || payload.id);
 
       if (notifyOnPublish && status === 'Published') {
         try {
@@ -618,6 +754,16 @@ export default function AdminEventEditor() {
             startTime: startTime || undefined,
             targetChurchId: churchId,
           });
+
+          // If RSVP was enabled after event publication, notify members that RSVP is now open
+          if (editingData && !editingData.rsvpEnabled && rsvpEnabled && churchId && finalEventId) {
+            await EventRsvpService.notifyRsvpOpened({
+              churchId,
+              eventId: finalEventId,
+              eventTitle: titleEn,
+              eventDate: displayDate,
+            });
+          }
         } catch (notifErr) {
           console.warn('⚠️ Event push notification failed (non-critical):', notifErr);
         }
@@ -659,6 +805,10 @@ export default function AdminEventEditor() {
     setStartTime('09:00 AM'); setEndTime('12:00 PM');
     setNotifyOnPublish(true); setReminder1Day(true); setReminder1Hour(false);
     setRequireEventQR(false);
+    setRsvpEnabled(false);
+    setRsvpDeadline('');
+    setVolunteerEnabled(false);
+    setEventServices([]);
     setEditingData(null);
   };
 
@@ -1151,6 +1301,230 @@ export default function AdminEventEditor() {
           </View>
         </View>
 
+        {/* ── Worship Services & Setlist Section (Optional) ── */}
+        <View style={styles.section}>
+          <View style={[styles.secHd, { justifyContent: 'space-between', alignItems: 'center' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+              <View style={[styles.secHdPill, { backgroundColor: '#10B981' }]}>
+                <Music size={13} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.secHdTXT}>Worship Services & Song Setlists</Text>
+                <Text style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>
+                  {eventServices.length === 0 ? 'Optional: attach worship services & song setlists to this event' : `${eventServices.length} service${eventServices.length > 1 ? 's' : ''} configured`}
+                </Text>
+              </View>
+            </View>
+            {eventServices.length > 0 && (
+              <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#047857' }}>ENABLED</Text>
+              </View>
+            )}
+          </View>
+
+          {/* List of Configured Services */}
+          {eventServices.map((service, sIndex) => (
+            <View key={service.id} style={{
+              backgroundColor: '#F8FAFC',
+              borderRadius: 14,
+              borderWidth: 1.5,
+              borderColor: '#E2E8F0',
+              padding: 14,
+              marginBottom: 14
+            }}>
+              {/* Service Card Header: Service Name (Required) */}
+              <View style={{ marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#1a2d5a', letterSpacing: 0.4 }}>SERVICE NAME</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#DC2626' }}>*</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleRemoveService(service.id)}
+                    style={{
+                      paddingVertical: 4,
+                      paddingHorizontal: 8,
+                      borderRadius: 6,
+                      backgroundColor: '#FEE2E2',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Trash2 size={13} color="#DC2626" />
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#DC2626' }}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: '#10B981', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>{sIndex + 1}</Text>
+                  </View>
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      fontSize: 14,
+                      fontWeight: '700',
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      borderWidth: 1.5,
+                      borderColor: !service.name?.trim() ? '#EF4444' : '#CBD5E1',
+                      borderRadius: 8,
+                      paddingHorizontal: 10,
+                      paddingVertical: 7
+                    }}
+                    value={service.name}
+                    onChangeText={(val) => handleUpdateServiceName(service.id, val)}
+                    placeholder="e.g. English Service, Morning Worship (Required)"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+                {!service.name?.trim() && (
+                  <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600', marginTop: 4, marginLeft: 36 }}>
+                    Service Name is required
+                  </Text>
+                )}
+              </View>
+
+              {/* Song Leader (Optional) */}
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 10, fontWeight: '800', color: '#64748B', marginBottom: 4, letterSpacing: 0.5 }}>SONG LEADER (OPTIONAL)</Text>
+                <TextInput
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '600',
+                    color: '#0F172A',
+                    backgroundColor: '#FFFFFF',
+                    borderWidth: 1.5,
+                    borderColor: '#E2E8F0',
+                    borderRadius: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 7
+                  }}
+                  value={service.songLeader || ''}
+                  onChangeText={(val) => handleUpdateServiceLeader(service.id, val)}
+                  placeholder="e.g. Bro. David"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+
+              {/* Scheduled Songs for this Service */}
+              <View style={{ borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#0F172A' }}>
+                    Scheduled Songs ({service.songs?.length || 0})
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => openSongPickerForService(service.id)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      backgroundColor: '#EFF6FF',
+                      borderWidth: 1,
+                      borderColor: '#BFDBFE',
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 8
+                    }}
+                  >
+                    <Plus size={13} color="#1D4ED8" />
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#1D4ED8' }}>
+                      {service.songs?.length ? 'Manage / Add Songs' : 'Add Songs'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {(!service.songs || service.songs.length === 0) ? (
+                  <View style={{ backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed' }}>
+                    <Music size={20} color="#94A3B8" />
+                    <Text style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>No songs added yet for this service.</Text>
+                  </View>
+                ) : (
+                  service.songs.map((song, songIdx) => (
+                    <View key={song.id || songIdx} style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 10,
+                      padding: 10,
+                      marginBottom: 6,
+                      borderWidth: 1,
+                      borderColor: '#E2E8F0'
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, marginRight: 8 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748B', width: 20 }}>
+                          {songIdx + 1}.
+                        </Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }} numberOfLines={1}>
+                            {song.title}
+                          </Text>
+                          {song.titleTe ? (
+                            <Text style={{ fontSize: 10, color: '#64748B' }} numberOfLines={1}>
+                              {song.titleTe}
+                            </Text>
+                          ) : null}
+                        </View>
+                        {song.key ? (
+                          <View style={{ backgroundColor: '#EEF2FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                            <Text style={{ fontSize: 10, fontWeight: '800', color: '#4338CA' }}>{song.key}</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <TouchableOpacity
+                          disabled={songIdx === 0}
+                          onPress={() => handleMoveSongInService(service.id, songIdx, 'up')}
+                          style={{ padding: 4, opacity: songIdx === 0 ? 0.3 : 1 }}
+                        >
+                          <ArrowUp size={13} color="#475569" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          disabled={songIdx === service.songs.length - 1}
+                          onPress={() => handleMoveSongInService(service.id, songIdx, 'down')}
+                          style={{ padding: 4, opacity: songIdx === service.songs.length - 1 ? 0.3 : 1 }}
+                        >
+                          <ArrowDown size={13} color="#475569" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveSongFromService(service.id, songIdx)}
+                          style={{ padding: 4, marginLeft: 2 }}
+                        >
+                          <Trash2 size={13} color="#DC2626" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
+            </View>
+          ))}
+
+          {/* Action button to add worship service */}
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#1a2d5a',
+              borderRadius: 12,
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              gap: 8,
+              marginTop: 6
+            }}
+            onPress={handleAddService}
+            activeOpacity={0.8}
+          >
+            <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
+            <Text style={{ fontSize: 13, fontWeight: '800', color: '#FFFFFF' }}>
+              {eventServices.length === 0 ? 'Add Worship Service / Setlist' : 'Add Another Service'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {/* ── Attendance & QR Check-In Settings ── */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
@@ -1176,6 +1550,256 @@ export default function AdminEventEditor() {
               thumbColor={requireEventQR ? '#C9A84C' : '#FFFFFF'}
             />
           </View>
+        </View>
+
+        {/* ── RSVP Poll Settings ── */}
+        <View
+          style={[
+            styles.section,
+            styles.secNavy,
+            rsvpEnabled && {
+              borderColor: '#4F46E5',
+              borderWidth: 1.5,
+              backgroundColor: '#EEF2FF',
+            },
+          ]}
+        >
+          <View style={styles.secHd}>
+            <View style={[styles.secHdPill, { backgroundColor: rsvpEnabled ? '#4F46E5' : '#1a2d5a' }]}>
+              <Users size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>Member RSVP Poll</Text>
+            {rsvpEnabled && (
+              <View
+                style={{
+                  backgroundColor: '#E0E7FF',
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 6,
+                  marginLeft: 'auto',
+                }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: '800', color: '#4338CA' }}>
+                  POLL ACTIVE
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
+            <View style={{ flex: 1, paddingRight: 14 }}>
+              <Text style={styles.switchLabel}>Enable Member RSVP Poll</Text>
+              <Text style={[styles.fHint, { marginTop: 4, lineHeight: 16 }]}>
+                {rsvpEnabled
+                  ? 'Members can submit RSVP responses (Going, Interested, Not Going) on the Event Details screen with live analytics for leaders.'
+                  : 'RSVP is disabled by default. Members will see event details without RSVP options.'}
+              </Text>
+            </View>
+            <Switch
+              value={rsvpEnabled}
+              onValueChange={setRsvpEnabled}
+              trackColor={{ false: '#CBD5E1', true: '#4F46E5' }}
+              thumbColor={rsvpEnabled ? '#818CF8' : '#FFFFFF'}
+            />
+          </View>
+
+          {rsvpEnabled && (
+            <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+              <Text style={styles.fLabel}>RSVP DEADLINE (OPTIONAL)</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, alignItems: 'center' }}>
+                <TouchableOpacity
+                  style={[styles.inputWrap, { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 }]}
+                  onPress={() => setRsvpDeadlinePickerVisible(true)}
+                >
+                  <Text
+                    style={{
+                      flex: 1,
+                      fontSize: 13,
+                      color: rsvpDeadline ? '#0F172A' : '#64748B',
+                      fontWeight: rsvpDeadline ? '600' : '400',
+                    }}
+                  >
+                    {rsvpDeadline || 'Select deadline date (defaults to event start)'}
+                  </Text>
+                  <Calendar size={16} color="#64748B" />
+                </TouchableOpacity>
+                {!!rsvpDeadline && (
+                  <TouchableOpacity
+                    onPress={() => setRsvpDeadline('')}
+                    style={{ padding: 10, borderRadius: 10, backgroundColor: '#F1F5F9' }}
+                  >
+                    <X size={16} color="#64748B" />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <Text style={[styles.fHint, { marginTop: 6 }]}>
+                After this deadline, the RSVP poll will become read-only and no new or modified responses will be accepted.
+              </Text>
+
+              <View
+                style={{
+                  marginTop: 12,
+                  padding: 10,
+                  borderRadius: 10,
+                  backgroundColor: '#FFFFFF',
+                  borderWidth: 1,
+                  borderColor: '#C7D2FE',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
+              >
+                <Info size={16} color="#4F46E5" />
+                <Text style={{ flex: 1, fontSize: 11, color: '#3730A3', lineHeight: 15 }}>
+                  RSVP options: 🟢 Going · 🟡 Interested · 🔴 Not Going. Church leaders will have access to participation breakdown, member roster, and exportable reports.
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* ── VOLUNTEER REGISTRATION CONFIGURATION ── */}
+        <View style={[styles.section, styles.secNavy, volunteerEnabled && { borderColor: '#059669', borderWidth: 1.5, backgroundColor: '#ECFDF5' }]}>
+          <View style={styles.secHd}>
+            <View style={[styles.secHdPill, { backgroundColor: volunteerEnabled ? '#059669' : '#1a2d5a' }]}>
+              <HeartHandshake size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>Volunteer Registration</Text>
+            {volunteerEnabled && (
+              <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginLeft: 'auto' }}>
+                <Text style={{ fontSize: 10, fontWeight: '800', color: '#047857' }}>VOLUNTEERING ON</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
+            <View style={{ flex: 1, paddingRight: 14 }}>
+              <Text style={styles.switchLabel}>Enable Volunteer Registration</Text>
+              <Text style={[styles.fHint, { marginTop: 4, lineHeight: 16 }]}>
+                {volunteerEnabled
+                  ? 'Members can apply for specific volunteer roles for this event. Authorized admins will be notified of every submission.'
+                  : 'Volunteering is OFF. Turn ON to open volunteer applications for this event.'}
+              </Text>
+            </View>
+            <Switch
+              value={volunteerEnabled}
+              onValueChange={setVolunteerEnabled}
+              trackColor={{ false: '#CBD5E1', true: '#059669' }}
+              thumbColor={volunteerEnabled ? '#10B981' : '#FFFFFF'}
+            />
+          </View>
+
+          {volunteerEnabled && (
+            <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+              <Text style={styles.fLabel}>VOLUNTEER ROLES NEEDED</Text>
+              <Text style={[styles.fHint, { marginBottom: 10 }]}>
+                Specify which service roles and headcounts are needed for this event:
+              </Text>
+
+              {volunteerRoles.map((role, idx) => (
+                <View
+                  key={role.id || idx}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                    marginBottom: 6,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                      {role.name}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: '#64748B' }}>
+                      {role.slotsNeeded} {role.slotsNeeded === 1 ? 'volunteer needed' : 'volunteers needed'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setVolunteerRoles(prev => prev.filter((_, i) => i !== idx));
+                    }}
+                    style={{ padding: 6 }}
+                  >
+                    <Trash2 size={16} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {/* Add New Role Row */}
+              <View style={{ marginTop: 8, flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      flex: 2,
+                      paddingHorizontal: 12,
+                      paddingVertical: 0,
+                      fontSize: 13,
+                      height: 42,
+                      textAlignVertical: 'center',
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      borderColor: '#CBD5E1',
+                    },
+                  ]}
+                  placeholder="e.g. Stage Setup & Welcome"
+                  placeholderTextColor="#94A3B8"
+                  value={newRoleName}
+                  onChangeText={setNewRoleName}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      width: 60,
+                      paddingHorizontal: 8,
+                      paddingVertical: 0,
+                      fontSize: 13,
+                      height: 42,
+                      textAlign: 'center',
+                      textAlignVertical: 'center',
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      borderColor: '#CBD5E1',
+                    },
+                  ]}
+                  placeholder="Qty"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="numeric"
+                  value={newRoleSlots}
+                  onChangeText={setNewRoleSlots}
+                />
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#059669',
+                    borderRadius: 8,
+                    height: 40,
+                    paddingHorizontal: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => {
+                    if (!newRoleName.trim()) return;
+                    const slots = parseInt(newRoleSlots, 10) || 1;
+                    setVolunteerRoles(prev => [
+                      ...prev,
+                      { id: `role_${Date.now()}`, name: newRoleName.trim(), slotsNeeded: slots },
+                    ]);
+                    setNewRoleName('');
+                    setNewRoleSlots('2');
+                  }}
+                >
+                  <Plus size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
 
         <View style={[styles.section, styles.secBlue]}>
@@ -1278,6 +1902,195 @@ export default function AdminEventEditor() {
         }}
         onCancel={() => setEndTimeVisibility(false)}
       />
+
+      <DateTimePickerModal
+        isVisible={isRsvpDeadlinePickerVisible}
+        mode="date"
+        onConfirm={(d) => {
+          const newDateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+          setRsvpDeadline(newDateStr);
+          setRsvpDeadlinePickerVisible(false);
+        }}
+        onCancel={() => setRsvpDeadlinePickerVisible(false)}
+      />
+
+      {/* ── Multi-Select Song Picker Modal ── */}
+      <Modal visible={showSongPicker} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' }}>
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            height: '85%',
+            paddingTop: 16,
+            paddingHorizontal: 16,
+            paddingBottom: 24
+          }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' }}>
+                  <Music size={20} color="#2563EB" />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#1a2d5a' }}>
+                    Select Service Songs
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '600' }}>
+                    {tempSelectedSongs.length} {tempSelectedSongs.length === 1 ? 'song selected' : 'songs selected'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowSongPicker(false)}
+                style={{ padding: 6, borderRadius: 8, backgroundColor: '#F1F5F9' }}
+              >
+                <X size={18} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Input */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#F8FAFC',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+              borderRadius: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              marginBottom: 10,
+              gap: 8
+            }}>
+              <Search size={16} color="#94A3B8" />
+              <TextInput
+                style={{ flex: 1, fontSize: 13, color: '#0F172A' }}
+                placeholder="Search songs by English or Telugu title..."
+                placeholderTextColor="#94A3B8"
+                value={songPickerSearch}
+                onChangeText={setSongPickerSearch}
+                autoCorrect={false}
+              />
+              {songPickerSearch ? (
+                <TouchableOpacity onPress={() => setSongPickerSearch('')}>
+                  <X size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {/* Songs List */}
+            {(() => {
+              const q = songPickerSearch.trim().toLowerCase();
+              const filtered = allAvailableSongs.filter(s => {
+                if (!s) return false;
+                if (!q) return true;
+                const matchEn = (s.title || '').toLowerCase().includes(q);
+                const matchTe = (s.titleTe || '').toLowerCase().includes(q);
+                return matchEn || matchTe;
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                    <Music size={36} color="#CBD5E1" />
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748B', marginTop: 8 }}>
+                      No songs found
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>
+                      Try typing a different song title or keyword
+                    </Text>
+                  </View>
+                );
+              }
+
+              return (
+                <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                  {filtered.map((song, idx) => {
+                    const isSelected = tempSelectedSongs.some(ts => ts.id === song.id || ts.title.trim().toLowerCase() === song.title.trim().toLowerCase());
+                    return (
+                      <TouchableOpacity
+                        key={song.id || idx}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          if (isSelected) {
+                            setTempSelectedSongs(prev => prev.filter(ts => ts.id !== song.id && ts.title.trim().toLowerCase() !== song.title.trim().toLowerCase()));
+                          } else {
+                            setTempSelectedSongs(prev => [...prev, song]);
+                          }
+                        }}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          backgroundColor: isSelected ? '#EFF6FF' : '#FFFFFF',
+                          borderWidth: 1,
+                          borderColor: isSelected ? '#93C5FD' : '#E2E8F0',
+                          borderRadius: 12,
+                          marginBottom: 6
+                        }}
+                      >
+                        <View style={{ flex: 1, marginRight: 10 }}>
+                          <Text style={{ fontSize: 14, fontWeight: '700', color: isSelected ? '#1D4ED8' : '#1a2d5a' }} numberOfLines={1}>
+                            {song.title}
+                          </Text>
+                          {song.titleTe ? (
+                            <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }} numberOfLines={1}>
+                              {song.titleTe}
+                            </Text>
+                          ) : null}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                            {song.key ? (
+                              <View style={{ backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: '#475569' }}>Key: {song.key}</Text>
+                              </View>
+                            ) : null}
+                            {song.category ? (
+                              <Text style={{ fontSize: 10, color: '#94A3B8' }}>{song.category}</Text>
+                            ) : null}
+                          </View>
+                        </View>
+
+                        <View style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          borderWidth: 1.5,
+                          borderColor: isSelected ? '#2563EB' : '#CBD5E1',
+                          backgroundColor: isSelected ? '#2563EB' : '#FFFFFF',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          {isSelected && <Check size={14} color="#FFFFFF" />}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              );
+            })()}
+
+            {/* Bottom Actions */}
+            <View style={{ flexDirection: 'row', gap: 10, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+              <TouchableOpacity
+                onPress={() => setShowSongPicker(false)}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#475569' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSavePickedSongs}
+                style={{ flex: 2, paddingVertical: 12, borderRadius: 12, backgroundColor: '#1a2d5a', alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '800', color: '#FFFFFF' }}>
+                  Done ({tempSelectedSongs.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Modal for Creating New Event Type */}
       <Modal visible={showNewTypeModal} transparent animationType="fade">

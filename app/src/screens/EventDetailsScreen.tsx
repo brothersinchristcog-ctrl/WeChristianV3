@@ -12,7 +12,10 @@ import {
   Share, 
   Alert, 
   Linking, 
-  ActivityIndicator 
+  ActivityIndicator,
+  Modal,
+  KeyboardAvoidingView,
+  TextInput
 } from 'react-native';
 import { 
   Calendar, 
@@ -26,7 +29,10 @@ import {
   Radio, 
   Lock, 
   CheckCircle2,
-  Navigation
+  Navigation,
+  HeartHandshake,
+  Send,
+  X
 } from 'lucide-react-native';
 import { openZoomMeeting } from '../utils/ZoomLauncher';
 import YoutubePlayer from 'react-native-youtube-iframe';
@@ -38,8 +44,12 @@ import RNShare from 'react-native-share';
 import ViewShot from 'react-native-view-shot';
 
 import { findEventVideo } from '../services/YouTubeService';
+import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
 import FirestoreService from '../services/FirestoreService';
+import VolunteerService from '../services/VolunteerService';
+import EventRsvpPollCard from '../components/EventRsvpPollCard';
+import EventRsvpAnalyticsModal from './admin/EventRsvpAnalyticsModal';
 
 const { width, height } = Dimensions.get('window');
 
@@ -82,6 +92,78 @@ export default function EventDetailsScreen({ route, navigation }: any) {
   const initialEvent = route?.params?.event || {};
   const [eventData, setEventData] = useState<any>(initialEvent);
   const { activeChurch } = useChurch();
+  const { user, member, viewMode } = useAuth();
+  const isAdmin = viewMode === 'admin' || String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('PASTOR');
+
+  const [showRsvpAnalytics, setShowRsvpAnalytics] = useState(false);
+
+  // Volunteer State for this Event
+  const [volunteerApp, setVolunteerApp] = useState<any>(null);
+  const [showVolunteerModal, setShowVolunteerModal] = useState(false);
+  const [selectedVolunteerRole, setSelectedVolunteerRole] = useState('');
+  const [volunteerNotes, setVolunteerNotes] = useState('');
+  const [volunteerSubmitting, setVolunteerSubmitting] = useState(false);
+
+  // Check if member already applied for this event
+  useEffect(() => {
+    const idToFind = initialEvent.id || eventData?.id;
+    if (idToFind && user?.uid && activeChurch?.id) {
+      VolunteerService.getMemberEventApplication(activeChurch.id, idToFind, user.uid)
+        .then((app) => setVolunteerApp(app))
+        .catch(() => {});
+    }
+  }, [initialEvent.id, eventData?.id, user?.uid, activeChurch?.id]);
+
+  const handleApplyEventVolunteer = async () => {
+    if (volunteerApp && volunteerApp.status === 'pending') {
+      Alert.alert(
+        'Application Under Review',
+        'Your previous volunteer application is currently under review. You can submit a new application once the review is completed.'
+      );
+      return;
+    }
+
+    if (!selectedVolunteerRole) {
+      Alert.alert('Role Required', 'Please choose a volunteer role you would like to serve in.');
+      return;
+    }
+    try {
+      setVolunteerSubmitting(true);
+      const memberName =
+        member?.name || (member as any)?.fullName || user?.displayName || 'Church Member';
+      const memberPhone = member?.phone || (member as any)?.phoneNumber || user?.phoneNumber || '';
+      const memberEmail = member?.email || user?.email || '';
+
+      await VolunteerService.submitEventApplication(
+        activeChurch?.id || 'cog',
+        { id: user?.uid || '', name: memberName, phone: memberPhone, email: memberEmail },
+        {
+          id: event.id,
+          title: event.title || event.name || 'Church Event',
+          date: event.date,
+          time: event.startTime || event.time || '',
+          location: event.location,
+        },
+        { preferredRole: selectedVolunteerRole, availabilityNotes: volunteerNotes.trim() }
+      );
+
+      const refreshed = await VolunteerService.getMemberEventApplication(
+        activeChurch?.id || 'cog',
+        event.id,
+        user?.uid || ''
+      );
+      setVolunteerApp(refreshed);
+      setShowVolunteerModal(false);
+      Alert.alert(
+        'Application Submitted!',
+        'Thank you for volunteering! Your application has been sent to the event organizers. You will receive a push notification as soon as it is reviewed.'
+      );
+    } catch (e: any) {
+      Alert.alert('Submission Error', e.message || 'Could not submit your volunteer application.');
+    } finally {
+      setVolunteerSubmitting(false);
+    }
+  };
 
   const [imageAspectRatio, setImageAspectRatio] = useState<number>(16 / 9);
   const [isSharing, setIsSharing] = useState(false);
@@ -497,6 +579,264 @@ export default function EventDetailsScreen({ route, navigation }: any) {
             </View>
           </View>
 
+          {/* ── MEMBER RSVP PARTICIPATION POLL (Active for Upcoming/Live events; hidden once Completed) ── */}
+          {event?.rsvpEnabled === true && status !== 'completed' && (
+            <EventRsvpPollCard
+              eventId={event.id}
+              churchId={activeChurch?.id}
+              eventTitle={event.title || event.name || 'Church Event'}
+              eventDate={formatDate(event.date)}
+              rsvpDeadline={event.rsvpDeadline}
+              isCompleted={false}
+              currentUser={{
+                id: member?.id || user?.uid || '',
+                name: member?.name || (member as any)?.fullName || user?.displayName || 'Member',
+                phone: member?.phone || (member as any)?.phoneNumber || user?.phoneNumber || '',
+                photo: (member as any)?.photoUrl || (member as any)?.profilePicture || (member as any)?.photo || user?.photoURL || '',
+              }}
+              isAdmin={isAdmin}
+              onViewAnalytics={() => setShowRsvpAnalytics(true)}
+            />
+          )}
+
+          {/* ── EVENT VOLUNTEER REGISTRATION SECTION ── */}
+          {event?.volunteerEnabled === true && status !== 'completed' && (
+            <View style={[styles.section, { marginTop: 14 }]}>
+              {volunteerApp ? (
+                // Member has applied: show status or assignment
+                <View
+                  style={{
+                    padding: 16,
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    backgroundColor:
+                      volunteerApp.status === 'approved'
+                        ? '#ECFDF5'
+                        : volunteerApp.status === 'rejected'
+                        ? '#FEF2F2'
+                        : '#FFFBEB',
+                    borderColor:
+                      volunteerApp.status === 'approved'
+                        ? '#10B981'
+                        : volunteerApp.status === 'rejected'
+                        ? '#F87171'
+                        : '#F59E0B',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <HeartHandshake
+                        size={18}
+                        color={
+                          volunteerApp.status === 'approved'
+                            ? '#059669'
+                            : volunteerApp.status === 'rejected'
+                            ? '#DC2626'
+                            : '#D97706'
+                        }
+                      />
+                      <Text
+                        style={{
+                          flex: 1,
+                          fontSize: 12.5,
+                          fontWeight: '800',
+                          letterSpacing: 0.3,
+                          lineHeight: 17,
+                          color:
+                            volunteerApp.status === 'approved'
+                              ? '#047857'
+                              : volunteerApp.status === 'rejected'
+                              ? '#B91C1C'
+                              : '#B45309',
+                        }}
+                        numberOfLines={2}
+                      >
+                        {volunteerApp.status === 'approved'
+                          ? 'YOU ARE SERVING AT THIS EVENT'
+                          : volunteerApp.status === 'rejected'
+                          ? 'VOLUNTEER APPLICATION UPDATE'
+                          : 'APPLICATION UNDER REVIEW'}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        flexShrink: 0,
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 999,
+                        borderWidth: 1,
+                        backgroundColor:
+                          volunteerApp.status === 'approved'
+                            ? '#DCFCE7'
+                            : volunteerApp.status === 'rejected'
+                            ? '#FEE2E2'
+                            : '#FEF3C7',
+                        borderColor:
+                          volunteerApp.status === 'approved'
+                            ? '#86EFAC'
+                            : volunteerApp.status === 'rejected'
+                            ? '#FCA5A5'
+                            : '#FCD34D',
+                      }}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 10,
+                          fontWeight: '800',
+                          letterSpacing: 0.4,
+                          color:
+                            volunteerApp.status === 'approved'
+                              ? '#15803D'
+                              : volunteerApp.status === 'rejected'
+                              ? '#991B1B'
+                              : '#B45309',
+                        }}
+                      >
+                        {volunteerApp.status === 'rejected' ? 'NOT APPROVED' : volunteerApp.status.toUpperCase()}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {volunteerApp.status === 'approved' ? (
+                    <View style={{ marginTop: 10 }}>
+                      <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A' }}>
+                        Assigned Role: {volunteerApp.assignedRole || volunteerApp.preferredRole || 'Event Volunteer'}
+                      </Text>
+                      {!!volunteerApp.assignedTimeSlot && (
+                        <Text style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>
+                          ⏰ Reporting Time: {volunteerApp.assignedTimeSlot}
+                        </Text>
+                      )}
+                      {!!volunteerApp.assignedLocation && (
+                        <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                          📍 Duty Station: {volunteerApp.assignedLocation}
+                        </Text>
+                      )}
+                      {!!volunteerApp.assignedResponsibility && (
+                        <Text style={{ fontSize: 12, color: '#64748B', marginTop: 4, fontStyle: 'italic' }}>
+                          Tasks: {volunteerApp.assignedResponsibility}
+                        </Text>
+                      )}
+                      <Text style={{ fontSize: 11, color: '#059669', fontWeight: '600', marginTop: 8 }}>
+                        Thank you for your faithful service to the house of God!
+                      </Text>
+                    </View>
+                  ) : volunteerApp.status === 'rejected' ? (
+                    <View style={{ marginTop: 8 }}>
+                      <Text style={{ fontSize: 12, color: '#7F1D1D' }}>
+                        Your previous volunteer application was not approved.
+                        {volunteerApp.rejectionReason ? ` Note: ${volunteerApp.rejectionReason}` : ''}
+                      </Text>
+                      <TouchableOpacity
+                        style={{
+                          marginTop: 10,
+                          backgroundColor: '#059669',
+                          borderRadius: 8,
+                          paddingVertical: 9,
+                          paddingHorizontal: 12,
+                          alignItems: 'center',
+                          flexDirection: 'row',
+                          justifyContent: 'center',
+                          gap: 6,
+                        }}
+                        onPress={() => {
+                          if (Array.isArray(event.volunteerRoles) && event.volunteerRoles.length > 0) {
+                            setSelectedVolunteerRole(event.volunteerRoles[0].name);
+                          } else {
+                            setSelectedVolunteerRole('Event Volunteer');
+                          }
+                          setShowVolunteerModal(true);
+                        }}
+                      >
+                        <Send size={13} color="#FFFFFF" />
+                        <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 12 }}>
+                          Apply Again for This Event
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <View style={{ marginTop: 8 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                        Requested Role: {volunteerApp.preferredRole}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#92400E', marginTop: 3, lineHeight: 17 }}>
+                        Your previous volunteer application is currently under review. You can submit a new application once the review is completed.
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              ) : (
+                // Not applied: show invitation and button
+                <View
+                  style={{
+                    padding: 16,
+                    borderRadius: 16,
+                    borderWidth: 1,
+                    borderColor: '#A7F3D0',
+                    backgroundColor: '#ECFDF5',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <HeartHandshake size={20} color="#059669" />
+                    <Text style={{ fontSize: 15, fontWeight: '800', color: '#065F46' }}>
+                      Volunteer for This Event
+                    </Text>
+                  </View>
+                  <Text style={{ fontSize: 12, color: '#047857', marginTop: 4, lineHeight: 17 }}>
+                    Be part of making this service a blessing for everyone. Volunteer roles are open!
+                  </Text>
+
+                  {/* Role badges */}
+                  {Array.isArray(event.volunteerRoles) && event.volunteerRoles.length > 0 && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                      {event.volunteerRoles.map((r: any, idx: number) => (
+                        <View
+                          key={idx}
+                          style={{
+                            paddingHorizontal: 8,
+                            paddingVertical: 3,
+                            borderRadius: 6,
+                            backgroundColor: '#D1FAE5',
+                          }}
+                        >
+                          <Text style={{ fontSize: 11, fontWeight: '600', color: '#047857' }}>
+                            {r.name} ({r.slotsNeeded} spots)
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  <TouchableOpacity
+                    style={{
+                      marginTop: 14,
+                      backgroundColor: '#059669',
+                      borderRadius: 10,
+                      paddingVertical: 10,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'row',
+                      gap: 6,
+                    }}
+                    onPress={() => {
+                      if (Array.isArray(event.volunteerRoles) && event.volunteerRoles.length > 0) {
+                        setSelectedVolunteerRole(event.volunteerRoles[0].name);
+                      } else {
+                        setSelectedVolunteerRole('Ushering & Welcome');
+                      }
+                      setShowVolunteerModal(true);
+                    }}
+                  >
+                    <Send size={14} color="#FFFFFF" />
+                    <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>
+                      Apply as Event Volunteer
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+
           {/* ── VIDEO SECTION — shown based on status ── */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -714,6 +1054,157 @@ export default function EventDetailsScreen({ route, navigation }: any) {
           </View>
         </ViewShot>
       </View>
+
+      {/* ── Admin RSVP Participation Modal ── */}
+      {isAdmin && (
+        <EventRsvpAnalyticsModal
+          visible={showRsvpAnalytics}
+          onClose={() => setShowRsvpAnalytics(false)}
+          eventId={event.id}
+          eventTitle={event.title || event.name || 'Church Event'}
+          eventDate={formatDate(event.date)}
+          churchId={activeChurch?.id}
+        />
+      )}
+
+      {/* ── Member Event Volunteer Application Modal ── */}
+      <Modal visible={showVolunteerModal} transparent animationType="slide">
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}
+        >
+          <View
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              padding: 20,
+              maxHeight: '85%',
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 16, fontWeight: '800', color: '#0F172A' }}>
+                  Volunteer for {event.title || event.name || 'Event'}
+                </Text>
+                <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                  📅 {event.date} · 📍 {event.location || 'Church'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowVolunteerModal(false)}>
+                <X size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 350 }}>
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F172A', marginBottom: 6 }}>
+                CHOOSE VOLUNTEER ROLE *
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                {(Array.isArray(event.volunteerRoles) && event.volunteerRoles.length > 0
+                  ? event.volunteerRoles.map((r: any) => r.name)
+                  : ['Ushering & Welcome', 'Sound & Audio Engineer', 'Stage Setup', 'Parking Team', 'Hospitality Desk']
+                ).map((roleName: string, idx: number) => {
+                  const isSelected = selectedVolunteerRole === roleName;
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      style={{
+                        paddingHorizontal: 12,
+                        paddingVertical: 8,
+                        borderRadius: 8,
+                        borderWidth: 1.5,
+                        borderColor: isSelected ? '#059669' : '#E2E8F0',
+                        backgroundColor: isSelected ? '#ECFDF5' : '#F8FAFC',
+                      }}
+                      onPress={() => setSelectedVolunteerRole(roleName)}
+                    >
+                      <Text
+                        style={{
+                          fontSize: 12,
+                          fontWeight: isSelected ? '800' : '600',
+                          color: isSelected ? '#047857' : '#1E293B',
+                        }}
+                      >
+                        {roleName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F172A', marginBottom: 6 }}>
+                NOTES OR RELEVANT EXPERIENCE (OPTIONAL)
+              </Text>
+              <TextInput
+                style={{
+                  borderWidth: 1,
+                  borderColor: '#CBD5E1',
+                  backgroundColor: '#F8FAFC',
+                  borderRadius: 8,
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  fontSize: 13,
+                  color: '#0F172A',
+                  height: 70,
+                  textAlignVertical: 'top',
+                }}
+                placeholder="e.g. Happy to assist before service starts, or have past sound mixing experience."
+                placeholderTextColor="#94A3B8"
+                value={volunteerNotes}
+                onChangeText={setVolunteerNotes}
+                multiline
+              />
+            </ScrollView>
+
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 16 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: '#CBD5E1',
+                  alignItems: 'center',
+                }}
+                onPress={() => setShowVolunteerModal(false)}
+                disabled={volunteerSubmitting}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '600', color: '#64748B' }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 2,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6,
+                  paddingVertical: 12,
+                  borderRadius: 10,
+                  backgroundColor: '#059669',
+                  opacity: volunteerSubmitting ? 0.6 : 1,
+                }}
+                onPress={handleApplyEventVolunteer}
+                disabled={volunteerSubmitting}
+              >
+                {volunteerSubmitting ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Send size={15} color="#FFFFFF" />
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#FFFFFF' }}>
+                      Submit Volunteer Application
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }
