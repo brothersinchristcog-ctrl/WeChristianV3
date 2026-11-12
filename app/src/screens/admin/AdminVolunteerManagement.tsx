@@ -461,57 +461,33 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
     <View style={[styles.container, { backgroundColor: isDark ? '#09090B' : '#f0f2f7' }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {/* ── HERO HEADER WITH CIRCULAR BACK BUTTON ── */}
-      <View
-        style={[
-          styles.hero,
-          {
-            backgroundColor: isDark ? '#000000' : '#FFFFFF',
-            borderBottomWidth: 1,
-            borderBottomColor: isDark ? '#27272A' : '#E2E8F0',
-          },
-        ]}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          {/* Back Button */}
-          <TouchableOpacity
-            onPress={() => (setActiveTab ? setActiveTab(0) : navigation?.goBack?.())}
-            style={[
-              styles.circularBackBtn,
-              {
-                backgroundColor: isDark ? '#18181B' : '#FFFFFF',
-                borderColor: isDark ? 'rgba(255, 255, 255, 0.2)' : '#E2E8F0',
-                borderWidth: 1.5,
-              },
-            ]}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <ArrowLeft size={20} color={isDark ? '#FFFFFF' : '#1a2d5a'} strokeWidth={2.2} />
-          </TouchableOpacity>
-
-          {/* Centered Clean Title (No sub-counter text) */}
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 }}>
-            <Text
-              style={[
-                styles.heroTitle,
-                {
-                  color: isDark ? '#FFFFFF' : '#1a2d5a',
-                  textAlign: 'center',
-                  fontSize: 19,
-                  fontWeight: '800',
-                  fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-                  letterSpacing: -0.3,
-                },
-              ]}
-              numberOfLines={1}
+      {/* ── Hero Section (Standardized with WeChristian Admin Dashboard tabs) ── */}
+      <View style={styles.hero}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 1 }}>
+            <TouchableOpacity
+              onPress={() => (setActiveTab ? setActiveTab(0) : navigation?.goBack?.())}
+              style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              Volunteer Management
-            </Text>
+              <ArrowLeft size={20} color="#fff" style={{ marginLeft: -4, marginRight: 4 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
+            <View style={{ flexShrink: 1 }}>
+              <Text style={styles.heroTitle} numberOfLines={1}>Volunteer Management</Text>
+              <Text style={[styles.heroSub, { marginTop: 2 }]} numberOfLines={1}>
+                {applications.length} total · {stats.pending} pending review
+              </Text>
+            </View>
           </View>
-
-          {/* Spacer to keep title centered (Refresh button removed as requested) */}
-          <View style={{ width: 40, height: 40 }} />
+          <TouchableOpacity
+            style={styles.refreshHeroBtn}
+            onPress={() => fetchApplications()}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <RefreshCw size={15} color="#fff" />
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -1405,7 +1381,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
       {/* ── MODAL 2: REJECT APPLICATION ── */}
       <Modal visible={showRejectModal} transparent animationType="slide">
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalBackdrop}
         >
           <View style={[styles.modalBox, { backgroundColor: isDark ? '#18181B' : '#FFFFFF' }]}>
@@ -1423,21 +1399,27 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.fieldLabel}>REASON FOR NOT APPROVING (OPTIONAL)</Text>
-            <Text style={{ fontSize: 11, color: isDark ? '#A1A1AA' : '#64748B', marginBottom: 6 }}>
-              This reason will be included in the push notification sent to the member.
-            </Text>
-            <TextInput
-              style={[
-                styles.modalInput,
-                { color: isDark ? '#FFFFFF' : '#0F172A', borderColor: isDark ? '#27272A' : '#CBD5E1', height: 80, textAlignVertical: 'top' },
-              ]}
-              value={rejectionReason}
-              onChangeText={setRejectionReason}
-              placeholder="e.g. Volunteer capacity reached for this event. Thank you for your willingness to serve!"
-              placeholderTextColor="#94A3B8"
-              multiline
-            />
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 10 }}
+            >
+              <Text style={styles.fieldLabel}>REASON FOR NOT APPROVING (OPTIONAL)</Text>
+              <Text style={{ fontSize: 11, color: isDark ? '#A1A1AA' : '#64748B', marginBottom: 6 }}>
+                This reason will be included in the push notification sent to the member.
+              </Text>
+              <TextInput
+                style={[
+                  styles.modalInput,
+                  { color: isDark ? '#FFFFFF' : '#0F172A', borderColor: isDark ? '#27272A' : '#CBD5E1', minHeight: 90, textAlignVertical: 'top' },
+                ]}
+                value={rejectionReason}
+                onChangeText={setRejectionReason}
+                placeholder="e.g. Volunteer capacity reached for this event. Thank you for your willingness to serve!"
+                placeholderTextColor="#94A3B8"
+                multiline
+              />
+            </ScrollView>
 
             <View style={styles.modalFooterRow}>
               <TouchableOpacity
@@ -1581,14 +1563,35 @@ const styles = createAdminThemedStyles(
       elevation: 1,
     },
     hero: {
+      backgroundColor: '#1a2d5a',
+      borderBottomLeftRadius: 18,
+      borderBottomRightRadius: 18,
       paddingHorizontal: 16,
       paddingTop: 8,
-      paddingBottom: 10,
+      paddingBottom: 14,
+      marginBottom: 10,
+      overflow: 'visible',
+      position: 'relative',
     },
     heroTitle: {
-      fontSize: 19,
-      fontWeight: '800',
-      letterSpacing: -0.4,
+      color: '#fff',
+      fontSize: 20,
+      fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+      fontWeight: '600',
+      letterSpacing: -0.5,
+    },
+    heroSub: {
+      color: '#AEB8D4',
+      fontSize: 13,
+    },
+    refreshHeroBtn: {
+      backgroundColor: 'rgba(255,255,255,0.15)',
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginTop: 4,
     },
     statsRow: {
       flexDirection: 'row',

@@ -376,10 +376,15 @@ export default function UpdatesScreen({ navigation, route }: any) {
       }
 
       // SECURITY 4: Any targeted notification by member ID
-      if (data.targetMemberId) {
+      const targetMid = data.targetMemberId || data.recipientId;
+      if (targetMid) {
         const currentMemberId = member?.id || user?.uid || '';
-        const idMatches = currentMemberId && data.targetMemberId === currentMemberId;
-        const phoneMatches = checkPhoneMatch(data.targetPhone);
+        const idMatches = Boolean(
+          (currentMemberId && targetMid === currentMemberId) ||
+          (user?.uid && targetMid === user.uid) ||
+          (member?.id && targetMid === member.id)
+        );
+        const phoneMatches = Boolean(checkPhoneMatch(data.targetPhone));
         if (!idMatches && !phoneMatches) {
           return null;
         }
@@ -575,7 +580,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
 
     const qRosterNotifs = query(
       collection(db, 'churches', churchToQuery, 'notifications'),
-      where('type', 'in', ROSTER_NOTIFICATION_TYPES)
+      orderBy('createdAt', 'desc'),
+      limit(25)
     );
 
     const unsubscribeChurchNotifs = onSnapshot(

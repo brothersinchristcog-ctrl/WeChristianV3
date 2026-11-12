@@ -389,34 +389,33 @@ export default function VolunteerScreen({ navigation }: any) {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar
-        barStyle={colors.barStyle || (isDark ? 'light-content' : 'dark-content')}
-        backgroundColor={colors.background}
-      />
+    <View style={[styles.container, { backgroundColor: isDark ? '#0f172a' : '#f8fafc' }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
 
-      {/* ── Screen Header (Clean circular back button & title matching other screens) ── */}
-      <View
-        style={[
-          styles.headerRow,
-          { paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 44 : 28) + 8 },
-        ]}
+      {/* ── Page Header Hero Card (Consistent with Events, Prayer, Updates, etc.) ── */}
+      <LinearGradient
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
       >
         <TouchableOpacity
-          style={[styles.circularBackBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={styles.backBtn}
           onPress={() => navigation.goBack()}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          activeOpacity={0.8}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <ArrowLeft size={20} color={colors.text} strokeWidth={2.4} />
+          <ArrowLeft size={24} color="#fff" />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitleText, { color: colors.text }]} numberOfLines={1}>
-          Church Volunteering
-        </Text>
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={{ flex: 1, justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 20 }}>
+            <Text style={styles.headerTitle}>Church Volunteering</Text>
+            <Text style={styles.headerSub}>SERVE WITH JOY</Text>
+          </View>
+        </View>
 
-        <View style={styles.headerRightSpacer} />
-      </View>
+        <View style={{ width: 24 }} />
+      </LinearGradient>
 
       {/* ── Tabs - Signature pill badge matching Events / Prayer ── */}
       <View
@@ -1265,39 +1264,38 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  header: {
+    backgroundColor: '#1a2d5a',
+    paddingTop: Platform.OS === 'ios' ? 56 : (StatusBar.currentHeight ?? 24) + 12,
     paddingHorizontal: 20,
-    paddingBottom: 14,
+    paddingBottom: 22,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    minHeight: Platform.OS === 'ios' ? 120 : 100,
   },
-  circularBackBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+  backBtn: {
+    zIndex: 10,
+    padding: 6,
   },
-  headerTitleText: {
+  headerTitle: {
+    color: '#fff',
     fontSize: 20,
     fontWeight: '800',
-    letterSpacing: -0.2,
-    textAlign: 'center',
+    letterSpacing: 0.3,
   },
-  headerRightSpacer: {
-    width: 44,
-    height: 44,
+  headerSub: {
+    color: '#aac4e8',
+    fontSize: 11,
+    marginTop: 2,
+    fontWeight: '700',
+    letterSpacing: 1.2,
   },
   tabContainer: {
     flexDirection: 'row',
-    marginTop: 6,
+    marginTop: 12,
     marginHorizontal: 16,
     paddingHorizontal: 4,
     paddingVertical: 4,
