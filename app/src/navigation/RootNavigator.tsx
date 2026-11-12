@@ -675,10 +675,19 @@ function Navigation() {
         if (navigationRef && navigationRef.isReady()) {
           const type = pendingNotification?.data?.type;
           
-          if ((type === 'invoice' || type === 'baptism_request_admin' || type === 'new_church' || type === 'prayer_request_admin' || type === 'admin_roster_alert') && isAdmin && viewMode !== 'admin') {
-            console.log('Switching to admin view to handle invoice notification');
+          const isAdminPushType = 
+            type === 'invoice' || 
+            type === 'baptism_request_admin' || 
+            type === 'new_church' || 
+            type === 'prayer_request_admin' || 
+            type === 'admin_roster_alert' ||
+            type === 'testimony_admin' ||
+            type === 'volunteer_application_admin';
+
+          if (isAdminPushType && isAdmin && viewMode !== 'admin') {
+            console.log(`Switching to admin view to handle ${type} notification`);
             setViewMode('admin');
-            return; // Exit early, the re-render will trigger this effect again
+            return; // Exit early, the re-render with showAdminView will trigger this effect again
           }
 
           NotificationService.handleNotificationNavigation(pendingNotification, navigationRef);
