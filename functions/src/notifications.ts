@@ -1049,26 +1049,24 @@ export async function sendDailyVersePushInternal(slotOverride?: string, targetCh
   }
 
   let totalVerses = 5863;
-  let epochStr = '2026-10-30';
+  let epochStr = '2024-01-01';
   try {
     const metaDoc = await db.collection('daily_verses_meta').doc('metadata').get();
     if (metaDoc.exists) {
       const mData = metaDoc.data() || {};
       if (mData.totalVerses) totalVerses = mData.totalVerses;
-      if (mData.scheduleStartDate) epochStr = mData.scheduleStartDate;
     }
   } catch (_) {}
 
-  const parts = epochStr.split('-').map(Number);
-  const epochUtc = Date.UTC(parts[0] || 2026, (parts[1] || 10) - 1, parts[2] || 30);
-  const targetUtc = Date.UTC(nowIst.getFullYear(), nowIst.getMonth(), nowIst.getDate());
-  const diffDays = Math.floor((targetUtc - epochUtc) / (24 * 60 * 60 * 1000));
-  const base = diffDays * 4;
+  // Synchronized with VerseNotificationService: local calendar day difference from 2024-01-01
+  const epochDate = new Date(Date.UTC(2024, 0, 1));
+  const localDate = new Date(Date.UTC(nowIst.getFullYear(), nowIst.getMonth(), nowIst.getDate()));
+  const daysSinceEpoch = Math.floor((localDate.getTime() - epochDate.getTime()) / (1000 * 60 * 60 * 24));
   const todayIndices = [
-    ((base + 0) % totalVerses + totalVerses) % totalVerses,
-    ((base + 1) % totalVerses + totalVerses) % totalVerses,
-    ((base + 2) % totalVerses + totalVerses) % totalVerses,
-    ((base + 3) % totalVerses + totalVerses) % totalVerses,
+    (daysSinceEpoch * 4 + 0) % totalVerses,
+    (daysSinceEpoch * 4 + 1) % totalVerses,
+    (daysSinceEpoch * 4 + 2) % totalVerses,
+    (daysSinceEpoch * 4 + 3) % totalVerses,
   ];
   const targetIndex: number = (todayIndices[slotInfo.index] !== undefined ? todayIndices[slotInfo.index] : todayIndices[0]) ?? 0;
 
