@@ -210,50 +210,43 @@ export default function SongsScreen({ navigation, route }: any) {
 
   // ── Load Event Songs (songs linked to published events) ─────────────────
   const fetchEventSongs = async () => {
-    const churchId = activeChurch?.id || (await FirestoreService.getChurchId()) || '';
-    if (!churchId) return;
     setLoadingEventSongs(true);
     try {
-      const { getApp } = require('@react-native-firebase/app');
-      const { getFirestore } = require('@react-native-firebase/firestore');
-      const db = getFirestore(getApp());
-
-      let snap: any;
+      // 1. Primary source: FirestoreService.getEvents() which handles church routing & local cache reliably
+      let events: any[] = [];
       try {
-        snap = await db
-          .collection('churches')
-          .doc(churchId)
-          .collection('events')
-          .where('status', '==', 'Published')
-          .orderBy('date', 'desc')
-          .limit(30)
-          .get();
-      } catch (queryErr) {
-        // Fallback without orderBy in case composite index is not yet built
-        snap = await db
-          .collection('churches')
-          .doc(churchId)
-          .collection('events')
-          .where('status', '==', 'Published')
-          .limit(30)
-          .get();
+        events = await FirestoreService.getEvents();
+      } catch (err) {
+        console.warn('⚠️ FirestoreService.getEvents failed in SongsScreen, falling back:', err);
       }
 
-      // If no published events found with exact 'Published', fetch all events and filter client-side (case-insensitive)
-      let docs = snap?.docs || [];
-      if (docs.length === 0) {
-        const allEventsSnap = await db
-          .collection('churches')
-          .doc(churchId)
-          .collection('events')
-          .limit(40)
-          .get();
-        docs = (allEventsSnap?.docs || []).filter((d: any) => {
-          const st = String(d.data()?.status || d.data()?.publishStatus || '').toLowerCase();
-          return st === 'published' || st === 'upcoming' || st === 'live';
-        });
+      // 2. Fallback direct collection query if getEvents returned empty or errored
+      if (!events || events.length === 0) {
+        const churchId = activeChurch?.id || (await FirestoreService.getChurchId()) || '';
+        if (churchId) {
+          try {
+            const { getApp } = require('@react-native-firebase/app');
+            const { getFirestore } = require('@react-native-firebase/firestore');
+            const db = getFirestore(getApp());
+            const snap = await db
+              .collection('churches')
+              .doc(churchId)
+              .collection('events')
+              .limit(50)
+              .get();
+            events = (snap?.docs || []).map((d: any) => ({ id: d.id, ...d.data() }));
+          } catch (directErr) {
+            console.warn('⚠️ Direct church events query failed in SongsScreen:', directErr);
+          }
+        }
       }
-      
+
+      // 3. Filter published / upcoming events (case-insensitive)
+      const validEvents = (events || []).filter((e: any) => {
+        const st = String(e?.status || e?.publishStatus || 'Published').toLowerCase();
+        return st !== 'cancelled' && st !== 'draft';
+      });
+
       const groups: Array<{
         eventId: string;
         eventName: string;
@@ -261,34 +254,81 @@ export default function SongsScreen({ navigation, route }: any) {
         services: Array<{ id: string; name: string; songs: any[] }>;
       }> = [];
 
-      docs.forEach((doc: any) => {
-        const data = doc.data();
-        // Support services array as well as root-level songs array
+      validEvents.forEach((data: any) => {
+        const eventId = data.id || data.eventId;
+        const eventName = data.name || data.titleEn || data.title || 'Church Event';
+        const eventDate = data.date || '';
+
+        // Case A: services array (each service item has songs array)
         if (data.services && Array.isArray(data.services) && data.services.length > 0) {
-          const servicesWithSongs = data.services.filter((s: any) => s.songs && s.songs.length > 0);
+          const servicesWithSongs = data.services
+            .map((s: any, sIdx: number) => {
+              const rawSongs = Array.isArray(s.songs) ? s.songs : [];
+              const mappedSongs = rawSongs.map((item: any, songIdx: number) => {
+                if (typeof item === 'string') {
+                  return { id: item, title: item, key: '' };
+                }
+                return {
+                  id: item.id || `srv_song_${sIdx}_${songIdx}`,
+                  title: item.title || item.name || 'Untitled Song',
+                  titleTe: item.titleTe || '',
+                  key: item.key || '',
+                  timeSignature: item.timeSignature || '',
+                  tempo: item.tempo || '',
+                  category: item.category || '',
+                };
+              });
+              return {
+                id: s.id || `srv_${sIdx}`,
+                name: s.name || `Service ${sIdx + 1}`,
+                songs: mappedSongs,
+              };
+            })
+            .filter((s: any) => s.songs.length > 0);
+
           if (servicesWithSongs.length > 0) {
             groups.push({
-              eventId: doc.id,
-              eventName: data.name || data.titleEn || data.title || 'Event',
-              eventDate: data.date || '',
+              eventId,
+              eventName,
+              eventDate,
               services: servicesWithSongs,
             });
+            return;
           }
-        } else if (data.songs && Array.isArray(data.songs) && data.songs.length > 0) {
+        }
+
+        // Case B: root-level songs array
+        const rootSongs = data.songs || data.eventSongs || data.worshipSongs || data.setlist;
+        if (Array.isArray(rootSongs) && rootSongs.length > 0) {
+          const mappedSongs = rootSongs.map((item: any, songIdx: number) => {
+            if (typeof item === 'string') {
+              return { id: item, title: item, key: '' };
+            }
+            return {
+              id: item.id || `root_song_${songIdx}`,
+              title: item.title || item.name || 'Untitled Song',
+              titleTe: item.titleTe || '',
+              key: item.key || '',
+              timeSignature: item.timeSignature || '',
+              tempo: item.tempo || '',
+              category: item.category || '',
+            };
+          });
+
           groups.push({
-            eventId: doc.id,
-            eventName: data.name || data.titleEn || data.title || 'Event',
-            eventDate: data.date || '',
+            eventId,
+            eventName,
+            eventDate,
             services: [{
-              id: `srv_${doc.id}`,
+              id: `srv_${eventId}`,
               name: 'Worship Setlist',
-              songs: data.songs,
+              songs: mappedSongs,
             }],
           });
         }
       });
 
-      // Sort descending by event date
+      // Sort descending by event date (latest first)
       groups.sort((a, b) => (b.eventDate || '').localeCompare(a.eventDate || ''));
 
       setEventSongGroups(groups);
@@ -373,6 +413,13 @@ export default function SongsScreen({ navigation, route }: any) {
     loadSetlists();
     fetchEventSongs();
   }, [activeChurch?.id]);
+
+  // Re-fetch event songs when tab is switched to eventSongs
+  useEffect(() => {
+    if (activeTab === 'eventSongs') {
+      fetchEventSongs();
+    }
+  }, [activeTab]);
 
   // ── Open specific song from notification ──────────
   const { songId } = route?.params || {};
