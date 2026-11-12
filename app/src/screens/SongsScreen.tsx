@@ -241,10 +241,18 @@ export default function SongsScreen({ navigation, route }: any) {
         }
       }
 
-      // 3. Filter published / upcoming events (case-insensitive)
+      // 3. Filter published / upcoming events (exclude cancelled, draft, or completed events)
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
       const validEvents = (events || []).filter((e: any) => {
         const st = String(e?.status || e?.publishStatus || 'Published').toLowerCase();
-        return st !== 'cancelled' && st !== 'draft';
+        if (st === 'cancelled' || st === 'draft' || st === 'completed') return false;
+        // If event has date and it's strictly before today, consider it completed/past
+        if (e?.date && typeof e.date === 'string' && e.date < todayStr) {
+          return false;
+        }
+        return true;
       });
 
       const groups: Array<{

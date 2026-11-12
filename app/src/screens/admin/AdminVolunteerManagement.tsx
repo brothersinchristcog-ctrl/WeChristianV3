@@ -19,6 +19,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft,
+  ChevronLeft,
   HeartHandshake,
   Search,
   Filter,
@@ -470,7 +471,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
               style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <ArrowLeft size={20} color="#fff" style={{ marginLeft: -4, marginRight: 4 }} />
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>
             <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
@@ -509,7 +510,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
               styles.segmentBtn,
               activeSegment === 'general' && [
                 styles.segmentBtnActive,
-                { backgroundColor: isDark ? '#065F46' : '#059669' },
+                { backgroundColor: isDark ? '#2563EB' : '#1A2D5A' },
               ],
             ]}
             onPress={() => setActiveSegment('general')}
@@ -561,7 +562,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
               styles.segmentBtn,
               activeSegment === 'event' && [
                 styles.segmentBtnActive,
-                { backgroundColor: isDark ? '#065F46' : '#059669' },
+                { backgroundColor: isDark ? '#2563EB' : '#1A2D5A' },
               ],
             ]}
             onPress={() => setActiveSegment('event')}
@@ -623,8 +624,8 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
               statusFilter === 'all' && [
                 styles.activeStatCard,
                 {
-                  backgroundColor: isDark ? '#0B2920' : '#ECFDF5',
-                  borderColor: isDark ? '#10B981' : '#059669',
+                  backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
+                  borderColor: isDark ? '#60A5FA' : '#1A2D5A',
                 },
               ],
             ]}
@@ -635,7 +636,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
               style={[
                 styles.statNum,
                 { color: isDark ? '#60A5FA' : '#1a2d5a' },
-                statusFilter === 'all' && { color: isDark ? '#34D399' : '#059669' },
+                statusFilter === 'all' && { color: isDark ? '#93C5FD' : '#1A2D5A' },
               ]}
             >
               {activeSegment === 'general' ? stats.generalTotal : stats.eventTotal}
@@ -644,7 +645,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
               style={[
                 styles.statLbl,
                 { color: isDark ? '#A1A1AA' : '#64748B' },
-                statusFilter === 'all' && { color: isDark ? '#E4E4E7' : '#047857' },
+                statusFilter === 'all' && { color: isDark ? '#E2E8F0' : '#1A2D5A' },
               ]}
             >
               ALL
@@ -795,7 +796,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
       >
         {loading ? (
           <View style={{ paddingVertical: 50, alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#059669" />
+            <ActivityIndicator size="large" color="#1a2d5a" />
             <Text style={{ marginTop: 12, color: isDark ? '#A1A1AA' : '#64748B', fontSize: 13 }}>
               Loading volunteer applications...
             </Text>
@@ -1608,9 +1609,9 @@ const styles = createAdminThemedStyles(
       minWidth: 84,
     },
     activeStatCard: {
-      borderColor: '#059669',
+      borderColor: '#1a2d5a',
       borderWidth: 1.5,
-      backgroundColor: '#ECFDF5',
+      backgroundColor: '#F8FAFC',
     },
     statNum: {
       fontSize: 20,
@@ -1645,7 +1646,7 @@ const styles = createAdminThemedStyles(
     },
     segmentBtnActive: {
       elevation: 3,
-      shadowColor: '#059669',
+      shadowColor: '#1a2d5a',
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.25,
       shadowRadius: 4,
