@@ -2263,7 +2263,14 @@ export default function HomeScreen() {
             <GridItem isDark={isDark} icon={<Award size={26} color="#fff" />} label={t('home.quickBiblePlans')} color="#374151" onPress={() => handleGuestProtectedNavigation('BiblePlans')} />
             <GridItem isDark={isDark} icon={<Trophy size={26} color="#fff" />} label={t('home.quickBibleQuiz') || 'Bible Quiz'} color="#6366F1" onPress={() => navigation.navigate('BibleQuizHome')} />
 
-            <GridItem isDark={isDark} icon={<ClipboardCheck size={26} color="#fff" />} label={t('nav.serviceRoster') === 'nav.serviceRoster' ? 'Service Roster' : t('nav.serviceRoster')} color="#1a2d5a" onPress={() => navigation.navigate('MyService')} />
+            <GridItem 
+              isDark={isDark} 
+              icon={<ClipboardCheck size={26} color="#fff" />} 
+              label={t('nav.serviceRoster') === 'nav.serviceRoster' ? 'Service Roster' : t('nav.serviceRoster')} 
+              color="#1a2d5a" 
+              onPress={() => navigation.navigate('MyService')}
+              showConfirmedBadge={Boolean(upcomingDuty && upcomingDuty.status === 'confirmed')}
+            />
             <GridItem isDark={isDark} icon={<Sparkles size={26} color="#fff" />} label="Testimonies" color="#8B5CF6" onPress={() => navigation.navigate('Testimonies')} />
             <GridItem isDark={isDark} icon={<Bell size={26} color="#fff" />} label={t('home.quickUpdates')} color="#0284c7" onPress={() => navigation.navigate('Updates')} />
             <GridItem 
@@ -2296,7 +2303,7 @@ export default function HomeScreen() {
               justifyContent: 'space-between', 
               gap: 12, 
               marginTop: 18, 
-              marginBottom: 10, 
+              marginBottom: 16, 
               paddingHorizontal: 20 
             }}
             onLayout={(e) => setOnlineMeetingsY(e.nativeEvent.layout.y)}
@@ -2373,120 +2380,6 @@ export default function HomeScreen() {
               >
                 {t('nav.attendance')}
               </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* ── Service Roster Banner Card ── */}
-          <View style={{ paddingHorizontal: 16, marginTop: 4, marginBottom: 14 }}>
-            <TouchableOpacity
-              activeOpacity={0.88}
-              onPress={() =>
-                navigation.navigate(
-                  'MyService',
-                  upcomingDuty && upcomingDuty.status !== 'declined'
-                    ? {
-                        serviceId: upcomingDuty.serviceId,
-                        initialTab: upcomingDuty.status === 'pending' ? 'responsibilities' : 'roster',
-                      }
-                    : undefined
-                )
-              }
-              style={{
-                borderRadius: 18,
-                overflow: 'hidden',
-                elevation: 4,
-                shadowColor: '#1a2d5a',
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.2,
-                shadowRadius: 8,
-              }}
-            >
-              <LinearGradient
-                colors={['#1a2d5a', '#0f172a']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingVertical: 14,
-                  paddingHorizontal: 16,
-                  borderWidth: 1,
-                  borderColor: 'rgba(251, 191, 36, 0.28)',
-                  borderRadius: 18,
-                }}
-              >
-                <View
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 14,
-                    backgroundColor: 'rgba(251, 191, 36, 0.16)',
-                    borderWidth: 1,
-                    borderColor: 'rgba(251, 191, 36, 0.35)',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Layers size={22} color="#fbbf24" />
-                </View>
-
-                <View style={{ flex: 1, marginLeft: 12, marginRight: 8 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 }}>
-                    <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '800' }} numberOfLines={1}>
-                      {t('nav.serviceRoster') === 'nav.serviceRoster' ? 'Service Roster' : t('nav.serviceRoster')}
-                    </Text>
-
-                    {upcomingDuty && upcomingDuty.status !== 'declined' && (
-                      <View
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 4,
-                          paddingHorizontal: 7,
-                          paddingVertical: 2,
-                          borderRadius: 999,
-                          backgroundColor: upcomingDuty.status === 'pending' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(16, 185, 129, 0.24)',
-                          borderWidth: 1,
-                          borderColor: upcomingDuty.status === 'pending' ? 'rgba(252, 211, 77, 0.6)' : 'rgba(110, 231, 183, 0.55)',
-                        }}
-                      >
-                        {upcomingDuty.status === 'pending' ? (
-                          <AlertCircle size={10} color="#FCD34D" strokeWidth={2.5} />
-                        ) : (
-                          <CheckCircle size={10} color="#6EE7B7" strokeWidth={2.5} />
-                        )}
-                        <Text
-                          style={{
-                            fontSize: 9.5,
-                            fontWeight: '800',
-                            letterSpacing: 0.4,
-                            color: upcomingDuty.status === 'pending' ? '#FEF3C7' : '#D1FAE5',
-                          }}
-                        >
-                          {upcomingDuty.status === 'pending' ? 'ACTION NEEDED' : 'CONFIRMED'}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {upcomingDuty && upcomingDuty.status !== 'declined' ? (
-                    <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '600', marginTop: 3 }} numberOfLines={1}>
-                      {upcomingDuty.roleTitle} · {formatDateMonthYear(upcomingDuty.date)}
-                      {upcomingDuty.callTime
-                        ? ` · Call ${formatTimeTo12Hour(upcomingDuty.callTime)}`
-                        : upcomingDuty.startTime
-                        ? ` · ${formatTimeTo12Hour(upcomingDuty.startTime)}`
-                        : ''}
-                    </Text>
-                  ) : (
-                    <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '500', marginTop: 2 }} numberOfLines={1}>
-                      View service schedules, worship setlists & your duties
-                    </Text>
-                  )}
-                </View>
-
-                <ChevronRight size={18} color="#fbbf24" />
-              </LinearGradient>
             </TouchableOpacity>
           </View>
 
@@ -2865,7 +2758,21 @@ export default function HomeScreen() {
   );
 }
 
-function GridItem({ icon, label, color, onPress, isDark }: { icon: any; label: string; color: string; onPress: () => void; isDark: boolean }) {
+function GridItem({ 
+  icon, 
+  label, 
+  color, 
+  onPress, 
+  isDark,
+  showConfirmedBadge
+}: { 
+  icon: any; 
+  label: string; 
+  color: string; 
+  onPress: () => void; 
+  isDark: boolean;
+  showConfirmedBadge?: boolean;
+}) {
   return (
     <Pressable 
       style={({ pressed }) => [styles.iconItem, { opacity: pressed ? 0.7 : 1 }]} 
@@ -2873,6 +2780,30 @@ function GridItem({ icon, label, color, onPress, isDark }: { icon: any; label: s
     >
       <View style={[styles.iconBox, { backgroundColor: color }]}>
         {icon}
+        {showConfirmedBadge && (
+          <View
+            style={{
+              position: 'absolute',
+              top: -3,
+              right: -3,
+              width: 18,
+              height: 18,
+              borderRadius: 9,
+              backgroundColor: '#10B981',
+              borderWidth: 2,
+              borderColor: isDark ? '#0F172A' : '#FFFFFF',
+              alignItems: 'center',
+              justifyContent: 'center',
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOpacity: 0.25,
+              shadowRadius: 2,
+              shadowOffset: { width: 0, height: 1 }
+            }}
+          >
+            <Check size={11} color="#FFFFFF" strokeWidth={3} />
+          </View>
+        )}
       </View>
       <Text style={[styles.iconLbl, { color: isDark ? '#e2e8f0' : '#475569' }]} numberOfLines={2}>{label}</Text>
     </Pressable>
