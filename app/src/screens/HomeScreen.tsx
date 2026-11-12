@@ -62,7 +62,8 @@ import {
   Clock,
   CalendarCheck,
   AlertCircle,
-  Layers
+  Layers,
+  ClipboardCheck
 } from 'lucide-react-native';
 import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
@@ -2262,6 +2263,8 @@ export default function HomeScreen() {
             <GridItem isDark={isDark} icon={<Award size={26} color="#fff" />} label={t('home.quickBiblePlans')} color="#374151" onPress={() => handleGuestProtectedNavigation('BiblePlans')} />
             <GridItem isDark={isDark} icon={<Trophy size={26} color="#fff" />} label={t('home.quickBibleQuiz') || 'Bible Quiz'} color="#6366F1" onPress={() => navigation.navigate('BibleQuizHome')} />
 
+            <GridItem isDark={isDark} icon={<ClipboardCheck size={26} color="#fff" />} label={t('nav.serviceRoster') === 'nav.serviceRoster' ? 'Service Roster' : t('nav.serviceRoster')} color="#1a2d5a" onPress={() => navigation.navigate('MyService')} />
+            <GridItem isDark={isDark} icon={<Sparkles size={26} color="#fff" />} label="Testimonies" color="#8B5CF6" onPress={() => navigation.navigate('Testimonies')} />
             <GridItem isDark={isDark} icon={<Bell size={26} color="#fff" />} label={t('home.quickUpdates')} color="#0284c7" onPress={() => navigation.navigate('Updates')} />
             <GridItem 
               isDark={isDark}

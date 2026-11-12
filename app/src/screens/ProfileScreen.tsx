@@ -653,15 +653,6 @@ export default function ProfileScreen({ navigation }: any) {
               navigation.navigate('Volunteer');
             }}
           />
-          <MenuItem 
-            icon={<Sparkles size={20} color="#7C3AED" />} 
-            iconBg="#EDE9FE"
-            title="Testimonies" 
-            sub="Read & share praise reports" 
-            onPress={() => {
-              navigation.navigate('Testimonies');
-            }}
-          />
 
           {(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') || String(member?.userType || '').toUpperCase().includes('PASTOR')) && (
             <MenuItem 
