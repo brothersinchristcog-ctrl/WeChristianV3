@@ -32,8 +32,11 @@ import {
   Navigation,
   HeartHandshake,
   Send,
-  X
+  X,
+  Music,
+  ChevronRight
 } from 'lucide-react-native';
+import SongDetailModal from '../components/SongDetailModal';
 import { openZoomMeeting } from '../utils/ZoomLauncher';
 import YoutubePlayer from 'react-native-youtube-iframe';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -89,13 +92,19 @@ function getEventStatus(event: any): 'upcoming' | 'live' | 'completed' {
 }
 
 export default function EventDetailsScreen({ route, navigation }: any) {
-  const initialEvent = route?.params?.event || {};
+  const initialEvent = route?.params?.event || (route?.params?.eventId ? { id: route?.params?.eventId } : route?.params?.id ? { id: route?.params?.id } : {});
   const [eventData, setEventData] = useState<any>(initialEvent);
   const { activeChurch } = useChurch();
   const { user, member, viewMode } = useAuth();
+  const targetChurchId = activeChurch?.id || (member as any)?.primaryChurchId || (member as any)?.churchId || 'default';
   const isAdmin = viewMode === 'admin' || String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('PASTOR');
 
   const [showRsvpAnalytics, setShowRsvpAnalytics] = useState(false);
+  const [selectedEventSong, setSelectedEventSong] = useState<any>(null);
+
+  const event = eventData;
+  const status = getEventStatus(event);
+  const targetEventId = initialEvent.id || route?.params?.eventId || route?.params?.id || eventData?.id || '';
 
   // Volunteer State for this Event
   const [volunteerApp, setVolunteerApp] = useState<any>(null);
@@ -106,13 +115,12 @@ export default function EventDetailsScreen({ route, navigation }: any) {
 
   // Check if member already applied for this event
   useEffect(() => {
-    const idToFind = initialEvent.id || eventData?.id;
-    if (idToFind && user?.uid && activeChurch?.id) {
-      VolunteerService.getMemberEventApplication(activeChurch.id, idToFind, user.uid)
+    if (targetEventId && user?.uid && targetChurchId) {
+      VolunteerService.getMemberEventApplication(targetChurchId, targetEventId, user.uid)
         .then((app) => setVolunteerApp(app))
         .catch(() => {});
     }
-  }, [initialEvent.id, eventData?.id, user?.uid, activeChurch?.id]);
+  }, [targetEventId, user?.uid, targetChurchId]);
 
   const handleApplyEventVolunteer = async () => {
     if (volunteerApp && volunteerApp.status === 'pending') {
@@ -135,10 +143,10 @@ export default function EventDetailsScreen({ route, navigation }: any) {
       const memberEmail = member?.email || user?.email || '';
 
       await VolunteerService.submitEventApplication(
-        activeChurch?.id || 'cog',
+        targetChurchId,
         { id: user?.uid || '', name: memberName, phone: memberPhone, email: memberEmail },
         {
-          id: event.id,
+          id: event.id || targetEventId,
           title: event.title || event.name || 'Church Event',
           date: event.date,
           time: event.startTime || event.time || '',
@@ -148,8 +156,8 @@ export default function EventDetailsScreen({ route, navigation }: any) {
       );
 
       const refreshed = await VolunteerService.getMemberEventApplication(
-        activeChurch?.id || 'cog',
-        event.id,
+        targetChurchId,
+        event.id || targetEventId,
         user?.uid || ''
       );
       setVolunteerApp(refreshed);
@@ -171,18 +179,16 @@ export default function EventDetailsScreen({ route, navigation }: any) {
 
   // Sync with fresh server event record if available
   useEffect(() => {
-    if (initialEvent.id) {
+    if (targetEventId) {
       FirestoreService.getEvents().then((events) => {
-        const found = events.find(e => e.id === initialEvent.id);
+        const found = events.find(e => e.id === targetEventId);
         if (found) {
           setEventData((prev: any) => ({ ...prev, ...found }));
         }
       }).catch(() => {});
     }
-  }, [initialEvent.id]);
+  }, [targetEventId]);
 
-  const event = eventData;
-  const status = getEventStatus(event);
   const manualYoutubeId = event.youtubeId;
   const churchYoutubeHandle = activeChurch?.socialLinks?.youtube || ''; // e.g. @MyChurch
 
@@ -579,15 +585,114 @@ export default function EventDetailsScreen({ route, navigation }: any) {
             </View>
           </View>
 
-          {/* ── MEMBER RSVP PARTICIPATION POLL (Active for Upcoming/Live events; hidden once Completed) ── */}
-          {event?.rsvpEnabled === true && status !== 'completed' && (
+          {/* ── EVENT SONGS & SETLIST SECTION ── */}
+          {((Array.isArray(event?.services) && event.services.some((s: any) => Array.isArray(s.songs) && s.songs.length > 0)) ||
+            (Array.isArray(event?.songs) && event.songs.length > 0)) && (
+            <View style={[styles.section, { marginTop: 14 }]}>
+              <View style={styles.sectionHeader}>
+                <View style={[styles.iconCircle, { backgroundColor: '#eff6ff' }]}>
+                  <Music size={18} color="#2563eb" />
+                </View>
+                <Text style={styles.sectionTitle}>EVENT SONGS · ఆరాధన పాటలు</Text>
+              </View>
+
+              {/* Render services with songs */}
+              {Array.isArray(event?.services) && event.services.filter((s: any) => Array.isArray(s.songs) && s.songs.length > 0).map((service: any, sIdx: number) => (
+                <View key={service.id || sIdx} style={{ marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, paddingHorizontal: 4 }}>
+                    <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#2563eb', marginRight: 8 }} />
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#1e3a8a', letterSpacing: 0.3 }}>
+                      {service.name || `Service ${sIdx + 1}`}
+                    </Text>
+                    {service.time ? (
+                      <Text style={{ fontSize: 11, color: '#64748b', marginLeft: 8, fontWeight: '500' }}>
+                        ⏰ {service.time}
+                      </Text>
+                    ) : null}
+                    {service.songLeader ? (
+                      <Text style={{ fontSize: 11, color: '#059669', marginLeft: 'auto', fontWeight: '600' }}>
+                        Lead: {service.songLeader}
+                      </Text>
+                    ) : null}
+                  </View>
+
+                  {service.songs.map((s: any, songIdx: number) => (
+                    <TouchableOpacity
+                      key={s.id || songIdx}
+                      activeOpacity={0.8}
+                      onPress={() => setSelectedEventSong(s)}
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 12,
+                        padding: 12,
+                        marginBottom: 8,
+                        borderWidth: 1,
+                        borderColor: '#E2E8F0',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        shadowColor: '#000',
+                        shadowOpacity: 0.04,
+                        shadowRadius: 4,
+                        shadowOffset: { width: 0, height: 2 },
+                        elevation: 1,
+                      }}
+                    >
+                      <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                        <Text style={{ color: '#2563EB', fontSize: 12, fontWeight: '900' }}>{songIdx + 1}</Text>
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#1a2d5a' }} numberOfLines={1}>{s.title || s.name}</Text>
+                        {s.titleTe ? <Text style={{ fontSize: 12, color: '#64748B', marginTop: 1 }} numberOfLines={1}>{s.titleTe}</Text> : null}
+                        {s.key ? <Text style={{ fontSize: 10, color: '#059669', fontWeight: '700', marginTop: 2 }}>Key: {s.key}</Text> : null}
+                      </View>
+                      <ChevronRight size={16} color="#94A3B8" />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ))}
+
+              {/* Render root-level songs if services array is absent */}
+              {(!Array.isArray(event?.services) || event.services.every((s: any) => !s.songs || s.songs.length === 0)) &&
+                Array.isArray(event?.songs) && event.songs.map((s: any, songIdx: number) => (
+                <TouchableOpacity
+                  key={s.id || songIdx}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedEventSong(s)}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 12,
+                    padding: 12,
+                    marginBottom: 8,
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    elevation: 1,
+                  }}
+                >
+                  <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                    <Text style={{ color: '#2563EB', fontSize: 12, fontWeight: '900' }}>{songIdx + 1}</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: '#1a2d5a' }} numberOfLines={1}>{s.title || s.name}</Text>
+                    {s.titleTe ? <Text style={{ fontSize: 12, color: '#64748B', marginTop: 1 }} numberOfLines={1}>{s.titleTe}</Text> : null}
+                    {s.key ? <Text style={{ fontSize: 10, color: '#059669', fontWeight: '700', marginTop: 2 }}>Key: {s.key}</Text> : null}
+                  </View>
+                  <ChevronRight size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* ── MEMBER RSVP PARTICIPATION POLL ── */}
+          {event?.rsvpEnabled === true && (
             <EventRsvpPollCard
-              eventId={event.id}
-              churchId={activeChurch?.id}
+              eventId={event.id || targetEventId}
+              churchId={targetChurchId}
               eventTitle={event.title || event.name || 'Church Event'}
               eventDate={formatDate(event.date)}
               rsvpDeadline={event.rsvpDeadline}
-              isCompleted={false}
+              isCompleted={status === 'completed'}
               currentUser={{
                 id: member?.id || user?.uid || '',
                 name: member?.name || (member as any)?.fullName || user?.displayName || 'Member',
@@ -600,7 +705,7 @@ export default function EventDetailsScreen({ route, navigation }: any) {
           )}
 
           {/* ── EVENT VOLUNTEER REGISTRATION SECTION ── */}
-          {event?.volunteerEnabled === true && status !== 'completed' && (
+          {event?.volunteerEnabled === true && (
             <View style={[styles.section, { marginTop: 14 }]}>
               {volunteerApp ? (
                 // Member has applied: show status or assignment
@@ -1060,12 +1165,20 @@ export default function EventDetailsScreen({ route, navigation }: any) {
         <EventRsvpAnalyticsModal
           visible={showRsvpAnalytics}
           onClose={() => setShowRsvpAnalytics(false)}
-          eventId={event.id}
+          eventId={event.id || targetEventId}
           eventTitle={event.title || event.name || 'Church Event'}
           eventDate={formatDate(event.date)}
-          churchId={activeChurch?.id}
+          churchId={targetChurchId}
         />
       )}
+
+      {/* ── Event Song Detail Modal ── */}
+      <SongDetailModal
+        visible={Boolean(selectedEventSong)}
+        song={selectedEventSong}
+        isDark={false}
+        onClose={() => setSelectedEventSong(null)}
+      />
 
       {/* ── Member Event Volunteer Application Modal ── */}
       <Modal visible={showVolunteerModal} transparent animationType="slide">

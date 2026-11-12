@@ -375,6 +375,28 @@ export default function UpdatesScreen({ navigation, route }: any) {
         }
       }
 
+      // SECURITY 3B: Member-specific volunteer application decisions (Approved / Not Approved)
+      const isMemberVolunteerDecision =
+        data.type === 'volunteer_application_member' ||
+        (data.type === 'volunteer' && (data.status === 'approved' || data.status === 'rejected'));
+
+      if (isMemberVolunteerDecision) {
+        if (showAdminView) {
+          return null; // Admins in admin mode manage applications via the Admin Dashboard Volunteer tab
+        }
+        const currentMemberId = member?.id || user?.uid || '';
+        const targetMid = data.targetMemberId || data.recipientId || data.memberId || '';
+        const idMatches = Boolean(
+          (currentMemberId && targetMid && targetMid === currentMemberId) ||
+          (user?.uid && targetMid && targetMid === user.uid) ||
+          (member?.id && targetMid && targetMid === member.id)
+        );
+        const phoneMatches = Boolean(checkPhoneMatch(data.targetPhone || data.memberPhone));
+        if (!idMatches && !phoneMatches) {
+          return null; // Delivered ONLY to the target applicant
+        }
+      }
+
       // SECURITY 4: Any targeted notification by member ID
       const targetMid = data.targetMemberId || data.recipientId;
       if (targetMid) {

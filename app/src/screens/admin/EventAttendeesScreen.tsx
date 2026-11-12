@@ -22,7 +22,8 @@ import {
   QrCode,
   X,
   Share2,
-  Building2
+  Building2,
+  BarChart3
 } from 'lucide-react-native';
 import QRCode from 'react-native-qrcode-svg';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -31,6 +32,7 @@ import * as MediaLibrary from 'expo-media-library';
 import AttendanceService, { AttendanceRecord } from '../../services/AttendanceService';
 import { useChurch } from '../../context/ChurchContext';
 import firestore from '@react-native-firebase/firestore';
+import EventRsvpAnalyticsModal from './EventRsvpAnalyticsModal';
 
 const { width } = Dimensions.get('window');
 
@@ -45,7 +47,7 @@ interface UnifiedMember {
 }
 
 export default function EventAttendeesScreen({ navigation, route }: any) {
-  const { eventId, eventName, churchId: routeChurchId } = route.params || {};
+  const { eventId, eventName, eventDate, rsvpEnabled, initialTab, churchId: routeChurchId } = route.params || {};
   const { activeChurch } = useChurch();
 
   // Multi-church isolation: prioritize activeChurch id or route param
@@ -57,6 +59,7 @@ export default function EventAttendeesScreen({ navigation, route }: any) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>('Present');
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showPollAnalyticsModal, setShowPollAnalyticsModal] = useState(initialTab === 'poll');
   const qrRef = useRef<any>(null);
   
   const [allMembers, setAllMembers] = useState<UnifiedMember[]>([]);
@@ -354,13 +357,20 @@ export default function EventAttendeesScreen({ navigation, route }: any) {
             </View>
           </View>
           
-          <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+            <TouchableOpacity 
+              style={[styles.iconBtn, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' }]} 
+              onPress={() => setShowPollAnalyticsModal(true)}
+              accessibilityLabel="View RSVP Poll Responses"
+            >
+              <BarChart3 size={22} color="#4F46E5" />
+            </TouchableOpacity>
             <TouchableOpacity 
               style={styles.iconBtn} 
               onPress={() => setShowQRModal(true)}
               accessibilityLabel="Show QR Code"
             >
-              <QrCode size={26} color="#0f172a" />
+              <QrCode size={24} color="#0f172a" />
             </TouchableOpacity>
           </View>
         </View>
@@ -471,6 +481,15 @@ export default function EventAttendeesScreen({ navigation, route }: any) {
           ItemSeparatorComponent={() => <View style={styles.divider} />}
         />
       )}
+      {/* ── Admin RSVP / Poll Analytics Modal ── */}
+      <EventRsvpAnalyticsModal
+        visible={showPollAnalyticsModal}
+        onClose={() => setShowPollAnalyticsModal(false)}
+        eventId={eventId}
+        eventTitle={eventName || 'Church Event'}
+        eventDate={eventDate}
+        churchId={churchId}
+      />
     </View>
   );
 }

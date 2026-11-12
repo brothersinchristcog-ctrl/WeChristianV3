@@ -13,11 +13,12 @@ import {
   Modal,
   Alert
 } from 'react-native';
-import { MapPin, Clock, Calendar, Trash2, ChevronLeft, Plus, Users } from 'lucide-react-native';
+import { MapPin, Clock, Calendar, Trash2, ChevronLeft, Plus, Users, BarChart3 } from 'lucide-react-native';
 import { useNavigation } from '@react-navigation/native';
 import { AdminTabContext } from '../../context/AdminTabContext';
 
 import FirestoreService from '../../services/FirestoreService';
+import EventRsvpAnalyticsModal from './EventRsvpAnalyticsModal';
 
 const { width } = Dimensions.get('window');
 
@@ -51,6 +52,7 @@ export default function AdminEventList() {
   const [loading, setLoading] = useState(true);
   const [eventToDelete, setEventToDelete] = useState<any>(null);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
+  const [selectedPollEvent, setSelectedPollEvent] = useState<any>(null);
 
   useEffect(() => {
     fetchEvents();
@@ -242,17 +244,44 @@ export default function AdminEventList() {
                     {(event.status || 'Published').toUpperCase()}
                   </Text>
                 </View>
+
+                {event.rsvpEnabled === true && (
+                  <TouchableOpacity
+                    style={[styles.badgePub, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE', borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }]}
+                    onPress={() => setSelectedPollEvent(event)}
+                    activeOpacity={0.7}
+                  >
+                    <BarChart3 size={10} color="#4F46E5" />
+                    <Text style={[styles.badgePubTxt, { color: '#4338CA' }]}>POLL RESPONSES</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
             <View style={styles.actionsContainer}>
               <TouchableOpacity 
-                onPress={() => navigation.navigate('EventAttendees', { eventId: event.id, eventName: event.name || event.title })} 
+                onPress={() => navigation.navigate('EventAttendees', { 
+                  eventId: event.id, 
+                  eventName: event.name || event.title,
+                  eventDate: event.date,
+                  rsvpEnabled: event.rsvpEnabled === true,
+                  initialTab: event.rsvpEnabled === true ? 'poll' : 'attendance'
+                })} 
                 style={styles.attendeesAction}
                 activeOpacity={0.7}
               >
                 <Users size={12} color="#047857" />
                 <Text style={styles.attendeesActionTxt}>Attend</Text>
               </TouchableOpacity>
+              {event.rsvpEnabled === true && (
+                <TouchableOpacity 
+                  onPress={() => setSelectedPollEvent(event)} 
+                  style={[styles.pollAction, { borderTopWidth: 1, borderTopColor: '#E2E8F0' }]}
+                  activeOpacity={0.7}
+                >
+                  <BarChart3 size={12} color="#4F46E5" />
+                  <Text style={styles.pollActionTxt}>Poll</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity onPress={() => handleEdit(event)} style={styles.editAction}>
                 <Text style={styles.editActionTxt}>Edit</Text>
               </TouchableOpacity>
@@ -323,6 +352,17 @@ export default function AdminEventList() {
             </View>
           </View>
         </View>
+      )}
+
+      {/* ── Admin RSVP / Poll Analytics Modal ── */}
+      {selectedPollEvent && (
+        <EventRsvpAnalyticsModal
+          visible={Boolean(selectedPollEvent)}
+          onClose={() => setSelectedPollEvent(null)}
+          eventId={selectedPollEvent.id}
+          eventTitle={selectedPollEvent.name || selectedPollEvent.title || 'Church Event'}
+          eventDate={selectedPollEvent.date}
+        />
       )}
     </View>
   );
@@ -396,6 +436,8 @@ const styles = StyleSheet.create({
   actionsContainer: { borderLeftWidth: 1.5, borderLeftColor: '#E2E8F0', paddingLeft: 10, marginLeft: 6, justifyContent: 'center', width: 62 },
   attendeesAction: { paddingVertical: 6, alignItems: 'center', justifyContent: 'center', gap: 2, flex: 1 },
   attendeesActionTxt: { fontSize: 8.5, fontWeight: '800', color: '#047857', textTransform: 'uppercase', letterSpacing: 0.4 },
+  pollAction: { paddingVertical: 6, alignItems: 'center', justifyContent: 'center', gap: 2, flex: 1 },
+  pollActionTxt: { fontSize: 8.5, fontWeight: '800', color: '#4F46E5', textTransform: 'uppercase', letterSpacing: 0.4 },
   editAction: { paddingVertical: 6, alignItems: 'center', justifyContent: 'center', gap: 2, flex: 1, borderTopWidth: 1, borderTopColor: '#E2E8F0' },
   editActionTxt: { fontSize: 8.5, fontWeight: '800', color: '#1a2d5a', textTransform: 'uppercase', letterSpacing: 0.4 },
   deleteAction: { paddingVertical: 6, alignItems: 'center', justifyContent: 'center', gap: 2, flex: 1, borderTopWidth: 1, borderTopColor: '#E2E8F0' },

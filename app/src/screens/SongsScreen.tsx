@@ -210,20 +210,49 @@ export default function SongsScreen({ navigation, route }: any) {
 
   // ── Load Event Songs (songs linked to published events) ─────────────────
   const fetchEventSongs = async () => {
-    if (!activeChurch?.id) return;
+    const churchId = activeChurch?.id || (await FirestoreService.getChurchId()) || '';
+    if (!churchId) return;
     setLoadingEventSongs(true);
     try {
       const { getApp } = require('@react-native-firebase/app');
       const { getFirestore } = require('@react-native-firebase/firestore');
       const db = getFirestore(getApp());
-      const snap = await db
-        .collection('churches')
-        .doc(activeChurch.id)
-        .collection('events')
-        .where('status', '==', 'Published')
-        .orderBy('date', 'desc')
-        .limit(20)
-        .get();
+
+      let snap: any;
+      try {
+        snap = await db
+          .collection('churches')
+          .doc(churchId)
+          .collection('events')
+          .where('status', '==', 'Published')
+          .orderBy('date', 'desc')
+          .limit(30)
+          .get();
+      } catch (queryErr) {
+        // Fallback without orderBy in case composite index is not yet built
+        snap = await db
+          .collection('churches')
+          .doc(churchId)
+          .collection('events')
+          .where('status', '==', 'Published')
+          .limit(30)
+          .get();
+      }
+
+      // If no published events found with exact 'Published', fetch all events and filter client-side (case-insensitive)
+      let docs = snap?.docs || [];
+      if (docs.length === 0) {
+        const allEventsSnap = await db
+          .collection('churches')
+          .doc(churchId)
+          .collection('events')
+          .limit(40)
+          .get();
+        docs = (allEventsSnap?.docs || []).filter((d: any) => {
+          const st = String(d.data()?.status || d.data()?.publishStatus || '').toLowerCase();
+          return st === 'published' || st === 'upcoming' || st === 'live';
+        });
+      }
       
       const groups: Array<{
         eventId: string;
@@ -232,20 +261,35 @@ export default function SongsScreen({ navigation, route }: any) {
         services: Array<{ id: string; name: string; songs: any[] }>;
       }> = [];
 
-      snap.forEach((doc: any) => {
+      docs.forEach((doc: any) => {
         const data = doc.data();
+        // Support services array as well as root-level songs array
         if (data.services && Array.isArray(data.services) && data.services.length > 0) {
           const servicesWithSongs = data.services.filter((s: any) => s.songs && s.songs.length > 0);
           if (servicesWithSongs.length > 0) {
             groups.push({
               eventId: doc.id,
-              eventName: data.name || data.titleEn || 'Event',
+              eventName: data.name || data.titleEn || data.title || 'Event',
               eventDate: data.date || '',
               services: servicesWithSongs,
             });
           }
+        } else if (data.songs && Array.isArray(data.songs) && data.songs.length > 0) {
+          groups.push({
+            eventId: doc.id,
+            eventName: data.name || data.titleEn || data.title || 'Event',
+            eventDate: data.date || '',
+            services: [{
+              id: `srv_${doc.id}`,
+              name: 'Worship Setlist',
+              songs: data.songs,
+            }],
+          });
         }
       });
+
+      // Sort descending by event date
+      groups.sort((a, b) => (b.eventDate || '').localeCompare(a.eventDate || ''));
 
       setEventSongGroups(groups);
     } catch (e) {
@@ -328,7 +372,7 @@ export default function SongsScreen({ navigation, route }: any) {
     loadSavedIds();
     loadSetlists();
     fetchEventSongs();
-  }, []);
+  }, [activeChurch?.id]);
 
   // ── Open specific song from notification ──────────
   const { songId } = route?.params || {};

@@ -98,7 +98,7 @@ export const EventRsvpAnalyticsModal: React.FC<EventRsvpAnalyticsModalProps> = (
 
     const initData = async () => {
       try {
-        const cId = churchId || (await FirestoreService.getChurchId()) || 'cog';
+        const cId = churchId || (await FirestoreService.getChurchId()) || 'default';
         const churchMembers = await EventRsvpService.getChurchMembersForRsvp(cId);
         if (isMounted) {
           setMembers(churchMembers);
