@@ -1496,7 +1496,7 @@ export async function autoDispatchPublishedServiceResponsibilities(params: {
 
     for (const em of eligibleMembers) {
       try {
-        await db.collection(CHURCHES_COLLECTION).doc(targetChurch).collection('members').doc(em.memberId).collection('notifications').add(inAppPayload);
+        await db.collection(CHURCHES_COLLECTION).doc(targetChurch).collection('members').doc(em.memberId).collection('notifications').doc(`fcfs_${serviceId}_${resp.roleId}`).set(inAppPayload, { merge: true });
         await db.collection(CHURCHES_COLLECTION).doc(targetChurch).collection('broadcasts').doc(`fcfs_${serviceId}_${resp.roleId}_${em.memberId}`).set({
           ...inAppPayload,
           id: `fcfs_${serviceId}_${resp.roleId}_${em.memberId}`,

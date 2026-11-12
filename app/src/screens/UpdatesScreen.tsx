@@ -183,15 +183,26 @@ export default function UpdatesScreen({ navigation, route }: any) {
     const combined = [...deduplicatedBroadcasts, ...churchNotifsList, ...filteredMeetings, ...memberNotifsList].sort((a, b) => (b.rawDate || 0) - (a.rawDate || 0));
     const seenIds = new Set<string>();
     const seenRosterAlertKeys = new Set<string>();
+    const seenOpenDutyKeys = new Set<string>();
     const deduplicated = combined.filter(item => {
       if (!item || !item.id) return false;
       if (seenIds.has(item.id)) return false;
       seenIds.add(item.id);
+
+      // Deduplicate admin roster alerts for same service and content
       if (item.type === 'admin_roster_alert') {
         const rosterKey = `${item.serviceId || ''}|${item.title || ''}|${item.content || ''}`;
         if (seenRosterAlertKeys.has(rosterKey)) return false;
         seenRosterAlertKeys.add(rosterKey);
       }
+
+      // Deduplicate open responsibility broadcast notices (e.g. from broadcast + member notif channels)
+      if (item.type === 'service_responsibility_broadcast') {
+        const dutyKey = `${item.serviceId || ''}|${item.roleId || ''}|${item.title || ''}`;
+        if (seenOpenDutyKeys.has(dutyKey)) return false;
+        seenOpenDutyKeys.add(dutyKey);
+      }
+
       return true;
     });
     setDynamicUpdates(deduplicated);
