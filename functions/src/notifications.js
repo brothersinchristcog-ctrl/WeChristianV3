@@ -925,27 +925,27 @@ export async function sendDailyVersePushInternal(slotOverride, targetChurchId = 
     const PERIOD_SLOTS = {
         Morning: {
             index: 0,
-            title: "Good Morning · Today's Verse (నేటి వాక్యం)",
-            titleEn: "Good Morning",
-            titleTe: "Today's Verse (నేటి వాక్యం)",
+            title: "✝️ Good Morning",
+            titleEn: "✝️ Good Morning",
+            titleTe: "✝️ శుభోదయం",
         },
         Afternoon: {
             index: 1,
-            title: "Blessed Afternoon · Daily Peace (అనుదిన శాంతి)",
-            titleEn: "Blessed Afternoon",
-            titleTe: "Daily Peace (అనుదిన శాంతి)",
+            title: "✝️ Good Afternoon",
+            titleEn: "✝️ Good Afternoon",
+            titleTe: "✝️ శుభ మధ్యాహ్నం",
         },
         Evening: {
             index: 2,
-            title: "Evening Prayer · Faith & Grace (విశ్వాసం - కృప)",
-            titleEn: "Evening Prayer",
-            titleTe: "Faith & Grace (విశ్వాసం - కృప)",
+            title: "✝️ Good Evening",
+            titleEn: "✝️ Good Evening",
+            titleTe: "✝️ శుభ సాయంత్రం",
         },
         Night: {
             index: 3,
-            title: "Good Night · God's Protection (దేవుని కాపుదల)",
-            titleEn: "Good Night",
-            titleTe: "God's Protection (దేవుని కాపుదల)",
+            title: "✝️ Good Night",
+            titleEn: "✝️ Good Night",
+            titleTe: "✝️ శుభరాత్రి",
         },
     };
     const nowIst = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
@@ -1059,13 +1059,10 @@ export async function sendDailyVersePushInternal(slotOverride, targetChurchId = 
     const refTeText = (verseDocData.referenceTe || verseDocData.reference || verseDocData.refTe || '').trim();
     const cleanVerseTe = verseTeText.replace(/^[\"""'']+|[\"""'']+$/g, '').trim();
     const cleanVerseEn = verseEnText.replace(/^[\"""'']+|[\"""'']+$/g, '').trim();
-    const combinedRef = (refTeText && refEnText && refTeText !== refEnText) ? `${refTeText} | ${refEnText}` : (refTeText || refEnText);
-    const teInline = (refTeText && !cleanVerseTe.includes(refTeText)) ? `${cleanVerseTe} — ${refTeText}` : cleanVerseTe;
-    const enInline = (refEnText && !cleanVerseEn.includes(refEnText)) ? `${cleanVerseEn} — ${refEnText}` : cleanVerseEn;
     const unifiedTitle = slotInfo.title;
-    const unifiedBody = (teInline && enInline && cleanVerseTe !== cleanVerseEn)
-        ? `${teInline}\n${enInline}`
-        : (teInline || enInline);
+    const unifiedBody = cleanVerseEn && refEnText
+        ? `"${cleanVerseEn}"\n${refEnText}`
+        : (cleanVerseEn || cleanVerseTe);
     // Collect all church tokens (multi-church support)
     const tokenSet = new Set();
     try {
