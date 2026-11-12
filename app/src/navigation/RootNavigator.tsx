@@ -836,7 +836,10 @@ function Navigation() {
             <Stack.Screen name="Celebration" component={renderPremium(CelebrationScreen)} />
             {/* Added for Push Notification Support in Admin View */}
             <Stack.Screen name="Sermons" component={renderPremium(SermonsScreen)} />
+            <Stack.Screen name="SermonVideo" component={renderPremium(SermonVideoScreen)} />
+            <Stack.Screen name="DailyVideo" component={renderPremium(DailyVideoScreen)} />
             <Stack.Screen name="Events" component={renderPremium(EventsScreen)} />
+            <Stack.Screen name="EventDetails" component={renderPremium(EventDetailsScreen)} />
             <Stack.Screen name="AttendanceScreen" component={renderPremium(AttendanceScreen)} />
             <Stack.Screen name="EventAttendees" component={EventAttendeesScreen} />
             <Stack.Screen name="LiveCelebrationsChat" component={renderPremium(LiveCelebrationsChat)} />
