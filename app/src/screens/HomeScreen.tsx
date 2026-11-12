@@ -2275,6 +2275,20 @@ export default function HomeScreen() {
             <GridItem isDark={isDark} icon={<Bell size={26} color="#fff" />} label={t('home.quickUpdates')} color="#0284c7" onPress={() => navigation.navigate('Updates')} />
             <GridItem 
               isDark={isDark}
+              icon={<AnimatedCameraIcon size={26} color="#fff" scrollY={scrollY} triggerY={onlineMeetingsY} />} 
+              label={t('home.quickMeetings')} 
+              color="#3B82F6" 
+              onPress={() => navigation.navigate('OnlineMeetings')} 
+            />
+            <GridItem 
+              isDark={isDark} 
+              icon={<CalendarCheck size={26} color="#fff" strokeWidth={2.2} />} 
+              label={t('nav.attendance')} 
+              color="#059669" 
+              onPress={() => navigation.navigate('Attendance')} 
+            />
+            <GridItem 
+              isDark={isDark}
               icon={<YoutubeIcon size={26} color="#fff" />} 
               label={t('home.quickYoutubeLive')} 
               color="#ef4444" 
@@ -2293,94 +2307,6 @@ export default function HomeScreen() {
               }} 
             />
             <GridItem isDark={isDark} icon={<Users size={26} color="#fff" />} label={t('home.quickMembers')} color="#db2777" onPress={handleOpenMembers} />
-          </View>
-
-          {/* ── Separate Member View Navigation: Online Meetings & Attendance ── */}
-          <View 
-            style={{ 
-              flexDirection: 'row', 
-              alignItems: 'center', 
-              justifyContent: 'space-between', 
-              gap: 12, 
-              marginTop: 18, 
-              marginBottom: 16, 
-              paddingHorizontal: 20 
-            }}
-            onLayout={(e) => setOnlineMeetingsY(e.nativeEvent.layout.y)}
-          >
-            {/* Button 1: Online Meetings */}
-            <TouchableOpacity 
-              style={{
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#3B82F6',
-                paddingVertical: 13,
-                paddingHorizontal: 14,
-                borderRadius: 20,
-                elevation: 4,
-                shadowColor: '#3B82F6',
-                shadowOpacity: 0.35,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 3 },
-                gap: 7,
-              }}
-              onPress={() => navigation.navigate('OnlineMeetings')}
-              activeOpacity={0.8}
-            >
-              <AnimatedCameraIcon size={18} color="#fff" scrollY={scrollY} triggerY={onlineMeetingsY} />
-              <Text 
-                style={{ 
-                  color: '#fff', 
-                  fontSize: 12.8, 
-                  fontWeight: '700', 
-                  letterSpacing: 0.2 
-                }} 
-                numberOfLines={1} 
-                adjustsFontSizeToFit
-                minimumFontScale={0.7}
-              >
-                {t('home.quickMeetings')}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Button 2: Attendance */}
-            <TouchableOpacity 
-              style={{
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                backgroundColor: '#059669',
-                paddingVertical: 13,
-                paddingHorizontal: 14,
-                borderRadius: 20,
-                elevation: 4,
-                shadowColor: '#059669',
-                shadowOpacity: 0.35,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 3 },
-                gap: 7,
-              }}
-              onPress={() => navigation.navigate('Attendance')}
-              activeOpacity={0.8}
-            >
-              <CalendarCheck size={18} color="#fff" strokeWidth={2.2} />
-              <Text 
-                style={{ 
-                  color: '#fff', 
-                  fontSize: 12.8, 
-                  fontWeight: '700', 
-                  letterSpacing: 0.2 
-                }} 
-                numberOfLines={1} 
-                adjustsFontSizeToFit
-                minimumFontScale={0.75}
-              >
-                {t('nav.attendance')}
-              </Text>
-            </TouchableOpacity>
           </View>
 
           {/* ── Arched Navigation Section ── */}
