@@ -105,6 +105,12 @@ class NotificationService {
 
     try {
       switch (type) {
+        case 'daily_verse': {
+          const verseId = rawData.verseId || id;
+          const period = rawData.period || 'Morning';
+          nav.navigate('VerseOfTheDay', { verseId, period });
+          break;
+        }
         case 'sermon':
           nav.navigate('Sermons');
           break;
