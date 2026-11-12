@@ -74,6 +74,11 @@ const CARD_BACKGROUNDS: Record<string, any> = {
   'Bible Quiz': require('../../../assets/admin_cards/bible_quiz.jpg'),
   'Quiz': require('../../../assets/admin_cards/bible_quiz.jpg'),
   'Baptism': require('../../../assets/admin_cards/baptism.png'),
+  'Testimonies': require('../../../assets/admin_cards/testimonies.jpg'),
+  'Care Cells': require('../../../assets/admin_cards/care_cells.jpg'),
+  'Care Cell': require('../../../assets/admin_cards/care_cells.jpg'),
+  'Volunteer Management': require('../../../assets/admin_cards/volunteer_management.jpg'),
+  'Volunteers': require('../../../assets/admin_cards/volunteer_management.jpg'),
 };
 
 const CATEGORIES = [
