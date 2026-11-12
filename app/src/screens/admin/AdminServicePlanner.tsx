@@ -300,9 +300,6 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
   const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [savingAttendance, setSavingAttendance] = useState(false);
 
-  // Roster Analytics state (Phase 9)
-  const [analyticsData, setAnalyticsData] = useState<RosterAnalyticsData | null>(null);
-  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
 
   // Run-Sheet Export state (Phase 9)
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -688,24 +685,6 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
     return () => unsubscribe();
   }, [selectedPlan?.id, churchId]);
 
-  const fetchAnalytics = async () => {
-    try {
-      setLoadingAnalytics(true);
-      const data = await ServiceRosterService.getRosterAnalytics(churchId);
-      setAnalyticsData(data);
-    } catch (err) {
-      console.error('Error loading roster analytics:', err);
-    } finally {
-      setLoadingAnalytics(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activePlannerTab === 'analytics') {
-      fetchAnalytics();
-    }
-  }, [activePlannerTab, churchId]);
-
   const onRefresh = () => {
     setRefreshing(true);
     fetchPlans();
@@ -715,9 +694,6 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
     fetchMinistryTeams();
     fetchMemberSkills();
     fetchCustomCategories();
-    if (activePlannerTab === 'analytics') {
-      fetchAnalytics();
-    }
   };
 
   // ─────────────────────────────────────────────────────────────────────────────
