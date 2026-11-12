@@ -2113,7 +2113,7 @@ export default function MyServiceScreen({ navigation, route }: any) {
                 <Text style={{ fontSize: 13, color: newBlockoutDate ? primaryText : secondaryText, fontWeight: newBlockoutDate ? '700' : '400' }}>
                   {newBlockoutDate || 'Tap to select unavailable date'}
                 </Text>
-                <Calendar size={18} color={primaryBtnBg} />
+                <Calendar size={18} color={isDark ? goldAccent : navyPrimary} />
               </TouchableOpacity>
 
               <Text style={[styles.fieldLabel, { color: primaryText, marginTop: 10 }]}>
