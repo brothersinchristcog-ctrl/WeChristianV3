@@ -7,7 +7,26 @@ import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import { encodeGeohash, geohashQueryBoundsForRadius, haversineDistanceKm, } from './utils/geohash.js';
 export const GOOGLE_MAPS_GEOCODING_KEY = defineSecret('GOOGLE_MAPS_GEOCODING_KEY');
 const REGION = 'asia-south1';
-const ADMIN_ROLES = new Set(['admin', 'super_admin', 'Admin', 'Super Admin']);
+const ADMIN_ROLES = new Set([
+    'admin',
+    'super_admin',
+    'Admin',
+    'Super Admin',
+    'pastor',
+    'Pastor',
+    'church_admin',
+    'Church Admin',
+    'co_admin',
+    'Co-Admin',
+]);
+function hasAdminRole(data) {
+    if (!data)
+        return false;
+    if (data.isAdmin === true || data.isSuperAdmin === true)
+        return true;
+    const roleVal = cleanStr(data.userType || data.role);
+    return ADMIN_ROLES.has(roleVal);
+}
 /**
  * Strips `undefined` values recursively before Firestore writes.
  */
@@ -456,7 +475,7 @@ async function assertAdminOrLeader(db, churchId, uid) {
             .collection('members')
             .doc(uid)
             .get();
-        if (memberSnap.exists && ADMIN_ROLES.has(cleanStr(memberSnap.data()?.userType))) {
+        if (memberSnap.exists && hasAdminRole(memberSnap.data())) {
             isAdmin = true;
         }
     }
@@ -464,10 +483,13 @@ async function assertAdminOrLeader(db, churchId, uid) {
         const userSnap = await db.collection('users').doc(uid).get();
         if (userSnap.exists) {
             const uData = userSnap.data() || {};
-            const uRole = cleanStr(uData.userType);
+            const uRole = cleanStr(uData.userType || uData.role);
             const uChurch = cleanStr(uData.churchId || uData.primaryChurchId);
-            if (ADMIN_ROLES.has(uRole) &&
-                (uChurch === churchId || uRole.toLowerCase() === 'super_admin' || uRole === 'Super Admin')) {
+            if (hasAdminRole(uData) &&
+                (uChurch === churchId ||
+                    uData.isSuperAdmin === true ||
+                    uRole.toLowerCase() === 'super_admin' ||
+                    uRole === 'Super Admin')) {
                 isAdmin = true;
             }
         }
@@ -482,8 +504,7 @@ async function assertAdminOrLeader(db, churchId, uid) {
                 .collection('members')
                 .doc(uid)
                 .get();
-            if (parentMemberSnap.exists &&
-                ADMIN_ROLES.has(cleanStr(parentMemberSnap.data()?.userType))) {
+            if (parentMemberSnap.exists && hasAdminRole(parentMemberSnap.data())) {
                 isAdmin = true;
             }
         }
@@ -950,20 +971,29 @@ export const saveMemberHomeLocationPin = onCall({ region: REGION }, async (reque
         .collection('members')
         .doc(memberId);
     const memberSnap = await memberRef.get();
-    if (!memberSnap.exists) {
-        throw new HttpsError('not-found', 'Member profile not found.');
-    }
-    const memberData = memberSnap.data() || {};
-    const authPhoneLast10 = normalizePhoneLast10(request.auth?.token?.phone_number);
+    const userSnap = await db.collection('users').doc(uid).get();
+    const userData = userSnap.exists ? userSnap.data() || {} : {};
+    const memberData = memberSnap.exists
+        ? memberSnap.data() || {}
+        : uid === memberId
+            ? userData
+            : {};
+    const authPhoneLast10 = normalizePhoneLast10(request.auth?.token?.phone_number || userData.phone || userData.phoneNumber);
     const memberPhoneLast10 = normalizePhoneLast10(memberData.phone || memberData.phoneNumber);
+    const authEmail = cleanStr(request.auth?.token?.email || userData.email).toLowerCase();
+    const memberEmail = cleanStr(memberData.email).toLowerCase();
     const isSelfOwner = uid === memberId ||
         cleanStr(memberData.uid) === uid ||
-        Boolean(authPhoneLast10 && memberPhoneLast10 && authPhoneLast10 === memberPhoneLast10);
+        Boolean(authPhoneLast10 && memberPhoneLast10 && authPhoneLast10 === memberPhoneLast10) ||
+        Boolean(authEmail && memberEmail && authEmail === memberEmail);
     if (!isSelfOwner) {
         const { isAdmin } = await assertAdminOrLeader(db, churchId, uid);
         if (!isAdmin) {
             throw new HttpsError('permission-denied', 'Not authorized to update this member home pin.');
         }
+    }
+    else if (!memberSnap.exists && !userSnap.exists && uid !== memberId) {
+        throw new HttpsError('not-found', 'Member profile not found.');
     }
     const locRef = db
         .collection('churches')

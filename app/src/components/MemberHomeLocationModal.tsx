@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, Circle, PROVIDER_GOOGLE, Region } from 'react-native-maps';
 import * as ExpoLocation from 'expo-location';
+import { auth } from '../services/firebaseConfig';
 import {
   MapPin,
   X,
@@ -71,7 +72,7 @@ export default function MemberHomeLocationModal({
   const [landmark, setLandmark] = useState('');
   const [consent, setConsent] = useState(true);
 
-  const memberId = member?.id || member?.uid || '';
+  const memberId = member?.id || member?.uid || auth().currentUser?.uid || '';
   const profileAreaSummary = [
     member?.village,
     member?.city || member?.mailingCity,

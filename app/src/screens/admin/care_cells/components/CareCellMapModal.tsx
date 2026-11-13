@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Platform,
+  StatusBar,
   Linking,
   Alert,
   ScrollView,
@@ -14,6 +15,7 @@ import {
   FlatList,
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
+import * as ExpoLocation from 'expo-location';
 import {
   ArrowLeft,
   Navigation,
@@ -33,18 +35,50 @@ import {
   Plus,
   Route,
 } from 'lucide-react-native';
-import { CareCell, CareCellMembership } from '../../../../types/CareCellTypes';
+import { CareCell, CareCellMembership, MemberLocationRecord } from '../../../../types/CareCellTypes';
+import { useChurch } from '../../../../context/ChurchContext';
+import { MemberLocationService } from '../../../../services/MemberLocationService';
 import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 
 const { width, height } = Dimensions.get('window');
 
-// Default Kurnool coordinates if cell doesn't have coordinates
+// Fallback coordinates only if both cell location & member coordinates fail to resolve
 const DEFAULT_KURNOOL_LAT = 15.8281;
 const DEFAULT_KURNOOL_LNG = 78.0373;
+
+const CLIENT_GEOCODE_CACHE = new Map<string, { latitude: number; longitude: number } | null>();
+
+async function geocodePlaceCached(query: string): Promise<{ latitude: number; longitude: number } | null> {
+  const clean = query.trim();
+  if (!clean) return null;
+  const key = clean.toLowerCase();
+  if (CLIENT_GEOCODE_CACHE.has(key)) {
+    return CLIENT_GEOCODE_CACHE.get(key) || null;
+  }
+  try {
+    const results = await ExpoLocation.geocodeAsync(clean);
+    if (results && results.length > 0 && Number.isFinite(results[0].latitude) && Number.isFinite(results[0].longitude)) {
+      const coords = { latitude: results[0].latitude, longitude: results[0].longitude };
+      CLIENT_GEOCODE_CACHE.set(key, coords);
+      return coords;
+    }
+  } catch (_) {
+    // Ignore transient device geocoder failures
+  }
+  CLIENT_GEOCODE_CACHE.set(key, null);
+  return null;
+}
+
+type EnrichedCellMembership = CareCellMembership & {
+  isVerifiedPin?: boolean;
+  isApproxPin?: boolean;
+  resolvedAddress?: string;
+};
 
 interface CareCellMapModalProps {
   visible: boolean;
   onClose: () => void;
+  churchId?: string;
   cell: CareCell;
   members: CareCellMembership[];
   inactiveMembers?: Array<{ memberId: string; missedCount: number; memberName?: string }>;
@@ -54,11 +88,14 @@ interface CareCellMapModalProps {
 export default function CareCellMapModal({
   visible,
   onClose,
+  churchId,
   cell,
   members,
   inactiveMembers = [],
   onLogFollowup,
 }: CareCellMapModalProps) {
+  const { activeChurch } = useChurch();
+  const effectiveChurchId = churchId || cell?.churchId || activeChurch?.id || '';
   const { isDark, primaryText, secondaryText } = useAdminTheme();
   const primaryBtnBg = isDark ? '#FFFFFF' : '#0F172A';
   const primaryBtnText = isDark ? '#000000' : '#FFFFFF';
@@ -74,42 +111,214 @@ export default function CareCellMapModal({
   const [filterNeedsVisitOnly, setFilterNeedsVisitOnly] = useState<boolean>(false);
 
   // Selected member card on map
-  const [selectedMember, setSelectedMember] = useState<CareCellMembership | null>(null);
+  const [selectedMember, setSelectedMember] = useState<EnrichedCellMembership | null>(null);
 
   // Route Planning: list of member IDs in visit order
   const [plannedRouteMemberIds, setPlannedRouteMemberIds] = useState<string[]>([]);
+
+  // Live member locations & fallback client geocoded coordinates
+  const [memberLocMap, setMemberLocMap] = useState<Record<string, MemberLocationRecord>>({});
+  const [geocodedCellCoords, setGeocodedCellCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [geocodedMemberCoords, setGeocodedMemberCoords] = useState<Record<string, { latitude: number; longitude: number }>>({});
+
+  useEffect(() => {
+    if (!visible) return;
+    let active = true;
+
+    const loadLocationData = async () => {
+      let locById: Record<string, MemberLocationRecord> = {};
+      if (effectiveChurchId) {
+        try {
+          const allLocs = await MemberLocationService.getMemberLocations(effectiveChurchId);
+          if (!active) return;
+          allLocs.forEach((rec) => {
+            if (rec.memberId) locById[rec.memberId] = rec;
+          });
+          setMemberLocMap(locById);
+        } catch (_) {
+          // Continue with client-side geocoding fallback
+        }
+      }
+
+      // Resolve Care Cell center coordinates if cell doesn't have meetingLatitude/meetingLongitude
+      let cellFallback: { latitude: number; longitude: number } | null = null;
+      if (typeof cell.meetingLatitude === 'number' && typeof cell.meetingLongitude === 'number') {
+        cellFallback = { latitude: cell.meetingLatitude, longitude: cell.meetingLongitude };
+      } else {
+        const cellQuery = [cell.meetingLocation || cell.location, cell.location && cell.meetingLocation !== cell.location ? cell.location : '']
+          .filter(Boolean)
+          .join(', ');
+        if (cellQuery) {
+          cellFallback =
+            (await geocodePlaceCached(`${cellQuery}, Andhra Pradesh, India`)) ||
+            (await geocodePlaceCached(`${cell.location || cell.meetingLocation}, India`));
+          if (active && cellFallback) {
+            setGeocodedCellCoords(cellFallback);
+          }
+        }
+      }
+
+      // Resolve missing coordinates for any member with address/locality (or cell locality)
+      const resolvedMap: Record<string, { latitude: number; longitude: number }> = {};
+      for (const m of members) {
+        const locRec = locById[m.memberId];
+        const hasVerified =
+          locRec?.locationSharingConsent === true &&
+          typeof locRec?.confirmedLatitude === 'number' &&
+          typeof locRec?.confirmedLongitude === 'number';
+        const hasLocCoords = typeof locRec?.latitude === 'number' && typeof locRec?.longitude === 'number';
+        const hasMemCoords = typeof m.latitude === 'number' && typeof m.longitude === 'number';
+        if (hasVerified || hasLocCoords || hasMemCoords) continue;
+
+        const localityPart = (m.locality || m.city || cell.location || '').trim();
+        const addressPart = (m.address || '').trim();
+        if (!localityPart && !addressPart) continue;
+
+        let coords: { latitude: number; longitude: number } | null = null;
+        if (addressPart && localityPart) {
+          coords = await geocodePlaceCached(`${addressPart}, ${localityPart}, India`);
+        }
+        if (!coords && localityPart) {
+          coords =
+            (await geocodePlaceCached(`${localityPart}, Andhra Pradesh, India`)) ||
+            (await geocodePlaceCached(`${localityPart}, India`));
+        }
+        if (!coords && cellFallback) {
+          coords = cellFallback;
+        }
+        if (coords) {
+          resolvedMap[m.memberId] = coords;
+        }
+      }
+      if (active && Object.keys(resolvedMap).length > 0) {
+        setGeocodedMemberCoords(resolvedMap);
+      }
+    };
+
+    loadLocationData();
+    return () => {
+      active = false;
+    };
+  }, [visible, effectiveChurchId, cell?.id, cell?.location, cell?.meetingLocation, members]);
+
+  // Merge CareCellMembership with live memberLocations + fallback geocoding + micro-spread for overlapping village pins
+  const enrichedMembers = useMemo<EnrichedCellMembership[]>(() => {
+    const rawList = members.map((m) => {
+      const locRec = memberLocMap[m.memberId];
+      const hasVerified =
+        locRec?.locationSharingConsent === true &&
+        typeof locRec?.confirmedLatitude === 'number' &&
+        typeof locRec?.confirmedLongitude === 'number';
+      const hasProfileLoc =
+        typeof locRec?.latitude === 'number' && typeof locRec?.longitude === 'number';
+      const hasMemCoords =
+        typeof m.latitude === 'number' && typeof m.longitude === 'number' && !isNaN(m.latitude) && !isNaN(m.longitude);
+      const fallbackCoords = geocodedMemberCoords[m.memberId];
+
+      const lat = hasVerified
+        ? locRec!.confirmedLatitude!
+        : hasProfileLoc
+          ? locRec!.latitude!
+          : hasMemCoords
+            ? m.latitude!
+            : fallbackCoords?.latitude;
+      const lng = hasVerified
+        ? locRec!.confirmedLongitude!
+        : hasProfileLoc
+          ? locRec!.longitude!
+          : hasMemCoords
+            ? m.longitude!
+            : fallbackCoords?.longitude;
+
+      const resolvedAddress =
+        (hasVerified ? locRec?.completeAddress : undefined) ||
+        locRec?.completeAddress ||
+        m.address ||
+        '';
+
+      return {
+        ...m,
+        locality: m.locality || locRec?.village || locRec?.city || '',
+        address: resolvedAddress,
+        resolvedAddress,
+        latitude: lat,
+        longitude: lng,
+        isVerifiedPin: hasVerified,
+        isApproxPin: !hasVerified && typeof lat === 'number' && typeof lng === 'number',
+      } as EnrichedCellMembership;
+    });
+
+    // Spread pins that share identical approximate village coordinates so every member marker is clickable
+    const coordGroups = new Map<string, number[]>();
+    rawList.forEach((item, idx) => {
+      if (typeof item.latitude === 'number' && typeof item.longitude === 'number') {
+        const key = `${item.latitude.toFixed(4)}_${item.longitude.toFixed(4)}`;
+        const arr = coordGroups.get(key) || [];
+        arr.push(idx);
+        coordGroups.set(key, arr);
+      }
+    });
+
+    coordGroups.forEach((indices) => {
+      if (indices.length <= 1) return;
+      indices.forEach((idx, pos) => {
+        const item = rawList[idx];
+        if (item.isVerifiedPin) return;
+        const angle = (2 * Math.PI * pos) / indices.length;
+        const radiusDeg = 0.00075; // ~80m visual offset
+        rawList[idx] = {
+          ...item,
+          latitude: item.latitude! + radiusDeg * Math.cos(angle),
+          longitude: item.longitude! + radiusDeg * Math.sin(angle),
+        };
+      });
+    });
+
+    return rawList;
+  }, [members, memberLocMap, geocodedMemberCoords]);
 
   // Inactive Member IDs set for fast lookup
   const inactiveMemberIdSet = useMemo(() => {
     return new Set(inactiveMembers.map((im) => im.memberId));
   }, [inactiveMembers]);
 
-  // Center coordinate: Cell Meeting coordinate or Kurnool center
+  // Center coordinate: Cell Meeting coordinate, resolved cell location, first member pin, or Kurnool fallback
   const centerCoord = useMemo(() => {
-    const lat = cell.meetingLatitude || DEFAULT_KURNOOL_LAT;
-    const lng = cell.meetingLongitude || DEFAULT_KURNOOL_LNG;
+    const firstWithCoords = enrichedMembers.find(
+      (m) => typeof m.latitude === 'number' && typeof m.longitude === 'number'
+    );
+    const lat =
+      cell.meetingLatitude ||
+      geocodedCellCoords?.latitude ||
+      firstWithCoords?.latitude ||
+      DEFAULT_KURNOOL_LAT;
+    const lng =
+      cell.meetingLongitude ||
+      geocodedCellCoords?.longitude ||
+      firstWithCoords?.longitude ||
+      DEFAULT_KURNOOL_LNG;
     return {
       latitude: lat,
       longitude: lng,
-      latitudeDelta: 0.05,
-      longitudeDelta: 0.05,
+      latitudeDelta: 0.035,
+      longitudeDelta: 0.035,
     };
-  }, [cell]);
+  }, [cell, geocodedCellCoords, enrichedMembers]);
 
-  // Compute distinct localities from members
+  // Compute distinct localities from enriched members
   const localities = useMemo(() => {
     const set = new Set<string>();
-    members.forEach((m) => {
+    enrichedMembers.forEach((m) => {
       if (m.locality && m.locality.trim()) {
         set.add(m.locality.trim());
       }
     });
     return Array.from(set).sort();
-  }, [members]);
+  }, [enrichedMembers]);
 
   // Filtered members list
   const filteredMembers = useMemo(() => {
-    let list = members;
+    let list = enrichedMembers;
     if (filterNeedsVisitOnly) {
       list = list.filter((m) => inactiveMemberIdSet.has(m.memberId));
     }
@@ -117,7 +326,7 @@ export default function CareCellMapModal({
       list = list.filter((m) => (m.locality || '').trim().toLowerCase() === selectedLocality.toLowerCase());
     }
     return list;
-  }, [members, filterNeedsVisitOnly, selectedLocality, inactiveMemberIdSet]);
+  }, [enrichedMembers, filterNeedsVisitOnly, selectedLocality, inactiveMemberIdSet]);
 
   // Members with valid GPS coordinates for map plotting
   const membersWithCoords = useMemo(() => {
@@ -125,6 +334,44 @@ export default function CareCellMapModal({
       (m) => typeof m.latitude === 'number' && typeof m.longitude === 'number' && !isNaN(m.latitude) && !isNaN(m.longitude)
     );
   }, [filteredMembers]);
+
+  // Auto-focus map onto Koilakuntla / cell members when coordinates load or view switches to Map
+  useEffect(() => {
+    if (!visible || viewMode !== 'map' || !mapRef.current) return;
+    const points: Array<{ latitude: number; longitude: number }> = [];
+    const cellLat = cell.meetingLatitude || geocodedCellCoords?.latitude;
+    const cellLng = cell.meetingLongitude || geocodedCellCoords?.longitude;
+    if (typeof cellLat === 'number' && typeof cellLng === 'number') {
+      points.push({ latitude: cellLat, longitude: cellLng });
+    }
+    membersWithCoords.forEach((m) => {
+      if (typeof m.latitude === 'number' && typeof m.longitude === 'number') {
+        points.push({ latitude: m.latitude, longitude: m.longitude });
+      }
+    });
+
+    if (points.length === 0) return;
+    const timer = setTimeout(() => {
+      if (!mapRef.current) return;
+      if (points.length === 1) {
+        mapRef.current.animateToRegion(
+          {
+            latitude: points[0].latitude,
+            longitude: points[0].longitude,
+            latitudeDelta: 0.025,
+            longitudeDelta: 0.025,
+          },
+          450
+        );
+      } else {
+        mapRef.current.fitToCoordinates(points, {
+          edgePadding: { top: 90, right: 50, bottom: 90, left: 50 },
+          animated: true,
+        });
+      }
+    }, 220);
+    return () => clearTimeout(timer);
+  }, [visible, viewMode, cell.meetingLatitude, cell.meetingLongitude, geocodedCellCoords, membersWithCoords]);
 
   // Navigation: Open Google Maps directions to a single member
   const handleNavigateToMember = (m: CareCellMembership) => {
@@ -196,10 +443,17 @@ export default function CareCellMapModal({
     if (plannedRouteMemberIds.length === 0) return;
 
     const routeMembers = plannedRouteMemberIds
-      .map((id) => members.find((m) => m.memberId === id))
-      .filter((m): m is CareCellMembership => !!m && typeof m.latitude === 'number' && typeof m.longitude === 'number');
+      .map((id) => enrichedMembers.find((m) => m.memberId === id))
+      .filter((m): m is EnrichedCellMembership => !!m && typeof m.latitude === 'number' && typeof m.longitude === 'number');
 
     if (routeMembers.length === 0) {
+      const firstFallback = plannedRouteMemberIds
+        .map((id) => enrichedMembers.find((m) => m.memberId === id))
+        .find(Boolean);
+      if (firstFallback) {
+        handleNavigateToMember(firstFallback);
+        return;
+      }
       Alert.alert('Missing Coordinates', 'The selected members for the visit route do not have GPS coordinates.');
       return;
     }
@@ -328,11 +582,11 @@ export default function CareCellMapModal({
               showsCompass={true}
             >
               {/* Care Cell Meeting Marker */}
-              {cell.meetingLatitude && cell.meetingLongitude ? (
+              {(cell.meetingLatitude && cell.meetingLongitude) || geocodedCellCoords ? (
                 <Marker
                   coordinate={{
-                    latitude: cell.meetingLatitude,
-                    longitude: cell.meetingLongitude,
+                    latitude: cell.meetingLatitude || geocodedCellCoords!.latitude,
+                    longitude: cell.meetingLongitude || geocodedCellCoords!.longitude,
                   }}
                   title={cell.name}
                   description={`Care Cell Center: ${cell.meetingLocation || cell.location}`}
@@ -547,9 +801,14 @@ export default function CareCellMapModal({
                     )}
                   </View>
 
-                  {item.address ? (
+                  {item.resolvedAddress || item.address ? (
                     <Text style={styles.itemAddressTxt} numberOfLines={2}>
-                      {item.address}
+                      {item.isVerifiedPin ? '📍 Exact Home Pin: ' : ''}
+                      {item.resolvedAddress || item.address}
+                    </Text>
+                  ) : item.locality ? (
+                    <Text style={styles.itemNoAddressTxt}>
+                      {item.locality} (Approximate area pin — no street address saved)
                     </Text>
                   ) : (
                     <Text style={styles.itemNoAddressTxt}>No residential address on file</Text>
@@ -622,7 +881,7 @@ const styles = createAdminThemedStyles({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'ios' ? 48 : 16,
+    paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 12,
     paddingBottom: 12,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,

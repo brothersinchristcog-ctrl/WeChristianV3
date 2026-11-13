@@ -1,4 +1,6 @@
 import { Linking } from 'react-native';
+import { getApp } from '@react-native-firebase/app';
+import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
 import {
   getFirestore,
   collection,
@@ -11,7 +13,6 @@ import {
   serverTimestamp,
   deleteField,
 } from '@react-native-firebase/firestore';
-import { functions } from './firebaseConfig';
 import {
   LocationAccuracy,
   MemberLocationRecord,
@@ -54,9 +55,10 @@ export interface SyncLocationsResult {
 
 const getRegionalCallable = (name: string) => {
   try {
-    return functions().app.functions(FUNCTIONS_REGION).httpsCallable(name);
+    const regionalFns = getFunctions(getApp(), FUNCTIONS_REGION);
+    return httpsCallable(regionalFns, name);
   } catch (_) {
-    return functions().httpsCallable(name);
+    return httpsCallable(getFunctions(getApp()), name);
   }
 };
 

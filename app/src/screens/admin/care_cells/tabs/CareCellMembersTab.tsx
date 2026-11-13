@@ -34,6 +34,7 @@ import MemberLookupModal from '../components/MemberLookupModal';
 import CareCellMapModal from '../components/CareCellMapModal';
 import { formatDateDisplay } from '../../../../utils/DateUtils';
 import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
+import { useChurch } from '../../../../context/ChurchContext';
 import { CareCell, CareCellMembership } from '../../../../types/CareCellTypes';
 
 interface CareCellMembersTabProps {
@@ -47,6 +48,7 @@ export default function CareCellMembersTab({
   selectedCellId,
   onSelectCellId,
 }: CareCellMembersTabProps) {
+  const { activeChurch } = useChurch();
   const { isDark, primaryText, secondaryText, cardSurface, secondarySurface, borderColor } = useAdminTheme();
   const primaryBtnBg = isDark ? '#FFFFFF' : '#0F172A';
   const primaryBtnText = isDark ? '#000000' : '#FFFFFF';
@@ -424,6 +426,7 @@ export default function CareCellMembersTab({
         <CareCellMapModal
           visible={mapModalVisible}
           onClose={() => setMapModalVisible(false)}
+          churchId={activeChurch?.id || activeCell.churchId}
           cell={activeCell}
           members={memberships}
         />
