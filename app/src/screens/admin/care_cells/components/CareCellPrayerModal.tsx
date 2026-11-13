@@ -15,7 +15,7 @@ import {
 import { X, HeartHandshake, Shield, Globe } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
 import { CareCellPrayerRequest, PrayerRequestPrivacy } from '../../../../types/CareCellTypes';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 
 interface CareCellPrayerModalProps {
   visible: boolean;

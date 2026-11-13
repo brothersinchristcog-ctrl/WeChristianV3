@@ -34,7 +34,7 @@ import {
   Route,
 } from 'lucide-react-native';
 import { CareCell, CareCellMembership } from '../../../../types/CareCellTypes';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 
 const { width, height } = Dimensions.get('window');
 

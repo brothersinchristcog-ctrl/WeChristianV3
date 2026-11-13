@@ -33,7 +33,7 @@ import CareCellService from '../../../../services/CareCellService';
 import MemberLookupModal from '../components/MemberLookupModal';
 import CareCellMapModal from '../components/CareCellMapModal';
 import { formatDateDisplay } from '../../../../utils/DateUtils';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 import { CareCell, CareCellMembership } from '../../../../types/CareCellTypes';
 
 interface CareCellMembersTabProps {

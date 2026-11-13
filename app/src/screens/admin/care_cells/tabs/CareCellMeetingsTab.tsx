@@ -24,7 +24,7 @@ import {
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
 import { formatDateDisplay } from '../../../../utils/DateUtils';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 import { CareCell, CareCellMeeting } from '../../../../types/CareCellTypes';
 
 const MONTH_NAMES = [

@@ -37,7 +37,7 @@ import {
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
 import { useAuth } from '../../../../context/AuthContext';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 import GrantAdminAccessModal from '../components/GrantAdminAccessModal';
 import { CareCell, CareCellStatus } from '../../../../types/CareCellTypes';
 

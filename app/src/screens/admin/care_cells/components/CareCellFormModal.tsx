@@ -18,7 +18,7 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import FirestoreService from '../../../../services/FirestoreService';
 import CareCellService, { isMemberInLocation } from '../../../../services/CareCellService';
 import { useAuth } from '../../../../context/AuthContext';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 import MemberLookupModal from './MemberLookupModal';
 import { CareCell, CareCellStatus } from '../../../../types/CareCellTypes';
 

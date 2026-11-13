@@ -30,7 +30,7 @@ import {
 import CareCellService from '../../../../services/CareCellService';
 import { formatDateDisplay } from '../../../../utils/DateUtils';
 import { useAuth } from '../../../../context/AuthContext';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 import { CareCell, CareCellVisit, VisitStatus } from '../../../../types/CareCellTypes';
 import CareCellVisitModal from '../components/CareCellVisitModal';
 import CareCellVisitResponsesModal from '../components/CareCellVisitResponsesModal';

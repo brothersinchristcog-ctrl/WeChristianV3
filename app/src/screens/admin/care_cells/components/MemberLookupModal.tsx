@@ -17,7 +17,7 @@ import { Search, X, Check, CheckCircle2, UserCheck, AlertCircle, Phone, ArrowRig
 import FirestoreService from '../../../../services/FirestoreService';
 import CareCellService, { isMemberInLocation } from '../../../../services/CareCellService';
 import { CareCellMembership } from '../../../../types/CareCellTypes';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 
 interface MemberItem {
   id: string;

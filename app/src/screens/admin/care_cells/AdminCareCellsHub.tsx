@@ -9,9 +9,9 @@ import {
   Dimensions,
   Platform,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  ArrowLeft,
+  ChevronLeft,
   LayoutDashboard,
   Building2,
   Users,
@@ -25,7 +25,7 @@ import {
 import { AdminTabContext } from '../../../context/AdminTabContext';
 import { useAuth } from '../../../context/AuthContext';
 import CareCellService from '../../../services/CareCellService';
-import { useAdminTheme, createAdminThemedStyles } from '../../../utils/adminThemeHelper';
+import { useCareCellAdminTheme, createCareCellAdminStyles } from './careCellTheme';
 import CareCellsOverviewTab from './tabs/CareCellsOverviewTab';
 import CareCellsManageTab from './tabs/CareCellsManageTab';
 import CareCellMembersTab from './tabs/CareCellMembersTab';
@@ -54,11 +54,11 @@ const SUB_TABS = [
 ];
 
 export default function AdminCareCellsHub() {
-  const { isDark, screenBg, cardSurface, primaryText, secondaryText, borderColor } = useAdminTheme();
-  const primaryBtnBg = isDark ? '#FFFFFF' : '#0F172A';
-  const primaryBtnText = isDark ? '#000000' : '#FFFFFF';
-  const inactivePillBg = isDark ? '#18181B' : '#FFFFFF';
-  const inactivePillBorder = isDark ? '#27272A' : '#CBD5E1';
+  const { screenBg, secondaryText } = useCareCellAdminTheme();
+  const primaryBtnBg = '#1a2d5a';
+  const primaryBtnText = '#FFFFFF';
+  const inactivePillBg = '#FFFFFF';
+  const inactivePillBorder = 'rgba(26,45,90,0.08)';
 
   const insets = useSafeAreaInsets();
   const { goBack, setTabByName } = useContext(AdminTabContext);
@@ -120,43 +120,39 @@ export default function AdminCareCellsHub() {
   const activeCellsCount = cells.filter((c) => c.status === 'Active').length;
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={screenBg} />
+    <View style={[styles.safeArea, { backgroundColor: screenBg }]}>
+      <StatusBar barStyle="light-content" />
 
-      {/* Hero Header (Transparent with Standard Circular Back Button) */}
-      <View style={styles.heroHeader}>
-        <View style={styles.headerLeft}>
-          <TouchableOpacity
-            onPress={handleBack}
-            style={[styles.circularBackBtn, { backgroundColor: cardSurface, borderColor }]}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            activeOpacity={0.7}
-          >
-            <ArrowLeft size={20} color={primaryText} strokeWidth={2.2} />
-          </TouchableOpacity>
-
-          <View style={styles.headerTitleWrap}>
-            <Text style={styles.headerTitle}>Care Cells</Text>
-            <Text style={styles.headerSubtitle}>
-              {activeCellsCount} active fellowship {activeCellsCount === 1 ? 'group' : 'groups'}
-            </Text>
+      {/* Hero Header (Standardized Navy Hero matching other Admin tabs) */}
+      <View style={styles.hero}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1, paddingRight: 4 }}>
+            <TouchableOpacity
+              onPress={handleBack}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 2 }} />
+              <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.heroTitle, { marginHorizontal: 8, opacity: 0.4 }]}>|</Text>
+            <Text style={[styles.heroTitle, { flexShrink: 1 }]} numberOfLines={1}>Care Cells</Text>
           </View>
-        </View>
 
-        {/* Quick Add Button (Super Admin Only) */}
-        {isPlatformSuperAdmin && (
-          <TouchableOpacity
-            style={[styles.quickAddHeaderBtn, { backgroundColor: primaryBtnBg }]}
-            onPress={() => {
-              setEditingCell(null);
-              setCreateCellModalVisible(true);
-            }}
-            activeOpacity={0.85}
-          >
-            <Plus size={16} color={primaryBtnText} strokeWidth={2.5} style={{ marginRight: 5 }} />
-            <Text style={[styles.quickAddHeaderBtnTxt, { color: primaryBtnText }]}>New Cell</Text>
-          </TouchableOpacity>
-        )}
+          {isPlatformSuperAdmin && (
+            <TouchableOpacity
+              style={styles.newBtn}
+              onPress={() => {
+                setEditingCell(null);
+                setCreateCellModalVisible(true);
+              }}
+              activeOpacity={0.85}
+            >
+              <Plus size={15} color="#1a2d5a" strokeWidth={2.5} />
+              <Text style={styles.newBtnTxt}>New Cell</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Segmented Subtab Navigation Bar */}
@@ -320,77 +316,52 @@ export default function AdminCareCellsHub() {
         }}
         onSaved={loadAllCells}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
-const styles = createAdminThemedStyles({
+const styles = createCareCellAdminStyles({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FAF7F2',
+    backgroundColor: '#EDE8DC',
   },
-  heroHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 12,
-    backgroundColor: 'transparent',
+    marginBottom: 8,
+    overflow: 'visible',
+    position: 'relative',
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  circularBackBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  headerTitleWrap: {
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0F172A',
+  heroTitle: {
+    color: '#fff',
+    fontSize: 20,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    letterSpacing: -0.4,
+    fontWeight: '600',
+    letterSpacing: -0.5,
   },
-  headerSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-    marginTop: 1,
-  },
-  quickAddHeaderBtn: {
+  newBtn: {
+    backgroundColor: '#C9A84C',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
+    gap: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
+    shadowColor: '#C9A84C',
+    shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
   },
-  quickAddHeaderBtnTxt: {
-    fontSize: 12.5,
+  newBtnTxt: {
+    color: '#1a2d5a',
+    fontSize: 13,
     fontWeight: '800',
-    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   tabBarContainer: {
     marginBottom: 8,

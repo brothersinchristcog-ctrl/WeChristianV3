@@ -32,7 +32,7 @@ import {
   CareCellVisitMemberResponse,
   MemberVisitResponseStatus,
 } from '../../../../types/CareCellTypes';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 
 interface CareCellVisitResponsesModalProps {
   visible: boolean;

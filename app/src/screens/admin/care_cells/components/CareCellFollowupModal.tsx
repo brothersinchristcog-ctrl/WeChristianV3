@@ -16,7 +16,7 @@ import {
 import { X, Heart, Phone, MessageCircle, Home, UserCheck, Calendar } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
 import { CareCellFollowup, FollowupStatus, FollowupType } from '../../../../types/CareCellTypes';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 
 interface CareCellFollowupModalProps {
   visible: boolean;

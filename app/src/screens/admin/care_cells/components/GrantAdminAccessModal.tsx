@@ -12,7 +12,7 @@ import {
 import { X, Shield, Check, User, Users } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
 import { CareCell } from '../../../../types/CareCellTypes';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 
 interface GrantAdminAccessModalProps {
   visible: boolean;

@@ -17,7 +17,7 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import CareCellService from '../../../../services/CareCellService';
 import PrayerVerseService, { BibleBookItem } from '../../../../services/PrayerVerseService';
 import { formatDateDisplay } from '../../../../utils/DateUtils';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 import { CareCell, CareCellMeeting, MeetingType, MeetingStatus } from '../../../../types/CareCellTypes';
 
 const MEETING_TYPES: MeetingType[] = [

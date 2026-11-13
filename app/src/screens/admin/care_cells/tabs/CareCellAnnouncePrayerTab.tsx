@@ -25,7 +25,7 @@ import {
   Users,
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 import {
   CareCell,
   CareCellPrayerRequest,

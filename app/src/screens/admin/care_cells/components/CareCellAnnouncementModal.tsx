@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { X, Megaphone, Users, Globe } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 
 interface CareCellAnnouncementModalProps {
   visible: boolean;

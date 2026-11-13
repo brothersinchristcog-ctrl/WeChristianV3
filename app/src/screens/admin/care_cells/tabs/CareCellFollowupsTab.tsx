@@ -26,7 +26,7 @@ import {
   ChevronDown,
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 import { CareCell, CareCellFollowup, FollowupStatus } from '../../../../types/CareCellTypes';
 import CareCellFollowupModal from '../components/CareCellFollowupModal';
 

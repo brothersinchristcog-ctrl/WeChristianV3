@@ -31,7 +31,7 @@ import {
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
 import { useAuth } from '../../../../context/AuthContext';
-import { useAdminTheme, createAdminThemedStyles } from '../../../../utils/adminThemeHelper';
+import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 import { CareCell, CareCellOverviewStats } from '../../../../types/CareCellTypes';
 
 const { width } = Dimensions.get('window');
