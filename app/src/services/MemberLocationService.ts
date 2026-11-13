@@ -205,7 +205,10 @@ function getBadgePriority(status: MemberVisitBadgeStatus): number {
 /**
  * Formats a concise human-readable locality line from existing profile fields.
  */
-export function formatMemberAreaText(loc: Partial<MemberLocationRecord>): string {
+export function formatMemberAreaText(
+  loc: Partial<MemberLocationRecord> | null | undefined
+): string {
+  if (!loc) return '';
   const parts = [
     loc.village,
     loc.city && loc.city !== loc.village ? loc.city : undefined,

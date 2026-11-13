@@ -197,7 +197,7 @@ export default function MemberLocationDetailSheet({
     <View style={{ padding: 16 }}>
       <View style={styles.groupBanner}>
         <Text style={styles.groupBannerTitle}>
-          {members.length} Members in {groupTitle || formatMemberAreaText(members[0]) || 'this area'}
+          {members.length} Members in {groupTitle || (members[0] ? formatMemberAreaText(members[0]) : '') || 'this area'}
         </Text>
         <Text style={styles.groupBannerSub}>
           Tap a member to inspect details, or add everyone in this area to a combined visit plan.
@@ -486,6 +486,8 @@ export default function MemberLocationDetailSheet({
       </ScrollView>
     );
   };
+
+  if (!visible || members.length === 0) return null;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
