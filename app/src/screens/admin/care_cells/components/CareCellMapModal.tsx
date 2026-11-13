@@ -13,8 +13,11 @@ import {
   ScrollView,
   Image,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
+import * as ExpoLocation from 'expo-location';
+import Svg, { Path } from 'react-native-svg';
 import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
 import {
   ArrowLeft,
@@ -38,6 +41,10 @@ import {
   Check,
   Car,
   Footprints,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+  Crosshair,
 } from 'lucide-react-native';
 import {
   CareCell,
@@ -46,7 +53,11 @@ import {
   VisitRoutePoint,
 } from '../../../../types/CareCellTypes';
 import { useChurch } from '../../../../context/ChurchContext';
-import { MemberLocationService, TravelMode } from '../../../../services/MemberLocationService';
+import {
+  MemberLocationService,
+  TravelMode,
+  RoadRouteResult,
+} from '../../../../services/MemberLocationService';
 import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 
 const { width, height } = Dimensions.get('window');
@@ -112,13 +123,36 @@ export default function CareCellMapModal({
   const [travelMode, setTravelMode] = useState<TravelMode>('driving');
   const [routeOptimizedFlag, setRouteOptimizedFlag] = useState<boolean>(false);
 
-  // Sync planned route IDs whenever the modal opens with preselected/visit stops
+  // Android Marker bitmap re-snapshot trigger whenever route order/photos/selection change
+  const [markersRefreshActive, setMarkersRefreshActive] = useState<boolean>(true);
+
+  // Active In-App Turn-by-Turn Route Navigation state
+  const [navActive, setNavActive] = useState<boolean>(false);
+  const [navStops, setNavStops] = useState<VisitRoutePoint[]>([]);
+  const [navStopIndex, setNavStopIndex] = useState<number>(0);
+  const [navLoading, setNavLoading] = useState<boolean>(false);
+  const [roadRoute, setRoadRoute] = useState<RoadRouteResult | null>(null);
+  const [userNavCoords, setUserNavCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const navLocationSubRef = useRef<ExpoLocation.LocationSubscription | null>(null);
+
+  // Sync planned route IDs & reset navigation cleanly whenever the modal opens/closes
   useEffect(() => {
-    if (!visible) return;
+    if (!visible) {
+      setNavActive(false);
+      setNavStops([]);
+      setNavStopIndex(0);
+      setRoadRoute(null);
+      if (navLocationSubRef.current) {
+        navLocationSubRef.current.remove();
+        navLocationSubRef.current = null;
+      }
+      return;
+    }
     setSelectedMember(null);
     setSelectedLocality('ALL');
     setFilterNeedsVisitOnly(false);
     setRouteOptimizedFlag(false);
+    setNavActive(false);
     if (initialPlannedRouteIds && initialPlannedRouteIds.length > 0) {
       setPlannedRouteMemberIds([...initialPlannedRouteIds]);
     } else if (autoSelectRoute && members.length > 0) {
@@ -127,6 +161,14 @@ export default function CareCellMapModal({
       setPlannedRouteMemberIds([]);
     }
   }, [visible, initialPlannedRouteIds, autoSelectRoute, members]);
+
+  // Keep Android custom Marker snapshots crisp after images or route badges update
+  useEffect(() => {
+    if (!visible) return;
+    setMarkersRefreshActive(true);
+    const t = setTimeout(() => setMarkersRefreshActive(false), 600);
+    return () => clearTimeout(t);
+  }, [visible, viewMode, plannedRouteMemberIds, selectedMember, navActive, navStopIndex]);
 
   // Live member locations, profile photos & fallback client geocoded coordinates
   const [memberLocMap, setMemberLocMap] = useState<Record<string, MemberLocationRecord>>({});
@@ -439,24 +481,194 @@ export default function CareCellMapModal({
     return () => clearTimeout(timer);
   }, [visible, viewMode, cell.meetingLatitude, cell.meetingLongitude, geocodedCellCoords, membersWithCoords]);
 
-  // Navigation: Open Google Maps directions to a single member
-  const handleNavigateToMember = (m: CareCellMembership) => {
-    if (typeof m.latitude === 'number' && typeof m.longitude === 'number') {
-      const lat = m.latitude;
-      const lng = m.longitude;
-      const label = encodeURIComponent(`${m.memberName}'s House`);
-      const url = Platform.select({
-        ios: `maps:0,0?q=${lat},${lng}(${label})`,
-        android: `google.navigation:q=${lat},${lng}`,
-        default: `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`,
+  // Helper: Resolve real GPS or cell-center fallback origin for in-app navigation
+  const resolveOriginCoords = async (): Promise<{ latitude: number; longitude: number } | null> => {
+    try {
+      let { status } = await ExpoLocation.getForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        const req = await ExpoLocation.requestForegroundPermissionsAsync();
+        status = req.status;
+      }
+      if (status === 'granted') {
+        const current =
+          (await ExpoLocation.getLastKnownPositionAsync()) ||
+          (await ExpoLocation.getCurrentPositionAsync({ accuracy: ExpoLocation.Accuracy.Balanced }));
+        if (current?.coords) {
+          const coords = { latitude: current.coords.latitude, longitude: current.coords.longitude };
+          setUserNavCoords(coords);
+          return coords;
+        }
+      }
+    } catch (_) {
+      // Fall back to cell center when GPS unavailable
+    }
+    if (typeof cell.meetingLatitude === 'number' && typeof cell.meetingLongitude === 'number') {
+      return { latitude: cell.meetingLatitude, longitude: cell.meetingLongitude };
+    }
+    return geocodedCellCoords || null;
+  };
+
+  const stopInAppNavigation = () => {
+    setNavActive(false);
+    setNavLoading(false);
+    setRoadRoute(null);
+    if (navLocationSubRef.current) {
+      navLocationSubRef.current.remove();
+      navLocationSubRef.current = null;
+    }
+  };
+
+  const loadRoadLegForNavigation = async (
+    stopsList: VisitRoutePoint[],
+    fromIdx: number,
+    originOverride?: { latitude: number; longitude: number } | null
+  ) => {
+    if (!stopsList || fromIdx >= stopsList.length) return;
+    setNavLoading(true);
+    try {
+      const origin = originOverride || userNavCoords || (await resolveOriginCoords());
+      const activeStop = stopsList[fromIdx];
+      const waypoints: Array<{ latitude: number; longitude: number; label?: string }> = [];
+      if (origin) {
+        waypoints.push({ latitude: origin.latitude, longitude: origin.longitude, label: 'Your Location' });
+      }
+      stopsList.slice(fromIdx).forEach((s) => {
+        waypoints.push({ latitude: s.latitude, longitude: s.longitude, label: s.memberName });
       });
 
-      Linking.openURL(url!).catch(() => {
-        const webFallback = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-        Linking.openURL(webFallback).catch(() => {
-          Alert.alert('Navigation Error', 'Could not open Google Maps.');
-        });
+      const res = await MemberLocationService.fetchRoadRouteDirections({
+        waypoints,
+        travelMode,
       });
+      setRoadRoute(res);
+
+      // Fit camera smoothly around current location and active next stop
+      if (mapRef.current) {
+        const legPts = origin
+          ? [origin, { latitude: activeStop.latitude, longitude: activeStop.longitude }]
+          : [{ latitude: activeStop.latitude, longitude: activeStop.longitude }];
+        setTimeout(() => {
+          if (!mapRef.current) return;
+          if (legPts.length >= 2) {
+            mapRef.current.fitToCoordinates(legPts, {
+              edgePadding: { top: 155, right: 55, bottom: 230, left: 55 },
+              animated: true,
+            });
+          } else {
+            mapRef.current.animateToRegion(
+              {
+                latitude: activeStop.latitude,
+                longitude: activeStop.longitude,
+                latitudeDelta: 0.012,
+                longitudeDelta: 0.012,
+              },
+              450
+            );
+          }
+        }, 120);
+      }
+    } finally {
+      setNavLoading(false);
+    }
+  };
+
+  const startInAppNavigation = async (stopsToNavigate: VisitRoutePoint[]) => {
+    if (!stopsToNavigate || stopsToNavigate.length === 0) return;
+    setViewMode('map');
+    setSelectedMember(null);
+    setNavStops(stopsToNavigate);
+    setNavStopIndex(0);
+    setNavActive(true);
+
+    const origin = await resolveOriginCoords();
+    await loadRoadLegForNavigation(stopsToNavigate, 0, origin);
+
+    // Subscribe to live GPS updates while navigating inside the app
+    try {
+      if (navLocationSubRef.current) {
+        navLocationSubRef.current.remove();
+      }
+      const perm = await ExpoLocation.getForegroundPermissionsAsync();
+      if (perm.status === 'granted') {
+        navLocationSubRef.current = await ExpoLocation.watchPositionAsync(
+          {
+            accuracy: ExpoLocation.Accuracy.High,
+            timeInterval: 3500,
+            distanceInterval: 10,
+          },
+          (loc) => {
+            if (loc?.coords) {
+              setUserNavCoords({
+                latitude: loc.coords.latitude,
+                longitude: loc.coords.longitude,
+              });
+            }
+          }
+        );
+      }
+    } catch (_) {
+      // Non-fatal if continuous GPS watcher unavailable
+    }
+  };
+
+  const handleAdvanceNavStop = async (delta: -1 | 1) => {
+    const nextIdx = navStopIndex + delta;
+    if (nextIdx >= navStops.length) {
+      stopInAppNavigation();
+      Alert.alert(
+        'Visit Route Completed',
+        `Completed all ${navStops.length} pastoral home visits in this route.`
+      );
+      return;
+    }
+    if (nextIdx < 0) return;
+    setNavStopIndex(nextIdx);
+    await loadRoadLegForNavigation(navStops, nextIdx);
+  };
+
+  const handleRecenterNavCamera = () => {
+    if (!mapRef.current) return;
+    const activeStop = navStops[navStopIndex];
+    if (!activeStop) return;
+    if (userNavCoords) {
+      mapRef.current.fitToCoordinates(
+        [userNavCoords, { latitude: activeStop.latitude, longitude: activeStop.longitude }],
+        {
+          edgePadding: { top: 155, right: 55, bottom: 230, left: 55 },
+          animated: true,
+        }
+      );
+    } else {
+      mapRef.current.animateToRegion(
+        {
+          latitude: activeStop.latitude,
+          longitude: activeStop.longitude,
+          latitudeDelta: 0.012,
+          longitudeDelta: 0.012,
+        },
+        400
+      );
+    }
+  };
+
+  // In-App Navigation: navigate to a single member directly inside the app
+  const handleNavigateToMember = (m: CareCellMembership) => {
+    if (typeof m.latitude === 'number' && typeof m.longitude === 'number') {
+      const singleStop: VisitRoutePoint = {
+        memberId: m.memberId,
+        memberName: m.memberName,
+        memberPhone: m.memberPhone,
+        address: (m as EnrichedCellMembership).resolvedAddress || m.address || m.locality || '',
+        locality: m.locality || m.city || cell?.location || '',
+        latitude: m.latitude,
+        longitude: m.longitude,
+        order: 1,
+        accuracy: (m as EnrichedCellMembership).isVerifiedPin ? 'verified_home' : 'village_approximate',
+        distanceFromPreviousKm: 0,
+        isApproximateDistance: !(m as EnrichedCellMembership).isVerifiedPin,
+        consent: Boolean((m as EnrichedCellMembership).isVerifiedPin),
+      };
+      startInAppNavigation([singleStop]);
     } else if (m.address || m.locality) {
       const fallbackCity = cell?.location || 'India';
       const query = encodeURIComponent(`${m.address || ''}, ${m.locality || fallbackCity}`);
@@ -618,19 +830,12 @@ export default function CareCellMapModal({
     }
   };
 
-  // Open multi-stop route in Google Maps using MemberLocationService
+  // Start In-App multi-stop route navigation (with optional external Google Maps fallback inside HUD)
   const handleOpenMultiStopRoute = async () => {
     if (plannedRouteMemberIds.length === 0) return;
 
     if (plannedStops.length > 0) {
-      try {
-        await MemberLocationService.openGoogleMapsMultiStopRoute({
-          stops: plannedStops,
-          travelMode,
-        });
-      } catch (_) {
-        Alert.alert('Route Error', 'Unable to open Google Maps route navigation.');
-      }
+      await startInAppNavigation(plannedStops);
       return;
     }
 
@@ -642,6 +847,22 @@ export default function CareCellMapModal({
       return;
     }
     Alert.alert('Missing Coordinates', 'The selected members for the visit route do not have GPS coordinates.');
+  };
+
+  // Optional external Google Maps launch from inside In-App Navigation HUD
+  const handleLaunchExternalGoogleMaps = async () => {
+    const remainingStops = navStops.slice(navStopIndex);
+    if (remainingStops.length === 0) return;
+    try {
+      await MemberLocationService.openGoogleMapsMultiStopRoute({
+        stops: remainingStops,
+        originLat: userNavCoords?.latitude,
+        originLng: userNavCoords?.longitude,
+        travelMode,
+      });
+    } catch (_) {
+      Alert.alert('Maps Error', 'Unable to open Google Maps.');
+    }
   };
 
   const handleConfirmAndSaveRoute = () => {
@@ -773,7 +994,7 @@ export default function CareCellMapModal({
                   description={`Care Cell Center: ${cell.meetingLocation || cell.location}`}
                   pinColor="#D97706"
                 >
-                  <View style={styles.churchMarkerBubble}>
+                  <View collapsable={false} style={styles.churchMarkerBubble}>
                     <MapPin size={16} color="#FFFFFF" />
                   </View>
                 </Marker>
@@ -803,15 +1024,25 @@ export default function CareCellMapModal({
                       longitude: m.longitude!,
                     }}
                     anchor={{ x: 0.5, y: 1 }}
-                    tracksViewChanges={Boolean((hasPhoto && !loadedMarkerPhotos[markerKey]) || isSelected)}
+                    tracksViewChanges={Boolean(
+                      (hasPhoto && !loadedMarkerPhotos[markerKey]) ||
+                        isSelected ||
+                        markersRefreshActive
+                    )}
                     onPress={() => setSelectedMember(m)}
                   >
-                    <View style={[styles.photoPinWrapper, isSelected && styles.photoPinWrapperSelected]}>
+                    <View
+                      collapsable={false}
+                      style={[styles.photoPinWrapper, isSelected && styles.photoPinWrapperSelected]}
+                    >
                       <View
+                        collapsable={false}
                         style={[
                           styles.photoPinHead,
-                          { borderColor: accentColor },
-                          !hasPhoto && { backgroundColor: accentColor },
+                          {
+                            borderColor: accentColor,
+                            backgroundColor: hasPhoto ? '#FFFFFF' : accentColor,
+                          },
                         ]}
                       >
                         {hasPhoto ? (
@@ -819,12 +1050,13 @@ export default function CareCellMapModal({
                             source={{ uri: photoUri }}
                             style={styles.photoPinImage}
                             resizeMode="cover"
+                            fadeDuration={0}
                             onLoad={() => {
                               setTimeout(() => {
                                 setLoadedMarkerPhotos((prev) =>
                                   prev[markerKey] ? prev : { ...prev, [markerKey]: true }
                                 );
-                              }, 150);
+                              }, 300);
                             }}
                             onError={() => {
                               setLoadedMarkerPhotos((prev) =>
@@ -843,14 +1075,16 @@ export default function CareCellMapModal({
                           <Text style={styles.routeOrderCornerTxt}>{inRouteIndex + 1}</Text>
                         </View>
                       ) : null}
-                      <View style={[styles.photoPinPointer, { borderTopColor: accentColor }]} />
+                      <Svg width={18} height={13} viewBox="0 0 18 13" style={styles.photoPinPointerSvg}>
+                        <Path d="M1 0 L9 12 L17 0 Z" fill={accentColor} />
+                      </Svg>
                     </View>
                   </Marker>
                 );
               })}
 
-              {/* Planned Multi-Stop Route Path */}
-              {plannedStops.length >= 2 && (
+              {/* Planned Multi-Stop Route Path (when planning) */}
+              {!navActive && plannedStops.length >= 2 && (
                 <Polyline
                   coordinates={plannedStops.map((s) => ({
                     latitude: s.latitude,
@@ -861,10 +1095,162 @@ export default function CareCellMapModal({
                   lineDashPattern={[8, 5]}
                 />
               )}
+
+              {/* Active In-App Road Navigation Route Polyline */}
+              {navActive && roadRoute && roadRoute.coordinates.length >= 2 && (
+                <>
+                  <Polyline
+                    coordinates={roadRoute.coordinates}
+                    strokeColor="#FFFFFF"
+                    strokeWidth={8}
+                  />
+                  <Polyline
+                    coordinates={roadRoute.coordinates}
+                    strokeColor="#2563EB"
+                    strokeWidth={5}
+                  />
+                </>
+              )}
             </MapView>
 
-            {/* Floating Top Route Summary & Optimization Bar */}
-            {plannedRouteMemberIds.length > 0 ? (
+            {/* Active In-App Navigation HUD (Top Banner + Bottom Trip Control Card) */}
+            {navActive && navStops[navStopIndex] ? (
+              <>
+                {(() => {
+                  const currentStop = navStops[navStopIndex];
+                  const activeLeg = roadRoute?.legs?.[0];
+                  const firstStep = activeLeg?.steps?.[0];
+                  const liveDistKm = userNavCoords
+                    ? MemberLocationService.distanceBetweenKm(userNavCoords, {
+                        latitude: currentStop.latitude,
+                        longitude: currentStop.longitude,
+                      })
+                    : undefined;
+                  const distMeters = activeLeg?.distanceMeters ?? Math.round((liveDistKm ?? 0) * 1000);
+                  const distLabel =
+                    distMeters >= 1000
+                      ? `${(distMeters / 1000).toFixed(1)} km`
+                      : `${Math.max(10, distMeters)} m`;
+                  const etaMins = activeLeg?.durationSeconds
+                    ? Math.max(1, Math.round(activeLeg.durationSeconds / 60))
+                    : Math.max(1, Math.round(((liveDistKm ?? 0.5) / (travelMode === 'walking' ? 4.8 : 28)) * 60));
+
+                  return (
+                    <>
+                      {/* Top Turn-by-Turn Maneuver HUD */}
+                      <View style={styles.navTopHud}>
+                        <View style={styles.navTopHudMain}>
+                          <View style={styles.navManeuverIconBox}>
+                            {navLoading ? (
+                              <ActivityIndicator size="small" color="#FFFFFF" />
+                            ) : (
+                              <Navigation size={18} color="#FFFFFF" />
+                            )}
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={styles.navInstructionTxt} numberOfLines={2}>
+                              {firstStep?.instruction || `Navigate toward ${currentStop.memberName}`}
+                            </Text>
+                            <Text style={styles.navMetricsSub} numberOfLines={1}>
+                              {distLabel} · ~{etaMins} min ({travelMode === 'walking' ? 'Walking' : 'Driving'})
+                              {roadRoute?.isRoadRoute === false ? ' · Offline Straight Route' : ''}
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            style={styles.navHudCloseBtn}
+                            onPress={stopInAppNavigation}
+                            activeOpacity={0.8}
+                          >
+                            <X size={16} color="#FFFFFF" />
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      {/* Bottom In-App Trip Stop Card */}
+                      <View style={styles.navBottomCard}>
+                        <View style={styles.navBottomHeader}>
+                          <View style={styles.navStopNumberPill}>
+                            <Text style={styles.navStopNumberTxt}>
+                              Stop {navStopIndex + 1} of {navStops.length}
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            style={styles.navExternalGmapsBtn}
+                            onPress={handleLaunchExternalGoogleMaps}
+                            activeOpacity={0.8}
+                          >
+                            <ExternalLink size={12} color="#1D4ED8" style={{ marginRight: 4 }} />
+                            <Text style={styles.navExternalGmapsTxt}>Google Maps</Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        <Text style={styles.navStopMemberName} numberOfLines={1}>
+                          {currentStop.memberName}
+                        </Text>
+                        <Text style={styles.navStopAddress} numberOfLines={2}>
+                          {currentStop.address || currentStop.locality || 'Care Cell Member Residence'}
+                        </Text>
+
+                        <View style={styles.navControlsRow}>
+                          <TouchableOpacity
+                            style={styles.navIconCircleBtn}
+                            onPress={handleRecenterNavCamera}
+                            activeOpacity={0.8}
+                          >
+                            <Crosshair size={16} color="#0F172A" />
+                          </TouchableOpacity>
+
+                          {currentStop.memberPhone ? (
+                            <>
+                              <TouchableOpacity
+                                style={styles.navIconCircleBtn}
+                                onPress={() => handleCall(currentStop.memberPhone)}
+                                activeOpacity={0.8}
+                              >
+                                <Phone size={15} color="#0F172A" />
+                              </TouchableOpacity>
+                              <TouchableOpacity
+                                style={[styles.navIconCircleBtn, { backgroundColor: '#25D366', borderColor: '#25D366' }]}
+                                onPress={() => handleWhatsApp(currentStop.memberPhone, currentStop.memberName)}
+                                activeOpacity={0.8}
+                              >
+                                <MessageCircle size={15} color="#FFFFFF" />
+                              </TouchableOpacity>
+                            </>
+                          ) : null}
+
+                          {navStopIndex > 0 && (
+                            <TouchableOpacity
+                              style={styles.navPrevBtn}
+                              onPress={() => handleAdvanceNavStop(-1)}
+                              activeOpacity={0.8}
+                            >
+                              <ChevronLeft size={15} color="#334155" />
+                              <Text style={styles.navPrevBtnTxt}>Prev</Text>
+                            </TouchableOpacity>
+                          )}
+
+                          <TouchableOpacity
+                            style={styles.navNextPrimaryBtn}
+                            onPress={() => handleAdvanceNavStop(1)}
+                            activeOpacity={0.85}
+                          >
+                            <Text style={styles.navNextPrimaryTxt}>
+                              {navStopIndex + 1 < navStops.length ? 'Arrived · Next Stop' : 'Complete Route'}
+                            </Text>
+                            {navStopIndex + 1 < navStops.length ? (
+                              <ChevronRight size={15} color="#FFFFFF" style={{ marginLeft: 3 }} />
+                            ) : (
+                              <Check size={15} color="#FFFFFF" strokeWidth={2.5} style={{ marginLeft: 4 }} />
+                            )}
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </>
+                  );
+                })()}
+              </>
+            ) : plannedRouteMemberIds.length > 0 ? (
               <View style={styles.floatingRouteBar}>
                 <View style={styles.floatingRouteHeaderRow}>
                   <View style={{ flex: 1 }}>
@@ -942,7 +1328,7 @@ export default function CareCellMapModal({
             ) : null}
 
             {/* Selected Member Detail Callout Card */}
-            {selectedMember ? (
+            {!navActive && selectedMember ? (
               <View style={styles.selectedMemberCard}>
                 <View style={styles.selectedCardHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 }}>
@@ -1331,57 +1717,198 @@ const styles = createAdminThemedStyles({
     transform: [{ scale: 1.2 }],
   },
   photoPinWrapper: {
+    width: 58,
+    height: 66,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: 4,
-    paddingHorizontal: 4,
+    paddingTop: 5,
   },
   photoPinWrapperSelected: {
-    transform: [{ scale: 1.15 }],
+    opacity: 1,
   },
   photoPinHead: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     borderWidth: 3,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.28,
-    shadowRadius: 4,
-    elevation: 5,
   },
   photoPinImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
   },
-  photoPinPointer: {
-    width: 0,
-    height: 0,
-    borderLeftWidth: 6,
-    borderRightWidth: 6,
-    borderTopWidth: 8,
-    borderLeftColor: 'transparent',
-    borderRightColor: 'transparent',
-    marginTop: -1,
+  photoPinPointerSvg: {
+    marginTop: -2,
   },
   routeOrderCornerBadge: {
     position: 'absolute',
-    top: 0,
-    right: 0,
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
+    top: 1,
+    right: 3,
+    minWidth: 19,
+    height: 19,
+    borderRadius: 10,
     backgroundColor: '#059669',
     borderWidth: 1.5,
     borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 3,
+  },
+  navTopHud: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    right: 12,
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 7,
+  },
+  navTopHudMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  navManeuverIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: '#059669',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navInstructionTxt: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    lineHeight: 18,
+  },
+  navMetricsSub: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#A7F3D0',
+    marginTop: 2,
+  },
+  navHudCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navBottomCard: {
+    position: 'absolute',
+    bottom: 18,
+    left: 12,
+    right: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
+    elevation: 9,
+  },
+  navBottomHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  navStopNumberPill: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  navStopNumberTxt: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#065F46',
+  },
+  navExternalGmapsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  navExternalGmapsTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  navStopMemberName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  navStopAddress: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+    marginBottom: 10,
+  },
+  navControlsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  navIconCircleBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  navPrevBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+    borderRadius: 10,
+    backgroundColor: '#F1F5F9',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+  },
+  navPrevBtnTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  navNextPrimaryBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#059669',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 11,
+  },
+  navNextPrimaryTxt: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   routeOrderCornerTxt: {
     fontSize: 9.5,

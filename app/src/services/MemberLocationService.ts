@@ -32,6 +32,28 @@ const ROUTE_GEOCODE_CACHE = new Map<string, { latitude: number; longitude: numbe
 
 export type TravelMode = 'driving' | 'walking';
 
+export interface RoadRouteStep {
+  instruction: string;
+  distanceMeters: number;
+  durationSeconds: number;
+  roadName?: string;
+  location: { latitude: number; longitude: number };
+}
+
+export interface RoadRouteLeg {
+  distanceMeters: number;
+  durationSeconds: number;
+  steps: RoadRouteStep[];
+}
+
+export interface RoadRouteResult {
+  coordinates: Array<{ latitude: number; longitude: number }>;
+  totalDistanceMeters: number;
+  totalDurationSeconds: number;
+  legs: RoadRouteLeg[];
+  isRoadRoute: boolean;
+}
+
 export interface MapMarkerGroup {
   id: string;
   latitude: number;
@@ -995,5 +1017,144 @@ export class MemberLocationService {
       prevPos = coords;
     });
     return stops;
+  }
+
+  /**
+   * Computes straight-line distance in kilometers between two GPS coordinates.
+   */
+  static distanceBetweenKm(
+    a: { latitude: number; longitude: number },
+    b: { latitude: number; longitude: number }
+  ): number {
+    return haversineDistanceKm(a, b);
+  }
+
+  /**
+   * Fetches turn-by-turn road polyline & step instructions for in-app route navigation.
+   * Uses OSRM road routing when online and falls back gracefully to straight-line legs if offline.
+   */
+  static async fetchRoadRouteDirections(params: {
+    waypoints: Array<{ latitude: number; longitude: number; label?: string }>;
+    travelMode?: TravelMode;
+  }): Promise<RoadRouteResult> {
+    const pts = (params.waypoints || []).filter(
+      (p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude)
+    );
+    const mode = params.travelMode || 'driving';
+
+    const buildFallback = (): RoadRouteResult => {
+      const legs: RoadRouteLeg[] = [];
+      let totalDistM = 0;
+      let totalDurS = 0;
+      const speedKmh = mode === 'walking' ? 4.8 : 28;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const km = haversineDistanceKm(pts[i], pts[i + 1]);
+        const distM = Math.round(km * 1000);
+        const durS = Math.max(30, Math.round((km / speedKmh) * 3600));
+        totalDistM += distM;
+        totalDurS += durS;
+        legs.push({
+          distanceMeters: distM,
+          durationSeconds: durS,
+          steps: [
+            {
+              instruction: pts[i + 1].label
+                ? `Proceed toward ${pts[i + 1].label}`
+                : `Proceed toward Stop ${i + 1}`,
+              distanceMeters: distM,
+              durationSeconds: durS,
+              location: { latitude: pts[i].latitude, longitude: pts[i].longitude },
+            },
+          ],
+        });
+      }
+      return {
+        coordinates: pts.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
+        totalDistanceMeters: totalDistM,
+        totalDurationSeconds: totalDurS,
+        legs,
+        isRoadRoute: false,
+      };
+    };
+
+    if (pts.length < 2) {
+      return {
+        coordinates: pts.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
+        totalDistanceMeters: 0,
+        totalDurationSeconds: 0,
+        legs: [],
+        isRoadRoute: false,
+      };
+    }
+
+    const profile = mode === 'walking' ? 'foot' : 'driving';
+    const coordStr = pts
+      .slice(0, 12)
+      .map((p) => `${p.longitude.toFixed(6)},${p.latitude.toFixed(6)}`)
+      .join(';');
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const url = `https://router.project-osrm.org/route/v1/${profile}/${coordStr}?overview=full&geometries=geojson&steps=true`;
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) return buildFallback();
+
+      const json: any = await res.json();
+      const route = json?.routes?.[0];
+      const rawCoords: Array<[number, number]> = route?.geometry?.coordinates || [];
+      if (!route || rawCoords.length < 2) return buildFallback();
+
+      const coordinates = rawCoords.map(([lng, lat]) => ({
+        latitude: lat,
+        longitude: lng,
+      }));
+
+      const formatManeuver = (step: any): string => {
+        const mType: string = step?.maneuver?.type || 'continue';
+        const mod: string = step?.maneuver?.modifier || '';
+        const road: string = typeof step?.name === 'string' && step.name.trim() ? step.name.trim() : '';
+        const roadSuffix = road ? ` onto ${road}` : '';
+
+        if (mType === 'depart') return road ? `Head on ${road}` : 'Start trip';
+        if (mType === 'arrive') return road ? `Arrive at ${road}` : 'Arrive at destination';
+        if (mType === 'roundabout' || mType === 'rotary') {
+          const exit = step?.maneuver?.exit;
+          return `Take roundabout${exit ? ` (exit ${exit})` : ''}${roadSuffix}`;
+        }
+        if (mod.includes('left')) return `Turn ${mod}${roadSuffix}`;
+        if (mod.includes('right')) return `Turn ${mod}${roadSuffix}`;
+        if (mType === 'turn') return `Turn ${mod || 'ahead'}${roadSuffix}`;
+        return road ? `Continue onto ${road}` : 'Continue straight';
+      };
+
+      const legs: RoadRouteLeg[] = (route.legs || []).map((leg: any) => ({
+        distanceMeters: Math.round(leg.distance || 0),
+        durationSeconds: Math.round(leg.duration || 0),
+        steps: (leg.steps || []).map((step: any) => ({
+          instruction: formatManeuver(step),
+          distanceMeters: Math.round(step.distance || 0),
+          durationSeconds: Math.round(step.duration || 0),
+          roadName: typeof step?.name === 'string' ? step.name : undefined,
+          location: {
+            latitude: step?.maneuver?.location?.[1] ?? pts[0].latitude,
+            longitude: step?.maneuver?.location?.[0] ?? pts[0].longitude,
+          },
+        })),
+      }));
+
+      return {
+        coordinates,
+        totalDistanceMeters: Math.round(route.distance || 0),
+        totalDurationSeconds: Math.round(route.duration || 0),
+        legs,
+        isRoadRoute: true,
+      };
+    } catch (_) {
+      clearTimeout(timer);
+      return buildFallback();
+    }
   }
 }
