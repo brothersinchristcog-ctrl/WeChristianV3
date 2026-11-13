@@ -179,7 +179,7 @@ const AnimatedCameraIcon = ({ size = 20, color = "#fff", scrollY, triggerY }: { 
         }
       });
       
-    } else if (!scrollY) {
+    } else {
       playAnim();
     }
 
@@ -2250,7 +2250,7 @@ export default function HomeScreen() {
             <GridItem isDark={isDark} icon={<Bell size={26} color="#fff" />} label={t('home.quickUpdates')} color="#0284c7" onPress={() => navigation.navigate('Updates')} />
             <GridItem 
               isDark={isDark}
-              icon={<AnimatedCameraIcon size={26} color="#fff" scrollY={scrollY} triggerY={onlineMeetingsY} />} 
+              icon={<Video size={26} color="#fff" strokeWidth={2.2} />} 
               label={t('home.quickMeetings')} 
               color="#3B82F6" 
               onPress={() => navigation.navigate('OnlineMeetings')} 

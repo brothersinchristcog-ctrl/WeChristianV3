@@ -17,6 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import { formatDateDisplay } from '../utils/DateUtils';
 import { useChurch } from '../context/ChurchContext';
 import { useLanguage } from '../context/LanguageContext';
+import NotificationService from '../services/NotificationService';
 
 // Helper to convert any ISO dates (YYYY-MM-DD) inside text to DD-MM-YYYY format
 function formatDatesInText(text: string): string {
@@ -134,6 +135,16 @@ function stripHtml(html: string): string {
 export default function UpdatesScreen({ navigation, route }: any) {
   const { highlightId, highlightType } = route?.params || {};
   const { t } = useLanguage();
+  const { user, member, viewMode, setViewMode, isPlatformSuperAdmin } = useAuth();
+  const memberUserType = String(member?.userType || '').toUpperCase();
+  const isAdmin = memberUserType.includes('ADMIN') ||
+                  memberUserType.includes('SUPER') ||
+                  memberUserType.includes('PASTOR') ||
+                  Boolean((member as any)?.isAdmin) ||
+                  Boolean(isPlatformSuperAdmin);
+  const showAdminView = isAdmin && viewMode === 'admin';
+  const { activeChurch } = useChurch();
+  const cacheScopeKey = `${activeChurch?.id || member?.churchId || 'default'}:${showAdminView ? 'admin' : 'member'}`;
 
   const getTypeName = (type: string) => {
     if (type === 'testimony_admin' || type === 'testimony_member_status' || type === 'testimony_published' || type === 'testimony') return 'TESTIMONY';
@@ -160,8 +171,9 @@ export default function UpdatesScreen({ navigation, route }: any) {
   };
 
   const cachedUpdatesInit = (() => {
-    const cacheMap = (globalThis as any).__updatesScreenCache;
-    return Array.isArray(cacheMap) ? cacheMap : [];
+    const cacheMap = (globalThis as any).__updatesScreenCacheMap;
+    const scoped = cacheMap && cacheMap[cacheScopeKey];
+    return Array.isArray(scoped) ? scoped : [];
   })();
   const [dynamicUpdates, setDynamicUpdates] = useState<any[]>(cachedUpdatesInit);
   const [broadcastsList, setBroadcastsList] = useState<any[]>([]);
@@ -220,22 +232,41 @@ export default function UpdatesScreen({ navigation, route }: any) {
       return true;
     });
     if (deduplicated.length > 0) {
-      (globalThis as any).__updatesScreenCache = deduplicated;
+      if (!(globalThis as any).__updatesScreenCacheMap) {
+        (globalThis as any).__updatesScreenCacheMap = {};
+      }
+      (globalThis as any).__updatesScreenCacheMap[cacheScopeKey] = deduplicated;
     }
     setDynamicUpdates(deduplicated);
-  }, [broadcastsList, churchNotifsList, meetingsList, memberNotifsList]);
+  }, [broadcastsList, churchNotifsList, meetingsList, memberNotifsList, cacheScopeKey]);
   const [selectedUpdate, setSelectedUpdate] = useState<any | null>(null);
   const [loading, setLoading] = useState(cachedUpdatesInit.length === 0);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
-  const { user, member, viewMode, setViewMode, isPlatformSuperAdmin } = useAuth();
-  const memberUserType = String(member?.userType || '').toUpperCase();
-  const isAdmin = memberUserType.includes('ADMIN') || 
-                  memberUserType.includes('SUPER') ||
-                  memberUserType.includes('PASTOR') ||
-                  Boolean(isPlatformSuperAdmin);
-  const showAdminView = isAdmin && viewMode === 'admin';
-  const { activeChurch } = useChurch();
+
+  const navigateToAdminTab = (targetTab: string, extraParams: Record<string, any> = {}) => {
+    const payload: Record<string, any> = {
+      targetTab,
+      churchId: extraParams.churchId || activeChurch?.id || member?.churchId || undefined,
+      ...extraParams,
+      timestamp: Date.now(),
+    };
+    if (showAdminView) {
+      navigation.navigate('AdminRoot', payload);
+      return;
+    }
+    if (isAdmin) {
+      NotificationService.dispatchNotification(
+        {
+          data: {
+            ...payload,
+            screen: 'AdminRoot',
+          },
+        },
+        navigation
+      );
+    }
+  };
 
   const handleBack = () => {
     if (selectedUpdate) {
@@ -326,6 +357,19 @@ export default function UpdatesScreen({ navigation, route }: any) {
 
   useEffect(() => {
     const churchToQuery = activeChurch?.id || member?.churchId;
+    const scopedCache = (globalThis as any).__updatesScreenCacheMap?.[cacheScopeKey];
+    if (Array.isArray(scopedCache) && scopedCache.length > 0) {
+      setDynamicUpdates(scopedCache);
+      setLoading(false);
+    } else {
+      setDynamicUpdates([]);
+      setLoading(true);
+    }
+    setBroadcastsList([]);
+    setChurchNotifsList([]);
+    setMeetingsList([]);
+    setMemberNotifsList([]);
+
     if (!churchToQuery) {
       setLoading(false);
       return;
@@ -625,7 +669,7 @@ export default function UpdatesScreen({ navigation, route }: any) {
         serviceTitle: data.serviceTitle || null,
         serviceDate: data.serviceDate || null,
         churchId: data.churchId || null,
-        testimonyId: data.testimonyId || null,
+        testimonyId: data.testimonyId || data.relatedId || null,
         volunteerId: data.volunteerId || null,
         eventId: data.eventId || null,
         visitId: data.visitId || null,
@@ -889,27 +933,12 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   } else if (update.type === 'event') {
                     navigation.navigate('Events');
                   } else if (update.type === 'admin_roster_alert') {
-                    if (showAdminView) {
-                      navigation.navigate('AdminRoot', {
-                        targetTab: 'Service Roster',
+                    if (isAdmin) {
+                      navigateToAdminTab('Service Roster', {
                         serviceId: update.serviceId,
                         roleId: update.roleId,
-                        timestamp: Date.now(),
+                        churchId: update.churchId,
                       });
-                    } else if (isAdmin) {
-                      setViewMode('admin');
-                      setTimeout(() => {
-                        try {
-                          navigation.navigate('AdminRoot', {
-                            targetTab: 'Service Roster',
-                            serviceId: update.serviceId,
-                            roleId: update.roleId,
-                            timestamp: Date.now(),
-                          });
-                        } catch (e) {
-                          console.warn(e);
-                        }
-                      }, 100);
                     } else {
                       setSelectedUpdate(update);
                     }
@@ -930,17 +959,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   } else if (update.type === 'attendance') {
                     navigation.navigate('AttendanceScreen');
                   } else if (update.type === 'baptism_request_admin' || update.title?.includes('New Baptism Request')) {
-                    if (showAdminView) {
-                      navigation.navigate('AdminRoot', { targetTab: 'Baptism' });
-                    } else if (isAdmin) {
-                      setViewMode('admin');
-                      setTimeout(() => {
-                        try {
-                          navigation.navigate('AdminRoot', { targetTab: 'Baptism' });
-                        } catch (e) {
-                          console.warn(e);
-                        }
-                      }, 100);
+                    if (isAdmin) {
+                      navigateToAdminTab('Baptism', { churchId: update.churchId });
                     } else {
                       setSelectedUpdate(update);
                     }
@@ -955,13 +975,11 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     update.type === 'testimony_admin' ||
                     update.title?.includes('New Testimony Submitted')
                   ) {
-                    if (showAdminView) {
-                      navigation.navigate('AdminRoot', { targetTab: 'Testimonies' });
-                    } else if (isAdmin) {
-                      setViewMode('admin');
-                      setTimeout(() => {
-                        navigation.navigate('AdminRoot', { targetTab: 'Testimonies' });
-                      }, 100);
+                    if (isAdmin) {
+                      navigateToAdminTab('Testimonies', {
+                        testimonyId: update.testimonyId || update.relatedId || undefined,
+                        churchId: update.churchId,
+                      });
                     } else {
                       setSelectedUpdate(update);
                     }
@@ -979,13 +997,8 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     update.type === 'volunteer_application_admin' ||
                     update.title?.includes('New Volunteer Application')
                   ) {
-                    if (showAdminView) {
-                      navigation.navigate('AdminRoot', { targetTab: 'Volunteer Management' });
-                    } else if (isAdmin) {
-                      setViewMode('admin');
-                      setTimeout(() => {
-                        navigation.navigate('AdminRoot', { targetTab: 'Volunteer Management' });
-                      }, 100);
+                    if (isAdmin) {
+                      navigateToAdminTab('Volunteer Management', { churchId: update.churchId });
                     } else {
                       setSelectedUpdate(update);
                     }
@@ -1329,17 +1342,14 @@ export default function UpdatesScreen({ navigation, route }: any) {
                       const cId = selectedUpdate?.cellId;
                       const vId = selectedUpdate?.visitId;
                       const cTab = selectedUpdate?.careCellTab || 'visits';
+                      const chId = selectedUpdate?.churchId;
                       setSelectedUpdate(null);
-                      if (isAdmin && !showAdminView) setViewMode('admin');
-                      setTimeout(() => {
-                        navigation.navigate('AdminRoot', {
-                          targetTab: 'Care Cells',
-                          careCellTab: cTab,
-                          cellId: cId,
-                          visitId: vId,
-                          timestamp: Date.now(),
-                        });
-                      }, isAdmin && !showAdminView ? 100 : 0);
+                      navigateToAdminTab('Care Cells', {
+                        careCellTab: cTab,
+                        cellId: cId,
+                        visitId: vId,
+                        churchId: chId,
+                      });
                     }}
                   >
                     <Text style={styles.joinLiveBtnTxt}>🏡 Open Visiting Schedule</Text>
@@ -1374,11 +1384,9 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   <TouchableOpacity
                     style={[styles.joinLiveBtn, { backgroundColor: '#7c3aed', marginTop: 16 }]}
                     onPress={() => {
+                      const chId = selectedUpdate?.churchId;
                       setSelectedUpdate(null);
-                      if (isAdmin && !showAdminView) setViewMode('admin');
-                      setTimeout(() => {
-                        navigation.navigate('AdminRoot', { targetTab: 'Prayers' });
-                      }, isAdmin && !showAdminView ? 100 : 0);
+                      navigateToAdminTab('Prayers', { churchId: chId });
                     }}
                   >
                     <Text style={styles.joinLiveBtnTxt}>🙏 Review Prayer Requests</Text>
@@ -1422,11 +1430,10 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   <TouchableOpacity
                     style={[styles.joinLiveBtn, { backgroundColor: '#d97706', marginTop: 16 }]}
                     onPress={() => {
+                      const tId = selectedUpdate?.testimonyId || selectedUpdate?.relatedId || undefined;
+                      const chId = selectedUpdate?.churchId;
                       setSelectedUpdate(null);
-                      if (isAdmin && !showAdminView) setViewMode('admin');
-                      setTimeout(() => {
-                        navigation.navigate('AdminRoot', { targetTab: 'Testimonies' });
-                      }, isAdmin && !showAdminView ? 100 : 0);
+                      navigateToAdminTab('Testimonies', { testimonyId: tId, churchId: chId });
                     }}
                   >
                     <Text style={styles.joinLiveBtnTxt}>✨ Review Testimonies</Text>
@@ -1454,11 +1461,9 @@ export default function UpdatesScreen({ navigation, route }: any) {
                   <TouchableOpacity
                     style={[styles.joinLiveBtn, { backgroundColor: '#059669', marginTop: 16 }]}
                     onPress={() => {
+                      const chId = selectedUpdate?.churchId;
                       setSelectedUpdate(null);
-                      if (isAdmin && !showAdminView) setViewMode('admin');
-                      setTimeout(() => {
-                        navigation.navigate('AdminRoot', { targetTab: 'Volunteer Management' });
-                      }, isAdmin && !showAdminView ? 100 : 0);
+                      navigateToAdminTab('Volunteer Management', { churchId: chId });
                     }}
                   >
                     <Text style={styles.joinLiveBtnTxt}>🤝 Manage Volunteers</Text>

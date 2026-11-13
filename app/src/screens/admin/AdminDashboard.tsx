@@ -35,6 +35,7 @@ import { useChurch } from '../../context/ChurchContext';
 import HexagonDate from '../../components/HexagonDate';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { useAuth } from '../../context/AuthContext';
+import { getFirestore, collection, query, orderBy, limit, onSnapshot } from '@react-native-firebase/firestore';
 
 
 const CARD_BACKGROUNDS: Record<string, any> = {
@@ -195,6 +196,45 @@ const AdminDashboard = React.memo(function AdminDashboard({ navigation, allTabs 
   const { setActiveTab, dashboardScrollY, setDashboardScrollY } = useContext(AdminTabContext);
   const { member, user, signOut, setViewMode } = useAuth();
   const { activeChurch } = useChurch();
+  const [adminAlertCount, setAdminAlertCount] = useState(0);
+
+  const churchId = activeChurch?.id || member?.churchId;
+
+  useEffect(() => {
+    if (!churchId) {
+      setAdminAlertCount(0);
+      return;
+    }
+    const ADMIN_ALERT_TYPES = new Set([
+      'testimony_admin',
+      'prayer_request_admin',
+      'baptism_request_admin',
+      'volunteer_application_admin',
+      'admin_roster_alert',
+      'care_cell_visit_declined',
+    ]);
+    const db = getFirestore();
+    const q = query(
+      collection(db, 'churches', churchId, 'notifications'),
+      orderBy('createdAt', 'desc'),
+      limit(30)
+    );
+    const unsubscribe = onSnapshot(
+      q,
+      (snap) => {
+        if (!snap) return;
+        const count = snap.docs.filter((d) => {
+          const data = d.data() || {};
+          return ADMIN_ALERT_TYPES.has(data.type) && !data.read;
+        }).length;
+        setAdminAlertCount(count);
+      },
+      (err) => {
+        console.warn('AdminDashboard notifications listener error:', err);
+      }
+    );
+    return () => unsubscribe();
+  }, [churchId]);
   
   const scrollRef = React.useRef<ScrollView>(null);
 
@@ -284,6 +324,49 @@ const AdminDashboard = React.memo(function AdminDashboard({ navigation, allTabs 
               style={[StyleSheet.absoluteFillObject, { width: '100%', height: '100%' }]} 
               resizeMode="cover" 
             />
+
+            {/* Top-right Updates Bell Button */}
+            <TouchableOpacity
+              onPress={() => navigation?.navigate('Updates')}
+              activeOpacity={0.8}
+              style={{
+                position: 'absolute',
+                top: isSmallDevice ? 12 : 16,
+                right: isSmallDevice ? 12 : 16,
+                zIndex: 20,
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: 'rgba(26, 45, 90, 0.92)',
+                paddingHorizontal: 11,
+                paddingVertical: 7,
+                borderRadius: 20,
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.28)',
+                gap: 6,
+                elevation: 4,
+                shadowColor: '#000',
+                shadowOpacity: 0.18,
+                shadowRadius: 6,
+              }}
+            >
+              <Bell size={15} color="#ffffff" />
+              <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>Updates</Text>
+              {adminAlertCount > 0 && (
+                <View style={{
+                  minWidth: 18,
+                  height: 18,
+                  borderRadius: 9,
+                  backgroundColor: '#ef4444',
+                  paddingHorizontal: 5,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '800' }}>
+                    {adminAlertCount > 99 ? '99+' : adminAlertCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
             
             <View style={{ 
               paddingHorizontal: isSmallDevice ? 16 : 22, 

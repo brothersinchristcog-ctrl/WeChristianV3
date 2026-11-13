@@ -2249,8 +2249,8 @@ export const onCareCellVisitUpdated = onDocumentUpdated(
 
 async function handleTestimonyAdminCreatedPush(testimony: any, churchId: string, testimonyId: string, snapRef?: any) {
   if (!testimony) return;
-  const status = testimony.status;
-  if (status !== 'Pending Review' && status !== 'Private') return;
+  const status = String(testimony.status || '').trim();
+  if (status && status !== 'Pending Review' && status !== 'Private') return;
 
   const db = getFirestore();
   const messaging = getMessaging();
@@ -2270,26 +2270,70 @@ async function handleTestimonyAdminCreatedPush(testimony: any, churchId: string,
   }
   if (!lockAcquired) return;
 
-  const title = 'New Testimony Submitted!';
-  const body = 'A Member has submitted a new testimony. Please review it.';
   const memberName = (testimony.memberName || 'Church Member').trim();
+  const testimonyTitle = (testimony.title || 'Untitled').trim();
+  const title = '✨ New Testimony Submitted!';
+  const body = `${memberName} submitted a new testimony: "${testimonyTitle}". Please review it.`;
   const adminTokens: string[] = [];
+  const adminUids: string[] = [];
+  const addAdminToken = (tk: any) => {
+    if (typeof tk === 'string' && tk.trim().length > 10 && !adminTokens.includes(tk.trim())) {
+      adminTokens.push(tk.trim());
+    }
+  };
 
   try {
     const membersSnap = await db.collection('churches').doc(churchId).collection('members').get();
     membersSnap.forEach((doc) => {
       const m = doc.data();
       const role = String(m.userType || m.role || '').toLowerCase();
-      if (role.includes('admin') || role.includes('pastor') || role.includes('super')) {
-        if (m.fcmToken && typeof m.fcmToken === 'string' && m.fcmToken.trim().length > 10) adminTokens.push(m.fcmToken.trim());
-        if (Array.isArray(m.fcmTokens)) m.fcmTokens.forEach((tk: any) => { if (typeof tk === 'string' && tk.trim().length > 10) adminTokens.push(tk.trim()); });
+      const isAdminRole =
+        role.includes('admin') ||
+        role.includes('pastor') ||
+        role.includes('super') ||
+        Boolean(m.isAdmin) ||
+        Boolean(m.isSuperAdmin);
+      if (isAdminRole) {
+        adminUids.push(doc.id);
+        addAdminToken(m.fcmToken);
+        if (Array.isArray(m.fcmTokens)) m.fcmTokens.forEach(addAdminToken);
       }
     });
+
+    const churchDoc = await db.collection('churches').doc(churchId).get();
+    if (churchDoc.exists) {
+      const cData = churchDoc.data();
+      const ownerUids = [cData?.adminUid, cData?.createdBy, cData?.pastorUid, cData?.ownerUid].filter(Boolean);
+      for (const uid of ownerUids) {
+        if (!adminUids.includes(uid)) {
+          adminUids.push(uid);
+        }
+      }
+    }
+
+    for (const uid of adminUids) {
+      try {
+        const uSnap = await db.collection('users').doc(uid).get();
+        const uData = uSnap.data();
+        if (uData) {
+          addAdminToken(uData.fcmToken);
+          if (Array.isArray(uData.fcmTokens)) uData.fcmTokens.forEach(addAdminToken);
+        }
+      } catch (_) {}
+    }
   } catch (err) { console.error('Error fetching admin tokens for testimony:', err); }
 
   const notificationData: Record<string, string> = {
-    type: 'testimony_admin', churchId, testimonyId,
-    screen: 'AdminRoot', targetTab: 'Testimonies', click_action: 'FLUTTER_NOTIFICATION_CLICK', channelId: 'church_alerts',
+    type: 'testimony_admin',
+    churchId: String(churchId),
+    testimonyId: String(testimonyId),
+    relatedId: String(testimonyId),
+    id: String(testimonyId),
+    memberName,
+    screen: 'AdminRoot',
+    targetTab: 'Testimonies',
+    click_action: 'FLUTTER_NOTIFICATION_CLICK',
+    channelId: 'church_alerts',
   };
 
   const uniqueAdminTokens = Array.from(new Set(adminTokens));
@@ -2311,15 +2355,37 @@ async function handleTestimonyAdminCreatedPush(testimony: any, churchId: string,
     });
   } catch (err) { console.error('Error sending testimony to admin topic:', err); }
 
+  const notifDocId = `testimony_admin_${testimonyId}`;
+  const notifPayload = {
+    id: notifDocId,
+    type: 'testimony_admin',
+    targetRole: 'admin',
+    recipientRole: 'admin',
+    title,
+    body,
+    content: body,
+    memberName,
+    testimonyId: String(testimonyId),
+    relatedId: String(testimonyId),
+    churchId: String(churchId),
+    privacy: testimony.privacy || 'Public',
+    screen: 'AdminRoot',
+    targetTab: 'Testimonies',
+    read: false,
+    createdAt: FieldValue.serverTimestamp(),
+  };
+
   try {
-    const notifPayload = {
-      type: 'testimony_admin', targetRole: 'admin', title, body,
-      content: `${memberName} submitted a new testimony: "${testimony.title || 'Untitled'}". Please review it.`,
-      memberName, testimonyId, relatedId: testimonyId, churchId, privacy: testimony.privacy || 'Public',
-      read: false, createdAt: FieldValue.serverTimestamp(),
-    };
-    await db.collection('churches').doc(churchId).collection('broadcasts').add(notifPayload);
-    await db.collection('churches').doc(churchId).collection('notifications').add(notifPayload);
+    const writes: Promise<any>[] = [
+      db.collection('churches').doc(churchId).collection('notifications').doc(notifDocId).set(notifPayload, { merge: true }),
+    ];
+    const uniqueAdminUids = Array.from(new Set(adminUids.filter(Boolean)));
+    uniqueAdminUids.forEach((uid) => {
+      writes.push(
+        db.collection('churches').doc(churchId).collection('members').doc(uid).collection('notifications').doc(notifDocId).set(notifPayload, { merge: true })
+      );
+    });
+    await Promise.allSettled(writes);
   } catch (err) { console.error('Error writing testimony in-app notification:', err); }
 }
 

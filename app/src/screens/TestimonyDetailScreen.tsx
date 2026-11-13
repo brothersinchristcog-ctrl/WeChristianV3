@@ -11,8 +11,10 @@ import {
   Linking,
   Alert,
   StatusBar,
+  Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -81,21 +83,22 @@ const formatFileSize = (bytes?: number | null): string => {
 
 export default function TestimonyDetailScreen({ route, navigation }: any) {
   const { testimonyId, churchId: routeChurchId } = route.params || {};
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
   const { user, member, isPlatformSuperAdmin } = useAuth();
   const { activeChurch } = useChurch();
+  const insets = useSafeAreaInsets();
 
   const activeChurchId =
     routeChurchId || activeChurch?.id || member?.churchId || member?.primaryChurchId || 'default';
 
   // Reusable theme tokens consistent with all other Member View tabs
-  const themeBg = colors.background || (isDark ? '#121212' : '#FAF7F2');
-  const cardBg = colors.surface || (isDark ? '#1E1E1E' : '#FFFFFF');
-  const subtleBg = isDark ? '#27272A' : '#F8FAFC';
-  const borderColor = colors.border || (isDark ? '#2E2E32' : '#E2E8F0');
-  const accentColor = colors.accent || '#c0392b';
-  const primaryTextColor = colors.text || (isDark ? '#F4F4F5' : '#111827');
-  const secondaryTextColor = colors.textSecondary || (isDark ? '#A1A1AA' : '#64748B');
+  const themeBg = isDark ? '#0f172a' : '#f8fafc';
+  const cardBg = isDark ? '#1e293b' : '#ffffff';
+  const subtleBg = isDark ? '#334155' : '#f1f5f9';
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0';
+  const accentColor = isDark ? '#3b82f6' : '#1a2d5a';
+  const primaryTextColor = isDark ? '#f8fafc' : '#0f172a';
+  const secondaryTextColor = isDark ? '#94a3b8' : '#64748b';
 
   const [loading, setLoading] = useState(true);
   const [testimony, setTestimony] = useState<Testimony | null>(null);
@@ -336,46 +339,54 @@ export default function TestimonyDetailScreen({ route, navigation }: any) {
     }
   };
 
+  const renderHeroHeader = (titleText: string, subText?: string) => (
+    <LinearGradient
+      colors={['#2b52a1', '#1a3673']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={[
+        styles.heroHeader,
+        { paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 48 : 16) + 8 },
+      ]}
+    >
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={styles.heroBackBtn}
+        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+        activeOpacity={0.8}
+      >
+        <ArrowLeft size={22} color="#FFFFFF" strokeWidth={2.4} />
+      </TouchableOpacity>
+      <View style={styles.heroCenter} pointerEvents="none">
+        <Text style={styles.heroTitle} numberOfLines={1}>
+          {titleText}
+        </Text>
+        {!!subText && <Text style={styles.heroSub}>{subText}</Text>}
+      </View>
+      <View style={{ width: 38 }} />
+    </LinearGradient>
+  );
+
   if (loading) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: themeBg }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={themeBg} />
-        <View style={[styles.headerRow, { borderBottomColor: borderColor }]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={[styles.circularBackBtn, { backgroundColor: cardBg, borderColor }]}
-            activeOpacity={0.8}
-          >
-            <ArrowLeft size={20} color={primaryTextColor} strokeWidth={2.4} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitleText, { color: primaryTextColor }]}>Testimony</Text>
-          <View style={{ width: 44 }} />
-        </View>
+      <View style={[styles.container, { backgroundColor: themeBg }]}>
+        <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+        {renderHeroHeader('Testimony', 'STORIES OF GRACE & FAITH')}
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color={accentColor} />
           <Text style={[styles.loadingTxt, { color: secondaryTextColor }]}>
             Loading testimony...
           </Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (accessDenied || !testimony) {
     return (
-      <SafeAreaView style={[styles.container, { backgroundColor: themeBg }]} edges={['top']}>
-        <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={themeBg} />
-        <View style={[styles.headerRow, { borderBottomColor: borderColor }]}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={[styles.circularBackBtn, { backgroundColor: cardBg, borderColor }]}
-            activeOpacity={0.8}
-          >
-            <ArrowLeft size={20} color={primaryTextColor} strokeWidth={2.4} />
-          </TouchableOpacity>
-          <Text style={[styles.headerTitleText, { color: primaryTextColor }]}>Testimony</Text>
-          <View style={{ width: 44 }} />
-        </View>
+      <View style={[styles.container, { backgroundColor: themeBg }]}>
+        <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
+        {renderHeroHeader('Testimony', 'STORIES OF GRACE & FAITH')}
         <View style={styles.centerLoading}>
           <View
             style={[
@@ -399,7 +410,7 @@ export default function TestimonyDetailScreen({ route, navigation }: any) {
             <Text style={styles.primaryActionBtnTxt}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -410,24 +421,10 @@ export default function TestimonyDetailScreen({ route, navigation }: any) {
   const StatusIcon = statusBadge.icon;
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: themeBg }]} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={themeBg} />
+    <View style={[styles.container, { backgroundColor: themeBg }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
 
-      {/* Screen Header */}
-      <View style={[styles.headerRow, { borderBottomColor: borderColor }]}>
-        <TouchableOpacity
-          onPress={() => navigation.goBack()}
-          style={[styles.circularBackBtn, { backgroundColor: cardBg, borderColor }]}
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-          activeOpacity={0.8}
-        >
-          <ArrowLeft size={20} color={primaryTextColor} strokeWidth={2.4} />
-        </TouchableOpacity>
-        <Text style={[styles.headerTitleText, { color: primaryTextColor }]} numberOfLines={1}>
-          Testimony Details
-        </Text>
-        <View style={{ width: 44 }} />
-      </View>
+      {renderHeroHeader('Testimony Details', testimony.category ? testimony.category.toUpperCase() : 'STORIES OF GRACE')}
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -756,7 +753,7 @@ export default function TestimonyDetailScreen({ route, navigation }: any) {
         doc={viewerDoc}
         onClose={() => setViewerDoc(null)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -764,27 +761,48 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  headerRow: {
+  heroHeader: {
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 18,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    elevation: 6,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
   },
-  circularBackBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  heroBackBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    zIndex: 10,
   },
-  headerTitleText: {
-    fontSize: 18,
-    fontWeight: '700',
+  heroCenter: {
     flex: 1,
-    textAlign: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  heroSub: {
+    color: '#BFDBFE',
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    marginTop: 2,
   },
   centerLoading: {
     flex: 1,

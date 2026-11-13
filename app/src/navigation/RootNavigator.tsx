@@ -531,7 +531,7 @@ function TabNavigator() {
 let hasHandledColdStartNotification = false;
 
 function Navigation() {
-  const { user, member, loading, viewMode, setViewMode, signOut } = useAuth();
+  const { user, member, loading, viewMode, setViewMode, signOut, isPlatformSuperAdmin } = useAuth();
   const { activeChurch } = useChurch();
   const navigation = useNavigation();
   const [onboardingComplete, setOnboardingComplete] = React.useState<boolean | null>(null);
@@ -539,7 +539,13 @@ function Navigation() {
   const [isLocked, setIsLocked] = useState(false);
   const appState = React.useRef(AppState.currentState);
 
-  const isAdmin = String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER');
+  const isAdmin = Boolean(
+    isPlatformSuperAdmin ||
+      (member as any)?.isAdmin ||
+      (member as any)?.isSuperAdmin ||
+      String(member?.userType || '').toUpperCase().includes('ADMIN') ||
+      String(member?.userType || '').toUpperCase().includes('SUPER')
+  );
   // Show admin UI only when userType is admin AND viewMode is admin
   const showAdminView = isAdmin && viewMode === 'admin';
   const navigationKey = showAdminView ? 'admin-root' : 'member-root';
@@ -593,40 +599,20 @@ function Navigation() {
 
   // Handle Notifications
   useEffect(() => {
+    NotificationService.registerPendingDispatcher((remoteMessage: any) => {
+      if (remoteMessage) {
+        setPendingNotification(remoteMessage);
+      }
+    });
+    return () => {
+      NotificationService.registerPendingDispatcher(null);
+    };
+  }, []);
+
+  useEffect(() => {
     const handleExpoNotificationPayload = (data: any) => {
       if (!data) return;
-      const { navigationRef } = require('../../App');
-      let retries = 0;
-      const tryNav = () => {
-        if (navigationRef && navigationRef.isReady()) {
-          const type = data.type || (data.screen === 'BibleQuizDetail' ? 'quiz' : undefined);
-          const quizTargetId = data.quizId || data.relatedId || data.id;
-
-          if (type === 'daily_verse' && data.verseId) {
-            navigationRef.navigate('VerseOfTheDay', { 
-              verseId: data.verseId, 
-              period: data.period 
-            });
-          } else if (type === 'quiz' || type === 'quiz_scheduled' || type === 'bible_quiz' || data.quizId || data.screen === 'BibleQuizDetail') {
-            if (quizTargetId) {
-              navigationRef.navigate('BibleQuizDetail', {
-                quizId: quizTargetId,
-                id: quizTargetId,
-                relatedId: data.relatedId || quizTargetId,
-                churchId: data.churchId,
-              });
-            } else {
-              navigationRef.navigate('ChurchQuizzes');
-            }
-          } else {
-            NotificationService.handleNotificationNavigation({ data }, navigationRef);
-          }
-        } else if (retries < 25) {
-          retries++;
-          setTimeout(tryNav, 200);
-        }
-      };
-      tryNav();
+      setPendingNotification({ data });
     };
 
     const subscription = Notifications.addNotificationResponseReceivedListener(response => {
@@ -668,43 +654,66 @@ function Navigation() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    let retryTimer: any = null;
+
     if (user && !loading && pendingNotification) {
       let retryCount = 0;
       const tryNavigate = () => {
+        if (cancelled) return;
         const { navigationRef } = require('../../App');
         if (navigationRef && navigationRef.isReady()) {
-          const type = pendingNotification?.data?.type;
-          
-          const isAdminPushType = 
-            type === 'invoice' || 
-            type === 'baptism_request_admin' || 
-            type === 'new_church' || 
-            type === 'prayer_request_admin' || 
-            type === 'admin_roster_alert' ||
-            type === 'testimony_admin' ||
-            type === 'volunteer_application_admin' ||
-            type === 'care_cell_visit_declined';
+          const rawType = String(pendingNotification?.data?.type || pendingNotification?.type || '').toLowerCase();
+
+          const isAdminPushType =
+            rawType === 'invoice' ||
+            rawType === 'baptism_request_admin' ||
+            rawType === 'new_church' ||
+            rawType === 'prayer_request_admin' ||
+            rawType === 'admin_roster_alert' ||
+            rawType === 'testimony_admin' ||
+            rawType === 'volunteer_application_admin' ||
+            rawType === 'care_cell_visit_declined';
 
           if (isAdminPushType && isAdmin && viewMode !== 'admin') {
-            console.log(`Switching to admin view to handle ${type} notification`);
+            console.log(`Switching to admin view to handle ${rawType} notification`);
             setViewMode('admin');
             return; // Exit early, the re-render with showAdminView will trigger this effect again
           }
 
+          if (isAdminPushType && isAdmin) {
+            const rootRoutes: string[] = navigationRef.getRootState?.()?.routeNames || [];
+            if (!rootRoutes.includes('AdminRoot')) {
+              if (retryCount < 25) {
+                retryCount++;
+                retryTimer = setTimeout(tryNavigate, 150);
+              } else {
+                console.warn('⚠️ AdminRoot did not mount in time for notification:', rawType);
+                setPendingNotification(null);
+              }
+              return;
+            }
+          }
+
           NotificationService.handleNotificationNavigation(pendingNotification, navigationRef);
           setPendingNotification(null);
-        } else if (retryCount < 20) {
+        } else if (retryCount < 25) {
           retryCount++;
-          setTimeout(tryNavigate, 200); // Retry every 200ms up to 20 times (4 seconds total)
+          retryTimer = setTimeout(tryNavigate, 200);
         } else {
           console.warn('⚠️ Navigation took too long to become ready, dropping pending notification.');
           setPendingNotification(null);
         }
       };
-      
+
       tryNavigate();
     }
-  }, [user, loading, pendingNotification, viewMode]);
+
+    return () => {
+      cancelled = true;
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [user, loading, pendingNotification, viewMode, isAdmin]);
 
   useEffect(() => {
     if (user && !loading) {

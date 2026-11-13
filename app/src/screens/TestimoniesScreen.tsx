@@ -15,7 +15,8 @@ import {
   StatusBar,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import {
@@ -98,22 +99,23 @@ const formatDuration = (ms?: number | null): string => {
 };
 
 export default function TestimoniesScreen({ route, navigation }: any) {
-  const { colors, isDark } = useTheme();
+  const { isDark } = useTheme();
   const { user, member } = useAuth();
   const { activeChurch } = useChurch();
+  const insets = useSafeAreaInsets();
   const initialTab: ActiveTab = route?.params?.initialTab || 'feed';
 
   const activeChurchId =
     activeChurch?.id || member?.churchId || member?.primaryChurchId || 'default';
 
   // Reusable theme tokens consistent with all other Member View tabs
-  const themeBg = colors.background || (isDark ? '#121212' : '#FAF7F2');
-  const cardBg = colors.surface || (isDark ? '#1E1E1E' : '#FFFFFF');
-  const subtleBg = isDark ? '#27272A' : '#F8FAFC';
-  const borderColor = colors.border || (isDark ? '#2E2E32' : '#E2E8F0');
-  const accentColor = colors.accent || '#c0392b';
-  const primaryTextColor = colors.text || (isDark ? '#F4F4F5' : '#111827');
-  const secondaryTextColor = colors.textSecondary || (isDark ? '#A1A1AA' : '#64748B');
+  const themeBg = isDark ? '#0f172a' : '#f8fafc';
+  const cardBg = isDark ? '#1e293b' : '#ffffff';
+  const subtleBg = isDark ? '#334155' : '#f1f5f9';
+  const borderColor = isDark ? 'rgba(255,255,255,0.08)' : '#e2e8f0';
+  const accentColor = isDark ? '#3b82f6' : '#1a2d5a';
+  const primaryTextColor = isDark ? '#f8fafc' : '#0f172a';
+  const secondaryTextColor = isDark ? '#94a3b8' : '#64748b';
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab);
 
@@ -1112,103 +1114,165 @@ export default function TestimoniesScreen({ route, navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: themeBg }]} edges={['top']}>
-      <StatusBar
-        barStyle={isDark ? 'light-content' : 'dark-content'}
-        backgroundColor={themeBg}
-      />
+    <View style={[styles.container, { backgroundColor: themeBg }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
 
-      {/* ── Screen Header (Clean circular back button & title matching other Member tabs) ── */}
-      <View style={[styles.headerRow, { borderBottomColor: borderColor }]}>
+      {/* ── Page Hero Header (Consistent with Events, Prayer, Volunteer, Updates) ── */}
+      <LinearGradient
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[
+          styles.heroHeader,
+          { paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 48 : 16) + 8 },
+        ]}
+      >
         <TouchableOpacity
-          style={[styles.circularBackBtn, { backgroundColor: cardBg, borderColor }]}
+          style={styles.heroBackBtn}
           onPress={() => navigation.goBack()}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           activeOpacity={0.8}
         >
-          <ArrowLeft size={20} color={primaryTextColor} strokeWidth={2.4} />
+          <ArrowLeft size={22} color="#FFFFFF" strokeWidth={2.4} />
         </TouchableOpacity>
 
-        <Text style={[styles.headerTitleText, { color: primaryTextColor }]} numberOfLines={1}>
-          Testimonies
-        </Text>
+        <View style={styles.heroCenter} pointerEvents="none">
+          <Text style={styles.heroTitle} numberOfLines={1}>
+            Testimonies
+          </Text>
+          <Text style={styles.heroSub}>STORIES OF GRACE & FAITH</Text>
+        </View>
 
-        <View style={styles.headerRightSpacer} />
-      </View>
+        <View style={styles.heroRightBadge}>
+          <Sparkles size={13} color="#FDE68A" />
+          <Text style={styles.heroRightBadgeText}>{otherMembersFeed.length}</Text>
+        </View>
+      </LinearGradient>
 
-      {/* Reusable Segmented Tabs (Matches Prayer & Care Cell Tabs) */}
+      {/* ── Signature Rounded Pill Tabs (Matches Volunteer / Prayer / Care Cells) ── */}
       <View
         style={[
           styles.tabsContainer,
-          { backgroundColor: cardBg, borderColor },
+          isDark ? styles.tabsContainerDark : styles.tabsContainerLight,
         ]}
       >
         <TouchableOpacity
-          style={[
-            styles.tabBtn,
-            activeTab === 'feed' && { backgroundColor: accentColor },
-          ]}
+          style={[styles.tabBtn, activeTab === 'feed' && styles.tabBtnActive]}
           onPress={() => setActiveTab('feed')}
           activeOpacity={0.85}
         >
-          <Sparkles
-            size={14}
-            color={activeTab === 'feed' ? '#FFFFFF' : secondaryTextColor}
-          />
-          <Text
-            style={[
-              styles.tabBtnText,
-              { color: activeTab === 'feed' ? '#FFFFFF' : secondaryTextColor },
-            ]}
-          >
-            Feed ({otherMembersFeed.length})
-          </Text>
+          {activeTab === 'feed' && (
+            <View style={styles.activeTabGradientWrap} pointerEvents="none">
+              <LinearGradient
+                colors={['#2b52a1', '#1a3673']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+            </View>
+          )}
+          <View style={styles.tabInnerRow}>
+            <Sparkles
+              size={14}
+              color={activeTab === 'feed' ? '#FFFFFF' : secondaryTextColor}
+            />
+            <Text
+              style={[
+                styles.tabBtnText,
+                { color: activeTab === 'feed' ? '#FFFFFF' : secondaryTextColor },
+              ]}
+            >
+              Feed ({otherMembersFeed.length})
+            </Text>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[
-            styles.tabBtn,
-            activeTab === 'share' && { backgroundColor: accentColor },
-          ]}
+          style={[styles.tabBtn, activeTab === 'share' && styles.tabBtnActive]}
           onPress={() => setActiveTab('share')}
           activeOpacity={0.85}
         >
-          <PlusCircle
-            size={14}
-            color={activeTab === 'share' ? '#FFFFFF' : secondaryTextColor}
-          />
-          <Text
-            style={[
-              styles.tabBtnText,
-              { color: activeTab === 'share' ? '#FFFFFF' : secondaryTextColor },
-            ]}
-          >
-            {editingTestimony ? 'Edit' : 'Share'}
-          </Text>
+          {activeTab === 'share' && (
+            <View style={styles.activeTabGradientWrap} pointerEvents="none">
+              <LinearGradient
+                colors={['#2b52a1', '#1a3673']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+            </View>
+          )}
+          <View style={styles.tabInnerRow}>
+            <PlusCircle
+              size={14}
+              color={activeTab === 'share' ? '#FFFFFF' : secondaryTextColor}
+            />
+            <Text
+              style={[
+                styles.tabBtnText,
+                { color: activeTab === 'share' ? '#FFFFFF' : secondaryTextColor },
+              ]}
+            >
+              {editingTestimony ? 'Edit' : 'Share'}
+            </Text>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[
-            styles.tabBtn,
-            activeTab === 'mine' && { backgroundColor: accentColor },
-          ]}
+          style={[styles.tabBtn, activeTab === 'mine' && styles.tabBtnActive]}
           onPress={() => setActiveTab('mine')}
           activeOpacity={0.85}
         >
-          <User
-            size={14}
-            color={activeTab === 'mine' ? '#FFFFFF' : secondaryTextColor}
-          />
-          <Text
-            style={[
-              styles.tabBtnText,
-              { color: activeTab === 'mine' ? '#FFFFFF' : secondaryTextColor },
-            ]}
-          >
-            My ({myTestimonies.length})
-          </Text>
+          {activeTab === 'mine' && (
+            <View style={styles.activeTabGradientWrap} pointerEvents="none">
+              <LinearGradient
+                colors={['#2b52a1', '#1a3673']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+                style={StyleSheet.absoluteFillObject}
+              />
+            </View>
+          )}
+          <View style={styles.tabInnerRow}>
+            <User
+              size={14}
+              color={activeTab === 'mine' ? '#FFFFFF' : secondaryTextColor}
+            />
+            <Text
+              style={[
+                styles.tabBtnText,
+                { color: activeTab === 'mine' ? '#FFFFFF' : secondaryTextColor },
+              ]}
+            >
+              My ({myTestimonies.length})
+            </Text>
+          </View>
         </TouchableOpacity>
       </View>
+
+      {/* Subtle Scripture Banner on Feed */}
+      {activeTab === 'feed' && (
+        <View
+          style={[
+            styles.verseBanner,
+            {
+              backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#EFF6FF',
+              borderColor: isDark ? 'rgba(59, 130, 246, 0.25)' : '#BFDBFE',
+            },
+          ]}
+        >
+          <BookOpen size={14} color={isDark ? '#60A5FA' : '#1D4ED8'} />
+          <Text
+            style={[
+              styles.verseBannerText,
+              { color: isDark ? '#CBD5E1' : '#1E3A8A' },
+            ]}
+            numberOfLines={2}
+          >
+            “They triumphed by the blood of the Lamb and by the word of their testimony.” — Rev 12:11
+          </Text>
+        </View>
+      )}
 
       {/* TAB 1: PUBLIC TESTIMONIES FEED */}
       {activeTab === 'feed' && (
@@ -1310,11 +1374,16 @@ export default function TestimoniesScreen({ route, navigation }: any) {
       {activeTab === 'share' && (
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 20 : 0}
         >
           <ScrollView
-            contentContainerStyle={styles.formContainer}
+            contentContainerStyle={[
+              styles.formContainer,
+              { paddingBottom: Math.max(insets.bottom, 24) + 80 },
+            ]}
             showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
           >
             {editingTestimony && (
               <View
@@ -1947,7 +2016,7 @@ export default function TestimoniesScreen({ route, navigation }: any) {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -1955,55 +2024,147 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  // Header Row - Clean, consistent with Prayer & Song tabs (no hero bloat)
-  headerRow: {
+  // Navy Hero Header (Matches Volunteer, Events, Prayer, Updates tabs)
+  heroHeader: {
+    backgroundColor: '#1a2d5a',
+    paddingHorizontal: 18,
+    paddingBottom: 20,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    justifyContent: 'space-between',
+    elevation: 6,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 10,
   },
-  circularBackBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  heroBackBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    zIndex: 10,
   },
-  headerTitleText: {
+  heroCenter: {
     flex: 1,
-    textAlign: 'center',
-    fontSize: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 8,
+  },
+  heroTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
     fontWeight: '800',
-    letterSpacing: -0.2,
+    letterSpacing: 0.2,
   },
-  headerRightSpacer: {
-    width: 42,
-    height: 42,
+  heroSub: {
+    color: '#BFDBFE',
+    fontSize: 10.5,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    marginTop: 2,
   },
-  // Segmented Tabs Container (Matches Prayer & Care Cell Tabs)
+  heroRightBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.24)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    minWidth: 44,
+    justifyContent: 'center',
+  },
+  heroRightBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  // Signature Rounded Pill Tabs Container (Matches Volunteer / Prayer / Care Cells)
   tabsContainer: {
     flexDirection: 'row',
-    marginHorizontal: 16,
     marginTop: 12,
-    marginBottom: 8,
-    padding: 4,
-    borderRadius: 14,
+    marginHorizontal: 16,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    borderRadius: 28,
     borderWidth: 1,
+    gap: 4,
+    marginBottom: 8,
+  },
+  tabsContainerDark: {
+    backgroundColor: '#1e293b',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    shadowColor: '#000000',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  tabsContainerLight: {
+    backgroundColor: '#E2E8F0',
+    borderColor: '#CBD5E1',
+    shadowColor: '#0f172a',
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
   tabBtn: {
     flex: 1,
-    flexDirection: 'row',
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  tabBtnActive: {
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  activeTabGradientWrap: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: 22,
+    overflow: 'hidden',
+  },
+  tabInnerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 6,
-    paddingVertical: 10,
-    borderRadius: 10,
+    zIndex: 2,
   },
   tabBtnText: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '700',
+  },
+  verseBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  verseBannerText: {
+    flex: 1,
+    fontSize: 12,
+    fontStyle: 'italic',
+    lineHeight: 17,
+    fontWeight: '500',
   },
   // Filter Section
   filterSection: {

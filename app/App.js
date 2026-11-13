@@ -207,8 +207,8 @@ export default function App() {
             const msg = notification.remoteMessage;
             Animated.timing(slideAnim, { toValue: -150, duration: 250, useNativeDriver: true }).start(() => {
               setNotification(null);
-              if (msg && navigationRef.isReady()) {
-                NotificationService.handleNotificationNavigation(msg, navigationRef);
+              if (msg) {
+                NotificationService.dispatchNotification(msg, navigationRef);
               }
             });
           }}>

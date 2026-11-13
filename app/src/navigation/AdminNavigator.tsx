@@ -189,7 +189,7 @@ export default function AdminNavigator({ navigation, route }: any) {
         }, 0);
       }
     }
-  }, [route?.params?.targetTab]);
+  }, [route?.params?.targetTab, route?.params?.timestamp, route?.params?.testimonyId]);
 
   const handleSetTab = (index: number) => {
     if (index !== activeTab) {

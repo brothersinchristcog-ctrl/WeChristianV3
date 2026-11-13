@@ -2,6 +2,26 @@ import { Platform, PermissionsAndroid, Linking, Alert } from 'react-native';
 import { messaging, firestore, auth } from './firebaseConfig';
 
 class NotificationService {
+  private pendingDispatcher: ((remoteMessage: any) => void) | null = null;
+
+  registerPendingDispatcher(dispatcher: ((remoteMessage: any) => void) | null) {
+    this.pendingDispatcher = dispatcher;
+  }
+
+  /**
+   * Unified entry point for foreground banner taps, local notification taps,
+   * and view-switching in-app update clicks so admin notifications safely
+   * switch to Admin View before navigating to AdminRoot.
+   */
+  dispatchNotification(remoteMessage: any, navigation?: any) {
+    if (!remoteMessage) return;
+    if (this.pendingDispatcher) {
+      this.pendingDispatcher(remoteMessage);
+      return;
+    }
+    this.handleNotificationNavigation(remoteMessage, navigation);
+  }
+
   messaging() {
     return messaging();
   }
@@ -101,6 +121,16 @@ class NotificationService {
     const rawData = remoteMessage?.data || remoteMessage || {};
     const type = ((rawData.type || (rawData.screen === 'BibleQuizDetail' || rawData.quizId ? 'quiz' : '')) as string).toLowerCase();
     const id = rawData.quizId || rawData.relatedId || rawData.id;
+    const rootRouteNames: string[] = nav.getRootState?.()?.routeNames || [];
+    const hasAdminRoot = rootRouteNames.length === 0 || rootRouteNames.includes('AdminRoot');
+    const navigateToAdmin = (params: Record<string, any>) => {
+      if (!hasAdminRoot) {
+        console.warn('⚠️ AdminRoot is not mounted in the active navigator, routing to Updates instead.');
+        nav.navigate('Updates', { highlightId: id, highlightType: type });
+        return;
+      }
+      nav.navigate('AdminRoot', params);
+    };
     console.log('🚀 Navigating for notification type:', type);
 
     try {
@@ -122,14 +152,14 @@ class NotificationService {
             nav.navigate('OnlineMeetings');
           } catch (_) {
             try {
-              nav.navigate('AdminRoot', { targetTab: 'Online Meetings' });
+              navigateToAdmin({ targetTab: 'Online Meetings' });
             } catch (e) {
               console.warn('Navigation to online meetings failed:', e);
             }
           }
           break;
         case 'invoice':
-          nav.navigate('AdminRoot', { targetTab: 'Expense', highlightInvoiceId: id });
+          navigateToAdmin({ targetTab: 'Expense', highlightInvoiceId: id });
           break;
         case 'promise':
           nav.navigate('Updates');
@@ -138,19 +168,20 @@ class NotificationService {
           nav.navigate('AttendanceScreen');
           break;
         case 'baptism_request_admin':
-          nav.navigate('AdminRoot', { targetTab: 'Baptism' });
+          navigateToAdmin({ targetTab: 'Baptism' });
           break;
         case 'testimony_admin': {
-          const testimonyId = rawData.testimonyId || rawData.id || id;
-          nav.navigate('AdminRoot', {
+          const testimonyId = rawData.testimonyId || rawData.relatedId || rawData.id || id;
+          navigateToAdmin({
             targetTab: 'Testimonies',
             testimonyId,
+            churchId: rawData.churchId,
             timestamp: Date.now(),
           });
           break;
         }
         case 'testimony_member_status': {
-          const testimonyId = rawData.testimonyId || rawData.id || id;
+          const testimonyId = rawData.testimonyId || rawData.relatedId || rawData.id || id;
           if (testimonyId) {
             nav.navigate('TestimonyDetail', {
               testimonyId,
@@ -163,16 +194,20 @@ class NotificationService {
         }
         case 'testimony_published':
         case 'testimony': {
-          const testimonyId = rawData.testimonyId || rawData.id || id;
-          nav.navigate('TestimonyDetail', {
-            testimonyId,
-            churchId: rawData.churchId,
-          });
+          const testimonyId = rawData.testimonyId || rawData.relatedId || rawData.id || id;
+          if (testimonyId) {
+            nav.navigate('TestimonyDetail', {
+              testimonyId,
+              churchId: rawData.churchId,
+            });
+          } else {
+            nav.navigate('Testimonies', { initialTab: 'feed' });
+          }
           break;
         }
         case 'volunteer_application_admin': {
           const appId = rawData.applicationId || rawData.requestId || id;
-          nav.navigate('AdminRoot', {
+          navigateToAdmin({
             targetTab: 'Volunteer Management',
             applicationId: appId,
             subType: rawData.volunteerType || rawData.subType || 'general',
@@ -219,12 +254,12 @@ class NotificationService {
           nav.navigate('LiveCelebrationsChat', {});
           break;
         case 'new_church':
-          nav.navigate('AdminRoot', { targetTab: 'App Admin' });
+          navigateToAdmin({ targetTab: 'App Admin' });
           break;
         case 'prayer_request_admin':
         case 'prayer_request':
         case 'prayer':
-          nav.navigate('AdminRoot', { targetTab: 'Prayers' });
+          navigateToAdmin({ targetTab: 'Prayers' });
           break;
         case 'prayer_request_public':
           nav.navigate('PrayerWall', { tab: 'public_requests' });
@@ -251,7 +286,7 @@ class NotificationService {
           break;
         }
         case 'admin_roster_alert': {
-          nav.navigate('AdminRoot', {
+          navigateToAdmin({
             targetTab: 'Service Roster',
             serviceId: rawData.serviceId,
             roleId: rawData.roleId,
@@ -278,7 +313,7 @@ class NotificationService {
           break;
         }
         case 'care_cell_visit_declined': {
-          nav.navigate('AdminRoot', {
+          navigateToAdmin({
             targetTab: 'Care Cells',
             careCellTab: rawData.careCellTab || 'visits',
             cellId: rawData.cellId,

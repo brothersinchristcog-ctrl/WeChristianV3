@@ -238,9 +238,12 @@ export default function AdminTestimonies({ navigation, route, routeParams }: any
   };
 
   // Open deep-linked testimony from push notification immediately
-  const lastOpenedTargetIdRef = useRef<string | null>(null);
+  const lastOpenedTargetKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!targetTestimonyId || lastOpenedTargetIdRef.current === targetTestimonyId) {
+    const targetKey = targetTestimonyId
+      ? `${targetTestimonyId}:${routeParams?.timestamp || route?.params?.timestamp || ''}`
+      : null;
+    if (!targetTestimonyId || !targetKey || lastOpenedTargetKeyRef.current === targetKey) {
       return;
     }
 
@@ -249,7 +252,7 @@ export default function AdminTestimonies({ navigation, route, routeParams }: any
     // Check in-memory list first
     const found = testimonies.find((t) => t.testimonyId === targetTestimonyId);
     if (found) {
-      lastOpenedTargetIdRef.current = targetTestimonyId;
+      lastOpenedTargetKeyRef.current = targetKey;
       if (found.privacy === 'Private') {
         setSelectedCategory('Private');
       } else {
@@ -260,10 +263,11 @@ export default function AdminTestimonies({ navigation, route, routeParams }: any
     }
 
     // Direct lookup fallback if not yet in snapshot or during initial load
-    TestimonyService.getTestimonyById(activeChurchId, targetTestimonyId)
+    const lookupChurchId = routeParams?.churchId || route?.params?.churchId || activeChurchId;
+    TestimonyService.getTestimonyById(lookupChurchId, targetTestimonyId)
       .then((doc) => {
         if (!isCancelled && doc) {
-          lastOpenedTargetIdRef.current = targetTestimonyId;
+          lastOpenedTargetKeyRef.current = targetKey;
           if (doc.privacy === 'Private') {
             setSelectedCategory('Private');
           } else {
@@ -279,7 +283,7 @@ export default function AdminTestimonies({ navigation, route, routeParams }: any
     return () => {
       isCancelled = true;
     };
-  }, [targetTestimonyId, testimonies, activeChurchId]);
+  }, [targetTestimonyId, routeParams?.timestamp, route?.params?.timestamp, routeParams?.churchId, route?.params?.churchId, testimonies, activeChurchId]);
 
   const countsByCategory = useMemo(() => {
     const counts: Record<TestimonyStatus, number> = {
