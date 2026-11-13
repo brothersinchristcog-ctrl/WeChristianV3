@@ -834,7 +834,10 @@ export default function ChatRoomScreen({ route, navigation }: any) {
         end={{ x: 1, y: 1 }}
         style={[
           styles.header,
-          { paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 48 : 14) + 6 },
+          {
+            paddingTop: Math.max(insets.top, Platform.OS === 'ios' ? 48 : 14) + 6,
+            elevation: attachModalVisible ? 0 : 5,
+          },
         ]}
       >
         <TouchableOpacity
@@ -1113,11 +1116,12 @@ export default function ChatRoomScreen({ route, navigation }: any) {
 
       {/* ── Attachment Picker Sheet (Inline overlay avoids Android Modal vs Intent conflicts) ── */}
       {attachModalVisible && (
-        <TouchableOpacity
-          style={[StyleSheet.absoluteFillObject, styles.inlineSheetBackdrop]}
-          activeOpacity={1}
-          onPress={() => setAttachModalVisible(false)}
-        >
+        <View style={[StyleSheet.absoluteFillObject, styles.inlineSheetBackdrop]}>
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => setAttachModalVisible(false)}
+          />
           <View style={[styles.actionSheet, { backgroundColor: cardBg, borderColor }]}>
             <TouchableOpacity
               style={styles.actionRow}
@@ -1148,7 +1152,7 @@ export default function ChatRoomScreen({ route, navigation }: any) {
               <Text style={[styles.actionTxt, { color: primaryText }]}>Document / File</Text>
             </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </View>
       )}
 
       {/* ── Long-press Message Action & Emoji Reaction Modal ── */}
@@ -1853,7 +1857,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 24,
     zIndex: 50,
-    elevation: 20,
   },
   actionSheet: {
     width: '100%',
