@@ -26,14 +26,30 @@ const normalizePhoneDigits = (phone?: string | null): string => {
 
 /**
  * Safely obtain React Native Firebase Realtime Database instance.
- * Returns null gracefully if the native module isn't linked yet or RTDB URL isn't configured.
+ * Returns null gracefully if the native module isn't linked into this binary yet.
  */
 const getRtdbInstance = (): any | null => {
   try {
+    const { NativeModules } = require('react-native');
+    if (
+      !NativeModules?.RNFBDatabaseModule ||
+      !NativeModules?.RNFBDatabaseQueryModule ||
+      !NativeModules?.RNFBDatabaseReferenceModule ||
+      typeof NativeModules?.RNFBDatabaseQueryModule?.on !== 'function' ||
+      typeof NativeModules?.RNFBDatabaseReferenceModule?.set !== 'function'
+    ) {
+      return null;
+    }
+
     const dbMod = require('@react-native-firebase/database');
     const fn = dbMod?.default || dbMod;
     if (typeof fn !== 'function') return null;
-    return fn();
+
+    const instance = fn();
+    if (!instance || typeof instance.native?.on !== 'function') {
+      return null;
+    }
+    return instance;
   } catch {
     return null;
   }
@@ -120,7 +136,20 @@ class ChatService {
 
       snap.docs.forEach((doc) => {
         const data = doc.data() || {};
-        if (data.status === 'deleted' || data.archived === true) return;
+        const statusLower = String(data.status || '').trim().toLowerCase();
+        if (
+          statusLower === 'left' ||
+          statusLower === 'removed' ||
+          statusLower === 'deleted' ||
+          statusLower === 'inactive' ||
+          statusLower === 'archived' ||
+          data.archived === true ||
+          data.deleted === true ||
+          data.isDeleted === true ||
+          data.isActive === false
+        ) {
+          return;
+        }
 
         const docId = doc.id;
         const memberUid = data.uid ? String(data.uid) : undefined;
@@ -150,11 +179,12 @@ class ChatService {
           isCareCellLeader: Boolean(data.isCareCellLeader),
         };
 
-        if (normPhone) {
-          const existing = dedupByPhone.get(normPhone);
+        const dedupKey = normPhone || (memberUid ? `uid:${memberUid}` : '');
+        if (dedupKey) {
+          const existing = dedupByPhone.get(dedupKey);
           // Prefer records whose doc ID matches an Auth uid (`data.uid === docId`)
           if (!existing || (memberUid && docId === memberUid)) {
-            dedupByPhone.set(normPhone, profile);
+            dedupByPhone.set(dedupKey, profile);
           }
         } else {
           results.push(profile);
