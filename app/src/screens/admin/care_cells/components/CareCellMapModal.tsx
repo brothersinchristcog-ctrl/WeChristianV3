@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
 import * as ExpoLocation from 'expo-location';
+import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
 import {
   ArrowLeft,
   Navigation,
@@ -116,8 +117,10 @@ export default function CareCellMapModal({
   // Route Planning: list of member IDs in visit order
   const [plannedRouteMemberIds, setPlannedRouteMemberIds] = useState<string[]>([]);
 
-  // Live member locations & fallback client geocoded coordinates
+  // Live member locations, profile photos & fallback client geocoded coordinates
   const [memberLocMap, setMemberLocMap] = useState<Record<string, MemberLocationRecord>>({});
+  const [memberPhotoMap, setMemberPhotoMap] = useState<Record<string, string>>({});
+  const [loadedMarkerPhotos, setLoadedMarkerPhotos] = useState<Record<string, boolean>>({});
   const [geocodedCellCoords, setGeocodedCellCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [geocodedMemberCoords, setGeocodedMemberCoords] = useState<Record<string, { latitude: number; longitude: number }>>({});
 
@@ -137,6 +140,53 @@ export default function CareCellMapModal({
           setMemberLocMap(locById);
         } catch (_) {
           // Continue with client-side geocoding fallback
+        }
+
+        // Resolve member profile photos from church members docs for pins that lack memberPhoto on membership
+        try {
+          const firestoreDb = getFirestore();
+          const photoEntries: Record<string, string> = {};
+          await Promise.all(
+            members.map(async (m) => {
+              const existing =
+                m.memberPhoto ||
+                locById[m.memberId]?.profileImage ||
+                '';
+              if (existing) {
+                photoEntries[m.memberId] = existing;
+                return;
+              }
+              if (!m.memberId) return;
+              try {
+                const mSnap = await getDoc(
+                  doc(firestoreDb, 'churches', effectiveChurchId, 'members', m.memberId)
+                );
+                if (mSnap.exists()) {
+                  const md = mSnap.data() || {};
+                  const url =
+                    md.memberPhoto ||
+                    md.photoUrl ||
+                    md.photoURL ||
+                    md.photo ||
+                    md.profilePicture ||
+                    md.profileImage ||
+                    md.imageUrl ||
+                    md.avatar ||
+                    '';
+                  if (typeof url === 'string' && url.trim()) {
+                    photoEntries[m.memberId] = url.trim();
+                  }
+                }
+              } catch (_) {
+                // Ignore individual member photo fetch error
+              }
+            })
+          );
+          if (active && Object.keys(photoEntries).length > 0) {
+            setMemberPhotoMap((prev) => ({ ...prev, ...photoEntries }));
+          }
+        } catch (_) {
+          // Non-fatal
         }
       }
 
@@ -238,6 +288,11 @@ export default function CareCellMapModal({
 
       return {
         ...m,
+        memberPhoto:
+          m.memberPhoto ||
+          locRec?.profileImage ||
+          memberPhotoMap[m.memberId] ||
+          undefined,
         locality: m.locality || locRec?.village || locRec?.city || '',
         address: resolvedAddress,
         resolvedAddress,
@@ -275,7 +330,7 @@ export default function CareCellMapModal({
     });
 
     return rawList;
-  }, [members, memberLocMap, geocodedMemberCoords]);
+  }, [members, memberLocMap, memberPhotoMap, geocodedMemberCoords]);
 
   // Inactive Member IDs set for fast lookup
   const inactiveMemberIdSet = useMemo(() => {
@@ -598,37 +653,71 @@ export default function CareCellMapModal({
                 </Marker>
               ) : null}
 
-              {/* Member Residence Markers */}
-              {membersWithCoords.map((m, idx) => {
+              {/* Member Residence Profile Photo Pins */}
+              {membersWithCoords.map((m) => {
                 const isInactive = inactiveMemberIdSet.has(m.memberId);
                 const isSelected = selectedMember?.memberId === m.memberId;
                 const inRouteIndex = plannedRouteMemberIds.indexOf(m.memberId);
+                const markerKey = m.id || m.memberId;
+                const photoUri = typeof m.memberPhoto === 'string' ? m.memberPhoto.trim() : '';
+                const hasPhoto = photoUri.length > 0;
+                const accentColor = isSelected
+                  ? '#F59E0B'
+                  : inRouteIndex >= 0
+                    ? '#059669'
+                    : isInactive
+                      ? '#DC2626'
+                      : '#1A2D5A';
 
                 return (
                   <Marker
-                    key={m.id || m.memberId}
+                    key={markerKey}
                     coordinate={{
                       latitude: m.latitude!,
                       longitude: m.longitude!,
                     }}
+                    anchor={{ x: 0.5, y: 1 }}
+                    tracksViewChanges={Boolean((hasPhoto && !loadedMarkerPhotos[markerKey]) || isSelected)}
                     onPress={() => setSelectedMember(m)}
                   >
-                    <View
-                      style={[
-                        styles.memberMarkerBubble,
-                        isInactive ? styles.memberMarkerAlert : styles.memberMarkerNormal,
-                        isSelected && styles.memberMarkerSelected,
-                      ]}
-                    >
+                    <View style={[styles.photoPinWrapper, isSelected && styles.photoPinWrapperSelected]}>
+                      <View
+                        style={[
+                          styles.photoPinHead,
+                          { borderColor: accentColor },
+                          !hasPhoto && { backgroundColor: accentColor },
+                        ]}
+                      >
+                        {hasPhoto ? (
+                          <Image
+                            source={{ uri: photoUri }}
+                            style={styles.photoPinImage}
+                            resizeMode="cover"
+                            onLoad={() => {
+                              setTimeout(() => {
+                                setLoadedMarkerPhotos((prev) =>
+                                  prev[markerKey] ? prev : { ...prev, [markerKey]: true }
+                                );
+                              }, 150);
+                            }}
+                            onError={() => {
+                              setLoadedMarkerPhotos((prev) =>
+                                prev[markerKey] ? prev : { ...prev, [markerKey]: true }
+                              );
+                            }}
+                          />
+                        ) : (
+                          <Text style={styles.markerInitialsTxt}>
+                            {m.memberName.slice(0, 2).toUpperCase()}
+                          </Text>
+                        )}
+                      </View>
                       {inRouteIndex >= 0 ? (
-                        <View style={styles.routeOrderBadge}>
-                          <Text style={styles.routeOrderBadgeTxt}>{inRouteIndex + 1}</Text>
+                        <View style={styles.routeOrderCornerBadge}>
+                          <Text style={styles.routeOrderCornerTxt}>{inRouteIndex + 1}</Text>
                         </View>
-                      ) : (
-                        <Text style={styles.markerInitialsTxt}>
-                          {m.memberName.slice(0, 2).toUpperCase()}
-                        </Text>
-                      )}
+                      ) : null}
+                      <View style={[styles.photoPinPointer, { borderTopColor: accentColor }]} />
                     </View>
                   </Marker>
                 );
@@ -782,9 +871,13 @@ export default function CareCellMapModal({
               return (
                 <View style={styles.memberListItem}>
                   <View style={styles.listItemTopRow}>
-                    <View style={styles.itemAvatarFallback}>
-                      <Text style={styles.itemAvatarInitials}>{item.memberName.slice(0, 2).toUpperCase()}</Text>
-                    </View>
+                    {item.memberPhoto ? (
+                      <Image source={{ uri: item.memberPhoto }} style={styles.itemAvatarImg} />
+                    ) : (
+                      <View style={styles.itemAvatarFallback}>
+                        <Text style={styles.itemAvatarInitials}>{item.memberName.slice(0, 2).toUpperCase()}</Text>
+                      </View>
+                    )}
                     <View style={{ flex: 1 }}>
                       <Text style={styles.itemMemberName}>{item.memberName}</Text>
                       {item.locality ? (
@@ -1003,8 +1096,66 @@ const styles = createAdminThemedStyles({
     borderWidth: 3,
     transform: [{ scale: 1.2 }],
   },
+  photoPinWrapper: {
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: 4,
+    paddingHorizontal: 4,
+  },
+  photoPinWrapperSelected: {
+    transform: [{ scale: 1.15 }],
+  },
+  photoPinHead: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    borderWidth: 3,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.28,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  photoPinImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
+  },
+  photoPinPointer: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 8,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    marginTop: -1,
+  },
+  routeOrderCornerBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#059669',
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  routeOrderCornerTxt: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
   markerInitialsTxt: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
   },
@@ -1218,6 +1369,12 @@ const styles = createAdminThemedStyles({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  itemAvatarImg: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E2E8F0',
   },
   itemAvatarFallback: {
     width: 36,
