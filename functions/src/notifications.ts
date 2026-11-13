@@ -2671,7 +2671,7 @@ async function handleTestimonyAdminCreatedPush(testimony: any, churchId: string,
           addAdminToken(uData.fcmToken);
           if (Array.isArray(uData.fcmTokens)) uData.fcmTokens.forEach(addAdminToken);
         }
-      } catch (_) {}
+      } catch (_) { }
     }
   } catch (err) { console.error('Error fetching admin tokens for testimony:', err); }
 
