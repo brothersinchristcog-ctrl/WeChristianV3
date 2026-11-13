@@ -34,6 +34,7 @@ import {
   Search,
   Shield,
   ShieldAlert,
+  Trash2,
   UserMinus,
   UserPlus,
   Users,
@@ -83,6 +84,7 @@ export default function GroupInfoScreen({ route, navigation }: any) {
   const [addingBusy, setAddingBusy] = useState(false);
 
   const [selectedParticipant, setSelectedParticipant] = useState<ChatParticipantSummary | null>(null);
+  const [deletingGroup, setDeletingGroup] = useState(false);
 
   const themeBg = isDark ? '#0f172a' : '#f8fafc';
   const cardBg = isDark ? '#1e293b' : '#ffffff';
@@ -116,6 +118,14 @@ export default function GroupInfoScreen({ route, navigation }: any) {
   const amIGroupAdmin = useMemo(
     () => (thread?.adminIds || []).some((id) => myIds.includes(id)),
     [thread?.adminIds, myIds]
+  );
+
+  const canDeleteGroup = useMemo(
+    () =>
+      amIGroupAdmin ||
+      (Boolean(thread?.createdBy) && myIds.includes(thread!.createdBy!)) ||
+      String(member?.userType || '').toLowerCase() === 'admin',
+    [amIGroupAdmin, thread?.createdBy, myIds, member?.userType]
   );
 
   const canEditInfo = useMemo(() => {
@@ -287,6 +297,32 @@ export default function GroupInfoScreen({ route, navigation }: any) {
               navigation.navigate('ChatList');
             } catch (err: any) {
               Alert.alert('Error', err?.message || 'Could not leave group.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteGroup = () => {
+    Alert.alert(
+      'Delete Group',
+      `Permanently delete "${thread?.name || 'this group'}" and all its messages for everyone? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Group',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setDeletingGroup(true);
+              await ChatService.deleteGroupChat(churchId, chatId);
+              navigation.popToTop();
+              navigation.navigate('ChatList');
+            } catch (err: any) {
+              Alert.alert('Delete Failed', err?.message || 'Could not delete group.');
+            } finally {
+              setDeletingGroup(false);
             }
           },
         },
@@ -570,11 +606,38 @@ export default function GroupInfoScreen({ route, navigation }: any) {
         {/* Leave Group */}
         <TouchableOpacity
           onPress={handleLeaveGroup}
+          disabled={deletingGroup}
           style={[styles.leaveBtn, { backgroundColor: cardBg, borderColor: '#fecaca' }]}
         >
           <LogOut size={18} color="#dc2626" />
           <Text style={styles.leaveBtnTxt}>Leave Group</Text>
         </TouchableOpacity>
+
+        {/* Delete Group (Group Admins / Creator / Church Admin) */}
+        {canDeleteGroup && (
+          <TouchableOpacity
+            onPress={handleDeleteGroup}
+            disabled={deletingGroup}
+            style={[
+              styles.leaveBtn,
+              {
+                marginTop: 10,
+                backgroundColor: '#dc2626',
+                borderColor: '#b91c1c',
+                opacity: deletingGroup ? 0.7 : 1,
+              },
+            ]}
+          >
+            {deletingGroup ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <Trash2 size={18} color="#FFFFFF" />
+                <Text style={[styles.leaveBtnTxt, { color: '#FFFFFF' }]}>Delete Group</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Edit Group Info Modal */}

@@ -1,5 +1,6 @@
 import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 import storage from '@react-native-firebase/storage';
+import * as FileSystem from 'expo-file-system/legacy';
 import {
   ChatGroupSettings,
   ChatLastMessage,
@@ -563,7 +564,9 @@ class ChatService {
     chatId: string,
     localUri: string,
     kind: 'image' | 'video' | 'audio' | 'document' | 'group_avatar',
-    fileName?: string
+    fileName?: string,
+    mimeType?: string,
+    onProgress?: (pct: number) => void
   ): Promise<{ storagePath: string; url: string }> {
     const cleanUri = localUri.trim();
     const fallbackExt =
@@ -574,10 +577,45 @@ class ChatService {
         : kind === 'audio'
         ? 'm4a'
         : 'pdf';
+    const defaultMime =
+      kind === 'image' || kind === 'group_avatar'
+        ? 'image/jpeg'
+        : kind === 'video'
+        ? 'video/mp4'
+        : kind === 'audio'
+        ? 'audio/m4a'
+        : 'application/octet-stream';
+
     const safeName = (fileName || `${kind}_${Date.now()}.${fallbackExt}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+
+    let uploadUri = cleanUri;
+    if (cleanUri.startsWith('content://') && FileSystem.cacheDirectory) {
+      try {
+        const cachedPath = `${FileSystem.cacheDirectory}chat_upload_${Date.now()}_${safeName}`;
+        await FileSystem.copyAsync({ from: cleanUri, to: cachedPath });
+        uploadUri = cachedPath;
+      } catch (copyErr) {
+        console.warn('[ChatService] content:// copy warning, trying original URI:', copyErr);
+      }
+    }
+
     const storagePath = `churches/${churchId}/chats/${chatId}/${Date.now()}_${safeName}`;
     const ref = storage().ref(storagePath);
-    await ref.putFile(cleanUri);
+    const task = ref.putFile(uploadUri, { contentType: mimeType || defaultMime });
+
+    if (onProgress && typeof task.on === 'function') {
+      try {
+        task.on('state_changed', (snap: any) => {
+          const total = snap?.totalBytes || 0;
+          const transferred = snap?.bytesTransferred || 0;
+          if (total > 0) {
+            onProgress(Math.min(100, Math.round((transferred / total) * 100)));
+          }
+        });
+      } catch {}
+    }
+
+    await task;
     const url = await ref.getDownloadURL();
     return { storagePath, url };
   }
@@ -611,6 +649,7 @@ class ChatService {
       caption?: string;
       replyTo?: ChatReplyPreview | null;
       participantIds?: string[];
+      onProgress?: (pct: number) => void;
     }
   ): Promise<string> {
     const senderId = sender.uid || sender.memberId;
@@ -619,7 +658,9 @@ class ChatService {
       chatId,
       params.localUri,
       params.type,
-      params.fileName
+      params.fileName,
+      params.mimeType,
+      params.onProgress
     );
 
     const media: ChatMediaAttachment = {
@@ -1103,6 +1144,24 @@ class ChatService {
       actor.id,
       actor.name
     );
+  }
+
+  /**
+   * Permanently delete a group chat and all of its messages (Group Admins / Church Admins).
+   */
+  async deleteGroupChat(churchId: string, chatId: string): Promise<void> {
+    if (!churchId || !chatId) return;
+    const msgsSnap = await this.messagesCol(churchId, chatId).get();
+    const docs = msgsSnap.docs || [];
+
+    // Firestore batches allow up to 500 writes at a time
+    for (let i = 0; i < docs.length; i += 450) {
+      const batch = firestore().batch();
+      docs.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+
+    await this.chatsCol(churchId).doc(chatId).delete();
   }
 
   // ───────────────────────────────────────────────────────────────────────────

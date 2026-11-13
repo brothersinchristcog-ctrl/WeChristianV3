@@ -2798,7 +2798,7 @@ const styles = StyleSheet.create({
   chatFabContainer: {
     position: 'absolute',
     bottom: Platform.OS === 'ios' ? 134 : 120,
-    right: 20,
+    left: 20,
     zIndex: 998,
     elevation: 14,
   },

@@ -478,11 +478,16 @@ service cloud.firestore {
       // Church Chat & Group Messaging (multi-tenant strictly scoped per church)
       match /chats/{chatId} {
         allow read, create, update: if isAuthenticated();
-        allow delete: if isChurchAdmin();
+        allow delete: if isChurchAdmin() || (
+          isAuthenticated() && (
+            (resource.data.adminIds is list && request.auth.uid in resource.data.adminIds) ||
+            resource.data.createdBy == request.auth.uid
+          )
+        );
 
         match /messages/{messageId} {
           allow read, create, update: if isAuthenticated();
-          allow delete: if isChurchAdmin();
+          allow delete: if isChurchAdmin() || isAuthenticated();
         }
       }
 

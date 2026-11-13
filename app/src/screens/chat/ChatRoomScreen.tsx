@@ -152,6 +152,7 @@ export default function ChatRoomScreen({ route, navigation }: any) {
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [replyingTo, setReplyingTo] = useState<ChatReplyPreview | null>(null);
   const [selectedMsg, setSelectedMsg] = useState<ChatMessage | null>(null);
   const [peerPresence, setPeerPresence] = useState<ChatPresence>({ online: false, lastSeen: null });
@@ -346,6 +347,9 @@ export default function ChatRoomScreen({ route, navigation }: any) {
     setAttachModalVisible(false);
     if (!churchId || !chatId || isPeerBlocked || isAnnouncementLocked) return;
 
+    // Allow inline sheet to unmount smoothly before launching native Android Activity
+    await new Promise((r) => setTimeout(r, 120));
+
     try {
       if (fromCamera) {
         const camPerm = await ImagePicker.requestCameraPermissionsAsync();
@@ -364,34 +368,54 @@ export default function ChatRoomScreen({ route, navigation }: any) {
       const res = fromCamera
         ? await ImagePicker.launchCameraAsync({
             mediaTypes: ['images'],
+            allowsEditing: false,
             quality: 0.82,
           })
         : await ImagePicker.launchImageLibraryAsync({
             mediaTypes: [mediaType],
-            quality: 0.82,
+            allowsEditing: false,
+            quality: mediaType === 'videos' ? 0.7 : 0.82,
             videoMaxDuration: 90,
           });
 
       if (res.canceled || !res.assets?.[0]?.uri) return;
       const asset = res.assets[0];
       const msgType = mediaType === 'videos' ? 'video' : 'image';
+      const fallbackExt = msgType === 'video' ? 'mp4' : 'jpg';
+      const derivedName =
+        asset.fileName ||
+        asset.uri.split('/').pop()?.split('?')[0] ||
+        `${msgType}_${Date.now()}.${fallbackExt}`;
 
+      setUploadProgress(0);
       setUploadingMedia(true);
       await ChatService.sendMediaMessage(churchId, chatId, myParticipantSummary, {
         type: msgType,
         localUri: asset.uri,
-        fileName: asset.fileName || `${msgType}_${Date.now()}`,
-        mimeType: asset.mimeType || (msgType === 'video' ? 'video/mp4' : 'image/jpeg'),
+        fileName: derivedName,
+        mimeType:
+          asset.mimeType ||
+          (msgType === 'video'
+            ? derivedName.toLowerCase().endsWith('.mov')
+              ? 'video/quicktime'
+              : 'video/mp4'
+            : 'image/jpeg'),
         sizeBytes: asset.fileSize,
-        durationMs: asset.duration || undefined,
+        durationMs: asset.duration
+          ? asset.duration < 1000
+            ? asset.duration * 1000
+            : asset.duration
+          : undefined,
         replyTo: replyingTo,
         participantIds: thread?.participantIds,
+        onProgress: (pct) => setUploadProgress(pct),
       });
       setReplyingTo(null);
     } catch (err: any) {
       Alert.alert('Upload Failed', err?.message || 'Could not send media.');
     } finally {
       setUploadingMedia(false);
+      setUploadProgress(0);
     }
   };
 
@@ -399,14 +423,18 @@ export default function ChatRoomScreen({ route, navigation }: any) {
     setAttachModalVisible(false);
     if (!churchId || !chatId || isPeerBlocked || isAnnouncementLocked) return;
 
+    await new Promise((r) => setTimeout(r, 120));
+
     try {
       const res = await DocumentPicker.getDocumentAsync({
+        type: '*/*',
         copyToCacheDirectory: true,
         multiple: false,
       });
       if (res.canceled || !res.assets?.[0]?.uri) return;
       const doc = res.assets[0];
 
+      setUploadProgress(0);
       setUploadingMedia(true);
       await ChatService.sendMediaMessage(churchId, chatId, myParticipantSummary, {
         type: 'document',
@@ -416,12 +444,14 @@ export default function ChatRoomScreen({ route, navigation }: any) {
         sizeBytes: doc.size,
         replyTo: replyingTo,
         participantIds: thread?.participantIds,
+        onProgress: (pct) => setUploadProgress(pct),
       });
       setReplyingTo(null);
     } catch (err: any) {
       Alert.alert('Document Upload Failed', err?.message || 'Could not send document.');
     } finally {
       setUploadingMedia(false);
+      setUploadProgress(0);
     }
   };
 
@@ -910,7 +940,9 @@ export default function ChatRoomScreen({ route, navigation }: any) {
           <View style={[styles.uploadingBar, { backgroundColor: cardBg, borderTopColor: borderColor }]}>
             <ActivityIndicator size="small" color={accentColor} />
             <Text style={{ color: secondaryText, fontSize: 12.5, fontWeight: '600' }}>
-              Uploading attachment...
+              {uploadProgress > 0
+                ? `Uploading attachment... ${uploadProgress}%`
+                : 'Preparing attachment...'}
             </Text>
           </View>
         )}
@@ -1079,15 +1111,10 @@ export default function ChatRoomScreen({ route, navigation }: any) {
         )}
       </KeyboardAvoidingView>
 
-      {/* ── Attachment Picker Sheet ── */}
-      <Modal
-        visible={attachModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setAttachModalVisible(false)}
-      >
+      {/* ── Attachment Picker Sheet (Inline overlay avoids Android Modal vs Intent conflicts) ── */}
+      {attachModalVisible && (
         <TouchableOpacity
-          style={styles.modalBackdrop}
+          style={[StyleSheet.absoluteFillObject, styles.inlineSheetBackdrop]}
           activeOpacity={1}
           onPress={() => setAttachModalVisible(false)}
         >
@@ -1122,7 +1149,7 @@ export default function ChatRoomScreen({ route, navigation }: any) {
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
-      </Modal>
+      )}
 
       {/* ── Long-press Message Action & Emoji Reaction Modal ── */}
       <Modal
@@ -1658,6 +1685,7 @@ const styles = StyleSheet.create({
     width: 220,
     height: 170,
     borderRadius: 10,
+    backgroundColor: 'rgba(148,163,184,0.2)',
   },
   videoCard: {
     width: 210,
@@ -1818,6 +1846,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+  },
+  inlineSheetBackdrop: {
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    zIndex: 50,
+    elevation: 20,
   },
   actionSheet: {
     width: '100%',
