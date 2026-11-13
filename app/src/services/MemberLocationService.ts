@@ -108,19 +108,14 @@ export function getMemberVisitBadgeStatus(
   loc: Partial<MemberLocationRecord> | null | undefined
 ): MemberVisitBadgeStatus {
   if (!loc) return 'no_pending';
-  if (loc.requiresFollowup || loc.upcomingVisitStatus === 'Declined') {
+  const visitStatus = String(loc.upcomingVisitStatus || '');
+  if (loc.requiresFollowup || visitStatus === 'Declined') {
     return 'requires_followup';
   }
-  if (
-    loc.upcomingVisitStatus === 'Awaiting Confirmation' ||
-    loc.upcomingVisitStatus === 'Scheduled'
-  ) {
+  if (visitStatus === 'Awaiting Confirmation' || visitStatus === 'Scheduled') {
     return 'awaiting_confirmation';
   }
-  if (
-    loc.upcomingVisitStatus === 'Confirmed' ||
-    loc.upcomingVisitStatus === 'In Progress'
-  ) {
+  if (visitStatus === 'Confirmed' || visitStatus === 'In Progress') {
     return 'scheduled';
   }
   return 'no_pending';
