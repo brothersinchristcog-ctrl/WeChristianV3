@@ -1970,6 +1970,7 @@ class ServiceRosterService {
 
   /**
    * Concurrency-safe Accept / Decline response workflow with auto-cascade
+   * Supports queue-backed (FCFS / Sequential) roles as well as direct plan/runSheet assignments.
    */
   async respondToAssignment(
     churchId: string,
@@ -1980,18 +1981,208 @@ class ServiceRosterService {
     reason?: string,
     candidateName?: string
   ): Promise<void> {
-    const queueRef = this.getAssignmentQueuesCol(churchId, serviceId).doc(roleId);
     const planRef = this.getServicePlansCol(churchId).doc(serviceId);
+    const safeRoleId = (roleId || 'role').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const cleanRoleId = (roleId || '').replace(/^(role_)?(act_)+/, '');
+    const candidateQueueIds = Array.from(
+      new Set(
+        [
+          roleId,
+          safeRoleId,
+          cleanRoleId,
+          cleanRoleId ? `act_${cleanRoleId}` : '',
+        ].filter(Boolean)
+      )
+    );
+    const candidateQueueRefs = candidateQueueIds.map((id) =>
+      this.getAssignmentQueuesCol(churchId, serviceId).doc(id)
+    );
+
+    const buildSyncedRunSheet = (
+      planData: ServicePlan | undefined,
+      nextStatus: 'confirmed' | 'pending' | 'declined',
+      nextMemberId: string,
+      nextMemberName: string
+    ) => {
+      if (!planData?.runSheet || planData.runSheet.length === 0) return undefined;
+      let changed = false;
+      const updatedRunSheet = planData.runSheet.map((item) => {
+        const itemClean = (item.id || '').replace(/^(act_)+/, '');
+        const isMatch =
+          item.id === roleId ||
+          item.id === safeRoleId ||
+          (cleanRoleId &&
+            (item.id === cleanRoleId ||
+              item.id === `act_${cleanRoleId}` ||
+              itemClean === cleanRoleId));
+        if (!isMatch) return item;
+        changed = true;
+        return {
+          ...item,
+          responsibleMemberId: nextMemberId,
+          responsiblePerson: nextMemberName,
+          assignmentStatus: nextStatus,
+        };
+      });
+      return changed ? updatedRunSheet : undefined;
+    };
 
     await firestore().runTransaction(async (transaction: any) => {
-      const qSnap = await transaction.get(queueRef);
-      if (!this.docExists(qSnap)) {
-        throw new Error('Assignment queue not found for this role.');
+      // Perform all Firestore transaction reads before any writes
+      const planSnap = await transaction.get(planRef);
+      const qSnaps = await Promise.all(candidateQueueRefs.map((ref) => transaction.get(ref)));
+      const matchedIdx = qSnaps.findIndex((snap) => this.docExists(snap));
+      const planData = this.docExists(planSnap) ? (planSnap.data() as ServicePlan) : undefined;
+      const nowIso = new Date().toISOString();
+
+      // ─────────────────────────────────────────────────────────────────────────
+      // 0. DIRECT PLAN / RUNSHEET ASSIGNMENT FALLBACK (No assignmentQueue doc)
+      // ─────────────────────────────────────────────────────────────────────────
+      const handleDirectPlanResponse = (fallbackKey?: string) => {
+        if (!planData) {
+          throw new Error('Service plan not found for this role.');
+        }
+
+        const matchedRunSheet = (planData.runSheet || []).find((item) => {
+          const itemClean = (item.id || '').replace(/^(act_)+/, '');
+          return (
+            item.id === roleId ||
+            item.id === safeRoleId ||
+            (cleanRoleId &&
+              (item.id === cleanRoleId ||
+                item.id === `act_${cleanRoleId}` ||
+                itemClean === cleanRoleId))
+          );
+        });
+
+        const matchedPlanKey =
+          candidateQueueIds.find(
+            (k) =>
+              planData.assignmentMemberIds?.[k] !== undefined ||
+              planData.assignments?.[k] !== undefined ||
+              planData.assignmentStatus?.[k] !== undefined
+          ) || fallbackKey;
+
+        if (!matchedRunSheet && !matchedPlanKey) {
+          throw new Error('Assignment queue not found for this role.');
+        }
+
+        const planRoleKey = matchedPlanKey || matchedRunSheet?.id || safeRoleId;
+        const safeQueueDocId = (planRoleKey || safeRoleId).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const directQueueRef = this.getAssignmentQueuesCol(churchId, serviceId).doc(safeQueueDocId);
+
+        const resolvedId =
+          candidateId ||
+          planData.assignmentMemberIds?.[planRoleKey] ||
+          matchedRunSheet?.responsibleMemberId ||
+          '';
+        const resolvedName =
+          candidateName ||
+          planData.assignments?.[planRoleKey] ||
+          matchedRunSheet?.responsiblePerson ||
+          'Volunteer';
+        const resolvedTitle = matchedRunSheet?.program || planRoleKey;
+
+        if (action === 'accept') {
+          const planUpdates: Record<string, any> = {
+            [`assignments.${planRoleKey}`]: resolvedName,
+            [`assignmentMemberIds.${planRoleKey}`]: resolvedId,
+            [`assignmentStatus.${planRoleKey}`]: 'confirmed',
+            updatedAt: firestore.FieldValue.serverTimestamp(),
+          };
+          const syncedRunSheet = buildSyncedRunSheet(planData, 'confirmed', resolvedId, resolvedName);
+          if (syncedRunSheet) {
+            planUpdates.runSheet = syncedRunSheet;
+          }
+          transaction.update(planRef, this.sanitizeForFirestore(planUpdates));
+          transaction.set(
+            directQueueRef,
+            this.sanitizeForFirestore({
+              id: safeQueueDocId,
+              serviceId,
+              churchId,
+              roleId: planRoleKey,
+              roleTitle: resolvedTitle,
+              status: 'confirmed',
+              confirmedCandidateId: resolvedId,
+              confirmedCandidateName: resolvedName,
+              bookedAt: nowIso,
+              candidates: [
+                {
+                  candidateId: resolvedId,
+                  candidateName: resolvedName,
+                  status: 'accepted',
+                  respondedAt: nowIso,
+                },
+              ],
+              history: firestore.FieldValue.arrayUnion({
+                timestamp: nowIso,
+                action: 'direct_assignment_accepted',
+                candidateId: resolvedId,
+                candidateName: resolvedName,
+                details: `Confirmed as ${resolvedTitle}`,
+              }),
+              createdAt: firestore.FieldValue.serverTimestamp(),
+              updatedAt: firestore.FieldValue.serverTimestamp(),
+            }),
+            { merge: true }
+          );
+        } else {
+          const planUpdates: Record<string, any> = {
+            [`assignments.${planRoleKey}`]: firestore.FieldValue.delete(),
+            [`assignmentMemberIds.${planRoleKey}`]: firestore.FieldValue.delete(),
+            [`assignmentStatus.${planRoleKey}`]: 'declined',
+            updatedAt: firestore.FieldValue.serverTimestamp(),
+          };
+          const syncedRunSheet = buildSyncedRunSheet(planData, 'declined', '', '');
+          if (syncedRunSheet) {
+            planUpdates.runSheet = syncedRunSheet;
+          }
+          transaction.update(planRef, this.sanitizeForFirestore(planUpdates));
+          transaction.set(
+            directQueueRef,
+            this.sanitizeForFirestore({
+              id: safeQueueDocId,
+              serviceId,
+              churchId,
+              roleId: planRoleKey,
+              roleTitle: resolvedTitle,
+              status: 'exhausted',
+              currentCandidateIndex: 0,
+              candidates: [
+                {
+                  candidateId: resolvedId,
+                  candidateName: resolvedName,
+                  status: 'declined',
+                  declineReason: reason || 'Unavailable',
+                  respondedAt: nowIso,
+                },
+              ],
+              history: firestore.FieldValue.arrayUnion({
+                timestamp: nowIso,
+                action: 'direct_assignment_declined',
+                candidateId: resolvedId,
+                candidateName: resolvedName,
+                details: `Declined: ${reason || 'Unavailable'}`,
+              }),
+              createdAt: firestore.FieldValue.serverTimestamp(),
+              updatedAt: firestore.FieldValue.serverTimestamp(),
+            }),
+            { merge: true }
+          );
+        }
+      };
+
+      if (matchedIdx === -1) {
+        handleDirectPlanResponse();
+        return;
       }
 
+      const queueRef = candidateQueueRefs[matchedIdx];
+      const resolvedRoleKey = candidateQueueIds[matchedIdx];
+      const qSnap = qSnaps[matchedIdx];
       const qData = qSnap.data() as ServiceAssignmentQueue;
       const candidates = [...(qData.candidates || [])];
-      const nowIso = new Date().toISOString();
 
       // ─────────────────────────────────────────────────────────────────────────
       // 1. FIRST-COME, FIRST-SERVED AUTOMATIC SLOT BOOKING
@@ -2059,12 +2250,17 @@ class ServiceRosterService {
             updatedAt: firestore.FieldValue.serverTimestamp()
           }));
 
-          transaction.update(planRef, this.sanitizeForFirestore({
-            [`assignments.${roleId}`]: resolvedName,
-            [`assignmentMemberIds.${roleId}`]: resolvedId,
-            [`assignmentStatus.${roleId}`]: 'confirmed',
+          const fcfsPlanUpdates: Record<string, any> = {
+            [`assignments.${resolvedRoleKey}`]: resolvedName,
+            [`assignmentMemberIds.${resolvedRoleKey}`]: resolvedId,
+            [`assignmentStatus.${resolvedRoleKey}`]: 'confirmed',
             updatedAt: firestore.FieldValue.serverTimestamp()
-          }));
+          };
+          const syncedRunSheet = buildSyncedRunSheet(planData, 'confirmed', resolvedId, resolvedName);
+          if (syncedRunSheet) {
+            fcfsPlanUpdates.runSheet = syncedRunSheet;
+          }
+          transaction.update(planRef, this.sanitizeForFirestore(fcfsPlanUpdates));
           return;
         } else {
           // Decline in FCFS mode
@@ -2116,12 +2312,17 @@ class ServiceRosterService {
               updatedAt: firestore.FieldValue.serverTimestamp()
             }));
 
-            transaction.update(planRef, this.sanitizeForFirestore({
-              [`assignments.${roleId}`]: firestore.FieldValue.delete(),
-              [`assignmentMemberIds.${roleId}`]: firestore.FieldValue.delete(),
-              [`assignmentStatus.${roleId}`]: 'pending',
+            const fcfsDeclinePlanUpdates: Record<string, any> = {
+              [`assignments.${resolvedRoleKey}`]: firestore.FieldValue.delete(),
+              [`assignmentMemberIds.${resolvedRoleKey}`]: firestore.FieldValue.delete(),
+              [`assignmentStatus.${resolvedRoleKey}`]: 'pending',
               updatedAt: firestore.FieldValue.serverTimestamp()
-            }));
+            };
+            const syncedRunSheet = buildSyncedRunSheet(planData, 'pending', '', '');
+            if (syncedRunSheet) {
+              fcfsDeclinePlanUpdates.runSheet = syncedRunSheet;
+            }
+            transaction.update(planRef, this.sanitizeForFirestore(fcfsDeclinePlanUpdates));
           } else {
             const allDeclined = updatedCandidates.length > 0 && updatedCandidates.every(c => c.status === 'declined');
             transaction.update(queueRef, this.sanitizeForFirestore({
@@ -2149,7 +2350,8 @@ class ServiceRosterService {
       const activeCandidate = candidates[curIdx];
 
       if (!activeCandidate) {
-        throw new Error('No active candidate in assignment queue.');
+        handleDirectPlanResponse(resolvedRoleKey);
+        return;
       }
 
       if (action === 'accept') {
@@ -2177,12 +2379,22 @@ class ServiceRosterService {
           updatedAt: firestore.FieldValue.serverTimestamp()
         }));
 
-        transaction.update(planRef, this.sanitizeForFirestore({
-          [`assignments.${roleId}`]: activeCandidate.candidateName || '',
-          [`assignmentMemberIds.${roleId}`]: activeCandidate.candidateId || '',
-          [`assignmentStatus.${roleId}`]: 'confirmed',
+        const seqAcceptUpdates: Record<string, any> = {
+          [`assignments.${resolvedRoleKey}`]: activeCandidate.candidateName || '',
+          [`assignmentMemberIds.${resolvedRoleKey}`]: activeCandidate.candidateId || '',
+          [`assignmentStatus.${resolvedRoleKey}`]: 'confirmed',
           updatedAt: firestore.FieldValue.serverTimestamp()
-        }));
+        };
+        const syncedRunSheet = buildSyncedRunSheet(
+          planData,
+          'confirmed',
+          activeCandidate.candidateId || '',
+          activeCandidate.candidateName || ''
+        );
+        if (syncedRunSheet) {
+          seqAcceptUpdates.runSheet = syncedRunSheet;
+        }
+        transaction.update(planRef, this.sanitizeForFirestore(seqAcceptUpdates));
       } else {
         // Decline and auto-cascade to next candidate in queue
         candidates[curIdx] = {
@@ -2221,12 +2433,22 @@ class ServiceRosterService {
             updatedAt: firestore.FieldValue.serverTimestamp()
           }));
 
-          transaction.update(planRef, this.sanitizeForFirestore({
-            [`assignments.${roleId}`]: nextCand?.candidateName || '',
-            [`assignmentMemberIds.${roleId}`]: nextCand?.candidateId || '',
-            [`assignmentStatus.${roleId}`]: 'pending',
+          const seqCascadeUpdates: Record<string, any> = {
+            [`assignments.${resolvedRoleKey}`]: nextCand?.candidateName || '',
+            [`assignmentMemberIds.${resolvedRoleKey}`]: nextCand?.candidateId || '',
+            [`assignmentStatus.${resolvedRoleKey}`]: 'pending',
             updatedAt: firestore.FieldValue.serverTimestamp()
-          }));
+          };
+          const syncedRunSheet = buildSyncedRunSheet(
+            planData,
+            'pending',
+            nextCand?.candidateId || '',
+            nextCand?.candidateName || ''
+          );
+          if (syncedRunSheet) {
+            seqCascadeUpdates.runSheet = syncedRunSheet;
+          }
+          transaction.update(planRef, this.sanitizeForFirestore(seqCascadeUpdates));
         } else {
           // All candidates exhausted!
           const historyEntry = {
@@ -2244,13 +2466,22 @@ class ServiceRosterService {
             updatedAt: firestore.FieldValue.serverTimestamp()
           }));
 
-          transaction.update(planRef, this.sanitizeForFirestore({
-            [`assignmentStatus.${roleId}`]: 'declined',
+          const seqExhaustedUpdates: Record<string, any> = {
+            [`assignments.${resolvedRoleKey}`]: firestore.FieldValue.delete(),
+            [`assignmentMemberIds.${resolvedRoleKey}`]: firestore.FieldValue.delete(),
+            [`assignmentStatus.${resolvedRoleKey}`]: 'declined',
             updatedAt: firestore.FieldValue.serverTimestamp()
-          }));
+          };
+          const syncedRunSheet = buildSyncedRunSheet(planData, 'declined', '', '');
+          if (syncedRunSheet) {
+            seqExhaustedUpdates.runSheet = syncedRunSheet;
+          }
+          transaction.update(planRef, this.sanitizeForFirestore(seqExhaustedUpdates));
         }
       }
     });
+
+    this._plansCache.delete(this.requireChurchId(churchId));
   }
 
   /**
@@ -3080,7 +3311,7 @@ class ServiceRosterService {
         (plan.runSheet || []).forEach(item => {
           const isAssigned = item.responsibleMemberId === memberId ||
             (memberName && item.responsiblePerson && item.responsiblePerson.toLowerCase().trim() === memberName.toLowerCase().trim());
-          if (isAssigned) {
+          if (isAssigned && item.assignmentStatus !== 'declined') {
             duties.push({
               id: `${plan.id}_${item.id}`,
               serviceId: plan.id,
@@ -3219,6 +3450,7 @@ class ServiceRosterService {
 
         if (plan.assignmentMemberIds) {
           for (const [rId, mId] of Object.entries(plan.assignmentMemberIds)) {
+            if (plan.assignmentStatus?.[rId] === 'declined') continue;
             const isAssignedBand = mId === memberId ||
               (memberName && plan.assignments?.[rId] && plan.assignments[rId].toLowerCase().trim() === memberName.toLowerCase().trim());
             if (isAssignedBand && !duties.some(d => d.roleId === rId && d.serviceId === plan.id)) {
@@ -3247,6 +3479,7 @@ class ServiceRosterService {
 
         if (plan.assignments && memberName) {
           for (const [rId, name] of Object.entries(plan.assignments)) {
+            if (plan.assignmentStatus?.[rId] === 'declined') continue;
             if (name && name.toLowerCase().trim() === memberName.toLowerCase().trim() && !duties.some(d => d.roleId === rId && d.serviceId === plan.id)) {
               const rTitle = resolveRoleTitle(rId);
               duties.push({
