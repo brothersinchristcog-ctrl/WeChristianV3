@@ -39,7 +39,6 @@ import {
   Sparkles,
   Info,
   Check,
-  RefreshCw,
   Briefcase,
   Layers,
   Send,
@@ -48,7 +47,6 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useChurch } from '../../context/ChurchContext';
 import { AdminTabContext } from '../../context/AdminTabContext';
-import { useAdminTheme, createAdminThemedStyles } from '../../utils/adminThemeHelper';
 import VolunteerService from '../../services/VolunteerService';
 import { VolunteerApplication, VolunteerStatus, VolunteerType } from '../../types/volunteer';
 import { formatDateMonthYear, formatTimeTo12Hour } from '../../utils/DateUtils';
@@ -60,16 +58,6 @@ type TabType = 'general' | 'event';
 type StatusFilter = 'all' | 'pending' | 'approved' | 'rejected';
 
 export default function AdminVolunteerManagement({ navigation, route, routeParams }: any) {
-  const {
-    isDark,
-    colors: adminColors,
-    screenBg,
-    cardSurface,
-    primaryText,
-    secondaryText,
-    borderColor: adminBorderColor,
-  } = useAdminTheme();
-
   const { user, member } = useAuth();
   const { activeChurch } = useChurch();
   const { setActiveTab } = useContext(AdminTabContext) || {};
@@ -402,13 +390,13 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             style={[
               styles.statusBadge,
               {
-                backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#DCFCE7',
-                borderColor: isDark ? 'rgba(16, 185, 129, 0.35)' : '#BBF7D0',
+                backgroundColor: '#DCFCE7',
+                borderColor: '#BBF7D0',
               },
             ]}
           >
-            <CheckCircle2 size={11} color={isDark ? '#34D399' : '#15803D'} style={{ marginRight: 3 }} />
-            <Text style={[styles.statusTxt, { color: isDark ? '#34D399' : '#15803D' }]}>APPROVED</Text>
+            <CheckCircle2 size={11} color="#15803D" style={{ marginRight: 3 }} />
+            <Text style={[styles.statusTxt, { color: '#15803D' }]}>APPROVED</Text>
           </View>
         );
       case 'rejected':
@@ -417,13 +405,13 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             style={[
               styles.statusBadge,
               {
-                backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2',
-                borderColor: isDark ? 'rgba(239, 68, 68, 0.35)' : '#FECACA',
+                backgroundColor: '#FEE2E2',
+                borderColor: '#FECACA',
               },
             ]}
           >
-            <XCircle size={11} color={isDark ? '#F87171' : '#B91C1C'} style={{ marginRight: 3 }} />
-            <Text style={[styles.statusTxt, { color: isDark ? '#F87171' : '#B91C1C' }]}>DECLINED</Text>
+            <XCircle size={11} color="#B91C1C" style={{ marginRight: 3 }} />
+            <Text style={[styles.statusTxt, { color: '#B91C1C' }]}>DECLINED</Text>
           </View>
         );
       case 'withdrawn':
@@ -432,13 +420,13 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             style={[
               styles.statusBadge,
               {
-                backgroundColor: isDark ? 'rgba(148, 163, 184, 0.15)' : '#F1F5F9',
-                borderColor: isDark ? 'rgba(148, 163, 184, 0.35)' : '#E2E8F0',
+                backgroundColor: '#F1F5F9',
+                borderColor: '#E2E8F0',
               },
             ]}
           >
-            <AlertCircle size={11} color={isDark ? '#94A3B8' : '#64748B'} style={{ marginRight: 3 }} />
-            <Text style={[styles.statusTxt, { color: isDark ? '#94A3B8' : '#64748B' }]}>WITHDRAWN</Text>
+            <AlertCircle size={11} color="#64748B" style={{ marginRight: 3 }} />
+            <Text style={[styles.statusTxt, { color: '#64748B' }]}>WITHDRAWN</Text>
           </View>
         );
       default:
@@ -447,71 +435,50 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             style={[
               styles.statusBadge,
               {
-                backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FEF3C7',
-                borderColor: isDark ? 'rgba(245, 158, 11, 0.35)' : '#FDE68A',
+                backgroundColor: '#FEF3C7',
+                borderColor: '#FDE68A',
               },
             ]}
           >
-            <Clock size={11} color={isDark ? '#FBBF24' : '#D97706'} style={{ marginRight: 3 }} />
-            <Text style={[styles.statusTxt, { color: isDark ? '#FBBF24' : '#D97706' }]}>PENDING</Text>
+            <Clock size={11} color="#D97706" style={{ marginRight: 3 }} />
+            <Text style={[styles.statusTxt, { color: '#D97706' }]}>PENDING</Text>
           </View>
         );
     }
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#09090B' : '#f0f2f7' }]}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" />
 
       {/* ── Hero Section (Standardized with WeChristian Admin Dashboard tabs) ── */}
       <View style={styles.hero}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', flexShrink: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1, paddingRight: 4 }}>
             <TouchableOpacity
               onPress={() => (setActiveTab ? setActiveTab(0) : navigation?.goBack?.())}
-              style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
+              <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 2 }} />
               <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
             </TouchableOpacity>
-            <Text style={[styles.heroTitle, { marginHorizontal: 12, opacity: 0.4 }]}>|</Text>
-            <View style={{ flexShrink: 1 }}>
-              <Text style={styles.heroTitle} numberOfLines={1}>Volunteer Management</Text>
-              <Text style={[styles.heroSub, { marginTop: 2 }]} numberOfLines={1}>
-                {applications.length} total · {stats.pending} pending review
-              </Text>
-            </View>
+            <Text style={[styles.heroTitle, { marginHorizontal: 8, opacity: 0.4 }]}>|</Text>
+            <Text style={[styles.heroTitle, { flexShrink: 1 }]} numberOfLines={1}>Volunteer Management</Text>
           </View>
-          <TouchableOpacity
-            style={styles.refreshHeroBtn}
-            onPress={() => fetchApplications()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <RefreshCw size={15} color="#fff" />
-          </TouchableOpacity>
         </View>
       </View>
 
-      {/* ── HIGH-END CATEGORY TABS: GENERAL vs EVENT VOLUNTEERS ── */}
+      {/* ── CATEGORY TABS: GENERAL vs EVENT VOLUNTEERS ── */}
       <View style={{ paddingHorizontal: 16, marginTop: 8, marginBottom: 8 }}>
-        <View
-          style={[
-            styles.segmentContainer,
-            {
-              backgroundColor: isDark ? '#18181B' : '#FFFFFF',
-              borderColor: isDark ? '#27272A' : '#E2E8F0',
-              borderWidth: 1,
-            },
-          ]}
-        >
+        <View style={styles.segmentContainer}>
           {/* General Church Tab */}
           <TouchableOpacity
             style={[
               styles.segmentBtn,
               activeSegment === 'general' && [
                 styles.segmentBtnActive,
-                { backgroundColor: isDark ? '#2563EB' : '#1A2D5A' },
+                { backgroundColor: '#1a2d5a' },
               ],
             ]}
             onPress={() => setActiveSegment('general')}
@@ -520,7 +487,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             <Text
               style={[
                 styles.segmentBtnTxt,
-                { color: isDark ? '#A1A1AA' : '#64748B' },
+                { color: '#64748B' },
                 activeSegment === 'general' && { color: '#FFFFFF', fontWeight: '800' },
               ]}
             >
@@ -532,9 +499,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                 {
                   backgroundColor:
                     activeSegment === 'general'
-                      ? 'rgba(255, 255, 255, 0.25)'
-                      : isDark
-                      ? '#27272A'
+                      ? 'rgba(255, 255, 255, 0.22)'
                       : '#F1F5F9',
                 },
               ]}
@@ -543,12 +508,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                 style={[
                   styles.segmentBadgeTxt,
                   {
-                    color:
-                      activeSegment === 'general'
-                        ? '#FFFFFF'
-                        : isDark
-                        ? '#CBD5E1'
-                        : '#475569',
+                    color: activeSegment === 'general' ? '#FFFFFF' : '#475569',
                   },
                 ]}
               >
@@ -563,7 +523,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
               styles.segmentBtn,
               activeSegment === 'event' && [
                 styles.segmentBtnActive,
-                { backgroundColor: isDark ? '#2563EB' : '#1A2D5A' },
+                { backgroundColor: '#1a2d5a' },
               ],
             ]}
             onPress={() => setActiveSegment('event')}
@@ -572,7 +532,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             <Text
               style={[
                 styles.segmentBtnTxt,
-                { color: isDark ? '#A1A1AA' : '#64748B' },
+                { color: '#64748B' },
                 activeSegment === 'event' && { color: '#FFFFFF', fontWeight: '800' },
               ]}
             >
@@ -584,9 +544,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                 {
                   backgroundColor:
                     activeSegment === 'event'
-                      ? 'rgba(255, 255, 255, 0.25)'
-                      : isDark
-                      ? '#27272A'
+                      ? 'rgba(255, 255, 255, 0.22)'
                       : '#F1F5F9',
                 },
               ]}
@@ -595,12 +553,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                 style={[
                   styles.segmentBadgeTxt,
                   {
-                    color:
-                      activeSegment === 'event'
-                        ? '#FFFFFF'
-                        : isDark
-                        ? '#CBD5E1'
-                        : '#475569',
+                    color: activeSegment === 'event' ? '#FFFFFF' : '#475569',
                   },
                 ]}
               >
@@ -621,32 +574,24 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
           <TouchableOpacity
             style={[
               styles.statCard,
-              { backgroundColor: isDark ? '#18181B' : '#FFFFFF', borderColor: isDark ? '#27272A' : '#E2E8F0' },
               statusFilter === 'all' && [
                 styles.activeStatCard,
                 {
-                  backgroundColor: isDark ? '#1E293B' : '#F8FAFC',
-                  borderColor: isDark ? '#60A5FA' : '#1A2D5A',
+                  backgroundColor: '#F8FAFC',
+                  borderColor: '#1a2d5a',
                 },
               ],
             ]}
             onPress={() => setStatusFilter('all')}
             activeOpacity={0.75}
           >
-            <Text
-              style={[
-                styles.statNum,
-                { color: isDark ? '#60A5FA' : '#1a2d5a' },
-                statusFilter === 'all' && { color: isDark ? '#93C5FD' : '#1A2D5A' },
-              ]}
-            >
+            <Text style={[styles.statNum, { color: '#1a2d5a' }]}>
               {activeSegment === 'general' ? stats.generalTotal : stats.eventTotal}
             </Text>
             <Text
               style={[
                 styles.statLbl,
-                { color: isDark ? '#A1A1AA' : '#64748B' },
-                statusFilter === 'all' && { color: isDark ? '#E2E8F0' : '#1A2D5A' },
+                { color: statusFilter === 'all' ? '#1a2d5a' : '#64748B' },
               ]}
             >
               ALL
@@ -656,12 +601,11 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
           <TouchableOpacity
             style={[
               styles.statCard,
-              { backgroundColor: isDark ? '#18181B' : '#FFFFFF', borderColor: isDark ? '#27272A' : '#E2E8F0' },
               statusFilter === 'pending' && [
                 styles.activeStatCard,
                 {
-                  backgroundColor: isDark ? '#261D0B' : '#FFFBEB',
-                  borderColor: isDark ? '#F59E0B' : '#D97706',
+                  backgroundColor: '#FFFBEB',
+                  borderColor: '#D97706',
                 },
               ],
             ]}
@@ -671,8 +615,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             <Text
               style={[
                 styles.statNum,
-                { color: isDark ? '#FBBF24' : '#D97706' },
-                statusFilter === 'pending' && { color: isDark ? '#FBBF24' : '#B45309' },
+                { color: statusFilter === 'pending' ? '#B45309' : '#D97706' },
               ]}
             >
               {stats.categoryPending}
@@ -680,8 +623,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             <Text
               style={[
                 styles.statLbl,
-                { color: isDark ? '#A1A1AA' : '#64748B' },
-                statusFilter === 'pending' && { color: isDark ? '#FDE68A' : '#B45309' },
+                { color: statusFilter === 'pending' ? '#B45309' : '#64748B' },
               ]}
             >
               PENDING
@@ -691,12 +633,11 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
           <TouchableOpacity
             style={[
               styles.statCard,
-              { backgroundColor: isDark ? '#18181B' : '#FFFFFF', borderColor: isDark ? '#27272A' : '#E2E8F0' },
               statusFilter === 'approved' && [
                 styles.activeStatCard,
                 {
-                  backgroundColor: isDark ? '#0B2920' : '#ECFDF5',
-                  borderColor: isDark ? '#10B981' : '#059669',
+                  backgroundColor: '#ECFDF5',
+                  borderColor: '#059669',
                 },
               ],
             ]}
@@ -706,8 +647,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             <Text
               style={[
                 styles.statNum,
-                { color: isDark ? '#34D399' : '#059669' },
-                statusFilter === 'approved' && { color: isDark ? '#34D399' : '#047857' },
+                { color: statusFilter === 'approved' ? '#047857' : '#059669' },
               ]}
             >
               {stats.categoryApproved}
@@ -715,8 +655,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             <Text
               style={[
                 styles.statLbl,
-                { color: isDark ? '#A1A1AA' : '#64748B' },
-                statusFilter === 'approved' && { color: isDark ? '#A7F3D0' : '#047857' },
+                { color: statusFilter === 'approved' ? '#047857' : '#64748B' },
               ]}
             >
               APPROVED
@@ -726,12 +665,11 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
           <TouchableOpacity
             style={[
               styles.statCard,
-              { backgroundColor: isDark ? '#18181B' : '#FFFFFF', borderColor: isDark ? '#27272A' : '#E2E8F0' },
               statusFilter === 'rejected' && [
                 styles.activeStatCard,
                 {
-                  backgroundColor: isDark ? '#2A1215' : '#FEF2F2',
-                  borderColor: isDark ? '#EF4444' : '#DC2626',
+                  backgroundColor: '#FEF2F2',
+                  borderColor: '#DC2626',
                 },
               ],
             ]}
@@ -741,8 +679,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             <Text
               style={[
                 styles.statNum,
-                { color: isDark ? '#F87171' : '#DC2626' },
-                statusFilter === 'rejected' && { color: isDark ? '#F87171' : '#B91C1C' },
+                { color: statusFilter === 'rejected' ? '#B91C1C' : '#DC2626' },
               ]}
             >
               {stats.categoryRejected}
@@ -750,8 +687,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             <Text
               style={[
                 styles.statLbl,
-                { color: isDark ? '#A1A1AA' : '#64748B' },
-                statusFilter === 'rejected' && { color: isDark ? '#FECACA' : '#991B1B' },
+                { color: statusFilter === 'rejected' ? '#991B1B' : '#64748B' },
               ]}
             >
               DECLINED
@@ -761,30 +697,22 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
       </View>
 
       {/* ── SEARCH INPUT BAR ── */}
-      <View
-        style={[
-          styles.searchBar,
-          {
-            backgroundColor: isDark ? '#18181B' : '#FFFFFF',
-            borderColor: isDark ? '#27272A' : '#E2E8F0',
-          },
-        ]}
-      >
-        <Search size={18} color={isDark ? '#71717A' : '#94A3B8'} style={{ marginRight: 8 }} />
+      <View style={styles.searchBar}>
+        <Search size={18} color="#94A3B8" style={{ marginRight: 8 }} />
         <TextInput
           placeholder={
             activeSegment === 'general'
               ? 'Search by member name, mobile, ministry...'
               : 'Search by member name, event, role...'
           }
-          placeholderTextColor={isDark ? '#71717A' : '#94A3B8'}
-          style={[styles.searchInput, { color: isDark ? '#FFFFFF' : '#1E293B' }]}
+          placeholderTextColor="#94A3B8"
+          style={styles.searchInput}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
         {searchQuery ? (
           <TouchableOpacity onPress={() => setSearchQuery('')}>
-            <X size={16} color={isDark ? '#71717A' : '#94A3B8'} />
+            <X size={16} color="#94A3B8" />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -793,27 +721,28 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
       <ScrollView
         style={styles.listContainer}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 100 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchApplications()} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => fetchApplications()}
+            colors={['#1a2d5a']}
+          />
+        }
       >
         {loading ? (
           <View style={{ paddingVertical: 50, alignItems: 'center' }}>
             <ActivityIndicator size="large" color="#1a2d5a" />
-            <Text style={{ marginTop: 12, color: isDark ? '#A1A1AA' : '#64748B', fontSize: 13 }}>
+            <Text style={{ marginTop: 12, color: '#64748B', fontSize: 13 }}>
               Loading volunteer applications...
             </Text>
           </View>
         ) : filteredApps.length === 0 ? (
-          <View
-            style={[
-              styles.emptyView,
-              { backgroundColor: isDark ? '#18181B' : '#FFFFFF', borderColor: isDark ? '#27272A' : '#E2E8F0' },
-            ]}
-          >
-            <HeartHandshake size={44} color={isDark ? '#3F3F46' : '#CBD5E1'} />
-            <Text style={[styles.emptyText, { color: isDark ? '#FFFFFF' : '#1E293B' }]}>
+          <View style={styles.emptyView}>
+            <HeartHandshake size={44} color="#CBD5E1" />
+            <Text style={styles.emptyText}>
               No volunteer applications match the filter.
             </Text>
-            <Text style={{ fontSize: 12, color: isDark ? '#A1A1AA' : '#64748B', textAlign: 'center', marginTop: 4 }}>
+            <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center', marginTop: 4 }}>
               {activeSegment === 'general'
                 ? 'Applications submitted for general church volunteering will appear here.'
                 : 'Applications submitted for specific church events will appear here.'}
@@ -833,10 +762,6 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                   key={app.id}
                   style={[
                     styles.memberCard,
-                    {
-                      backgroundColor: isDark ? '#18181B' : '#FFFFFF',
-                      borderColor: isDark ? '#27272A' : 'rgba(26,45,90,0.08)',
-                    },
                     isExpanded && {
                       borderColor: '#059669',
                       borderWidth: 1.5,
@@ -859,21 +784,21 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                                 width: 34,
                                 height: 34,
                                 borderRadius: 10,
-                                backgroundColor: isDark ? 'rgba(2, 132, 199, 0.18)' : '#E0F2FE',
+                                backgroundColor: '#E0F2FE',
                                 borderWidth: 1,
-                                borderColor: isDark ? 'rgba(56, 189, 248, 0.32)' : '#BAE6FD',
+                                borderColor: '#BAE6FD',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                               }}
                             >
-                              <Calendar size={16} color={isDark ? '#38BDF8' : '#0284C7'} />
+                              <Calendar size={16} color="#0284C7" />
                             </View>
                             <Text
                               style={{
                                 flex: 1,
                                 fontSize: 15.5,
                                 fontWeight: '800',
-                                color: isDark ? '#FFFFFF' : '#1a2d5a',
+                                color: '#1a2d5a',
                                 lineHeight: 20,
                               }}
                               numberOfLines={2}
@@ -886,9 +811,9 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                             {renderStatusBadge(app.status)}
                             <View style={styles.chevronWrap}>
                               {isExpanded ? (
-                                <ChevronUp size={16} color={isDark ? '#A1A1AA' : '#64748B'} />
+                                <ChevronUp size={16} color="#64748B" />
                               ) : (
-                                <ChevronDown size={16} color={isDark ? '#A1A1AA' : '#64748B'} />
+                                <ChevronDown size={16} color="#64748B" />
                               )}
                             </View>
                           </View>
@@ -897,13 +822,13 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                         {/* 2. Volunteer Name & Submitted Date below Event Name */}
                         <View style={{ marginTop: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
-                            <User size={14} color={isDark ? '#A1A1AA' : '#64748B'} />
+                            <User size={14} color="#64748B" />
                             <Text
                               style={{
                                 flex: 1,
                                 fontSize: 14,
                                 fontWeight: '700',
-                                color: isDark ? '#F4F4F5' : '#0F172A',
+                                color: '#0F172A',
                               }}
                               numberOfLines={1}
                             >
@@ -914,7 +839,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                             style={{
                               fontSize: 11,
                               fontWeight: '600',
-                              color: isDark ? '#71717A' : '#94A3B8',
+                              color: '#94A3B8',
                               flexShrink: 0,
                             }}
                           >
@@ -929,20 +854,20 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                             paddingVertical: 6,
                             paddingHorizontal: 10,
                             borderRadius: 8,
-                            backgroundColor: isDark ? 'rgba(39, 39, 42, 0.85)' : '#F8FAFC',
+                            backgroundColor: '#F8FAFC',
                             borderWidth: 1,
-                            borderColor: isDark ? '#3F3F46' : '#E2E8F0',
+                            borderColor: '#E2E8F0',
                           }}
                         >
                           <Text
                             style={{
                               fontSize: 12.5,
                               fontWeight: '600',
-                              color: isDark ? '#A1A1AA' : '#475569',
+                              color: '#475569',
                             }}
                           >
                             Applied for the Role:{' '}
-                            <Text style={{ fontWeight: '800', color: isDark ? '#60A5FA' : '#0369A1' }}>
+                            <Text style={{ fontWeight: '800', color: '#0369A1' }}>
                               {app.preferredRole || 'Event Volunteer'}
                             </Text>
                           </Text>
@@ -969,12 +894,12 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                               paddingVertical: 2,
                             }}
                           >
-                            <Phone size={13} color={isDark ? '#34D399' : '#059669'} />
+                            <Phone size={13} color="#059669" />
                             <Text
                               style={{
                                 fontSize: 13,
                                 fontWeight: '700',
-                                color: isDark ? '#34D399' : '#059669',
+                                color: '#059669',
                                 textDecorationLine: 'underline',
                               }}
                             >
@@ -992,44 +917,25 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                         activeOpacity={0.8}
                       >
                         <View style={styles.profileSection}>
-                          <View
-                            style={[
-                              styles.avatar,
-                              { backgroundColor: isDark ? '#047857' : '#059669' },
-                            ]}
-                          >
+                          <View style={[styles.avatar, { backgroundColor: '#059669' }]}>
                             <Text style={styles.avatarTxt}>{initials}</Text>
                           </View>
 
                           <View style={styles.nameSection}>
                             <View style={styles.nameRow}>
-                              <Text
-                                style={[
-                                  styles.name,
-                                  { color: isDark ? '#FFFFFF' : '#1a2d5a' },
-                                ]}
-                                numberOfLines={1}
-                              >
+                              <Text style={[styles.name, { color: '#1a2d5a' }]} numberOfLines={1}>
                                 {app.memberName}
                               </Text>
                               {renderStatusBadge(app.status)}
                             </View>
 
                             <View style={styles.badgeRow}>
-                              <View
-                                style={[
-                                  styles.roleBadge,
-                                  {
-                                    backgroundColor: isDark ? '#27272A' : '#F9F6F0',
-                                    borderColor: isDark ? '#3F3F46' : '#E2DDD5',
-                                  },
-                                ]}
-                              >
-                                <Text style={[styles.roleTxt, { color: isDark ? '#60A5FA' : '#1a2d5a' }]}>
+                              <View style={styles.roleBadge}>
+                                <Text style={[styles.roleTxt, { color: '#1a2d5a' }]}>
                                   GENERAL CHURCH
                                 </Text>
                               </View>
-                              <Text style={{ fontSize: 11, color: isDark ? '#71717A' : '#94A3B8' }}>
+                              <Text style={{ fontSize: 11, color: '#94A3B8' }}>
                                 {app.createdAt?.toDate ? formatDateMonthYear(app.createdAt.toDate()) : 'Recent'}
                               </Text>
                               <View style={{ flex: 1 }} />
@@ -1038,23 +944,17 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                                   e.stopPropagation?.();
                                   promptDeleteApplication(app);
                                 }}
-                                style={[
-                                  styles.cardDeleteBtn,
-                                  {
-                                    backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
-                                    borderColor: isDark ? 'rgba(239, 68, 68, 0.25)' : '#FECACA',
-                                  },
-                                ]}
+                                style={styles.cardDeleteBtn}
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                                 activeOpacity={0.7}
                               >
-                                <Trash2 size={13} color={isDark ? '#F87171' : '#DC2626'} />
+                                <Trash2 size={13} color="#DC2626" />
                               </TouchableOpacity>
                               <View style={styles.chevronWrap}>
                                 {isExpanded ? (
-                                  <ChevronUp size={16} color={isDark ? '#A1A1AA' : '#64748B'} />
+                                  <ChevronUp size={16} color="#64748B" />
                                 ) : (
-                                  <ChevronDown size={16} color={isDark ? '#A1A1AA' : '#64748B'} />
+                                  <ChevronDown size={16} color="#64748B" />
                                 )}
                               </View>
                             </View>
@@ -1066,8 +966,8 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                       <View style={styles.contactDetails}>
                         {!!app.memberPhone && (
                           <View style={styles.contactRow}>
-                            <Phone size={12} color={isDark ? '#71717A' : '#6B7280'} />
-                            <Text style={[styles.contactTxt, { color: isDark ? '#A1A1AA' : '#6B7280' }]}>
+                            <Phone size={12} color="#6B7280" />
+                            <Text style={[styles.contactTxt, { color: '#6B7280' }]}>
                               {app.memberPhone}
                             </Text>
                             <TouchableOpacity
@@ -1094,7 +994,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                       {isEvent && (
                         <View
                           style={{
-                            backgroundColor: isDark ? '#27272A' : '#F8FAFC',
+                            backgroundColor: '#F8FAFC',
                             borderRadius: 10,
                             padding: 10,
                             marginBottom: 10,
@@ -1102,17 +1002,17 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                         >
                           <View style={{ flexDirection: 'row', gap: 12, flexWrap: 'wrap' }}>
                             {!!app.eventDate && (
-                              <Text style={{ fontSize: 11, color: isDark ? '#D4D4D8' : '#334155' }}>
+                              <Text style={{ fontSize: 11, color: '#334155' }}>
                                 📅 Date: <Text style={{ fontWeight: '700' }}>{formatDateMonthYear(app.eventDate)}</Text>
                               </Text>
                             )}
                             {!!app.eventTime && (
-                              <Text style={{ fontSize: 11, color: isDark ? '#D4D4D8' : '#334155' }}>
+                              <Text style={{ fontSize: 11, color: '#334155' }}>
                                 ⏰ Time: <Text style={{ fontWeight: '700' }}>{formatTimeTo12Hour(app.eventTime)}</Text>
                               </Text>
                             )}
                             {!!app.eventLocation && (
-                              <Text style={{ fontSize: 11, color: isDark ? '#D4D4D8' : '#334155' }}>
+                              <Text style={{ fontSize: 11, color: '#334155' }}>
                                 📍 Venue: <Text style={{ fontWeight: '700' }}>{app.eventLocation}</Text>
                               </Text>
                             )}
@@ -1130,13 +1030,13 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                                   <View
                                     key={idx}
                                     style={{
-                                      backgroundColor: isDark ? '#27272A' : '#F1F5F9',
+                                      backgroundColor: '#F1F5F9',
                                       paddingHorizontal: 8,
                                       paddingVertical: 4,
                                       borderRadius: 6,
                                     }}
                                   >
-                                    <Text style={{ fontSize: 11, fontWeight: '600', color: isDark ? '#FFFFFF' : '#1E293B' }}>
+                                    <Text style={{ fontSize: 11, fontWeight: '600', color: '#1E293B' }}>
                                       {min}
                                     </Text>
                                   </View>
@@ -1179,7 +1079,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                       {isApproved && (
                         <View
                           style={{
-                            backgroundColor: isDark ? '#064E3B20' : '#ECFDF5',
+                            backgroundColor: '#ECFDF5',
                             borderRadius: 10,
                             padding: 12,
                             borderWidth: 1,
@@ -1195,21 +1095,21 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                               <Text style={{ fontSize: 11, fontWeight: '800', color: '#059669' }}>Edit Duties</Text>
                             </TouchableOpacity>
                           </View>
-                          <Text style={{ fontSize: 13, fontWeight: '800', color: isDark ? '#FFFFFF' : '#0F172A', marginTop: 3 }}>
+                          <Text style={{ fontSize: 13, fontWeight: '800', color: '#0F172A', marginTop: 3 }}>
                             Role: {app.assignedRole || app.preferredRole || 'Assigned Volunteer'}
                           </Text>
                           {!!app.assignedTimeSlot && (
-                            <Text style={{ fontSize: 11, color: isDark ? '#D4D4D8' : '#334155', marginTop: 1 }}>
+                            <Text style={{ fontSize: 11, color: '#334155', marginTop: 1 }}>
                               ⏰ Reporting Time: {formatTimeTo12Hour(app.assignedTimeSlot)}
                             </Text>
                           )}
                           {!!app.assignedLocation && (
-                            <Text style={{ fontSize: 11, color: isDark ? '#D4D4D8' : '#334155', marginTop: 1 }}>
+                            <Text style={{ fontSize: 11, color: '#334155', marginTop: 1 }}>
                               📍 Duty Station: {app.assignedLocation}
                             </Text>
                           )}
                           {!!app.assignedResponsibility && (
-                            <Text style={{ fontSize: 11, color: isDark ? '#D4D4D8' : '#334155', marginTop: 2, fontStyle: 'italic' }}>
+                            <Text style={{ fontSize: 11, color: '#334155', marginTop: 2, fontStyle: 'italic' }}>
                               Duties: {app.assignedResponsibility}
                             </Text>
                           )}
@@ -1256,26 +1156,15 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
                       )}
 
                       {/* DELETE OPTION IN EXPANDED VIEW */}
-                      <View
-                        style={[
-                          styles.expandedDeleteRow,
-                          { borderTopColor: isDark ? '#27272A' : 'rgba(26,45,90,0.06)' },
-                        ]}
-                      >
+                      <View style={styles.expandedDeleteRow}>
                         <TouchableOpacity
-                          style={[
-                            styles.btnDeleteApp,
-                            {
-                              backgroundColor: isDark ? 'rgba(239, 68, 68, 0.12)' : '#FEF2F2',
-                              borderColor: isDark ? 'rgba(239, 68, 68, 0.25)' : '#FCA5A5',
-                            },
-                          ]}
+                          style={styles.btnDeleteApp}
                           onPress={() => promptDeleteApplication(app)}
                           disabled={actionLoading}
                           activeOpacity={0.7}
                         >
-                          <Trash2 size={13} color={isDark ? '#F87171' : '#DC2626'} />
-                          <Text style={[styles.btnDeleteAppTxt, { color: isDark ? '#F87171' : '#B91C1C' }]}>
+                          <Trash2 size={13} color="#DC2626" />
+                          <Text style={[styles.btnDeleteAppTxt, { color: '#B91C1C' }]}>
                             Delete Application
                           </Text>
                         </TouchableOpacity>
@@ -1295,12 +1184,10 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBackdrop}
         >
-          <View style={[styles.modalBox, { backgroundColor: isDark ? '#18181B' : '#FFFFFF' }]}>
+          <View style={styles.modalBox}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
-                  Approve Event Volunteer
-                </Text>
+                <Text style={styles.modalTitle}>Approve Event Volunteer</Text>
                 <Text style={styles.modalSub}>
                   For: {selectedApp?.memberName} · {selectedApp?.eventTitle}
                 </Text>
@@ -1313,7 +1200,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             <ScrollView style={{ maxHeight: 400 }}>
               <Text style={styles.fieldLabel}>ASSIGNED ROLE *</Text>
               <TextInput
-                style={[styles.modalInput, { color: isDark ? '#FFFFFF' : '#0F172A', borderColor: isDark ? '#27272A' : '#CBD5E1' }]}
+                style={styles.modalInput}
                 value={assignedRole}
                 onChangeText={setAssignedRole}
                 placeholder="e.g. Ushering Lead, Sound Engineer"
@@ -1322,7 +1209,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
 
               <Text style={styles.fieldLabel}>REPORTING TIME / TIME SLOT</Text>
               <TextInput
-                style={[styles.modalInput, { color: isDark ? '#FFFFFF' : '#0F172A', borderColor: isDark ? '#27272A' : '#CBD5E1' }]}
+                style={styles.modalInput}
                 value={assignedTimeSlot}
                 onChangeText={setAssignedTimeSlot}
                 placeholder="e.g. 8:30 AM – 11:30 AM (Please arrive 30 mins early)"
@@ -1331,7 +1218,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
 
               <Text style={styles.fieldLabel}>DUTY STATION / LOCATION</Text>
               <TextInput
-                style={[styles.modalInput, { color: isDark ? '#FFFFFF' : '#0F172A', borderColor: isDark ? '#27272A' : '#CBD5E1' }]}
+                style={styles.modalInput}
                 value={assignedLocation}
                 onChangeText={setAssignedLocation}
                 placeholder="e.g. Main Auditorium Entrance"
@@ -1340,10 +1227,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
 
               <Text style={styles.fieldLabel}>SPECIFIC TASKS & RESPONSIBILITIES</Text>
               <TextInput
-                style={[
-                  styles.modalInput,
-                  { color: isDark ? '#FFFFFF' : '#0F172A', borderColor: isDark ? '#27272A' : '#CBD5E1', height: 75, textAlignVertical: 'top' },
-                ]}
+                style={[styles.modalInput, { height: 75, textAlignVertical: 'top' }]}
                 value={assignedResponsibility}
                 onChangeText={setAssignedResponsibility}
                 placeholder="e.g. Welcome guests, hand out song booklets, guide families to seating."
@@ -1354,11 +1238,11 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
 
             <View style={styles.modalFooterRow}>
               <TouchableOpacity
-                style={[styles.modalCancelBtn, { borderColor: isDark ? '#27272A' : '#CBD5E1' }]}
+                style={styles.modalCancelBtn}
                 onPress={() => setShowApprovalModal(false)}
                 disabled={actionLoading}
               >
-                <Text style={{ color: isDark ? '#A1A1AA' : '#64748B', fontWeight: '700' }}>Cancel</Text>
+                <Text style={{ color: '#64748B', fontWeight: '700' }}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1386,15 +1270,11 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.modalBackdrop}
         >
-          <View style={[styles.modalBox, { backgroundColor: isDark ? '#18181B' : '#FFFFFF' }]}>
+          <View style={styles.modalBox}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
-                  Decline Application
-                </Text>
-                <Text style={styles.modalSub}>
-                  Applicant: {selectedApp?.memberName}
-                </Text>
+                <Text style={styles.modalTitle}>Decline Application</Text>
+                <Text style={styles.modalSub}>Applicant: {selectedApp?.memberName}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowRejectModal(false)} style={styles.modalCloseBtn}>
                 <X size={18} color="#64748B" />
@@ -1407,14 +1287,11 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
               contentContainerStyle={{ paddingBottom: 10 }}
             >
               <Text style={styles.fieldLabel}>REASON FOR NOT APPROVING (OPTIONAL)</Text>
-              <Text style={{ fontSize: 11, color: isDark ? '#A1A1AA' : '#64748B', marginBottom: 6 }}>
+              <Text style={{ fontSize: 11, color: '#64748B', marginBottom: 6 }}>
                 This reason will be included in the push notification sent to the member.
               </Text>
               <TextInput
-                style={[
-                  styles.modalInput,
-                  { color: isDark ? '#FFFFFF' : '#0F172A', borderColor: isDark ? '#27272A' : '#CBD5E1', minHeight: 90, textAlignVertical: 'top' },
-                ]}
+                style={[styles.modalInput, { minHeight: 90, textAlignVertical: 'top' }]}
                 value={rejectionReason}
                 onChangeText={setRejectionReason}
                 placeholder="e.g. Volunteer capacity reached for this event. Thank you for your willingness to serve!"
@@ -1425,11 +1302,11 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
 
             <View style={styles.modalFooterRow}>
               <TouchableOpacity
-                style={[styles.modalCancelBtn, { borderColor: isDark ? '#27272A' : '#CBD5E1' }]}
+                style={styles.modalCancelBtn}
                 onPress={() => setShowRejectModal(false)}
                 disabled={actionLoading}
               >
-                <Text style={{ color: isDark ? '#A1A1AA' : '#64748B', fontWeight: '700' }}>Cancel</Text>
+                <Text style={{ color: '#64748B', fontWeight: '700' }}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1454,15 +1331,11 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalBackdrop}
         >
-          <View style={[styles.modalBox, { backgroundColor: isDark ? '#18181B' : '#FFFFFF' }]}>
+          <View style={styles.modalBox}>
             <View style={styles.modalHeader}>
               <View>
-                <Text style={[styles.modalTitle, { color: isDark ? '#FFFFFF' : '#0F172A' }]}>
-                  Assign Volunteer Duties
-                </Text>
-                <Text style={styles.modalSub}>
-                  Volunteer: {selectedApp?.memberName}
-                </Text>
+                <Text style={styles.modalTitle}>Assign Volunteer Duties</Text>
+                <Text style={styles.modalSub}>Volunteer: {selectedApp?.memberName}</Text>
               </View>
               <TouchableOpacity onPress={() => setShowAssignModal(false)} style={styles.modalCloseBtn}>
                 <X size={18} color="#64748B" />
@@ -1472,7 +1345,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
             <ScrollView style={{ maxHeight: 380 }}>
               <Text style={styles.fieldLabel}>ASSIGNED ROLE *</Text>
               <TextInput
-                style={[styles.modalInput, { color: isDark ? '#FFFFFF' : '#0F172A', borderColor: isDark ? '#27272A' : '#CBD5E1' }]}
+                style={styles.modalInput}
                 value={assignedRole}
                 onChangeText={setAssignedRole}
                 placeholder="e.g. Head Usher"
@@ -1481,7 +1354,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
 
               <Text style={styles.fieldLabel}>TIME SLOT</Text>
               <TextInput
-                style={[styles.modalInput, { color: isDark ? '#FFFFFF' : '#0F172A', borderColor: isDark ? '#27272A' : '#CBD5E1' }]}
+                style={styles.modalInput}
                 value={assignedTimeSlot}
                 onChangeText={setAssignedTimeSlot}
                 placeholder="e.g. 9:00 AM – 12:00 PM"
@@ -1490,7 +1363,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
 
               <Text style={styles.fieldLabel}>LOCATION</Text>
               <TextInput
-                style={[styles.modalInput, { color: isDark ? '#FFFFFF' : '#0F172A', borderColor: isDark ? '#27272A' : '#CBD5E1' }]}
+                style={styles.modalInput}
                 value={assignedLocation}
                 onChangeText={setAssignedLocation}
                 placeholder="e.g. Front Gate / Welcome Desk"
@@ -1499,10 +1372,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
 
               <Text style={styles.fieldLabel}>SPECIFIC RESPONSIBILITIES</Text>
               <TextInput
-                style={[
-                  styles.modalInput,
-                  { color: isDark ? '#FFFFFF' : '#0F172A', borderColor: isDark ? '#27272A' : '#CBD5E1', height: 75, textAlignVertical: 'top' },
-                ]}
+                style={[styles.modalInput, { height: 75, textAlignVertical: 'top' }]}
                 value={assignedResponsibility}
                 onChangeText={setAssignedResponsibility}
                 placeholder="Tasks and duties for this volunteer..."
@@ -1513,11 +1383,11 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
 
             <View style={styles.modalFooterRow}>
               <TouchableOpacity
-                style={[styles.modalCancelBtn, { borderColor: isDark ? '#27272A' : '#CBD5E1' }]}
+                style={styles.modalCancelBtn}
                 onPress={() => setShowAssignModal(false)}
                 disabled={actionLoading}
               >
-                <Text style={{ color: isDark ? '#A1A1AA' : '#64748B', fontWeight: '700' }}>Cancel</Text>
+                <Text style={{ color: '#64748B', fontWeight: '700' }}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -1547,477 +1417,496 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
   );
 }
 
-const styles = createAdminThemedStyles(
-  StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    circularBackBtn: {
-      width: 40,
-      height: 40,
-      borderRadius: 20,
-      justifyContent: 'center',
-      alignItems: 'center',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 1 },
-      shadowOpacity: 0.05,
-      shadowRadius: 2,
-      elevation: 1,
-    },
-    hero: {
-      backgroundColor: '#1a2d5a',
-      borderBottomLeftRadius: 18,
-      borderBottomRightRadius: 18,
-      paddingHorizontal: 16,
-      paddingTop: 8,
-      paddingBottom: 14,
-      marginBottom: 10,
-      overflow: 'visible',
-      position: 'relative',
-    },
-    heroTitle: {
-      color: '#fff',
-      fontSize: 20,
-      fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-      fontWeight: '600',
-      letterSpacing: -0.5,
-    },
-    heroSub: {
-      color: '#AEB8D4',
-      fontSize: 13,
-    },
-    refreshHeroBtn: {
-      backgroundColor: 'rgba(255,255,255,0.15)',
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginTop: 4,
-    },
-    statsRow: {
-      flexDirection: 'row',
-      gap: 8,
-      paddingHorizontal: 16,
-      paddingVertical: 2,
-    },
-    statCard: {
-      borderRadius: 12,
-      paddingVertical: 10,
-      paddingHorizontal: 16,
-      alignItems: 'center',
-      borderWidth: 1,
-      minWidth: 84,
-    },
-    activeStatCard: {
-      borderColor: '#1a2d5a',
-      borderWidth: 1.5,
-      backgroundColor: '#F8FAFC',
-    },
-    statNum: {
-      fontSize: 20,
-      fontWeight: '800',
-      fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    },
-    statLbl: {
-      fontSize: 10,
-      fontWeight: '700',
-      marginTop: 2,
-      letterSpacing: 0.5,
-    },
-    segmentContainer: {
-      flexDirection: 'row',
-      borderRadius: 14,
-      padding: 4,
-      shadowColor: '#1a2d5a',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.05,
-      shadowRadius: 5,
-      elevation: 2,
-    },
-    segmentBtn: {
-      flex: 1,
-      paddingVertical: 9,
-      paddingHorizontal: 8,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 10,
-      flexDirection: 'row',
-      gap: 6,
-    },
-    segmentBtnActive: {
-      elevation: 3,
-      shadowColor: '#1a2d5a',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.25,
-      shadowRadius: 4,
-    },
-    segmentBtnTxt: {
-      fontSize: 13,
-      fontWeight: '600',
-      letterSpacing: -0.2,
-    },
-    segmentBadge: {
-      paddingHorizontal: 7,
-      paddingVertical: 2,
-      borderRadius: 12,
-      minWidth: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    segmentBadgeTxt: {
-      fontSize: 11,
-      fontWeight: '800',
-    },
-    searchBar: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginHorizontal: 16,
-      marginBottom: 10,
-      paddingHorizontal: 14,
-      borderRadius: 12,
-      height: 44,
-      borderWidth: 1.5,
-    },
-    searchInput: {
-      flex: 1,
-      fontSize: 13,
-      padding: 0,
-    },
-    listContainer: {
-      flex: 1,
-    },
-    emptyView: {
-      paddingVertical: 60,
-      paddingHorizontal: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderRadius: 16,
-      borderWidth: 1,
-      marginTop: 10,
-    },
-    emptyText: {
-      fontSize: 15,
-      fontWeight: '700',
-      marginTop: 10,
-      textAlign: 'center',
-    },
-    membersList: {
-      gap: 12,
-      paddingBottom: 20,
-    },
-    memberCard: {
-      borderRadius: 14,
-      borderWidth: 1,
-      padding: 14,
-      shadowColor: '#1a2d5a',
-      shadowOpacity: 0.05,
-      shadowRadius: 6,
-      shadowOffset: { width: 0, height: 2 },
-      elevation: 2,
-    },
-    cardHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-    },
-    profileSection: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: 12,
-    },
-    avatar: {
-      width: 46,
-      height: 46,
-      borderRadius: 12,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    avatarTxt: {
-      color: '#FFFFFF',
-      fontSize: 16,
-      fontWeight: '800',
-    },
-    nameSection: {
-      flex: 1,
-      flexDirection: 'column',
-      gap: 3,
-    },
-    nameRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 8,
-    },
-    name: {
-      flex: 1,
-      fontSize: 15,
-      fontWeight: '800',
-    },
-    badgeRow: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 6,
-      alignItems: 'center',
-      marginTop: 2,
-    },
-    roleBadge: {
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 6,
-      borderWidth: 1,
-    },
-    roleTxt: {
-      fontSize: 9,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      letterSpacing: 0.3,
-    },
-    statusBadge: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: 8,
-      paddingVertical: 3,
-      borderRadius: 6,
-      borderWidth: 1,
-    },
-    statusTxt: {
-      fontSize: 9,
-      fontWeight: '800',
-      letterSpacing: 0.3,
-    },
-    cardHeaderRight: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-    },
-    cardDeleteBtn: {
-      width: 26,
-      height: 26,
-      borderRadius: 13,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-    },
-    chevronWrap: {
-      width: 20,
-      height: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    contactDetails: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: 12,
-      marginTop: 10,
-      alignItems: 'center',
-    },
-    contactRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    contactTxt: {
-      fontSize: 12,
-      fontWeight: '600',
-    },
-    expandedContent: {
-      marginTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(26,45,90,0.08)',
-      paddingTop: 12,
-    },
-    sectionHeading: {
-      fontSize: 10,
-      fontWeight: '800',
-      color: '#64748B',
-      letterSpacing: 0.8,
-      marginBottom: 6,
-    },
-    notesBox: {
-      backgroundColor: '#F8FAFC',
-      borderRadius: 10,
-      padding: 10,
-      borderWidth: 1,
-      borderColor: '#E2E8F0',
-      marginBottom: 10,
-    },
-    notesBoxLabel: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: '#64748B',
-      marginBottom: 3,
-      textTransform: 'uppercase',
-      letterSpacing: 0.3,
-    },
-    notesBoxText: {
-      fontSize: 12,
-      color: '#334155',
-      lineHeight: 17,
-      fontStyle: 'italic',
-    },
-    reasonBox: {
-      backgroundColor: '#FEF2F2',
-      borderRadius: 10,
-      padding: 10,
-      borderWidth: 1,
-      borderColor: '#FCA5A5',
-      marginBottom: 10,
-    },
-    reasonBoxLabel: {
-      fontSize: 10,
-      fontWeight: '700',
-      color: '#991B1B',
-      marginBottom: 3,
-      textTransform: 'uppercase',
-      letterSpacing: 0.3,
-    },
-    reasonBoxText: {
-      fontSize: 12,
-      color: '#991B1B',
-      lineHeight: 17,
-    },
-    actionBtnRow: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 6,
-    },
-    btnReject: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: '#FCA5A5',
-      backgroundColor: '#FEF2F2',
-    },
-    btnRejectTxt: {
-      fontSize: 12,
-      fontWeight: '700',
-      color: '#B91C1C',
-    },
-    btnApprove: {
-      flex: 2,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      paddingVertical: 10,
-      paddingHorizontal: 12,
-      borderRadius: 8,
-      backgroundColor: '#059669',
-    },
-    btnApproveTxt: {
-      fontSize: 12,
-      fontWeight: '800',
-      color: '#FFFFFF',
-    },
-    expandedDeleteRow: {
-      marginTop: 12,
-      paddingTop: 10,
-      borderTopWidth: 1,
-      borderTopColor: 'rgba(26,45,90,0.06)',
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-    },
-    btnDeleteApp: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 5,
-      paddingVertical: 7,
-      paddingHorizontal: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-    },
-    btnDeleteAppTxt: {
-      fontSize: 11,
-      fontWeight: '700',
-    },
-    modalBackdrop: {
-      flex: 1,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      justifyContent: 'flex-end',
-    },
-    modalBox: {
-      borderTopLeftRadius: 20,
-      borderTopRightRadius: 20,
-      padding: 18,
-      maxHeight: '90%',
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      marginBottom: 14,
-    },
-    modalTitle: {
-      fontSize: 17,
-      fontWeight: '800',
-    },
-    modalSub: {
-      fontSize: 12,
-      color: '#64748B',
-      marginTop: 2,
-    },
-    modalCloseBtn: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      backgroundColor: '#F1F5F9',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    fieldLabel: {
-      fontSize: 11,
-      fontWeight: '800',
-      color: '#64748B',
-      marginTop: 10,
-      marginBottom: 4,
-      letterSpacing: 0.5,
-    },
-    modalInput: {
-      borderWidth: 1,
-      borderRadius: 8,
-      paddingHorizontal: 12,
-      paddingVertical: 8,
-      fontSize: 13,
-    },
-    modalFooterRow: {
-      flexDirection: 'row',
-      gap: 10,
-      marginTop: 16,
-      paddingTop: 12,
-    },
-    modalCancelBtn: {
-      flex: 1,
-      paddingVertical: 12,
-      borderRadius: 8,
-      borderWidth: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    modalConfirmBtn: {
-      flex: 2,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 6,
-      paddingVertical: 12,
-      borderRadius: 8,
-      backgroundColor: '#059669',
-    },
-    modalRejectBtn: {
-      flex: 2,
-      paddingVertical: 12,
-      borderRadius: 8,
-      backgroundColor: '#B91C1C',
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-  })
-);
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#EDE8DC',
+  },
+  circularBackBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  hero: {
+    backgroundColor: '#1a2d5a',
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+    marginBottom: 6,
+    overflow: 'visible',
+    position: 'relative',
+  },
+  heroTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontWeight: '600',
+    letterSpacing: -0.5,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 2,
+  },
+  statCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 1,
+    minWidth: 84,
+  },
+  activeStatCard: {
+    borderColor: '#1a2d5a',
+    borderWidth: 1.5,
+    backgroundColor: '#F8FAFC',
+  },
+  statNum: {
+    fontSize: 20,
+    fontWeight: '800',
+    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  },
+  statLbl: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    marginTop: 2,
+    letterSpacing: 0.5,
+  },
+  segmentContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 9,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  segmentBtnActive: {
+    elevation: 3,
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  segmentBtnTxt: {
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: -0.2,
+  },
+  segmentBadge: {
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 12,
+    minWidth: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segmentBadgeTxt: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderColor: 'rgba(26,45,90,0.08)',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    height: 44,
+    borderWidth: 1.5,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1E293B',
+    padding: 0,
+  },
+  listContainer: {
+    flex: 1,
+  },
+  emptyView: {
+    paddingVertical: 60,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+    marginTop: 10,
+  },
+  emptyText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginTop: 10,
+    textAlign: 'center',
+  },
+  membersList: {
+    gap: 12,
+    paddingBottom: 20,
+  },
+  memberCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(26,45,90,0.08)',
+    padding: 14,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  profileSection: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  avatarTxt: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  nameSection: {
+    flex: 1,
+    flexDirection: 'column',
+    gap: 3,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  name: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1a2d5a',
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  roleBadge: {
+    backgroundColor: '#F9F6F0',
+    borderColor: '#E2DDD5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  roleTxt: {
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  statusTxt: {
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  cardHeaderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  cardDeleteBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FECACA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  chevronWrap: {
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  contactDetails: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  contactTxt: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  expandedContent: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(26,45,90,0.08)',
+    paddingTop: 12,
+  },
+  sectionHeading: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.8,
+    marginBottom: 6,
+  },
+  notesBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 10,
+  },
+  notesBoxLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#64748B',
+    marginBottom: 3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  notesBoxText: {
+    fontSize: 12,
+    color: '#334155',
+    lineHeight: 17,
+    fontStyle: 'italic',
+  },
+  reasonBox: {
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    marginBottom: 10,
+  },
+  reasonBoxLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#991B1B',
+    marginBottom: 3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  reasonBoxText: {
+    fontSize: 12,
+    color: '#991B1B',
+    lineHeight: 17,
+  },
+  actionBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 6,
+  },
+  btnReject: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    backgroundColor: '#FEF2F2',
+  },
+  btnRejectTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#B91C1C',
+  },
+  btnApprove: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: '#059669',
+  },
+  btnApproveTxt: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  expandedDeleteRow: {
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(26,45,90,0.06)',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  btnDeleteApp: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: '#FEF2F2',
+    borderColor: '#FCA5A5',
+  },
+  btnDeleteAppTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalBox: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 18,
+    maxHeight: '90%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 14,
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  modalSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fieldLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    marginTop: 10,
+    marginBottom: 4,
+    letterSpacing: 0.5,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    color: '#0F172A',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+  },
+  modalFooterRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+    paddingTop: 12,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalConfirmBtn: {
+    flex: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#059669',
+  },
+  modalRejectBtn: {
+    flex: 2,
+    paddingVertical: 12,
+    borderRadius: 8,
+    backgroundColor: '#B91C1C',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});
