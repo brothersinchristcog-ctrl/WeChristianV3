@@ -41,6 +41,46 @@ async function resolveMemberTokens(db, churchId, memberId) {
             const mData = memSnap.data() || {};
             addToken(mData.fcmToken);
             addArray(mData.fcmTokens);
+            if (typeof mData.uid === 'string' && mData.uid.trim() && mData.uid.trim() !== memberId) {
+                try {
+                    const linkedUser = await db.collection('users').doc(mData.uid.trim()).get();
+                    if (linkedUser.exists) {
+                        addToken(linkedUser.data()?.fcmToken);
+                        addArray(linkedUser.data()?.fcmTokens);
+                    }
+                }
+                catch { }
+                try {
+                    const linkedMem = await db
+                        .collection(CHURCHES_COLLECTION)
+                        .doc(churchId)
+                        .collection('members')
+                        .doc(mData.uid.trim())
+                        .get();
+                    if (linkedMem.exists) {
+                        addToken(linkedMem.data()?.fcmToken);
+                        addArray(linkedMem.data()?.fcmTokens);
+                    }
+                }
+                catch { }
+            }
+        }
+        else {
+            try {
+                const byUid = await db
+                    .collection(CHURCHES_COLLECTION)
+                    .doc(churchId)
+                    .collection('members')
+                    .where('uid', '==', memberId)
+                    .limit(3)
+                    .get();
+                byUid.forEach((doc) => {
+                    const d = doc.data() || {};
+                    addToken(d.fcmToken);
+                    addArray(d.fcmTokens);
+                });
+            }
+            catch { }
         }
     }
     catch { }
@@ -145,7 +185,11 @@ export const onChatMessageCreated = onDocumentCreated('churches/{churchId}/chats
             android: {
                 priority: 'high',
                 notification: {
-                    channelId: 'church_updates',
+                    channelId: 'church_alerts',
+                    sound: 'default',
+                    priority: 'max',
+                    defaultSound: true,
+                    defaultVibrateTimings: true,
                     tag: `chat_${chatId}`,
                 },
             },
