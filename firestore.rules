@@ -475,6 +475,26 @@ service cloud.firestore {
         allow delete: if isChurchAdmin();
       }
 
+      // Church Chat & Group Messaging (multi-tenant strictly scoped per church)
+      match /chats/{chatId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin();
+
+        match /messages/{messageId} {
+          allow read, create, update: if isAuthenticated();
+          allow delete: if isChurchAdmin();
+        }
+      }
+
+      match /chat_blocks/{memberId} {
+        allow read, write: if isAuthenticated();
+      }
+
+      match /chat_reports/{reportId} {
+        allow create: if isAuthenticated();
+        allow read, update, delete: if isChurchAdmin();
+      }
+
       // Any other church subcollection: authenticated members can read, admins can write
       match /{subcollection}/{docId} {
         allow read: if isAuthenticated();

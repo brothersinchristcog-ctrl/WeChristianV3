@@ -85,6 +85,8 @@ import MyServiceScreen from '../screens/MyServiceScreen';
 import LiveStageHUD from '../screens/LiveStageHUD';
 import ChatListScreen from '../screens/chat/ChatListScreen';
 import ChatRoomScreen from '../screens/chat/ChatRoomScreen';
+import CreateGroupScreen from '../screens/chat/CreateGroupScreen';
+import GroupInfoScreen from '../screens/chat/GroupInfoScreen';
 import ChatService from '../services/ChatService';
 
 const Tab = createBottomTabNavigator();
@@ -914,6 +916,8 @@ function Navigation() {
             <Stack.Screen name="MyServiceDuties" component={MyServiceScreen} />
             <Stack.Screen name="ChatList" component={renderPremium(ChatListScreen)} />
             <Stack.Screen name="ChatRoom" component={renderPremium(ChatRoomScreen)} />
+            <Stack.Screen name="CreateGroup" component={renderPremium(CreateGroupScreen)} />
+            <Stack.Screen name="GroupInfo" component={renderPremium(GroupInfoScreen)} />
           </>
         ) : onboardingComplete ? (
           <>
@@ -967,6 +971,8 @@ function Navigation() {
             <Stack.Screen name="LiveStageHUD" component={LiveStageHUD} />
             <Stack.Screen name="ChatList" component={renderPremium(ChatListScreen)} />
             <Stack.Screen name="ChatRoom" component={renderPremium(ChatRoomScreen)} />
+            <Stack.Screen name="CreateGroup" component={renderPremium(CreateGroupScreen)} />
+            <Stack.Screen name="GroupInfo" component={renderPremium(GroupInfoScreen)} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />

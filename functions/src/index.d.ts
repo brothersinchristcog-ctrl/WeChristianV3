@@ -116,4 +116,5 @@ export * from './subscriptionCron.js';
 export * from './verseBackgrounds.js';
 export * from './vouchers.js';
 export * from './rosterNotifications.js';
+export * from './chatNotifications.js';
 //# sourceMappingURL=index.d.ts.map

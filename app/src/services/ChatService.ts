@@ -1,11 +1,16 @@
 import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
+import storage from '@react-native-firebase/storage';
 import {
+  ChatGroupSettings,
   ChatLastMessage,
+  ChatMediaAttachment,
   ChatMemberProfile,
   ChatMessage,
+  ChatMessageType,
   ChatParticipantSummary,
   ChatPresence,
   ChatReplyPreview,
+  ChatSystemEvent,
   ChatThread,
 } from '../types/chat';
 
@@ -517,6 +522,669 @@ class ChatService {
         deletedFor: firestore.FieldValue.arrayUnion(myId),
       });
     }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // MEDIA UPLOADS, RICH MESSAGES, FORWARDING & REACTIONS (PHASE 2)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  async uploadChatMedia(
+    churchId: string,
+    chatId: string,
+    localUri: string,
+    kind: 'image' | 'video' | 'audio' | 'document' | 'group_avatar',
+    fileName?: string
+  ): Promise<{ storagePath: string; url: string }> {
+    const cleanUri = localUri.trim();
+    const fallbackExt =
+      kind === 'image' || kind === 'group_avatar'
+        ? 'jpg'
+        : kind === 'video'
+        ? 'mp4'
+        : kind === 'audio'
+        ? 'm4a'
+        : 'pdf';
+    const safeName = (fileName || `${kind}_${Date.now()}.${fallbackExt}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const storagePath = `churches/${churchId}/chats/${chatId}/${Date.now()}_${safeName}`;
+    const ref = storage().ref(storagePath);
+    await ref.putFile(cleanUri);
+    const url = await ref.getDownloadURL();
+    return { storagePath, url };
+  }
+
+  private getMediaLabel(type: ChatMessageType, fileName?: string): string {
+    switch (type) {
+      case 'image':
+        return '📷 Photo';
+      case 'video':
+        return '🎥 Video';
+      case 'audio':
+        return '🎤 Voice message';
+      case 'document':
+        return fileName ? `📄 ${fileName}` : '📄 Document';
+      default:
+        return 'Message';
+    }
+  }
+
+  async sendMediaMessage(
+    churchId: string,
+    chatId: string,
+    sender: ChatParticipantSummary,
+    params: {
+      type: 'image' | 'video' | 'audio' | 'document';
+      localUri: string;
+      fileName?: string;
+      mimeType?: string;
+      sizeBytes?: number;
+      durationMs?: number;
+      caption?: string;
+      replyTo?: ChatReplyPreview | null;
+      participantIds?: string[];
+    }
+  ): Promise<string> {
+    const senderId = sender.uid || sender.memberId;
+    const { storagePath, url } = await this.uploadChatMedia(
+      churchId,
+      chatId,
+      params.localUri,
+      params.type,
+      params.fileName
+    );
+
+    const media: ChatMediaAttachment = {
+      storagePath,
+      url,
+      mimeType: params.mimeType,
+      fileName: params.fileName,
+      sizeBytes: params.sizeBytes,
+      durationMs: params.durationMs,
+    };
+
+    const previewLabel = params.caption?.trim() || this.getMediaLabel(params.type, params.fileName);
+    const chatRef = this.chatsCol(churchId).doc(chatId);
+    const msgRef = this.messagesCol(churchId, chatId).doc();
+
+    const messagePayload: Record<string, any> = {
+      id: msgRef.id,
+      senderId,
+      senderName: sender.name || 'Member',
+      senderPhotoUrl: sender.photoUrl || null,
+      type: params.type,
+      text: params.caption?.trim() || '',
+      media,
+      replyTo: params.replyTo || null,
+      reactions: {},
+      deliveredTo: [senderId],
+      readBy: [senderId],
+      deletedFor: [],
+      deletedForEveryone: false,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    };
+
+    const lastMessage: ChatLastMessage = {
+      id: msgRef.id,
+      text: previewLabel,
+      type: params.type,
+      senderId,
+      senderName: sender.name || 'Member',
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    };
+
+    let participants = params.participantIds;
+    if (!participants || participants.length === 0) {
+      const chatSnap = await chatRef.get();
+      participants = (chatSnap.data()?.participantIds as string[]) || [];
+    }
+
+    const batch = firestore().batch();
+    batch.set(msgRef, messagePayload);
+
+    const chatUpdates: Record<string, any> = {
+      lastMessage,
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    };
+
+    participants.forEach((pId) => {
+      if (pId && pId !== senderId) {
+        chatUpdates[`unreadCounts.${pId}`] = firestore.FieldValue.increment(1);
+      }
+    });
+
+    batch.set(chatRef, chatUpdates, { merge: true });
+    await batch.commit();
+    return msgRef.id;
+  }
+
+  async forwardMessages(
+    churchId: string,
+    sender: ChatParticipantSummary,
+    targetChats: ChatThread[],
+    sourceMessage: ChatMessage
+  ): Promise<void> {
+    if (!churchId || targetChats.length === 0) return;
+    const senderId = sender.uid || sender.memberId;
+
+    await Promise.all(
+      targetChats.map(async (target) => {
+        const chatRef = this.chatsCol(churchId).doc(target.id);
+        const msgRef = this.messagesCol(churchId, target.id).doc();
+
+        const previewLabel =
+          sourceMessage.text?.trim() ||
+          this.getMediaLabel(sourceMessage.type, sourceMessage.media?.fileName);
+
+        const payload: Record<string, any> = {
+          id: msgRef.id,
+          senderId,
+          senderName: sender.name || 'Member',
+          senderPhotoUrl: sender.photoUrl || null,
+          type: sourceMessage.type === 'system' ? 'text' : sourceMessage.type,
+          text: sourceMessage.text || '',
+          media: sourceMessage.media || null,
+          forwardedFrom: {
+            isForwarded: true,
+            originalSenderName: sourceMessage.senderName || 'Member',
+          },
+          reactions: {},
+          deliveredTo: [senderId],
+          readBy: [senderId],
+          deletedFor: [],
+          deletedForEveryone: false,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        };
+
+        const lastMessage: ChatLastMessage = {
+          id: msgRef.id,
+          text: `↪ ${previewLabel}`,
+          type: payload.type,
+          senderId,
+          senderName: sender.name || 'Member',
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        };
+
+        const batch = firestore().batch();
+        batch.set(msgRef, payload);
+
+        const chatUpdates: Record<string, any> = {
+          lastMessage,
+          updatedAt: firestore.FieldValue.serverTimestamp(),
+        };
+
+        (target.participantIds || []).forEach((pId) => {
+          if (pId && pId !== senderId) {
+            chatUpdates[`unreadCounts.${pId}`] = firestore.FieldValue.increment(1);
+          }
+        });
+
+        batch.set(chatRef, chatUpdates, { merge: true });
+        await batch.commit();
+      })
+    );
+  }
+
+  async toggleMessageReaction(
+    churchId: string,
+    chatId: string,
+    messageId: string,
+    myId: string,
+    emoji: string
+  ): Promise<void> {
+    if (!churchId || !chatId || !messageId || !myId) return;
+    const msgRef = this.messagesCol(churchId, chatId).doc(messageId);
+    const snap = await msgRef.get();
+    const existing = snap.data()?.reactions?.[myId];
+    if (existing === emoji) {
+      await msgRef.update({
+        [`reactions.${myId}`]: firestore.FieldValue.delete(),
+      });
+    } else {
+      await msgRef.update({
+        [`reactions.${myId}`]: emoji,
+      });
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // GROUP CREATION & MANAGEMENT (ADMIN & MINISTRY LEADERS)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  private async postSystemEventMessage(
+    churchId: string,
+    chatId: string,
+    text: string,
+    systemEvent: ChatSystemEvent,
+    actorId: string,
+    actorName: string
+  ): Promise<void> {
+    const chatRef = this.chatsCol(churchId).doc(chatId);
+    const msgRef = this.messagesCol(churchId, chatId).doc();
+    const batch = firestore().batch();
+
+    batch.set(msgRef, {
+      id: msgRef.id,
+      senderId: actorId,
+      senderName: actorName,
+      type: 'system',
+      text,
+      systemEvent,
+      reactions: {},
+      deliveredTo: [],
+      readBy: [actorId],
+      deletedFor: [],
+      deletedForEveryone: false,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    });
+
+    batch.set(
+      chatRef,
+      {
+        lastMessage: {
+          id: msgRef.id,
+          text,
+          type: 'system',
+          senderId: actorId,
+          senderName: actorName,
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        },
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+
+    await batch.commit();
+  }
+
+  async createGroupChat(
+    churchId: string,
+    creator: ChatParticipantSummary,
+    params: {
+      name: string;
+      description?: string;
+      teamCategory?: string;
+      localPhotoUri?: string | null;
+      members: ChatMemberProfile[];
+    }
+  ): Promise<ChatThread> {
+    const creatorId = creator.uid || creator.memberId;
+    const chatRef = this.chatsCol(churchId).doc();
+    const chatId = chatRef.id;
+
+    let photoUrl: string | null = null;
+    if (params.localPhotoUri) {
+      const uploaded = await this.uploadChatMedia(
+        churchId,
+        chatId,
+        params.localPhotoUri,
+        'group_avatar',
+        `group_${chatId}.jpg`
+      );
+      photoUrl = uploaded.url;
+    }
+
+    const participants: Record<string, ChatParticipantSummary> = {
+      [creatorId]: {
+        memberId: creatorId,
+        uid: creator.uid || creatorId,
+        name: creator.name || 'Leader',
+        photoUrl: creator.photoUrl || null,
+        phone: creator.phone || null,
+        userType: creator.userType || 'Admin',
+      },
+    };
+    const unreadCounts: Record<string, number> = { [creatorId]: 0 };
+    const participantIdSet = new Set<string>([creatorId]);
+
+    params.members.forEach((m) => {
+      const mId = m.uid || m.id;
+      if (!mId || participantIdSet.has(mId)) return;
+      participantIdSet.add(mId);
+      participants[mId] = {
+        memberId: mId,
+        uid: m.uid || m.id,
+        name: m.name || 'Member',
+        photoUrl: m.photoUrl || null,
+        phone: m.phone || null,
+        userType: m.userType || 'Member',
+      };
+      unreadCounts[mId] = 0;
+    });
+
+    const participantIds = Array.from(participantIdSet);
+    const groupData: Omit<ChatThread, 'id'> = {
+      churchId,
+      type: 'group',
+      name: params.name.trim(),
+      description: params.description?.trim() || '',
+      teamCategory: params.teamCategory || 'General',
+      photoUrl,
+      participantIds,
+      participants,
+      adminIds: [creatorId],
+      createdBy: creatorId,
+      settings: {
+        onlyAdminsCanMessage: false,
+        onlyAdminsCanEditInfo: true,
+        onlyAdminsCanAddMembers: true,
+      },
+      lastMessage: null,
+      unreadCounts,
+      mutedBy: {},
+      archivedBy: [],
+      createdAt: firestore.FieldValue.serverTimestamp(),
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    };
+
+    await chatRef.set(groupData);
+    await this.postSystemEventMessage(
+      churchId,
+      chatId,
+      `${creator.name || 'Admin'} created "${params.name.trim()}"`,
+      { action: 'group_created', actorName: creator.name || 'Admin' },
+      creatorId,
+      creator.name || 'Admin'
+    );
+
+    return {
+      id: chatId,
+      ...groupData,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+  }
+
+  async updateGroupInfo(
+    churchId: string,
+    chatId: string,
+    updates: {
+      name?: string;
+      description?: string;
+      teamCategory?: string;
+      localPhotoUri?: string | null;
+      settings?: ChatGroupSettings;
+    }
+  ): Promise<void> {
+    const payload: Record<string, any> = {
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    };
+
+    if (typeof updates.name === 'string' && updates.name.trim()) {
+      payload.name = updates.name.trim();
+    }
+    if (typeof updates.description === 'string') {
+      payload.description = updates.description.trim();
+    }
+    if (typeof updates.teamCategory === 'string') {
+      payload.teamCategory = updates.teamCategory;
+    }
+    if (updates.settings) {
+      payload.settings = updates.settings;
+    }
+    if (updates.localPhotoUri) {
+      const uploaded = await this.uploadChatMedia(
+        churchId,
+        chatId,
+        updates.localPhotoUri,
+        'group_avatar',
+        `group_${Date.now()}.jpg`
+      );
+      payload.photoUrl = uploaded.url;
+    }
+
+    await this.chatsCol(churchId).doc(chatId).set(payload, { merge: true });
+  }
+
+  async addGroupMembers(
+    churchId: string,
+    chatId: string,
+    actor: { id: string; name: string },
+    membersToAdd: ChatMemberProfile[]
+  ): Promise<void> {
+    if (!churchId || !chatId || membersToAdd.length === 0) return;
+    const chatRef = this.chatsCol(churchId).doc(chatId);
+
+    const newIds: string[] = [];
+    const updates: Record<string, any> = {};
+
+    membersToAdd.forEach((m) => {
+      const mId = m.uid || m.id;
+      if (!mId) return;
+      newIds.push(mId);
+      updates[`participants.${mId}`] = {
+        memberId: mId,
+        uid: m.uid || m.id,
+        name: m.name || 'Member',
+        photoUrl: m.photoUrl || null,
+        phone: m.phone || null,
+        userType: m.userType || 'Member',
+      };
+      updates[`unreadCounts.${mId}`] = 0;
+    });
+
+    if (newIds.length === 0) return;
+    updates.participantIds = firestore.FieldValue.arrayUnion(...newIds);
+    updates.updatedAt = firestore.FieldValue.serverTimestamp();
+
+    await chatRef.update(updates);
+
+    const names = membersToAdd.map((m) => m.name).join(', ');
+    await this.postSystemEventMessage(
+      churchId,
+      chatId,
+      `${actor.name} added ${names}`,
+      { action: 'member_added', actorName: actor.name, targetName: names },
+      actor.id,
+      actor.name
+    );
+  }
+
+  async removeGroupMember(
+    churchId: string,
+    chatId: string,
+    actor: { id: string; name: string },
+    targetId: string,
+    targetName: string
+  ): Promise<void> {
+    const chatRef = this.chatsCol(churchId).doc(chatId);
+    await chatRef.update({
+      participantIds: firestore.FieldValue.arrayRemove(targetId),
+      adminIds: firestore.FieldValue.arrayRemove(targetId),
+      [`participants.${targetId}`]: firestore.FieldValue.delete(),
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    });
+
+    await this.postSystemEventMessage(
+      churchId,
+      chatId,
+      `${actor.name} removed ${targetName}`,
+      { action: 'member_removed', actorName: actor.name, targetName },
+      actor.id,
+      actor.name
+    );
+  }
+
+  async leaveGroupChat(
+    churchId: string,
+    chatId: string,
+    myIds: string[],
+    myName: string
+  ): Promise<void> {
+    const chatRef = this.chatsCol(churchId).doc(chatId);
+    const snap = await chatRef.get();
+    const data = snap.data() as ChatThread | undefined;
+    if (!data) return;
+
+    const myIdSet = new Set(myIds);
+    const remainingParticipants = (data.participantIds || []).filter((id) => !myIdSet.has(id));
+    let remainingAdmins = (data.adminIds || []).filter((id) => !myIdSet.has(id));
+
+    // Ensure group always retains at least one admin if members remain
+    if (remainingAdmins.length === 0 && remainingParticipants.length > 0) {
+      remainingAdmins = [remainingParticipants[0]];
+    }
+
+    const updates: Record<string, any> = {
+      participantIds: remainingParticipants,
+      adminIds: remainingAdmins,
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    };
+    myIds.forEach((id) => {
+      updates[`participants.${id}`] = firestore.FieldValue.delete();
+    });
+
+    await chatRef.update(updates);
+    await this.postSystemEventMessage(
+      churchId,
+      chatId,
+      `${myName} left the group`,
+      { action: 'member_left', actorName: myName },
+      myIds[0] || '',
+      myName
+    );
+  }
+
+  async toggleGroupAdmin(
+    churchId: string,
+    chatId: string,
+    actor: { id: string; name: string },
+    targetId: string,
+    targetName: string,
+    makeAdmin: boolean
+  ): Promise<void> {
+    const chatRef = this.chatsCol(churchId).doc(chatId);
+    await chatRef.update({
+      adminIds: makeAdmin
+        ? firestore.FieldValue.arrayUnion(targetId)
+        : firestore.FieldValue.arrayRemove(targetId),
+      updatedAt: firestore.FieldValue.serverTimestamp(),
+    });
+
+    await this.postSystemEventMessage(
+      churchId,
+      chatId,
+      makeAdmin
+        ? `${actor.name} promoted ${targetName} to Group Admin`
+        : `${actor.name} removed ${targetName} as Group Admin`,
+      {
+        action: makeAdmin ? 'admin_promoted' : 'admin_demoted',
+        actorName: actor.name,
+        targetName,
+      },
+      actor.id,
+      actor.name
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // MUTE, ARCHIVE, BLOCK & REPORT (PHASE 3)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  async toggleMuteChat(
+    churchId: string,
+    chatId: string,
+    myIds: string[],
+    mute: boolean
+  ): Promise<void> {
+    const chatRef = this.chatsCol(churchId).doc(chatId);
+    const updates: Record<string, any> = {};
+    myIds.forEach((id) => {
+      if (id) {
+        updates[`mutedBy.${id}`] = mute ? true : firestore.FieldValue.delete();
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      await chatRef.update(updates);
+    }
+  }
+
+  async toggleArchiveChat(
+    churchId: string,
+    chatId: string,
+    myIds: string[],
+    archive: boolean
+  ): Promise<void> {
+    const cleanIds = myIds.filter(Boolean);
+    if (cleanIds.length === 0) return;
+    await this.chatsCol(churchId)
+      .doc(chatId)
+      .update({
+        archivedBy: archive
+          ? firestore.FieldValue.arrayUnion(...cleanIds)
+          : firestore.FieldValue.arrayRemove(...cleanIds),
+      });
+  }
+
+  subscribeToBlockedMembers(
+    churchId: string,
+    myId: string,
+    onUpdate: (blockedIds: string[]) => void
+  ): () => void {
+    if (!churchId || !myId) {
+      onUpdate([]);
+      return () => {};
+    }
+    return firestore()
+      .collection(CHURCHES_COLLECTION)
+      .doc(churchId)
+      .collection('chat_blocks')
+      .doc(myId)
+      .onSnapshot(
+        (doc) => {
+          const data = doc.data();
+          onUpdate(Array.isArray(data?.blockedIds) ? data.blockedIds : []);
+        },
+        () => onUpdate([])
+      );
+  }
+
+  async toggleBlockMember(
+    churchId: string,
+    myId: string,
+    targetId: string,
+    block: boolean
+  ): Promise<void> {
+    if (!churchId || !myId || !targetId) return;
+    const ref = firestore()
+      .collection(CHURCHES_COLLECTION)
+      .doc(churchId)
+      .collection('chat_blocks')
+      .doc(myId);
+
+    await ref.set(
+      {
+        blockedIds: block
+          ? firestore.FieldValue.arrayUnion(targetId)
+          : firestore.FieldValue.arrayRemove(targetId),
+        updatedAt: firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  async reportChatOrUser(
+    churchId: string,
+    payload: {
+      reporterId: string;
+      reporterName: string;
+      chatId: string;
+      targetMemberId?: string;
+      targetName?: string;
+      messageId?: string;
+      messagePreview?: string;
+      reason: string;
+    }
+  ): Promise<void> {
+    if (!churchId) return;
+    await firestore()
+      .collection(CHURCHES_COLLECTION)
+      .doc(churchId)
+      .collection('chat_reports')
+      .add({
+        ...payload,
+        churchId,
+        status: 'open',
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
   }
 
   // ───────────────────────────────────────────────────────────────────────────

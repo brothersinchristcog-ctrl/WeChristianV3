@@ -341,6 +341,20 @@ class NotificationService {
           });
           break;
         }
+        case 'chat_message': {
+          const chatId = rawData.chatId || rawData.relatedId || id;
+          if (chatId) {
+            nav.navigate('ChatRoom', {
+              chatId,
+              churchId: rawData.churchId,
+              title: rawData.title || 'Church Chat',
+              chatType: rawData.chatType || 'direct',
+            });
+          } else {
+            nav.navigate('ChatList');
+          }
+          break;
+        }
         default:
           if (id) {
             nav.navigate('Updates', { highlightId: id, highlightType: type });

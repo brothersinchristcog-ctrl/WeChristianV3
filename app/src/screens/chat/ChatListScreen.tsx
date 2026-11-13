@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Modal,
   Platform,
   StatusBar,
   StyleSheet,
@@ -15,11 +16,16 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
+  Archive,
   ArrowLeft,
+  Bell,
+  BellOff,
+  Info,
   MessageCircle,
   Search,
   UserPlus,
   Users,
+  VolumeX,
   X,
 } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
@@ -91,6 +97,8 @@ export default function ChatListScreen({ navigation }: any) {
   const [searchingMembers, setSearchingMembers] = useState(false);
   const [showDirectoryMode, setShowDirectoryMode] = useState(false);
   const [openingMemberId, setOpeningMemberId] = useState<string | null>(null);
+  const [filterTab, setFilterTab] = useState<'all' | 'unread' | 'groups' | 'archived'>('all');
+  const [actionChat, setActionChat] = useState<ChatThread | null>(null);
 
   const themeBg = isDark ? '#0f172a' : '#f8fafc';
   const cardBg = isDark ? '#1e293b' : '#ffffff';
@@ -173,20 +181,32 @@ export default function ChatListScreen({ navigation }: any) {
     return total;
   };
 
+  const archivedCount = useMemo(
+    () => chats.filter((c) => (c.archivedBy || []).some((id) => myIds.includes(id))).length,
+    [chats, myIds]
+  );
+
   const filteredChats = useMemo(() => {
-    const activeChats = chats.filter(
-      (c) => !(c.archivedBy || []).some((id) => myIds.includes(id))
-    );
     const q = searchQuery.trim().toLowerCase();
-    if (!q) return activeChats;
-    return activeChats.filter((chat) => {
+    return chats.filter((chat) => {
+      const isArchived = (chat.archivedBy || []).some((id) => myIds.includes(id));
+      if (filterTab === 'archived') {
+        if (!isArchived) return false;
+      } else {
+        if (isArchived) return false;
+      }
+
+      if (filterTab === 'groups' && chat.type !== 'group') return false;
+      if (filterTab === 'unread' && getUnreadForChat(chat) <= 0) return false;
+
+      if (!q) return true;
       if (chat.type === 'group') {
         return (chat.name || '').toLowerCase().includes(q);
       }
       const peer = getDirectPeer(chat);
       return (peer.name || '').toLowerCase().includes(q);
     });
-  }, [chats, searchQuery, myIds]);
+  }, [chats, searchQuery, myIds, filterTab]);
 
   const handleSelectMember = async (target: ChatMemberProfile) => {
     if (!churchId || !canonicalId || openingMemberId) return;
@@ -300,11 +320,13 @@ export default function ChatListScreen({ navigation }: any) {
       ? `${previewPrefix}${lastMsg.text}`
       : 'Tap to start chatting';
     const timeLabel = formatChatTimestamp(lastMsg?.createdAt || item.updatedAt);
+    const isMuted = myIds.some((id) => Boolean(item.mutedBy?.[id]));
 
     return (
       <TouchableOpacity
         activeOpacity={0.78}
         onPress={() => handleOpenChat(item)}
+        onLongPress={() => setActionChat(item)}
         style={[
           styles.rowCard,
           { backgroundColor: cardBg, borderColor },
@@ -364,6 +386,7 @@ export default function ChatListScreen({ navigation }: any) {
                 </Text>
               </View>
             )}
+            {isMuted && <VolumeX size={14} color={secondaryText} />}
           </View>
         </View>
       </TouchableOpacity>
@@ -413,12 +436,7 @@ export default function ChatListScreen({ navigation }: any) {
         {canCreateGroup ? (
           <TouchableOpacity
             style={styles.heroGroupBtn}
-            onPress={() =>
-              Alert.alert(
-                'Group Chat (Phase 2)',
-                'Team & group chat creation for Admins and Ministry Leaders will be enabled in Phase 2.'
-              )
-            }
+            onPress={() => navigation.navigate('CreateGroup')}
             activeOpacity={0.8}
           >
             <Users size={15} color="#FFFFFF" />
@@ -468,6 +486,47 @@ export default function ChatListScreen({ navigation }: any) {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Filter Chips */}
+        {!isSearchingOrDirectory && (
+          <View style={styles.filterRow}>
+            {(
+              [
+                { key: 'all', label: 'All' },
+                { key: 'unread', label: 'Unread' },
+                { key: 'groups', label: 'Groups' },
+                {
+                  key: 'archived',
+                  label: archivedCount > 0 ? `Archived (${archivedCount})` : 'Archived',
+                },
+              ] as const
+            ).map((chip) => {
+              const active = filterTab === chip.key;
+              return (
+                <TouchableOpacity
+                  key={chip.key}
+                  onPress={() => setFilterTab(chip.key)}
+                  style={[
+                    styles.filterChip,
+                    {
+                      backgroundColor: active ? accentColor : cardBg,
+                      borderColor: active ? accentColor : borderColor,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.filterChipTxt,
+                      { color: active ? '#FFFFFF' : secondaryText },
+                    ]}
+                  >
+                    {chip.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
       </View>
 
       {/* ── Content: Search Results / Directory OR Chat List / Empty State ── */}
@@ -573,6 +632,79 @@ export default function ChatListScreen({ navigation }: any) {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* ── Long-press Conversation Actions Modal ── */}
+      <Modal
+        visible={Boolean(actionChat)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setActionChat(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setActionChat(null)}
+        >
+          <View style={[styles.actionSheet, { backgroundColor: cardBg, borderColor }]}>
+            {actionChat && (() => {
+              const isMuted = myIds.some((id) => Boolean(actionChat.mutedBy?.[id]));
+              const isArchived = (actionChat.archivedBy || []).some((id) => myIds.includes(id));
+              return (
+                <>
+                  <TouchableOpacity
+                    style={styles.actionRow}
+                    onPress={async () => {
+                      const target = actionChat;
+                      setActionChat(null);
+                      await ChatService.toggleMuteChat(churchId, target.id, myIds, !isMuted);
+                    }}
+                  >
+                    {isMuted ? (
+                      <Bell size={18} color={accentColor} />
+                    ) : (
+                      <BellOff size={18} color={accentColor} />
+                    )}
+                    <Text style={[styles.actionTxt, { color: primaryText }]}>
+                      {isMuted ? 'Unmute Notifications' : 'Mute Notifications'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.actionRow}
+                    onPress={async () => {
+                      const target = actionChat;
+                      setActionChat(null);
+                      await ChatService.toggleArchiveChat(churchId, target.id, myIds, !isArchived);
+                    }}
+                  >
+                    <Archive size={18} color={accentColor} />
+                    <Text style={[styles.actionTxt, { color: primaryText }]}>
+                      {isArchived ? 'Unarchive Chat' : 'Archive Chat'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {actionChat.type === 'group' && (
+                    <TouchableOpacity
+                      style={styles.actionRow}
+                      onPress={() => {
+                        const target = actionChat;
+                        setActionChat(null);
+                        navigation.navigate('GroupInfo', {
+                          chatId: target.id,
+                          churchId,
+                        });
+                      }}
+                    >
+                      <Info size={18} color={accentColor} />
+                      <Text style={[styles.actionTxt, { color: primaryText }]}>Group Info</Text>
+                    </TouchableOpacity>
+                  )}
+                </>
+              );
+            })()}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -656,6 +788,48 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14.5,
     paddingVertical: 0,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  filterChipTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  actionSheet: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingVertical: 8,
+    elevation: 10,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  actionTxt: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   sectionHeaderTxt: {
     fontSize: 11,
