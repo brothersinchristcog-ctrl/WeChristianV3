@@ -639,6 +639,132 @@ export default function MyServiceScreen({ navigation, route }: any) {
 
   const selectedPlan = publishedPlans.find(p => p.id === selectedPlanId) || publishedPlans[0] || null;
 
+  /**
+   * Shared ACTION REQUIRED pending invitations section so members see and respond
+   * directly inside both the default Service Roster tab and My Responsibilities tab.
+   */
+  const renderPendingInvitationsSection = () => {
+    if (pendingInvitations.length === 0) return null;
+    return (
+      <View style={styles.sectionWrap}>
+        <View style={styles.sectionHeadingRow}>
+          <AlertCircle size={16} color="#D97706" style={{ marginRight: 6 }} />
+          <Text style={styles.pendingSectionTitle}>
+            ACTION REQUIRED ({pendingInvitations.length})
+          </Text>
+        </View>
+        <Text style={[styles.pendingSectionSub, { color: secondaryText }]}>
+          Please accept or decline your assigned responsibility so coordinators can finalize the roster.
+        </Text>
+
+        {pendingInvitations.map((duty) => {
+          const hasMatchingPlan = publishedPlans.some((p) => p.id === duty.serviceId);
+          return (
+            <View
+              key={duty.id}
+              style={[styles.pendingDutyCard, { backgroundColor: cardSurface, borderColor: '#F59E0B' }]}
+            >
+              <View style={styles.pendingDutyHeader}>
+                <View style={styles.pendingPill}>
+                  <Clock size={11} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.pendingPillTxt}>
+                    {duty.instructions?.includes('First-come') ? 'OPEN RESPONSIBILITY · FIRST-COME' : 'INVITATION PENDING'}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={[styles.dutyDateTxt, { color: secondaryText }]}>
+                    {formatDateMonthYear(duty.date)}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteOrCancelDuty(duty)}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    activeOpacity={0.7}
+                    style={{ padding: 2 }}
+                  >
+                    <Trash2 size={15} color={crimsonAccent} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <Text style={[styles.dutyRoleTitle, { color: primaryText }]}>
+                {duty.roleTitle}
+              </Text>
+              <TouchableOpacity
+                disabled={!hasMatchingPlan}
+                onPress={() => {
+                  if (hasMatchingPlan) {
+                    setSelectedPlanId(duty.serviceId);
+                    setActiveTab('roster');
+                  }
+                }}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.dutyServiceTitle, { color: activeAccentText }]}>
+                  {duty.serviceTitle}{hasMatchingPlan ? ' · View Service' : ''}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={[styles.dutyMetaBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7 }}>
+                  <Clock size={13} color="#D97706" style={{ marginTop: 2 }} />
+                  <Text style={{ fontSize: 12, color: secondaryText, flex: 1, lineHeight: 18 }}>
+                    Reporting / Call Time:{' '}
+                    <Text style={{ fontWeight: '700', color: isDark ? goldAccent : '#D97706' }}>
+                      {formatTimeTo12Hour(duty.callTime)}
+                    </Text>
+                    {duty.startTime ? ` (Service starts ${formatTimeTo12Hour(duty.startTime)})` : ''}
+                  </Text>
+                </View>
+
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 4 }}>
+                  <MapPin size={13} color={confirmBtnBg} style={{ marginTop: 2 }} />
+                  <Text style={{ fontSize: 12, color: secondaryText, flex: 1, lineHeight: 18 }}>
+                    Sanctuary:{' '}
+                    <Text style={{ fontWeight: '700', color: primaryText }}>
+                      {duty.location || 'Church Sanctuary'}
+                    </Text>
+                    {duty.preacher && duty.preacher.trim() ? ` · Preacher: ${duty.preacher.trim()}` : ''}
+                  </Text>
+                </View>
+
+                {duty.instructions ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 4 }}>
+                    <Volume2 size={13} color="#7C3AED" style={{ marginTop: 2 }} />
+                    <Text style={{ fontSize: 12, color: secondaryText, flex: 1, lineHeight: 18 }}>
+                      Notes: <Text style={{ fontWeight: '600', color: primaryText }}>{duty.instructions}</Text>
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
+
+              <View style={styles.dutyActionRow}>
+                <TouchableOpacity
+                  style={[styles.dutyDeclineBtn, { borderColor }]}
+                  onPress={() => setSelectedDutyForDecline(duty)}
+                  activeOpacity={0.8}
+                  disabled={submittingResponse}
+                >
+                  <XCircle size={15} color={crimsonAccent} style={{ marginRight: 6 }} />
+                  <Text style={styles.dutyDeclineBtnTxt}>Decline</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.dutyAcceptBtn}
+                  onPress={() => handleAcceptDuty(duty)}
+                  activeOpacity={0.85}
+                  disabled={submittingResponse}
+                >
+                  <CheckCircle2 size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.dutyAcceptBtnTxt}>Accept Responsibility</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
   return (
     <View style={[styles.root, { backgroundColor: screenBg }]}>
       <StatusBar barStyle="light-content" backgroundColor={navyPrimary} />
@@ -793,6 +919,8 @@ export default function MyServiceScreen({ navigation, route }: any) {
               ========================================================================= */}
           {activeTab === 'roster' && (
             <View>
+              {renderPendingInvitationsSection()}
+
               {publishedPlans.length === 0 ? (
                 <View style={[styles.emptyCard, { backgroundColor: cardSurface, borderColor }]}>
                   <Smile size={38} color={secondaryText} style={{ marginBottom: 10 }} />
@@ -923,11 +1051,11 @@ export default function MyServiceScreen({ navigation, route }: any) {
                           ) : null}
                         </View>
 
-                        {/* Personal Duty Pass if member is serving */}
+                        {/* Personal Duty Pass if member is confirmed in this service (pending shown in ACTION REQUIRED above) */}
                         {(() => {
                           const myDutyInThisService = duties.find(d => d.serviceId === selectedPlan.id);
-                          if (!myDutyInThisService) return null;
-                          const isPending = myDutyInThisService.status === 'pending';
+                          if (!myDutyInThisService || myDutyInThisService.status === 'pending') return null;
+                          const isPending = false;
 
                           const rLower = (myDutyInThisService.roleTitle || '').toLowerCase();
                           let roleIconEmoji = '✝️';
@@ -1626,110 +1754,7 @@ export default function MyServiceScreen({ navigation, route }: any) {
               ========================================================================= */}
           {activeTab === 'responsibilities' && (
             <View>
-              {pendingInvitations.length > 0 && (
-                <View style={styles.sectionWrap}>
-                  <View style={styles.sectionHeadingRow}>
-                    <AlertCircle size={16} color="#D97706" style={{ marginRight: 6 }} />
-                    <Text style={styles.pendingSectionTitle}>
-                      ACTION REQUIRED ({pendingInvitations.length})
-                    </Text>
-                  </View>
-                  <Text style={[styles.pendingSectionSub, { color: secondaryText }]}>
-                    Please accept or decline your assigned responsibility so coordinators can finalize the roster.
-                  </Text>
-
-                  {pendingInvitations.map((duty) => (
-                    <View
-                      key={duty.id}
-                      style={[styles.pendingDutyCard, { backgroundColor: cardSurface, borderColor: '#F59E0B' }]}
-                    >
-                      <View style={styles.pendingDutyHeader}>
-                        <View style={styles.pendingPill}>
-                          <Clock size={11} color="#FFFFFF" style={{ marginRight: 4 }} />
-                          <Text style={styles.pendingPillTxt}>
-                            {duty.instructions?.includes('First-come') ? 'OPEN RESPONSIBILITY · FIRST-COME' : 'INVITATION PENDING'}
-                          </Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={[styles.dutyDateTxt, { color: secondaryText }]}>
-                            {formatDateMonthYear(duty.date)}
-                          </Text>
-                          <TouchableOpacity
-                            onPress={() => handleDeleteOrCancelDuty(duty)}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                            activeOpacity={0.7}
-                            style={{ padding: 2 }}
-                          >
-                            <Trash2 size={15} color={crimsonAccent} />
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-
-                      <Text style={[styles.dutyRoleTitle, { color: primaryText }]}>
-                        {duty.roleTitle}
-                      </Text>
-                      <Text style={[styles.dutyServiceTitle, { color: activeAccentText }]}>
-                        {duty.serviceTitle}
-                      </Text>
-
-                      <View style={[styles.dutyMetaBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' }]}>
-                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7 }}>
-                          <Clock size={13} color="#D97706" style={{ marginTop: 2 }} />
-                          <Text style={{ fontSize: 12, color: secondaryText, flex: 1, lineHeight: 18 }}>
-                            Reporting / Call Time:{' '}
-                            <Text style={{ fontWeight: '700', color: isDark ? goldAccent : '#D97706' }}>
-                              {formatTimeTo12Hour(duty.callTime)}
-                            </Text>
-                            {duty.startTime ? ` (Service starts ${formatTimeTo12Hour(duty.startTime)})` : ''}
-                          </Text>
-                        </View>
-
-                        <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 4 }}>
-                          <MapPin size={13} color={confirmBtnBg} style={{ marginTop: 2 }} />
-                          <Text style={{ fontSize: 12, color: secondaryText, flex: 1, lineHeight: 18 }}>
-                            Sanctuary:{' '}
-                            <Text style={{ fontWeight: '700', color: primaryText }}>
-                              {duty.location || 'Church Sanctuary'}
-                            </Text>
-                            {duty.preacher && duty.preacher.trim() ? ` · Preacher: ${duty.preacher.trim()}` : ''}
-                          </Text>
-                        </View>
-
-                        {duty.instructions ? (
-                          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 4 }}>
-                            <Volume2 size={13} color="#7C3AED" style={{ marginTop: 2 }} />
-                            <Text style={{ fontSize: 12, color: secondaryText, flex: 1, lineHeight: 18 }}>
-                              Notes: <Text style={{ fontWeight: '600', color: primaryText }}>{duty.instructions}</Text>
-                            </Text>
-                          </View>
-                        ) : null}
-                      </View>
-
-                      <View style={styles.dutyActionRow}>
-                        <TouchableOpacity
-                          style={[styles.dutyDeclineBtn, { borderColor }]}
-                          onPress={() => setSelectedDutyForDecline(duty)}
-                          activeOpacity={0.8}
-                          disabled={submittingResponse}
-                        >
-                          <XCircle size={15} color={crimsonAccent} style={{ marginRight: 6 }} />
-                          <Text style={styles.dutyDeclineBtnTxt}>Decline</Text>
-                        </TouchableOpacity>
-
-                        <TouchableOpacity
-                          style={styles.dutyAcceptBtn}
-                          onPress={() => handleAcceptDuty(duty)}
-                          activeOpacity={0.85}
-                          disabled={submittingResponse}
-                        >
-                          <CheckCircle2 size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                          <Text style={styles.dutyAcceptBtnTxt}>Accept Responsibility</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              )}
+              {renderPendingInvitationsSection()}
 
               {/* CONFIRMED UPCOMING SERVICES */}
               <View style={styles.sectionWrap}>

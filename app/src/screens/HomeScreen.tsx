@@ -2194,42 +2194,6 @@ export default function HomeScreen() {
             })()}
           </View>
 
-          {/* Service Roster Alert Banner (Pending Action Required) */}
-          {upcomingDuty && upcomingDuty.status === 'pending' && (
-            <TouchableOpacity
-              style={[
-                styles.memberDutyBanner,
-                styles.memberDutyBannerPending,
-              ]}
-              onPress={() => navigation.navigate('MyService', {
-                serviceId: upcomingDuty.serviceId,
-                initialTab: 'responsibilities',
-              })}
-              activeOpacity={0.88}
-            >
-              <View style={styles.memberDutyIconWrap}>
-                <AlertCircle size={22} color="#FFFFFF" />
-              </View>
-
-              <View style={{ flex: 1, paddingHorizontal: 10 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={styles.memberDutyTag}>ACTION REQUIRED</Text>
-                  <Text style={styles.memberDutyDate}>
-                    {formatDateMonthYear(upcomingDuty.date)}
-                  </Text>
-                </View>
-                <Text style={styles.memberDutyTitle} numberOfLines={1}>
-                  {upcomingDuty.roleTitle}
-                </Text>
-                <Text style={styles.memberDutySub} numberOfLines={1}>
-                  {upcomingDuty.serviceTitle} · Tap to accept or decline
-                </Text>
-              </View>
-
-              <ChevronRight size={18} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
-
           <Text style={[styles.secLbl, isDark && { color: '#e2e8f0' }]}>{t('home.quickAccess')}</Text>
           <View style={styles.iconGrid}>
             <GridItem isDark={isDark} icon={<Mic size={26} color="#fff" />} label={t('home.quickSermons')} color="#1a2d5a" onPress={() => navigation.navigate('Sermons')} />
@@ -2280,6 +2244,7 @@ export default function HomeScreen() {
               color="#1a2d5a" 
               onPress={() => navigation.navigate('MyService')}
               showConfirmedBadge={Boolean(upcomingDuty && upcomingDuty.status === 'confirmed')}
+              showPendingBadge={Boolean(upcomingDuty && upcomingDuty.status === 'pending')}
             />
             <GridItem isDark={isDark} icon={<Sparkles size={26} color="#fff" />} label="Testimonies" color="#8B5CF6" onPress={() => navigation.navigate('Testimonies')} />
             <GridItem isDark={isDark} icon={<Bell size={26} color="#fff" />} label={t('home.quickUpdates')} color="#0284c7" onPress={() => navigation.navigate('Updates')} />
@@ -2700,7 +2665,8 @@ function GridItem({
   color, 
   onPress, 
   isDark,
-  showConfirmedBadge
+  showConfirmedBadge,
+  showPendingBadge
 }: { 
   icon: any; 
   label: string; 
@@ -2708,6 +2674,7 @@ function GridItem({
   onPress: () => void; 
   isDark: boolean;
   showConfirmedBadge?: boolean;
+  showPendingBadge?: boolean;
 }) {
   return (
     <Pressable 
@@ -2738,6 +2705,30 @@ function GridItem({
             }}
           >
             <Check size={11} color="#FFFFFF" strokeWidth={3} />
+          </View>
+        )}
+        {!showConfirmedBadge && showPendingBadge && (
+          <View
+            style={{
+              position: 'absolute',
+              top: -3,
+              right: -3,
+              width: 18,
+              height: 18,
+              borderRadius: 9,
+              backgroundColor: '#F59E0B',
+              borderWidth: 2,
+              borderColor: isDark ? '#0F172A' : '#FFFFFF',
+              alignItems: 'center',
+              justifyContent: 'center',
+              elevation: 4,
+              shadowColor: '#000',
+              shadowOpacity: 0.25,
+              shadowRadius: 2,
+              shadowOffset: { width: 0, height: 1 }
+            }}
+          >
+            <Text style={{ color: '#FFFFFF', fontSize: 11, fontWeight: '900', lineHeight: 13 }}>!</Text>
           </View>
         )}
       </View>
