@@ -20,6 +20,16 @@ const CHURCHES_COLLECTION = 'churches';
 const sanitizeRtdbKey = (raw: string): string =>
   String(raw || 'unknown').replace(/[.#$\[\]\/]/g, '_');
 
+const omitUndefined = <T extends Record<string, any>>(obj: T): Record<string, any> => {
+  const clean: Record<string, any> = {};
+  Object.entries(obj).forEach(([k, v]) => {
+    if (v !== undefined) {
+      clean[k] = v;
+    }
+  });
+  return clean;
+};
+
 const normalizePhoneDigits = (phone?: string | null): string => {
   const digits = String(phone || '').replace(/\D/g, '');
   return digits.length >= 10 ? digits.slice(-10) : digits;
@@ -227,7 +237,7 @@ class ChatService {
     const participants: Record<string, ChatParticipantSummary> = {
       [myId]: {
         memberId: myId,
-        uid: currentUser.uid,
+        uid: currentUser.uid || myId,
         name: currentUser.name || 'Member',
         photoUrl: currentUser.photoUrl || null,
         phone: currentUser.phone || null,
@@ -666,10 +676,14 @@ class ChatService {
     const media: ChatMediaAttachment = {
       storagePath,
       url,
-      mimeType: params.mimeType,
-      fileName: params.fileName,
-      sizeBytes: params.sizeBytes,
-      durationMs: params.durationMs,
+      ...(params.mimeType ? { mimeType: params.mimeType } : {}),
+      ...(params.fileName ? { fileName: params.fileName } : {}),
+      ...(typeof params.sizeBytes === 'number' && !Number.isNaN(params.sizeBytes)
+        ? { sizeBytes: params.sizeBytes }
+        : {}),
+      ...(typeof params.durationMs === 'number' && !Number.isNaN(params.durationMs)
+        ? { durationMs: params.durationMs }
+        : {}),
     };
 
     const previewLabel = params.caption?.trim() || this.getMediaLabel(params.type, params.fileName);
@@ -752,7 +766,7 @@ class ChatService {
           senderPhotoUrl: sender.photoUrl || null,
           type: sourceMessage.type === 'system' ? 'text' : sourceMessage.type,
           text: sourceMessage.text || '',
-          media: sourceMessage.media || null,
+          media: sourceMessage.media ? (omitUndefined(sourceMessage.media) as ChatMediaAttachment) : null,
           forwardedFrom: {
             isForwarded: true,
             originalSenderName: sourceMessage.senderName || 'Member',
@@ -1269,7 +1283,7 @@ class ChatService {
       .doc(churchId)
       .collection('chat_reports')
       .add({
-        ...payload,
+        ...omitUndefined(payload),
         churchId,
         status: 'open',
         createdAt: firestore.FieldValue.serverTimestamp(),
