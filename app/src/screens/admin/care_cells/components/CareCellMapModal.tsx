@@ -14,6 +14,7 @@ import {
   Image,
   FlatList,
   ActivityIndicator,
+  PixelRatio,
 } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
 import * as ExpoLocation from 'expo-location';
@@ -61,6 +62,19 @@ import {
 import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 
 const { width, height } = Dimensions.get('window');
+
+// Android New Arch (react-native-maps 1.20.1) snapshots Marker views inside a 100x100 physical px bitmap
+// because SizeReportingShadowNode does not fire under Fabric; keep total dp strictly within ~92px on Android.
+const ANDROID_MARKER_BOX =
+  Platform.OS === 'android'
+    ? Math.min(36, Math.max(25, Math.floor(92 / Math.max(1, PixelRatio.get()))))
+    : 58;
+const PIN_HEAD_SIZE = Platform.OS === 'android' ? ANDROID_MARKER_BOX - 6 : 44;
+const PIN_BORDER_WIDTH = Platform.OS === 'android' ? 2 : 3;
+const PIN_IMAGE_SIZE = PIN_HEAD_SIZE - PIN_BORDER_WIDTH * 2;
+const PIN_POINTER_W = Platform.OS === 'android' ? 10 : 18;
+const PIN_POINTER_H = Platform.OS === 'android' ? 6 : 12;
+const CHURCH_MARKER_SIZE = Platform.OS === 'android' ? Math.min(28, ANDROID_MARKER_BOX - 1) : 32;
 
 // Fallback coordinates only if both cell location & member coordinates fail to resolve
 const DEFAULT_KURNOOL_LAT = 15.8281;
@@ -1075,8 +1089,16 @@ export default function CareCellMapModal({
                           <Text style={styles.routeOrderCornerTxt}>{inRouteIndex + 1}</Text>
                         </View>
                       ) : null}
-                      <Svg width={18} height={13} viewBox="0 0 18 13" style={styles.photoPinPointerSvg}>
-                        <Path d="M1 0 L9 12 L17 0 Z" fill={accentColor} />
+                      <Svg
+                        width={PIN_POINTER_W}
+                        height={PIN_POINTER_H}
+                        viewBox={`0 0 ${PIN_POINTER_W} ${PIN_POINTER_H}`}
+                        style={styles.photoPinPointerSvg}
+                      >
+                        <Path
+                          d={`M0 0 L${PIN_POINTER_W / 2} ${PIN_POINTER_H} L${PIN_POINTER_W} 0 Z`}
+                          fill={accentColor}
+                        />
                       </Svg>
                     </View>
                   </Marker>
@@ -1676,19 +1698,14 @@ const styles = createAdminThemedStyles({
     flex: 1,
   },
   churchMarkerBubble: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: CHURCH_MARKER_SIZE,
+    height: CHURCH_MARKER_SIZE,
+    borderRadius: CHURCH_MARKER_SIZE / 2,
     backgroundColor: '#D97706',
     borderWidth: 2,
     borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
   },
   memberMarkerBubble: {
     width: 30,
@@ -1717,45 +1734,54 @@ const styles = createAdminThemedStyles({
     transform: [{ scale: 1.2 }],
   },
   photoPinWrapper: {
-    width: 58,
-    height: 66,
+    width: ANDROID_MARKER_BOX,
+    height: ANDROID_MARKER_BOX,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingTop: 5,
   },
   photoPinWrapperSelected: {
     opacity: 1,
   },
   photoPinHead: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 3,
+    width: PIN_HEAD_SIZE,
+    height: PIN_HEAD_SIZE,
+    borderRadius: PIN_HEAD_SIZE / 2,
+    borderWidth: PIN_BORDER_WIDTH,
     backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
   photoPinImage: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: PIN_IMAGE_SIZE,
+    height: PIN_IMAGE_SIZE,
+    borderRadius: PIN_IMAGE_SIZE / 2,
   },
   photoPinPointerSvg: {
-    marginTop: -2,
+    marginTop: -1,
   },
   routeOrderCornerBadge: {
     position: 'absolute',
-    top: 1,
-    right: 3,
-    minWidth: 19,
-    height: 19,
-    borderRadius: 10,
+    top: 0,
+    right: 0,
+    minWidth: Platform.OS === 'android' ? 12 : 18,
+    height: Platform.OS === 'android' ? 12 : 18,
+    borderRadius: Platform.OS === 'android' ? 6 : 9,
     backgroundColor: '#059669',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 3,
+    paddingHorizontal: 2,
+  },
+  routeOrderCornerTxt: {
+    fontSize: Platform.OS === 'android' ? 7.5 : 9.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  markerInitialsTxt: {
+    fontSize: Platform.OS === 'android' ? 8.5 : 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   navTopHud: {
     position: 'absolute',
@@ -1907,16 +1933,6 @@ const styles = createAdminThemedStyles({
   },
   navNextPrimaryTxt: {
     fontSize: 13,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  routeOrderCornerTxt: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  markerInitialsTxt: {
-    fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
   },
