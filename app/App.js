@@ -158,9 +158,18 @@ export default function App() {
     
     checkUpdates();
 
+    const recentKeys = new Map();
     const unsubscribe = messaging().onMessage(async remoteMessage => {
       const title = remoteMessage.notification?.title || 'New Notification';
       const body = remoteMessage.notification?.body || 'You have a new message.';
+      const now = Date.now();
+      const key = remoteMessage?.messageId || `${title}|${body}`;
+      const lastSeen = recentKeys.get(key);
+      if (lastSeen && now - lastSeen < 5000) {
+        return;
+      }
+      recentKeys.set(key, now);
+
       const rawData = remoteMessage?.data || {};
       const password = rawData.password || (body.match(/Passcode:\s*([A-Za-z0-9]+)/i)?.[1]) || '';
       

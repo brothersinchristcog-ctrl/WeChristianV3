@@ -1,8 +1,11 @@
 import { Platform, PermissionsAndroid, Linking, Alert } from 'react-native';
-import { messaging, firestore, auth } from './firebaseConfig';
+import { getFirestore, doc, setDoc, serverTimestamp } from '@react-native-firebase/firestore';
+import { messaging, auth } from './firebaseConfig';
 
 class NotificationService {
   private pendingDispatcher: ((remoteMessage: any) => void) | null = null;
+  private foregroundUnsubscribe: (() => void) | null = null;
+  private recentForegroundKeys: Map<string, number> = new Map();
 
   registerPendingDispatcher(dispatcher: ((remoteMessage: any) => void) | null) {
     this.pendingDispatcher = dispatcher;
@@ -74,20 +77,29 @@ class NotificationService {
       const globalUser = await FirestoreService.getGlobalUser(user.uid);
 
       if (globalUser?.primaryChurchId) {
+        const db = getFirestore();
         // Save to church members subcollection
-        await firestore().collection('churches').doc(globalUser.primaryChurchId).collection('members').doc(user.uid).set({
-          fcmToken: token,
-          lastTokenUpdate: firestore.FieldValue.serverTimestamp(),
-          platform: Platform.OS,
-        }, { merge: true });
+        await setDoc(
+          doc(db, 'churches', globalUser.primaryChurchId, 'members', user.uid),
+          {
+            fcmToken: token,
+            lastTokenUpdate: serverTimestamp(),
+            platform: Platform.OS,
+          },
+          { merge: true }
+        );
 
         // ALSO save to global users collection — Cloud Functions read tokens from here
-        await firestore().collection('users').doc(user.uid).set({
-          fcmToken: token,
-          lastTokenUpdate: firestore.FieldValue.serverTimestamp(),
-          primaryChurchId: globalUser.primaryChurchId,
-          platform: Platform.OS,
-        }, { merge: true });
+        await setDoc(
+          doc(db, 'users', user.uid),
+          {
+            fcmToken: token,
+            lastTokenUpdate: serverTimestamp(),
+            primaryChurchId: globalUser.primaryChurchId,
+            platform: Platform.OS,
+          },
+          { merge: true }
+        );
 
         console.log('✨ Token saved successfully to member profile AND global users!');
       } else {
@@ -481,11 +493,39 @@ class NotificationService {
 
   // Handle notifications when the app is open (foreground)
   setupForegroundListener(navigation?: any) {
-    return messaging().onMessage(async remoteMessage => {
-      console.log('⚡ Foreground push received:', remoteMessage?.notification?.title);
+    if (this.foregroundUnsubscribe) {
+      this.foregroundUnsubscribe();
+      this.foregroundUnsubscribe = null;
+    }
+
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      const now = Date.now();
+      const title = remoteMessage?.notification?.title || remoteMessage?.data?.title || '';
+      const body = remoteMessage?.notification?.body || remoteMessage?.data?.body || '';
+      const key = remoteMessage?.messageId || `${title}|${body}`;
+      const lastSeen = this.recentForegroundKeys.get(key);
+      if (lastSeen && now - lastSeen < 8000) {
+        return;
+      }
+      this.recentForegroundKeys.set(key, now);
+      if (this.recentForegroundKeys.size > 50) {
+        for (const [k, ts] of this.recentForegroundKeys.entries()) {
+          if (now - ts > 15000) this.recentForegroundKeys.delete(k);
+        }
+      }
+
+      console.log('⚡ Foreground push received:', title || remoteMessage?.notification?.title);
       // Foreground notifications are cleanly displayed via the in-app sliding banner in App.js
       // System modal Alert.alert is suppressed to avoid duplicate intrusive popups
     });
+
+    this.foregroundUnsubscribe = unsubscribe;
+    return () => {
+      if (this.foregroundUnsubscribe === unsubscribe) {
+        this.foregroundUnsubscribe = null;
+      }
+      unsubscribe();
+    };
   }
 }
 

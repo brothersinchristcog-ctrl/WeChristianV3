@@ -1,5 +1,17 @@
 import { Linking } from 'react-native';
-import { db, functions, FieldValue } from './firebaseConfig';
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  serverTimestamp,
+  deleteField,
+} from '@react-native-firebase/firestore';
+import { functions } from './firebaseConfig';
 import {
   LocationAccuracy,
   MemberLocationRecord,
@@ -192,42 +204,47 @@ export class MemberLocationService {
       return () => {};
     }
 
-    return db
-      .collection(CHURCHES_COLLECTION)
-      .doc(churchId)
-      .collection(LOCATIONS_SUBCOLLECTION)
-      .onSnapshot(
-        (snapshot) => {
-          const list: MemberLocationRecord[] = snapshot.docs.map((doc) => {
-            const d = doc.data() || {};
-            const hasConsent = d.locationSharingConsent === true;
-            return {
-              ...d,
-              memberId: d.memberId || doc.id,
-              churchId: d.churchId || churchId,
-              memberName: d.memberName || 'Member',
-              locationSource: d.locationSource || 'profile_geocoding',
-              locationAccuracy:
-                hasConsent && d.locationAccuracy === 'verified_home'
-                  ? 'verified_home'
-                  : typeof d.latitude === 'number' && typeof d.longitude === 'number'
-                    ? 'village_approximate'
-                    : 'not_verified',
-              geocodingStatus: d.geocodingStatus || 'pending',
-              locationSharingConsent: hasConsent,
-              confirmedLatitude: hasConsent ? d.confirmedLatitude : undefined,
-              confirmedLongitude: hasConsent ? d.confirmedLongitude : undefined,
-              completeAddress: hasConsent ? d.completeAddress : undefined,
-              landmark: hasConsent ? d.landmark : undefined,
-            } as MemberLocationRecord;
-          });
-          list.sort((a, b) => a.memberName.localeCompare(b.memberName));
-          onUpdate(list);
-        },
-        (err) => {
-          if (onError) onError(err);
-        }
-      );
+    const firestoreDb = getFirestore();
+    const locationsColRef = collection(
+      firestoreDb,
+      CHURCHES_COLLECTION,
+      churchId,
+      LOCATIONS_SUBCOLLECTION
+    );
+
+    return onSnapshot(
+      locationsColRef,
+      (snapshot) => {
+        const list: MemberLocationRecord[] = snapshot.docs.map((docSnap) => {
+          const d = docSnap.data() || {};
+          const hasConsent = d.locationSharingConsent === true;
+          return {
+            ...d,
+            memberId: d.memberId || docSnap.id,
+            churchId: d.churchId || churchId,
+            memberName: d.memberName || 'Member',
+            locationSource: d.locationSource || 'profile_geocoding',
+            locationAccuracy:
+              hasConsent && d.locationAccuracy === 'verified_home'
+                ? 'verified_home'
+                : typeof d.latitude === 'number' && typeof d.longitude === 'number'
+                  ? 'village_approximate'
+                  : 'not_verified',
+            geocodingStatus: d.geocodingStatus || 'pending',
+            locationSharingConsent: hasConsent,
+            confirmedLatitude: hasConsent ? d.confirmedLatitude : undefined,
+            confirmedLongitude: hasConsent ? d.confirmedLongitude : undefined,
+            completeAddress: hasConsent ? d.completeAddress : undefined,
+            landmark: hasConsent ? d.landmark : undefined,
+          } as MemberLocationRecord;
+        });
+        list.sort((a, b) => a.memberName.localeCompare(b.memberName));
+        onUpdate(list);
+      },
+      (err) => {
+        if (onError) onError(err);
+      }
+    );
   }
 
   /**
@@ -235,17 +252,16 @@ export class MemberLocationService {
    */
   static async getMemberLocations(churchId: string): Promise<MemberLocationRecord[]> {
     if (!churchId) return [];
-    const snap = await db
-      .collection(CHURCHES_COLLECTION)
-      .doc(churchId)
-      .collection(LOCATIONS_SUBCOLLECTION)
-      .get();
-    return snap.docs.map((doc) => {
-      const d = doc.data() || {};
+    const firestoreDb = getFirestore();
+    const snap = await getDocs(
+      collection(firestoreDb, CHURCHES_COLLECTION, churchId, LOCATIONS_SUBCOLLECTION)
+    );
+    return snap.docs.map((docSnap) => {
+      const d = docSnap.data() || {};
       const hasConsent = d.locationSharingConsent === true;
       return {
         ...d,
-        memberId: d.memberId || doc.id,
+        memberId: d.memberId || docSnap.id,
         churchId: d.churchId || churchId,
         memberName: d.memberName || 'Member',
         locationSource: d.locationSource || 'profile_geocoding',
@@ -274,13 +290,11 @@ export class MemberLocationService {
   ): Promise<MemberLocationRecord | null> {
     if (!churchId || !memberId) return null;
     try {
-      const snap = await db
-        .collection(CHURCHES_COLLECTION)
-        .doc(churchId)
-        .collection(LOCATIONS_SUBCOLLECTION)
-        .doc(memberId)
-        .get();
-      if (!snap.exists) return null;
+      const firestoreDb = getFirestore();
+      const snap = await getDoc(
+        doc(firestoreDb, CHURCHES_COLLECTION, churchId, LOCATIONS_SUBCOLLECTION, memberId)
+      );
+      if (!snap.exists()) return null;
       const d = snap.data() || {};
       return {
         ...d,
@@ -357,14 +371,27 @@ export class MemberLocationService {
     }
 
     const geohash = encodeGeohash(latitude, longitude, 9);
-    const locRef = db
-      .collection(CHURCHES_COLLECTION)
-      .doc(churchId)
-      .collection(LOCATIONS_SUBCOLLECTION)
-      .doc(memberId);
+    const firestoreDb = getFirestore();
+    const locRef = doc(
+      firestoreDb,
+      CHURCHES_COLLECTION,
+      churchId,
+      LOCATIONS_SUBCOLLECTION,
+      memberId
+    );
+    const pinRef = doc(
+      firestoreDb,
+      CHURCHES_COLLECTION,
+      churchId,
+      LOCATIONS_SUBCOLLECTION,
+      memberId,
+      PRIVATE_HOME_SUBCOLLECTION,
+      'pin'
+    );
 
     await Promise.all([
-      locRef.set(
+      setDoc(
+        locRef,
         sanitizePayload({
           memberId,
           churchId,
@@ -383,28 +410,26 @@ export class MemberLocationService {
           geohash,
           completeAddress: completeAddress.trim(),
           landmark: landmark.trim() || undefined,
-          confirmedAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
+          confirmedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
         }),
         { merge: true }
       ),
-      locRef
-        .collection(PRIVATE_HOME_SUBCOLLECTION)
-        .doc('pin')
-        .set(
-          sanitizePayload({
-            memberId,
-            churchId,
-            latitude,
-            longitude,
-            completeAddress: completeAddress.trim(),
-            landmark: landmark.trim() || undefined,
-            locationSharingConsent: true,
-            locationAccuracy: 'verified_home',
-            updatedAt: FieldValue.serverTimestamp(),
-          }),
-          { merge: true }
-        ),
+      setDoc(
+        pinRef,
+        sanitizePayload({
+          memberId,
+          churchId,
+          latitude,
+          longitude,
+          completeAddress: completeAddress.trim(),
+          landmark: landmark.trim() || undefined,
+          locationSharingConsent: true,
+          locationAccuracy: 'verified_home',
+          updatedAt: serverTimestamp(),
+        }),
+        { merge: true }
+      ),
     ]);
   }
 
@@ -432,40 +457,49 @@ export class MemberLocationService {
       }
     }
 
-    const locRef = db
-      .collection(CHURCHES_COLLECTION)
-      .doc(churchId)
-      .collection(LOCATIONS_SUBCOLLECTION)
-      .doc(memberId);
-    const snap = await locRef.get();
+    const firestoreDb = getFirestore();
+    const locRef = doc(
+      firestoreDb,
+      CHURCHES_COLLECTION,
+      churchId,
+      LOCATIONS_SUBCOLLECTION,
+      memberId
+    );
+    const pinRef = doc(
+      firestoreDb,
+      CHURCHES_COLLECTION,
+      churchId,
+      LOCATIONS_SUBCOLLECTION,
+      memberId,
+      PRIVATE_HOME_SUBCOLLECTION,
+      'pin'
+    );
+    const snap = await getDoc(locRef);
     const d = snap.data() || {};
     const hasApprox =
       typeof d.latitude === 'number' && typeof d.longitude === 'number';
 
     await Promise.all([
-      locRef.set(
+      setDoc(
+        locRef,
         {
           locationSharingConsent: false,
           locationSource: 'profile_geocoding',
           locationAccuracy: hasApprox ? 'village_approximate' : 'not_verified',
           geohash: hasApprox
             ? encodeGeohash(d.latitude, d.longitude, 9)
-            : FieldValue.delete(),
-          confirmedLatitude: FieldValue.delete(),
-          confirmedLongitude: FieldValue.delete(),
-          confirmedGeohash: FieldValue.delete(),
-          completeAddress: FieldValue.delete(),
-          landmark: FieldValue.delete(),
-          confirmedAt: FieldValue.delete(),
-          updatedAt: FieldValue.serverTimestamp(),
+            : deleteField(),
+          confirmedLatitude: deleteField(),
+          confirmedLongitude: deleteField(),
+          confirmedGeohash: deleteField(),
+          completeAddress: deleteField(),
+          landmark: deleteField(),
+          confirmedAt: deleteField(),
+          updatedAt: serverTimestamp(),
         },
         { merge: true }
       ),
-      locRef
-        .collection(PRIVATE_HOME_SUBCOLLECTION)
-        .doc('pin')
-        .delete()
-        .catch(() => {}),
+      deleteDoc(pinRef).catch(() => {}),
     ]);
   }
 

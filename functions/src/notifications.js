@@ -2038,7 +2038,18 @@ async function claimVisitNotificationKey(visitRef, notifDocId) {
         });
     }
     catch (_) {
-        return true;
+        try {
+            const fallbackSnap = await visitRef.get();
+            if (!fallbackSnap.exists)
+                return false;
+            const sentKeys = Array.isArray(fallbackSnap.data()?.sentNotificationKeys)
+                ? fallbackSnap.data().sentNotificationKeys
+                : [];
+            return !sentKeys.includes(notifDocId);
+        }
+        catch (__) {
+            return false;
+        }
     }
 }
 /**
@@ -2293,15 +2304,31 @@ export const onCareCellVisitUpdated = onDocumentUpdated({ document: 'churches/{c
         }
     }
 });
+function parseVisitTimeMinutes(timeStr) {
+    const match = String(timeStr || '').trim().match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+    if (!match || !match[1] || !match[2])
+        return null;
+    let hours = parseInt(match[1], 10);
+    const mins = parseInt(match[2], 10);
+    const meridiem = match[3]?.toUpperCase();
+    if (meridiem === 'PM' && hours < 12)
+        hours += 12;
+    if (meridiem === 'AM' && hours === 12)
+        hours = 0;
+    if (hours < 0 || hours > 23 || mins < 0 || mins > 59)
+        return null;
+    return hours * 60 + mins;
+}
 /**
  * ⏰ SCHEDULED CARE CELL VISIT REMINDERS
- * Runs every 2 hours (Asia/Kolkata) to send deduplicated reminders for visits occurring today or tomorrow.
+ * Runs every 2 hours (Asia/Kolkata) to send deduplicated reminders for upcoming visits today or tomorrow.
  */
 export const sendCareCellVisitReminders = onSchedule({ schedule: '0 */2 * * *', timeZone: 'Asia/Kolkata', region: 'asia-south1' }, async () => {
     const db = getFirestore();
     const messaging = getMessaging();
     const nowIst = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
     const todayStr = nowIst.toISOString().slice(0, 10);
+    const nowIstMinutes = nowIst.getUTCHours() * 60 + nowIst.getUTCMinutes();
     const tomorrowIst = new Date(nowIst.getTime() + 24 * 60 * 60 * 1000);
     const tomorrowStr = tomorrowIst.toISOString().slice(0, 10);
     const churchesSnap = await db.collection('churches').get();
@@ -2322,6 +2349,14 @@ export const sendCareCellVisitReminders = onSchedule({ schedule: '0 */2 * * *', 
                     continue;
                 if (v.reminderSent === true)
                     continue;
+                const visitDate = String(v.visitDate || '');
+                const visitTime = String(v.visitTime || '');
+                if (visitDate === todayStr) {
+                    const visitMins = parseVisitTimeMinutes(visitTime);
+                    if (visitMins !== null && nowIstMinutes > visitMins + 60) {
+                        continue;
+                    }
+                }
                 let claimedReminder = false;
                 try {
                     claimedReminder = await db.runTransaction(async (tx) => {
@@ -2342,30 +2377,35 @@ export const sendCareCellVisitReminders = onSchedule({ schedule: '0 */2 * * *', 
                     continue;
                 const cellName = String(v.cellName || 'Care Cell').trim();
                 const title = String(v.title || 'Pastoral Home Visit').trim();
-                const visitDate = String(v.visitDate || '');
-                const visitTime = String(v.visitTime || '');
                 const schedulePart = `${formatVisitDateText(visitDate)}${visitTime ? ` at ${formatVisitTimeText(visitTime)}` : ''}`;
                 const [memberRecipients, leaderRecipients] = await Promise.all([
                     resolveVisitTargetMemberRecipients(db, churchId, v),
                     resolveVisitResponsibleTargets(db, churchId, v),
                 ]);
+                // Avoid sending both a Member Reminder and a Leader Reminder to the same physical device/account
+                const leaderTokenSet = new Set(leaderRecipients.tokens);
+                const leaderDocIdSet = new Set(leaderRecipients.docIds);
+                const memberOnlyTokens = memberRecipients.tokens.filter((tk) => !leaderTokenSet.has(tk));
+                const memberOnlyDocIds = Array.from(memberRecipients.docIdToPhone.keys()).filter((id) => !leaderDocIdSet.has(id));
                 await Promise.all([
-                    dispatchVisitLifecycleAlert({
-                        db,
-                        messaging,
-                        visitRef: vDoc.ref,
-                        churchId,
-                        visitId: vDoc.id,
-                        notifDocId: `cc_visit_rem_member_${vDoc.id}`,
-                        type: 'care_cell_visit_reminder',
-                        notifTitle: `⏰ Visit Reminder: ${title}`,
-                        notifBody: `Reminder: ${cellName} visit is scheduled for ${schedulePart}.`,
-                        targetRole: 'member',
-                        recipientDocIds: Array.from(memberRecipients.docIdToPhone.keys()),
-                        tokens: memberRecipients.tokens,
-                        extraPushData: { cellId: String(v.cellId || ''), cellName, visitDate, visitTime },
-                        extraInAppFields: { cellId: String(v.cellId || ''), cellName, visitTitle: title, visitDate, visitTime },
-                    }),
+                    memberOnlyTokens.length > 0 || memberOnlyDocIds.length > 0
+                        ? dispatchVisitLifecycleAlert({
+                            db,
+                            messaging,
+                            visitRef: vDoc.ref,
+                            churchId,
+                            visitId: vDoc.id,
+                            notifDocId: `cc_visit_rem_member_${vDoc.id}`,
+                            type: 'care_cell_visit_reminder',
+                            notifTitle: `⏰ Visit Reminder: ${title}`,
+                            notifBody: `Reminder: ${cellName} visit is scheduled for ${schedulePart}.`,
+                            targetRole: 'member',
+                            recipientDocIds: memberOnlyDocIds,
+                            tokens: memberOnlyTokens,
+                            extraPushData: { cellId: String(v.cellId || ''), cellName, visitDate, visitTime },
+                            extraInAppFields: { cellId: String(v.cellId || ''), cellName, visitTitle: title, visitDate, visitTime },
+                        })
+                        : Promise.resolve(),
                     dispatchVisitLifecycleAlert({
                         db,
                         messaging,

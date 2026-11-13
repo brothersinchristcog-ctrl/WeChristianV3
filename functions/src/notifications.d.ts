@@ -169,7 +169,7 @@ export declare const onCareCellVisitUpdated: import("firebase-functions/core").C
 }>>;
 /**
  * ⏰ SCHEDULED CARE CELL VISIT REMINDERS
- * Runs every 2 hours (Asia/Kolkata) to send deduplicated reminders for visits occurring today or tomorrow.
+ * Runs every 2 hours (Asia/Kolkata) to send deduplicated reminders for upcoming visits today or tomorrow.
  */
 export declare const sendCareCellVisitReminders: import("firebase-functions/v2/scheduler").ScheduleFunction;
 export declare const onTestimonyCreatedAdmin: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
