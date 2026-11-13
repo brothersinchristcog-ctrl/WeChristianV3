@@ -39,6 +39,7 @@ import {
   CareCell,
   CareCellMembership,
   CareCellVisit,
+  MemberVisitResponseStatus,
   VisitRoutePoint,
   VisitStatus,
 } from '../../../../types/CareCellTypes';
@@ -87,12 +88,17 @@ export default function CareCellVisitsTab({
     cell: CareCell | null;
     members: CareCellMembership[];
     initialRouteIds: string[];
+    visitMemberMeta?: Record<
+      string,
+      { response?: MemberVisitResponseStatus; preferredTime?: string }
+    >;
   }>({
     visible: false,
     visit: null,
     cell: null,
     members: [],
     initialRouteIds: [],
+    visitMemberMeta: undefined,
   });
   const [loadingRouteVisitId, setLoadingRouteVisitId] = useState<string | null>(null);
   const [launchingDirectionsVisitId, setLaunchingDirectionsVisitId] = useState<string | null>(null);
@@ -290,6 +296,20 @@ export default function CareCellVisitsTab({
     return { activeChurchId, cell: fallbackCell, members: targetList };
   };
 
+  const buildVisitMemberMeta = (
+    visit: CareCellVisit
+  ): Record<string, { response?: MemberVisitResponseStatus; preferredTime?: string }> => {
+    const meta: Record<string, { response?: MemberVisitResponseStatus; preferredTime?: string }> = {};
+    Object.values(visit.responses || {}).forEach((r) => {
+      if (!r?.memberId) return;
+      meta[r.memberId] = {
+        response: r.response,
+        preferredTime: r.preferredTime,
+      };
+    });
+    return meta;
+  };
+
   const handleOpenVisitRouteMap = async (visit: CareCellVisit) => {
     setLoadingRouteVisitId(visit.id);
     try {
@@ -298,16 +318,34 @@ export default function CareCellVisitsTab({
         Alert.alert('No Target Members', 'This visit does not have any assigned members to display on the map.');
         return;
       }
+      const visitMemberMeta = buildVisitMemberMeta(visit);
+      const hasAccepted = members.some((m) => visitMemberMeta[m.memberId]?.response === 'Accepted');
+      const eligibleIds = members
+        .filter((m) => {
+          const st = visitMemberMeta[m.memberId]?.response;
+          if (st === 'Declined') return false;
+          if (hasAccepted) return st === 'Accepted';
+          return true;
+        })
+        .map((m) => m.memberId);
+
+      const eligibleSet = new Set(eligibleIds);
+      const savedEligible = (visit.routeStops || [])
+        .map((s) => s.memberId)
+        .filter((id) => eligibleSet.has(id));
+
       const initialRouteIds =
-        visit.routeStops && visit.routeStops.length > 0
-          ? visit.routeStops.map((s) => s.memberId)
-          : members.map((m) => m.memberId);
+        savedEligible.length === eligibleIds.length && savedEligible.length > 0
+          ? savedEligible
+          : eligibleIds;
+
       setRouteMapState({
         visible: true,
         visit,
         cell,
         members,
         initialRouteIds,
+        visitMemberMeta,
       });
     } catch (e: any) {
       Alert.alert('Map Error', e?.message || 'Unable to load member locations for this visit.');
@@ -337,7 +375,24 @@ export default function CareCellVisitsTab({
   const handleDirectionsForVisit = async (visit: CareCellVisit) => {
     setLaunchingDirectionsVisitId(visit.id);
     try {
-      if (visit.routeStops && visit.routeStops.length > 0) {
+      const visitMemberMeta = buildVisitMemberMeta(visit);
+      const hasSavedRouteMismatch =
+        !visit.routeStops ||
+        visit.routeStops.length === 0 ||
+        Object.values(visit.responses || {}).some((r) => {
+          const saved = visit.routeStops?.find((s) => s.memberId === r.memberId);
+          if (r.response === 'Declined') return Boolean(saved);
+          if (r.response === 'Accepted') {
+            return (
+              !saved ||
+              saved.preferredTime !== r.preferredTime ||
+              saved.responseStatus !== 'Accepted'
+            );
+          }
+          return Boolean(saved && r.preferredTime && saved.preferredTime !== r.preferredTime);
+        });
+
+      if (!hasSavedRouteMismatch && visit.routeStops && visit.routeStops.length > 0) {
         await MemberLocationService.openGoogleMapsMultiStopRoute({
           stops: visit.routeStops,
           travelMode: 'driving',
@@ -370,12 +425,16 @@ export default function CareCellVisitsTab({
         })),
         fallbackLocationHint: cell.location || cell.meetingLocation,
         startPoint,
+        visitMemberMeta,
+        fallbackVisitTime: visit.visitTime,
+        acceptedOnly: true,
+        excludeDeclined: true,
       });
 
       if (stops.length === 0) {
         Alert.alert(
-          'Missing Locations',
-          'Selected members do not have GPS pins or geocodable localities yet.'
+          'No Active Stops',
+          'No non-declined members have GPS pins or geocodable localities yet.'
         );
         return;
       }
@@ -684,11 +743,17 @@ export default function CareCellVisitsTab({
                     <Route size={13} color={isDark ? '#34D399' : '#059669'} style={{ marginRight: 6 }} />
                     <Text
                       style={[styles.visitRouteStripTxt, isDark && { color: '#6EE7B7' }]}
-                      numberOfLines={1}
+                      numberOfLines={2}
                     >
                       {item.routeStops.length} Stop Route (~
                       {MemberLocationService.computeRouteDistanceKm(item.routeStops)} km):{' '}
-                      {item.routeStops.map((s) => `${s.order}. ${s.memberName}`).join(' → ')}
+                      {item.routeStops
+                        .map((s) =>
+                          s.preferredTime
+                            ? `${s.order}. ${s.memberName} (${s.preferredTime})`
+                            : `${s.order}. ${s.memberName}`
+                        )
+                        .join(' → ')}
                     </Text>
                   </View>
                 ) : null}
@@ -812,6 +877,8 @@ export default function CareCellVisitsTab({
           members={routeMapState.members}
           initialPlannedRouteIds={routeMapState.initialRouteIds}
           autoSelectRoute={true}
+          visitMemberMeta={routeMapState.visitMemberMeta}
+          visitDefaultTime={routeMapState.visit?.visitTime}
           headerSubtitleOverride={
             routeMapState.visit
               ? `${routeMapState.visit.title} · ${routeMapState.members.length} Target${

@@ -46,11 +46,13 @@ import {
   ChevronRight,
   ExternalLink,
   Crosshair,
+  Clock,
 } from 'lucide-react-native';
 import {
   CareCell,
   CareCellMembership,
   MemberLocationRecord,
+  MemberVisitResponseStatus,
   VisitRoutePoint,
 } from '../../../../types/CareCellTypes';
 import { useChurch } from '../../../../context/ChurchContext';
@@ -98,6 +100,11 @@ interface CareCellMapModalProps {
   autoSelectRoute?: boolean;
   headerSubtitleOverride?: string;
   onConfirmRoute?: (stops: VisitRoutePoint[]) => void;
+  visitMemberMeta?: Record<
+    string,
+    { response?: MemberVisitResponseStatus; preferredTime?: string }
+  >;
+  visitDefaultTime?: string;
 }
 
 export default function CareCellMapModal({
@@ -112,6 +119,8 @@ export default function CareCellMapModal({
   autoSelectRoute = false,
   headerSubtitleOverride,
   onConfirmRoute,
+  visitMemberMeta,
+  visitDefaultTime,
 }: CareCellMapModalProps) {
   const { activeChurch } = useChurch();
   const effectiveChurchId = churchId || cell?.churchId || activeChurch?.id || '';
@@ -128,6 +137,28 @@ export default function CareCellMapModal({
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [selectedLocality, setSelectedLocality] = useState<string>('ALL');
   const [filterNeedsVisitOnly, setFilterNeedsVisitOnly] = useState<boolean>(false);
+  const [visitResponseFilter, setVisitResponseFilter] = useState<'ACCEPTED_ONLY' | 'NON_DECLINED' | 'ALL'>('NON_DECLINED');
+
+  // Visit response counts when opened from a Care Cell Visit
+  const visitResponseStats = useMemo(() => {
+    if (!visitMemberMeta) return null;
+    let accepted = 0;
+    let pending = 0;
+    let declined = 0;
+    members.forEach((m) => {
+      const st = visitMemberMeta[m.memberId]?.response || 'Pending';
+      if (st === 'Accepted') accepted += 1;
+      else if (st === 'Declined') declined += 1;
+      else pending += 1;
+    });
+    return {
+      accepted,
+      pending,
+      declined,
+      nonDeclined: accepted + pending,
+      total: members.length,
+    };
+  }, [visitMemberMeta, members]);
 
   // Selected member card on map
   const [selectedMember, setSelectedMember] = useState<EnrichedCellMembership | null>(null);
@@ -167,14 +198,44 @@ export default function CareCellMapModal({
     setFilterNeedsVisitOnly(false);
     setRouteOptimizedFlag(false);
     setNavActive(false);
+
+    const hasAccepted = Boolean(
+      visitMemberMeta &&
+        members.some((m) => visitMemberMeta[m.memberId]?.response === 'Accepted')
+    );
+    const defaultRespFilter: 'ACCEPTED_ONLY' | 'NON_DECLINED' | 'ALL' = hasAccepted
+      ? 'ACCEPTED_ONLY'
+      : 'NON_DECLINED';
+    setVisitResponseFilter(defaultRespFilter);
+
+    const eligibleIds = visitMemberMeta
+      ? new Set(
+          members
+            .filter((m) => {
+              const st = visitMemberMeta[m.memberId]?.response || 'Pending';
+              if (defaultRespFilter === 'ACCEPTED_ONLY') return st === 'Accepted';
+              return st !== 'Declined';
+            })
+            .map((m) => m.memberId)
+        )
+      : null;
+
     if (initialPlannedRouteIds && initialPlannedRouteIds.length > 0) {
-      setPlannedRouteMemberIds([...initialPlannedRouteIds]);
+      const filteredInit = eligibleIds
+        ? initialPlannedRouteIds.filter((id) => eligibleIds.has(id))
+        : initialPlannedRouteIds;
+      setPlannedRouteMemberIds(
+        filteredInit.length > 0 ? filteredInit : [...initialPlannedRouteIds]
+      );
     } else if (autoSelectRoute && members.length > 0) {
-      setPlannedRouteMemberIds(members.map((m) => m.memberId));
+      const autoIds = eligibleIds
+        ? members.filter((m) => eligibleIds.has(m.memberId)).map((m) => m.memberId)
+        : members.map((m) => m.memberId);
+      setPlannedRouteMemberIds(autoIds);
     } else {
       setPlannedRouteMemberIds([]);
     }
-  }, [visible, initialPlannedRouteIds, autoSelectRoute, members]);
+  }, [visible, initialPlannedRouteIds, autoSelectRoute, members, visitMemberMeta]);
 
   // Keep Android custom Marker snapshots crisp after images or route badges update
   useEffect(() => {
@@ -441,6 +502,13 @@ export default function CareCellMapModal({
   // Filtered members list
   const filteredMembers = useMemo(() => {
     let list = enrichedMembers;
+    if (visitMemberMeta) {
+      if (visitResponseFilter === 'ACCEPTED_ONLY') {
+        list = list.filter((m) => visitMemberMeta[m.memberId]?.response === 'Accepted');
+      } else if (visitResponseFilter === 'NON_DECLINED') {
+        list = list.filter((m) => visitMemberMeta[m.memberId]?.response !== 'Declined');
+      }
+    }
     if (filterNeedsVisitOnly) {
       list = list.filter((m) => inactiveMemberIdSet.has(m.memberId));
     }
@@ -448,7 +516,7 @@ export default function CareCellMapModal({
       list = list.filter((m) => (m.locality || '').trim().toLowerCase() === selectedLocality.toLowerCase());
     }
     return list;
-  }, [enrichedMembers, filterNeedsVisitOnly, selectedLocality, inactiveMemberIdSet]);
+  }, [enrichedMembers, visitMemberMeta, visitResponseFilter, filterNeedsVisitOnly, selectedLocality, inactiveMemberIdSet]);
 
   // Members with valid GPS coordinates for map plotting
   const membersWithCoords = useMemo(() => {
@@ -765,6 +833,7 @@ export default function CareCellMapModal({
         dist = Number((6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(2));
       }
 
+      const meta = visitMemberMeta?.[m.memberId];
       stops.push({
         memberId: m.memberId,
         memberName: m.memberName,
@@ -778,20 +847,47 @@ export default function CareCellMapModal({
         distanceFromPreviousKm: dist,
         isApproximateDistance: !m.isVerifiedPin,
         consent: Boolean(m.isVerifiedPin),
+        preferredTime: meta?.preferredTime,
+        responseStatus: meta?.response,
       });
       prevLat = exactLat;
       prevLng = exactLng;
     });
 
     return stops;
-  }, [plannedRouteMemberIds, enrichedMembers, memberLocMap, cell?.location]);
+  }, [plannedRouteMemberIds, enrichedMembers, memberLocMap, cell?.location, visitMemberMeta]);
 
   const plannedTotalKm = useMemo(
     () => MemberLocationService.computeRouteDistanceKm(plannedStops),
     [plannedStops]
   );
 
+  const handleSelectVisitResponseFilter = (
+    nextFilter: 'ACCEPTED_ONLY' | 'NON_DECLINED' | 'ALL'
+  ) => {
+    setVisitResponseFilter(nextFilter);
+    setRouteOptimizedFlag(false);
+    setSelectedMember(null);
+    if (!visitMemberMeta) return;
+    if (nextFilter === 'ACCEPTED_ONLY') {
+      setPlannedRouteMemberIds(
+        members
+          .filter((m) => visitMemberMeta[m.memberId]?.response === 'Accepted')
+          .map((m) => m.memberId)
+      );
+    } else if (nextFilter === 'NON_DECLINED') {
+      setPlannedRouteMemberIds(
+        members
+          .filter((m) => visitMemberMeta[m.memberId]?.response !== 'Declined')
+          .map((m) => m.memberId)
+      );
+    } else {
+      setPlannedRouteMemberIds(members.map((m) => m.memberId));
+    }
+  };
+
   // Nearest-neighbor TSP route optimization across planned (or all visible) members
+  // When visit metadata exists, orders by preferred time window first, then shortest distance
   const handleOptimizeRoute = () => {
     const candidateIds =
       plannedRouteMemberIds.length >= 2
@@ -837,7 +933,17 @@ export default function CareCellMapModal({
         ? { latitude: cell.meetingLatitude, longitude: cell.meetingLongitude }
         : geocodedCellCoords || undefined;
 
-    const optimized = MemberLocationService.suggestOptimalVisitOrder(locRecords, cellStart);
+    const optimized = visitMemberMeta
+      ? MemberLocationService.suggestTimeAndDistanceVisitOrder({
+          members: locRecords,
+          startPoint: cellStart,
+          visitMemberMeta,
+          fallbackVisitTime: visitDefaultTime,
+          acceptedOnly: visitResponseFilter === 'ACCEPTED_ONLY',
+          excludeDeclined: visitResponseFilter !== 'ALL',
+        })
+      : MemberLocationService.suggestOptimalVisitOrder(locRecords, cellStart);
+
     if (optimized.length > 0) {
       setPlannedRouteMemberIds(optimized.map((s) => s.memberId));
       setRouteOptimizedFlag(true);
@@ -892,6 +998,49 @@ export default function CareCellMapModal({
     onClose();
   };
 
+  // Shared helper to render member visit acceptance status + preferred time pills
+  const renderVisitMetaBadges = (
+    memberId: string,
+    responseOverride?: MemberVisitResponseStatus,
+    preferredTimeOverride?: string
+  ) => {
+    const meta = visitMemberMeta?.[memberId];
+    const response = responseOverride || meta?.response;
+    const preferredTime = preferredTimeOverride || meta?.preferredTime;
+    if (!response && !preferredTime) return null;
+
+    const statusBadgeStyle =
+      response === 'Accepted'
+        ? styles.visitStatusAcceptedTag
+        : response === 'Declined'
+        ? styles.visitStatusDeclinedTag
+        : styles.visitStatusPendingTag;
+    const statusTextStyle =
+      response === 'Accepted'
+        ? styles.visitStatusAcceptedTxt
+        : response === 'Declined'
+        ? styles.visitStatusDeclinedTxt
+        : styles.visitStatusPendingTxt;
+
+    return (
+      <View style={styles.visitMetaBadgesRow}>
+        {response ? (
+          <View style={statusBadgeStyle}>
+            <Text style={statusTextStyle}>{response}</Text>
+          </View>
+        ) : null}
+        {preferredTime ? (
+          <View style={styles.visitPreferredTimeTag}>
+            <Clock size={10} color="#1D4ED8" />
+            <Text style={styles.visitPreferredTimeTxt} numberOfLines={1}>
+              {preferredTime}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.container}>
@@ -926,25 +1075,88 @@ export default function CareCellMapModal({
         {/* Filter Pills Bar */}
         <View style={styles.filterBar}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
-            <TouchableOpacity
-              style={[
-                styles.filterPill,
-                selectedLocality === 'ALL' && !filterNeedsVisitOnly && { backgroundColor: primaryBtnBg, borderColor: primaryBtnBg },
-              ]}
-              onPress={() => {
-                setSelectedLocality('ALL');
-                setFilterNeedsVisitOnly(false);
-              }}
-            >
-              <Text
+            {visitResponseStats ? (
+              <>
+                {visitResponseStats.accepted > 0 && (
+                  <TouchableOpacity
+                    style={[
+                      styles.filterPill,
+                      visitResponseFilter === 'ACCEPTED_ONLY' && styles.filterPillAcceptedActive,
+                    ]}
+                    onPress={() => handleSelectVisitResponseFilter('ACCEPTED_ONLY')}
+                  >
+                    <Check
+                      size={11}
+                      color={visitResponseFilter === 'ACCEPTED_ONLY' ? '#FFFFFF' : '#047857'}
+                      strokeWidth={2.5}
+                      style={{ marginRight: 4 }}
+                    />
+                    <Text
+                      style={[
+                        styles.filterPillTxt,
+                        { color: visitResponseFilter === 'ACCEPTED_ONLY' ? '#FFFFFF' : '#047857', fontWeight: '700' },
+                      ]}
+                    >
+                      Accepted ({visitResponseStats.accepted})
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={[
+                    styles.filterPill,
+                    visitResponseFilter === 'NON_DECLINED' && { backgroundColor: primaryBtnBg, borderColor: primaryBtnBg },
+                  ]}
+                  onPress={() => handleSelectVisitResponseFilter('NON_DECLINED')}
+                >
+                  <Text
+                    style={[
+                      styles.filterPillTxt,
+                      visitResponseFilter === 'NON_DECLINED' && { color: primaryBtnText, fontWeight: '700' },
+                    ]}
+                  >
+                    Active ({visitResponseStats.nonDeclined})
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.filterPill,
+                    visitResponseFilter === 'ALL' && { backgroundColor: primaryBtnBg, borderColor: primaryBtnBg },
+                  ]}
+                  onPress={() => handleSelectVisitResponseFilter('ALL')}
+                >
+                  <Text
+                    style={[
+                      styles.filterPillTxt,
+                      visitResponseFilter === 'ALL' && { color: primaryBtnText, fontWeight: '700' },
+                    ]}
+                  >
+                    All ({visitResponseStats.total})
+                  </Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <TouchableOpacity
                 style={[
-                  styles.filterPillTxt,
-                  selectedLocality === 'ALL' && !filterNeedsVisitOnly && { color: primaryBtnText, fontWeight: '700' },
+                  styles.filterPill,
+                  selectedLocality === 'ALL' && !filterNeedsVisitOnly && { backgroundColor: primaryBtnBg, borderColor: primaryBtnBg },
                 ]}
+                onPress={() => {
+                  setSelectedLocality('ALL');
+                  setFilterNeedsVisitOnly(false);
+                }}
               >
-                All Members ({members.length})
-              </Text>
-            </TouchableOpacity>
+                <Text
+                  style={[
+                    styles.filterPillTxt,
+                    selectedLocality === 'ALL' && !filterNeedsVisitOnly && { color: primaryBtnText, fontWeight: '700' },
+                  ]}
+                >
+                  All Members ({members.length})
+                </Text>
+              </TouchableOpacity>
+            )}
 
             {inactiveMembers.length > 0 && (
               <TouchableOpacity
@@ -974,7 +1186,7 @@ export default function CareCellMapModal({
                   style={[styles.filterPill, isSelected && { backgroundColor: primaryBtnBg, borderColor: primaryBtnBg }]}
                   onPress={() => {
                     setFilterNeedsVisitOnly(false);
-                    setSelectedLocality(loc);
+                    setSelectedLocality(isSelected ? 'ALL' : loc);
                   }}
                 >
                   <MapPin size={11} color={isSelected ? primaryBtnText : secondaryText} style={{ marginRight: 4 }} />
@@ -1209,6 +1421,11 @@ export default function CareCellMapModal({
                         <Text style={styles.navStopMemberName} numberOfLines={1}>
                           {currentStop.memberName}
                         </Text>
+                        {renderVisitMetaBadges(
+                          currentStop.memberId,
+                          currentStop.responseStatus,
+                          currentStop.preferredTime
+                        )}
                         <Text style={styles.navStopAddress} numberOfLines={2}>
                           {currentStop.address || currentStop.locality || 'Care Cell Member Residence'}
                         </Text>
@@ -1281,7 +1498,13 @@ export default function CareCellMapModal({
                     </Text>
                     <Text style={styles.floatingRouteSub} numberOfLines={1}>
                       {plannedStops.length > 0
-                        ? `${plannedStops.length} mapped · ~${plannedTotalKm} km${routeOptimizedFlag ? ' · Optimized' : ''}`
+                        ? `${plannedStops.length} mapped · ~${plannedTotalKm} km${
+                            routeOptimizedFlag
+                              ? visitMemberMeta
+                                ? ' · Time + Distance'
+                                : ' · Optimized'
+                              : ''
+                          }`
                         : 'Resolving member coordinates...'}
                     </Text>
                   </View>
@@ -1367,7 +1590,7 @@ export default function CareCellMapModal({
                       <Text style={styles.selectedMemberName} numberOfLines={1}>
                         {selectedMember.memberName}
                       </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2, flexWrap: 'wrap' }}>
                         {selectedMember.locality ? (
                           <View style={styles.localityTag}>
                             <MapPin size={10} color="#1A2D5A" />
@@ -1380,6 +1603,7 @@ export default function CareCellMapModal({
                           </View>
                         )}
                       </View>
+                      {renderVisitMetaBadges(selectedMember.memberId)}
                     </View>
                   </View>
                   <TouchableOpacity onPress={() => setSelectedMember(null)} style={{ padding: 4 }}>
@@ -1527,6 +1751,7 @@ export default function CareCellMapModal({
                           <Text style={styles.localityTagTxt}>{item.locality}</Text>
                         </View>
                       ) : null}
+                      {renderVisitMetaBadges(item.memberId)}
                     </View>
                     {isInactive && (
                       <View style={styles.needsVisitTag}>
@@ -2373,6 +2598,74 @@ const styles = createAdminThemedStyles({
   },
   itemRouteBtnTxtActive: {
     color: '#FFFFFF',
+  },
+  filterPillAcceptedActive: {
+    backgroundColor: '#059669',
+    borderColor: '#059669',
+  },
+  visitMetaBadgesRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 4,
+    marginBottom: 2,
+  },
+  visitStatusAcceptedTag: {
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  visitStatusAcceptedTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#047857',
+  },
+  visitStatusPendingTag: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  visitStatusPendingTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#B45309',
+  },
+  visitStatusDeclinedTag: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  visitStatusDeclinedTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#DC2626',
+  },
+  visitPreferredTimeTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    maxWidth: '100%',
+  },
+  visitPreferredTimeTxt: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#1D4ED8',
   },
 });
 

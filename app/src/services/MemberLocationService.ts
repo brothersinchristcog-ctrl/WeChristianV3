@@ -18,6 +18,7 @@ import {
   LocationAccuracy,
   MemberLocationRecord,
   MemberVisitBadgeStatus,
+  MemberVisitResponseStatus,
   NearbyMemberMatch,
   VisitRoutePoint,
 } from '../types/CareCellTypes';
@@ -779,6 +780,179 @@ export class MemberLocationService {
   }
 
   /**
+   * Parses a member's preferredTime (e.g. "Morning (10:00 AM - 12:00 PM)", "17:00", "5:30 PM", "Evening")
+   * into minutes from midnight (0..1439), returning null when no clear time is specified.
+   */
+  static parsePreferredVisitMinutes(
+    preferredTime?: string,
+    fallbackVisitTime?: string
+  ): number | null {
+    const parseSingle = (raw?: string): number | null => {
+      const s = (raw || '').trim();
+      if (!s) return null;
+
+      // Match 12-hour format first: e.g. "10:00 AM", "5 PM", "5:30 p.m."
+      const amPmMatch = s.match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)/i);
+      if (amPmMatch) {
+        let h = parseInt(amPmMatch[1], 10);
+        const m = amPmMatch[2] ? parseInt(amPmMatch[2], 10) : 0;
+        const isPm = amPmMatch[3].toLowerCase().startsWith('p');
+        if (h === 12) h = isPm ? 12 : 0;
+        else if (isPm) h += 12;
+        if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+          return h * 60 + m;
+        }
+      }
+
+      // Match 24-hour HH:MM: e.g. "17:00" or "Scheduled Time (17:00)"
+      const h24Match = s.match(/\b(\d{1,2}):(\d{2})\b/);
+      if (h24Match) {
+        const h = parseInt(h24Match[1], 10);
+        const m = parseInt(h24Match[2], 10);
+        if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+          return h * 60 + m;
+        }
+      }
+
+      // Keyword fallback ("Morning", "Afternoon", "Evening", "Night")
+      const lower = s.toLowerCase();
+      if (lower.includes('morning')) return 10 * 60;
+      if (lower.includes('afternoon')) return 14 * 60;
+      if (lower.includes('evening')) return 17 * 60;
+      if (lower.includes('night')) return 19 * 60;
+
+      return null;
+    };
+
+    const primary = parseSingle(preferredTime);
+    if (primary !== null) return primary;
+    return parseSingle(fallbackVisitTime);
+  }
+
+  /**
+   * Optimizes visit order by combining:
+   * 1) Acceptance filtering (excludes Declined by default; focuses on Accepted when available)
+   * 2) Chronological 30-min preferred time windows (e.g. Morning -> Afternoon -> Evening -> Night)
+   * 3) Shortest nearest-neighbor distance within each time window chained across windows.
+   */
+  static suggestTimeAndDistanceVisitOrder(params: {
+    members: MemberLocationRecord[];
+    startPoint?: { latitude: number; longitude: number };
+    visitMemberMeta?: Record<
+      string,
+      { response?: MemberVisitResponseStatus; preferredTime?: string }
+    >;
+    fallbackVisitTime?: string;
+    acceptedOnly?: boolean;
+    excludeDeclined?: boolean;
+  }): VisitRoutePoint[] {
+    const meta = params.visitMemberMeta || {};
+    const excludeDeclined = params.excludeDeclined !== false;
+
+    const valid = (params.members || [])
+      .map((m) => {
+        const coords = getEffectiveCoordinates(m);
+        if (!coords) return null;
+        const mMeta = meta[m.memberId];
+        return {
+          m,
+          coords,
+          responseStatus: mMeta?.response,
+          preferredTime: mMeta?.preferredTime,
+        };
+      })
+      .filter(Boolean) as Array<{
+      m: MemberLocationRecord;
+      coords: { latitude: number; longitude: number; accuracy: LocationAccuracy };
+      responseStatus?: MemberVisitResponseStatus;
+      preferredTime?: string;
+    }>;
+
+    if (valid.length === 0) return [];
+
+    // Filter by acceptance status cleanly
+    let filtered = excludeDeclined
+      ? valid.filter((item) => item.responseStatus !== 'Declined')
+      : valid;
+
+    if (params.acceptedOnly) {
+      const acceptedList = filtered.filter((item) => item.responseStatus === 'Accepted');
+      if (acceptedList.length > 0) {
+        filtered = acceptedList;
+      }
+    }
+
+    if (filtered.length === 0) return [];
+
+    // Group into chronological 30-min time-window buckets; flexible/unspecified goes last
+    const UNSPECIFIED_BUCKET = 9999;
+    const buckets = new Map<number, typeof filtered>();
+
+    for (const item of filtered) {
+      const mins = MemberLocationService.parsePreferredVisitMinutes(
+        item.preferredTime,
+        params.fallbackVisitTime
+      );
+      const bucketKey = mins !== null ? Math.floor(mins / 30) * 30 : UNSPECIFIED_BUCKET;
+      const arr = buckets.get(bucketKey);
+      if (arr) arr.push(item);
+      else buckets.set(bucketKey, [item]);
+    }
+
+    const sortedBucketKeys = Array.from(buckets.keys()).sort((a, b) => a - b);
+    const ordered: VisitRoutePoint[] = [];
+    let currentPos = params.startPoint;
+
+    for (const bucketKey of sortedBucketKeys) {
+      const remaining = [...(buckets.get(bucketKey) || [])];
+      if (!currentPos && remaining.length > 0) {
+        currentPos = remaining[0].coords;
+      }
+
+      while (remaining.length > 0) {
+        let bestIdx = 0;
+        let bestDist = Infinity;
+        for (let i = 0; i < remaining.length; i++) {
+          const d = currentPos
+            ? haversineDistanceKm(currentPos, remaining[i].coords)
+            : 0;
+          if (d < bestDist) {
+            bestDist = d;
+            bestIdx = i;
+          }
+        }
+
+        const [chosen] = remaining.splice(bestIdx, 1);
+        const isConsent = chosen.coords.accuracy === 'verified_home';
+        ordered.push({
+          memberId: chosen.m.memberId,
+          memberName: chosen.m.memberName,
+          memberPhone: chosen.m.phone,
+          address: isConsent
+            ? chosen.m.completeAddress || formatMemberAreaText(chosen.m)
+            : formatMemberAreaText(chosen.m),
+          locality: chosen.m.village || chosen.m.city || chosen.m.district,
+          latitude: chosen.coords.latitude,
+          longitude: chosen.coords.longitude,
+          order: ordered.length + 1,
+          accuracy: chosen.coords.accuracy,
+          distanceFromPreviousKm:
+            ordered.length === 0 && !params.startPoint
+              ? 0
+              : Number(bestDist.toFixed(2)),
+          isApproximateDistance: !isConsent,
+          consent: isConsent,
+          preferredTime: chosen.preferredTime || undefined,
+          responseStatus: chosen.responseStatus || undefined,
+        });
+        currentPos = chosen.coords;
+      }
+    }
+
+    return ordered;
+  }
+
+  /**
    * Opens Google Maps single-destination directions with optional explicit origin and travel mode.
    */
   static async openGoogleMapsDirections(params: {
@@ -907,6 +1081,13 @@ export class MemberLocationService {
     startPoint?: { latitude: number; longitude: number };
     preloadedLocations?: Record<string, MemberLocationRecord>;
     preserveOrder?: boolean;
+    visitMemberMeta?: Record<
+      string,
+      { response?: MemberVisitResponseStatus; preferredTime?: string }
+    >;
+    fallbackVisitTime?: string;
+    acceptedOnly?: boolean;
+    excludeDeclined?: boolean;
   }): Promise<VisitRoutePoint[]> {
     if (!params.members || params.members.length === 0) return [];
 
@@ -988,6 +1169,16 @@ export class MemberLocationService {
     if (syntheticRecords.length === 0) return [];
 
     if (!params.preserveOrder) {
+      if (params.visitMemberMeta || params.fallbackVisitTime || params.acceptedOnly) {
+        return MemberLocationService.suggestTimeAndDistanceVisitOrder({
+          members: syntheticRecords,
+          startPoint: params.startPoint,
+          visitMemberMeta: params.visitMemberMeta,
+          fallbackVisitTime: params.fallbackVisitTime,
+          acceptedOnly: params.acceptedOnly,
+          excludeDeclined: params.excludeDeclined,
+        });
+      }
       return MemberLocationService.suggestOptimalVisitOrder(
         syntheticRecords,
         params.startPoint
@@ -1001,6 +1192,7 @@ export class MemberLocationService {
       if (!coords) return;
       const dist = prevPos ? haversineDistanceKm(prevPos, coords) : 0;
       const isConsent = coords.accuracy === 'verified_home';
+      const meta = params.visitMemberMeta?.[rec.memberId];
       stops.push({
         memberId: rec.memberId,
         memberName: rec.memberName,
@@ -1016,6 +1208,8 @@ export class MemberLocationService {
         distanceFromPreviousKm: Number(dist.toFixed(2)),
         isApproximateDistance: !isConsent,
         consent: isConsent,
+        preferredTime: meta?.preferredTime || undefined,
+        responseStatus: meta?.response || undefined,
       });
       prevPos = coords;
     });

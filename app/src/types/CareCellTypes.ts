@@ -139,6 +139,8 @@ export interface VisitRoutePoint {
   distanceFromPreviousKm?: number;
   isApproximateDistance?: boolean;
   consent?: boolean;
+  preferredTime?: string;
+  responseStatus?: MemberVisitResponseStatus;
 }
 
 export interface CareCellMeeting {
