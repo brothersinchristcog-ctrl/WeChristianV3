@@ -31,7 +31,7 @@ import {
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
 import { useAuth } from '../../../../context/AuthContext';
-import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
+import { useAdminTheme, createAdminThemedStyles, formatCareCellLabel } from '../careCellTheme';
 import { CareCell, CareCellOverviewStats } from '../../../../types/CareCellTypes';
 
 const { width } = Dimensions.get('window');
@@ -314,7 +314,7 @@ export default function CareCellsOverviewTab({
                   selectedCellId === c.id && { color: primaryBtnText, fontWeight: '800' },
                 ]}
               >
-                {c.cellCode || c.name}
+                {formatCareCellLabel(c.cellCode, c.name)}
               </Text>
             </TouchableOpacity>
           ))}

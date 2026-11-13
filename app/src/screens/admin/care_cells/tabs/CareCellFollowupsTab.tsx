@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -26,7 +26,7 @@ import {
   ChevronDown,
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
-import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
+import { useAdminTheme, createAdminThemedStyles, formatCareCellLabel } from '../careCellTheme';
 import { CareCell, CareCellFollowup, FollowupStatus } from '../../../../types/CareCellTypes';
 import CareCellFollowupModal from '../components/CareCellFollowupModal';
 
@@ -60,6 +60,14 @@ export default function CareCellFollowupsTab({
   // Modal State
   const [modalVisible, setModalVisible] = useState(false);
   const [targetMember, setTargetMember] = useState<any | null>(null);
+
+  const cellNameById = useMemo(() => {
+    const map: Record<string, string> = {};
+    cells.forEach((c) => {
+      if (c.id && c.name) map[c.id] = c.name;
+    });
+    return map;
+  }, [cells]);
 
   const loadData = useCallback(async () => {
     try {
@@ -189,7 +197,9 @@ export default function CareCellFollowupsTab({
                     isSelected && { color: primaryBtnText, fontWeight: '800' },
                   ]}
                 >
-                  {item.cellCode || item.name}
+                  {item.id === 'ALL'
+                    ? 'ALL CELLS'
+                    : formatCareCellLabel(item.cellCode, item.name)}
                 </Text>
               </TouchableOpacity>
             );
@@ -351,7 +361,7 @@ export default function CareCellFollowupsTab({
                   <View style={{ flex: 1 }}>
                     <Text style={styles.cardMemberName}>{item.memberName}</Text>
                     <Text style={styles.cardCellCode}>
-                      {item.cellCode || 'Care Cell'} · {item.followupDate}
+                      {formatCareCellLabel(item.cellCode, item.cellName || cellNameById[item.cellId])} · {item.followupDate}
                     </Text>
                   </View>
                   <TouchableOpacity

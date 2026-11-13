@@ -51,7 +51,7 @@ import {
 import LocationService from '../../../../services/LocationService';
 import { useAuth } from '../../../../context/AuthContext';
 import { useChurch } from '../../../../context/ChurchContext';
-import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
+import { useAdminTheme, createAdminThemedStyles, formatCareCellLabel } from '../careCellTheme';
 import MemberLocationDetailSheet from '../components/MemberLocationDetailSheet';
 import CareCellVisitModal, { PreselectedVisitMember } from '../components/CareCellVisitModal';
 
@@ -500,7 +500,7 @@ export default function CareCellMemberLocationsTab({
           {cells.map((c) => (
             <FilterChip
               key={c.id}
-              label={c.name}
+              label={formatCareCellLabel(c.cellCode, c.name)}
               active={careCellFilter === c.id}
               onPress={() => setCareCellFilter(careCellFilter === c.id ? 'ALL' : c.id)}
             />

@@ -30,7 +30,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import CareCellService from '../../../../services/CareCellService';
 import { formatDateDisplay } from '../../../../utils/DateUtils';
-import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
+import { useAdminTheme, createAdminThemedStyles, formatCareCellLabel } from '../careCellTheme';
 import {
   CareCell,
   CareCellMeeting,
@@ -369,7 +369,7 @@ export default function CareCellAttendanceTab({
                     isSelected && { color: primaryBtnText, fontWeight: '800' },
                   ]}
                 >
-                  {c.cellCode}
+                  {formatCareCellLabel(c.cellCode, c.name)}
                 </Text>
               </TouchableOpacity>
             );

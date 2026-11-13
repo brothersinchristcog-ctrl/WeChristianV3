@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,7 @@ import {
   Users,
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
-import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
+import { useAdminTheme, createAdminThemedStyles, formatCareCellLabel } from '../careCellTheme';
 import {
   CareCell,
   CareCellPrayerRequest,
@@ -61,6 +61,14 @@ export default function CareCellAnnouncePrayerTab({ churchId }: CareCellAnnounce
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const cellNameById = useMemo(() => {
+    const map: Record<string, string> = {};
+    cells.forEach((c) => {
+      if (c.id && c.name) map[c.id] = c.name;
+    });
+    return map;
+  }, [cells]);
 
   // Modals
   const [announceModalVisible, setAnnounceModalVisible] = useState(false);
@@ -243,7 +251,9 @@ export default function CareCellAnnouncePrayerTab({ churchId }: CareCellAnnounce
                     isSelected && { color: primaryBtnText, fontWeight: '800' },
                   ]}
                 >
-                  {item.cellCode || item.name}
+                  {item.id === 'ALL'
+                    ? 'ALL CELLS'
+                    : formatCareCellLabel(item.cellCode, item.name)}
                 </Text>
               </TouchableOpacity>
             );
@@ -284,7 +294,7 @@ export default function CareCellAnnouncePrayerTab({ churchId }: CareCellAnnounce
                   <View style={{ flex: 1 }}>
                     <Text style={styles.prayerTitle}>{item.title}</Text>
                     <Text style={styles.prayerMemberMeta}>
-                      {item.memberName} · {item.cellCode || 'Cell'} · {item.privacy === 'Public' ? 'Public Wall' : 'Cell Only'}
+                      {item.memberName} · {formatCareCellLabel(item.cellCode, item.cellName || cellNameById[item.cellId], 'Cell')} · {item.privacy === 'Public' ? 'Public Wall' : 'Cell Only'}
                     </Text>
                   </View>
                   <View style={[styles.statusChip, isAnswered ? styles.chipAnswered : isPraying ? styles.chipPraying : styles.chipNew]}>
@@ -422,7 +432,9 @@ export default function CareCellAnnouncePrayerTab({ churchId }: CareCellAnnounce
                         <Users size={11} color="#059669" />
                       )}
                       <Text style={styles.announceScopeChipTxt}>
-                        {item.cellId === 'ALL' ? 'Church-Wide' : item.cellCode || 'Cell'}
+                        {item.cellId === 'ALL'
+                          ? 'Church-Wide'
+                          : formatCareCellLabel(item.cellCode, item.cellName || cellNameById[item.cellId], 'Cell')}
                       </Text>
                     </View>
                     <Text style={styles.announceAuthor}>By {item.createdByName || 'Admin'}</Text>

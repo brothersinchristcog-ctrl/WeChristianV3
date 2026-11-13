@@ -30,7 +30,7 @@ import {
 import CareCellService from '../../../../services/CareCellService';
 import { formatDateDisplay } from '../../../../utils/DateUtils';
 import { useAuth } from '../../../../context/AuthContext';
-import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
+import { useAdminTheme, createAdminThemedStyles, formatCareCellLabel } from '../careCellTheme';
 import { CareCell, CareCellVisit, VisitStatus } from '../../../../types/CareCellTypes';
 import CareCellVisitModal from '../components/CareCellVisitModal';
 import CareCellVisitResponsesModal from '../components/CareCellVisitResponsesModal';
@@ -208,7 +208,7 @@ export default function CareCellVisitsTab({
                       isSel && { color: primaryBtnText, fontWeight: '800' },
                     ]}
                   >
-                    {c.cellCode}
+                    {formatCareCellLabel(c.cellCode, c.name)}
                   </Text>
                 </TouchableOpacity>
               );

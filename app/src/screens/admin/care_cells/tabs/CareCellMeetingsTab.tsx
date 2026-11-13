@@ -24,7 +24,7 @@ import {
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
 import { formatDateDisplay } from '../../../../utils/DateUtils';
-import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
+import { useAdminTheme, createAdminThemedStyles, formatCareCellLabel } from '../careCellTheme';
 import { CareCell, CareCellMeeting } from '../../../../types/CareCellTypes';
 
 const MONTH_NAMES = [
@@ -278,7 +278,7 @@ export default function CareCellMeetingsTab({
                     isSelected && { color: primaryBtnText, fontWeight: '800' },
                   ]}
                 >
-                  {c.cellCode}
+                  {formatCareCellLabel(c.cellCode, c.name)}
                 </Text>
               </TouchableOpacity>
             );

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { X, Megaphone, Users, Globe } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
-import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
+import { useAdminTheme, createAdminThemedStyles, formatCareCellLabel } from '../careCellTheme';
 
 interface CareCellAnnouncementModalProps {
   visible: boolean;
@@ -130,7 +130,7 @@ export default function CareCellAnnouncementModal({
                   >
                     <Users size={15} color={targetScope === 'cell' ? primaryBtnText : secondaryText} style={{ marginRight: 6 }} />
                     <Text style={[styles.scopeBtnTxt, targetScope === 'cell' && { color: primaryBtnText, fontWeight: '700' }]}>
-                      This Cell ({cellCode || 'Current'})
+                      This Cell ({formatCareCellLabel(cellCode, cellName, 'Current')})
                     </Text>
                   </TouchableOpacity>
 

@@ -61,3 +61,18 @@ export function createCareCellAdminStyles<
 
 export const useAdminTheme = useCareCellAdminTheme;
 export const createAdminThemedStyles = createCareCellAdminStyles;
+
+/**
+ * Formats a Care Cell label with its code followed by its name,
+ * e.g. "CareCell-001 (Youth Fellowship)".
+ */
+export function formatCareCellLabel(
+  cellCode?: string | null,
+  cellName?: string | null,
+  fallback = 'Care Cell'
+): string {
+  const code = (cellCode || '').trim();
+  const name = (cellName || '').trim();
+  if (code && name && code !== name) return `${code} (${name})`;
+  return code || name || fallback;
+}
