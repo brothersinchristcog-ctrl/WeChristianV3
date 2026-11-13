@@ -263,7 +263,7 @@ export default function CareCellScreen({ navigation, route }: any) {
     }
 
     try {
-      const churchId = await CareCellService.getChurchId();
+      const churchId = activeChurch?.id || (await CareCellService.getChurchId());
       const { cell, membership: mem } = await CareCellService.getMemberActiveCareCell(
         churchId,
         memberId,
@@ -310,7 +310,7 @@ export default function CareCellScreen({ navigation, route }: any) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [memberId, memberPhone]);
+  }, [activeChurch?.id, memberId, memberPhone]);
 
   useEffect(() => {
     loadMemberCellData();

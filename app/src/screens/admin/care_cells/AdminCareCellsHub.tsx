@@ -25,6 +25,7 @@ import {
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../../context/AdminTabContext';
 import { useAuth } from '../../../context/AuthContext';
+import { useChurch } from '../../../context/ChurchContext';
 import CareCellService from '../../../services/CareCellService';
 import { useCareCellAdminTheme, createCareCellAdminStyles } from './careCellTheme';
 import CareCellsOverviewTab from './tabs/CareCellsOverviewTab';
@@ -65,9 +66,15 @@ export default function AdminCareCellsHub() {
   const route = useRoute<any>();
   const { goBack, setTabByName } = useContext(AdminTabContext);
   const { user, member, isPlatformSuperAdmin } = useAuth();
+  const { activeChurch } = useChurch();
+
+  const isChurchOrSuperAdmin =
+    isPlatformSuperAdmin ||
+    String(member?.userType || '').toUpperCase().includes('ADMIN') ||
+    String(member?.userType || '').toUpperCase().includes('SUPER');
 
   const [activeSubTab, setActiveSubTab] = useState<SubTabKey>('overview');
-  const cachedCellsInit = CareCellService.getCachedCareCells();
+  const cachedCellsInit = CareCellService.getCachedCareCells(activeChurch?.id);
   const [cells, setCells] = useState<CareCell[]>(cachedCellsInit || []);
   const [loadingCells, setLoadingCells] = useState(!cachedCellsInit);
 
@@ -94,9 +101,9 @@ export default function AdminCareCellsHub() {
 
   const loadAllCells = useCallback(async () => {
     try {
-      const churchId = await CareCellService.getChurchId();
+      const churchId = activeChurch?.id || (await CareCellService.getChurchId());
       const list = await CareCellService.getCareCells(churchId);
-      const filtered = isPlatformSuperAdmin
+      const filtered = isChurchOrSuperAdmin
         ? list
         : list.filter(
             (c) =>
@@ -107,15 +114,17 @@ export default function AdminCareCellsHub() {
               c.assistantLeaderId === user?.uid
           );
       setCells(filtered);
-      if (filtered.length > 0 && !selectedCellId) {
+      if (filtered.length > 0 && (!selectedCellId || !filtered.some((c) => c.id === selectedCellId))) {
         setSelectedCellId(filtered[0].id);
+      } else if (filtered.length === 0) {
+        setSelectedCellId('');
       }
     } catch (e) {
       console.error('Error loading Care Cells in AdminCareCellsHub:', e);
     } finally {
       setLoadingCells(false);
     }
-  }, [selectedCellId, isPlatformSuperAdmin, user?.uid, member?.id]);
+  }, [activeChurch?.id, selectedCellId, isChurchOrSuperAdmin, user?.uid, member?.id]);
 
   useEffect(() => {
     loadAllCells();
@@ -301,7 +310,7 @@ export default function AdminCareCellsHub() {
         )}
 
         {activeSubTab === 'announcements' && (
-          <CareCellAnnouncePrayerTab />
+          <CareCellAnnouncePrayerTab churchId={activeChurch?.id} />
         )}
       </View>
 
