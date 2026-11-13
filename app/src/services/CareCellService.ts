@@ -50,6 +50,35 @@ function sanitizeForFirestore<T>(data: T): T {
   return data;
 }
 
+function normalizePhoneDigits(phone?: string): string {
+  const digits = String(phone || '').replace(/\D/g, '');
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+}
+
+function phonesMatch(a?: string, b?: string): boolean {
+  const pa = normalizePhoneDigits(a);
+  const pb = normalizePhoneDigits(b);
+  return pa.length >= 7 && pb.length >= 7 && pa === pb;
+}
+
+function formatVisitDateDisplay(dateStr?: string): string {
+  const raw = String(dateStr || '').trim();
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw);
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : raw;
+}
+
+function formatVisitTimeDisplay(timeStr?: string): string {
+  const raw = String(timeStr || '').trim();
+  const m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(raw);
+  if (!m) return raw;
+  const h = parseInt(m[1], 10);
+  const min = m[2];
+  if (Number.isNaN(h)) return raw;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${min} ${ampm}`;
+}
+
 /**
  * Known approximate coordinates for mandals & regions in Kurnool / Nandyal district
  */
@@ -668,12 +697,29 @@ class CareCellService {
   /**
    * Finds the Care Cell assigned to a specific member.
    */
-  async getMemberActiveCareCell(churchId: string | undefined, memberId: string): Promise<{ cell: CareCell | null; membership: CareCellMembership | null }> {
+  async getMemberActiveCareCell(
+    churchId: string | undefined,
+    memberId: string,
+    memberPhone?: string
+  ): Promise<{ cell: CareCell | null; membership: CareCellMembership | null }> {
     try {
       const memCol = await this.getMembershipsRef(churchId);
       const snap = await memCol.where('memberId', '==', memberId).where('membershipStatus', '==', 'Active').limit(1).get();
 
       if (snap.empty) {
+        // Fallback: if pre-login contact ID was used in membership before syncMember migrated the doc to Auth UID, match by phone
+        if (normalizePhoneDigits(memberPhone).length >= 7) {
+          const allActiveSnap = await memCol.where('membershipStatus', '==', 'Active').get();
+          const phoneMatchedDoc = allActiveSnap.docs.find((d: any) =>
+            phonesMatch(d.data()?.memberPhone, memberPhone)
+          );
+          if (phoneMatchedDoc) {
+            const membership = { id: phoneMatchedDoc.id, ...phoneMatchedDoc.data() } as CareCellMembership;
+            const cell = await this.getCareCellById(churchId, membership.cellId);
+            return { cell, membership };
+          }
+        }
+
         // Also check if member is assigned as Leader or Assistant Leader
         const cellsCol = await this.getCareCellsRef(churchId);
         const leaderSnap = await cellsCol.where('leaderId', '==', memberId).where('status', '==', 'Active').limit(1).get();
@@ -1361,46 +1407,91 @@ class CareCellService {
 
     await docRef.set(sanitizeForFirestore(payload)); this.invalidateCareCellsCache(churchId);
 
-    // 3. Dispatch in-app notifications strictly to target members
+    // 3. Dispatch in-app notifications strictly to target members (including migrated UID member docs)
     try {
+      const membersRef = firestore()
+        .collection(CHURCHES_ROOT_COLLECTION)
+        .doc(activeChurchId)
+        .collection('members');
+
+      let allChurchMembersDocs: any[] | null = null;
+      const getAllChurchMembersDocs = async () => {
+        if (allChurchMembersDocs === null) {
+          const allSnap = await membersRef.get();
+          allChurchMembersDocs = allSnap.docs;
+        }
+        return allChurchMembersDocs;
+      };
+
+      const formattedDate = formatVisitDateDisplay(data.visitDate);
+      const formattedTime = formatVisitTimeDisplay(data.visitTime);
+      const purposeLine = data.purpose?.trim() ? ` Purpose: ${data.purpose.trim()}.` : '';
+      const notifBody = `${data.cellName || 'Care Cell'} visit scheduled on ${formattedDate} at ${formattedTime} by ${data.visitors}.${purposeLine} Please confirm your availability and preferred visit time!`;
+      const notifTitle = `🏡 Care Cell Visit: ${data.title || 'Pastoral Home Visit'}`;
+      const notifId = `cc_visit_${docRef.id}`;
+
       const notifBatch = firestore().batch();
-      let notifCount = 0;
+      const writtenDocIds = new Set<string>();
 
       for (const mem of targetMembers) {
         if (!mem.memberId) continue;
-        const memberNotifRef = firestore()
-          .collection(CHURCHES_ROOT_COLLECTION)
-          .doc(activeChurchId)
-          .collection('members')
-          .doc(mem.memberId)
-          .collection('notifications')
-          .doc();
 
-        notifBatch.set(
-          memberNotifRef,
-          sanitizeForFirestore({
-            id: memberNotifRef.id,
-            type: 'care_cell_visit',
-            title: `🏡 Care Cell Visit: ${data.title}`,
-            body: `${data.cellName || 'Care Cell'} visit scheduled on ${data.visitDate} at ${data.visitTime} by ${data.visitors}. Please confirm your availability and preferred visit time!`,
-            visitId: docRef.id,
-            cellId: data.cellId,
-            cellName: data.cellName || '',
-            visitDate: data.visitDate,
-            visitTime: data.visitTime,
-            visitors: data.visitors,
-            read: false,
-            createdAt: firestore.FieldValue.serverTimestamp(),
-          })
-        );
-        notifCount++;
+        const resolvedIds = new Set<string>([mem.memberId]);
+        const directSnap = await membersRef.doc(mem.memberId).get();
+        if (!directSnap.exists && normalizePhoneDigits(mem.memberPhone).length >= 7) {
+          const docs = await getAllChurchMembersDocs();
+          for (const d of docs) {
+            const mData = d.data();
+            if (phonesMatch(mData?.phone || mData?.phoneNumber, mem.memberPhone)) {
+              resolvedIds.add(d.id);
+            }
+          }
+        }
+
+        for (const targetDocId of resolvedIds) {
+          if (writtenDocIds.has(targetDocId)) continue;
+          writtenDocIds.add(targetDocId);
+
+          const memberNotifRef = membersRef
+            .doc(targetDocId)
+            .collection('notifications')
+            .doc(notifId);
+
+          notifBatch.set(
+            memberNotifRef,
+            sanitizeForFirestore({
+              id: notifId,
+              type: 'care_cell_visit',
+              title: notifTitle,
+              content: notifBody,
+              body: notifBody,
+              visitId: docRef.id,
+              relatedId: docRef.id,
+              cellId: data.cellId,
+              cellName: data.cellName || '',
+              visitDate: data.visitDate,
+              visitTime: data.visitTime,
+              visitors: data.visitors,
+              purpose: data.purpose || '',
+              screen: 'CareCell',
+              targetTab: 'visits',
+              targetMemberId: targetDocId,
+              recipientId: targetDocId,
+              recipientRole: 'member',
+              ...(mem.memberPhone ? { targetPhone: mem.memberPhone } : {}),
+              read: false,
+              createdAt: firestore.FieldValue.serverTimestamp(),
+            }),
+            { merge: true }
+          );
+        }
       }
 
-      if (notifCount > 0) {
+      if (writtenDocIds.size > 0) {
         await notifBatch.commit();
       }
 
-      // Mark notification as sent on the visit record
+      // Mark in-app notification as sent on the visit record (pushCareCellVisit owns pushNotificationSent)
       await docRef.update({
         notificationSent: true,
         notificationSentAt: firestore.FieldValue.serverTimestamp(),
@@ -1458,7 +1549,8 @@ class CareCellService {
     memberId: string,
     response: MemberVisitResponseStatus,
     notes?: string,
-    preferredTime?: string
+    preferredTime?: string,
+    memberPhone?: string
   ): Promise<void> {
     const col = await this.getVisitsRef(churchId);
     const visitDoc = await col.doc(visitId).get();
@@ -1470,20 +1562,34 @@ class CareCellService {
     const currentData = visitDoc.data() as CareCellVisit;
     const responses = { ...(currentData.responses || {}) };
 
-    if (!responses[memberId]) {
-      responses[memberId] = {
+    // Resolve existing response key (handles pre-login contact ID -> Auth UID migration via phone)
+    let responseKey = memberId;
+    if (!responses[responseKey] && normalizePhoneDigits(memberPhone).length >= 7) {
+      const matchedKey = Object.keys(responses).find(
+        (k) =>
+          responses[k]?.memberId === memberId ||
+          phonesMatch(responses[k]?.memberPhone, memberPhone)
+      );
+      if (matchedKey) {
+        responseKey = matchedKey;
+      }
+    }
+
+    if (!responses[responseKey]) {
+      responses[responseKey] = {
         memberId,
         memberName: 'Cell Member',
+        memberPhone: memberPhone || '',
         response: 'Pending',
       };
     }
 
-    responses[memberId] = {
-      ...responses[memberId],
+    responses[responseKey] = {
+      ...responses[responseKey],
       response,
       respondedAt: new Date().toISOString(),
-      notes: notes !== undefined ? notes : responses[memberId].notes || '',
-      preferredTime: preferredTime !== undefined ? preferredTime : responses[memberId].preferredTime || '',
+      notes: notes !== undefined ? notes : responses[responseKey].notes || '',
+      preferredTime: preferredTime !== undefined ? preferredTime : responses[responseKey].preferredTime || '',
     };
 
     // Recalculate response counters
@@ -1499,7 +1605,7 @@ class CareCellService {
 
     await col.doc(visitId).update(
       sanitizeForFirestore({
-        [`responses.${memberId}`]: responses[memberId],
+        [`responses.${responseKey}`]: responses[responseKey],
         acceptedCount: accepted,
         declinedCount: declined,
         pendingCount: pending,
@@ -1537,24 +1643,45 @@ class CareCellService {
   async getMemberUpcomingVisits(
     churchId: string | undefined,
     cellId: string,
-    memberId: string
+    memberId: string,
+    memberPhone?: string
   ): Promise<(CareCellVisit & { myResponse?: CareCellVisitMemberResponse })[]> {
     try {
       const col = await this.getVisitsRef(churchId);
       const snap = await col.where('cellId', '==', cellId).where('status', '==', 'Scheduled').get();
-      const list = snap.docs.map((d: any) => {
-        const data = d.data() as CareCellVisit;
-        const myResponse = data.responses?.[memberId] || {
-          memberId,
-          memberName: '',
-          response: 'Pending' as MemberVisitResponseStatus,
-        };
-        return {
-          ...data,
-          id: d.id,
-          myResponse,
-        };
-      });
+      const list = snap.docs
+        .map((d: any) => {
+          const data = d.data() as CareCellVisit;
+          const responsesMap = data.responses || {};
+          const matchedKey = responsesMap[memberId]
+            ? memberId
+            : Object.keys(responsesMap).find(
+                (k) =>
+                  responsesMap[k]?.memberId === memberId ||
+                  (memberPhone && phonesMatch(responsesMap[k]?.memberPhone, memberPhone))
+              );
+
+          // Respect specific targetMemberIds so other cell members do not see private targeted visits
+          if (Array.isArray(data.targetMemberIds) && data.targetMemberIds.length > 0) {
+            const isExplicitTarget =
+              data.targetMemberIds.includes(memberId) || Boolean(matchedKey);
+            if (!isExplicitTarget) {
+              return null;
+            }
+          }
+
+          const myResponse = (matchedKey ? responsesMap[matchedKey] : undefined) || {
+            memberId,
+            memberName: '',
+            response: 'Pending' as MemberVisitResponseStatus,
+          };
+          return {
+            ...data,
+            id: d.id,
+            myResponse,
+          };
+        })
+        .filter((item): item is CareCellVisit & { myResponse: CareCellVisitMemberResponse } => item !== null);
 
       list.sort((a, b) => {
         const dateA = a.visitDate ? new Date(`${a.visitDate}T${a.visitTime || '00:00'}`).getTime() : 0;

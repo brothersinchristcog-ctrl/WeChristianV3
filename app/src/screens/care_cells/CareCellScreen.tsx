@@ -160,7 +160,8 @@ export default function CareCellScreen({ navigation, route }: any) {
         memberId,
         visitResponseStatus,
         visitNotesText.trim() || undefined,
-        finalPreferredTime || undefined
+        finalPreferredTime || undefined,
+        memberPhone
       );
 
       // Optimistic local state update
@@ -211,6 +212,7 @@ export default function CareCellScreen({ navigation, route }: any) {
   const [mapModalVisible, setMapModalVisible] = useState(false);
 
   const memberId = member?.id || user?.uid;
+  const memberPhone = member?.phone || (member as any)?.phoneNumber || user?.phoneNumber || undefined;
 
   useEffect(() => {
     if (route?.params?.initialTab === 'visits' || route?.params?.visitId) {
@@ -226,7 +228,11 @@ export default function CareCellScreen({ navigation, route }: any) {
 
     try {
       const churchId = await CareCellService.getChurchId();
-      const { cell, membership: mem } = await CareCellService.getMemberActiveCareCell(churchId, memberId);
+      const { cell, membership: mem } = await CareCellService.getMemberActiveCareCell(
+        churchId,
+        memberId,
+        memberPhone
+      );
 
       setCareCell(cell);
       setMembership(mem);
@@ -243,7 +249,7 @@ export default function CareCellScreen({ navigation, route }: any) {
           CareCellService.getMemberAttendanceHistory(churchId, memberId),
           CareCellService.getCellPrayerRequests(churchId, cell.id),
           CareCellService.getCellAnnouncements(churchId, cell.id),
-          CareCellService.getMemberUpcomingVisits(churchId, cell.id, memberId),
+          CareCellService.getMemberUpcomingVisits(churchId, cell.id, memberId, memberPhone),
         ]);
 
         setFellowMembers(fellows);
@@ -268,7 +274,7 @@ export default function CareCellScreen({ navigation, route }: any) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [memberId]);
+  }, [memberId, memberPhone]);
 
   useEffect(() => {
     loadMemberCellData();
@@ -329,7 +335,9 @@ export default function CareCellScreen({ navigation, route }: any) {
         visitId,
         memberId,
         response,
-        `Member responded ${response} in mobile app`
+        `Member responded ${response} in mobile app`,
+        undefined,
+        memberPhone
       );
 
       // Optimistic local state update

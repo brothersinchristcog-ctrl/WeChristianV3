@@ -1424,8 +1424,26 @@ export const pushCareCellPrayerRequest = onDocumentCreated(
   }
 );
 
+function formatVisitDateText(dateStr: string): string {
+  const clean = String(dateStr || '').trim();
+  const match = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match && match[1] && match[2] && match[3] ? `${match[3]}-${match[2]}-${match[1]}` : clean;
+}
+
+function formatVisitTimeText(timeStr: string): string {
+  const clean = String(timeStr || '').trim();
+  const match = clean.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match || !match[1] || !match[2]) return clean;
+  const h24 = parseInt(match[1], 10);
+  const mins = match[2];
+  if (isNaN(h24) || h24 < 0 || h24 > 23) return clean;
+  const period = h24 >= 12 ? 'PM' : 'AM';
+  const h12 = h24 % 12 === 0 ? 12 : h24 % 12;
+  return `${h12}:${mins} ${period}`;
+}
+
 /**
- * 🏡 CARE CELL PASTORAL VISIT PUSH
+ * 🏡 CARE CELL PASTORAL VISIT PUSH & IN-APP DELIVERY
  */
 export const pushCareCellVisit = onDocumentCreated(
   { document: 'churches/{churchId}/careCellVisits/{visitId}', region: 'asia-south1' },
@@ -1457,38 +1475,185 @@ export const pushCareCellVisit = onDocumentCreated(
     if (!cellId) return;
 
     const messaging = getMessaging();
-    const title = data.title || 'Pastoral Care Cell Visit';
-    const cellName = data.cellName || 'Care Cell';
-    const visitDate = data.visitDate || '';
-    const visitTime = data.visitTime || '';
-    const visitors = data.visitors || 'Cell Leaders';
+    const title = String(data.title || 'Pastoral Home Visit').trim();
+    const cellName = String(data.cellName || 'Care Cell').trim();
+    const visitDate = String(data.visitDate || '').trim();
+    const visitTime = String(data.visitTime || '').trim();
+    const visitors = String(data.visitors || 'Cell Leaders').trim();
+    const purpose = String(data.purpose || '').trim();
 
     try {
-      const membershipsSnap = await db.collection('churches').doc(churchId).collection('careCellMemberships').where('cellId', '==', cellId).where('membershipStatus', '==', 'Active').get();
-      const memberIds = membershipsSnap.docs.map(d => d.data().memberId).filter(Boolean);
-      if (memberIds.length === 0) return;
-      const tokens: string[] = [];
-      for (const mId of memberIds) {
-        try {
-          const memDoc = await db.collection('churches').doc(churchId).collection('members').doc(mId).get();
-          if (memDoc.exists) {
-            const token = memDoc.data()?.fcmToken;
-            if (token && typeof token === 'string' && !tokens.includes(token)) tokens.push(token);
-          }
-        } catch (_) {}
+      const responsesMap: Record<string, any> =
+        data.responses && typeof data.responses === 'object' ? data.responses : {};
+      const explicitTargetIds: string[] = Array.isArray(data.targetMemberIds)
+        ? Array.from(new Set(data.targetMemberIds.map((id: any) => String(id || '').trim()).filter(Boolean)))
+        : [];
+
+      const membershipById = new Map<string, { memberPhone?: string; memberName?: string }>();
+      let activeCellMemberships: Array<{ memberId: string; memberPhone?: string; memberName?: string }> = [];
+
+      const needMembershipsLookup =
+        explicitTargetIds.length === 0 && Object.keys(responsesMap).length === 0;
+      const needPhoneEnrichment = explicitTargetIds.some(
+        (id) => !responsesMap[id]?.memberPhone
+      );
+
+      if (needMembershipsLookup || needPhoneEnrichment) {
+        const membershipsSnap = await db
+          .collection('churches')
+          .doc(churchId)
+          .collection('careCellMemberships')
+          .where('cellId', '==', cellId)
+          .where('membershipStatus', '==', 'Active')
+          .get();
+
+        activeCellMemberships = membershipsSnap.docs
+          .map((d) => {
+            const md = d.data() || {};
+            const mId = String(md.memberId || '').trim();
+            if (!mId) return null;
+            const info = {
+              memberId: mId,
+              memberPhone: String(md.memberPhone || '').trim(),
+              memberName: String(md.memberName || '').trim(),
+            };
+            membershipById.set(mId, info);
+            return info;
+          })
+          .filter(Boolean) as Array<{ memberId: string; memberPhone?: string; memberName?: string }>;
       }
-      if (tokens.length > 0) {
-        const notifTitle = `🏡 ${cellName}: ${title}`;
-        const notifBody = `Visit on ${visitDate} at ${visitTime} by ${visitors}. Tap to confirm your availability!`;
-        await messaging.sendEachForMulticast({
-          notification: { title: notifTitle, body: notifBody },
-          data: { type: 'care_cell_visit', title: notifTitle, body: notifBody, visitId: String(visitId), cellId: String(cellId), churchId: String(churchId), visitDate: String(visitDate), visitTime: String(visitTime), click_action: 'FLUTTER_NOTIFICATION_CLICK' },
-          android: { priority: 'high', notification: { sound: 'default', channelId: 'church_alerts' } },
-          apns: { payload: { aps: { sound: 'default', badge: 1 } } },
-          tokens,
+
+      let targetEntries: Array<{ memberId: string; memberPhone?: string; memberName?: string }> = [];
+      if (explicitTargetIds.length > 0) {
+        targetEntries = explicitTargetIds.map((mId) => {
+          const respEntry = responsesMap[mId] || {};
+          const memEntry = membershipById.get(mId) || {};
+          return {
+            memberId: mId,
+            memberPhone: String(respEntry.memberPhone || memEntry.memberPhone || '').trim(),
+            memberName: String(respEntry.memberName || memEntry.memberName || '').trim(),
+          };
         });
+      } else if (Object.keys(responsesMap).length > 0) {
+        targetEntries = Object.entries(responsesMap).map(([key, val]) => ({
+          memberId: String(val?.memberId || key || '').trim(),
+          memberPhone: String(val?.memberPhone || '').trim(),
+          memberName: String(val?.memberName || '').trim(),
+        })).filter((e) => Boolean(e.memberId));
+      } else {
+        targetEntries = activeCellMemberships;
       }
-    } catch (err) { console.error('Care cell visit push failed:', err); }
+
+      if (targetEntries.length === 0) return;
+
+      const dateDisplay = formatVisitDateText(visitDate);
+      const timeDisplay = formatVisitTimeText(visitTime);
+      const notifTitle = `🏡 ${cellName}: ${title}`;
+      const schedulePart = dateDisplay && timeDisplay
+        ? `${dateDisplay} at ${timeDisplay}`
+        : dateDisplay || timeDisplay || 'soon';
+      const purposePart = purpose ? ` Purpose: ${purpose}.` : '';
+      const notifBody = `Visit scheduled on ${schedulePart} with ${visitors}.${purposePart} Tap to confirm your availability!`;
+
+      const notificationData: Record<string, string> = {
+        type: 'care_cell_visit',
+        title: notifTitle,
+        body: notifBody,
+        visitId: String(visitId),
+        relatedId: String(visitId),
+        id: String(visitId),
+        cellId: String(cellId),
+        cellName,
+        churchId: String(churchId),
+        visitDate,
+        visitTime,
+        visitors,
+        screen: 'CareCell',
+      };
+
+      const allTokens = new Set<string>();
+      const resolvedInAppMemberIds = new Map<string, string>(); // docId -> phone
+
+      for (const entry of targetEntries) {
+        try {
+          const resolved = await resolveMemberPushTargets(
+            db,
+            churchId,
+            entry.memberId,
+            entry.memberPhone
+          );
+          resolved.tokens.forEach((tk) => allTokens.add(tk));
+          if (entry.memberId) {
+            resolvedInAppMemberIds.set(entry.memberId, entry.memberPhone || '');
+          }
+          resolved.memberDocIds.forEach((docId) => {
+            if (!resolvedInAppMemberIds.has(docId)) {
+              resolvedInAppMemberIds.set(docId, entry.memberPhone || '');
+            }
+          });
+        } catch (resolveErr) {
+          console.warn('Error resolving care cell visit target:', entry.memberId, resolveErr);
+        }
+      }
+
+      const inAppDocId = `cc_visit_${visitId}`;
+      const inAppWrites: Promise<any>[] = [];
+      resolvedInAppMemberIds.forEach((targetPhone, docId) => {
+        const ref = db
+          .collection('churches')
+          .doc(churchId)
+          .collection('members')
+          .doc(docId)
+          .collection('notifications')
+          .doc(inAppDocId);
+        inAppWrites.push(
+          ref.set(
+            {
+              id: inAppDocId,
+              type: 'care_cell_visit',
+              title: notifTitle,
+              body: notifBody,
+              content: notifBody,
+              visitId: String(visitId),
+              cellId: String(cellId),
+              cellName,
+              visitDate,
+              visitTime,
+              visitors,
+              purpose,
+              churchId: String(churchId),
+              targetMemberId: docId,
+              recipientId: docId,
+              recipientRole: 'member',
+              targetPhone: targetPhone || '',
+              read: false,
+              createdAt: FieldValue.serverTimestamp(),
+            },
+            { merge: true }
+          )
+        );
+      });
+
+      const tokensList = Array.from(allTokens);
+      const pushPromise =
+        tokensList.length > 0
+          ? sendHighPriorityPush(messaging, tokensList, notifTitle, notifBody, notificationData, 'church_alerts')
+          : Promise.resolve({ successCount: 0, failureCount: 0 });
+
+      const [, pushResult] = await Promise.all([Promise.allSettled(inAppWrites), pushPromise]);
+
+      try {
+        await visitRef.update({
+          notificationSent: true,
+          notificationSentAt: FieldValue.serverTimestamp(),
+          pushResolvedMembers: resolvedInAppMemberIds.size,
+          pushTokenCount: tokensList.length,
+          pushSuccessCount: pushResult.successCount,
+        });
+      } catch (_) {}
+    } catch (err) {
+      console.error('Care cell visit push failed:', err);
+    }
   }
 );
 
@@ -1688,30 +1853,88 @@ export const onTestimonyUpdatedWorkflow = onDocumentUpdated(
 // 🤝 VOLUNTEER PUSH NOTIFICATIONS
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function resolveVolunteerMemberTokens(db: FirebaseFirestore.Firestore, churchId: string, memberId: string, memberPhone?: string, memberEmail?: string, memberName?: string, directFcmToken?: string): Promise<string[]> {
+async function resolveMemberPushTargets(
+  db: FirebaseFirestore.Firestore,
+  churchId: string,
+  memberId: string,
+  memberPhone?: string,
+  memberEmail?: string,
+  directFcmToken?: string
+): Promise<{ tokens: string[]; memberDocIds: string[] }> {
   const tokenSet = new Set<string>();
+  const docIdSet = new Set<string>();
   const addToken = (t: any) => { if (typeof t === 'string' && t.trim().length > 10) tokenSet.add(t.trim()); };
   const addTokensFromArray = (arr: any) => { if (Array.isArray(arr)) arr.forEach(addToken); };
-  const extractFromDoc = (docSnap: any) => { if (docSnap && docSnap.exists) { const data = docSnap.data() || {}; addToken(data.fcmToken); addTokensFromArray(data.fcmTokens); } };
+  const extractFromDoc = (docSnap: any, trackDocId: boolean = true) => {
+    if (docSnap && docSnap.exists) {
+      if (trackDocId && docSnap.id) docIdSet.add(String(docSnap.id));
+      const data = docSnap.data() || {};
+      if (data.uid) docIdSet.add(String(data.uid));
+      addToken(data.fcmToken);
+      addTokensFromArray(data.fcmTokens);
+    }
+  };
   const cid = churchId || 'default';
   if (directFcmToken) addToken(directFcmToken);
+  let resolvedPhone = memberPhone || '';
+  let resolvedEmail = memberEmail || '';
   if (memberId) {
-    try { extractFromDoc(await db.collection('churches').doc(cid).collection('members').doc(memberId).get()); } catch (_) {}
-    try { extractFromDoc(await db.collection('users').doc(memberId).get()); } catch (_) {}
+    docIdSet.add(String(memberId));
+    try {
+      const mSnap = await db.collection('churches').doc(cid).collection('members').doc(memberId).get();
+      extractFromDoc(mSnap, true);
+      if (mSnap.exists) {
+        const mData = mSnap.data() || {};
+        if (!resolvedPhone) resolvedPhone = mData.phone || mData.mobile || '';
+        if (!resolvedEmail) resolvedEmail = mData.email || '';
+      }
+    } catch (_) {}
+    try {
+      const uSnap = await db.collection('users').doc(memberId).get();
+      extractFromDoc(uSnap, true);
+      if (uSnap.exists) {
+        const uData = uSnap.data() || {};
+        if (!resolvedPhone) resolvedPhone = uData.phone || uData.mobile || '';
+        if (!resolvedEmail) resolvedEmail = uData.email || '';
+      }
+    } catch (_) {}
   }
-  if (tokenSet.size === 0 && memberPhone) {
-    const cleanPhone = String(memberPhone).replace(/[^\d+]/g, '');
+  if (resolvedPhone) {
+    const cleanPhone = String(resolvedPhone).replace(/[^\d+]/g, '');
     const last10 = cleanPhone.slice(-10);
     if (last10.length >= 7) {
-      try { const snap = await db.collection('churches').doc(cid).collection('members').get(); snap.forEach(d => { if (String(d.data()?.phone || d.data()?.mobile || '').replace(/[^\d+]/g, '').endsWith(last10)) extractFromDoc(d); }); } catch (_) {}
-      try { const snap = await db.collection('users').get(); snap.forEach(d => { if (String(d.data()?.phone || d.data()?.mobile || '').replace(/[^\d+]/g, '').endsWith(last10)) extractFromDoc(d); }); } catch (_) {}
+      try {
+        const snap = await db.collection('churches').doc(cid).collection('members').get();
+        snap.forEach(d => {
+          const dData = d.data() || {};
+          if (String(dData.phone || dData.mobile || dData.phoneNumber || '').replace(/[^\d+]/g, '').endsWith(last10)) {
+            extractFromDoc(d, true);
+          }
+        });
+      } catch (_) {}
+      if (tokenSet.size === 0 || docIdSet.size <= 1) {
+        try {
+          const snap = await db.collection('users').get();
+          snap.forEach(d => {
+            const dData = d.data() || {};
+            if (String(dData.phone || dData.mobile || dData.phoneNumber || '').replace(/[^\d+]/g, '').endsWith(last10)) {
+              extractFromDoc(d, true);
+            }
+          });
+        } catch (_) {}
+      }
     }
   }
-  if (tokenSet.size === 0 && memberEmail && memberEmail.includes('@')) {
-    try { (await db.collection('churches').doc(cid).collection('members').where('email', '==', memberEmail.trim().toLowerCase()).limit(2).get()).forEach(d => extractFromDoc(d)); } catch (_) {}
-    try { (await db.collection('users').where('email', '==', memberEmail.trim().toLowerCase()).limit(2).get()).forEach(d => extractFromDoc(d)); } catch (_) {}
+  if ((tokenSet.size === 0 || docIdSet.size <= 1) && resolvedEmail && resolvedEmail.includes('@')) {
+    try { (await db.collection('churches').doc(cid).collection('members').where('email', '==', resolvedEmail.trim().toLowerCase()).limit(2).get()).forEach(d => extractFromDoc(d, true)); } catch (_) {}
+    try { (await db.collection('users').where('email', '==', resolvedEmail.trim().toLowerCase()).limit(2).get()).forEach(d => extractFromDoc(d, true)); } catch (_) {}
   }
-  return Array.from(tokenSet);
+  return { tokens: Array.from(tokenSet), memberDocIds: Array.from(docIdSet) };
+}
+
+async function resolveVolunteerMemberTokens(db: FirebaseFirestore.Firestore, churchId: string, memberId: string, memberPhone?: string, memberEmail?: string, memberName?: string, directFcmToken?: string): Promise<string[]> {
+  const { tokens } = await resolveMemberPushTargets(db, churchId, memberId, memberPhone, memberEmail, directFcmToken);
+  return tokens;
 }
 
 async function resolveVolunteerAdminTokens(db: FirebaseFirestore.Firestore, churchId: string): Promise<{ tokens: string[]; adminUids: string[] }> {

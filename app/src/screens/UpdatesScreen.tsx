@@ -146,6 +146,10 @@ export default function UpdatesScreen({ navigation, route }: any) {
     if (type === 'service_responsibility_broadcast') return 'OPEN DUTY AVAILABLE';
     if (type === 'service_reminder') return 'SERVICE REMINDER';
     if (type === 'rehearsal_alert') return 'REHEARSAL SCHEDULED';
+    if (type === 'care_cell_visit') return 'CARE CELL VISIT';
+    if (type === 'care_cell_meeting') return 'CARE CELL MEETING';
+    if (type === 'care_cell_announcement') return 'CARE CELL NOTICE';
+    if (type === 'care_cell_prayer') return 'CARE CELL PRAYER';
     if (!type) return (t('updates.types.announcement') || 'ANNOUNCEMENT').toUpperCase();
     const trans = t(`updates.types.${type}`);
     return trans && trans !== `updates.types.${type}` ? trans.toUpperCase() : type.toUpperCase();
@@ -426,6 +430,27 @@ export default function UpdatesScreen({ navigation, route }: any) {
         }
       }
 
+      // SECURITY 6: Array-targeted member notifications (e.g. targeted Care Cell visits)
+      if (Array.isArray(data.targetMemberIds) && data.targetMemberIds.length > 0) {
+        const currentMemberId = member?.id || user?.uid || '';
+        const idInTargets = Boolean(
+          (currentMemberId && data.targetMemberIds.includes(currentMemberId)) ||
+          (user?.uid && data.targetMemberIds.includes(user.uid)) ||
+          (member?.id && data.targetMemberIds.includes(member.id))
+        );
+        const phoneInTargets = Array.isArray(data.targetPhones)
+          ? data.targetPhones.some((p: any) => typeof p === 'string' && checkPhoneMatch(p))
+          : false;
+        if (!idInTargets && !phoneInTargets) {
+          return null;
+        }
+      } else if (Array.isArray(data.targetPhones) && data.targetPhones.length > 0) {
+        const phoneInTargets = data.targetPhones.some((p: any) => typeof p === 'string' && checkPhoneMatch(p));
+        if (!phoneInTargets) {
+          return null;
+        }
+      }
+
       // Determine icon, color and type classification
       let icon = Bell;
       let color = '#3b82f6';
@@ -532,6 +557,15 @@ export default function UpdatesScreen({ navigation, route }: any) {
         color = '#d97706';
         resolvedType = data.type || 'testimony';
       } else if (
+        data.type === 'care_cell_visit' ||
+        data.type === 'care_cell_meeting' ||
+        data.type === 'care_cell_announcement' ||
+        data.type === 'care_cell_prayer'
+      ) {
+        icon = HeartHandshake;
+        color = '#059669';
+        resolvedType = data.type;
+      } else if (
         data.type?.startsWith('volunteer') || 
         data.title?.toLowerCase().includes('volunteer')
       ) {
@@ -577,6 +611,12 @@ export default function UpdatesScreen({ navigation, route }: any) {
         testimonyId: data.testimonyId || null,
         volunteerId: data.volunteerId || null,
         eventId: data.eventId || null,
+        visitId: data.visitId || null,
+        cellId: data.cellId || null,
+        cellName: data.cellName || null,
+        visitDate: data.visitDate || null,
+        visitTime: data.visitTime || null,
+        visitors: data.visitors || null,
         targetTab: data.targetTab || null,
         screen: data.screen || null,
         rawDate: data.createdAt?.toMillis?.() || (typeof data.createdAt === 'number' ? data.createdAt : (hasPendingWrite ? Date.now() : 0)),
@@ -1257,6 +1297,39 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     }}
                   >
                     <Text style={styles.joinLiveBtnTxt}>⚡ View Duties & Respond</Text>
+                  </TouchableOpacity>
+                )}
+
+                {(selectedUpdate?.type === 'care_cell_visit' ||
+                  selectedUpdate?.type === 'care_cell_meeting' ||
+                  selectedUpdate?.type === 'care_cell_announcement' ||
+                  selectedUpdate?.type === 'care_cell_prayer') && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#059669', marginTop: 16 }]}
+                    onPress={() => {
+                      const vId = selectedUpdate?.visitId;
+                      const cId = selectedUpdate?.cellId;
+                      const uType = selectedUpdate?.type;
+                      setSelectedUpdate(null);
+                      navigation.navigate('CareCell', {
+                        initialTab:
+                          uType === 'care_cell_visit'
+                            ? 'visits'
+                            : uType === 'care_cell_prayer'
+                            ? 'prayers'
+                            : uType === 'care_cell_announcement'
+                            ? 'notices'
+                            : 'gatherings',
+                        visitId: vId,
+                        cellId: cId,
+                      });
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>
+                      {selectedUpdate?.type === 'care_cell_visit'
+                        ? '🏡 View & Confirm Visit Schedule'
+                        : '🏡 Open Care Cell'}
+                    </Text>
                   </TouchableOpacity>
                 )}
 

@@ -274,6 +274,25 @@ class NotificationService {
           });
           break;
         }
+        case 'care_cell_visit':
+        case 'care_cell_meeting':
+        case 'care_cell_announcement':
+        case 'care_cell_prayer': {
+          const initialTab =
+            type === 'care_cell_visit'
+              ? 'visits'
+              : type === 'care_cell_prayer'
+              ? 'prayers'
+              : type === 'care_cell_announcement'
+              ? 'notices'
+              : 'gatherings';
+          nav.navigate('CareCell', {
+            initialTab,
+            visitId: rawData.visitId || id,
+            cellId: rawData.cellId,
+          });
+          break;
+        }
         default:
           if (id) {
             nav.navigate('Updates', { highlightId: id, highlightType: type });

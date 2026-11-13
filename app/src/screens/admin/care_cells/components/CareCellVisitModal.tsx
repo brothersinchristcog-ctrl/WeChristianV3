@@ -36,6 +36,7 @@ interface CareCellVisitModalProps {
   onClose: () => void;
   cells: CareCell[];
   initialCellId?: string;
+  churchId?: string;
   createdBy: string;
   createdByName?: string;
   onSuccess?: () => void;
@@ -54,6 +55,7 @@ export default function CareCellVisitModal({
   onClose,
   cells,
   initialCellId,
+  churchId,
   createdBy,
   createdByName,
   onSuccess,
@@ -99,6 +101,8 @@ export default function CareCellVisitModal({
       setVisitors('Pastor & Cell Leader');
       setTitle('Pastoral Home Visit');
       setPurpose('');
+      setVisitScope('ALL');
+      setSelectedMemberIds([]);
     }
   }, [visible, initialCellId, cells]);
 
@@ -109,8 +113,8 @@ export default function CareCellVisitModal({
       setLoadingMembers(true);
       (async () => {
         try {
-          const churchId = await CareCellService.getChurchId();
-          const members = await CareCellService.getActiveCellMemberships(churchId, selectedCellId);
+          const resolvedChurchId = churchId || (await CareCellService.getChurchId());
+          const members = await CareCellService.getActiveCellMemberships(resolvedChurchId, selectedCellId);
           if (isMounted) {
             setCellMembers(members);
             setMemberCount(members.length);
@@ -125,7 +129,7 @@ export default function CareCellVisitModal({
         isMounted = false;
       };
     }
-  }, [visible, selectedCellId]);
+  }, [visible, selectedCellId, churchId]);
 
   const activeCell = cells.find((c) => c.id === selectedCellId) || cells[0];
 
@@ -157,8 +161,8 @@ export default function CareCellVisitModal({
 
     setSaving(true);
     try {
-      const churchId = await CareCellService.getChurchId();
-      await CareCellService.createVisitNotification(churchId, {
+      const resolvedChurchId = churchId || (await CareCellService.getChurchId());
+      await CareCellService.createVisitNotification(resolvedChurchId, {
         cellId: selectedCellId,
         cellCode: activeCell?.cellCode || '',
         cellName: activeCell?.name || 'Care Cell',
@@ -455,6 +459,10 @@ export default function CareCellVisitModal({
                 <Text style={styles.previewBody}>
                   {loadingMembers ? (
                     'Calculating recipient members...'
+                  ) : visitScope === 'SPECIFIC' ? (
+                    `Notification will be sent exclusively to the ${selectedMemberIds.length} selected member${
+                      selectedMemberIds.length === 1 ? '' : 's'
+                    } of ${activeCell?.name || 'this cell'}. They will see Accept and Decline options in their app.`
                   ) : (
                     `Notification will be sent exclusively to all ${memberCount ?? 0} assigned members of ${
                       activeCell?.name || 'this cell'

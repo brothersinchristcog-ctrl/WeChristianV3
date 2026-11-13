@@ -154,7 +154,7 @@ export declare const pushCareCellPrayerRequest: import("firebase-functions/core"
     requestId: string;
 }>>;
 /**
- * 🏡 CARE CELL PASTORAL VISIT PUSH
+ * 🏡 CARE CELL PASTORAL VISIT PUSH & IN-APP DELIVERY
  */
 export declare const pushCareCellVisit: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
     churchId: string;

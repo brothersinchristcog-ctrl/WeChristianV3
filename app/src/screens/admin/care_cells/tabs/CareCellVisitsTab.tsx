@@ -479,6 +479,7 @@ export default function CareCellVisitsTab({
         onClose={() => setCreateModalVisible(false)}
         cells={cells}
         initialCellId={activeCellId}
+        churchId={churchId}
         createdBy={user?.uid || member?.id || ''}
         createdByName={member?.name || user?.displayName || 'Super Admin'}
         onSuccess={loadVisits}
