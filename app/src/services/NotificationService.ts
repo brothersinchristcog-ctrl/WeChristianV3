@@ -229,6 +229,9 @@ class NotificationService {
         case 'prayer_request_public':
           nav.navigate('PrayerWall', { tab: 'public_requests' });
           break;
+        case 'prayer_request_member':
+          nav.navigate('PrayerWall', { tab: 'my_requests' });
+          break;
         case 'quiz':
         case 'quiz_scheduled':
         case 'bible_quiz': {
@@ -271,6 +274,16 @@ class NotificationService {
           nav.navigate('MyService', {
             serviceId: rawData.serviceId,
             initialTab,
+          });
+          break;
+        }
+        case 'care_cell_visit_declined': {
+          nav.navigate('AdminRoot', {
+            targetTab: 'Care Cells',
+            careCellTab: rawData.careCellTab || 'visits',
+            cellId: rawData.cellId,
+            visitId: rawData.visitId || id,
+            timestamp: Date.now(),
           });
           break;
         }

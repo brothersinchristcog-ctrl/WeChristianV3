@@ -146,10 +146,14 @@ export default function UpdatesScreen({ navigation, route }: any) {
     if (type === 'service_responsibility_broadcast') return 'OPEN DUTY AVAILABLE';
     if (type === 'service_reminder') return 'SERVICE REMINDER';
     if (type === 'rehearsal_alert') return 'REHEARSAL SCHEDULED';
+    if (type === 'care_cell_visit_declined') return 'VISIT DECLINED';
     if (type === 'care_cell_visit') return 'CARE CELL VISIT';
     if (type === 'care_cell_meeting') return 'CARE CELL MEETING';
     if (type === 'care_cell_announcement') return 'CARE CELL NOTICE';
     if (type === 'care_cell_prayer') return 'CARE CELL PRAYER';
+    if (type === 'prayer_request_public') return 'CHURCH PRAYER WALL';
+    if (type === 'prayer_request_admin') return 'PRAYER REQUEST';
+    if (type === 'prayer_request_member') return 'PRAYER UPDATE';
     if (!type) return (t('updates.types.announcement') || 'ANNOUNCEMENT').toUpperCase();
     const trans = t(`updates.types.${type}`);
     return trans && trans !== `updates.types.${type}` ? trans.toUpperCase() : type.toUpperCase();
@@ -349,12 +353,13 @@ export default function UpdatesScreen({ navigation, route }: any) {
         return Boolean(m1 || m2 || m3 || m4);
       };
 
-      // SECURITY 2: Admin-only broadcasts (e.g. New Baptism Request, Admin Service Roster Alerts)
+      // SECURITY 2: Admin-only broadcasts (e.g. New Baptism Request, Admin Service Roster Alerts, Visit Declines)
       const isForAdmin = data.type === 'baptism_request_admin' || 
                          data.type === 'prayer_request_admin' || 
                          data.type === 'admin_roster_alert' ||
                          data.type === 'testimony_admin' ||
                          data.type === 'volunteer_application_admin' ||
+                         data.type === 'care_cell_visit_declined' ||
                          data.targetRole === 'admin' ||
                          data.title?.includes('New Baptism Request') ||
                          data.title?.includes('New Prayer Request') ||
@@ -556,6 +561,18 @@ export default function UpdatesScreen({ navigation, route }: any) {
         icon = Sparkles;
         color = '#d97706';
         resolvedType = data.type || 'testimony';
+      } else if (data.type === 'care_cell_visit_declined') {
+        icon = AlertTriangle;
+        color = '#e11d48';
+        resolvedType = 'care_cell_visit_declined';
+      } else if (
+        data.type === 'prayer_request_public' ||
+        data.type === 'prayer_request_member' ||
+        data.type === 'prayer_request_admin'
+      ) {
+        icon = HeartHandshake;
+        color = '#7c3aed';
+        resolvedType = data.type;
       } else if (
         data.type === 'care_cell_visit' ||
         data.type === 'care_cell_meeting' ||
@@ -617,6 +634,11 @@ export default function UpdatesScreen({ navigation, route }: any) {
         visitDate: data.visitDate || null,
         visitTime: data.visitTime || null,
         visitors: data.visitors || null,
+        careCellTab: data.careCellTab || null,
+        declinedByMemberName: data.declinedByMemberName || null,
+        declinedByMemberPhone: data.declinedByMemberPhone || null,
+        declineNotes: data.declineNotes || null,
+        prayerId: data.prayerId || null,
         targetTab: data.targetTab || null,
         screen: data.screen || null,
         rawDate: data.createdAt?.toMillis?.() || (typeof data.createdAt === 'number' ? data.createdAt : (hasPendingWrite ? Date.now() : 0)),
@@ -1297,6 +1319,69 @@ export default function UpdatesScreen({ navigation, route }: any) {
                     }}
                   >
                     <Text style={styles.joinLiveBtnTxt}>⚡ View Duties & Respond</Text>
+                  </TouchableOpacity>
+                )}
+
+                {selectedUpdate?.type === 'care_cell_visit_declined' && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#e11d48', marginTop: 16 }]}
+                    onPress={() => {
+                      const cId = selectedUpdate?.cellId;
+                      const vId = selectedUpdate?.visitId;
+                      const cTab = selectedUpdate?.careCellTab || 'visits';
+                      setSelectedUpdate(null);
+                      if (isAdmin && !showAdminView) setViewMode('admin');
+                      setTimeout(() => {
+                        navigation.navigate('AdminRoot', {
+                          targetTab: 'Care Cells',
+                          careCellTab: cTab,
+                          cellId: cId,
+                          visitId: vId,
+                          timestamp: Date.now(),
+                        });
+                      }, isAdmin && !showAdminView ? 100 : 0);
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>🏡 Open Visiting Schedule</Text>
+                  </TouchableOpacity>
+                )}
+
+                {selectedUpdate?.type === 'prayer_request_public' && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#7c3aed', marginTop: 16 }]}
+                    onPress={() => {
+                      setSelectedUpdate(null);
+                      navigation.navigate('PrayerWall', { tab: 'public_requests' });
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>🙏 Open Church Prayer Wall</Text>
+                  </TouchableOpacity>
+                )}
+
+                {selectedUpdate?.type === 'prayer_request_member' && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#7c3aed', marginTop: 16 }]}
+                    onPress={() => {
+                      setSelectedUpdate(null);
+                      navigation.navigate('PrayerWall', { tab: 'my_requests' });
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>🙏 View My Prayer Request</Text>
+                  </TouchableOpacity>
+                )}
+
+                {selectedUpdate?.type === 'prayer_request_admin' && (
+                  <TouchableOpacity
+                    style={[styles.joinLiveBtn, { backgroundColor: '#7c3aed', marginTop: 16 }]}
+                    onPress={() => {
+                      setSelectedUpdate(null);
+                      if (isAdmin && !showAdminView) setViewMode('admin');
+                      setTimeout(() => {
+                        navigation.navigate('AdminRoot', { targetTab: 'Prayers' });
+                      }, isAdmin && !showAdminView ? 100 : 0);
+                    }}
+                  >
+                    <Text style={styles.joinLiveBtnTxt}>🙏 Review Prayer Requests</Text>
                   </TouchableOpacity>
                 )}
 

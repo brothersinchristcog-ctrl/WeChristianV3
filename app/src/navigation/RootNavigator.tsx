@@ -682,7 +682,8 @@ function Navigation() {
             type === 'prayer_request_admin' || 
             type === 'admin_roster_alert' ||
             type === 'testimony_admin' ||
-            type === 'volunteer_application_admin';
+            type === 'volunteer_application_admin' ||
+            type === 'care_cell_visit_declined';
 
           if (isAdminPushType && isAdmin && viewMode !== 'admin') {
             console.log(`Switching to admin view to handle ${type} notification`);

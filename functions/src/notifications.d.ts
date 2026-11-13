@@ -34,8 +34,7 @@ export declare const onPrayerRequestCreatedAdmin: import("firebase-functions/cor
     prayerId: string;
 }>>;
 /**
- * 🙏 NOTIFY COMMUNITY OF APPROVED PRAYER REQUEST
- * Triggered when a prayer request is approved (isAnswered becomes true).
+ * 🙏 NOTIFY COMMUNITY OF APPROVED PUBLIC PRAYER OR REQUESTER OF PRIVATE ANSWER
  */
 export declare const pushPrayerRequestApproved: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").Change<import("firebase-functions/v2/firestore").QueryDocumentSnapshot> | undefined, {
     churchId: string;
@@ -157,6 +156,14 @@ export declare const pushCareCellPrayerRequest: import("firebase-functions/core"
  * 🏡 CARE CELL PASTORAL VISIT PUSH & IN-APP DELIVERY
  */
 export declare const pushCareCellVisit: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
+    churchId: string;
+    visitId: string;
+}>>;
+/**
+ * ❌ CARE CELL VISIT DECLINED BY MEMBER — ADMIN / RESPONSIBLE PERSON ALERT
+ * Fires when any member's response transitions to "Declined" in a scheduled visit.
+ */
+export declare const onCareCellVisitUpdated: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").Change<import("firebase-functions/v2/firestore").QueryDocumentSnapshot> | undefined, {
     churchId: string;
     visitId: string;
 }>>;

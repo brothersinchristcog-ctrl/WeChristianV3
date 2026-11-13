@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRoute } from '@react-navigation/native';
 import {
   ChevronLeft,
   LayoutDashboard,
@@ -61,6 +62,7 @@ export default function AdminCareCellsHub() {
   const inactivePillBorder = 'rgba(26,45,90,0.08)';
 
   const insets = useSafeAreaInsets();
+  const route = useRoute<any>();
   const { goBack, setTabByName } = useContext(AdminTabContext);
   const { user, member, isPlatformSuperAdmin } = useAuth();
 
@@ -72,6 +74,16 @@ export default function AdminCareCellsHub() {
   // Selected cell context shared across tabs
   const [selectedCellId, setSelectedCellId] = useState<string>('');
   const [selectedMeetingForAttendance, setSelectedMeetingForAttendance] = useState<CareCellMeeting | null>(null);
+
+  useEffect(() => {
+    const requestedSubTab = route?.params?.careCellTab as SubTabKey | undefined;
+    if (requestedSubTab && SUB_TABS.some((t) => t.key === requestedSubTab)) {
+      setActiveSubTab(requestedSubTab);
+    }
+    if (route?.params?.cellId) {
+      setSelectedCellId(String(route.params.cellId));
+    }
+  }, [route?.params?.careCellTab, route?.params?.cellId, route?.params?.timestamp]);
 
   // Modals
   const [createCellModalVisible, setCreateCellModalVisible] = useState(false);

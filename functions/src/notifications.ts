@@ -58,7 +58,7 @@ export const pushMeetingLive = onDocumentCreated('churches/{churchId}/online_mee
       const startDate = meeting.startTime.toDate();
       timeString = startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Kolkata' });
     }
-  } catch (_) {}
+  } catch (_) { }
 
   const timeNotice = timeString ? ` for today at ${timeString}` : '';
   const payload = {
@@ -117,7 +117,7 @@ export const onPrayerRequestCreatedAdmin = onDocumentCreated('churches/{churchId
 
   // 1. Identify the specific submitting member's name
   let memberName = (prayer.name || prayer.memberName || prayer.authorName || '').trim();
-  
+
   if (!memberName || memberName.toLowerCase() === 'faithful member' || memberName.toLowerCase() === 'church member') {
     const memberId = prayer.uid || prayer.authorId || prayer.contactId;
     if (memberId) {
@@ -151,21 +151,25 @@ export const onPrayerRequestCreatedAdmin = onDocumentCreated('churches/{churchId
     ? `${memberName} submitted a prayer request: "${excerpt}"`
     : `${memberName} has submitted a new prayer request. Please review in the Admin Dashboard.`;
 
-  // 4. Query all admins for this church to collect direct device tokens
+  // 4. Collect FCM tokens across all church admins (supports fcmToken, fcmTokens[], users/{uid}, and phone-migrated docs)
   const adminTokens: string[] = [];
   const adminUids: string[] = [];
+  const addAdminToken = (tk: any) => {
+    if (typeof tk === 'string' && tk.trim().length > 10 && !adminTokens.includes(tk.trim())) {
+      adminTokens.push(tk.trim());
+    }
+  };
 
   try {
     const membersSnap = await db.collection('churches').doc(churchId).collection('members').get();
     membersSnap.forEach(doc => {
       const m = doc.data();
-      const role = String(m.userType || '').toLowerCase();
-      const isAdmin = role.includes('admin') || role.includes('pastor') || role.includes('super');
+      const role = String(m.userType || m.role || '').toLowerCase();
+      const isAdmin = role.includes('admin') || role.includes('pastor') || role.includes('super') || Boolean(m.isAdmin) || Boolean(m.isSuperAdmin);
       if (isAdmin) {
         adminUids.push(doc.id);
-        if (m.fcmToken && typeof m.fcmToken === 'string' && m.fcmToken.trim().length > 10) {
-          adminTokens.push(m.fcmToken.trim());
-        }
+        addAdminToken(m.fcmToken);
+        if (Array.isArray(m.fcmTokens)) m.fcmTokens.forEach(addAdminToken);
       }
     });
 
@@ -173,7 +177,7 @@ export const onPrayerRequestCreatedAdmin = onDocumentCreated('churches/{churchId
     const churchDoc = await db.collection('churches').doc(churchId).get();
     if (churchDoc.exists) {
       const cData = churchDoc.data();
-      const ownerUids = [cData?.adminUid, cData?.createdBy, cData?.pastorUid].filter(Boolean);
+      const ownerUids = [cData?.adminUid, cData?.createdBy, cData?.pastorUid, cData?.ownerUid].filter(Boolean);
       for (const uid of ownerUids) {
         if (!adminUids.includes(uid)) {
           adminUids.push(uid);
@@ -186,13 +190,11 @@ export const onPrayerRequestCreatedAdmin = onDocumentCreated('churches/{churchId
       try {
         const uSnap = await db.collection('users').doc(uid).get();
         const uData = uSnap.data();
-        if (uData?.fcmToken && typeof uData.fcmToken === 'string' && uData.fcmToken.trim().length > 10) {
-          const t = uData.fcmToken.trim();
-          if (!adminTokens.includes(t)) {
-            adminTokens.push(t);
-          }
+        if (uData) {
+          addAdminToken(uData.fcmToken);
+          if (Array.isArray(uData.fcmTokens)) uData.fcmTokens.forEach(addAdminToken);
         }
-      } catch (e) {}
+      } catch (e) { }
     }
   } catch (lookupErr) {
     console.error('Error fetching admin tokens for prayer request notification:', lookupErr);
@@ -202,7 +204,11 @@ export const onPrayerRequestCreatedAdmin = onDocumentCreated('churches/{churchId
     type: 'prayer_request_admin',
     churchId: churchId,
     prayerId: prayerId,
+    relatedId: prayerId,
+    id: prayerId,
     memberName: memberName,
+    screen: 'AdminRoot',
+    targetTab: 'Prayers',
     click_action: 'FLUTTER_NOTIFICATION_CLICK',
   };
 
@@ -210,11 +216,7 @@ export const onPrayerRequestCreatedAdmin = onDocumentCreated('churches/{churchId
   const uniqueTokens = Array.from(new Set(adminTokens));
   if (uniqueTokens.length > 0) {
     try {
-      const sendRes = await messaging.sendEachForMulticast({
-        notification: { title, body },
-        data: notificationData,
-        tokens: uniqueTokens,
-      });
+      const sendRes = await sendHighPriorityPush(messaging, uniqueTokens, title, body, notificationData, 'church_alerts');
       console.log(`✅ Sent prayer request notification to ${sendRes.successCount} admin devices (${sendRes.failureCount} failed).`);
     } catch (pushErr) {
       console.error('Error sending multicast prayer admin notification:', pushErr);
@@ -233,28 +235,134 @@ export const onPrayerRequestCreatedAdmin = onDocumentCreated('churches/{churchId
     console.error('Error sending to church admin topic:', topicErr);
   }
 
-  // 7. Write in-app notification record to churches/{churchId}/notifications
+  // 7. Write in-app notification record to churches/{churchId}/notifications (strictly scoped to Admin View)
   try {
-    await db.collection('churches').doc(churchId).collection('notifications').add({
+    await db.collection('churches').doc(churchId).collection('notifications').doc(`prayer_admin_${prayerId}`).set({
+      id: `prayer_admin_${prayerId}`,
       type: 'prayer_request_admin',
+      targetRole: 'admin',
       title,
       body,
+      content: body,
       memberName: memberName,
       prayerId: prayerId,
+      relatedId: prayerId,
       requestExcerpt: excerpt,
       category: prayer.category || '',
       isPublic: prayer.isPublic ?? false,
       read: false,
       createdAt: FieldValue.serverTimestamp(),
-    });
+    }, { merge: true });
   } catch (dbErr) {
     console.error('Error writing in-app notification document:', dbErr);
   }
+
+  // 8. If an Admin directly published a public prayer request on creation, also notify church members
+  if (prayer.isPublic === true && prayer.isAnswered === true) {
+    await deliverPublicPrayerWallNotification(db, messaging, churchId, prayerId, { ...prayer, name: memberName });
+  }
 });
 
+async function deliverPublicPrayerWallNotification(
+  db: FirebaseFirestore.Firestore,
+  messaging: any,
+  churchId: string,
+  prayerId: string,
+  prayerData: any
+): Promise<void> {
+  const requesterName = String(prayerData?.name || prayerData?.memberName || prayerData?.authorName || 'A Church Member').trim();
+  const rawText = String(prayerData?.request || prayerData?.text || prayerData?.requestEn || '').trim();
+  const excerpt = rawText.length > 90 ? `${rawText.substring(0, 87)}...` : rawText;
+  const title = `🙏 Church Prayer Wall: ${requesterName}`;
+  const body = excerpt
+    ? `Please join in prayer for ${requesterName}: "${excerpt}"`
+    : `Please join the church family in prayer for ${requesterName}.`;
+
+  const requesterId = String(prayerData?.uid || prayerData?.authorId || prayerData?.contactId || '').trim();
+  const requesterPhone = normalizeLast10(prayerData?.phone || '');
+
+  // Collect church members' FCM tokens in bulk (excluding the requester)
+  const tokenSet = new Set<string>();
+  try {
+    const [membersSnap, usersSnap] = await Promise.all([
+      db.collection('churches').doc(churchId).collection('members').get(),
+      db.collection('users').where('primaryChurchId', '==', churchId).get(),
+    ]);
+
+    const addFromDoc = (docSnap: any) => {
+      const d = docSnap.data() || {};
+      const docId = String(docSnap.id || '').trim();
+      const dUid = String(d.uid || '').trim();
+      const dPhone = normalizeLast10(d.phone || d.mobile || d.phoneNumber || '');
+      const isRequester =
+        (requesterId && (docId === requesterId || dUid === requesterId)) ||
+        (requesterPhone && dPhone && dPhone === requesterPhone);
+      if (isRequester) return;
+
+      if (typeof d.fcmToken === 'string' && d.fcmToken.trim().length > 10) tokenSet.add(d.fcmToken.trim());
+      if (Array.isArray(d.fcmTokens)) {
+        d.fcmTokens.forEach((tk: any) => {
+          if (typeof tk === 'string' && tk.trim().length > 10) tokenSet.add(tk.trim());
+        });
+      }
+    };
+
+    membersSnap.forEach(addFromDoc);
+    usersSnap.forEach(addFromDoc);
+  } catch (err) {
+    console.warn('Error collecting member tokens for Church Prayer Wall:', err);
+  }
+
+  const notifData: Record<string, string> = {
+    type: 'prayer_request_public',
+    churchId: String(churchId),
+    prayerId: String(prayerId),
+    relatedId: String(prayerId),
+    id: `prayer_public_${prayerId}`,
+    memberName: requesterName,
+    screen: 'PrayerWall',
+    click_action: 'FLUTTER_NOTIFICATION_CLICK',
+  };
+
+  try {
+    await db.collection('churches').doc(churchId).collection('notifications').doc(`prayer_public_${prayerId}`).set({
+      id: `prayer_public_${prayerId}`,
+      type: 'prayer_request_public',
+      title,
+      body,
+      content: body,
+      prayerId: String(prayerId),
+      relatedId: String(prayerId),
+      memberName: requesterName,
+      category: prayerData?.category || '',
+      isPublic: true,
+      read: false,
+      createdAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  } catch (dbErr) {
+    console.error('Error writing Church Prayer Wall in-app notification:', dbErr);
+  }
+
+  const tokens = Array.from(tokenSet);
+  if (tokens.length > 0) {
+    await sendHighPriorityPush(messaging, tokens, title, body, notifData, 'church_alerts');
+  } else {
+    try {
+      await messaging.send({
+        notification: { title, body },
+        data: notifData,
+        topic: `church_${churchId}`,
+        android: { priority: 'high', notification: { sound: 'default', channelId: 'church_alerts' } },
+        apns: { payload: { aps: { sound: 'default', badge: 1 } } },
+      });
+    } catch (error) {
+      console.error('Error sending prayer community topic notification:', error);
+    }
+  }
+}
+
 /**
- * 🙏 NOTIFY COMMUNITY OF APPROVED PRAYER REQUEST
- * Triggered when a prayer request is approved (isAnswered becomes true).
+ * 🙏 NOTIFY COMMUNITY OF APPROVED PUBLIC PRAYER OR REQUESTER OF PRIVATE ANSWER
  */
 export const pushPrayerRequestApproved = onDocumentUpdated('churches/{churchId}/prayerRequests/{prayerId}', async (event) => {
   const snap = event.data;
@@ -263,22 +371,55 @@ export const pushPrayerRequestApproved = onDocumentUpdated('churches/{churchId}/
   const before = snap.before.data();
   const after = snap.after.data();
   const churchId = event.params.churchId;
+  const prayerId = event.params.prayerId;
+  const db = getFirestore();
+  const messaging = getMessaging();
 
-  // Check if it just became approved AND is public
   if (!before.isAnswered && after.isAnswered && after.isPublic) {
-    const payload = {
-      notification: {
-        title: `🙏 Community Prayer`,
-        body: `Please join in prayer for ${after.name || 'a member'}.`,
-      },
-      data: { type: 'prayer_request_public', churchId: churchId },
-      topic: `church_${churchId}`,
-    };
+    await deliverPublicPrayerWallNotification(db, messaging, churchId, prayerId, after);
+  } else if (!before.isAnswered && after.isAnswered && !after.isPublic) {
+    // Private prayer request marked prayed/answered -> notify ONLY the requester
+    const requesterId = String(after.uid || after.contactId || after.authorId || '').trim();
+    const requesterPhone = String(after.phone || '').trim();
+    if (!requesterId && !requesterPhone) return;
 
     try {
-      await getMessaging().send(payload);
-    } catch (error) {
-      console.error('Error sending prayer community notification:', error);
+      const resolved = await resolveMemberPushTargets(db, churchId, requesterId, requesterPhone);
+      const title = '🙏 Prayer Request Update';
+      const body = 'Our pastoral team has prayed for your confidential prayer request.';
+      const notifId = `prayer_answered_${prayerId}`;
+
+      await Promise.allSettled(
+        resolved.memberDocIds.map((docId) =>
+          db.collection('churches').doc(churchId).collection('members').doc(docId).collection('notifications').doc(notifId).set({
+            id: notifId,
+            type: 'prayer_request_member',
+            title,
+            body,
+            content: body,
+            prayerId: String(prayerId),
+            relatedId: String(prayerId),
+            targetMemberId: docId,
+            recipientId: docId,
+            targetPhone: requesterPhone,
+            read: false,
+            createdAt: FieldValue.serverTimestamp(),
+          }, { merge: true })
+        )
+      );
+
+      if (resolved.tokens.length > 0) {
+        await sendHighPriorityPush(messaging, resolved.tokens, title, body, {
+          type: 'prayer_request_member',
+          churchId: String(churchId),
+          prayerId: String(prayerId),
+          relatedId: String(prayerId),
+          id: notifId,
+          screen: 'PrayerWall',
+        }, 'church_alerts');
+      }
+    } catch (err) {
+      console.error('Error sending private prayer update notification:', err);
     }
   }
 });
@@ -294,10 +435,10 @@ export const monitorMeetingLive = onSchedule('* * * * *', async (event) => {
 
   try {
     const churchesSnapshot = await db.collection('churches').get();
-    
+
     for (const churchDoc of churchesSnapshot.docs) {
       const churchId = churchDoc.id;
-      
+
       // Query meetings that are scheduled or live
       const meetingsSnapshot = await churchDoc.ref.collection('online_meetings')
         .where('status', 'in', ['scheduled', 'live'])
@@ -306,10 +447,10 @@ export const monitorMeetingLive = onSchedule('* * * * *', async (event) => {
       for (const meetingDoc of meetingsSnapshot.docs) {
         const meeting = meetingDoc.data();
         if (!meeting.startTime) continue;
-        
+
         const startTime = meeting.startTime.toDate();
         const updates: any = {};
-        
+
         // 1. Check for "Live" notification
         if (startTime <= now && !meeting.liveNotified) {
           const payload = {
@@ -326,13 +467,13 @@ export const monitorMeetingLive = onSchedule('* * * * *', async (event) => {
             },
             topic: `church_${churchId}`,
           };
-          
+
           await getMessaging().send(payload).catch(e => console.error('Error sending Live notification', e));
-          
+
           updates.liveNotified = true;
           if (meeting.status !== 'live') updates.status = 'live';
         }
-        
+
         // 2. Check for "Reminder" notification (5 mins after start)
         if (startTime <= fiveMinsAgo && !meeting.reminderNotified) {
           const payload = {
@@ -349,9 +490,9 @@ export const monitorMeetingLive = onSchedule('* * * * *', async (event) => {
             },
             topic: `church_${churchId}`,
           };
-          
+
           await getMessaging().send(payload).catch(e => console.error('Error sending Reminder notification', e));
-          
+
           updates.reminderNotified = true;
         }
 
@@ -411,7 +552,7 @@ export const monitorMeetingLive = onSchedule('* * * * *', async (event) => {
                 churchId: churchId,
                 silent: true,
                 createdAt: FieldValue.serverTimestamp(),
-              }).catch(() => {});
+              }).catch(() => { });
 
               // Record in notifications
               await churchDoc.ref.collection('notifications').add({
@@ -425,14 +566,14 @@ export const monitorMeetingLive = onSchedule('* * * * *', async (event) => {
                 churchId: churchId,
                 read: false,
                 createdAt: FieldValue.serverTimestamp(),
-              }).catch(() => {});
+              }).catch(() => { });
 
               // Mark quiz as published and notified
               await quizDoc.ref.update({
                 status: 'published',
                 scheduledNotified: true,
                 updatedAt: FieldValue.serverTimestamp(),
-              }).catch(() => {});
+              }).catch(() => { });
             }
           }
         } catch (quizErr) {
@@ -693,7 +834,7 @@ export const pushBibleQuizCreated = onDocumentCreated('churches/{churchId}/bible
   await sendBibleQuizPublishNotification(churchId, quizId, quiz);
   try {
     await snap.ref.update({ notificationSent: true });
-  } catch (e) {}
+  } catch (e) { }
 });
 
 export const pushBibleQuizUpdated = onDocumentUpdated('churches/{churchId}/bibleQuizzes/{quizId}', async (event) => {
@@ -710,7 +851,7 @@ export const pushBibleQuizUpdated = onDocumentUpdated('churches/{churchId}/bible
     await sendBibleQuizPublishNotification(churchId, quizId, after);
     try {
       await snap.after.ref.update({ notificationSent: true });
-    } catch (e) {}
+    } catch (e) { }
   }
 });
 
@@ -889,7 +1030,7 @@ export async function sendDailyQuizNotificationInternal(force: boolean = false):
         churchId: churchId,
         silent: true,
         createdAt: FieldValue.serverTimestamp(),
-      }).catch(() => {});
+      }).catch(() => { });
 
       // Add to notifications collection
       await cDoc.ref.collection('notifications').add({
@@ -903,7 +1044,7 @@ export async function sendDailyQuizNotificationInternal(force: boolean = false):
         churchId: churchId,
         read: false,
         createdAt: FieldValue.serverTimestamp(),
-      }).catch(() => {});
+      }).catch(() => { });
     }
   } catch (churchErr) {
     console.warn('[DailyQuiz] Error logging to churches:', churchErr);
@@ -1056,7 +1197,7 @@ export async function sendDailyVersePushInternal(slotOverride?: string, targetCh
       const mData = metaDoc.data() || {};
       if (mData.totalVerses) totalVerses = mData.totalVerses;
     }
-  } catch (_) {}
+  } catch (_) { }
 
   // Synchronized with VerseNotificationService: local calendar day difference from 2024-01-01
   const epochDate = new Date(Date.UTC(2024, 0, 1));
@@ -1076,13 +1217,13 @@ export async function sendDailyVersePushInternal(slotOverride?: string, targetCh
   try {
     const directDoc = await db.collection('daily_verses').doc(`verse_${targetIndex}`).get();
     if (directDoc.exists) { verseDocData = directDoc.data(); verseId = directDoc.id; }
-  } catch (_) {}
+  } catch (_) { }
 
   if (!verseDocData) {
     try {
       const snap = await db.collection('daily_verses').where('index', '==', targetIndex).get();
       if (!snap.empty) { verseDocData = snap.docs[0]?.data(); verseId = snap.docs[0]?.id || verseId; }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   // Fallback to churches collection verse sub-store
@@ -1093,7 +1234,7 @@ export async function sendDailyVersePushInternal(slotOverride?: string, targetCh
         const vs = await cDoc.ref.collection('daily_verses').where('index', '==', targetIndex).limit(1).get();
         if (!vs.empty) { verseDocData = vs.docs[0]?.data(); verseId = vs.docs[0]?.id || verseId; break; }
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   if (!verseDocData) {
@@ -1127,7 +1268,7 @@ export async function sendDailyVersePushInternal(slotOverride?: string, targetCh
         }
       });
     }
-  } catch (_) {}
+  } catch (_) { }
 
   const tokens = Array.from(tokenSet);
 
@@ -1136,7 +1277,7 @@ export async function sendDailyVersePushInternal(slotOverride?: string, targetCh
   try {
     const snap = await db.collection('churches').get();
     snap.forEach(d => churchIds.push(d.id));
-  } catch (_) {}
+  } catch (_) { }
 
   const verseData = {
     type: 'daily_verse', verseId: String(verseId), period: slot,
@@ -1173,7 +1314,7 @@ export async function sendDailyVersePushInternal(slotOverride?: string, targetCh
           tokens: tokens.slice(i, i + 500),
           android: { priority: 'high', collapseKey: 'daily_verse', notification: { sound: 'default', priority: 'max', channelId: 'daily_verse', tag: 'daily_verse', defaultSound: true, defaultVibrateTimings: true } },
         });
-      } catch (_) {}
+      } catch (_) { }
     }
   }
 
@@ -1186,7 +1327,7 @@ export async function sendDailyVersePushInternal(slotOverride?: string, targetCh
         createdAt: FieldValue.serverTimestamp(),
       });
     }
-  } catch (_) {}
+  } catch (_) { }
 
   return { success: true, slot, targetIndex, totalTokens: tokens.length };
 }
@@ -1223,6 +1364,167 @@ export const triggerDailyVersePushHttp = onRequest({ cors: true, timeoutSeconds:
 // 🏥 CARE CELL PUSH NOTIFICATIONS
 // ─────────────────────────────────────────────────────────────────────────────
 
+function normalizeLast10(raw?: any): string {
+  const digits = String(raw || '').replace(/\D/g, '');
+  return digits.length >= 10 ? digits.slice(-10) : digits;
+}
+
+interface CareCellTargetEntry {
+  memberId: string;
+  memberPhone?: string;
+  memberName?: string;
+}
+
+async function getCareCellTargetEntries(
+  db: ReturnType<typeof getFirestore>,
+  churchId: string,
+  cellId: string,
+  includeLeaders = true
+): Promise<CareCellTargetEntry[]> {
+  const targetMap = new Map<string, CareCellTargetEntry>();
+
+  const membershipsSnap = await db
+    .collection('churches')
+    .doc(churchId)
+    .collection('careCellMemberships')
+    .where('cellId', '==', cellId)
+    .where('membershipStatus', '==', 'Active')
+    .get();
+
+  membershipsSnap.docs.forEach((docSnap) => {
+    const md = docSnap.data() || {};
+    const mId = String(md.memberId || '').trim();
+    if (!mId) return;
+    targetMap.set(mId, {
+      memberId: mId,
+      memberPhone: String(md.memberPhone || '').trim(),
+      memberName: String(md.memberName || '').trim(),
+    });
+  });
+
+  if (includeLeaders) {
+    try {
+      const cellDoc = await db.collection('churches').doc(churchId).collection('careCells').doc(cellId).get();
+      if (cellDoc.exists) {
+        const cellData = cellDoc.data() || {};
+        const leaderId = String(cellData.leaderId || '').trim();
+        if (leaderId && !targetMap.has(leaderId)) {
+          targetMap.set(leaderId, {
+            memberId: leaderId,
+            memberPhone: String(cellData.leaderPhone || '').trim(),
+            memberName: String(cellData.leaderName || '').trim(),
+          });
+        }
+        const assistantId = String(cellData.assistantLeaderId || '').trim();
+        if (assistantId && !targetMap.has(assistantId)) {
+          targetMap.set(assistantId, {
+            memberId: assistantId,
+            memberName: String(cellData.assistantLeaderName || '').trim(),
+          });
+        }
+      }
+    } catch (_) { }
+  }
+
+  return Array.from(targetMap.values());
+}
+
+async function deliverInAppAndPushToCareCellTargets(params: {
+  db: ReturnType<typeof getFirestore>;
+  messaging: ReturnType<typeof getMessaging>;
+  churchId: string;
+  targetEntries: CareCellTargetEntry[];
+  docId: string;
+  type: string;
+  notifTitle: string;
+  notifBody: string;
+  pushData: Record<string, string>;
+  extraInAppFields?: Record<string, any>;
+}): Promise<{ resolvedMembers: number; tokenCount: number; successCount: number }> {
+  const {
+    db,
+    messaging,
+    churchId,
+    targetEntries,
+    docId,
+    type,
+    notifTitle,
+    notifBody,
+    pushData,
+    extraInAppFields = {},
+  } = params;
+
+  const allTokens = new Set<string>();
+  const resolvedInAppMemberIds = new Map<string, string>(); // memberDocId -> targetPhone
+
+  for (const entry of targetEntries) {
+    try {
+      const resolved = await resolveMemberPushTargets(
+        db,
+        churchId,
+        entry.memberId,
+        entry.memberPhone
+      );
+      resolved.tokens.forEach((tk) => allTokens.add(tk));
+      if (entry.memberId) {
+        resolvedInAppMemberIds.set(entry.memberId, entry.memberPhone || '');
+      }
+      resolved.memberDocIds.forEach((resolvedId) => {
+        if (!resolvedInAppMemberIds.has(resolvedId)) {
+          resolvedInAppMemberIds.set(resolvedId, entry.memberPhone || '');
+        }
+      });
+    } catch (err) {
+      console.warn('Error resolving care cell target:', entry.memberId, err);
+    }
+  }
+
+  const inAppWrites: Promise<any>[] = [];
+  resolvedInAppMemberIds.forEach((targetPhone, memberDocId) => {
+    const ref = db
+      .collection('churches')
+      .doc(churchId)
+      .collection('members')
+      .doc(memberDocId)
+      .collection('notifications')
+      .doc(docId);
+
+    inAppWrites.push(
+      ref.set(
+        {
+          id: docId,
+          type,
+          title: notifTitle,
+          body: notifBody,
+          content: notifBody,
+          churchId: String(churchId),
+          targetMemberId: memberDocId,
+          recipientId: memberDocId,
+          recipientRole: 'member',
+          targetPhone: targetPhone || '',
+          read: false,
+          createdAt: FieldValue.serverTimestamp(),
+          ...extraInAppFields,
+        },
+        { merge: true }
+      )
+    );
+  });
+
+  const tokensList = Array.from(allTokens);
+  const pushPromise =
+    tokensList.length > 0
+      ? sendHighPriorityPush(messaging, tokensList, notifTitle, notifBody, pushData, 'church_alerts')
+      : Promise.resolve({ successCount: 0, failureCount: 0 });
+
+  const [, pushResult] = await Promise.all([Promise.allSettled(inAppWrites), pushPromise]);
+  return {
+    resolvedMembers: resolvedInAppMemberIds.size,
+    tokenCount: tokensList.length,
+    successCount: pushResult.successCount,
+  };
+}
+
 /**
  * 📢 CARE CELL ANNOUNCEMENT PUSH
  */
@@ -1256,37 +1558,79 @@ export const pushCareCellAnnouncement = onDocumentCreated(
     const title = data.title || 'Care Cell Announcement';
     const message = data.message || '';
     const scope = data.scope || 'Cell';
+    const cellId = String(data.cellId || '').trim();
     const cellName = data.cellName || 'Care Cell';
     const messaging = getMessaging();
     const notifTitle = scope === 'All_Cells' ? `📢 Church Notice: ${title}` : `📢 ${cellName}: ${title}`;
     const notifBody = message.length > 120 ? `${message.substring(0, 117)}...` : message;
 
-    const payload = {
-      notification: { title: notifTitle, body: notifBody },
-      data: { type: 'care_cell_announcement', title: notifTitle, body: notifBody, announcementId: String(announcementId), churchId: String(churchId), cellId: String(data.cellId || ''), scope: String(scope), click_action: 'FLUTTER_NOTIFICATION_CLICK' },
-      android: { priority: 'high' as const, notification: { sound: 'default', channelId: 'church_alerts' } },
-      apns: { payload: { aps: { sound: 'default', badge: 1 } } },
+    const pushData: Record<string, string> = {
+      type: 'care_cell_announcement',
+      title: notifTitle,
+      body: notifBody,
+      announcementId: String(announcementId),
+      relatedId: String(announcementId),
+      id: `cc_notice_${announcementId}`,
+      churchId: String(churchId),
+      cellId,
+      cellName: String(cellName),
+      scope: String(scope),
+      screen: 'CareCell',
+      click_action: 'FLUTTER_NOTIFICATION_CLICK',
     };
 
     if (scope === 'All_Cells') {
-      try { await messaging.send({ ...payload, topic: `church_${churchId}` }); } catch (e) { console.error('Care cell announcement topic send failed:', e); }
-    } else {
       try {
-        const membershipsSnap = await db.collection('churches').doc(churchId).collection('careCellMemberships').where('cellId', '==', data.cellId).where('membershipStatus', '==', 'Active').get();
-        const memberIds = membershipsSnap.docs.map(d => d.data().memberId).filter(Boolean);
-        if (memberIds.length === 0) return;
-        const tokens: string[] = [];
-        for (const mId of memberIds) {
-          try {
-            const memDoc = await db.collection('churches').doc(churchId).collection('members').doc(mId).get();
-            if (memDoc.exists) {
-              const token = memDoc.data()?.fcmToken;
-              if (token && typeof token === 'string' && !tokens.includes(token)) tokens.push(token);
-            }
-          } catch (_) {}
-        }
-        if (tokens.length > 0) await messaging.sendEachForMulticast({ ...payload, tokens });
-      } catch (err) { console.error('Care cell announcement cell-scoped send failed:', err); }
+        await db.collection('churches').doc(churchId).collection('notifications').doc(`cc_notice_${announcementId}`).set({
+          id: `cc_notice_${announcementId}`,
+          type: 'care_cell_announcement',
+          title: notifTitle,
+          body: notifBody,
+          content: notifBody,
+          announcementId: String(announcementId),
+          cellId,
+          cellName: String(cellName),
+          scope: 'All_Cells',
+          isPublic: true,
+          read: false,
+          createdAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        await messaging.send({
+          notification: { title: notifTitle, body: notifBody },
+          data: pushData,
+          topic: `church_${churchId}`,
+          android: { priority: 'high', notification: { sound: 'default', channelId: 'church_alerts' } },
+          apns: { payload: { aps: { sound: 'default', badge: 1 } } },
+        });
+      } catch (e) {
+        console.error('Care cell announcement topic send failed:', e);
+      }
+    } else if (cellId) {
+      try {
+        const targetEntries = await getCareCellTargetEntries(db, churchId, cellId, true);
+        if (targetEntries.length === 0) return;
+
+        await deliverInAppAndPushToCareCellTargets({
+          db,
+          messaging,
+          churchId,
+          targetEntries,
+          docId: `cc_notice_${announcementId}`,
+          type: 'care_cell_announcement',
+          notifTitle,
+          notifBody,
+          pushData,
+          extraInAppFields: {
+            announcementId: String(announcementId),
+            cellId,
+            cellName: String(cellName),
+            scope: String(scope),
+          },
+        });
+      } catch (err) {
+        console.error('Care cell announcement cell-scoped send failed:', err);
+      }
     }
   }
 );
@@ -1320,41 +1664,57 @@ export const pushCareCellMeeting = onDocumentCreated(
     }
     if (!shouldSend) return;
 
-    const cellId = data.cellId;
+    const cellId = String(data.cellId || '').trim();
     if (!cellId) return;
 
     const messaging = getMessaging();
-    const meetingDate = data.meetingDate || '';
-    const meetingTime = data.meetingTime || '';
-    const venue = data.venue || 'Care Cell Location';
-    const cellName = data.cellName || 'Care Cell';
+    const meetingDate = String(data.meetingDate || '').trim();
+    const meetingTime = String(data.meetingTime || '').trim();
+    const venue = String(data.venue || 'Care Cell Location').trim();
+    const cellName = String(data.cellName || 'Care Cell').trim();
     const notifTitle = `🙏 ${cellName}: Meeting Scheduled`;
-    const notifBody = `Care Cell meeting on ${meetingDate} at ${meetingTime}. Venue: ${venue}. All members are requested to attend.`;
+    const notifBody = `Care Cell meeting on ${formatVisitDateText(meetingDate)} at ${formatVisitTimeText(meetingTime)}. Venue: ${venue}. All members are requested to attend.`;
 
     try {
-      const membershipsSnap = await db.collection('churches').doc(churchId).collection('careCellMemberships').where('cellId', '==', cellId).where('membershipStatus', '==', 'Active').get();
-      const memberIds = membershipsSnap.docs.map(d => d.data().memberId).filter(Boolean);
-      if (memberIds.length === 0) return;
-      const tokens: string[] = [];
-      for (const mId of memberIds) {
-        try {
-          const memDoc = await db.collection('churches').doc(churchId).collection('members').doc(mId).get();
-          if (memDoc.exists) {
-            const token = memDoc.data()?.fcmToken;
-            if (token && typeof token === 'string' && !tokens.includes(token)) tokens.push(token);
-          }
-        } catch (_) {}
-      }
-      if (tokens.length > 0) {
-        await messaging.sendEachForMulticast({
-          notification: { title: notifTitle, body: notifBody },
-          data: { type: 'care_cell_meeting', title: notifTitle, body: notifBody, meetingId: String(meetingId), cellId: String(cellId), churchId: String(churchId), meetingDate: String(meetingDate), meetingTime: String(meetingTime), click_action: 'FLUTTER_NOTIFICATION_CLICK' },
-          android: { priority: 'high', notification: { sound: 'default', channelId: 'church_alerts' } },
-          apns: { payload: { aps: { sound: 'default', badge: 1 } } },
-          tokens,
-        });
-      }
-    } catch (err) { console.error('Care cell meeting push failed:', err); }
+      const targetEntries = await getCareCellTargetEntries(db, churchId, cellId, true);
+      if (targetEntries.length === 0) return;
+
+      await deliverInAppAndPushToCareCellTargets({
+        db,
+        messaging,
+        churchId,
+        targetEntries,
+        docId: `cc_meeting_${meetingId}`,
+        type: 'care_cell_meeting',
+        notifTitle,
+        notifBody,
+        pushData: {
+          type: 'care_cell_meeting',
+          title: notifTitle,
+          body: notifBody,
+          meetingId: String(meetingId),
+          relatedId: String(meetingId),
+          id: `cc_meeting_${meetingId}`,
+          cellId,
+          cellName,
+          churchId: String(churchId),
+          meetingDate,
+          meetingTime,
+          screen: 'CareCell',
+          click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+        extraInAppFields: {
+          meetingId: String(meetingId),
+          cellId,
+          cellName,
+          meetingDate,
+          meetingTime,
+          venue,
+        },
+      });
+    } catch (err) {
+      console.error('Care cell meeting push failed:', err);
+    }
   }
 );
 
@@ -1387,40 +1747,72 @@ export const pushCareCellPrayerRequest = onDocumentCreated(
     }
     if (!shouldSend) return;
 
-    const cellId = data.cellId;
+    // Public ("Church Prayer Wall") requests are routed to the Admin Approval / Church Prayer Wall pipeline.
+    if (String(data.privacy || 'Cell') === 'Public') {
+      return;
+    }
+
+    const cellId = String(data.cellId || '').trim();
     if (!cellId) return;
 
     const messaging = getMessaging();
-    const memberName = data.memberName || 'A Member';
-    const request = data.request || data.prayerRequest || '';
-    const cellName = data.cellName || 'Care Cell';
-    const notifTitle = `🙏 ${cellName}: New Prayer Request`;
-    const notifBody = `${memberName} has shared a prayer request. ${request.substring(0, 80)}${request.length > 80 ? '...' : ''}`;
+    const memberName = String(data.memberName || 'A Member').trim();
+    const submitterId = String(data.memberId || '').trim();
+    const submitterPhone = normalizeLast10(data.memberPhone || '');
+    const titlePart = String(data.title || '').trim();
+    const descPart = String(data.description || data.request || data.prayerRequest || '').trim();
+    const combinedText = titlePart && descPart ? `${titlePart}: ${descPart}` : titlePart || descPart;
+    const cellName = String(data.cellName || 'Care Cell').trim();
+    const notifTitle = `🙏 ${cellName}: Care Cell Prayer`;
+    const excerpt = combinedText.length > 90 ? `${combinedText.substring(0, 87)}...` : combinedText;
+    const notifBody = excerpt
+      ? `${memberName} shared a prayer request: "${excerpt}"`
+      : `${memberName} shared a prayer request with ${cellName}.`;
 
     try {
-      const membershipsSnap = await db.collection('churches').doc(churchId).collection('careCellMemberships').where('cellId', '==', cellId).where('membershipStatus', '==', 'Active').get();
-      const memberIds = membershipsSnap.docs.map(d => d.data().memberId).filter(Boolean);
-      if (memberIds.length === 0) return;
-      const tokens: string[] = [];
-      for (const mId of memberIds) {
-        try {
-          const memDoc = await db.collection('churches').doc(churchId).collection('members').doc(mId).get();
-          if (memDoc.exists) {
-            const token = memDoc.data()?.fcmToken;
-            if (token && typeof token === 'string' && !tokens.includes(token)) tokens.push(token);
-          }
-        } catch (_) {}
-      }
-      if (tokens.length > 0) {
-        await messaging.sendEachForMulticast({
-          notification: { title: notifTitle, body: notifBody },
-          data: { type: 'care_cell_prayer', title: notifTitle, body: notifBody, requestId: String(requestId), cellId: String(cellId), churchId: String(churchId), click_action: 'FLUTTER_NOTIFICATION_CLICK' },
-          android: { priority: 'high', notification: { sound: 'default', channelId: 'church_alerts' } },
-          apns: { payload: { aps: { sound: 'default', badge: 1 } } },
-          tokens,
-        });
-      }
-    } catch (err) { console.error('Care cell prayer request push failed:', err); }
+      const allEntries = await getCareCellTargetEntries(db, churchId, cellId, true);
+      const filteredEntries = allEntries.filter((entry) => {
+        if (submitterId && entry.memberId === submitterId) return false;
+        const entryPhone = normalizeLast10(entry.memberPhone || '');
+        if (submitterPhone && entryPhone && entryPhone === submitterPhone) return false;
+        return true;
+      });
+      if (filteredEntries.length === 0) return;
+
+      await deliverInAppAndPushToCareCellTargets({
+        db,
+        messaging,
+        churchId,
+        targetEntries: filteredEntries,
+        docId: `cc_prayer_${requestId}`,
+        type: 'care_cell_prayer',
+        notifTitle,
+        notifBody,
+        pushData: {
+          type: 'care_cell_prayer',
+          title: notifTitle,
+          body: notifBody,
+          requestId: String(requestId),
+          relatedId: String(requestId),
+          id: `cc_prayer_${requestId}`,
+          cellId,
+          cellName,
+          churchId: String(churchId),
+          memberName,
+          screen: 'CareCell',
+          click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+        extraInAppFields: {
+          requestId: String(requestId),
+          cellId,
+          cellName,
+          memberName,
+          privacy: 'Cell',
+        },
+      });
+    } catch (err) {
+      console.error('Care cell prayer request push failed:', err);
+    }
   }
 );
 
@@ -1650,9 +2042,203 @@ export const pushCareCellVisit = onDocumentCreated(
           pushTokenCount: tokensList.length,
           pushSuccessCount: pushResult.successCount,
         });
-      } catch (_) {}
+      } catch (_) { }
     } catch (err) {
       console.error('Care cell visit push failed:', err);
+    }
+  }
+);
+
+/**
+ * ❌ CARE CELL VISIT DECLINED BY MEMBER — ADMIN / RESPONSIBLE PERSON ALERT
+ * Fires when any member's response transitions to "Declined" in a scheduled visit.
+ */
+export const onCareCellVisitUpdated = onDocumentUpdated(
+  { document: 'churches/{churchId}/careCellVisits/{visitId}', region: 'asia-south1' },
+  async (event) => {
+    const beforeData = event.data?.before?.data();
+    const afterData = event.data?.after?.data();
+    if (!beforeData || !afterData) return;
+
+    const visitId = event.params.visitId;
+    const churchId = event.params.churchId;
+    const beforeResponses: Record<string, any> = beforeData.responses || {};
+    const afterResponses: Record<string, any> = afterData.responses || {};
+
+    const newlyDeclined = Object.entries(afterResponses).filter(([key, afterVal]) => {
+      const afterStatus = String(afterVal?.response || '').trim();
+      const beforeStatus = String(beforeResponses[key]?.response || '').trim();
+      return afterStatus === 'Declined' && beforeStatus !== 'Declined';
+    });
+
+    if (newlyDeclined.length === 0) return;
+
+    const db = getFirestore();
+    const messaging = getMessaging();
+
+    const cellId = String(afterData.cellId || '').trim();
+    const cellName = String(afterData.cellName || 'Care Cell').trim();
+    const title = String(afterData.title || 'Home Visit').trim();
+    const visitDate = String(afterData.visitDate || '').trim();
+    const visitTime = String(afterData.visitTime || '').trim();
+    const visitors = Array.isArray(afterData.visitors)
+      ? afterData.visitors.filter(Boolean).join(', ')
+      : String(afterData.visitors || 'Visiting Team').trim();
+
+    let cellData: any = null;
+    if (cellId) {
+      try {
+        const cellDoc = await db.collection('churches').doc(churchId).collection('careCells').doc(cellId).get();
+        if (cellDoc.exists) cellData = cellDoc.data() || null;
+      } catch (_) { }
+    }
+
+    const dateDisplay = formatVisitDateText(visitDate);
+    const timeDisplay = formatVisitTimeText(visitTime);
+    const schedulePart = dateDisplay && timeDisplay
+      ? `${dateDisplay} at ${timeDisplay}`
+      : dateDisplay || timeDisplay || 'Scheduled Date';
+
+    for (const [respKey, declInfo] of newlyDeclined) {
+      try {
+        const declinerId = String(declInfo?.memberId || respKey || '').trim();
+        const declinerName = String(declInfo?.memberName || 'A Member').trim();
+        const declinerPhone = String(declInfo?.memberPhone || '').trim();
+        const declineNotes = String(declInfo?.notes || '').trim();
+        const declinerLast10 = normalizeLast10(declinerPhone);
+
+        const candidateResponsibleIds = new Set<string>();
+        const addCandidate = (id?: any) => {
+          const val = String(id || '').trim();
+          if (!val || val === declinerId) return;
+          candidateResponsibleIds.add(val);
+        };
+
+        addCandidate(afterData.createdBy);
+        if (Array.isArray(afterData.assignedAdminIds)) {
+          afterData.assignedAdminIds.forEach(addCandidate);
+        }
+        if (cellData) {
+          if (Array.isArray(cellData.assignedAdminIds)) {
+            cellData.assignedAdminIds.forEach(addCandidate);
+          }
+          addCandidate(cellData.leaderId);
+          addCandidate(cellData.assistantLeaderId);
+        }
+
+        const concernedTokens = new Set<string>();
+        const concernedDocIds = new Set<string>();
+
+        for (const candidateId of candidateResponsibleIds) {
+          try {
+            const resolved = await resolveMemberPushTargets(db, churchId, candidateId);
+            resolved.tokens.forEach((tk) => concernedTokens.add(tk));
+            concernedDocIds.add(candidateId);
+            resolved.memberDocIds.forEach((mDocId) => concernedDocIds.add(mDocId));
+          } catch (_) { }
+        }
+
+        // Only fall back to church admins if no explicit creator/responsible person had a resolvable target
+        if (concernedTokens.size === 0) {
+          const adminFallback = await resolveVolunteerAdminTokens(db, churchId);
+          adminFallback.tokens.forEach((tk) => concernedTokens.add(tk));
+          adminFallback.adminUids.forEach((uId) => {
+            if (uId && uId !== declinerId) concernedDocIds.add(uId);
+          });
+        }
+
+        concernedDocIds.delete(declinerId);
+
+        const safeKey = (declinerId || 'member').replace(/[^a-zA-Z0-9_-]/g, '').slice(-24) || 'member';
+        const notifDocId = `cc_visit_decline_${visitId}_${safeKey}`;
+        const notifTitle = `❌ Visit Declined: ${declinerName}`;
+        const reasonPart = declineNotes ? ` Reason: "${declineNotes}"` : '';
+        const phonePart = declinerPhone ? ` (${declinerPhone})` : '';
+        const notifBody = `${declinerName}${phonePart} declined the ${cellName} visit (${title}) scheduled for ${schedulePart} with ${visitors}.${reasonPart}`;
+
+        const pushData: Record<string, string> = {
+          type: 'care_cell_visit_declined',
+          title: notifTitle,
+          body: notifBody,
+          id: notifDocId,
+          visitId: String(visitId),
+          relatedId: String(visitId),
+          cellId,
+          cellName,
+          churchId: String(churchId),
+          visitDate,
+          visitTime,
+          visitors,
+          declinedByMemberId: declinerId,
+          declinedByMemberName: declinerName,
+          declinedByMemberPhone: declinerPhone,
+          declineNotes,
+          screen: 'AdminRoot',
+          targetTab: 'Care Cells',
+          careCellTab: 'visits',
+          click_action: 'FLUTTER_NOTIFICATION_CLICK',
+        };
+
+        const notifRecord: Record<string, any> = {
+          id: notifDocId,
+          type: 'care_cell_visit_declined',
+          title: notifTitle,
+          body: notifBody,
+          content: notifBody,
+          visitId: String(visitId),
+          relatedId: String(visitId),
+          cellId,
+          cellName,
+          visitTitle: title,
+          visitDate,
+          visitTime,
+          visitors,
+          declinedByMemberId: declinerId,
+          declinedByMemberName: declinerName,
+          declinedByMemberPhone: declinerPhone,
+          declineNotes,
+          declinerPhoneLast10: declinerLast10,
+          churchId: String(churchId),
+          targetRole: 'admin',
+          recipientRole: 'admin',
+          targetMemberIds: Array.from(concernedDocIds),
+          careCellTab: 'visits',
+          read: false,
+          createdAt: FieldValue.serverTimestamp(),
+        };
+
+        const inAppWrites: Promise<any>[] = [
+          db
+            .collection('churches')
+            .doc(churchId)
+            .collection('notifications')
+            .doc(notifDocId)
+            .set(notifRecord, { merge: true }),
+        ];
+
+        concernedDocIds.forEach((docId) => {
+          inAppWrites.push(
+            db
+              .collection('churches')
+              .doc(churchId)
+              .collection('members')
+              .doc(docId)
+              .collection('notifications')
+              .doc(notifDocId)
+              .set(notifRecord, { merge: true })
+          );
+        });
+
+        const tokenList = Array.from(concernedTokens);
+        const pushPromise =
+          tokenList.length > 0
+            ? sendHighPriorityPush(messaging, tokenList, notifTitle, notifBody, pushData, 'church_alerts')
+            : Promise.resolve({ successCount: 0, failureCount: 0 });
+
+        await Promise.all([Promise.allSettled(inAppWrites), pushPromise]);
+      } catch (err) {
+        console.error('Error processing care cell visit decline notification:', err);
+      }
     }
   }
 );
@@ -1752,7 +2338,7 @@ async function handleTestimonyWorkflowUpdatedPush(before: any, after: any, churc
   // Case 1: Member status update (Approved/Rejected)
   const statusChanged = before?.status !== after.status;
   if (statusChanged && (after.status === 'Approved' || after.status === 'Rejected') && after.lastMemberNotifiedStatus !== after.status && after.memberId) {
-    if (snapRef) { try { await snapRef.update({ lastMemberNotifiedStatus: after.status, lastMemberNotifiedAt: FieldValue.serverTimestamp() }); } catch (_) {} }
+    if (snapRef) { try { await snapRef.update({ lastMemberNotifiedStatus: after.status, lastMemberNotifiedAt: FieldValue.serverTimestamp() }); } catch (_) { } }
 
     const memberTokens: string[] = [];
     try {
@@ -1762,7 +2348,7 @@ async function handleTestimonyWorkflowUpdatedPush(before: any, after: any, churc
         if (mData.fcmToken && typeof mData.fcmToken === 'string' && mData.fcmToken.trim().length > 10) memberTokens.push(mData.fcmToken.trim());
         if (Array.isArray(mData.fcmTokens)) mData.fcmTokens.forEach((tk: any) => { if (typeof tk === 'string' && tk.trim().length > 10) memberTokens.push(tk.trim()); });
       }
-    } catch (_) {}
+    } catch (_) { }
 
     const isApproved = after.status === 'Approved';
     const title = isApproved ? '🎉 Testimony Approved!' : 'Testimony Review Update';
@@ -1790,13 +2376,13 @@ async function handleTestimonyWorkflowUpdatedPush(before: any, after: any, churc
       };
       await db.collection('churches').doc(churchId).collection('broadcasts').add(memberBroadcast);
       await db.collection('churches').doc(churchId).collection('members').doc(after.memberId).collection('notifications').add(memberBroadcast);
-    } catch (_) {}
+    } catch (_) { }
   }
 
   // Case 2: Published publicly – church-wide broadcast
   const isNewlyPublished = before?.status !== 'Published' && after.status === 'Published' && after.privacy === 'Public' && after.publicationPushSent !== true;
   if (isNewlyPublished) {
-    if (snapRef) { try { await snapRef.update({ publicationPushSent: true, publicationPushSentAt: FieldValue.serverTimestamp() }); } catch (_) {} }
+    if (snapRef) { try { await snapRef.update({ publicationPushSent: true, publicationPushSentAt: FieldValue.serverTimestamp() }); } catch (_) { } }
 
     const title = '✨ New Testimony Shared!';
     const body = `${memberName} shared a testimony: "${testimonyTitle}". Tap to watch or read!`;
@@ -1806,7 +2392,7 @@ async function handleTestimonyWorkflowUpdatedPush(before: any, after: any, churc
 
     try {
       await messaging.send({ notification: { title, body }, data: notificationData, topic: `church_${churchId}`, android: { priority: 'high', notification: { sound: 'default', channelId: 'church_alerts' } }, apns: { payload: { aps: { sound: 'default', badge: 1 } } } });
-    } catch (_) {}
+    } catch (_) { }
 
     try {
       const membersSnap = await db.collection('churches').doc(churchId).collection('members').get();
@@ -1820,12 +2406,12 @@ async function handleTestimonyWorkflowUpdatedPush(before: any, after: any, churc
       for (let i = 0; i < uniqueTokens.length; i += 500) {
         await messaging.sendEachForMulticast({ notification: { title, body }, data: notificationData, tokens: uniqueTokens.slice(i, i + 500), android: { priority: 'high', notification: { sound: 'default', channelId: 'church_alerts' } }, apns: { payload: { aps: { sound: 'default', badge: 1 } } } });
       }
-    } catch (_) {}
+    } catch (_) { }
 
     try {
       const pubPayload = { type: 'testimony_published', title, body, content: body, testimonyId, relatedId: testimonyId, memberName, churchId, createdAt: FieldValue.serverTimestamp() };
       await db.collection('churches').doc(churchId).collection('broadcasts').add(pubPayload);
-    } catch (_) {}
+    } catch (_) { }
   }
 }
 
@@ -1888,7 +2474,7 @@ async function resolveMemberPushTargets(
         if (!resolvedPhone) resolvedPhone = mData.phone || mData.mobile || '';
         if (!resolvedEmail) resolvedEmail = mData.email || '';
       }
-    } catch (_) {}
+    } catch (_) { }
     try {
       const uSnap = await db.collection('users').doc(memberId).get();
       extractFromDoc(uSnap, true);
@@ -1897,7 +2483,7 @@ async function resolveMemberPushTargets(
         if (!resolvedPhone) resolvedPhone = uData.phone || uData.mobile || '';
         if (!resolvedEmail) resolvedEmail = uData.email || '';
       }
-    } catch (_) {}
+    } catch (_) { }
   }
   if (resolvedPhone) {
     const cleanPhone = String(resolvedPhone).replace(/[^\d+]/g, '');
@@ -1911,7 +2497,7 @@ async function resolveMemberPushTargets(
             extractFromDoc(d, true);
           }
         });
-      } catch (_) {}
+      } catch (_) { }
       if (tokenSet.size === 0 || docIdSet.size <= 1) {
         try {
           const snap = await db.collection('users').get();
@@ -1921,13 +2507,13 @@ async function resolveMemberPushTargets(
               extractFromDoc(d, true);
             }
           });
-        } catch (_) {}
+        } catch (_) { }
       }
     }
   }
   if ((tokenSet.size === 0 || docIdSet.size <= 1) && resolvedEmail && resolvedEmail.includes('@')) {
-    try { (await db.collection('churches').doc(cid).collection('members').where('email', '==', resolvedEmail.trim().toLowerCase()).limit(2).get()).forEach(d => extractFromDoc(d, true)); } catch (_) {}
-    try { (await db.collection('users').where('email', '==', resolvedEmail.trim().toLowerCase()).limit(2).get()).forEach(d => extractFromDoc(d, true)); } catch (_) {}
+    try { (await db.collection('churches').doc(cid).collection('members').where('email', '==', resolvedEmail.trim().toLowerCase()).limit(2).get()).forEach(d => extractFromDoc(d, true)); } catch (_) { }
+    try { (await db.collection('users').where('email', '==', resolvedEmail.trim().toLowerCase()).limit(2).get()).forEach(d => extractFromDoc(d, true)); } catch (_) { }
   }
   return { tokens: Array.from(tokenSet), memberDocIds: Array.from(docIdSet) };
 }
@@ -1953,18 +2539,18 @@ async function resolveVolunteerAdminTokens(db: FirebaseFirestore.Firestore, chur
     }
   };
 
-  try { (await db.collection('churches').doc(cid).collection('members').get()).forEach(checkMember); } catch (_) {}
+  try { (await db.collection('churches').doc(cid).collection('members').get()).forEach(checkMember); } catch (_) { }
   try {
     const cSnap = await db.collection('churches').doc(cid).get();
     if (cSnap.exists) {
       const cData = cSnap.data() || {};
       [cData.adminUid, cData.createdBy, cData.pastorUid, cData.ownerUid, ...(Array.isArray(cData.adminUids) ? cData.adminUids : [])].filter(Boolean).forEach((uid: string) => adminUidSet.add(uid));
     }
-  } catch (_) {}
+  } catch (_) { }
   for (const uid of Array.from(adminUidSet)) {
-    try { const snap = await db.collection('users').doc(uid).get(); if (snap.exists) { const d = snap.data() || {}; addToken(d.fcmToken); if (Array.isArray(d.fcmTokens)) d.fcmTokens.forEach(addToken); } } catch (_) {}
+    try { const snap = await db.collection('users').doc(uid).get(); if (snap.exists) { const d = snap.data() || {}; addToken(d.fcmToken); if (Array.isArray(d.fcmTokens)) d.fcmTokens.forEach(addToken); } } catch (_) { }
   }
-  try { (await db.collection('users').get()).forEach(doc => checkMember(doc)); } catch (_) {}
+  try { (await db.collection('users').get()).forEach(doc => checkMember(doc)); } catch (_) { }
 
   return { tokens: Array.from(tokenSet), adminUids: Array.from(adminUidSet) };
 }
@@ -2025,7 +2611,7 @@ async function handleVolunteerApplicationAdminCreatedPush(appData: any, churchId
     try {
       const mDoc = await db.collection('churches').doc(cid).collection('members').doc(appData.memberId).get();
       if (mDoc.exists) { const m = mDoc.data(); memberName = m?.name || m?.displayName || (m?.firstName ? `${m.firstName} ${m.lastName || ''}`.trim() : ''); }
-    } catch (_) {}
+    } catch (_) { }
   }
   if (!memberName) memberName = 'A Church Member';
 
@@ -2046,7 +2632,7 @@ async function handleVolunteerApplicationAdminCreatedPush(appData: any, churchId
 
   if (adminTokens.length > 0) await sendHighPriorityPush(messaging, adminTokens, title, body, notificationData, 'church_alerts');
 
-  try { await messaging.send({ notification: { title, body }, data: notificationData, topic: `church_${cid}_admin`, android: { priority: 'high', notification: { sound: 'default', channelId: 'church_alerts' } }, apns: { payload: { aps: { sound: 'default', badge: 1 } } } }); } catch (_) {}
+  try { await messaging.send({ notification: { title, body }, data: notificationData, topic: `church_${cid}_admin`, android: { priority: 'high', notification: { sound: 'default', channelId: 'church_alerts' } }, apns: { payload: { aps: { sound: 'default', badge: 1 } } } }); } catch (_) { }
 
   await writeVolunteerInAppNotifications(db, cid, `vol_admin_${applicationId}`, {
     type: 'volunteer_application_admin', targetRole: 'admin', title, body, content: body, memberName,
@@ -2055,7 +2641,7 @@ async function handleVolunteerApplicationAdminCreatedPush(appData: any, churchId
     referenceType: isEventVolunteer ? 'event_volunteer' : 'general_volunteer',
   }, adminUids);
 
-  if (snapRef) { try { await snapRef.update({ adminPushSent: true, adminNotified: true, adminPushSentAt: FieldValue.serverTimestamp() }); } catch (_) {} }
+  if (snapRef) { try { await snapRef.update({ adminPushSent: true, adminNotified: true, adminPushSentAt: FieldValue.serverTimestamp() }); } catch (_) { } }
 }
 
 async function handleVolunteerApplicationWorkflowUpdatedPush(before: any, after: any, churchId: string, applicationId: string, snapRef?: any) {
@@ -2093,7 +2679,7 @@ async function handleVolunteerApplicationWorkflowUpdatedPush(before: any, after:
         applicationId, referenceId: applicationId, referenceType: isEventVolunteer ? 'event_volunteer' : 'general_volunteer',
       }, memberId);
     }
-    if (snapRef) { try { const p: any = { lastNotifiedStatus: currentStatus, lastNotifiedStatusAt: FieldValue.serverTimestamp() }; if (currentStatus === 'approved') p.lastNotifiedAssignmentHash = currentAssignmentHash; await snapRef.update(p); } catch (_) {} }
+    if (snapRef) { try { const p: any = { lastNotifiedStatus: currentStatus, lastNotifiedStatusAt: FieldValue.serverTimestamp() }; if (currentStatus === 'approved') p.lastNotifiedAssignmentHash = currentAssignmentHash; await snapRef.update(p); } catch (_) { } }
   }
 
   const beforeAssignmentHash = [before?.assignedRole || '', before?.assignedDate || '', before?.assignedTimeSlot || '', before?.assignedLocation || '', before?.assignedResponsibility || ''].join('|');
@@ -2109,7 +2695,7 @@ async function handleVolunteerApplicationWorkflowUpdatedPush(before: any, after:
       const assignKey = computeVolunteerAssignmentKey({ assignedRole: after.assignedRole, assignedDate: after.assignedDate, assignedTimeSlot: after.assignedTimeSlot, assignedLocation: after.assignedLocation, assignedResponsibility: after.assignedResponsibility });
       await writeVolunteerInAppNotifications(db, cid, `vol_assign_${applicationId}_${assignKey}`, { type: 'volunteer_assignment', recipientId: memberId, recipientRole: 'member', targetMemberId: memberId, targetPhone: after.memberPhone || '', title, body, content: body, volunteerType: after.volunteerType || 'event', eventId: after.eventId || '', eventTitle: eventName, applicationId, referenceId: applicationId, referenceType: 'event_volunteer' }, memberId);
     }
-    if (snapRef) { try { await snapRef.update({ lastNotifiedAssignmentHash: currentAssignmentHash, assignedAt: FieldValue.serverTimestamp() }); } catch (_) {} }
+    if (snapRef) { try { await snapRef.update({ lastNotifiedAssignmentHash: currentAssignmentHash, assignedAt: FieldValue.serverTimestamp() }); } catch (_) { } }
   }
 }
 
@@ -2221,7 +2807,7 @@ export const scheduledVolunteerReminders = onSchedule(
             else if (is2hWindow && !remindersSent.h2) { shouldSend = true; reminderType = '2h'; title = '🔔 Volunteer Reminder: In 2 Hours!'; body = `Reminder: You are scheduled to volunteer for ${ev.title || 'Church Event'} in 2 hours. Role: ${vData.assignedRole || vData.preferredRole || 'Volunteer'}, Location: ${ev.location || 'Church'}.`; }
             if (!shouldSend) continue;
             const updateField = reminderType === '24h' ? { 'remindersSent.h24': true, 'remindersSent.h24At': FieldValue.serverTimestamp() } : { 'remindersSent.h2': true, 'remindersSent.h2At': FieldValue.serverTimestamp() };
-            try { await vDoc.ref.update(updateField); } catch (_) {}
+            try { await vDoc.ref.update(updateField); } catch (_) { }
             const memberId = vData.memberId;
             if (memberId) {
               const tokens = await resolveVolunteerMemberTokens(db, churchId, memberId, vData.memberPhone, vData.memberEmail, vData.memberName);

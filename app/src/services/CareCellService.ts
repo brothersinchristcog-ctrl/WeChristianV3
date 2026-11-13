@@ -1,4 +1,5 @@
 import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 import FirestoreService from './FirestoreService';
 const CHURCHES_ROOT_COLLECTION = 'churches';
 import {
@@ -1078,7 +1079,8 @@ class CareCellService {
     churchId: string | undefined,
     data: Omit<CareCellPrayerRequest, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<string> {
-    const col = await this.getPrayerRequestsRef(churchId);
+    const activeChurchId = churchId || (await this.getChurchId());
+    const col = await this.getPrayerRequestsRef(activeChurchId);
     const docRef = col.doc();
     const payload = {
       ...data,
@@ -1088,7 +1090,46 @@ class CareCellService {
       createdAt: firestore.FieldValue.serverTimestamp(),
       updatedAt: firestore.FieldValue.serverTimestamp(),
     };
-    await docRef.set(sanitizeForFirestore(payload)); this.invalidateCareCellsCache(churchId);
+    await docRef.set(sanitizeForFirestore(payload));
+
+    // Mirror "Church Prayer Wall" requests to the main Prayer Wall collection so
+    // Admins can review/approve them and Church Prayer Wall subscribers receive notifications.
+    if (data.privacy === 'Public') {
+      try {
+        const currentUid = auth().currentUser?.uid || data.memberId || '';
+        const combinedText = data.title && data.description
+          ? `${data.title}: ${data.description}`
+          : data.description || data.title || '';
+        await firestore()
+          .collection(CHURCHES_ROOT_COLLECTION)
+          .doc(activeChurchId)
+          .collection('prayerRequests')
+          .add(
+            sanitizeForFirestore({
+              uid: currentUid,
+              authorId: data.memberId || currentUid,
+              name: data.memberName || 'Church Member',
+              phone: data.memberPhone || '',
+              title: data.title || 'Care Cell Prayer Request',
+              request: combinedText,
+              text: combinedText,
+              category: 'Care Cell Prayer',
+              isPublic: true,
+              isAnswered: false,
+              type: 'public',
+              source: 'care_cell',
+              careCellId: data.cellId || '',
+              careCellName: (data as any).cellName || '',
+              careCellPrayerId: docRef.id,
+              createdAt: firestore.FieldValue.serverTimestamp(),
+            })
+          );
+      } catch (mirrorErr) {
+        console.warn('Error mirroring public prayer request to Church Prayer Wall:', mirrorErr);
+      }
+    }
+
+    this.invalidateCareCellsCache(activeChurchId);
     return docRef.id;
   }
 
@@ -1393,7 +1434,7 @@ class CareCellService {
       visitors: data.visitors,
       status: 'Scheduled',
       notificationSent: false,
-      createdBy: data.createdBy,
+      createdBy: data.createdBy || auth().currentUser?.uid || '',
       createdByName: data.createdByName || '',
       totalMembersCount: targetMembers.length,
       acceptedCount: 0,

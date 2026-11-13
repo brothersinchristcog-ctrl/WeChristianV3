@@ -443,6 +443,38 @@ service cloud.firestore {
         allow read, write: if isAuthenticated();
       }
 
+      // Care Cells: Member Visit Responses, Prayer Requests & Leader Collaboration
+      match /careCellVisits/{visitId} {
+        allow read: if isAuthenticated();
+        allow create, delete: if isChurchAdmin();
+        allow update: if isAuthenticated();
+      }
+
+      match /careCellPrayerRequests/{requestId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin() || resource.data.memberId == request.auth.uid;
+      }
+
+      match /careCellAnnouncements/{announcementId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin();
+      }
+
+      match /careCellFollowups/{followupId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin();
+      }
+
+      match /careCellMeetings/{meetingId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin();
+      }
+
+      match /careCellAttendance/{attendanceId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin();
+      }
+
       // Any other church subcollection: authenticated members can read, admins can write
       match /{subcollection}/{docId} {
         allow read: if isAuthenticated();

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -15,9 +15,11 @@ import {
   Modal,
   TextInput,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft,
   Users,
@@ -49,7 +51,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useChurch } from '../../context/ChurchContext';
 import CareCellService from '../../services/CareCellService';
 import { formatDateDisplay } from '../../utils/DateUtils';
-import { useAdminTheme, createAdminThemedStyles } from '../../utils/adminThemeHelper';
+import { useTheme } from '../../context/ThemeContext';
+import { createAdminThemedStyles } from '../../utils/adminThemeHelper';
 import {
   CareCell,
   CareCellMembership,
@@ -70,16 +73,42 @@ import CareCellMapModal from '../admin/care_cells/components/CareCellMapModal';
 const { width } = Dimensions.get('window');
 
 export default function CareCellScreen({ navigation, route }: any) {
-  const { isDark, screenBg, cardSurface, secondarySurface, primaryText, secondaryText, borderColor } = useAdminTheme();
-  const primaryBtnBg = isDark ? '#FFFFFF' : '#0F172A';
-  const primaryBtnText = isDark ? '#000000' : '#FFFFFF';
-  const secondaryBtnBg = isDark ? '#27272A' : '#F8FAFC';
-  const secondaryBtnBorder = isDark ? 'rgba(255, 255, 255, 0.15)' : '#CBD5E1';
-  const secondaryBtnText = isDark ? '#E4E4E7' : '#334155';
+  const { isDark } = useTheme();
+  const screenBg = isDark ? '#0f172a' : '#f8fafc';
+  const cardSurface = isDark ? '#1e293b' : '#ffffff';
+  const secondarySurface = isDark ? '#0f172a' : '#f1f5f9';
+  const primaryText = isDark ? '#f8fafc' : '#0f172a';
+  const secondaryText = isDark ? '#94a3b8' : '#64748b';
+  const borderColor = isDark ? '#334155' : '#e2e8f0';
+  const accentNavy = '#1a3673';
+  const accentBlue = '#2b52a1';
+  const primaryBtnBg = isDark ? '#2b52a1' : '#1a2d5a';
+  const primaryBtnText = '#FFFFFF';
+  const secondaryBtnBg = isDark ? '#0f172a' : '#f8fafc';
+  const secondaryBtnBorder = isDark ? '#334155' : '#cbd5e1';
+  const secondaryBtnText = isDark ? '#e2e8f0' : '#334155';
 
   const insets = useSafeAreaInsets();
   const { member, user } = useAuth();
   const { activeChurch } = useChurch();
+
+  const [visitKeyboardHeight, setVisitKeyboardHeight] = useState(0);
+  const visitScrollRef = useRef<ScrollView>(null);
+
+  useEffect(() => {
+    const showEv = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEv = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const subShow = Keyboard.addListener(showEv, (e) => {
+      setVisitKeyboardHeight(e?.endCoordinates?.height || 0);
+    });
+    const subHide = Keyboard.addListener(hideEv, () => {
+      setVisitKeyboardHeight(0);
+    });
+    return () => {
+      subShow.remove();
+      subHide.remove();
+    };
+  }, []);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -215,8 +244,15 @@ export default function CareCellScreen({ navigation, route }: any) {
   const memberPhone = member?.phone || (member as any)?.phoneNumber || user?.phoneNumber || undefined;
 
   useEffect(() => {
-    if (route?.params?.initialTab === 'visits' || route?.params?.visitId) {
+    const reqTab = route?.params?.initialTab || route?.params?.tab;
+    if (reqTab === 'visits' || reqTab === 'prayers' || reqTab === 'notices' || reqTab === 'gatherings') {
+      setActiveTab(reqTab);
+    } else if (route?.params?.visitId) {
       setActiveTab('visits');
+    } else if (route?.params?.requestId) {
+      setActiveTab('prayers');
+    } else if (route?.params?.announcementId) {
+      setActiveTab('notices');
     }
   }, [route?.params]);
 
@@ -377,32 +413,44 @@ export default function CareCellScreen({ navigation, route }: any) {
   }, [cellVisits]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['top']}>
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={screenBg} />
+    <View style={[styles.safeArea, { backgroundColor: screenBg }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#1a2d5a" />
 
-      {/* Screen Header */}
-      <View style={styles.header}>
+      {/* ── Member View Hero Header (Consistent with Volunteer, Prayer Wall, Updates) ── */}
+      <LinearGradient
+        colors={['#2b52a1', '#1a3673']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[
+          styles.header,
+          { paddingTop: Platform.OS === 'ios' ? Math.max(insets.top + 8, 52) : (StatusBar.currentHeight ?? 24) + 12 },
+        ]}
+      >
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={[styles.circularBackBtn, { backgroundColor: cardSurface, borderColor }]}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          activeOpacity={0.7}
+          style={styles.backBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.75}
         >
-          <ArrowLeft size={20} color={primaryText} strokeWidth={2.2} />
+          <ArrowLeft size={24} color="#FFFFFF" strokeWidth={2.2} />
         </TouchableOpacity>
 
-        <View style={styles.headerTitleWrap}>
-          <Text style={styles.headerTitle}>My Care Cell</Text>
-          <Text style={styles.headerSubtitle}>
-            {careCell ? `${careCell.cellCode} · Fellowship Group` : 'Fellowship Ministry'}
-          </Text>
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="none">
+          <View style={styles.headerCenterWrap}>
+            <Text style={styles.headerTitle}>My Care Cell</Text>
+            <Text style={styles.headerSubtitle}>
+              {careCell ? `${careCell.cellCode.toUpperCase()} · FELLOWSHIP GROUP` : 'FELLOWSHIP MINISTRY'}
+            </Text>
+          </View>
         </View>
-      </View>
+
+        <View style={{ width: 32 }} />
+      </LinearGradient>
 
       {loading ? (
         <View style={styles.centerLoading}>
-          <ActivityIndicator size="large" color={primaryText} />
-          <Text style={styles.loadingTxt}>Fetching your Care Cell fellowship...</Text>
+          <ActivityIndicator size="large" color={accentBlue} />
+          <Text style={[styles.loadingTxt, { color: secondaryText }]}>Fetching your Care Cell fellowship...</Text>
         </View>
       ) : !careCell ? (
         /* Empty State: Unassigned Member */
@@ -410,17 +458,17 @@ export default function CareCellScreen({ navigation, route }: any) {
           contentContainerStyle={styles.emptyContainer}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[primaryBtnBg]} />}
         >
-          <View style={[styles.emptyIllustrationBox, { backgroundColor: secondaryBtnBg, borderColor: secondaryBtnBorder, borderWidth: 1 }]}>
-            <Users size={52} color={secondaryText} />
+          <View style={[styles.emptyIllustrationBox, { backgroundColor: isDark ? '#1e293b' : '#eff6ff', borderColor, borderWidth: 1 }]}>
+            <Users size={52} color={isDark ? '#60a5fa' : accentBlue} />
           </View>
-          <Text style={styles.emptyTitle}>No Care Cell Assigned</Text>
-          <Text style={styles.emptySubtitle}>
+          <Text style={[styles.emptyTitle, { color: primaryText }]}>No Care Cell Assigned</Text>
+          <Text style={[styles.emptySubtitle, { color: secondaryText }]}>
             You are not currently assigned to a Care Cell. Please contact your Church Admin or Pastor to be enrolled in a fellowship group in your neighborhood.
           </Text>
 
-          <View style={styles.contactChurchCard}>
+          <View style={[styles.contactChurchCard, { backgroundColor: cardSurface, borderColor }]}>
             <Text style={[styles.contactChurchCardTitle, { color: primaryText }]}>Want to join a Care Cell?</Text>
-            <Text style={styles.contactChurchCardDesc}>
+            <Text style={[styles.contactChurchCardDesc, { color: secondaryText }]}>
               Care Cells meet weekly for prayer, biblical encouragement, and mutual fellowship. Reach out to the pastoral team to find the nearest fellowship group.
             </Text>
             <TouchableOpacity
@@ -442,7 +490,12 @@ export default function CareCellScreen({ navigation, route }: any) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[primaryBtnBg]} />}
         >
           {/* Care Cell Hero Card */}
-          <View style={[styles.heroCard, isDark && { backgroundColor: '#18181B', borderWidth: 1, borderColor: '#27272A' }]}>
+          <LinearGradient
+            colors={isDark ? ['#1e293b', '#172554'] : ['#2b52a1', '#1a3673']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={[styles.heroCard, isDark && { borderWidth: 1, borderColor: '#334155' }]}
+          >
             <View style={styles.heroTopRow}>
               <View style={styles.heroCodeBadge}>
                 <Text style={styles.heroCodeBadgeTxt}>{careCell.cellCode}</Text>
@@ -463,24 +516,29 @@ export default function CareCellScreen({ navigation, route }: any) {
             {/* Quick Meta Row */}
             <View style={styles.heroMetaRow}>
               <View style={styles.heroMetaItem}>
-                <Calendar size={14} color="#CBD5E1" style={{ marginRight: 5 }} />
+                <Calendar size={14} color="#bfdbfe" style={{ marginRight: 5 }} />
                 <Text style={styles.heroMetaTxt}>Every {careCell.meetingDay}</Text>
               </View>
               <View style={styles.heroMetaItem}>
-                <Clock size={14} color="#CBD5E1" style={{ marginRight: 5 }} />
+                <Clock size={14} color="#bfdbfe" style={{ marginRight: 5 }} />
                 <Text style={styles.heroMetaTxt}>{careCell.meetingTime || '19:00'}{careCell.meetingEndTime ? ` – ${careCell.meetingEndTime}` : ''}</Text>
               </View>
               {careCell.location ? (
                 <View style={[styles.heroMetaItem, { flex: 1 }]}>
-                  <MapPin size={14} color="#CBD5E1" style={{ marginRight: 5 }} />
+                  <MapPin size={14} color="#bfdbfe" style={{ marginRight: 5 }} />
                   <Text style={styles.heroMetaTxt} numberOfLines={1}>{careCell.location}</Text>
                 </View>
               ) : null}
             </View>
-          </View>
+          </LinearGradient>
 
-          {/* Horizontal Tabs Selection */}
-          <View style={styles.memberTabsRow}>
+          {/* Horizontal Scrollable Pill Tabs */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.memberTabsRow}
+            style={{ marginBottom: 14 }}
+          >
             {(
               [
                 { key: 'gatherings' as const, label: 'Gatherings', icon: Calendar },
@@ -497,20 +555,22 @@ export default function CareCellScreen({ navigation, route }: any) {
                   key={tab.key}
                   style={[
                     styles.memberTabPill,
-                    isSelected && { backgroundColor: primaryBtnBg, borderColor: primaryBtnBg },
+                    { backgroundColor: cardSurface, borderColor },
+                    isSelected && { backgroundColor: accentBlue, borderColor: accentNavy },
                   ]}
                   onPress={() => setActiveTab(tab.key)}
                   activeOpacity={0.8}
                 >
                   <Icon
                     size={13}
-                    color={isSelected ? primaryBtnText : tab.key === 'leader' ? '#059669' : secondaryText}
+                    color={isSelected ? '#FFFFFF' : tab.key === 'leader' ? '#10b981' : secondaryText}
                     style={{ marginRight: 5 }}
                   />
                   <Text
                     style={[
                       styles.memberTabPillTxt,
-                      isSelected && { color: primaryBtnText, fontWeight: '800' },
+                      { color: isSelected ? '#FFFFFF' : secondaryText },
+                      isSelected && { fontWeight: '800' },
                     ]}
                   >
                     {tab.label}
@@ -518,7 +578,7 @@ export default function CareCellScreen({ navigation, route }: any) {
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </ScrollView>
 
           {/* ══════════════════════════════════════════════════════════════ */}
           {/* ── TAB 1: GATHERINGS & INFO ─────────────────────────────────── */}
@@ -1224,48 +1284,80 @@ export default function CareCellScreen({ navigation, route }: any) {
         visible={visitModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => setVisitModalVisible(false)}
+        onRequestClose={() => {
+          Keyboard.dismiss();
+          setVisitModalVisible(false);
+        }}
       >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={styles.timeModalBackdrop}
+          style={[
+            styles.timeModalBackdrop,
+            Platform.OS === 'android' && visitKeyboardHeight > 0 ? { paddingBottom: visitKeyboardHeight } : null,
+          ]}
         >
-          <View style={styles.timeModalSheet}>
+          <View
+            style={[
+              styles.timeModalSheet,
+              {
+                backgroundColor: cardSurface,
+                maxHeight:
+                  visitKeyboardHeight > 0
+                    ? Math.max(300, Dimensions.get('window').height - visitKeyboardHeight - 32)
+                    : Dimensions.get('window').height * 0.85,
+                borderTopWidth: isDark ? 1 : 0,
+                borderColor,
+              },
+            ]}
+          >
             {/* Header */}
-            <View style={styles.timeModalHeader}>
+            <View style={[styles.timeModalHeader, { borderBottomColor: borderColor }]}>
               <View>
-                <Text style={styles.timeModalTitle}>House Visit Response</Text>
-                <Text style={styles.timeModalSubtitle}>Set your preferred visit window</Text>
+                <Text style={[styles.timeModalTitle, { color: primaryText }]}>House Visit Response</Text>
+                <Text style={[styles.timeModalSubtitle, { color: secondaryText }]}>
+                  Confirm availability or share a reason
+                </Text>
               </View>
               <TouchableOpacity
-                onPress={() => setVisitModalVisible(false)}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setVisitModalVisible(false);
+                }}
                 style={styles.timeModalCloseBtn}
               >
-                <XCircle size={22} color="#64748B" />
+                <XCircle size={22} color={secondaryText} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: Dimensions.get('window').height * 0.75 }}>
+            <ScrollView
+              ref={visitScrollRef}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="interactive"
+              contentContainerStyle={{ paddingBottom: visitKeyboardHeight > 0 ? 32 : 24 }}
+            >
               {/* Visit Details Card */}
               {selectedVisitForResponse && (
-                <View style={styles.timeModalVisitCard}>
-                  <Text style={styles.timeModalVisitTitle}>{selectedVisitForResponse.title}</Text>
+                <View style={[styles.timeModalVisitCard, { backgroundColor: secondarySurface, borderColor }]}>
+                  <Text style={[styles.timeModalVisitTitle, { color: primaryText }]}>
+                    {selectedVisitForResponse.title}
+                  </Text>
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, flexWrap: 'wrap', gap: 10 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                      <Calendar size={13} color="#1A2D5A" style={{ marginRight: 4 }} />
-                      <Text style={styles.timeModalVisitMeta}>
+                      <Calendar size={13} color={isDark ? '#60a5fa' : '#1A2D5A'} style={{ marginRight: 4 }} />
+                      <Text style={[styles.timeModalVisitMeta, { color: primaryText }]}>
                         {formatDateDisplay(selectedVisitForResponse.visitDate)}
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <Clock size={13} color="#C9A84C" style={{ marginRight: 4 }} />
-                      <Text style={styles.timeModalVisitMeta}>
+                      <Text style={[styles.timeModalVisitMeta, { color: primaryText }]}>
                         Default: {selectedVisitForResponse.visitTime}
                       </Text>
                     </View>
                   </View>
                   {selectedVisitForResponse.visitors ? (
-                    <Text style={styles.timeModalVisitorsTxt}>
+                    <Text style={[styles.timeModalVisitorsTxt, { color: secondaryText }]}>
                       Visitors: {selectedVisitForResponse.visitors}
                     </Text>
                   ) : null}
@@ -1273,11 +1365,12 @@ export default function CareCellScreen({ navigation, route }: any) {
               )}
 
               {/* Status Toggle */}
-              <Text style={styles.timeModalSectionLabel}>YOUR AVAILABILITY</Text>
+              <Text style={[styles.timeModalSectionLabel, { color: secondaryText }]}>YOUR AVAILABILITY</Text>
               <View style={styles.availToggleRow}>
                 <TouchableOpacity
                   style={[
                     styles.availToggleBtn,
+                    { backgroundColor: secondarySurface, borderColor },
                     visitResponseStatus === 'Accepted' && styles.availToggleBtnActiveAccepted,
                   ]}
                   onPress={() => setVisitResponseStatus('Accepted')}
@@ -1291,6 +1384,7 @@ export default function CareCellScreen({ navigation, route }: any) {
                   <Text
                     style={[
                       styles.availToggleBtnTxt,
+                      { color: secondaryText },
                       visitResponseStatus === 'Accepted' && styles.availToggleBtnTxtActive,
                     ]}
                   >
@@ -1301,6 +1395,7 @@ export default function CareCellScreen({ navigation, route }: any) {
                 <TouchableOpacity
                   style={[
                     styles.availToggleBtn,
+                    { backgroundColor: secondarySurface, borderColor },
                     visitResponseStatus === 'Declined' && styles.availToggleBtnActiveDeclined,
                   ]}
                   onPress={() => setVisitResponseStatus('Declined')}
@@ -1314,6 +1409,7 @@ export default function CareCellScreen({ navigation, route }: any) {
                   <Text
                     style={[
                       styles.availToggleBtnTxt,
+                      { color: secondaryText },
                       visitResponseStatus === 'Declined' && styles.availToggleBtnTxtActive,
                     ]}
                   >
@@ -1326,8 +1422,8 @@ export default function CareCellScreen({ navigation, route }: any) {
               {visitResponseStatus === 'Accepted' && selectedVisitForResponse && (
                 <>
                   <View style={styles.preferredTimeHeaderWrap}>
-                    <Text style={styles.timeModalSectionLabel}>PREFERRED VISIT TIME</Text>
-                    <Text style={styles.timeModalSectionSub}>
+                    <Text style={[styles.timeModalSectionLabel, { color: secondaryText }]}>PREFERRED VISIT TIME</Text>
+                    <Text style={[styles.timeModalSectionSub, { color: secondaryText }]}>
                       Select the time slot that is most convenient for your family:
                     </Text>
                   </View>
@@ -1371,6 +1467,7 @@ export default function CareCellScreen({ navigation, route }: any) {
                           key={slot.key}
                           style={[
                             styles.timeSlotPill,
+                            { backgroundColor: secondarySurface, borderColor },
                             isSelected && styles.timeSlotPillSelected,
                           ]}
                           onPress={() => setSelectedTimeSlot(slot.key)}
@@ -1378,19 +1475,20 @@ export default function CareCellScreen({ navigation, route }: any) {
                         >
                           <Clock
                             size={14}
-                            color={isSelected ? '#4338CA' : '#64748B'}
+                            color={isSelected ? '#4338CA' : secondaryText}
                             style={{ marginRight: 8 }}
                           />
                           <View style={{ flex: 1 }}>
                             <Text
                               style={[
                                 styles.timeSlotPillTxt,
+                                { color: isSelected ? '#312E81' : primaryText },
                                 isSelected && styles.timeSlotPillTxtSelected,
                               ]}
                             >
                               {slot.label}
                             </Text>
-                            <Text style={styles.timeSlotPillSub}>{slot.sub}</Text>
+                            <Text style={[styles.timeSlotPillSub, { color: secondaryText }]}>{slot.sub}</Text>
                           </View>
                           {isSelected && (
                             <CheckCircle2 size={16} color="#4338CA" style={{ marginLeft: 6 }} />
@@ -1402,31 +1500,43 @@ export default function CareCellScreen({ navigation, route }: any) {
 
                   {/* Custom Time Slot Input */}
                   {selectedTimeSlot === 'custom' && (
-                    <View style={styles.customTimeInputWrap}>
+                    <View style={[styles.customTimeInputWrap, { backgroundColor: secondarySurface, borderColor }]}>
                       <Clock size={16} color="#4338CA" style={{ marginRight: 8 }} />
                       <TextInput
-                        style={styles.customTimeInput}
+                        style={[styles.customTimeInput, { color: primaryText }]}
                         placeholder="e.g. 6:30 PM to 7:30 PM, or Saturday 11 AM"
                         placeholderTextColor="#94A3B8"
                         value={customTimeSlotText}
                         onChangeText={setCustomTimeSlotText}
-                        autoFocus
+                        onFocus={() => setTimeout(() => visitScrollRef.current?.scrollToEnd({ animated: true }), 140)}
                       />
                     </View>
                   )}
-
-                  {/* Optional Note / Prayer Request for the visit */}
-                  <Text style={styles.timeModalSectionLabel}>SPECIAL NOTES OR PRAYER REQUEST (OPTIONAL)</Text>
-                  <TextInput
-                    style={styles.visitNotesInput}
-                    placeholder="e.g. Please pray for healing / Please visit after children finish study..."
-                    placeholderTextColor="#94A3B8"
-                    value={visitNotesText}
-                    onChangeText={setVisitNotesText}
-                    multiline
-                  />
                 </>
               )}
+
+              {/* Optional Note / Reason (available for both Accepted & Declined) */}
+              <Text style={[styles.timeModalSectionLabel, { color: secondaryText }]}>
+                {visitResponseStatus === 'Declined'
+                  ? 'REASON OR PREFERRED RESCHEDULE NOTE (OPTIONAL)'
+                  : 'SPECIAL NOTES OR PRAYER REQUEST (OPTIONAL)'}
+              </Text>
+              <TextInput
+                style={[
+                  styles.visitNotesInput,
+                  { backgroundColor: secondarySurface, borderColor, color: primaryText },
+                ]}
+                placeholder={
+                  visitResponseStatus === 'Declined'
+                    ? 'e.g. Travelling out of station this day, please visit next week...'
+                    : 'e.g. Please pray for healing / Please visit after children finish study...'
+                }
+                placeholderTextColor="#94A3B8"
+                value={visitNotesText}
+                onChangeText={setVisitNotesText}
+                multiline
+                onFocus={() => setTimeout(() => visitScrollRef.current?.scrollToEnd({ animated: true }), 140)}
+              />
 
               {/* Submit Button */}
               <TouchableOpacity
@@ -1448,59 +1558,53 @@ export default function CareCellScreen({ navigation, route }: any) {
                   </>
                 )}
               </TouchableOpacity>
-              <View style={{ height: 24 }} />
+              <View style={{ height: 16 }} />
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = createAdminThemedStyles({
   safeArea: {
     flex: 1,
-    backgroundColor: '#FAF7F2',
+    backgroundColor: '#f8fafc',
   },
   header: {
+    paddingHorizontal: 20,
+    paddingBottom: 22,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-    backgroundColor: 'transparent',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    minHeight: Platform.OS === 'ios' ? 116 : 96,
+    marginBottom: 10,
   },
-  circularBackBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
+  backBtn: {
+    zIndex: 10,
+    padding: 6,
   },
-  headerTitleWrap: {
-    justifyContent: 'center',
+  headerCenterWrap: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    paddingBottom: 20,
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: '800',
-    color: '#0F172A',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-    letterSpacing: -0.4,
+    color: '#FFFFFF',
+    letterSpacing: 0.3,
   },
   headerSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
-    fontWeight: '500',
-    marginTop: 1,
+    fontSize: 11,
+    color: '#aac4e8',
+    fontWeight: '700',
+    letterSpacing: 1.2,
+    marginTop: 2,
   },
   centerLoading: {
     flex: 1,
@@ -1585,15 +1689,14 @@ const styles = createAdminThemedStyles({
     paddingBottom: 40,
   },
   heroCard: {
-    backgroundColor: '#0F172A',
-    borderRadius: 20,
+    borderRadius: 22,
     padding: 18,
     marginBottom: 14,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.18,
-    shadowRadius: 10,
-    elevation: 5,
+    shadowColor: '#1a2d5a',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.22,
+    shadowRadius: 12,
+    elevation: 6,
   },
   heroTopRow: {
     flexDirection: 'row',
@@ -1936,9 +2039,9 @@ const styles = createAdminThemedStyles({
   },
   memberTabsRow: {
     flexDirection: 'row',
-    marginBottom: 16,
+    alignItems: 'center',
     gap: 8,
-    flexWrap: 'wrap',
+    paddingRight: 8,
   },
   memberTabPill: {
     flexDirection: 'row',
