@@ -3186,8 +3186,35 @@ class ServiceRosterService {
             it.id.replace(/^(act_)+/, '') === cleanId
           );
           if (found?.program && found.program.trim()) return found.program;
+
+          // Match setlist song lead keys (e.g. worship_lead_set_1794558520176_0_v0cl)
+          const stripped = rId.replace(/^role_/, '');
+          if (stripped.startsWith('worship_lead_')) {
+            const songKey = stripped.replace(/^worship_lead_/, '');
+            const songMatch = (plan.setlist || []).find((s, idx) =>
+              s.id === songKey || String(idx) === songKey
+            );
+            return songMatch?.title ? `Worship Lead (${songMatch.title})` : 'Worship Lead';
+          }
+
+          // Match setlist band keys (e.g. band_set_1794558520176_0_v0cl_keyboard)
+          if (stripped.startsWith('band_')) {
+            const bandMatch = stripped.match(/^band_(.+)_([a-zA-Z]+)$/);
+            if (bandMatch) {
+              const [, songKey, instr] = bandMatch;
+              const instrTitle = bandRoleTitles[`role_${instr}`] || (instr.charAt(0).toUpperCase() + instr.slice(1));
+              const songMatch = (plan.setlist || []).find((s, idx) =>
+                s.id === songKey || String(idx) === songKey
+              );
+              return songMatch?.title ? `${instrTitle} (${songMatch.title})` : instrTitle;
+            }
+          }
+
           if (rId.includes('act_')) return 'Order of Service Responsibility';
-          return rId.replace(/^role_/, '').replace(/_/g, ' ').toUpperCase();
+          if (/\bset_\d+/i.test(stripped) || /\d{8,}/.test(stripped)) {
+            return 'Worship Ministry Responsibility';
+          }
+          return stripped.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
         };
 
         if (plan.assignmentMemberIds) {
@@ -3254,7 +3281,10 @@ class ServiceRosterService {
             const activeCand = candidates[curIdx];
 
             let qRoleTitle = queue.roleTitle || '';
-            if (!qRoleTitle || qRoleTitle.toLowerCase().includes('act_') || qRoleTitle.toLowerCase().startsWith('act act')) {
+            if (
+              !qRoleTitle ||
+              /act_|act act|worship_lead_set|worship lead set|band_set|\d{8,}/i.test(qRoleTitle)
+            ) {
               qRoleTitle = resolveRoleTitle(queue.roleId);
             }
 

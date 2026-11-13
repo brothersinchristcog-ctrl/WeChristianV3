@@ -641,9 +641,9 @@ export default function MyServiceScreen({ navigation, route }: any) {
 
   /**
    * Shared ACTION REQUIRED pending invitations section so members see and respond
-   * directly inside both the default Service Roster tab and My Responsibilities tab.
+   * directly inside both the default Service Roster tab (compact) and My Responsibilities tab.
    */
-  const renderPendingInvitationsSection = () => {
+  const renderPendingInvitationsSection = (compact = false) => {
     if (pendingInvitations.length === 0) return null;
     return (
       <View style={styles.sectionWrap}>
@@ -653,25 +653,32 @@ export default function MyServiceScreen({ navigation, route }: any) {
             ACTION REQUIRED ({pendingInvitations.length})
           </Text>
         </View>
-        <Text style={[styles.pendingSectionSub, { color: secondaryText }]}>
-          Please accept or decline your assigned responsibility so coordinators can finalize the roster.
-        </Text>
+        {!compact && (
+          <Text style={[styles.pendingSectionSub, { color: secondaryText }]}>
+            Please accept or decline your assigned responsibility so coordinators can finalize the roster.
+          </Text>
+        )}
 
         {pendingInvitations.map((duty) => {
           const hasMatchingPlan = publishedPlans.some((p) => p.id === duty.serviceId);
+          const isOpenSlot = duty.instructions?.includes('First-come');
           return (
             <View
               key={duty.id}
-              style={[styles.pendingDutyCard, { backgroundColor: cardSurface, borderColor: '#F59E0B' }]}
+              style={[
+                styles.pendingDutyCard,
+                compact && { padding: 12, marginBottom: 10 },
+                { backgroundColor: cardSurface, borderColor: '#F59E0B' },
+              ]}
             >
               <View style={styles.pendingDutyHeader}>
                 <View style={styles.pendingPill}>
                   <Clock size={11} color="#FFFFFF" style={{ marginRight: 4 }} />
-                  <Text style={styles.pendingPillTxt}>
-                    {duty.instructions?.includes('First-come') ? 'OPEN RESPONSIBILITY · FIRST-COME' : 'INVITATION PENDING'}
+                  <Text style={styles.pendingPillTxt} numberOfLines={1}>
+                    {isOpenSlot ? 'OPEN SLOT · FIRST-COME' : 'INVITATION PENDING'}
                   </Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                   <Text style={[styles.dutyDateTxt, { color: secondaryText }]}>
                     {formatDateMonthYear(duty.date)}
                   </Text>
@@ -686,7 +693,7 @@ export default function MyServiceScreen({ navigation, route }: any) {
                 </View>
               </View>
 
-              <Text style={[styles.dutyRoleTitle, { color: primaryText }]}>
+              <Text style={[styles.dutyRoleTitle, compact && { fontSize: 15.5 }, { color: primaryText }]}>
                 {duty.roleTitle}
               </Text>
               <TouchableOpacity
@@ -699,63 +706,71 @@ export default function MyServiceScreen({ navigation, route }: any) {
                 }}
                 activeOpacity={0.75}
               >
-                <Text style={[styles.dutyServiceTitle, { color: activeAccentText }]}>
+                <Text style={[styles.dutyServiceTitle, compact && { fontSize: 12.5, marginBottom: 8 }, { color: activeAccentText }]}>
                   {duty.serviceTitle}{hasMatchingPlan ? ' · View Service' : ''}
                 </Text>
               </TouchableOpacity>
 
-              <View style={[styles.dutyMetaBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7 }}>
-                  <Clock size={13} color="#D97706" style={{ marginTop: 2 }} />
-                  <Text style={{ fontSize: 12, color: secondaryText, flex: 1, lineHeight: 18 }}>
-                    Reporting / Call Time:{' '}
-                    <Text style={{ fontWeight: '700', color: isDark ? goldAccent : '#D97706' }}>
-                      {formatTimeTo12Hour(duty.callTime)}
-                    </Text>
-                    {duty.startTime ? ` (Service starts ${formatTimeTo12Hour(duty.startTime)})` : ''}
-                  </Text>
-                </View>
-
-                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 4 }}>
-                  <MapPin size={13} color={confirmBtnBg} style={{ marginTop: 2 }} />
-                  <Text style={{ fontSize: 12, color: secondaryText, flex: 1, lineHeight: 18 }}>
-                    Sanctuary:{' '}
-                    <Text style={{ fontWeight: '700', color: primaryText }}>
-                      {duty.location || 'Church Sanctuary'}
-                    </Text>
-                    {duty.preacher && duty.preacher.trim() ? ` · Preacher: ${duty.preacher.trim()}` : ''}
-                  </Text>
-                </View>
-
-                {duty.instructions ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 4 }}>
-                    <Volume2 size={13} color="#7C3AED" style={{ marginTop: 2 }} />
+              {compact ? (
+                <Text style={{ fontSize: 11.5, color: secondaryText, marginBottom: 10 }} numberOfLines={2}>
+                  Call: {formatTimeTo12Hour(duty.callTime)} · {duty.location || 'Church Sanctuary'}
+                </Text>
+              ) : (
+                <View style={[styles.dutyMetaBox, { backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#F8FAFC' }]}>
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7 }}>
+                    <Clock size={13} color="#D97706" style={{ marginTop: 2 }} />
                     <Text style={{ fontSize: 12, color: secondaryText, flex: 1, lineHeight: 18 }}>
-                      Notes: <Text style={{ fontWeight: '600', color: primaryText }}>{duty.instructions}</Text>
+                      Reporting / Call Time:{' '}
+                      <Text style={{ fontWeight: '700', color: isDark ? goldAccent : '#D97706' }}>
+                        {formatTimeTo12Hour(duty.callTime)}
+                      </Text>
+                      {duty.startTime ? ` (Service starts ${formatTimeTo12Hour(duty.startTime)})` : ''}
                     </Text>
                   </View>
-                ) : null}
-              </View>
+
+                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 4 }}>
+                    <MapPin size={13} color={confirmBtnBg} style={{ marginTop: 2 }} />
+                    <Text style={{ fontSize: 12, color: secondaryText, flex: 1, lineHeight: 18 }}>
+                      Sanctuary:{' '}
+                      <Text style={{ fontWeight: '700', color: primaryText }}>
+                        {duty.location || 'Church Sanctuary'}
+                      </Text>
+                      {duty.preacher && duty.preacher.trim() ? ` · Preacher: ${duty.preacher.trim()}` : ''}
+                    </Text>
+                  </View>
+
+                  {duty.instructions ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 7, marginTop: 4 }}>
+                      <Volume2 size={13} color="#7C3AED" style={{ marginTop: 2 }} />
+                      <Text style={{ fontSize: 12, color: secondaryText, flex: 1, lineHeight: 18 }}>
+                        Notes: <Text style={{ fontWeight: '600', color: primaryText }}>{duty.instructions}</Text>
+                      </Text>
+                    </View>
+                  ) : null}
+                </View>
+              )}
 
               <View style={styles.dutyActionRow}>
                 <TouchableOpacity
-                  style={[styles.dutyDeclineBtn, { borderColor }]}
+                  style={[styles.dutyDeclineBtn, compact && { paddingVertical: 8 }, { borderColor }]}
                   onPress={() => setSelectedDutyForDecline(duty)}
                   activeOpacity={0.8}
                   disabled={submittingResponse}
                 >
-                  <XCircle size={15} color={crimsonAccent} style={{ marginRight: 6 }} />
-                  <Text style={styles.dutyDeclineBtnTxt}>Decline</Text>
+                  <XCircle size={15} color={crimsonAccent} style={{ marginRight: 5 }} />
+                  <Text style={styles.dutyDeclineBtnTxt} numberOfLines={1}>Decline</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={styles.dutyAcceptBtn}
+                  style={[styles.dutyAcceptBtn, compact && { paddingVertical: 8 }]}
                   onPress={() => handleAcceptDuty(duty)}
                   activeOpacity={0.85}
                   disabled={submittingResponse}
                 >
-                  <CheckCircle2 size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.dutyAcceptBtnTxt}>Accept Responsibility</Text>
+                  <CheckCircle2 size={15} color="#FFFFFF" style={{ marginRight: 5 }} />
+                  <Text style={styles.dutyAcceptBtnTxt} numberOfLines={1}>
+                    {compact ? 'Accept Duty' : 'Accept Responsibility'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -919,7 +934,7 @@ export default function MyServiceScreen({ navigation, route }: any) {
               ========================================================================= */}
           {activeTab === 'roster' && (
             <View>
-              {renderPendingInvitationsSection()}
+              {renderPendingInvitationsSection(true)}
 
               {publishedPlans.length === 0 ? (
                 <View style={[styles.emptyCard, { backgroundColor: cardSurface, borderColor }]}>
@@ -2337,11 +2352,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
     marginBottom: 8,
   },
   pendingPill: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexShrink: 1,
+    maxWidth: '100%',
     backgroundColor: '#D97706',
     paddingHorizontal: 8,
     paddingVertical: 3,
