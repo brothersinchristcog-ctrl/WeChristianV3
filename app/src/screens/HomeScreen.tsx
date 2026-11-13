@@ -63,7 +63,8 @@ import {
   CalendarCheck,
   AlertCircle,
   Layers,
-  ClipboardCheck
+  ClipboardCheck,
+  MessageCircle
 } from 'lucide-react-native';
 import ViewShot from 'react-native-view-shot';
 import * as MediaLibrary from 'expo-media-library';
@@ -85,6 +86,7 @@ import VerseNotificationService, { DailyVerse } from '../services/VerseNotificat
 import { BibleService } from '../services/BibleService';
 import ServiceRosterService from '../services/ServiceRosterService';
 import { MemberServiceDuty } from '../types/serviceRoster';
+import ChatService from '../services/ChatService';
 import { SupportedLanguage } from '../locales';
 import { CustomAlert } from '../components/CustomAlert';
 import Svg, { Path, Circle, Rect, Polygon, Defs, LinearGradient as SvgLinearGradient, Stop, Text as SvgText, Mask } from 'react-native-svg';
@@ -739,6 +741,27 @@ export default function HomeScreen() {
   const [todayVerse, setTodayVerse] = useState<DailyVerse | null>(null);
   const [todayPeriod, setTodayPeriod] = useState<string>(getCurrentPeriod());
   const [upcomingDuty, setUpcomingDuty] = useState<MemberServiceDuty | null>(null);
+  const [unreadChatCount, setUnreadChatCount] = useState(0);
+
+  useEffect(() => {
+    const cId = activeChurch?.id || (authMember as any)?.churchId || (member as any)?.churchId;
+    if (!cId || !user || user.isAnonymous) {
+      setUnreadChatCount(0);
+      return;
+    }
+
+    const myIds = ChatService.getMyIdentityIds(user, authMember || member);
+    if (myIds.length === 0) {
+      setUnreadChatCount(0);
+      return;
+    }
+
+    const unsub = ChatService.subscribeToTotalUnreadCount(cId, myIds, (count) => {
+      setUnreadChatCount(count);
+    });
+
+    return () => unsub();
+  }, [activeChurch?.id, (authMember as any)?.churchId, (member as any)?.churchId, authMember?.id, (member as any)?.id, user?.uid, user?.isAnonymous]);
 
   useEffect(() => {
     const cId = activeChurch?.id || (authMember as any)?.churchId || (member as any)?.churchId;
@@ -2513,6 +2536,31 @@ export default function HomeScreen() {
         </Animated.View>
       )}
 
+      {/* Floating Circular Church Chat Pill */}
+      <TouchableOpacity
+        activeOpacity={0.88}
+        onPress={() => handleGuestProtectedNavigation('ChatList')}
+        style={styles.chatFabContainer}
+        accessibilityRole="button"
+        accessibilityLabel="Open Church Chat"
+      >
+        <LinearGradient
+          colors={['#2b52a1', '#1a3673']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.chatFabCircle}
+        >
+          <MessageCircle size={25} color="#ffffff" strokeWidth={2.2} />
+          {unreadChatCount > 0 && (
+            <View style={styles.chatFabBadge}>
+              <Text style={styles.chatFabBadgeText}>
+                {unreadChatCount > 99 ? '99+' : unreadChatCount}
+              </Text>
+            </View>
+          )}
+        </LinearGradient>
+      </TouchableOpacity>
+
       {/* Hidden capture view for saving daily verse card */}
       {captureVerseConfig && (
         <View style={{ position: 'absolute', top: -10000, left: -10000 }}>
@@ -2746,6 +2794,47 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 999,
     elevation: 1000,
+  },
+  chatFabContainer: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 134 : 120,
+    right: 20,
+    zIndex: 998,
+    elevation: 14,
+  },
+  chatFabCircle: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.35)',
+    shadowColor: '#1a3673',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.38,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  chatFabBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 21,
+    height: 21,
+    borderRadius: 11,
+    backgroundColor: '#ef4444',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    elevation: 6,
+  },
+  chatFabBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '800',
   },
   floatingBtn: {
     width: 70,

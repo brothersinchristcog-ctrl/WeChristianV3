@@ -83,6 +83,9 @@ import BibleQuizResultScreen from '../screens/quiz/BibleQuizResultScreen';
 import BibleQuizReviewScreen from '../screens/quiz/BibleQuizReviewScreen';
 import MyServiceScreen from '../screens/MyServiceScreen';
 import LiveStageHUD from '../screens/LiveStageHUD';
+import ChatListScreen from '../screens/chat/ChatListScreen';
+import ChatRoomScreen from '../screens/chat/ChatRoomScreen';
+import ChatService from '../services/ChatService';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -597,6 +600,30 @@ function Navigation() {
     return () => subscription.remove();
   }, [user]);
 
+  // 1b. Realtime Presence (RTDB online / lastSeen status for Church Chat)
+  useEffect(() => {
+    const churchId = activeChurch?.id || (member as any)?.churchId;
+    if (!user || user.isAnonymous || !churchId) return;
+
+    const canonicalId = ChatService.getCanonicalId(user, member);
+    if (!canonicalId) return;
+
+    ChatService.setOnlineStatus(churchId, canonicalId, true);
+
+    const sub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        ChatService.setOnlineStatus(churchId, canonicalId, true);
+      } else if (nextState === 'background' || nextState === 'inactive') {
+        ChatService.setOnlineStatus(churchId, canonicalId, false);
+      }
+    });
+
+    return () => {
+      sub.remove();
+      ChatService.setOnlineStatus(churchId, canonicalId, false);
+    };
+  }, [user?.uid, user?.isAnonymous, activeChurch?.id, (member as any)?.churchId, (member as any)?.id]);
+
   // Handle Notifications
   useEffect(() => {
     NotificationService.registerPendingDispatcher((remoteMessage: any) => {
@@ -885,6 +912,8 @@ function Navigation() {
             <Stack.Screen name="LiveStageHUD" component={LiveStageHUD} />
             <Stack.Screen name="MyService" component={MyServiceScreen} />
             <Stack.Screen name="MyServiceDuties" component={MyServiceScreen} />
+            <Stack.Screen name="ChatList" component={renderPremium(ChatListScreen)} />
+            <Stack.Screen name="ChatRoom" component={renderPremium(ChatRoomScreen)} />
           </>
         ) : onboardingComplete ? (
           <>
@@ -936,6 +965,8 @@ function Navigation() {
             <Stack.Screen name="MyService" component={renderPremium(MyServiceScreen)} />
             <Stack.Screen name="MyServiceDuties" component={renderPremium(MyServiceScreen)} />
             <Stack.Screen name="LiveStageHUD" component={LiveStageHUD} />
+            <Stack.Screen name="ChatList" component={renderPremium(ChatListScreen)} />
+            <Stack.Screen name="ChatRoom" component={renderPremium(ChatRoomScreen)} />
           </>
         ) : (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
