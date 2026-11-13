@@ -12,7 +12,8 @@ import {
   Dimensions,
   Platform,
   RefreshControl,
-  KeyboardAvoidingView
+  KeyboardAvoidingView,
+  StatusBar
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
@@ -68,7 +69,6 @@ import {
 } from 'lucide-react-native';
 
 import { useNavigation } from '@react-navigation/native';
-import { useTheme } from '../../context/ThemeContext';
 import { formatDateMonthYear, formatTimeTo12Hour } from '../../utils/DateUtils';
 import { useChurch } from '../../context/ChurchContext';
 import { useAuth } from '../../context/AuthContext';
@@ -161,29 +161,30 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
   const insets = useSafeAreaInsets();
   const hookNavigation = useNavigation<any>();
   const stackNavigation = navigation || hookNavigation;
-  const { isDark, colors } = useTheme();
-  const screenBg = colors.background;
-  const cardSurface = colors.surface;
-  const secondarySurface = isDark ? '#0F172A' : '#F8FAFC';
-  const primaryText = colors.text;
-  const secondaryText = colors.textSecondary;
-  const borderColor = colors.border;
-  const inputBg = isDark ? '#0F172A' : '#F8FAFC';
-  const inputBorder = isDark ? '#334155' : '#CBD5E1';
-  const cardBorder = isDark ? '#334155' : '#E2E8F0';
+  // Standardized Admin Light Warm Parchment Design System Tokens
+  const isDark = false;
+  const screenBg = '#EDE8DC';
+  const cardSurface = '#FFFFFF';
+  const secondarySurface = '#F8FAFC';
+  const primaryText = '#0F172A';
+  const secondaryText = '#64748B';
+  const borderColor = '#E2E8F0';
+  const inputBg = '#F8FAFC';
+  const inputBorder = '#CBD5E1';
+  const cardBorder = 'rgba(26, 45, 90, 0.08)';
 
-  // Unified WeChristian2 Design System Tokens (Navy #1A2D5A, Gold #FBBF24, Emerald #059669, Crimson #C0392B)
+  // Unified WeChristian2 Design System Tokens (Navy #1A2D5A, Gold #C9A84C, Emerald #059669, Crimson #C0392B)
   const navyBrand = '#1A2D5A';
-  const goldAccent = '#FBBF24';
-  const primaryBtnBg = isDark ? '#FBBF24' : '#1A2D5A';
-  const primaryBtnText = isDark ? '#0F172A' : '#FFFFFF';
-  const publishBtnBg = isDark ? '#10B981' : '#059669';
-  const secondaryBtnBg = isDark ? '#1E293B' : '#F8FAFC';
-  const secondaryBtnBorder = isDark ? '#334155' : '#CBD5E1';
-  const secondaryBtnText = isDark ? '#E2E8F0' : '#1E293B';
-  const dangerBtnBg = isDark ? 'rgba(220, 38, 38, 0.14)' : '#FEF2F2';
-  const dangerBtnBorder = isDark ? 'rgba(248, 113, 113, 0.35)' : '#FECACA';
-  const dangerBtnText = isDark ? '#F87171' : '#C0392B';
+  const goldAccent = '#C9A84C';
+  const primaryBtnBg = '#1A2D5A';
+  const primaryBtnText = '#FFFFFF';
+  const publishBtnBg = '#059669';
+  const secondaryBtnBg = '#F8FAFC';
+  const secondaryBtnBorder = '#CBD5E1';
+  const secondaryBtnText = '#1E293B';
+  const dangerBtnBg = '#FEF2F2';
+  const dangerBtnBorder = '#FECACA';
+  const dangerBtnText = '#C0392B';
 
   const { activeChurch } = useChurch();
   const { member } = useAuth();
@@ -3641,37 +3642,36 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
 
   return (
     <View style={[styles.container, { backgroundColor: screenBg }]}>
-      {/* ─── WeChristian2 Navy Hero Header ─── */}
+      <StatusBar barStyle="light-content" />
+      {/* ─── Standardized Admin Navy Hero Header ─── */}
       <View
         style={[
           styles.heroHeader,
           {
-            paddingTop: setTabByName ? 4 : insets.top + 8,
-            backgroundColor: '#1A2D5A',
+            paddingTop: setTabByName ? 8 : insets.top + 8,
+            backgroundColor: '#1a2d5a',
           },
         ]}
       >
         <View style={styles.headerRow}>
-          <TouchableOpacity
-            onPress={() => { if (setTabByName) setTabByName('Dashboard'); else if (navigation?.canGoBack?.()) navigation.goBack(); else setActiveTab(0); }}
-            style={[styles.circularBackBtn, { backgroundColor: 'rgba(255, 255, 255, 0.14)', borderColor: 'rgba(255, 255, 255, 0.25)' }]}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <ArrowLeft size={20} color="#FFFFFF" strokeWidth={2.2} />
-          </TouchableOpacity>
-
-          <View style={{ flex: 1, paddingHorizontal: 12, justifyContent: 'center' }}>
-            <Text style={[styles.headerTitle, { color: '#FFFFFF', marginTop: 0 }]} numberOfLines={1}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1, paddingRight: 8 }}>
+            <TouchableOpacity
+              onPress={() => { if (setTabByName) setTabByName('Dashboard'); else if (navigation?.canGoBack?.()) navigation.goBack(); else setActiveTab(0); }}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <ChevronLeft size={20} color="#FFFFFF" style={{ marginLeft: -6, marginRight: 2 }} />
+              <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '600' }}>Back</Text>
+            </TouchableOpacity>
+            <Text style={[styles.headerTitle, { marginHorizontal: 8, opacity: 0.4, color: '#FFFFFF', marginTop: 0 }]}>|</Text>
+            <Text style={[styles.headerTitle, { flexShrink: 1, color: '#FFFFFF', marginTop: 0 }]} numberOfLines={1}>
               {activePlannerTab === 'setlist' ? 'Worship Setlist' :
                 activePlannerTab === 'queue' ? 'Assignments' :
                   activePlannerTab === 'teams' ? 'Ministry Teams' :
                     activePlannerTab === 'skills' ? 'Verified Skills' :
                       activePlannerTab === 'templates' ? 'Service Templates' :
                         'Service Roster'}
-            </Text>
-            <Text style={[styles.heroSub, { color: '#CBD5E1' }]} numberOfLines={1}>
-              {activeChurch?.name || 'Church Worship & Roster Operations'}
             </Text>
           </View>
 
@@ -3680,9 +3680,9 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
             style={[
               styles.newServiceBtn,
               {
-                backgroundColor: '#FBBF24',
-                borderColor: '#FBBF24',
-                flexShrink: 0
+                backgroundColor: '#C9A84C',
+                borderColor: '#C9A84C',
+                flexShrink: 0,
               }
             ]}
             onPress={
@@ -3693,11 +3693,11 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
             }
             activeOpacity={0.85}
           >
-            <Plus size={14} color="#1A2D5A" strokeWidth={2.5} />
+            <Plus size={15} color="#1a2d5a" strokeWidth={2.5} />
             <Text
               style={[
                 styles.newServiceBtnTxt,
-                { color: '#1A2D5A' }
+                { color: '#1a2d5a' }
               ]}
               numberOfLines={1}
             >
@@ -3711,7 +3711,7 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
       </View>
 
       {/* ─── Navigation Tabs & Search Bar ─── */}
-      <View style={[styles.subNavSurface, { backgroundColor: screenBg, borderBottomColor: borderColor }]}>
+      <View style={[styles.subNavSurface, { backgroundColor: screenBg, borderBottomColor: cardBorder }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsScroll}>
           <TouchableOpacity
             style={[
@@ -8479,14 +8479,10 @@ const styles = StyleSheet.create({
   },
   heroHeader: {
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingBottom: 12,
     borderBottomLeftRadius: 18,
     borderBottomRightRadius: 18,
-    elevation: 4,
-    shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.16,
-    shadowRadius: 8,
+    marginBottom: 4,
   },
   heroSub: {
     fontSize: 11.5,
@@ -8495,7 +8491,7 @@ const styles = StyleSheet.create({
   },
   subNavSurface: {
     paddingHorizontal: 14,
-    paddingTop: 10,
+    paddingTop: 6,
     paddingBottom: 10,
     borderBottomWidth: 1,
   },
@@ -8563,9 +8559,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: SERIF_FONT,
-    fontSize: 21,
-    fontWeight: '800',
-    letterSpacing: -0.4,
+    fontSize: 20,
+    fontWeight: '600',
+    letterSpacing: -0.5,
     marginTop: 4,
   },
   headerSubtitle: {
@@ -8576,25 +8572,25 @@ const styles = StyleSheet.create({
   newServiceBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#FBBF24',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 999,
+    gap: 4,
+    backgroundColor: '#C9A84C',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 10,
     elevation: 2,
-    shadowColor: '#0F172A',
+    shadowColor: '#C9A84C',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.25,
     shadowRadius: 3,
   },
   newServiceBtnTxt: {
-    color: '#FFFFFF',
-    fontSize: 13,
+    color: '#1a2d5a',
+    fontSize: 12,
     fontWeight: '800',
     letterSpacing: 0.2,
   },
   tabsScroll: {
-    marginTop: 6,
+    marginTop: 2,
     marginBottom: 2,
   },
   headerSearchWrap: {
