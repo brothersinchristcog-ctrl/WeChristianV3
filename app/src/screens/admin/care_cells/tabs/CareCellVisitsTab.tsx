@@ -26,14 +26,25 @@ import {
   Trash2,
   Ban,
   Share2,
+  Navigation,
+  Route,
+  MapPin,
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
+import { MemberLocationService } from '../../../../services/MemberLocationService';
 import { formatDateDisplay } from '../../../../utils/DateUtils';
 import { useAuth } from '../../../../context/AuthContext';
 import { useAdminTheme, createAdminThemedStyles, formatCareCellLabel } from '../careCellTheme';
-import { CareCell, CareCellVisit, VisitStatus } from '../../../../types/CareCellTypes';
+import {
+  CareCell,
+  CareCellMembership,
+  CareCellVisit,
+  VisitRoutePoint,
+  VisitStatus,
+} from '../../../../types/CareCellTypes';
 import CareCellVisitModal from '../components/CareCellVisitModal';
 import CareCellVisitResponsesModal from '../components/CareCellVisitResponsesModal';
+import CareCellMapModal from '../components/CareCellMapModal';
 
 const { width } = Dimensions.get('window');
 
@@ -70,6 +81,21 @@ export default function CareCellVisitsTab({
   // Modals
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [selectedVisitForResponses, setSelectedVisitForResponses] = useState<CareCellVisit | null>(null);
+  const [routeMapState, setRouteMapState] = useState<{
+    visible: boolean;
+    visit: CareCellVisit | null;
+    cell: CareCell | null;
+    members: CareCellMembership[];
+    initialRouteIds: string[];
+  }>({
+    visible: false,
+    visit: null,
+    cell: null,
+    members: [],
+    initialRouteIds: [],
+  });
+  const [loadingRouteVisitId, setLoadingRouteVisitId] = useState<string | null>(null);
+  const [launchingDirectionsVisitId, setLaunchingDirectionsVisitId] = useState<string | null>(null);
 
   const loadVisits = useCallback(async () => {
     try {
@@ -165,6 +191,211 @@ export default function CareCellVisitsTab({
     });
     return { totalVisits, totalAccepted, totalPending };
   }, [visits]);
+
+  // Resolves CareCell context + target CareCellMembership[] list for an existing visit
+  const resolveVisitRoutingContext = async (
+    visit: CareCellVisit
+  ): Promise<{ activeChurchId: string; cell: CareCell; members: CareCellMembership[] }> => {
+    const activeChurchId = churchId || (await CareCellService.getChurchId());
+    const matchedCell = cells.find((c) => c.id === visit.cellId);
+    const activeMembers =
+      visit.cellId && visit.cellId !== 'DIRECT'
+        ? await CareCellService.getActiveCellMemberships(activeChurchId, visit.cellId).catch(() => [])
+        : [];
+
+    const memberMap = new Map<string, CareCellMembership>();
+    activeMembers.forEach((m) => memberMap.set(m.memberId, m));
+
+    const stopById = new Map<string, VisitRoutePoint>();
+    (visit.routeStops || []).forEach((s) => {
+      if (s.memberId) stopById.set(s.memberId, s);
+    });
+
+    // Ensure every member present in visit.responses or targetMemberIds or routeStops is included
+    const responseEntries = Object.values(visit.responses || {});
+    responseEntries.forEach((r) => {
+      if (!r.memberId) return;
+      const existing = memberMap.get(r.memberId);
+      const stop = stopById.get(r.memberId);
+      if (existing) {
+        memberMap.set(r.memberId, {
+          ...existing,
+          memberPhoto: existing.memberPhoto || r.memberPhoto,
+          locality: existing.locality || stop?.locality,
+          address: existing.address || stop?.address,
+          latitude: existing.latitude ?? stop?.latitude,
+          longitude: existing.longitude ?? stop?.longitude,
+        });
+      } else {
+        memberMap.set(r.memberId, {
+          id: r.memberId,
+          cellId: visit.cellId,
+          memberId: r.memberId,
+          memberName: r.memberName,
+          memberPhone: r.memberPhone,
+          memberPhoto: r.memberPhoto,
+          locality: stop?.locality || matchedCell?.location || '',
+          address: stop?.address || '',
+          latitude: stop?.latitude,
+          longitude: stop?.longitude,
+          membershipStatus: 'Active',
+        });
+      }
+    });
+
+    (visit.routeStops || []).forEach((s) => {
+      if (!s.memberId || memberMap.has(s.memberId)) return;
+      memberMap.set(s.memberId, {
+        id: s.memberId,
+        cellId: visit.cellId,
+        memberId: s.memberId,
+        memberName: s.memberName,
+        memberPhone: s.memberPhone,
+        locality: s.locality || matchedCell?.location || '',
+        address: s.address || '',
+        latitude: s.latitude,
+        longitude: s.longitude,
+        membershipStatus: 'Active',
+      });
+    });
+
+    let targetList: CareCellMembership[];
+    if (Array.isArray(visit.targetMemberIds) && visit.targetMemberIds.length > 0) {
+      targetList = visit.targetMemberIds
+        .map((id) => memberMap.get(id))
+        .filter(Boolean) as CareCellMembership[];
+    } else if (responseEntries.length > 0) {
+      const respIds = new Set(responseEntries.map((r) => r.memberId));
+      targetList = Array.from(memberMap.values()).filter((m) => respIds.has(m.memberId));
+    } else {
+      targetList = Array.from(memberMap.values());
+    }
+
+    const fallbackCell: CareCell = matchedCell || {
+      id: visit.cellId || 'DIRECT',
+      churchId: activeChurchId,
+      cellCode: visit.cellCode || 'MAP',
+      name: visit.cellName || visit.title || 'Care Cell Visit',
+      description: '',
+      location: targetList[0]?.locality || targetList[0]?.city || '',
+      meetingLocation: '',
+      meetingDay: '',
+      meetingTime: '',
+      leaderId: visit.assignedLeaderId || visit.createdBy,
+      leaderName: visit.assignedLeaderName || visit.createdByName || 'Leader',
+      leaderPhone: '',
+      status: 'Active',
+    };
+
+    return { activeChurchId, cell: fallbackCell, members: targetList };
+  };
+
+  const handleOpenVisitRouteMap = async (visit: CareCellVisit) => {
+    setLoadingRouteVisitId(visit.id);
+    try {
+      const { cell, members } = await resolveVisitRoutingContext(visit);
+      if (members.length === 0) {
+        Alert.alert('No Target Members', 'This visit does not have any assigned members to display on the map.');
+        return;
+      }
+      const initialRouteIds =
+        visit.routeStops && visit.routeStops.length > 0
+          ? visit.routeStops.map((s) => s.memberId)
+          : members.map((m) => m.memberId);
+      setRouteMapState({
+        visible: true,
+        visit,
+        cell,
+        members,
+        initialRouteIds,
+      });
+    } catch (e: any) {
+      Alert.alert('Map Error', e?.message || 'Unable to load member locations for this visit.');
+    } finally {
+      setLoadingRouteVisitId(null);
+    }
+  };
+
+  const handleSaveOptimizedVisitRoute = async (stops: VisitRoutePoint[]) => {
+    const targetVisit = routeMapState.visit;
+    if (!targetVisit) return;
+    try {
+      const activeChurchId = churchId || (await CareCellService.getChurchId());
+      await CareCellService.updateVisitRouteStops(activeChurchId, targetVisit.id, stops);
+      setVisits((prev) =>
+        prev.map((v) => (v.id === targetVisit.id ? { ...v, routeStops: stops } : v))
+      );
+      Alert.alert(
+        'Visit Route Saved',
+        `Updated ${stops.length}-stop optimized Google Maps route for "${targetVisit.title}".`
+      );
+    } catch (e: any) {
+      Alert.alert('Save Failed', e?.message || 'Could not save visit route.');
+    }
+  };
+
+  const handleDirectionsForVisit = async (visit: CareCellVisit) => {
+    setLaunchingDirectionsVisitId(visit.id);
+    try {
+      if (visit.routeStops && visit.routeStops.length > 0) {
+        await MemberLocationService.openGoogleMapsMultiStopRoute({
+          stops: visit.routeStops,
+          travelMode: 'driving',
+        });
+        return;
+      }
+
+      const { activeChurchId, cell, members } = await resolveVisitRoutingContext(visit);
+      if (members.length === 0) {
+        Alert.alert('No Targets', 'This visit has no target members to route to.');
+        return;
+      }
+
+      const startPoint =
+        typeof cell.meetingLatitude === 'number' && typeof cell.meetingLongitude === 'number'
+          ? { latitude: cell.meetingLatitude, longitude: cell.meetingLongitude }
+          : undefined;
+
+      const stops = await MemberLocationService.buildOptimizedVisitRoute({
+        churchId: activeChurchId,
+        members: members.map((m) => ({
+          memberId: m.memberId,
+          memberName: m.memberName,
+          memberPhone: m.memberPhone,
+          locality: m.locality,
+          city: m.city,
+          address: m.address,
+          latitude: m.latitude,
+          longitude: m.longitude,
+        })),
+        fallbackLocationHint: cell.location || cell.meetingLocation,
+        startPoint,
+      });
+
+      if (stops.length === 0) {
+        Alert.alert(
+          'Missing Locations',
+          'Selected members do not have GPS pins or geocodable localities yet.'
+        );
+        return;
+      }
+
+      // Persist resolved optimized route onto visit for instant reuse next time
+      CareCellService.updateVisitRouteStops(activeChurchId, visit.id, stops).catch(() => {});
+      setVisits((prev) =>
+        prev.map((v) => (v.id === visit.id ? { ...v, routeStops: stops } : v))
+      );
+
+      await MemberLocationService.openGoogleMapsMultiStopRoute({
+        stops,
+        travelMode: 'driving',
+      });
+    } catch (e: any) {
+      Alert.alert('Navigation Error', e?.message || 'Unable to launch Google Maps directions.');
+    } finally {
+      setLaunchingDirectionsVisitId(null);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -439,6 +670,65 @@ export default function CareCellVisitsTab({
                   </View>
                 </View>
 
+                {/* Optimized Google Maps Route Summary Strip */}
+                {item.routeStops && item.routeStops.length > 0 ? (
+                  <View
+                    style={[
+                      styles.visitRouteStrip,
+                      isDark && {
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        borderColor: 'rgba(16, 185, 129, 0.3)',
+                      },
+                    ]}
+                  >
+                    <Route size={13} color={isDark ? '#34D399' : '#059669'} style={{ marginRight: 6 }} />
+                    <Text
+                      style={[styles.visitRouteStripTxt, isDark && { color: '#6EE7B7' }]}
+                      numberOfLines={1}
+                    >
+                      {item.routeStops.length} Stop Route (~
+                      {MemberLocationService.computeRouteDistanceKm(item.routeStops)} km):{' '}
+                      {item.routeStops.map((s) => `${s.order}. ${s.memberName}`).join(' → ')}
+                    </Text>
+                  </View>
+                ) : null}
+
+                {/* Routing Actions Row (View Map / Optimize + Directions) */}
+                <View style={styles.visitRoutingRow}>
+                  <TouchableOpacity
+                    style={[
+                      styles.visitRouteActionBtn,
+                      { backgroundColor: secondaryBtnBg, borderColor: secondaryBtnBorder },
+                    ]}
+                    onPress={() => handleOpenVisitRouteMap(item)}
+                    disabled={loadingRouteVisitId === item.id}
+                    activeOpacity={0.8}
+                  >
+                    {loadingRouteVisitId === item.id ? (
+                      <ActivityIndicator size="small" color={secondaryBtnText} style={{ marginRight: 5 }} />
+                    ) : (
+                      <MapPin size={13} color={secondaryBtnText} style={{ marginRight: 5 }} />
+                    )}
+                    <Text style={[styles.visitRouteActionTxt, { color: secondaryBtnText }]}>
+                      Map & Optimize Route
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.visitDirectionsBtn, { backgroundColor: '#059669' }]}
+                    onPress={() => handleDirectionsForVisit(item)}
+                    disabled={launchingDirectionsVisitId === item.id}
+                    activeOpacity={0.85}
+                  >
+                    {launchingDirectionsVisitId === item.id ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 5 }} />
+                    ) : (
+                      <Navigation size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
+                    )}
+                    <Text style={styles.visitDirectionsBtnTxt}>Directions</Text>
+                  </TouchableOpacity>
+                </View>
+
                 {/* Bottom Card Actions */}
                 <View style={styles.cardActionsRow}>
                   <TouchableOpacity
@@ -509,6 +799,29 @@ export default function CareCellVisitsTab({
         churchId={churchId}
         onResponseUpdated={loadVisits}
       />
+
+      {/* Visit Map & Route Optimization Modal */}
+      {routeMapState.cell && (
+        <CareCellMapModal
+          visible={routeMapState.visible}
+          onClose={() =>
+            setRouteMapState((prev) => ({ ...prev, visible: false }))
+          }
+          churchId={churchId || routeMapState.visit?.churchId}
+          cell={routeMapState.cell}
+          members={routeMapState.members}
+          initialPlannedRouteIds={routeMapState.initialRouteIds}
+          autoSelectRoute={true}
+          headerSubtitleOverride={
+            routeMapState.visit
+              ? `${routeMapState.visit.title} · ${routeMapState.members.length} Target${
+                  routeMapState.members.length === 1 ? '' : 's'
+                }`
+              : undefined
+          }
+          onConfirmRoute={handleSaveOptimizedVisitRoute}
+        />
+      )}
     </View>
   );
 }
@@ -890,6 +1203,56 @@ const styles = createAdminThemedStyles({
   },
   emptyActionBtnTxt: {
     fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  visitRouteStrip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    marginBottom: 10,
+  },
+  visitRouteStripTxt: {
+    flex: 1,
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#065F46',
+  },
+  visitRoutingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  visitRouteActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1.2,
+  },
+  visitRouteActionTxt: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  visitDirectionsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  visitDirectionsBtnTxt: {
+    fontSize: 12,
     fontWeight: '800',
     color: '#FFFFFF',
   },

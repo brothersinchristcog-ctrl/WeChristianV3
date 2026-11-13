@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -26,14 +26,20 @@ import {
   CheckCircle2,
   Check,
   UserCheck,
+  MapPin,
+  Navigation,
+  Route,
+  Map as MapIcon,
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
+import { MemberLocationService } from '../../../../services/MemberLocationService';
 import {
   CareCell,
   CareCellMembership,
   VisitRoutePoint,
 } from '../../../../types/CareCellTypes';
 import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
+import CareCellMapModal from './CareCellMapModal';
 
 export interface PreselectedVisitMember {
   memberId: string;
@@ -103,6 +109,12 @@ export default function CareCellVisitModal({
   const [visitScope, setVisitScope] = useState<'ALL' | 'SPECIFIC'>('ALL');
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
 
+  // Google Maps & route optimization state
+  const [plannedRouteStops, setPlannedRouteStops] = useState<VisitRoutePoint[]>([]);
+  const [optimizingRoute, setOptimizingRoute] = useState(false);
+  const [launchingDirections, setLaunchingDirections] = useState(false);
+  const [routeMapVisible, setRouteMapVisible] = useState(false);
+
   // Set default cell and date when opened
   useEffect(() => {
     if (visible) {
@@ -137,8 +149,11 @@ export default function CareCellVisitModal({
       setPurpose('');
       setVisitScope(hasPreselected ? 'SPECIFIC' : 'ALL');
       setSelectedMemberIds(hasPreselected ? [...initialMemberIds!] : []);
+      setPlannedRouteStops(
+        initialRouteStops && initialRouteStops.length > 0 ? [...initialRouteStops] : []
+      );
     }
-  }, [visible, initialCellId, initialMemberIds, initialVisitors, initialTitle, cells]);
+  }, [visible, initialCellId, initialMemberIds, initialVisitors, initialTitle, initialRouteStops, cells]);
 
   // Fetch count of active members for selected cell (plus any preselected map members)
   useEffect(() => {
@@ -186,6 +201,143 @@ export default function CareCellVisitModal({
 
   const activeCell = cells.find((c) => c.id === selectedCellId);
 
+  // Target members currently included in this visit based on scope
+  const targetMembersList = useMemo<CareCellMembership[]>(() => {
+    if (visitScope === 'SPECIFIC') {
+      const selectedSet = new Set(selectedMemberIds);
+      return cellMembers.filter((m) => selectedSet.has(m.memberId));
+    }
+    return cellMembers;
+  }, [visitScope, selectedMemberIds, cellMembers]);
+
+  // Filter any existing planned stops if the admin unselects members or switches cell
+  const activeRouteStops = useMemo<VisitRoutePoint[]>(() => {
+    const targetIds = new Set(targetMembersList.map((m) => m.memberId));
+    return plannedRouteStops
+      .filter((s) => targetIds.has(s.memberId))
+      .map((s, idx) => ({ ...s, order: idx + 1 }));
+  }, [plannedRouteStops, targetMembersList]);
+
+  const activeRouteTotalKm = useMemo(
+    () => MemberLocationService.computeRouteDistanceKm(activeRouteStops),
+    [activeRouteStops]
+  );
+
+  // Synthetic CareCell fallback when scheduling a DIRECT map visit without a selected cell
+  const mapCellContext = useMemo<CareCell>(() => {
+    if (activeCell) return activeCell;
+    return {
+      id: selectedCellId || 'DIRECT',
+      churchId: churchId || '',
+      cellCode: 'MAP',
+      name: title.trim() || 'Pastoral House Visit',
+      description: '',
+      location: targetMembersList[0]?.locality || targetMembersList[0]?.city || '',
+      meetingLocation: '',
+      meetingDay: '',
+      meetingTime: '',
+      leaderId: createdBy,
+      leaderName: createdByName || 'Pastor',
+      leaderPhone: '',
+      status: 'Active',
+    };
+  }, [activeCell, selectedCellId, churchId, title, targetMembersList, createdBy, createdByName]);
+
+  const computeTargetRouteStops = async (): Promise<VisitRoutePoint[]> => {
+    if (targetMembersList.length === 0) return [];
+    const resolvedChurchId = churchId || (await CareCellService.getChurchId());
+    const startPoint =
+      typeof activeCell?.meetingLatitude === 'number' &&
+      typeof activeCell?.meetingLongitude === 'number'
+        ? { latitude: activeCell.meetingLatitude, longitude: activeCell.meetingLongitude }
+        : undefined;
+
+    return MemberLocationService.buildOptimizedVisitRoute({
+      churchId: resolvedChurchId,
+      members: targetMembersList.map((m) => ({
+        memberId: m.memberId,
+        memberName: m.memberName,
+        memberPhone: m.memberPhone,
+        locality: m.locality,
+        city: m.city,
+        address: m.address,
+        latitude: m.latitude,
+        longitude: m.longitude,
+      })),
+      fallbackLocationHint: activeCell?.location || activeCell?.meetingLocation,
+      startPoint,
+    });
+  };
+
+  const handleOptimizeRoute = async () => {
+    if (targetMembersList.length === 0) {
+      Alert.alert(
+        'Select Members First',
+        'Please select at least one Care Cell member before optimizing the route.'
+      );
+      return;
+    }
+    setOptimizingRoute(true);
+    try {
+      const stops = await computeTargetRouteStops();
+      if (stops.length === 0) {
+        Alert.alert(
+          'Missing Locations',
+          'None of the selected members have GPS coordinates, saved home pins, or geocodable localities yet.'
+        );
+        return;
+      }
+      setPlannedRouteStops(stops);
+    } catch (e: any) {
+      Alert.alert('Optimization Failed', e?.message || 'Unable to compute optimal visit route.');
+    } finally {
+      setOptimizingRoute(false);
+    }
+  };
+
+  const handleLaunchDirections = async () => {
+    if (targetMembersList.length === 0) {
+      Alert.alert(
+        'Select Members First',
+        'Please select at least one Care Cell member to start Google Maps directions.'
+      );
+      return;
+    }
+    setLaunchingDirections(true);
+    try {
+      const stops = activeRouteStops.length > 0 ? activeRouteStops : await computeTargetRouteStops();
+      if (stops.length === 0) {
+        Alert.alert(
+          'Missing Locations',
+          'None of the selected members have mappable coordinates yet.'
+        );
+        return;
+      }
+      if (activeRouteStops.length === 0) {
+        setPlannedRouteStops(stops);
+      }
+      await MemberLocationService.openGoogleMapsMultiStopRoute({
+        stops,
+        travelMode: 'driving',
+      });
+    } catch (e: any) {
+      Alert.alert('Navigation Error', e?.message || 'Could not launch Google Maps.');
+    } finally {
+      setLaunchingDirections(false);
+    }
+  };
+
+  const handleOpenRouteMap = () => {
+    if (targetMembersList.length === 0) {
+      Alert.alert(
+        'Select Members First',
+        'Please select at least one member (or choose a Care Cell with active members) to view on the map.'
+      );
+      return;
+    }
+    setRouteMapVisible(true);
+  };
+
   const handleSave = async () => {
     if (!selectedCellId) {
       Alert.alert('Select Cell', 'Please select a Care Cell or Direct Visit for this visit.');
@@ -220,6 +372,23 @@ export default function CareCellVisitModal({
           ? 'Pastoral Map Visit'
           : activeCell?.name || 'Care Cell';
 
+      // Auto-attach optimized route stops if admin hasn't explicitly generated them yet (capped quickly so save never stalls)
+      let finalRouteStops: VisitRoutePoint[] | undefined =
+        activeRouteStops.length > 0 ? activeRouteStops : initialRouteStops;
+      if ((!finalRouteStops || finalRouteStops.length === 0) && targetMembersList.length > 0) {
+        try {
+          const autoStops = await Promise.race([
+            computeTargetRouteStops(),
+            new Promise<VisitRoutePoint[]>((resolve) => setTimeout(() => resolve([]), 2500)),
+          ]);
+          if (autoStops.length > 0) {
+            finalRouteStops = autoStops;
+          }
+        } catch (_) {
+          // Non-fatal: route stops can also be generated/edited from Visits Tab
+        }
+      }
+
       await CareCellService.createVisitNotification(resolvedChurchId, {
         cellId: selectedCellId,
         cellCode: activeCell?.cellCode || (selectedCellId === 'DIRECT' ? 'MAP' : ''),
@@ -235,7 +404,7 @@ export default function CareCellVisitModal({
         assignedLeaderName: activeCell?.leaderName,
         targetMemberIds: visitScope === 'SPECIFIC' ? selectedMemberIds : undefined,
         preselectedMembers: initialPreselectedMembers,
-        routeStops: initialRouteStops,
+        routeStops: finalRouteStops,
       });
 
       const recipientMsg = visitScope === 'SPECIFIC'
@@ -418,6 +587,86 @@ export default function CareCellVisitModal({
               </View>
             )}
 
+            {/* Google Maps & Route Optimization Card */}
+            <View
+              style={[
+                styles.routePlannerCard,
+                {
+                  backgroundColor: isDark ? 'rgba(16, 185, 129, 0.08)' : '#F0FDF4',
+                  borderColor: isDark ? 'rgba(16, 185, 129, 0.3)' : '#BBF7D0',
+                },
+              ]}
+            >
+              <View style={styles.routePlannerHeader}>
+                <View style={styles.routePlannerTitleWrap}>
+                  <Route size={15} color="#059669" style={{ marginRight: 6 }} />
+                  <Text style={styles.routePlannerTitle}>Google Maps & Visit Route</Text>
+                </View>
+                <View style={styles.routeCountBadge}>
+                  <Text style={styles.routeCountBadgeTxt}>
+                    {activeRouteStops.length > 0
+                      ? `${activeRouteStops.length} Stops${activeRouteTotalKm > 0 ? ` · ~${activeRouteTotalKm} km` : ''}`
+                      : `${targetMembersList.length} Target${targetMembersList.length === 1 ? '' : 's'}`}
+                  </Text>
+                </View>
+              </View>
+
+              {activeRouteStops.length > 0 ? (
+                <Text style={styles.routeSequencePreview} numberOfLines={2}>
+                  Order: {activeRouteStops.map((s) => `${s.order}. ${s.memberName}`).join('  →  ')}
+                </Text>
+              ) : (
+                <Text style={styles.routeSequenceHint}>
+                  View selected members on the map, optimize stop order for the shortest path, or launch Google Maps directions.
+                </Text>
+              )}
+
+              <View style={styles.routeActionRow}>
+                <TouchableOpacity
+                  style={[styles.routeActionBtn, styles.routeActionMapBtn]}
+                  onPress={handleOpenRouteMap}
+                  disabled={loadingMembers}
+                  activeOpacity={0.85}
+                >
+                  <MapIcon size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
+                  <Text style={styles.routeActionMapTxt}>View Map</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.routeActionBtn,
+                    { backgroundColor: secondaryBtnBg, borderWidth: 1, borderColor: secondaryBtnBorder },
+                  ]}
+                  onPress={handleOptimizeRoute}
+                  disabled={optimizingRoute || loadingMembers}
+                  activeOpacity={0.85}
+                >
+                  {optimizingRoute ? (
+                    <ActivityIndicator size="small" color={secondaryBtnText} style={{ marginRight: 5 }} />
+                  ) : (
+                    <Sparkles size={13} color={secondaryBtnText} style={{ marginRight: 5 }} />
+                  )}
+                  <Text style={[styles.routeActionSecondaryTxt, { color: secondaryBtnText }]}>
+                    {activeRouteStops.length > 0 ? 'Re-Optimize' : 'Optimize Route'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.routeActionBtn, styles.routeActionDirectionsBtn]}
+                  onPress={handleLaunchDirections}
+                  disabled={launchingDirections || loadingMembers}
+                  activeOpacity={0.85}
+                >
+                  {launchingDirections ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" style={{ marginRight: 5 }} />
+                  ) : (
+                    <Navigation size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
+                  )}
+                  <Text style={styles.routeActionMapTxt}>Directions</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Title & Quick Presets */}
             <Text style={styles.fieldLabel}>VISIT TITLE *</Text>
             <TextInput
@@ -578,6 +827,30 @@ export default function CareCellVisitModal({
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Interactive Care Cell Map & Route Optimization Modal */}
+      <CareCellMapModal
+        visible={routeMapVisible}
+        onClose={() => setRouteMapVisible(false)}
+        churchId={churchId || activeCell?.churchId}
+        cell={mapCellContext}
+        members={targetMembersList}
+        initialPlannedRouteIds={
+          activeRouteStops.length > 0
+            ? activeRouteStops.map((s) => s.memberId)
+            : targetMembersList.map((m) => m.memberId)
+        }
+        autoSelectRoute={true}
+        headerSubtitleOverride={`${mapCellContext.name} · ${targetMembersList.length} Visit Target${
+          targetMembersList.length === 1 ? '' : 's'
+        }`}
+        onConfirmRoute={(stops) => {
+          setPlannedRouteStops(stops);
+          if (visitScope === 'SPECIFIC') {
+            setSelectedMemberIds(stops.map((s) => s.memberId));
+          }
+        }}
+      />
     </Modal>
   );
 }
@@ -926,6 +1199,83 @@ const styles = createAdminThemedStyles({
     fontSize: 10.5,
     color: '#64748B',
     marginLeft: 3,
+  },
+  routePlannerCard: {
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    marginTop: 6,
+    marginBottom: 10,
+  },
+  routePlannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  routePlannerTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  routePlannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#065F46',
+  },
+  routeCountBadge: {
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+  },
+  routeCountBadgeTxt: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    color: '#065F46',
+  },
+  routeSequencePreview: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#047857',
+    marginTop: 7,
+    lineHeight: 16,
+  },
+  routeSequenceHint: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 6,
+    lineHeight: 16,
+  },
+  routeActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    marginTop: 10,
+    flexWrap: 'wrap',
+  },
+  routeActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 9,
+  },
+  routeActionMapBtn: {
+    backgroundColor: '#1A2D5A',
+  },
+  routeActionDirectionsBtn: {
+    backgroundColor: '#059669',
+  },
+  routeActionMapTxt: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  routeActionSecondaryTxt: {
+    fontSize: 11.5,
+    fontWeight: '700',
   },
 });
 

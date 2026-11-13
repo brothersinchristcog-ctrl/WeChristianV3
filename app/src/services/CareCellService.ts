@@ -1,4 +1,9 @@
-import firestore from '@react-native-firebase/firestore';
+import firestore, {
+  getFirestore,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import FirestoreService from './FirestoreService';
 const CHURCHES_ROOT_COLLECTION = 'churches';
@@ -1739,6 +1744,24 @@ class CareCellService {
       updateData.cancelledAt = firestore.FieldValue.serverTimestamp();
     }
     await col.doc(visitId).update(updateData);
+  }
+
+  /**
+   * Saves or updates an optimized multi-stop route on an existing Care Cell visit.
+   */
+  async updateVisitRouteStops(
+    churchId: string | undefined,
+    visitId: string,
+    routeStops: VisitRoutePoint[]
+  ): Promise<void> {
+    const activeChurchId = churchId || (await this.getChurchId());
+    const db = getFirestore();
+    const visitRef = doc(db, CHURCHES_ROOT_COLLECTION, activeChurchId, 'careCellVisits', visitId);
+    await updateDoc(visitRef, {
+      routeStops: sanitizeForFirestore(routeStops),
+      updatedAt: serverTimestamp(),
+    });
+    this.invalidateCareCellsCache(activeChurchId);
   }
 
   /**

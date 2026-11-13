@@ -1,4 +1,5 @@
 import { Linking } from 'react-native';
+import * as ExpoLocation from 'expo-location';
 import { getApp } from '@react-native-firebase/app';
 import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
 import {
@@ -26,6 +27,8 @@ const CHURCHES_COLLECTION = 'churches';
 const LOCATIONS_SUBCOLLECTION = 'memberLocations';
 const PRIVATE_HOME_SUBCOLLECTION = 'privateHome';
 const FUNCTIONS_REGION = 'asia-south1';
+
+const ROUTE_GEOCODE_CACHE = new Map<string, { latitude: number; longitude: number } | null>();
 
 export type TravelMode = 'driving' | 'walking';
 
@@ -808,5 +811,189 @@ export class MemberLocationService {
       url += `&origin=${params.originLat},${params.originLng}`;
     }
     await Linking.openURL(url);
+  }
+
+  /**
+   * Cached device geocoder helper used across Care Cell maps and visit routing.
+   */
+  static async geocodePlaceCached(
+    query: string
+  ): Promise<{ latitude: number; longitude: number } | null> {
+    const clean = query.trim();
+    if (!clean) return null;
+    const key = clean.toLowerCase();
+    if (ROUTE_GEOCODE_CACHE.has(key)) {
+      return ROUTE_GEOCODE_CACHE.get(key) || null;
+    }
+    try {
+      const results = await ExpoLocation.geocodeAsync(clean);
+      if (
+        results &&
+        results.length > 0 &&
+        Number.isFinite(results[0].latitude) &&
+        Number.isFinite(results[0].longitude)
+      ) {
+        const coords = {
+          latitude: results[0].latitude,
+          longitude: results[0].longitude,
+        };
+        ROUTE_GEOCODE_CACHE.set(key, coords);
+        return coords;
+      }
+    } catch (_) {
+      // Ignore transient device geocoder failures
+    }
+    ROUTE_GEOCODE_CACHE.set(key, null);
+    return null;
+  }
+
+  /**
+   * Computes total straight-line km across an ordered list of visit stops.
+   */
+  static computeRouteDistanceKm(stops: VisitRoutePoint[]): number {
+    if (!stops || stops.length < 2) return 0;
+    let total = 0;
+    for (let i = 1; i < stops.length; i++) {
+      total += haversineDistanceKm(
+        { latitude: stops[i - 1].latitude, longitude: stops[i - 1].longitude },
+        { latitude: stops[i].latitude, longitude: stops[i].longitude }
+      );
+    }
+    return Number(total.toFixed(1));
+  }
+
+  /**
+   * Resolves live memberLocations + fallback device geocoding for a set of Care Cell members
+   * and returns VisitRoutePoint[] (either nearest-neighbor optimized or in supplied order).
+   */
+  static async buildOptimizedVisitRoute(params: {
+    churchId: string;
+    members: Array<{
+      memberId: string;
+      memberName: string;
+      memberPhone?: string;
+      locality?: string;
+      city?: string;
+      address?: string;
+      latitude?: number;
+      longitude?: number;
+    }>;
+    fallbackLocationHint?: string;
+    startPoint?: { latitude: number; longitude: number };
+    preloadedLocations?: Record<string, MemberLocationRecord>;
+    preserveOrder?: boolean;
+  }): Promise<VisitRoutePoint[]> {
+    if (!params.members || params.members.length === 0) return [];
+
+    let locById = params.preloadedLocations;
+    if (!locById && params.churchId) {
+      try {
+        const list = await MemberLocationService.getMemberLocations(params.churchId);
+        locById = {};
+        list.forEach((rec) => {
+          if (rec.memberId) locById![rec.memberId] = rec;
+        });
+      } catch (_) {
+        locById = {};
+      }
+    }
+    const safeLocMap = locById || {};
+
+    const cellFallback = params.fallbackLocationHint
+      ? await MemberLocationService.geocodePlaceCached(params.fallbackLocationHint)
+      : null;
+
+    const syntheticRecords: MemberLocationRecord[] = [];
+
+    for (const m of params.members) {
+      const existingLoc = safeLocMap[m.memberId];
+      const existingCoords = existingLoc
+        ? getEffectiveCoordinates(existingLoc)
+        : null;
+
+      if (existingLoc && existingCoords) {
+        syntheticRecords.push(existingLoc);
+        continue;
+      }
+
+      let resolvedCoords: { latitude: number; longitude: number } | null = null;
+      if (
+        typeof m.latitude === 'number' &&
+        typeof m.longitude === 'number' &&
+        Number.isFinite(m.latitude) &&
+        Number.isFinite(m.longitude)
+      ) {
+        resolvedCoords = { latitude: m.latitude, longitude: m.longitude };
+      } else {
+        const fullQuery = [m.address, m.locality || m.city || params.fallbackLocationHint]
+          .filter(Boolean)
+          .join(', ');
+        if (fullQuery) {
+          resolvedCoords = await MemberLocationService.geocodePlaceCached(fullQuery);
+        }
+        if (!resolvedCoords && (m.locality || m.city)) {
+          resolvedCoords = await MemberLocationService.geocodePlaceCached(
+            String(m.locality || m.city)
+          );
+        }
+        if (!resolvedCoords && cellFallback) {
+          resolvedCoords = cellFallback;
+        }
+      }
+
+      if (!resolvedCoords) continue;
+
+      syntheticRecords.push({
+        memberId: m.memberId,
+        churchId: params.churchId,
+        memberName: m.memberName,
+        phone: m.memberPhone || existingLoc?.phone,
+        village: m.locality || existingLoc?.village,
+        city: m.city || existingLoc?.city || params.fallbackLocationHint,
+        residentialAddress: m.address || existingLoc?.residentialAddress,
+        latitude: resolvedCoords.latitude,
+        longitude: resolvedCoords.longitude,
+        locationSource: existingLoc?.locationSource || 'profile_geocoding',
+        locationAccuracy: 'village_approximate',
+        geocodingStatus: 'completed',
+        locationSharingConsent: false,
+      });
+    }
+
+    if (syntheticRecords.length === 0) return [];
+
+    if (!params.preserveOrder) {
+      return MemberLocationService.suggestOptimalVisitOrder(
+        syntheticRecords,
+        params.startPoint
+      );
+    }
+
+    const stops: VisitRoutePoint[] = [];
+    let prevPos = params.startPoint;
+    syntheticRecords.forEach((rec) => {
+      const coords = getEffectiveCoordinates(rec);
+      if (!coords) return;
+      const dist = prevPos ? haversineDistanceKm(prevPos, coords) : 0;
+      const isConsent = coords.accuracy === 'verified_home';
+      stops.push({
+        memberId: rec.memberId,
+        memberName: rec.memberName,
+        memberPhone: rec.phone,
+        address: isConsent
+          ? rec.completeAddress || formatMemberAreaText(rec)
+          : formatMemberAreaText(rec),
+        locality: rec.village || rec.city || rec.district,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        order: stops.length + 1,
+        accuracy: coords.accuracy,
+        distanceFromPreviousKm: Number(dist.toFixed(2)),
+        isApproximateDistance: !isConsent,
+        consent: isConsent,
+      });
+      prevPos = coords;
+    });
+    return stops;
   }
 }

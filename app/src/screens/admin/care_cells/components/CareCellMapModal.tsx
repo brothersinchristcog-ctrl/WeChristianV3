@@ -14,8 +14,7 @@ import {
   Image,
   FlatList,
 } from 'react-native';
-import MapView, { Marker, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
-import * as ExpoLocation from 'expo-location';
+import MapView, { Marker, Polyline, PROVIDER_GOOGLE, Callout } from 'react-native-maps';
 import { getFirestore, doc, getDoc } from '@react-native-firebase/firestore';
 import {
   ArrowLeft,
@@ -35,10 +34,19 @@ import {
   X,
   Plus,
   Route,
+  Sparkles,
+  Check,
+  Car,
+  Footprints,
 } from 'lucide-react-native';
-import { CareCell, CareCellMembership, MemberLocationRecord } from '../../../../types/CareCellTypes';
+import {
+  CareCell,
+  CareCellMembership,
+  MemberLocationRecord,
+  VisitRoutePoint,
+} from '../../../../types/CareCellTypes';
 import { useChurch } from '../../../../context/ChurchContext';
-import { MemberLocationService } from '../../../../services/MemberLocationService';
+import { MemberLocationService, TravelMode } from '../../../../services/MemberLocationService';
 import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
 
 const { width, height } = Dimensions.get('window');
@@ -46,29 +54,6 @@ const { width, height } = Dimensions.get('window');
 // Fallback coordinates only if both cell location & member coordinates fail to resolve
 const DEFAULT_KURNOOL_LAT = 15.8281;
 const DEFAULT_KURNOOL_LNG = 78.0373;
-
-const CLIENT_GEOCODE_CACHE = new Map<string, { latitude: number; longitude: number } | null>();
-
-async function geocodePlaceCached(query: string): Promise<{ latitude: number; longitude: number } | null> {
-  const clean = query.trim();
-  if (!clean) return null;
-  const key = clean.toLowerCase();
-  if (CLIENT_GEOCODE_CACHE.has(key)) {
-    return CLIENT_GEOCODE_CACHE.get(key) || null;
-  }
-  try {
-    const results = await ExpoLocation.geocodeAsync(clean);
-    if (results && results.length > 0 && Number.isFinite(results[0].latitude) && Number.isFinite(results[0].longitude)) {
-      const coords = { latitude: results[0].latitude, longitude: results[0].longitude };
-      CLIENT_GEOCODE_CACHE.set(key, coords);
-      return coords;
-    }
-  } catch (_) {
-    // Ignore transient device geocoder failures
-  }
-  CLIENT_GEOCODE_CACHE.set(key, null);
-  return null;
-}
 
 type EnrichedCellMembership = CareCellMembership & {
   isVerifiedPin?: boolean;
@@ -84,6 +69,10 @@ interface CareCellMapModalProps {
   members: CareCellMembership[];
   inactiveMembers?: Array<{ memberId: string; missedCount: number; memberName?: string }>;
   onLogFollowup?: (member: CareCellMembership) => void;
+  initialPlannedRouteIds?: string[];
+  autoSelectRoute?: boolean;
+  headerSubtitleOverride?: string;
+  onConfirmRoute?: (stops: VisitRoutePoint[]) => void;
 }
 
 export default function CareCellMapModal({
@@ -94,6 +83,10 @@ export default function CareCellMapModal({
   members,
   inactiveMembers = [],
   onLogFollowup,
+  initialPlannedRouteIds,
+  autoSelectRoute = false,
+  headerSubtitleOverride,
+  onConfirmRoute,
 }: CareCellMapModalProps) {
   const { activeChurch } = useChurch();
   const effectiveChurchId = churchId || cell?.churchId || activeChurch?.id || '';
@@ -114,8 +107,26 @@ export default function CareCellMapModal({
   // Selected member card on map
   const [selectedMember, setSelectedMember] = useState<EnrichedCellMembership | null>(null);
 
-  // Route Planning: list of member IDs in visit order
+  // Route Planning: list of member IDs in visit order + travel mode
   const [plannedRouteMemberIds, setPlannedRouteMemberIds] = useState<string[]>([]);
+  const [travelMode, setTravelMode] = useState<TravelMode>('driving');
+  const [routeOptimizedFlag, setRouteOptimizedFlag] = useState<boolean>(false);
+
+  // Sync planned route IDs whenever the modal opens with preselected/visit stops
+  useEffect(() => {
+    if (!visible) return;
+    setSelectedMember(null);
+    setSelectedLocality('ALL');
+    setFilterNeedsVisitOnly(false);
+    setRouteOptimizedFlag(false);
+    if (initialPlannedRouteIds && initialPlannedRouteIds.length > 0) {
+      setPlannedRouteMemberIds([...initialPlannedRouteIds]);
+    } else if (autoSelectRoute && members.length > 0) {
+      setPlannedRouteMemberIds(members.map((m) => m.memberId));
+    } else {
+      setPlannedRouteMemberIds([]);
+    }
+  }, [visible, initialPlannedRouteIds, autoSelectRoute, members]);
 
   // Live member locations, profile photos & fallback client geocoded coordinates
   const [memberLocMap, setMemberLocMap] = useState<Record<string, MemberLocationRecord>>({});
@@ -200,8 +211,8 @@ export default function CareCellMapModal({
           .join(', ');
         if (cellQuery) {
           cellFallback =
-            (await geocodePlaceCached(`${cellQuery}, Andhra Pradesh, India`)) ||
-            (await geocodePlaceCached(`${cell.location || cell.meetingLocation}, India`));
+            (await MemberLocationService.geocodePlaceCached(`${cellQuery}, Andhra Pradesh, India`)) ||
+            (await MemberLocationService.geocodePlaceCached(`${cell.location || cell.meetingLocation}, India`));
           if (active && cellFallback) {
             setGeocodedCellCoords(cellFallback);
           }
@@ -226,12 +237,12 @@ export default function CareCellMapModal({
 
         let coords: { latitude: number; longitude: number } | null = null;
         if (addressPart && localityPart) {
-          coords = await geocodePlaceCached(`${addressPart}, ${localityPart}, India`);
+          coords = await MemberLocationService.geocodePlaceCached(`${addressPart}, ${localityPart}, India`);
         }
         if (!coords && localityPart) {
           coords =
-            (await geocodePlaceCached(`${localityPart}, Andhra Pradesh, India`)) ||
-            (await geocodePlaceCached(`${localityPart}, India`));
+            (await MemberLocationService.geocodePlaceCached(`${localityPart}, Andhra Pradesh, India`)) ||
+            (await MemberLocationService.geocodePlaceCached(`${localityPart}, India`));
         }
         if (!coords && cellFallback) {
           coords = cellFallback;
@@ -447,7 +458,8 @@ export default function CareCellMapModal({
         });
       });
     } else if (m.address || m.locality) {
-      const query = encodeURIComponent(`${m.address || ''}, ${m.locality || ''}, Kurnool`);
+      const fallbackCity = cell?.location || 'India';
+      const query = encodeURIComponent(`${m.address || ''}, ${m.locality || fallbackCity}`);
       const url = `https://www.google.com/maps/search/?api=1&query=${query}`;
       Linking.openURL(url).catch(() => {
         Alert.alert('Navigation Error', 'Could not open Google Maps.');
@@ -484,6 +496,7 @@ export default function CareCellMapModal({
 
   // Toggle member into planned route
   const handleToggleRouteMember = (memberId: string) => {
+    setRouteOptimizedFlag(false);
     setPlannedRouteMemberIds((prev) => {
       if (prev.includes(memberId)) {
         return prev.filter((id) => id !== memberId);
@@ -493,43 +506,155 @@ export default function CareCellMapModal({
     });
   };
 
-  // Open multi-stop route in Google Maps
-  const handleOpenMultiStopRoute = () => {
-    if (plannedRouteMemberIds.length === 0) return;
+  // Ordered stops derived from plannedRouteMemberIds + enriched coordinates
+  const plannedStops = useMemo<VisitRoutePoint[]>(() => {
+    if (plannedRouteMemberIds.length === 0) return [];
+    const stops: VisitRoutePoint[] = [];
+    let prevLat: number | undefined;
+    let prevLng: number | undefined;
 
-    const routeMembers = plannedRouteMemberIds
+    plannedRouteMemberIds.forEach((id) => {
+      const m = enrichedMembers.find((em) => em.memberId === id);
+      if (!m || typeof m.latitude !== 'number' || typeof m.longitude !== 'number') return;
+      const locRec = memberLocMap[m.memberId];
+      const exactLat =
+        m.isVerifiedPin && typeof locRec?.confirmedLatitude === 'number'
+          ? locRec.confirmedLatitude
+          : m.latitude;
+      const exactLng =
+        m.isVerifiedPin && typeof locRec?.confirmedLongitude === 'number'
+          ? locRec.confirmedLongitude
+          : m.longitude;
+
+      let dist = 0;
+      if (typeof prevLat === 'number' && typeof prevLng === 'number') {
+        const dLat = ((exactLat - prevLat) * Math.PI) / 180;
+        const dLng = ((exactLng - prevLng) * Math.PI) / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos((prevLat * Math.PI) / 180) *
+            Math.cos((exactLat * Math.PI) / 180) *
+            Math.sin(dLng / 2) *
+            Math.sin(dLng / 2);
+        dist = Number((6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(2));
+      }
+
+      stops.push({
+        memberId: m.memberId,
+        memberName: m.memberName,
+        memberPhone: m.memberPhone,
+        address: m.resolvedAddress || m.address || m.locality || '',
+        locality: m.locality || locRec?.village || locRec?.city || cell?.location || '',
+        latitude: exactLat,
+        longitude: exactLng,
+        order: stops.length + 1,
+        accuracy: m.isVerifiedPin ? 'verified_home' : 'village_approximate',
+        distanceFromPreviousKm: dist,
+        isApproximateDistance: !m.isVerifiedPin,
+        consent: Boolean(m.isVerifiedPin),
+      });
+      prevLat = exactLat;
+      prevLng = exactLng;
+    });
+
+    return stops;
+  }, [plannedRouteMemberIds, enrichedMembers, memberLocMap, cell?.location]);
+
+  const plannedTotalKm = useMemo(
+    () => MemberLocationService.computeRouteDistanceKm(plannedStops),
+    [plannedStops]
+  );
+
+  // Nearest-neighbor TSP route optimization across planned (or all visible) members
+  const handleOptimizeRoute = () => {
+    const candidateIds =
+      plannedRouteMemberIds.length >= 2
+        ? plannedRouteMemberIds
+        : filteredMembers.map((m) => m.memberId);
+
+    const candidateMembers = candidateIds
       .map((id) => enrichedMembers.find((m) => m.memberId === id))
       .filter((m): m is EnrichedCellMembership => !!m && typeof m.latitude === 'number' && typeof m.longitude === 'number');
 
-    if (routeMembers.length === 0) {
-      const firstFallback = plannedRouteMemberIds
-        .map((id) => enrichedMembers.find((m) => m.memberId === id))
-        .find(Boolean);
-      if (firstFallback) {
-        handleNavigateToMember(firstFallback);
-        return;
+    if (candidateMembers.length === 0) {
+      Alert.alert(
+        'Missing Coordinates',
+        'None of the selected members have mappable GPS or locality coordinates yet.'
+      );
+      return;
+    }
+
+    const locRecords: MemberLocationRecord[] = candidateMembers.map((m) => {
+      const existing = memberLocMap[m.memberId];
+      if (existing && (typeof existing.confirmedLatitude === 'number' || typeof existing.latitude === 'number')) {
+        return existing;
       }
-      Alert.alert('Missing Coordinates', 'The selected members for the visit route do not have GPS coordinates.');
-      return;
-    }
-
-    if (routeMembers.length === 1) {
-      handleNavigateToMember(routeMembers[0]);
-      return;
-    }
-
-    // Build Google Maps Multi-Stop URL
-    const destination = `${routeMembers[routeMembers.length - 1].latitude},${routeMembers[routeMembers.length - 1].longitude}`;
-    const midWaypoints = routeMembers
-      .slice(0, routeMembers.length - 1)
-      .map((m) => `${m.latitude},${m.longitude}`)
-      .join('|');
-
-    const routeUrl = `https://www.google.com/maps/dir/?api=1&destination=${destination}&waypoints=${midWaypoints}&travelmode=driving`;
-
-    Linking.openURL(routeUrl).catch(() => {
-      Alert.alert('Route Error', 'Unable to open Google Maps route navigation.');
+      return {
+        memberId: m.memberId,
+        churchId: effectiveChurchId,
+        memberName: m.memberName,
+        phone: m.memberPhone,
+        village: m.locality,
+        city: m.city || cell?.location,
+        residentialAddress: m.address,
+        latitude: m.latitude,
+        longitude: m.longitude,
+        locationSource: 'profile_geocoding',
+        locationAccuracy: 'village_approximate',
+        geocodingStatus: 'completed',
+        locationSharingConsent: false,
+      };
     });
+
+    const cellStart =
+      typeof cell.meetingLatitude === 'number' && typeof cell.meetingLongitude === 'number'
+        ? { latitude: cell.meetingLatitude, longitude: cell.meetingLongitude }
+        : geocodedCellCoords || undefined;
+
+    const optimized = MemberLocationService.suggestOptimalVisitOrder(locRecords, cellStart);
+    if (optimized.length > 0) {
+      setPlannedRouteMemberIds(optimized.map((s) => s.memberId));
+      setRouteOptimizedFlag(true);
+    }
+  };
+
+  // Open multi-stop route in Google Maps using MemberLocationService
+  const handleOpenMultiStopRoute = async () => {
+    if (plannedRouteMemberIds.length === 0) return;
+
+    if (plannedStops.length > 0) {
+      try {
+        await MemberLocationService.openGoogleMapsMultiStopRoute({
+          stops: plannedStops,
+          travelMode,
+        });
+      } catch (_) {
+        Alert.alert('Route Error', 'Unable to open Google Maps route navigation.');
+      }
+      return;
+    }
+
+    const firstFallback = plannedRouteMemberIds
+      .map((id) => enrichedMembers.find((m) => m.memberId === id))
+      .find(Boolean);
+    if (firstFallback) {
+      handleNavigateToMember(firstFallback);
+      return;
+    }
+    Alert.alert('Missing Coordinates', 'The selected members for the visit route do not have GPS coordinates.');
+  };
+
+  const handleConfirmAndSaveRoute = () => {
+    if (!onConfirmRoute) return;
+    if (plannedStops.length === 0) {
+      Alert.alert(
+        'No Route Stops',
+        'Select at least one member with a location or tap Optimize to generate a route.'
+      );
+      return;
+    }
+    onConfirmRoute(plannedStops);
+    onClose();
   };
 
   return (
@@ -541,9 +666,10 @@ export default function CareCellMapModal({
             <ArrowLeft size={20} color={primaryText} strokeWidth={2.2} />
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.headerTitle}>{cell.name}</Text>
+            <Text style={styles.headerTitle} numberOfLines={1}>{cell.name}</Text>
             <Text style={styles.headerSub} numberOfLines={1}>
-              {cell.cellCode} · {cell.location || 'Kurnool'} · {members.length} Members
+              {headerSubtitleOverride ||
+                `${cell.cellCode} · ${cell.location || 'Care Cell'} · ${members.length} Members`}
             </Text>
           </View>
           <View style={styles.viewModeToggleRow}>
@@ -722,29 +848,98 @@ export default function CareCellMapModal({
                   </Marker>
                 );
               })}
+
+              {/* Planned Multi-Stop Route Path */}
+              {plannedStops.length >= 2 && (
+                <Polyline
+                  coordinates={plannedStops.map((s) => ({
+                    latitude: s.latitude,
+                    longitude: s.longitude,
+                  }))}
+                  strokeColor="#059669"
+                  strokeWidth={3.5}
+                  lineDashPattern={[8, 5]}
+                />
+              )}
             </MapView>
 
-            {/* Floating Top Route Summary Bar */}
-            {plannedRouteMemberIds.length > 0 && (
+            {/* Floating Top Route Summary & Optimization Bar */}
+            {plannedRouteMemberIds.length > 0 ? (
               <View style={styles.floatingRouteBar}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.floatingRouteTitle}>
-                    {plannedRouteMemberIds.length} House Visits Planned
-                  </Text>
-                  <Text style={styles.floatingRouteSub}>
-                    Sequential pastoral route optimized for nearby houses
-                  </Text>
+                <View style={styles.floatingRouteHeaderRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.floatingRouteTitle}>
+                      {plannedRouteMemberIds.length} House Visit{plannedRouteMemberIds.length === 1 ? '' : 's'} Planned
+                    </Text>
+                    <Text style={styles.floatingRouteSub} numberOfLines={1}>
+                      {plannedStops.length > 0
+                        ? `${plannedStops.length} mapped · ~${plannedTotalKm} km${routeOptimizedFlag ? ' · Optimized' : ''}`
+                        : 'Resolving member coordinates...'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.travelModeChip}
+                    onPress={() => setTravelMode((m) => (m === 'driving' ? 'walking' : 'driving'))}
+                    activeOpacity={0.8}
+                  >
+                    {travelMode === 'driving' ? (
+                      <Car size={12} color="#E2E8F0" />
+                    ) : (
+                      <Footprints size={12} color="#E2E8F0" />
+                    )}
+                    <Text style={styles.travelModeChipTxt}>
+                      {travelMode === 'driving' ? 'Drive' : 'Walk'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
+
+                <View style={styles.floatingRouteActionsRow}>
+                  {plannedStops.length >= 2 && (
+                    <TouchableOpacity
+                      style={styles.floatingOptimizeBtn}
+                      onPress={handleOptimizeRoute}
+                      activeOpacity={0.85}
+                    >
+                      <Sparkles size={13} color="#1A2D5A" style={{ marginRight: 5 }} />
+                      <Text style={styles.floatingOptimizeBtnTxt}>Optimize</Text>
+                    </TouchableOpacity>
+                  )}
+
+                  <TouchableOpacity
+                    style={styles.floatingNavigateRouteBtn}
+                    onPress={handleOpenMultiStopRoute}
+                    activeOpacity={0.85}
+                  >
+                    <Navigation size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
+                    <Text style={styles.floatingNavigateRouteBtnTxt}>Start Route</Text>
+                  </TouchableOpacity>
+
+                  {onConfirmRoute && (
+                    <TouchableOpacity
+                      style={styles.floatingApplyRouteBtn}
+                      onPress={handleConfirmAndSaveRoute}
+                      activeOpacity={0.85}
+                    >
+                      <Check size={13} color="#065F46" strokeWidth={2.5} style={{ marginRight: 4 }} />
+                      <Text style={styles.floatingApplyRouteBtnTxt}>Save Route</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            ) : filteredMembers.length > 0 ? (
+              <View style={styles.floatingQuickOptimizeWrap}>
                 <TouchableOpacity
-                  style={styles.floatingNavigateRouteBtn}
-                  onPress={handleOpenMultiStopRoute}
+                  style={styles.floatingQuickOptimizePill}
+                  onPress={handleOptimizeRoute}
                   activeOpacity={0.85}
                 >
-                  <Navigation size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
-                  <Text style={styles.floatingNavigateRouteBtnTxt}>Start Route</Text>
+                  <Sparkles size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.floatingQuickOptimizeTxt}>
+                    Optimize Visit Route ({filteredMembers.length})
+                  </Text>
                 </TouchableOpacity>
               </View>
-            )}
+            ) : null}
 
             {/* Selected Member Detail Callout Card */}
             {selectedMember ? (
@@ -860,10 +1055,48 @@ export default function CareCellMapModal({
           </View>
         ) : (
           /* List View Mode */
-          <FlatList
-            data={filteredMembers}
-            keyExtractor={(item) => item.id || item.memberId}
-            contentContainerStyle={styles.listContent}
+          <View style={{ flex: 1 }}>
+            <View style={styles.listRouteToolbar}>
+              <TouchableOpacity
+                style={styles.listOptimizeBtn}
+                onPress={handleOptimizeRoute}
+                activeOpacity={0.85}
+              >
+                <Sparkles size={13} color="#FFFFFF" style={{ marginRight: 5 }} />
+                <Text style={styles.listOptimizeBtnTxt}>
+                  {plannedRouteMemberIds.length > 0
+                    ? `Optimize (${plannedStops.length} stops · ~${plannedTotalKm} km)`
+                    : `Plan & Optimize Route (${filteredMembers.length})`}
+                </Text>
+              </TouchableOpacity>
+
+              {plannedRouteMemberIds.length > 0 && (
+                <TouchableOpacity
+                  style={styles.listStartRouteBtn}
+                  onPress={handleOpenMultiStopRoute}
+                  activeOpacity={0.85}
+                >
+                  <Navigation size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                  <Text style={styles.listStartRouteBtnTxt}>Start</Text>
+                </TouchableOpacity>
+              )}
+
+              {onConfirmRoute && plannedStops.length > 0 && (
+                <TouchableOpacity
+                  style={styles.listSaveRouteBtn}
+                  onPress={handleConfirmAndSaveRoute}
+                  activeOpacity={0.85}
+                >
+                  <Check size={13} color="#FFFFFF" strokeWidth={2.5} style={{ marginRight: 4 }} />
+                  <Text style={styles.listSaveRouteBtnTxt}>Save</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <FlatList
+              data={filteredMembers}
+              keyExtractor={(item) => item.id || item.memberId}
+              contentContainerStyle={styles.listContent}
             renderItem={({ item, index }) => {
               const isInactive = inactiveMemberIdSet.has(item.memberId);
               const inRoute = plannedRouteMemberIds.includes(item.memberId);
@@ -951,7 +1184,7 @@ export default function CareCellMapModal({
                       onPress={() => handleToggleRouteMember(item.memberId)}
                     >
                       <Text style={[styles.itemRouteBtnTxt, { color: secondaryBtnText }, inRoute && styles.itemRouteBtnTxtActive]}>
-                        {inRoute ? 'In Route' : '+ Route'}
+                        {inRoute ? `#${plannedRouteMemberIds.indexOf(item.memberId) + 1} In Route` : '+ Route'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -959,6 +1192,7 @@ export default function CareCellMapModal({
               );
             }}
           />
+          </View>
         )}
       </View>
     </Modal>
@@ -1178,15 +1412,140 @@ const styles = createAdminThemedStyles({
     left: 14,
     right: 14,
     backgroundColor: '#1A2D5A',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
+    gap: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 6,
+  },
+  floatingRouteHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  floatingRouteActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  travelModeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255,255,255,0.14)',
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  travelModeChipTxt: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#F8FAFC',
+  },
+  floatingOptimizeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  floatingOptimizeBtnTxt: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1A2D5A',
+  },
+  floatingApplyRouteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#D1FAE5',
+    paddingHorizontal: 11,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  floatingApplyRouteBtnTxt: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#065F46',
+  },
+  floatingQuickOptimizeWrap: {
+    position: 'absolute',
+    top: 12,
+    left: 14,
+    right: 60,
+    alignItems: 'flex-start',
+  },
+  floatingQuickOptimizePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1A2D5A',
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  floatingQuickOptimizeTxt: {
+    fontSize: 12.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  listRouteToolbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  listOptimizeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#1A2D5A',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  listOptimizeBtnTxt: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  listStartRouteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#059669',
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  listStartRouteBtnTxt: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  listSaveRouteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0284C7',
+    paddingHorizontal: 11,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  listSaveRouteBtnTxt: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   floatingRouteTitle: {
     fontSize: 13.5,
@@ -1203,7 +1562,7 @@ const styles = createAdminThemedStyles({
     alignItems: 'center',
     backgroundColor: '#059669',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 8,
   },
   floatingNavigateRouteBtnTxt: {
