@@ -1,6 +1,7 @@
 {
   "project_info": {
     "project_number": "962252889183",
+    "firebase_url": "https://wechristian-67f07-default-rtdb.firebaseio.com",
     "project_id": "wechristian-67f07",
     "storage_bucket": "wechristian-67f07.firebasestorage.app"
   },
@@ -22,6 +23,14 @@
           }
         },
         {
+          "client_id": "962252889183-o1c7jk1gbi0c7pnoahatuh0jmqnn36hf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.wechristian.app",
+            "certificate_hash": "a78fa8517482dea38c4f10e08b99866dee043f8c"
+          }
+        },
+        {
           "client_id": "962252889183-rs90gflqej8453a9ogrr3udd40av4dur.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -30,7 +39,7 @@
           }
         },
         {
-          "client_id": "962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com",
+          "client_id": "962252889183-0pd9bj9acde4oql7nuonko603sg69pbv.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
@@ -43,7 +52,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "962252889183-jomnitu1s1317td9fmdq9qbo7d8sdbhb.apps.googleusercontent.com",
+              "client_id": "962252889183-0pd9bj9acde4oql7nuonko603sg69pbv.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
