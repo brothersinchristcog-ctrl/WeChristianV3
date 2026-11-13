@@ -19,7 +19,14 @@ export type FollowupType =
   | 'WhatsApp Message' 
   | 'Other';
 export type FollowupStatus = 'Pending' | 'Contacted' | 'Completed' | 'Needs Further Follow-up';
-export type VisitStatus = 'Scheduled' | 'Completed' | 'Cancelled';
+export type VisitStatus =
+  | 'Scheduled'
+  | 'Awaiting Confirmation'
+  | 'Confirmed'
+  | 'Declined'
+  | 'In Progress'
+  | 'Completed'
+  | 'Cancelled';
 export type MemberVisitResponseStatus = 'Pending' | 'Accepted' | 'Declined';
 
 export interface CareCellVisitMemberResponse {
@@ -57,6 +64,12 @@ export interface CareCellVisit {
   pendingCount?: number;
   responses?: Record<string, CareCellVisitMemberResponse>;
   targetMemberIds?: string[];
+  assignedLeaderId?: string;
+  assignedLeaderName?: string;
+  assignedAdminIds?: string[];
+  routeStops?: VisitRoutePoint[];
+  completedAt?: any;
+  cancelledAt?: any;
 }
 
 export interface CareCell {
@@ -122,6 +135,10 @@ export interface VisitRoutePoint {
   latitude: number;
   longitude: number;
   order: number;
+  accuracy?: LocationAccuracy;
+  distanceFromPreviousKm?: number;
+  isApproximateDistance?: boolean;
+  consent?: boolean;
 }
 
 export interface CareCellMeeting {
@@ -247,3 +264,79 @@ export interface CareCellOverviewStats {
   membersRequiringFollowup: number;
 }
 
+
+export type LocationSource = 'profile_geocoding' | 'member_confirmed_pin';
+export type LocationAccuracy =
+  | 'verified_home'
+  | 'village_approximate'
+  | 'not_verified';
+export type GeocodingStatus =
+  | 'pending'
+  | 'completed'
+  | 'failed'
+  | 'needs_review';
+export type MemberVisitBadgeStatus =
+  | 'no_pending'
+  | 'scheduled'
+  | 'awaiting_confirmation'
+  | 'requires_followup';
+
+export interface MemberLocationRecord {
+  memberId: string;
+  churchId: string;
+  memberName: string;
+  profileImage?: string;
+  phone?: string;
+  village?: string;
+  city?: string;
+  district?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  residentialAddress?: string;
+  careCellId?: string;
+  careCellName?: string;
+  careCellLeaderId?: string;
+  careCellLeaderName?: string;
+  careCellLeaderPhone?: string;
+  latitude?: number;
+  longitude?: number;
+  formattedAddress?: string;
+  resolvedLocality?: string;
+  resolvedDistrict?: string;
+  resolvedState?: string;
+  resolvedCountry?: string;
+  googleResultType?: string;
+  googleLocationType?: string;
+  placeId?: string;
+  geohash?: string;
+  addressFingerprint?: string;
+  locationSource: LocationSource;
+  locationAccuracy: LocationAccuracy;
+  geocodingStatus: GeocodingStatus;
+  geocodingNote?: string;
+  // Exact residential confirmation fields (only visible with consent)
+  locationSharingConsent: boolean;
+  confirmedLatitude?: number;
+  confirmedLongitude?: number;
+  confirmedGeohash?: string;
+  completeAddress?: string;
+  landmark?: string;
+  lastVisitDate?: string;
+  upcomingVisitId?: string;
+  upcomingVisitDate?: string;
+  upcomingVisitTime?: string;
+  upcomingVisitStatus?: VisitStatus;
+  requiresFollowup?: boolean;
+  geocodedAt?: any;
+  confirmedAt?: any;
+  updatedAt?: any;
+}
+
+export interface NearbyMemberMatch {
+  location: MemberLocationRecord;
+  distanceKm: number;
+  isApproximateDistance: boolean;
+  effectiveLatitude: number;
+  effectiveLongitude: number;
+}

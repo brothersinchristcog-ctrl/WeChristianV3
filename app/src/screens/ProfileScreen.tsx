@@ -58,6 +58,7 @@ import storage from '@react-native-firebase/storage';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { formatDateDisplay } from '../utils/DateUtils';
 import { CHURCH_SKILL_CATEGORIES, ALL_PREDEFINED_SKILLS, getMemberSkills } from '../constants/churchSkills';
+import MemberHomeLocationModal from '../components/MemberHomeLocationModal';
 
 const { width } = Dimensions.get('window');
 
@@ -73,6 +74,7 @@ export default function ProfileScreen({ navigation }: any) {
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isLanguageModalVisible, setIsLanguageModalVisible] = useState(false);
   const [isNotifyModalVisible, setIsNotifyModalVisible] = useState(false);
+  const [isHomeLocationModalVisible, setIsHomeLocationModalVisible] = useState(false);
   const [localPhotoUrl, setLocalPhotoUrl] = useState<string | null>(null);
   const [referralCode, setReferralCode] = useState<string | null>(null);
   const [generatingCode, setGeneratingCode] = useState(false);
@@ -642,6 +644,15 @@ export default function ProfileScreen({ navigation }: any) {
             sub="My fellowship group and house visits" 
             onPress={() => {
               navigation.navigate('CareCell');
+            }}
+          />
+          <MenuItem 
+            icon={<MapPin size={20} color="#0D9488" />} 
+            iconBg="#CCFBF1"
+            title="My Home Location" 
+            sub={[member?.village, member?.city || member?.mailingCity, member?.mailingState].filter(Boolean).join(', ') || 'Optional • Confirm exact home pin'} 
+            onPress={() => {
+              setIsHomeLocationModalVisible(true);
             }}
           />
           <MenuItem 
@@ -1418,6 +1429,14 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </View>
       </Modal>
+      <MemberHomeLocationModal
+        visible={isHomeLocationModalVisible}
+        onClose={() => setIsHomeLocationModalVisible(false)}
+        churchId={activeChurch?.id || member?.churchId || (member as any)?.primaryChurchId || ''}
+        church={activeChurch}
+        member={member}
+        onUpdated={fetchProfileData}
+      />
       </>
       )}
     </View>

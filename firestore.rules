@@ -211,6 +211,52 @@ service cloud.firestore {
           return isAuthenticated() && (isGlobalAdmin || isMemberAdmin || isParentAdmin || isPlatformAdmin);
         }
 
+      // Strict multi-tenant church admin check for sensitive Smart Member Locations data
+      function isChurchTenantAdmin() {
+        let hasAuth = request.auth != null;
+        let hasGlobalUser = hasAuth && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+        let globalData = hasGlobalUser ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data : {};
+        let isGlobalAdminRole = hasGlobalUser && globalData.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
+        let isSameChurchGlobal = isGlobalAdminRole && (
+          globalData.get('churchId', '') == churchId ||
+          globalData.get('primaryChurchId', '') == churchId ||
+          globalData.get('userType', '') in ['super_admin', 'Super Admin']
+        );
+
+        let hasMemberDoc = hasAuth && exists(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
+        let isMemberAdmin = hasMemberDoc && get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
+
+        let churchDocPath = /databases/$(database)/documents/churches/$(churchId);
+        let churchExists = exists(churchDocPath);
+        let parentId = churchExists ? get(churchDocPath).data.get('parentChurchId', null) : null;
+        let hasParentMemberDoc = hasAuth && parentId != null && exists(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid));
+        let isParentAdmin = hasParentMemberDoc && get(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
+
+        let isPlatformAdmin = hasAuth && exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid));
+        return hasAuth && (isSameChurchGlobal || isMemberAdmin || isParentAdmin || isPlatformAdmin);
+      }
+
+      // Checks whether signed-in user is Leader or Assistant Leader of a given Care Cell in this church
+      function isAssignedCareCellLeaderForCell(cellId) {
+        let hasCell = request.auth != null && cellId != null && cellId != '' && exists(/databases/$(database)/documents/churches/$(churchId)/careCells/$(cellId));
+        let cellData = hasCell ? get(/databases/$(database)/documents/churches/$(churchId)/careCells/$(cellId)).data : {};
+        return hasCell && (
+          cellData.get('leaderId', '') == request.auth.uid ||
+          cellData.get('assistantLeaderId', '') == request.auth.uid
+        );
+      }
+
+      function isMemberLocationSelf(memberId) {
+        let memberPath = /databases/$(database)/documents/churches/$(churchId)/members/$(memberId);
+        let hasMember = exists(memberPath);
+        let mData = hasMember ? get(memberPath).data : {};
+        return request.auth != null && (
+          request.auth.uid == memberId ||
+          (hasMember && mData.get('uid', '') == request.auth.uid) ||
+          (hasMember && request.auth.token.phone_number != null && mData.get('phone', '') == request.auth.token.phone_number)
+        );
+      }
+
       // Church info is public — allow lookup by code even before login (needed during signup).
       allow read: if true;
       // Any authenticated user can create a new church (they become its admin).
@@ -446,8 +492,44 @@ service cloud.firestore {
       // Care Cells: Member Visit Responses, Prayer Requests & Leader Collaboration
       match /careCellVisits/{visitId} {
         allow read: if isAuthenticated();
-        allow create, delete: if isChurchAdmin();
+        allow create: if isChurchAdmin() || (request.auth != null && isAssignedCareCellLeaderForCell(request.resource.data.get('cellId', '')));
+        allow delete: if isChurchAdmin();
         allow update: if isAuthenticated();
+      }
+
+      // Smart Member Locations & Geocoding Cache (Strict church isolation + consent protection)
+      match /memberLocations/{memberId} {
+        allow read: if request.auth != null && (
+          isMemberLocationSelf(memberId) ||
+          isChurchTenantAdmin() ||
+          (resource != null && isAssignedCareCellLeaderForCell(resource.data.get('careCellId', '')))
+        );
+        allow create, update: if request.auth != null && (
+          isMemberLocationSelf(memberId) ||
+          isChurchTenantAdmin()
+        );
+        allow delete: if isChurchTenantAdmin();
+
+        match /privateHome/{docId} {
+          allow read: if request.auth != null && (
+            isMemberLocationSelf(memberId) ||
+            isChurchTenantAdmin() ||
+            (
+              exists(/databases/$(database)/documents/churches/$(churchId)/memberLocations/$(memberId)) &&
+              isAssignedCareCellLeaderForCell(
+                get(/databases/$(database)/documents/churches/$(churchId)/memberLocations/$(memberId)).data.get('careCellId', '')
+              )
+            )
+          );
+          allow write: if request.auth != null && (
+            isMemberLocationSelf(memberId) ||
+            isChurchTenantAdmin()
+          );
+        }
+      }
+
+      match /geocodeCache/{fingerprint} {
+        allow read, write: if false;
       }
 
       match /careCellPrayerRequests/{requestId} {

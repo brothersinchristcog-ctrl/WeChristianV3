@@ -22,6 +22,7 @@ import {
   Heart,
   Megaphone,
   Home,
+  MapPin,
 } from 'lucide-react-native';
 import { AdminTabContext } from '../../../context/AdminTabContext';
 import { useAuth } from '../../../context/AuthContext';
@@ -36,13 +37,14 @@ import CareCellAttendanceTab from './tabs/CareCellAttendanceTab';
 import CareCellVisitsTab from './tabs/CareCellVisitsTab';
 import CareCellFollowupsTab from './tabs/CareCellFollowupsTab';
 import CareCellAnnouncePrayerTab from './tabs/CareCellAnnouncePrayerTab';
+import CareCellMemberLocationsTab from './tabs/CareCellMemberLocationsTab';
 import CareCellFormModal from './components/CareCellFormModal';
 import MeetingFormModal from './components/MeetingFormModal';
 import { CareCell, CareCellMeeting } from '../../../types/CareCellTypes';
 
 const { width } = Dimensions.get('window');
 
-type SubTabKey = 'overview' | 'manage' | 'members' | 'meetings' | 'attendance' | 'visits' | 'followups' | 'announcements';
+type SubTabKey = 'overview' | 'manage' | 'members' | 'meetings' | 'attendance' | 'visits' | 'followups' | 'announcements' | 'locations';
 
 const SUB_TABS = [
   { key: 'overview' as SubTabKey, label: 'Overview', icon: LayoutDashboard },
@@ -53,6 +55,7 @@ const SUB_TABS = [
   { key: 'visits' as SubTabKey, label: 'Visits', icon: Home },
   { key: 'followups' as SubTabKey, label: 'Follow-ups', icon: Heart },
   { key: 'announcements' as SubTabKey, label: 'Notices & Prayer', icon: Megaphone },
+  { key: 'locations' as SubTabKey, label: 'Member Locations', icon: MapPin },
 ];
 
 export default function AdminCareCellsHub() {
@@ -311,6 +314,10 @@ export default function AdminCareCellsHub() {
 
         {activeSubTab === 'announcements' && (
           <CareCellAnnouncePrayerTab churchId={activeChurch?.id} />
+        )}
+
+        {activeSubTab === 'locations' && (
+          <CareCellMemberLocationsTab cells={cells} churchId={activeChurch?.id} />
         )}
       </View>
 

@@ -28,8 +28,19 @@ import {
   UserCheck,
 } from 'lucide-react-native';
 import CareCellService from '../../../../services/CareCellService';
-import { CareCell, CareCellMembership } from '../../../../types/CareCellTypes';
+import {
+  CareCell,
+  CareCellMembership,
+  VisitRoutePoint,
+} from '../../../../types/CareCellTypes';
 import { useAdminTheme, createAdminThemedStyles } from '../careCellTheme';
+
+export interface PreselectedVisitMember {
+  memberId: string;
+  memberName: string;
+  memberPhone?: string;
+  memberPhoto?: string;
+}
 
 interface CareCellVisitModalProps {
   visible: boolean;
@@ -39,6 +50,11 @@ interface CareCellVisitModalProps {
   churchId?: string;
   createdBy: string;
   createdByName?: string;
+  initialMemberIds?: string[];
+  initialPreselectedMembers?: PreselectedVisitMember[];
+  initialRouteStops?: VisitRoutePoint[];
+  initialVisitors?: string;
+  initialTitle?: string;
   onSuccess?: () => void;
 }
 
@@ -58,6 +74,11 @@ export default function CareCellVisitModal({
   churchId,
   createdBy,
   createdByName,
+  initialMemberIds,
+  initialPreselectedMembers,
+  initialRouteStops,
+  initialVisitors,
+  initialTitle,
   onSuccess,
 }: CareCellVisitModalProps) {
   const { isDark, primaryText, secondaryText } = useAdminTheme();
@@ -85,9 +106,13 @@ export default function CareCellVisitModal({
   // Set default cell and date when opened
   useEffect(() => {
     if (visible) {
-      const defaultId = initialCellId && initialCellId !== 'ALL'
-        ? initialCellId
-        : cells[0]?.id || '';
+      const hasPreselected = Boolean(initialMemberIds && initialMemberIds.length > 0);
+      const defaultId =
+        initialCellId && initialCellId !== 'ALL'
+          ? initialCellId
+          : hasPreselected
+            ? 'DIRECT'
+            : cells[0]?.id || 'DIRECT';
       setSelectedCellId(defaultId);
 
       // Default date to tomorrow in YYYY-MM-DD
@@ -98,15 +123,24 @@ export default function CareCellVisitModal({
       const dd = String(tomorrow.getDate()).padStart(2, '0');
       setVisitDate(`${yyyy}-${mm}-${dd}`);
       setVisitTime('17:00');
-      setVisitors('Pastor & Cell Leader');
-      setTitle('Pastoral Home Visit');
+      const matchedCell = cells.find((c) => c.id === defaultId);
+      setVisitors(
+        initialVisitors ||
+          (matchedCell?.leaderName ? `Pastor & ${matchedCell.leaderName}` : 'Pastor & Cell Leader')
+      );
+      setTitle(
+        initialTitle ||
+          (hasPreselected && initialMemberIds!.length > 1
+            ? `Cluster Pastoral Visit (${initialMemberIds!.length} Homes)`
+            : 'Pastoral Home Visit')
+      );
       setPurpose('');
-      setVisitScope('ALL');
-      setSelectedMemberIds([]);
+      setVisitScope(hasPreselected ? 'SPECIFIC' : 'ALL');
+      setSelectedMemberIds(hasPreselected ? [...initialMemberIds!] : []);
     }
-  }, [visible, initialCellId, cells]);
+  }, [visible, initialCellId, initialMemberIds, initialVisitors, initialTitle, cells]);
 
-  // Fetch count of active members for selected cell
+  // Fetch count of active members for selected cell (plus any preselected map members)
   useEffect(() => {
     if (visible && selectedCellId) {
       let isMounted = true;
@@ -114,10 +148,29 @@ export default function CareCellVisitModal({
       (async () => {
         try {
           const resolvedChurchId = churchId || (await CareCellService.getChurchId());
-          const members = await CareCellService.getActiveCellMemberships(resolvedChurchId, selectedCellId);
+          const members =
+            selectedCellId === 'DIRECT'
+              ? []
+              : await CareCellService.getActiveCellMemberships(resolvedChurchId, selectedCellId);
           if (isMounted) {
-            setCellMembers(members);
-            setMemberCount(members.length);
+            const merged: CareCellMembership[] = [...members];
+            const existingIds = new Set(merged.map((m) => m.memberId));
+            (initialPreselectedMembers || []).forEach((pm) => {
+              if (pm.memberId && !existingIds.has(pm.memberId)) {
+                merged.push({
+                  id: pm.memberId,
+                  cellId: selectedCellId,
+                  memberId: pm.memberId,
+                  memberName: pm.memberName,
+                  memberPhone: pm.memberPhone,
+                  memberPhoto: pm.memberPhoto,
+                  membershipStatus: 'Active',
+                });
+                existingIds.add(pm.memberId);
+              }
+            });
+            setCellMembers(merged);
+            setMemberCount(merged.length);
           }
         } catch (e) {
           if (isMounted) setMemberCount(null);
@@ -129,13 +182,13 @@ export default function CareCellVisitModal({
         isMounted = false;
       };
     }
-  }, [visible, selectedCellId, churchId]);
+  }, [visible, selectedCellId, churchId, initialPreselectedMembers]);
 
-  const activeCell = cells.find((c) => c.id === selectedCellId) || cells[0];
+  const activeCell = cells.find((c) => c.id === selectedCellId);
 
   const handleSave = async () => {
     if (!selectedCellId) {
-      Alert.alert('Select Cell', 'Please select a Care Cell for this visit.');
+      Alert.alert('Select Cell', 'Please select a Care Cell or Direct Visit for this visit.');
       return;
     }
     if (!title.trim()) {
@@ -155,17 +208,22 @@ export default function CareCellVisitModal({
       return;
     }
     if (visitScope === 'SPECIFIC' && selectedMemberIds.length === 0) {
-      Alert.alert('Select Member', 'Please select at least one specific cell member to visit.');
+      Alert.alert('Select Member', 'Please select at least one specific member to visit.');
       return;
     }
 
     setSaving(true);
     try {
       const resolvedChurchId = churchId || (await CareCellService.getChurchId());
+      const cellLabel =
+        selectedCellId === 'DIRECT'
+          ? 'Pastoral Map Visit'
+          : activeCell?.name || 'Care Cell';
+
       await CareCellService.createVisitNotification(resolvedChurchId, {
         cellId: selectedCellId,
-        cellCode: activeCell?.cellCode || '',
-        cellName: activeCell?.name || 'Care Cell',
+        cellCode: activeCell?.cellCode || (selectedCellId === 'DIRECT' ? 'MAP' : ''),
+        cellName: cellLabel,
         title: title.trim(),
         purpose: purpose.trim(),
         visitDate: visitDate.trim(),
@@ -173,12 +231,16 @@ export default function CareCellVisitModal({
         visitors: visitors.trim(),
         createdBy,
         createdByName: createdByName || 'Leader',
+        assignedLeaderId: activeCell?.leaderId,
+        assignedLeaderName: activeCell?.leaderName,
         targetMemberIds: visitScope === 'SPECIFIC' ? selectedMemberIds : undefined,
+        preselectedMembers: initialPreselectedMembers,
+        routeStops: initialRouteStops,
       });
 
       const recipientMsg = visitScope === 'SPECIFIC'
         ? `delivered to the ${selectedMemberIds.length} selected member(s)`
-        : `delivered to all assigned members of ${activeCell?.name || 'this Care Cell'}`;
+        : `delivered to all assigned members of ${cellLabel}`;
       Alert.alert(
         'Visit Notification Sent!',
         `Notification successfully ${recipientMsg}. Members can now respond with Accept or Decline and specify their preferred visit time.`
@@ -228,16 +290,31 @@ export default function CareCellVisitModal({
 
           <ScrollView style={styles.formScroll} showsVerticalScrollIndicator={false}>
             {/* Target Care Cell Selector */}
-            <Text style={styles.fieldLabel}>TARGET CARE CELL *</Text>
-            {cells.length <= 1 ? (
+            <Text style={styles.fieldLabel}>TARGET CARE CELL / SCOPE *</Text>
+            {cells.length <= 1 && (!initialPreselectedMembers || initialPreselectedMembers.length === 0) ? (
               <View style={styles.singleCellBanner}>
                 <Building2 size={16} color={primaryText} />
                 <Text style={styles.singleCellTxt}>
-                  {activeCell ? `${activeCell.cellCode} · ${activeCell.name}` : 'Care Cell'}
+                  {activeCell ? `${activeCell.cellCode} · ${activeCell.name}` : 'Pastoral Map Visit'}
                 </Text>
               </View>
             ) : (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.cellsChipScroll}>
+                {initialPreselectedMembers && initialPreselectedMembers.length > 0 && (
+                  <TouchableOpacity
+                    style={[
+                      styles.cellChip,
+                      selectedCellId === 'DIRECT' && { backgroundColor: primaryBtnBg, borderColor: primaryBtnBg },
+                    ]}
+                    onPress={() => setSelectedCellId('DIRECT')}
+                    activeOpacity={0.8}
+                  >
+                    <Building2 size={13} color={selectedCellId === 'DIRECT' ? primaryBtnText : secondaryText} style={{ marginRight: 6 }} />
+                    <Text style={[styles.cellChipTxt, selectedCellId === 'DIRECT' && { color: primaryBtnText }]}>
+                      Selected Map Members ({initialPreselectedMembers.length})
+                    </Text>
+                  </TouchableOpacity>
+                )}
                 {cells.map((c) => {
                   const isSel = c.id === selectedCellId;
                   return (

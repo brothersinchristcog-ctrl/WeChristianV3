@@ -160,13 +160,18 @@ export declare const pushCareCellVisit: import("firebase-functions/core").CloudF
     visitId: string;
 }>>;
 /**
- * ❌ CARE CELL VISIT DECLINED BY MEMBER — ADMIN / RESPONSIBLE PERSON ALERT
- * Fires when any member's response transitions to "Declined" in a scheduled visit.
+ * 🔔 CARE CELL VISIT LIFECYCLE TRIGGER
+ * Fires for Confirmed / Declined member responses, plus Completed & Cancelled status transitions.
  */
 export declare const onCareCellVisitUpdated: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").Change<import("firebase-functions/v2/firestore").QueryDocumentSnapshot> | undefined, {
     churchId: string;
     visitId: string;
 }>>;
+/**
+ * ⏰ SCHEDULED CARE CELL VISIT REMINDERS
+ * Runs every 2 hours (Asia/Kolkata) to send deduplicated reminders for visits occurring today or tomorrow.
+ */
+export declare const sendCareCellVisitReminders: import("firebase-functions/v2/scheduler").ScheduleFunction;
 export declare const onTestimonyCreatedAdmin: import("firebase-functions/core").CloudFunction<import("firebase-functions/v2/firestore").FirestoreEvent<import("firebase-functions/v2/firestore").QueryDocumentSnapshot | undefined, {
     churchId: string;
     testimonyId: string;

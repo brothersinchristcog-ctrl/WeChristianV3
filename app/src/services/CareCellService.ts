@@ -16,6 +16,7 @@ import {
   CareCellVisitMemberResponse,
   MemberVisitResponseStatus,
   VisitStatus,
+  VisitRoutePoint,
   AttendanceStatus,
 } from '../types/CareCellTypes';
 
@@ -1394,19 +1395,60 @@ class CareCellService {
       createdBy: string;
       createdByName?: string;
       targetMemberIds?: string[];
+      assignedLeaderId?: string;
+      assignedLeaderName?: string;
+      routeStops?: VisitRoutePoint[];
+      preselectedMembers?: Array<{
+        memberId: string;
+        memberName: string;
+        memberPhone?: string;
+        memberPhoto?: string;
+      }>;
+      initialStatus?: VisitStatus;
     }
   ): Promise<string> {
     const activeChurchId = churchId || (await this.getChurchId());
     const col = await this.getVisitsRef(activeChurchId);
     const docRef = col.doc();
 
-    // 1. Fetch all active members assigned to this specific Care Cell
-    const allCellMembers = await this.getActiveCellMemberships(activeChurchId, data.cellId);
+    // 1. Fetch active cell members OR merge preselected map/direct members cleanly
+    const allCellMembers =
+      data.cellId && data.cellId !== 'DIRECT'
+        ? await this.getActiveCellMemberships(activeChurchId, data.cellId)
+        : [];
 
-    // Filter to selected members if specific members were selected
-    const targetMembers = data.targetMemberIds && data.targetMemberIds.length > 0
-      ? allCellMembers.filter((mem) => data.targetMemberIds!.includes(mem.memberId))
-      : allCellMembers;
+    const memberMap = new Map<
+      string,
+      {
+        memberId: string;
+        memberName: string;
+        memberPhone?: string;
+        memberPhoto?: string;
+        preferredVisitTime?: string;
+      }
+    >();
+
+    allCellMembers.forEach((m) => memberMap.set(m.memberId, m));
+    if (Array.isArray(data.preselectedMembers)) {
+      data.preselectedMembers.forEach((pm) => {
+        if (pm.memberId && !memberMap.has(pm.memberId)) {
+          memberMap.set(pm.memberId, pm);
+        }
+      });
+    }
+
+    const targetMembers =
+      data.targetMemberIds && data.targetMemberIds.length > 0
+        ? data.targetMemberIds
+            .map((id) => memberMap.get(id))
+            .filter(Boolean) as Array<{
+            memberId: string;
+            memberName: string;
+            memberPhone?: string;
+            memberPhoto?: string;
+            preferredVisitTime?: string;
+          }>
+        : Array.from(memberMap.values());
 
     // 2. Initialize each target member's availability response as 'Pending'
     const responses: Record<string, CareCellVisitMemberResponse> = {};
@@ -1432,10 +1474,13 @@ class CareCellService {
       visitDate: data.visitDate,
       visitTime: data.visitTime,
       visitors: data.visitors,
-      status: 'Scheduled',
+      status: data.initialStatus || 'Awaiting Confirmation',
       notificationSent: false,
       createdBy: data.createdBy || auth().currentUser?.uid || '',
       createdByName: data.createdByName || '',
+      assignedLeaderId: data.assignedLeaderId || undefined,
+      assignedLeaderName: data.assignedLeaderName || undefined,
+      routeStops: data.routeStops && data.routeStops.length > 0 ? data.routeStops : undefined,
       totalMembersCount: targetMembers.length,
       acceptedCount: 0,
       declinedCount: 0,
@@ -1644,19 +1689,39 @@ class CareCellService {
       else pending++;
     });
 
+    // Advance workflow status safely without overriding In Progress / Completed / Cancelled
+    let nextStatus: VisitStatus = currentData.status;
+    if (
+      currentData.status === 'Scheduled' ||
+      currentData.status === 'Awaiting Confirmation' ||
+      currentData.status === 'Confirmed' ||
+      currentData.status === 'Declined'
+    ) {
+      if (pending === 0 && accepted > 0 && declined === 0) {
+        nextStatus = 'Confirmed';
+      } else if (pending === 0 && declined > 0 && accepted === 0) {
+        nextStatus = 'Declined';
+      } else if (accepted > 0 && pending > 0) {
+        nextStatus = 'Awaiting Confirmation';
+      } else if (declined > 0 && accepted === 0) {
+        nextStatus = 'Declined';
+      }
+    }
+
     await col.doc(visitId).update(
       sanitizeForFirestore({
         [`responses.${responseKey}`]: responses[responseKey],
         acceptedCount: accepted,
         declinedCount: declined,
         pendingCount: pending,
+        status: nextStatus,
         updatedAt: firestore.FieldValue.serverTimestamp(),
       })
     );
   }
 
   /**
-   * Updates the overall status of a Care Cell visit (Scheduled, Completed, Cancelled).
+   * Updates the overall status of a Care Cell visit across the full workflow.
    */
   async updateVisitStatus(
     churchId: string | undefined,
@@ -1664,10 +1729,62 @@ class CareCellService {
     status: VisitStatus
   ): Promise<void> {
     const col = await this.getVisitsRef(churchId);
-    await col.doc(visitId).update({
+    const updateData: Record<string, any> = {
       status,
       updatedAt: firestore.FieldValue.serverTimestamp(),
-    });
+    };
+    if (status === 'Completed') {
+      updateData.completedAt = firestore.FieldValue.serverTimestamp();
+    } else if (status === 'Cancelled') {
+      updateData.cancelledAt = firestore.FieldValue.serverTimestamp();
+    }
+    await col.doc(visitId).update(updateData);
+  }
+
+  /**
+   * Fetches visit history (past & upcoming) associated with a specific member across the church.
+   */
+  async getMemberVisitHistory(
+    churchId: string | undefined,
+    memberId: string,
+    memberPhone?: string
+  ): Promise<CareCellVisit[]> {
+    try {
+      const col = await this.getVisitsRef(churchId);
+      const snap = await col.get();
+      const targetLast10 = normalizePhoneDigits(memberPhone).slice(-10);
+
+      const list = snap.docs
+        .map((d: any) => ({ id: d.id, ...d.data() }) as CareCellVisit)
+        .filter((v) => {
+          if (Array.isArray(v.targetMemberIds) && v.targetMemberIds.includes(memberId)) {
+            return true;
+          }
+          if (v.responses && v.responses[memberId]) {
+            return true;
+          }
+          if (v.responses) {
+            return Object.values(v.responses).some((r) => {
+              if (r?.memberId === memberId) return true;
+              if (targetLast10.length >= 7 && r?.memberPhone) {
+                return phonesMatch(r.memberPhone, memberPhone);
+              }
+              return false;
+            });
+          }
+          return false;
+        });
+
+      list.sort((a, b) => {
+        const dateA = a.visitDate ? new Date(`${a.visitDate}T${a.visitTime || '00:00'}`).getTime() : 0;
+        const dateB = b.visitDate ? new Date(`${b.visitDate}T${b.visitTime || '00:00'}`).getTime() : 0;
+        return dateB - dateA;
+      });
+      return list;
+    } catch (error) {
+      console.error('Error fetching member visit history:', error);
+      return [];
+    }
   }
 
   /**
@@ -1689,7 +1806,15 @@ class CareCellService {
   ): Promise<(CareCellVisit & { myResponse?: CareCellVisitMemberResponse })[]> {
     try {
       const col = await this.getVisitsRef(churchId);
-      const snap = await col.where('cellId', '==', cellId).where('status', '==', 'Scheduled').get();
+      const snap = await col
+        .where('status', 'in', [
+          'Scheduled',
+          'Awaiting Confirmation',
+          'Confirmed',
+          'Declined',
+          'In Progress',
+        ])
+        .get();
       const list = snap.docs
         .map((d: any) => {
           const data = d.data() as CareCellVisit;
@@ -1702,13 +1827,16 @@ class CareCellService {
                   (memberPhone && phonesMatch(responsesMap[k]?.memberPhone, memberPhone))
               );
 
-          // Respect specific targetMemberIds so other cell members do not see private targeted visits
+          const isForThisCell = Boolean(cellId && data.cellId === cellId);
+          const isExplicitTarget =
+            (Array.isArray(data.targetMemberIds) && data.targetMemberIds.includes(memberId)) ||
+            Boolean(matchedKey);
+
+          // If targeted specifically, show only to explicit targets; otherwise show to members of the same cell
           if (Array.isArray(data.targetMemberIds) && data.targetMemberIds.length > 0) {
-            const isExplicitTarget =
-              data.targetMemberIds.includes(memberId) || Boolean(matchedKey);
-            if (!isExplicitTarget) {
-              return null;
-            }
+            if (!isExplicitTarget) return null;
+          } else if (!isForThisCell && !isExplicitTarget) {
+            return null;
           }
 
           const myResponse = (matchedKey ? responsesMap[matchedKey] : undefined) || {

@@ -62,7 +62,7 @@ export default function CareCellVisitsTab({
 
   const { user, member, isPlatformSuperAdmin } = useAuth();
   const [activeCellId, setActiveCellId] = useState<string>(selectedCellId || 'ALL');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'Scheduled' | 'Completed' | 'Cancelled'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | VisitStatus>('ALL');
   const [visits, setVisits] = useState<CareCellVisit[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -266,8 +266,24 @@ export default function CareCellVisitsTab({
       </View>
 
       {/* Status Filter Tabs */}
-      <View style={styles.statusTabsRow}>
-        {(['ALL', 'Scheduled', 'Completed', 'Cancelled'] as const).map((st) => {
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ maxHeight: 40, marginBottom: 8 }}
+        contentContainerStyle={[styles.statusTabsRow, { paddingRight: 16 }]}
+      >
+        {(
+          [
+            'ALL',
+            'Scheduled',
+            'Awaiting Confirmation',
+            'Confirmed',
+            'Declined',
+            'In Progress',
+            'Completed',
+            'Cancelled',
+          ] as const
+        ).map((st) => {
           const isActive = statusFilter === st;
           return (
             <TouchableOpacity
@@ -290,7 +306,7 @@ export default function CareCellVisitsTab({
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       {/* Visits List */}
       {loading ? (
@@ -326,7 +342,7 @@ export default function CareCellVisitsTab({
           renderItem={({ item }) => {
             const isCompleted = item.status === 'Completed';
             const isCancelled = item.status === 'Cancelled';
-            const isScheduled = item.status === 'Scheduled' || !item.status;
+            const isScheduled = !isCompleted && !isCancelled;
 
             const total = item.totalMembersCount || Object.keys(item.responses || {}).length || 0;
             const accepted = item.acceptedCount || 0;

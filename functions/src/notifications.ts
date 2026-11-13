@@ -2050,8 +2050,251 @@ export const pushCareCellVisit = onDocumentCreated(
 );
 
 /**
- * ❌ CARE CELL VISIT DECLINED BY MEMBER — ADMIN / RESPONSIBLE PERSON ALERT
- * Fires when any member's response transitions to "Declined" in a scheduled visit.
+ * Collects FCM tokens & member doc IDs for the responsible leader / admin(s) on a visit.
+ */
+async function resolveVisitResponsibleTargets(
+  db: FirebaseFirestore.Firestore,
+  churchId: string,
+  visitData: Record<string, any>,
+  excludeMemberId?: string
+): Promise<{ tokens: string[]; docIds: string[] }> {
+  const cellId = String(visitData.cellId || '').trim();
+  let cellData: any = null;
+  if (cellId && cellId !== 'DIRECT') {
+    try {
+      const cellDoc = await db.collection('churches').doc(churchId).collection('careCells').doc(cellId).get();
+      if (cellDoc.exists) cellData = cellDoc.data() || null;
+    } catch (_) { }
+  }
+
+  const candidateIds = new Set<string>();
+  const addCandidate = (id?: any) => {
+    const val = String(id || '').trim();
+    if (!val || (excludeMemberId && val === excludeMemberId)) return;
+    candidateIds.add(val);
+  };
+
+  addCandidate(visitData.assignedLeaderId);
+  addCandidate(visitData.createdBy);
+  if (Array.isArray(visitData.assignedAdminIds)) {
+    visitData.assignedAdminIds.forEach(addCandidate);
+  }
+  if (cellData) {
+    if (Array.isArray(cellData.assignedAdminIds)) {
+      cellData.assignedAdminIds.forEach(addCandidate);
+    }
+    addCandidate(cellData.leaderId);
+    addCandidate(cellData.assistantLeaderId);
+  }
+
+  const tokens = new Set<string>();
+  const docIds = new Set<string>();
+
+  for (const cid of candidateIds) {
+    try {
+      const resolved = await resolveMemberPushTargets(db, churchId, cid);
+      resolved.tokens.forEach((tk) => tokens.add(tk));
+      docIds.add(cid);
+      resolved.memberDocIds.forEach((mDocId) => docIds.add(mDocId));
+    } catch (_) { }
+  }
+
+  if (tokens.size === 0) {
+    const adminFallback = await resolveVolunteerAdminTokens(db, churchId);
+    adminFallback.tokens.forEach((tk) => tokens.add(tk));
+    adminFallback.adminUids.forEach((uId) => {
+      if (uId && (!excludeMemberId || uId !== excludeMemberId)) {
+        docIds.add(uId);
+      }
+    });
+  }
+
+  if (excludeMemberId) docIds.delete(excludeMemberId);
+  return { tokens: Array.from(tokens), docIds: Array.from(docIds) };
+}
+
+/**
+ * Collects FCM tokens & member doc IDs for all members targeted by a visit.
+ */
+async function resolveVisitTargetMemberRecipients(
+  db: FirebaseFirestore.Firestore,
+  churchId: string,
+  visitData: Record<string, any>
+): Promise<{ tokens: string[]; docIdToPhone: Map<string, string> }> {
+  const responsesMap: Record<string, any> =
+    visitData.responses && typeof visitData.responses === 'object' ? visitData.responses : {};
+  const explicitIds: string[] = Array.isArray(visitData.targetMemberIds)
+    ? Array.from(new Set(visitData.targetMemberIds.map((id: any) => String(id || '').trim()).filter(Boolean)))
+    : [];
+
+  let targetEntries: Array<{ memberId: string; memberPhone?: string }> = [];
+  if (explicitIds.length > 0) {
+    targetEntries = explicitIds.map((mId) => ({
+      memberId: mId,
+      memberPhone: String(responsesMap[mId]?.memberPhone || '').trim(),
+    }));
+  } else if (Object.keys(responsesMap).length > 0) {
+    targetEntries = Object.entries(responsesMap)
+      .map(([k, v]) => ({
+        memberId: String(v?.memberId || k || '').trim(),
+        memberPhone: String(v?.memberPhone || '').trim(),
+      }))
+      .filter((e) => Boolean(e.memberId));
+  } else if (visitData.cellId && visitData.cellId !== 'DIRECT') {
+    const membershipsSnap = await db
+      .collection('churches')
+      .doc(churchId)
+      .collection('careCellMemberships')
+      .where('cellId', '==', visitData.cellId)
+      .where('membershipStatus', '==', 'Active')
+      .get();
+    targetEntries = membershipsSnap.docs
+      .map((d) => ({
+        memberId: String(d.data()?.memberId || '').trim(),
+        memberPhone: String(d.data()?.memberPhone || '').trim(),
+      }))
+      .filter((e) => Boolean(e.memberId));
+  }
+
+  const tokens = new Set<string>();
+  const docIdToPhone = new Map<string, string>();
+  for (const entry of targetEntries) {
+    try {
+      const resolved = await resolveMemberPushTargets(db, churchId, entry.memberId, entry.memberPhone);
+      resolved.tokens.forEach((tk) => tokens.add(tk));
+      docIdToPhone.set(entry.memberId, entry.memberPhone || '');
+      resolved.memberDocIds.forEach((docId) => {
+        if (!docIdToPhone.has(docId)) {
+          docIdToPhone.set(docId, entry.memberPhone || '');
+        }
+      });
+    } catch (_) { }
+  }
+
+  return { tokens: Array.from(tokens), docIdToPhone };
+}
+
+/**
+ * Claims an idempotency key on a visit document so duplicate alerts are never sent.
+ */
+async function claimVisitNotificationKey(
+  visitRef: FirebaseFirestore.DocumentReference,
+  notifDocId: string
+): Promise<boolean> {
+  try {
+    return await visitRef.firestore.runTransaction(async (tx) => {
+      const snap = await tx.get(visitRef);
+      if (!snap.exists) return false;
+      const sentKeys: string[] = Array.isArray(snap.data()?.sentNotificationKeys)
+        ? snap.data()!.sentNotificationKeys
+        : [];
+      if (sentKeys.includes(notifDocId)) return false;
+      tx.update(visitRef, { sentNotificationKeys: FieldValue.arrayUnion(notifDocId) });
+      return true;
+    });
+  } catch (_) {
+    return true;
+  }
+}
+
+/**
+ * Dispatches deduped push + in-app Updates notifications for Visit lifecycle events.
+ */
+async function dispatchVisitLifecycleAlert(params: {
+  db: FirebaseFirestore.Firestore;
+  messaging: ReturnType<typeof getMessaging>;
+  visitRef: FirebaseFirestore.DocumentReference;
+  churchId: string;
+  visitId: string;
+  notifDocId: string;
+  type: string;
+  notifTitle: string;
+  notifBody: string;
+  targetRole: 'admin' | 'member';
+  recipientDocIds: string[];
+  tokens: string[];
+  extraPushData?: Record<string, string>;
+  extraInAppFields?: Record<string, any>;
+}) {
+  const claimed = await claimVisitNotificationKey(params.visitRef, params.notifDocId);
+  if (!claimed) return;
+
+  const isAdminAlert = params.targetRole === 'admin';
+  const pushData: Record<string, string> = {
+    type: params.type,
+    title: params.notifTitle,
+    body: params.notifBody,
+    id: params.notifDocId,
+    visitId: String(params.visitId),
+    relatedId: String(params.visitId),
+    churchId: String(params.churchId),
+    screen: isAdminAlert ? 'AdminRoot' : 'CareCell',
+    ...(isAdminAlert ? { targetTab: 'Care Cells', careCellTab: 'visits' } : { careCellTab: 'visits' }),
+    click_action: 'FLUTTER_NOTIFICATION_CLICK',
+    ...(params.extraPushData || {}),
+  };
+
+  const notifRecord: Record<string, any> = {
+    id: params.notifDocId,
+    type: params.type,
+    title: params.notifTitle,
+    body: params.notifBody,
+    content: params.notifBody,
+    visitId: String(params.visitId),
+    relatedId: String(params.visitId),
+    churchId: String(params.churchId),
+    targetRole: params.targetRole,
+    recipientRole: params.targetRole,
+    targetMemberIds: params.recipientDocIds,
+    careCellTab: 'visits',
+    read: false,
+    createdAt: FieldValue.serverTimestamp(),
+    ...(params.extraInAppFields || {}),
+  };
+
+  const inAppWrites: Promise<any>[] = [];
+  if (isAdminAlert) {
+    inAppWrites.push(
+      params.db
+        .collection('churches')
+        .doc(params.churchId)
+        .collection('notifications')
+        .doc(params.notifDocId)
+        .set(notifRecord, { merge: true })
+    );
+  }
+
+  for (const docId of params.recipientDocIds) {
+    inAppWrites.push(
+      params.db
+        .collection('churches')
+        .doc(params.churchId)
+        .collection('members')
+        .doc(docId)
+        .collection('notifications')
+        .doc(params.notifDocId)
+        .set(
+          {
+            ...notifRecord,
+            targetMemberId: docId,
+            recipientId: docId,
+          },
+          { merge: true }
+        )
+    );
+  }
+
+  const pushPromise =
+    params.tokens.length > 0
+      ? sendHighPriorityPush(params.messaging, params.tokens, params.notifTitle, params.notifBody, pushData, 'church_alerts')
+      : Promise.resolve({ successCount: 0, failureCount: 0 });
+
+  await Promise.all([Promise.allSettled(inAppWrites), pushPromise]);
+}
+
+/**
+ * 🔔 CARE CELL VISIT LIFECYCLE TRIGGER
+ * Fires for Confirmed / Declined member responses, plus Completed & Cancelled status transitions.
  */
 export const onCareCellVisitUpdated = onDocumentUpdated(
   { document: 'churches/{churchId}/careCellVisits/{visitId}', region: 'asia-south1' },
@@ -2062,16 +2305,9 @@ export const onCareCellVisitUpdated = onDocumentUpdated(
 
     const visitId = event.params.visitId;
     const churchId = event.params.churchId;
+    const visitRef = event.data!.after.ref;
     const beforeResponses: Record<string, any> = beforeData.responses || {};
     const afterResponses: Record<string, any> = afterData.responses || {};
-
-    const newlyDeclined = Object.entries(afterResponses).filter(([key, afterVal]) => {
-      const afterStatus = String(afterVal?.response || '').trim();
-      const beforeStatus = String(beforeResponses[key]?.response || '').trim();
-      return afterStatus === 'Declined' && beforeStatus !== 'Declined';
-    });
-
-    if (newlyDeclined.length === 0) return;
 
     const db = getFirestore();
     const messaging = getMessaging();
@@ -2085,19 +2321,18 @@ export const onCareCellVisitUpdated = onDocumentUpdated(
       ? afterData.visitors.filter(Boolean).join(', ')
       : String(afterData.visitors || 'Visiting Team').trim();
 
-    let cellData: any = null;
-    if (cellId) {
-      try {
-        const cellDoc = await db.collection('churches').doc(churchId).collection('careCells').doc(cellId).get();
-        if (cellDoc.exists) cellData = cellDoc.data() || null;
-      } catch (_) { }
-    }
-
     const dateDisplay = formatVisitDateText(visitDate);
     const timeDisplay = formatVisitTimeText(visitTime);
     const schedulePart = dateDisplay && timeDisplay
       ? `${dateDisplay} at ${timeDisplay}`
       : dateDisplay || timeDisplay || 'Scheduled Date';
+
+    // 1. Member Declined responses -> Assigned Admin/Leader
+    const newlyDeclined = Object.entries(afterResponses).filter(([key, afterVal]) => {
+      const afterStatus = String(afterVal?.response || '').trim();
+      const beforeStatus = String(beforeResponses[key]?.response || '').trim();
+      return afterStatus === 'Declined' && beforeStatus !== 'Declined';
+    });
 
     for (const [respKey, declInfo] of newlyDeclined) {
       try {
@@ -2107,48 +2342,7 @@ export const onCareCellVisitUpdated = onDocumentUpdated(
         const declineNotes = String(declInfo?.notes || '').trim();
         const declinerLast10 = normalizeLast10(declinerPhone);
 
-        const candidateResponsibleIds = new Set<string>();
-        const addCandidate = (id?: any) => {
-          const val = String(id || '').trim();
-          if (!val || val === declinerId) return;
-          candidateResponsibleIds.add(val);
-        };
-
-        addCandidate(afterData.createdBy);
-        if (Array.isArray(afterData.assignedAdminIds)) {
-          afterData.assignedAdminIds.forEach(addCandidate);
-        }
-        if (cellData) {
-          if (Array.isArray(cellData.assignedAdminIds)) {
-            cellData.assignedAdminIds.forEach(addCandidate);
-          }
-          addCandidate(cellData.leaderId);
-          addCandidate(cellData.assistantLeaderId);
-        }
-
-        const concernedTokens = new Set<string>();
-        const concernedDocIds = new Set<string>();
-
-        for (const candidateId of candidateResponsibleIds) {
-          try {
-            const resolved = await resolveMemberPushTargets(db, churchId, candidateId);
-            resolved.tokens.forEach((tk) => concernedTokens.add(tk));
-            concernedDocIds.add(candidateId);
-            resolved.memberDocIds.forEach((mDocId) => concernedDocIds.add(mDocId));
-          } catch (_) { }
-        }
-
-        // Only fall back to church admins if no explicit creator/responsible person had a resolvable target
-        if (concernedTokens.size === 0) {
-          const adminFallback = await resolveVolunteerAdminTokens(db, churchId);
-          adminFallback.tokens.forEach((tk) => concernedTokens.add(tk));
-          adminFallback.adminUids.forEach((uId) => {
-            if (uId && uId !== declinerId) concernedDocIds.add(uId);
-          });
-        }
-
-        concernedDocIds.delete(declinerId);
-
+        const responsible = await resolveVisitResponsibleTargets(db, churchId, afterData, declinerId);
         const safeKey = (declinerId || 'member').replace(/[^a-zA-Z0-9_-]/g, '').slice(-24) || 'member';
         const notifDocId = `cc_visit_decline_${visitId}_${safeKey}`;
         const notifTitle = `❌ Visit Declined: ${declinerName}`;
@@ -2156,88 +2350,246 @@ export const onCareCellVisitUpdated = onDocumentUpdated(
         const phonePart = declinerPhone ? ` (${declinerPhone})` : '';
         const notifBody = `${declinerName}${phonePart} declined the ${cellName} visit (${title}) scheduled for ${schedulePart} with ${visitors}.${reasonPart}`;
 
-        const pushData: Record<string, string> = {
+        await dispatchVisitLifecycleAlert({
+          db,
+          messaging,
+          visitRef,
+          churchId,
+          visitId,
+          notifDocId,
           type: 'care_cell_visit_declined',
-          title: notifTitle,
-          body: notifBody,
-          id: notifDocId,
-          visitId: String(visitId),
-          relatedId: String(visitId),
-          cellId,
-          cellName,
-          churchId: String(churchId),
-          visitDate,
-          visitTime,
-          visitors,
-          declinedByMemberId: declinerId,
-          declinedByMemberName: declinerName,
-          declinedByMemberPhone: declinerPhone,
-          declineNotes,
-          screen: 'AdminRoot',
-          targetTab: 'Care Cells',
-          careCellTab: 'visits',
-          click_action: 'FLUTTER_NOTIFICATION_CLICK',
-        };
-
-        const notifRecord: Record<string, any> = {
-          id: notifDocId,
-          type: 'care_cell_visit_declined',
-          title: notifTitle,
-          body: notifBody,
-          content: notifBody,
-          visitId: String(visitId),
-          relatedId: String(visitId),
-          cellId,
-          cellName,
-          visitTitle: title,
-          visitDate,
-          visitTime,
-          visitors,
-          declinedByMemberId: declinerId,
-          declinedByMemberName: declinerName,
-          declinedByMemberPhone: declinerPhone,
-          declineNotes,
-          declinerPhoneLast10: declinerLast10,
-          churchId: String(churchId),
+          notifTitle,
+          notifBody,
           targetRole: 'admin',
-          recipientRole: 'admin',
-          targetMemberIds: Array.from(concernedDocIds),
-          careCellTab: 'visits',
-          read: false,
-          createdAt: FieldValue.serverTimestamp(),
-        };
-
-        const inAppWrites: Promise<any>[] = [
-          db
-            .collection('churches')
-            .doc(churchId)
-            .collection('notifications')
-            .doc(notifDocId)
-            .set(notifRecord, { merge: true }),
-        ];
-
-        concernedDocIds.forEach((docId) => {
-          inAppWrites.push(
-            db
-              .collection('churches')
-              .doc(churchId)
-              .collection('members')
-              .doc(docId)
-              .collection('notifications')
-              .doc(notifDocId)
-              .set(notifRecord, { merge: true })
-          );
+          recipientDocIds: responsible.docIds,
+          tokens: responsible.tokens,
+          extraPushData: {
+            cellId,
+            cellName,
+            visitDate,
+            visitTime,
+            visitors,
+            declinedByMemberId: declinerId,
+            declinedByMemberName: declinerName,
+            declinedByMemberPhone: declinerPhone,
+            declineNotes,
+          },
+          extraInAppFields: {
+            cellId,
+            cellName,
+            visitTitle: title,
+            visitDate,
+            visitTime,
+            visitors,
+            declinedByMemberId: declinerId,
+            declinedByMemberName: declinerName,
+            declinedByMemberPhone: declinerPhone,
+            declineNotes,
+            declinerPhoneLast10: declinerLast10,
+          },
         });
-
-        const tokenList = Array.from(concernedTokens);
-        const pushPromise =
-          tokenList.length > 0
-            ? sendHighPriorityPush(messaging, tokenList, notifTitle, notifBody, pushData, 'church_alerts')
-            : Promise.resolve({ successCount: 0, failureCount: 0 });
-
-        await Promise.all([Promise.allSettled(inAppWrites), pushPromise]);
       } catch (err) {
         console.error('Error processing care cell visit decline notification:', err);
+      }
+    }
+
+    // 2. Member Confirmed responses -> Assigned Admin/Leader
+    const newlyAccepted = Object.entries(afterResponses).filter(([key, afterVal]) => {
+      const afterStatus = String(afterVal?.response || '').trim();
+      const beforeStatus = String(beforeResponses[key]?.response || '').trim();
+      return afterStatus === 'Accepted' && beforeStatus !== 'Accepted';
+    });
+
+    for (const [respKey, accInfo] of newlyAccepted) {
+      try {
+        const accepterId = String(accInfo?.memberId || respKey || '').trim();
+        const accepterName = String(accInfo?.memberName || 'A Member').trim();
+        const responsible = await resolveVisitResponsibleTargets(db, churchId, afterData, accepterId);
+        const safeKey = (accepterId || 'member').replace(/[^a-zA-Z0-9_-]/g, '').slice(-24) || 'member';
+        const notifDocId = `cc_visit_confirm_${visitId}_${safeKey}`;
+        const notifTitle = `✅ Visit Confirmed: ${accepterName}`;
+        const notifBody = `${accepterName} confirmed availability for the ${cellName} visit (${title}) on ${schedulePart}.`;
+
+        await dispatchVisitLifecycleAlert({
+          db,
+          messaging,
+          visitRef,
+          churchId,
+          visitId,
+          notifDocId,
+          type: 'care_cell_visit_confirmed',
+          notifTitle,
+          notifBody,
+          targetRole: 'admin',
+          recipientDocIds: responsible.docIds,
+          tokens: responsible.tokens,
+          extraPushData: { cellId, cellName, visitDate, visitTime, confirmedByMemberName: accepterName },
+          extraInAppFields: { cellId, cellName, visitTitle: title, visitDate, visitTime, confirmedByMemberId: accepterId, confirmedByMemberName: accepterName },
+        });
+      } catch (err) {
+        console.error('Error processing care cell visit confirmation notification:', err);
+      }
+    }
+
+    // 3. Visit Status transitions (Completed -> Admin, Cancelled -> Member)
+    const beforeVisitStatus = String(beforeData.status || '').trim();
+    const afterVisitStatus = String(afterData.status || '').trim();
+
+    if (afterVisitStatus === 'Completed' && beforeVisitStatus !== 'Completed') {
+      try {
+        const responsible = await resolveVisitResponsibleTargets(db, churchId, afterData);
+        const notifDocId = `cc_visit_completed_${visitId}`;
+        const notifTitle = `🏠 Visit Completed: ${title}`;
+        const notifBody = `${cellName} visit (${title}) scheduled for ${schedulePart} with ${visitors} has been marked Completed.`;
+
+        await dispatchVisitLifecycleAlert({
+          db,
+          messaging,
+          visitRef,
+          churchId,
+          visitId,
+          notifDocId,
+          type: 'care_cell_visit_completed',
+          notifTitle,
+          notifBody,
+          targetRole: 'admin',
+          recipientDocIds: responsible.docIds,
+          tokens: responsible.tokens,
+          extraPushData: { cellId, cellName, visitDate, visitTime },
+          extraInAppFields: { cellId, cellName, visitTitle: title, visitDate, visitTime, visitors },
+        });
+      } catch (err) {
+        console.error('Error processing care cell visit completed notification:', err);
+      }
+    }
+
+    if (afterVisitStatus === 'Cancelled' && beforeVisitStatus !== 'Cancelled') {
+      try {
+        const recipients = await resolveVisitTargetMemberRecipients(db, churchId, afterData);
+        const notifDocId = `cc_visit_cancelled_${visitId}`;
+        const notifTitle = `🚫 Visit Cancelled: ${title}`;
+        const notifBody = `Your ${cellName} visit (${title}) on ${schedulePart} has been cancelled. Contact your Care Cell leader for details.`;
+
+        await dispatchVisitLifecycleAlert({
+          db,
+          messaging,
+          visitRef,
+          churchId,
+          visitId,
+          notifDocId,
+          type: 'care_cell_visit_cancelled',
+          notifTitle,
+          notifBody,
+          targetRole: 'member',
+          recipientDocIds: Array.from(recipients.docIdToPhone.keys()),
+          tokens: recipients.tokens,
+          extraPushData: { cellId, cellName, visitDate, visitTime },
+          extraInAppFields: { cellId, cellName, visitTitle: title, visitDate, visitTime, visitors },
+        });
+      } catch (err) {
+        console.error('Error processing care cell visit cancelled notification:', err);
+      }
+    }
+  }
+);
+
+/**
+ * ⏰ SCHEDULED CARE CELL VISIT REMINDERS
+ * Runs every 2 hours (Asia/Kolkata) to send deduplicated reminders for visits occurring today or tomorrow.
+ */
+export const sendCareCellVisitReminders = onSchedule(
+  { schedule: '0 */2 * * *', timeZone: 'Asia/Kolkata', region: 'asia-south1' },
+  async () => {
+    const db = getFirestore();
+    const messaging = getMessaging();
+
+    const nowIst = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    const todayStr = nowIst.toISOString().slice(0, 10);
+    const tomorrowIst = new Date(nowIst.getTime() + 24 * 60 * 60 * 1000);
+    const tomorrowStr = tomorrowIst.toISOString().slice(0, 10);
+
+    const churchesSnap = await db.collection('churches').get();
+    for (const churchDoc of churchesSnap.docs) {
+      const churchId = churchDoc.id;
+      try {
+        const visitsSnap = await db
+          .collection('churches')
+          .doc(churchId)
+          .collection('careCellVisits')
+          .where('visitDate', '>=', todayStr)
+          .where('visitDate', '<=', tomorrowStr)
+          .get();
+
+        for (const vDoc of visitsSnap.docs) {
+          const v = vDoc.data() || {};
+          const st = String(v.status || '');
+          if (!['Scheduled', 'Awaiting Confirmation', 'Confirmed'].includes(st)) continue;
+          if (v.reminderSent === true) continue;
+
+          let claimedReminder = false;
+          try {
+            claimedReminder = await db.runTransaction(async (tx) => {
+              const fresh = await tx.get(vDoc.ref);
+              if (!fresh.exists || fresh.data()?.reminderSent === true) return false;
+              tx.update(vDoc.ref, {
+                reminderSent: true,
+                reminderSentAt: FieldValue.serverTimestamp(),
+              });
+              return true;
+            });
+          } catch (_) {
+            claimedReminder = false;
+          }
+          if (!claimedReminder) continue;
+
+          const cellName = String(v.cellName || 'Care Cell').trim();
+          const title = String(v.title || 'Pastoral Home Visit').trim();
+          const visitDate = String(v.visitDate || '');
+          const visitTime = String(v.visitTime || '');
+          const schedulePart = `${formatVisitDateText(visitDate)}${visitTime ? ` at ${formatVisitTimeText(visitTime)}` : ''}`;
+
+          const [memberRecipients, leaderRecipients] = await Promise.all([
+            resolveVisitTargetMemberRecipients(db, churchId, v),
+            resolveVisitResponsibleTargets(db, churchId, v),
+          ]);
+
+          await Promise.all([
+            dispatchVisitLifecycleAlert({
+              db,
+              messaging,
+              visitRef: vDoc.ref,
+              churchId,
+              visitId: vDoc.id,
+              notifDocId: `cc_visit_rem_member_${vDoc.id}`,
+              type: 'care_cell_visit_reminder',
+              notifTitle: `⏰ Visit Reminder: ${title}`,
+              notifBody: `Reminder: ${cellName} visit is scheduled for ${schedulePart}.`,
+              targetRole: 'member',
+              recipientDocIds: Array.from(memberRecipients.docIdToPhone.keys()),
+              tokens: memberRecipients.tokens,
+              extraPushData: { cellId: String(v.cellId || ''), cellName, visitDate, visitTime },
+              extraInAppFields: { cellId: String(v.cellId || ''), cellName, visitTitle: title, visitDate, visitTime },
+            }),
+            dispatchVisitLifecycleAlert({
+              db,
+              messaging,
+              visitRef: vDoc.ref,
+              churchId,
+              visitId: vDoc.id,
+              notifDocId: `cc_visit_rem_leader_${vDoc.id}`,
+              type: 'care_cell_visit_reminder',
+              notifTitle: `⏰ Upcoming Pastoral Visit: ${title}`,
+              notifBody: `Reminder: You have a ${cellName} visit (${title}) on ${schedulePart}.`,
+              targetRole: 'admin',
+              recipientDocIds: leaderRecipients.docIds,
+              tokens: leaderRecipients.tokens,
+              extraPushData: { cellId: String(v.cellId || ''), cellName, visitDate, visitTime },
+              extraInAppFields: { cellId: String(v.cellId || ''), cellName, visitTitle: title, visitDate, visitTime },
+            }),
+          ]);
+        }
+      } catch (err) {
+        console.warn(`Visit reminder scan failed for church ${churchId}:`, err);
       }
     }
   }

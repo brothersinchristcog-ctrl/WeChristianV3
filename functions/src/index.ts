@@ -1731,4 +1731,5 @@ export * from './verseBackgrounds.js';
 export * from './vouchers.js';
 export * from './rosterNotifications.js';
 export * from './chatNotifications.js';
+export * from './memberLocations.js';
 

@@ -312,7 +312,9 @@ class NotificationService {
           });
           break;
         }
-        case 'care_cell_visit_declined': {
+        case 'care_cell_visit_declined':
+        case 'care_cell_visit_confirmed':
+        case 'care_cell_visit_completed': {
           navigateToAdmin({
             targetTab: 'Care Cells',
             careCellTab: rawData.careCellTab || 'visits',
@@ -322,12 +324,26 @@ class NotificationService {
           });
           break;
         }
+        case 'care_cell_visit_reminder':
+        case 'care_cell_visit_cancelled':
         case 'care_cell_visit':
         case 'care_cell_meeting':
         case 'care_cell_announcement':
         case 'care_cell_prayer': {
+          if (type === 'care_cell_visit_reminder' && rawData.screen === 'AdminRoot') {
+            navigateToAdmin({
+              targetTab: 'Care Cells',
+              careCellTab: 'visits',
+              cellId: rawData.cellId,
+              visitId: rawData.visitId || id,
+              timestamp: Date.now(),
+            });
+            break;
+          }
           const initialTab =
-            type === 'care_cell_visit'
+            type === 'care_cell_visit' ||
+            type === 'care_cell_visit_reminder' ||
+            type === 'care_cell_visit_cancelled'
               ? 'visits'
               : type === 'care_cell_prayer'
               ? 'prayers'
