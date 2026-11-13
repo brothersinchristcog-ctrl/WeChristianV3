@@ -80,8 +80,9 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
   const [activeSegment, setActiveSegment] = useState<TabType>(initialSubtype === 'event' ? 'event' : 'general');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [applications, setApplications] = useState<VolunteerApplication[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedAdminVolApps = VolunteerService.getCachedAdminApplications(activeChurch?.id || 'default');
+  const [applications, setApplications] = useState<VolunteerApplication[]>(cachedAdminVolApps || []);
+  const [loading, setLoading] = useState(!cachedAdminVolApps);
   const [refreshing, setRefreshing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -139,7 +140,7 @@ export default function AdminVolunteerManagement({ navigation, route, routeParam
   };
 
   useEffect(() => {
-    setLoading(true);
+    if (!VolunteerService.getCachedAdminApplications(churchId)) setLoading(true);
     const unsub = fetchApplications();
     return () => unsub();
   }, [churchId, targetAppId]);

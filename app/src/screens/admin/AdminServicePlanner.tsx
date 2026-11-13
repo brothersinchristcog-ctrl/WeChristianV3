@@ -194,17 +194,20 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
   // Navigation / Tab state: 'calendar', 'builder', 'setlist', 'queue', 'teams', 'skills', 'templates'
   const [activePlannerTab, setActivePlannerTab] = useState<'calendar' | 'builder' | 'setlist' | 'queue' | 'teams' | 'skills' | 'templates'>('calendar');
 
+  const cachedPlansInit = ServiceRosterService.getCachedServicePlans(churchId);
+  const cachedRosterMembers = FirestoreService.getCachedSync<any[]>('members_all', churchId);
+  const cachedRosterSongs = FirestoreService.getWorshipSongsCachedSync(churchId);
   // Service Plans state
-  const [plans, setPlans] = useState<ServicePlan[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [plans, setPlans] = useState<ServicePlan[]>(cachedPlansInit || []);
+  const [loading, setLoading] = useState(!cachedPlansInit);
   const [refreshing, setRefreshing] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<ServicePlan | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<ServicePlan | null>(cachedPlansInit && cachedPlansInit.length > 0 ? cachedPlansInit[0] : null);
 
   // Church Members state
-  const [churchMembers, setChurchMembers] = useState<any[]>([]);
+  const [churchMembers, setChurchMembers] = useState<any[]>(cachedRosterMembers || []);
 
   // Church Songs Library state (Phase 3)
-  const [churchSongs, setChurchSongs] = useState<WorshipSong[]>([]);
+  const [churchSongs, setChurchSongs] = useState<WorshipSong[]>(cachedRosterSongs || []);
   const [loadingSongs, setLoadingSongs] = useState(false);
   const [songLibrarySearch, setSongLibrarySearch] = useState('');
   const [showSongPickerModal, setShowSongPickerModal] = useState(false);
@@ -540,7 +543,7 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
 
   const fetchPlans = async (): Promise<ServicePlan[]> => {
     try {
-      setLoading(true);
+      if (plans.length === 0) setLoading(true);
       const data = await ServiceRosterService.getServicePlans(churchId);
       setPlans(data);
       if (data.length > 0) {

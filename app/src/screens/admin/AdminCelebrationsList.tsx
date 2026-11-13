@@ -36,7 +36,7 @@ const MemberAvatar = ({ member, initials, styles, bgColor }: any) => {
 
 export default function AdminCelebrationsList({ category, activeTab, onSelectMember }: { category: string, activeTab: string, onSelectMember: (member: any) => void }) {
   const { activeChurch } = useChurch();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !FirestoreService.getCachedSync('celebrations_all'));
   const [isSendingAll, setIsSendingAll] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [members, setMembers] = useState<any[]>([]);

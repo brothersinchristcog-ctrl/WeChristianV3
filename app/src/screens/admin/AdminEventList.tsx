@@ -47,9 +47,10 @@ const FONTS = {
 export default function AdminEventList() {
   const navigation = useNavigation<any>();
   const { setActiveTab, setEditingData, setTabByName } = useContext(AdminTabContext);
-  const [events, setEvents] = useState<any[]>([]);
+  const cachedEventsInit = FirestoreService.getCachedSync<any[]>('events_all');
+  const [events, setEvents] = useState<any[]>(cachedEventsInit || []);
   const [filterType, setFilterType] = useState<'Upcoming' | 'Past' | 'Published'>('Upcoming');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedEventsInit);
   const [eventToDelete, setEventToDelete] = useState<any>(null);
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const [selectedPollEvent, setSelectedPollEvent] = useState<any>(null);
@@ -59,10 +60,9 @@ export default function AdminEventList() {
   }, []);
 
   const fetchEvents = async () => {
-    setLoading(true);
+    if (events.length === 0) setLoading(true);
     try {
       const data = await FirestoreService.getEvents();
-      console.log('📊 [AdminEventList] Fetched Events:', JSON.stringify(data.slice(0, 2), null, 2));
       setEvents(data);
     } catch (err) {
       console.error(err);

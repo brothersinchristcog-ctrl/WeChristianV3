@@ -385,6 +385,22 @@ class ServiceRosterService {
   /**
    * Reference helper for multi-tenant church scoped root collection (`churches/{churchId}`)
    */
+  private _plansCache = new Map<string, { data: ServicePlan[]; ts: number }>();
+  private _teamsCache = new Map<string, { data: MinistryTeam[]; ts: number }>();
+  private _skillsCache = new Map<string, { data: MemberSkillRecord[]; ts: number }>();
+
+  getCachedServicePlans(churchId: string): ServicePlan[] | null {
+    return this._plansCache.get(churchId)?.data || null;
+  }
+
+  getCachedMinistryTeams(churchId: string): MinistryTeam[] | null {
+    return this._teamsCache.get(churchId)?.data || null;
+  }
+
+  getCachedMemberSkills(churchId: string): MemberSkillRecord[] | null {
+    return this._skillsCache.get(churchId)?.data || null;
+  }
+
   private getServicePlansCol(churchId: string) {
     return firestore()
       .collection(CHURCHES_COLLECTION)
@@ -464,11 +480,26 @@ class ServiceRosterService {
   ): Promise<ServicePlan[]> {
     if (!churchId?.trim()) return [];
     try {
-      const snap = await this.getServicePlansCol(churchId).get();
-      let list = snap.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data()
-      })) as ServicePlan[];
+      const cached = this._plansCache.get(churchId);
+      const now = Date.now();
+      const loadAll = async () => {
+        const snap = await this.getServicePlansCol(churchId).get();
+        const items = snap.docs.map((doc: any) => ({
+          id: doc.id,
+          ...doc.data()
+        })) as ServicePlan[];
+        this._plansCache.set(churchId, { data: items, ts: Date.now() });
+        return items;
+      };
+      let list: ServicePlan[];
+      if (cached && now - cached.ts < 30_000) {
+        list = [...cached.data];
+      } else if (cached && now - cached.ts < 600_000) {
+        list = [...cached.data];
+        loadAll().catch(() => {});
+      } else {
+        list = await loadAll();
+      }
 
       if (filter?.status) {
         list = list.filter(p => p.status === filter.status);
@@ -547,6 +578,7 @@ class ServiceRosterService {
     }
   ): Promise<ServicePlan[]> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const plansCol = this.getServicePlansCol(targetChurch);
     const createdPlans: ServicePlan[] = [];
 
@@ -701,12 +733,14 @@ class ServiceRosterService {
     });
 
     await docRef.update(payload);
+    this._plansCache.delete(this.requireChurchId(churchId));
   }
 
   /**
    * Delete a service plan and its assignmentQueues / rehearsals / volunteerAttendance subcollections
    */
   async deleteServicePlan(churchId: string, planId: string): Promise<void> {
+    this._plansCache.delete(this.requireChurchId(churchId));
     const planRef = this.getServicePlansCol(churchId).doc(planId);
     const subcollections = ['assignmentQueues', 'rehearsals', 'volunteerAttendance'];
 
@@ -733,6 +767,7 @@ class ServiceRosterService {
   async publishServiceRosterBroadcast(churchId: string, planId: string): Promise<void> {
     try {
       const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
       const planDoc = await this.getServicePlansCol(targetChurch).doc(planId).get();
       if (!this.docExists(planDoc)) return;
       const plan = planDoc.data() as ServicePlan;
@@ -990,6 +1025,7 @@ class ServiceRosterService {
    */
   async createServiceTemplate(churchId: string, template: Partial<ServiceTemplate>): Promise<ServiceTemplate> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const col = this.getServiceTemplatesCol(targetChurch);
     const newDoc = col.doc();
 
@@ -1111,6 +1147,7 @@ class ServiceRosterService {
    */
   async createMinistryTeam(churchId: string, team: Partial<MinistryTeam>): Promise<MinistryTeam> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const col = this.getMinistryTeamsCol(targetChurch);
     const docRef = team.id ? col.doc(team.id) : col.doc();
 
@@ -1219,6 +1256,7 @@ class ServiceRosterService {
    */
   async seedDefaultMinistryTeams(churchId: string): Promise<MinistryTeam[]> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const col = this.getMinistryTeamsCol(targetChurch);
     const seeded: MinistryTeam[] = [];
 
@@ -1282,6 +1320,7 @@ class ServiceRosterService {
    */
   async addOrUpdateMemberSkill(churchId: string, skill: Partial<MemberSkillRecord>): Promise<MemberSkillRecord> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const col = this.getMemberSkillsCol(targetChurch);
     const docId = skill.id || `${skill.memberId}_${(skill.skillName || '').toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
     const docRef = col.doc(docId);
@@ -1360,6 +1399,7 @@ class ServiceRosterService {
    */
   async saveMemberAvailability(churchId: string, record: Partial<MemberAvailabilityRecord>): Promise<void> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const targetMonth = record.monthYear || new Date().toISOString().slice(0, 7);
     const docId = `${record.memberId}_${targetMonth}`;
     const docRef = this.getMemberAvailabilityCol(targetChurch).doc(docId);
@@ -1610,6 +1650,7 @@ class ServiceRosterService {
     }
   ): Promise<void> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     if (!params.candidates || params.candidates.length === 0) {
       throw new Error('At least one candidate is required to dispatch an assignment queue.');
     }
@@ -1741,6 +1782,7 @@ class ServiceRosterService {
     serviceId: string
   ): Promise<{ dispatchedCount: number; emptyCount: number }> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const planDoc = await this.getServicePlansCol(targetChurch).doc(serviceId).get();
     if (!this.docExists(planDoc)) throw new Error('Service plan not found.');
     const plan = planDoc.data() as ServicePlan;
@@ -2223,6 +2265,7 @@ class ServiceRosterService {
     notes?: string
   ): Promise<void> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const queueRef = this.getAssignmentQueuesCol(targetChurch, serviceId).doc(roleId);
     const planRef = this.getServicePlansCol(targetChurch).doc(serviceId);
 
@@ -2671,6 +2714,7 @@ class ServiceRosterService {
 
   async createOrUpdateRehearsal(churchId: string, serviceId: string, rehearsal: Partial<ServiceRehearsal>): Promise<void> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const col = this.getRehearsalsCol(targetChurch, serviceId);
     const docId = rehearsal.id || col.doc().id;
     await col.doc(docId).set(this.sanitizeForFirestore({
@@ -2736,6 +2780,7 @@ class ServiceRosterService {
     record: Partial<VolunteerAttendanceRecord>
   ): Promise<void> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const docId = `${serviceId}_${record.memberId}_${record.roleId || 'role'}`;
     await this.getAttendanceCol(targetChurch, serviceId).doc(docId).set(this.sanitizeForFirestore({
       id: docId,
@@ -2759,6 +2804,7 @@ class ServiceRosterService {
     records: Array<Partial<VolunteerAttendanceRecord>>
   ): Promise<void> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const batch = firestore().batch();
     const col = this.getAttendanceCol(targetChurch, serviceId);
 
@@ -3365,6 +3411,7 @@ class ServiceRosterService {
     reason?: string
   ): Promise<void> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const col = this.getMemberAvailabilityCol(targetChurch);
     const existingSnap = await col.where('memberId', '==', memberId).limit(1).get();
 
@@ -4120,6 +4167,7 @@ class ServiceRosterService {
     colorPreset?: { bg: string; text: string }
   ): Promise<ActivityCategoryDef> {
     const targetChurch = this.requireChurchId(churchId);
+    this._plansCache.delete(targetChurch);
     const cleanLabel = (label || '').trim();
     if (!cleanLabel) {
       throw new Error('Please enter a category name.');

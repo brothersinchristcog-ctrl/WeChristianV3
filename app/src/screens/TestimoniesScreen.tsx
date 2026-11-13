@@ -117,11 +117,13 @@ export default function TestimoniesScreen({ route, navigation }: any) {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(initialTab);
 
+  const cachedPublicFeed = TestimonyService.getCachedPublicFeed(activeChurchId);
+  const cachedMyTestimonies = user?.uid ? TestimonyService.getCachedMyTestimonies(activeChurchId, user.uid) : null;
   // Feed & My Testimonies lists
-  const [publicFeed, setPublicFeed] = useState<Testimony[]>([]);
-  const [myTestimonies, setMyTestimonies] = useState<Testimony[]>([]);
-  const [loadingFeed, setLoadingFeed] = useState(true);
-  const [loadingMine, setLoadingMine] = useState(true);
+  const [publicFeed, setPublicFeed] = useState<Testimony[]>(cachedPublicFeed || []);
+  const [myTestimonies, setMyTestimonies] = useState<Testimony[]>(cachedMyTestimonies || []);
+  const [loadingFeed, setLoadingFeed] = useState(!cachedPublicFeed);
+  const [loadingMine, setLoadingMine] = useState(!cachedMyTestimonies);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>('All');
 
@@ -166,7 +168,7 @@ export default function TestimoniesScreen({ route, navigation }: any) {
   const [showSuccessModal, setShowSuccessModal] = useState<boolean>(false);
 
   useEffect(() => {
-    setLoadingFeed(true);
+    if (!TestimonyService.getCachedPublicFeed(activeChurchId)) setLoadingFeed(true);
     const unsubFeed = TestimonyService.subscribeToPublicFeed(
       activeChurchId,
       (items) => {
@@ -185,7 +187,7 @@ export default function TestimoniesScreen({ route, navigation }: any) {
       setLoadingMine(false);
       return;
     }
-    setLoadingMine(true);
+    if (!TestimonyService.getCachedMyTestimonies(activeChurchId, user.uid)) setLoadingMine(true);
     const unsubMine = TestimonyService.subscribeToMyTestimonies(
       activeChurchId,
       user.uid,

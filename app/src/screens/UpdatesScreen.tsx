@@ -151,7 +151,11 @@ export default function UpdatesScreen({ navigation, route }: any) {
     return trans && trans !== `updates.types.${type}` ? trans.toUpperCase() : type.toUpperCase();
   };
 
-  const [dynamicUpdates, setDynamicUpdates] = useState<any[]>([]);
+  const cachedUpdatesInit = (() => {
+    const cacheMap = (globalThis as any).__updatesScreenCache;
+    return Array.isArray(cacheMap) ? cacheMap : [];
+  })();
+  const [dynamicUpdates, setDynamicUpdates] = useState<any[]>(cachedUpdatesInit);
   const [broadcastsList, setBroadcastsList] = useState<any[]>([]);
   const [churchNotifsList, setChurchNotifsList] = useState<any[]>([]);
   const [meetingsList, setMeetingsList] = useState<any[]>([]);
@@ -207,10 +211,13 @@ export default function UpdatesScreen({ navigation, route }: any) {
 
       return true;
     });
+    if (deduplicated.length > 0) {
+      (globalThis as any).__updatesScreenCache = deduplicated;
+    }
     setDynamicUpdates(deduplicated);
   }, [broadcastsList, churchNotifsList, meetingsList, memberNotifsList]);
   const [selectedUpdate, setSelectedUpdate] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(cachedUpdatesInit.length === 0);
   const [hasAutoOpened, setHasAutoOpened] = useState(false);
   const [deletedIds, setDeletedIds] = useState<string[]>([]);
   const { user, member, viewMode, setViewMode, isPlatformSuperAdmin } = useAuth();

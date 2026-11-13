@@ -494,7 +494,7 @@ function TabNavigator() {
       <Tab.Navigator
         key={language}
         tabBar={(props) => <CustomTabBar key={language} {...props} />}
-        screenOptions={{ headerShown: false }}
+        screenOptions={{ headerShown: false, lazy: false }}
       >
       <Tab.Screen 
         name="Home" 

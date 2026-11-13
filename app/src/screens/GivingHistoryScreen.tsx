@@ -52,8 +52,15 @@ export default function GivingHistoryScreen({ navigation }: any) {
   const { activeChurch } = useChurch();
   const { t, language } = useLanguage();
   
-  const [donations, setDonations] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedMemberDon = user?.phoneNumber
+    ? FirestoreService.getCachedSync<any[]>(`member_donations_${user.phoneNumber}`)
+    : null;
+  const initialFilteredDon = cachedMemberDon ? cachedMemberDon.filter(d => {
+    const st = (d.status || '').toLowerCase();
+    return st === 'success' || st === 'approved' || st === 'paid' || st === 'confirmed' || !d.status;
+  }) : [];
+  const [donations, setDonations] = useState<any[]>(initialFilteredDon);
+  const [loading, setLoading] = useState(!cachedMemberDon);
   const [activeFilter, setActiveFilter] = useState('All');
   
   const [selectedDonation, setSelectedDonation] = useState<any | null>(null);
@@ -76,7 +83,7 @@ export default function GivingHistoryScreen({ navigation }: any) {
       return;
     }
     
-    setLoading(true);
+    if (donations.length === 0) setLoading(true);
     try {
       const history = await FirestoreService.getMemberDonations(user.phoneNumber);
       const successful = history.filter(d => {

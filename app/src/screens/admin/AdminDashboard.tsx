@@ -191,7 +191,7 @@ const AnimatedParticle = ({ left, size, duration, delay, color, opacity }: any) 
   );
 };
 
-export default function AdminDashboard({ navigation, allTabs = [] }: any) {
+const AdminDashboard = React.memo(function AdminDashboard({ navigation, allTabs = [] }: any) {
   const { setActiveTab, dashboardScrollY, setDashboardScrollY } = useContext(AdminTabContext);
   const { member, user, signOut, setViewMode } = useAuth();
   const { activeChurch } = useChurch();
@@ -621,7 +621,7 @@ export default function AdminDashboard({ navigation, allTabs = [] }: any) {
       </ScrollView>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F4F0EA' }, // Warm beige backdrop
@@ -762,3 +762,5 @@ const styles = StyleSheet.create({
     fontFamily: FONTS.sans,
   }
 });
+
+export default AdminDashboard;

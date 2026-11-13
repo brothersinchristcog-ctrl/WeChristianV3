@@ -8,6 +8,18 @@ import {
 } from '../types/volunteer';
 
 class VolunteerService {
+  private _myAppsCache = new Map<string, VolunteerApplication[]>();
+  private _adminAppsCache = new Map<string, VolunteerApplication[]>();
+
+  getCachedMyApplications(churchId: string, memberId: string): VolunteerApplication[] | null {
+    if (!memberId) return null;
+    return this._myAppsCache.get(`${churchId || 'default'}:${memberId}`) || null;
+  }
+
+  getCachedAdminApplications(churchId: string): VolunteerApplication[] | null {
+    return this._adminAppsCache.get(churchId || 'default') || null;
+  }
+
   private getCollection(churchId: string) {
     const cid = churchId || 'default';
     return firestore().collection('churches').doc(cid).collection('volunteer_applications');
@@ -178,24 +190,29 @@ class VolunteerService {
    */
   async getMyApplications(churchId: string, memberId: string): Promise<VolunteerApplication[]> {
     if (!memberId) return [];
+    const cacheKey = `${churchId || 'default'}:${memberId}`;
     try {
       const snap = await this.getCollection(churchId)
         .where('memberId', '==', memberId)
         .orderBy('createdAt', 'desc')
         .get();
 
-      return snap.docs.map(d => ({ id: d.id, ...d.data() } as VolunteerApplication));
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as VolunteerApplication));
+      this._myAppsCache.set(cacheKey, list);
+      return list;
     } catch (e) {
       // Fallback query if composite index is building
       const snap = await this.getCollection(churchId)
         .where('memberId', '==', memberId)
         .get();
       const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as VolunteerApplication));
-      return list.sort((a, b) => {
+      const sorted = list.sort((a, b) => {
         const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
         const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
         return timeB - timeA;
       });
+      this._myAppsCache.set(cacheKey, sorted);
+      return sorted;
     }
   }
 
@@ -272,11 +289,17 @@ class VolunteerService {
     onUpdate: (applications: VolunteerApplication[]) => void,
     onError?: (error: Error) => void
   ) {
+    const cid = churchId || 'default';
+    const cached = this._adminAppsCache.get(cid);
+    if (cached) {
+      onUpdate(cached);
+    }
     return this.getCollection(churchId)
       .orderBy('createdAt', 'desc')
       .onSnapshot(
         snap => {
           const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as VolunteerApplication));
+          this._adminAppsCache.set(cid, list);
           onUpdate(list);
         },
         err => {
@@ -284,6 +307,7 @@ class VolunteerService {
           this.getCollection(churchId).onSnapshot(
             fallbackSnap => {
               const list = fallbackSnap.docs.map(d => ({ id: d.id, ...d.data() } as VolunteerApplication));
+              this._adminAppsCache.set(cid, list);
               onUpdate(list);
             },
             fallbackErr => {

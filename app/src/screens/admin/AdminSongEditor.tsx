@@ -141,14 +141,15 @@ export default function AdminSongEditor() {
   const [songToDelete, setSongToDelete] = useState<{ id: string, title: string } | null>(null);
   const [syncReceipt, setSyncReceipt] = useState({ savedTo: '', id: '' });
 
+  const cachedWorshipInit = FirestoreService.getWorshipSongsCachedSync(activeChurch?.id);
   // ── MEMBER VIEW STATE ────────────────────────────
-  const [memberSongs, setMemberSongs] = useState<WorshipSong[]>([]);
+  const [memberSongs, setMemberSongs] = useState<WorshipSong[]>(cachedWorshipInit || []);
   const [memberSearch, setMemberSearch] = useState('');
   const [memberTab, setMemberTab] = useState<'browse' | 'theme' | 'churchOwn'>('browse');
   const [savedIds, setSavedIds] = useState<string[]>([]);
 
   // ── POSTED SONGS LIST ───────────────────────────
-  const [postedSongs, setPostedSongs] = useState<WorshipSong[]>([]);
+  const [postedSongs, setPostedSongs] = useState<WorshipSong[]>(cachedWorshipInit || []);
   const [loadingList, setLoadingList] = useState(false);
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [loadingMore, setLoadingMore] = useState(false);
@@ -304,7 +305,7 @@ export default function AdminSongEditor() {
   };
 
   const fetchPostedSongs = async (forceRefresh = false) => {
-    setLoadingList(true);
+    if (postedSongs.length === 0 || forceRefresh) setLoadingList(true);
     try {
       const allSongs = await FirestoreService.getWorshipSongs({ forceRefresh });
       setPostedSongs(allSongs);

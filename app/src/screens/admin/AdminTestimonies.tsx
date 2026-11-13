@@ -139,8 +139,9 @@ export default function AdminTestimonies({ navigation, route, routeParams }: any
   const targetTestimonyId =
     routeParams?.testimonyId || route?.params?.testimonyId;
 
-  const [testimonies, setTestimonies] = useState<Testimony[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedAdminTestimonies = TestimonyService.getCachedAdminTestimonies(activeChurchId);
+  const [testimonies, setTestimonies] = useState<Testimony[]>(cachedAdminTestimonies || []);
+  const [loading, setLoading] = useState(!cachedAdminTestimonies);
   const [selectedCategory, setSelectedCategory] =
     useState<TestimonyStatus>('Pending Review');
   const [searchQuery, setSearchQuery] = useState('');

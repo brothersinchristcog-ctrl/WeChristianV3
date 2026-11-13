@@ -78,8 +78,9 @@ export default function AdminPrayerModeration() {
   const churchName = activeChurch?.name || 'Church';
   const churchLogo = activeChurch?.theme?.logoUrl || null;
 
-  const [prayers, setPrayers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedAdminPrayers = FirestoreService.getCachedSync<any[]>('prayer_requests_admin');
+  const [prayers, setPrayers] = useState<any[]>(cachedAdminPrayers || []);
+  const [loading, setLoading] = useState(!cachedAdminPrayers);
   const [refreshing, setRefreshing] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
   const [showPostAs, setShowPostAs] = useState(false);
@@ -160,7 +161,7 @@ export default function AdminPrayerModeration() {
   ];
 
   const fetchPrayers = useCallback(async (isRefreshing = false) => {
-    if (!isRefreshing) setLoading(true);
+    if (!isRefreshing && prayers.length === 0) setLoading(true);
     try {
       const data = await FirestoreService.getPrayerRequests({ isAdmin: true });
       setPrayers(data);

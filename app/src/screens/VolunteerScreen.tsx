@@ -114,9 +114,10 @@ export default function VolunteerScreen({ navigation }: any) {
   const { isDark, colors } = useTheme();
 
   const churchId = activeChurch?.id || 'default';
+  const cachedMyVolApps = user?.uid ? VolunteerService.getCachedMyApplications(churchId, user.uid) : null;
 
-  const [myApplications, setMyApplications] = useState<VolunteerApplication[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [myApplications, setMyApplications] = useState<VolunteerApplication[]>(cachedMyVolApps || []);
+  const [loading, setLoading] = useState(!cachedMyVolApps);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -128,7 +129,7 @@ export default function VolunteerScreen({ navigation }: any) {
   const [availabilityNotes, setAvailabilityNotes] = useState('');
 
   // Active View Tab: 'apply' | 'my_status'
-  const [activeTab, setActiveTab] = useState<'apply' | 'my_status'>('apply');
+  const [activeTab, setActiveTab] = useState<'apply' | 'my_status'>(cachedMyVolApps && cachedMyVolApps.length > 0 ? 'my_status' : 'apply');
 
   // Filter skills by active category
   const displayedSkills = useMemo(() => {

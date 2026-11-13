@@ -60,8 +60,9 @@ export default function AdminBaptism({ navigation }: any) {
   const { activeChurch } = useChurch();
   const { setActiveTab } = useContext(AdminTabContext) || {};
 
-  const [requests, setRequests] = useState<BaptismRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedBaptismReqs = activeChurch?.id ? FirestoreService.getCachedSync<BaptismRequest[]>('baptism_church_all', activeChurch.id) : null;
+  const [requests, setRequests] = useState<BaptismRequest[]>(cachedBaptismReqs || []);
+  const [loading, setLoading] = useState(!cachedBaptismReqs);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusType>('all');
@@ -105,7 +106,7 @@ export default function AdminBaptism({ navigation }: any) {
   const fetchRequests = async (isRefresh = false) => {
     if (!activeChurch?.id) return;
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (requests.length === 0) setLoading(true);
 
     try {
       const data = await FirestoreService.getChurchBaptismRequests(activeChurch.id);

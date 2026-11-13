@@ -31,9 +31,15 @@ const { width } = Dimensions.get('window');
 export default function EventsScreen({ navigation }: any) {
   const { isDark, colors } = useTheme();
   const { t } = useLanguage();
-  const [upcomingEvents, setUpcomingEvents] = useState<ScheduleEvent[]>([]);
-  const [pastEvents, setPastEvents] = useState<ScheduleEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedAllEvents = FirestoreService.getCachedSync<ScheduleEvent[]>('events_all');
+  const todayStrInit = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+  const [upcomingEvents, setUpcomingEvents] = useState<ScheduleEvent[]>(() =>
+    cachedAllEvents ? cachedAllEvents.filter(ev => ev.date && ev.date >= todayStrInit).sort((a, b) => (a.date || '').localeCompare(b.date || '')).slice(0, 15) : []
+  );
+  const [pastEvents, setPastEvents] = useState<ScheduleEvent[]>(() =>
+    cachedAllEvents ? cachedAllEvents.filter(ev => ev.date && ev.date < todayStrInit).sort((a, b) => (b.date || '').localeCompare(a.date || '')).slice(0, 5) : []
+  );
+  const [loading, setLoading] = useState(!cachedAllEvents);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'thisWeek' | 'upcoming' | 'past'>('upcoming');
 
@@ -43,8 +49,6 @@ export default function EventsScreen({ navigation }: any) {
         FirestoreService.getUpcomingEvents(15),
         FirestoreService.getPastEvents(5)
       ]);
-      console.log('📅 Mapped Upcoming Events:', JSON.stringify(upcoming, null, 2));
-      console.log('📅 Mapped Past Events:', JSON.stringify(past, null, 2));
       setUpcomingEvents(upcoming);
       setPastEvents(past);
     } catch (error) {

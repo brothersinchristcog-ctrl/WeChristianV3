@@ -80,9 +80,16 @@ export default function SermonsScreen({ navigation }: any) {
   const { isDark, toggleTheme, colors } = useTheme();
   const { t } = useLanguage();
   const [activeCategory, setActiveCategory] = useState('All');
-  const [categoryList, setCategoryList] = useState<string[]>(ALL_CATEGORIES);
-  const [sermons, setSermons] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const initialCachedSermons = (() => {
+    const cached = FirestoreService.getCachedSync<any[]>('sermons_100');
+    if (!cached) return [];
+    const todayStr = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; })();
+    return cached.slice(0, 64).filter((s: any) => s.status !== 'Draft' && !(s.status === 'Scheduled' && s.date && s.date > todayStr));
+  })();
+  const initialCachedCats = FirestoreService.getCachedSync<string[]>('sermon_categories');
+  const [categoryList, setCategoryList] = useState<string[]>(initialCachedCats && initialCachedCats.length > 0 ? ['All', ...initialCachedCats] : ALL_CATEGORIES);
+  const [sermons, setSermons] = useState<any[]>(initialCachedSermons);
+  const [loading, setLoading] = useState(initialCachedSermons.length === 0);
   const [refreshing, setRefreshing] = useState(false);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
 

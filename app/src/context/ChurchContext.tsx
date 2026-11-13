@@ -91,7 +91,11 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setChurchIdState(id);
         await AsyncStorage.setItem('@cached_church_id', id);
         // Sync with FirestoreService singleton
-        await require('../services/FirestoreService').default.setChurchId(id);
+        const fsSvc = require('../services/FirestoreService').default;
+        await fsSvc.setChurchId(id);
+        setTimeout(() => {
+          fsSvc.prefetchChurchData(id).catch(() => {});
+        }, 650);
         await require('../services/NotificationService').default.subscribeToChurchTopic(id);
       } else {
         console.warn('Church not found for id:', id);
@@ -120,7 +124,9 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setImpersonatedBranchName(branchName);
         setActiveChurch(details);
         setChurchIdState(branchId);
-        await require('../services/FirestoreService').default.setChurchId(branchId);
+        const fsSvc = require('../services/FirestoreService').default;
+        await fsSvc.setChurchId(branchId);
+        setTimeout(() => fsSvc.prefetchChurchData(branchId).catch(() => {}), 450);
       }
     } catch (e) {
       console.error('Error starting impersonation', e);
@@ -137,7 +143,9 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (details) {
           setActiveChurch(details);
           setChurchIdState(originalChurchId);
-          await require('../services/FirestoreService').default.setChurchId(originalChurchId);
+          const fsSvc = require('../services/FirestoreService').default;
+          await fsSvc.setChurchId(originalChurchId);
+          setTimeout(() => fsSvc.prefetchChurchData(originalChurchId).catch(() => {}), 450);
           setOriginalChurchId(null);
           setImpersonatedBranchName(null);
         }

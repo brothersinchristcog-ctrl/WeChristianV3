@@ -51,6 +51,22 @@ function checkDocExists(doc: any): boolean {
 
 class TestimonyService {
   private uploadConfig: TestimonyUploadConfig = { ...DEFAULT_TESTIMONY_UPLOAD_CONFIG };
+  private _publicFeedCache = new Map<string, Testimony[]>();
+  private _myTestimoniesCache = new Map<string, Testimony[]>();
+  private _adminTestimoniesCache = new Map<string, Testimony[]>();
+
+  getCachedPublicFeed(churchId?: string): Testimony[] | null {
+    return this._publicFeedCache.get(this.resolveChurchId(churchId)) || null;
+  }
+
+  getCachedMyTestimonies(churchId: string, memberId: string): Testimony[] | null {
+    if (!memberId) return null;
+    return this._myTestimoniesCache.get(`${this.resolveChurchId(churchId)}:${memberId}`) || null;
+  }
+
+  getCachedAdminTestimonies(churchId?: string): Testimony[] | null {
+    return this._adminTestimoniesCache.get(this.resolveChurchId(churchId)) || null;
+  }
 
   getUploadConfig(): TestimonyUploadConfig {
     return { ...this.uploadConfig };
@@ -739,6 +755,10 @@ class TestimonyService {
     onUpdate: (items: Testimony[]) => void,
     onError?: (err: any) => void
   ): () => void {
+    const cid = this.resolveChurchId(churchId);
+    const cached = this._publicFeedCache.get(cid);
+    if (cached) onUpdate(cached);
+
     const ref = this.getCollectionRef(churchId)
       .where('privacy', '==', 'Public')
       .where('status', '==', 'Published');
@@ -754,6 +774,7 @@ class TestimonyService {
               this.getTimestampMillis(b.publishedAt || b.createdAt) -
               this.getTimestampMillis(a.publishedAt || a.createdAt)
           );
+        this._publicFeedCache.set(cid, items);
         onUpdate(items);
       },
       (err) => {
@@ -777,6 +798,11 @@ class TestimonyService {
       return () => {};
     }
 
+    const cid = this.resolveChurchId(churchId);
+    const cacheKey = `${cid}:${memberId}`;
+    const cached = this._myTestimoniesCache.get(cacheKey);
+    if (cached) onUpdate(cached);
+
     const ref = this.getCollectionRef(churchId).where('memberId', '==', memberId);
 
     return ref.onSnapshot(
@@ -787,6 +813,7 @@ class TestimonyService {
             (a, b) =>
               this.getTimestampMillis(b.createdAt) - this.getTimestampMillis(a.createdAt)
           );
+        this._myTestimoniesCache.set(cacheKey, items);
         onUpdate(items);
       },
       (err) => {
@@ -804,6 +831,10 @@ class TestimonyService {
     onUpdate: (items: Testimony[]) => void,
     onError?: (err: any) => void
   ): () => void {
+    const cid = this.resolveChurchId(churchId);
+    const cached = this._adminTestimoniesCache.get(cid);
+    if (cached) onUpdate(cached);
+
     const ref = this.getCollectionRef(churchId);
 
     return ref.onSnapshot(
@@ -814,6 +845,7 @@ class TestimonyService {
             (a, b) =>
               this.getTimestampMillis(b.createdAt) - this.getTimestampMillis(a.createdAt)
           );
+        this._adminTestimoniesCache.set(cid, items);
         onUpdate(items);
       },
       (err) => {

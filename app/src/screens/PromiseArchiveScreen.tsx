@@ -34,9 +34,12 @@ const stripHtml = (html: string | undefined): string => {
 };
 
 export default function PromiseArchiveScreen({ navigation }: { navigation: any }) {
-  const [promises, setPromises] = useState<DailyPromise[]>([]);
-  const [selectedPromise, setSelectedPromise] = useState<DailyPromise | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedArchive = FirestoreService.getCachedSync<DailyPromise[]>('promises_archive');
+  const initialSortedPromises = cachedArchive ? [...cachedArchive].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()) : [];
+  const todayIsoInit = new Date().toISOString().split('T')[0];
+  const [promises, setPromises] = useState<DailyPromise[]>(initialSortedPromises);
+  const [selectedPromise, setSelectedPromise] = useState<DailyPromise | null>(() => initialSortedPromises.find(p => p.date === todayIsoInit) || null);
+  const [loading, setLoading] = useState(!cachedArchive);
   const [refreshing, setRefreshing] = useState(false);
   const { activeChurch } = useChurch();
   const { colors, isDark } = useTheme();

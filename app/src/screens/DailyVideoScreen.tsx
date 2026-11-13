@@ -46,8 +46,20 @@ interface DevotionalVideo extends FirestoreVideo {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DailyVideoScreen({ navigation, route }: any) {
-  const [videos, setVideos] = useState<DevotionalVideo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedArchiveForVideos = FirestoreService.getCachedSync<any[]>('promises_archive');
+  const initialVideos: DevotionalVideo[] = cachedArchiveForVideos
+    ? cachedArchiveForVideos.filter(p => p.youtubeId).map(p => ({
+        id: p.id || '',
+        title: p.videoTitle || "Today's Devotional",
+        youtubeId: p.youtubeId || '',
+        publishedAt: p.date,
+        date: p.date,
+        duration: p.duration || '',
+        pastor: p.pastor || 'Pastor'
+      }))
+    : [];
+  const [videos, setVideos] = useState<DevotionalVideo[]>(initialVideos);
+  const [loading, setLoading] = useState(!cachedArchiveForVideos);
   const [playing, setPlaying] = useState(false);
   const [activeVideo, setActiveVideo] = useState<DevotionalVideo | null>(null);
   const { activeChurch } = useChurch();

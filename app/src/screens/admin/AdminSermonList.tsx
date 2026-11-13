@@ -41,20 +41,22 @@ const extractYoutubeId = (url: string) => {
 
 export default function AdminSermonList() {
   const { setActiveTab, setEditingData, setTabByName } = useContext(AdminTabContext);
-  const [sermons, setSermons] = useState<Sermon[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedSermonsInit = FirestoreService.getCachedSync<Sermon[]>('sermons_100');
+  const cachedCatsInit = FirestoreService.getCachedSync<string[]>('sermon_categories');
+  const [sermons, setSermons] = useState<Sermon[]>(cachedSermonsInit ? cachedSermonsInit.slice(0, 50) : []);
+  const [loading, setLoading] = useState(!cachedSermonsInit);
   const [filter, setFilter] = useState('All');
   const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
   const [sermonToDelete, setSermonToDelete] = useState<Sermon | null>(null);
 
-  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [customCategories, setCustomCategories] = useState<string[]>(cachedCatsInit || []);
 
   useEffect(() => {
     fetchSermons();
   }, []);
 
   const fetchSermons = async () => {
-    setLoading(true);
+    if (sermons.length === 0) setLoading(true);
     try {
       const [data, cats] = await Promise.all([
         FirestoreService.getSermons(50),

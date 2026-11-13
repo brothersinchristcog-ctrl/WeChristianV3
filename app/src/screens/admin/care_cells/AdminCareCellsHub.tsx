@@ -65,8 +65,9 @@ export default function AdminCareCellsHub() {
   const { user, member, isPlatformSuperAdmin } = useAuth();
 
   const [activeSubTab, setActiveSubTab] = useState<SubTabKey>('overview');
-  const [cells, setCells] = useState<CareCell[]>([]);
-  const [loadingCells, setLoadingCells] = useState(true);
+  const cachedCellsInit = CareCellService.getCachedCareCells();
+  const [cells, setCells] = useState<CareCell[]>(cachedCellsInit || []);
+  const [loadingCells, setLoadingCells] = useState(!cachedCellsInit);
 
   // Selected cell context shared across tabs
   const [selectedCellId, setSelectedCellId] = useState<string>('');

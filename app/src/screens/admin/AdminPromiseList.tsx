@@ -36,8 +36,9 @@ const serifFont = Platform.OS === 'ios' ? 'Georgia' : 'serif';
 
 export default function AdminPromiseList() {
   const { setActiveTab, setEditingData, setTabByName } = useContext(AdminTabContext);
-  const [promises, setPromises] = useState<DailyPromise[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedPromisesInit = FirestoreService.getCachedSync<DailyPromise[]>('promises_archive');
+  const [promises, setPromises] = useState<DailyPromise[]>(cachedPromisesInit || []);
+  const [loading, setLoading] = useState(!cachedPromisesInit);
   const [refreshing, setRefreshing] = useState(false);
   const [missingDates, setMissingDates] = useState<number[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | 'published' | 'draft' | 'missing'>('all');
@@ -65,7 +66,7 @@ export default function AdminPromiseList() {
   };
 
   const loadPromises = async () => {
-    setLoading(true);
+    if (promises.length === 0) setLoading(true);
     try {
       const data = await FirestoreService.getDailyPromisesArchive();
       setPromises(data);

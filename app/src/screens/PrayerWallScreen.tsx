@@ -157,9 +157,12 @@ export default function PrayerWallScreen({ navigation, route }: any) {
   const { user, member: authMember } = useAuth();
   const { isDark, toggleTheme, colors } = useTheme();
   const { t } = useLanguage();
-  const [member, setMember] = useState<AppMember | null>(null);
-  const [prayers, setPrayers] = useState<PrayerRequest[]>([]);
-  const [loading, setLoading] = useState(false);
+  const initialCachedPrayers = FirestoreService.getCachedSync<PrayerRequest[]>(
+    `prayer_requests_${(authMember as any)?.id || user?.phoneNumber || 'public'}_withc`
+  ) || FirestoreService.getCachedSync<PrayerRequest[]>('prayer_requests_public_withc');
+  const [member, setMember] = useState<AppMember | null>(authMember as AppMember | null);
+  const [prayers, setPrayers] = useState<PrayerRequest[]>(initialCachedPrayers || []);
+  const [loading, setLoading] = useState(!initialCachedPrayers);
   const [refreshing, setRefreshing] = useState(false);
   const [prayedSet, setPrayedSet] = useState(new Set<string>());
   const [replyInputs, setReplyInputs] = useState<{[key: string]: string}>({});
@@ -217,18 +220,25 @@ export default function PrayerWallScreen({ navigation, route }: any) {
 
   useEffect(() => {
     const init = async () => {
-      let contactId = undefined;
-      if (user?.phoneNumber) {
+      // Immediately start fetching prayers using authMember if available
+      const immediateContactId = (authMember as any)?.id;
+      if (immediateContactId) {
+        fetchPrayers(immediateContactId, Boolean(initialCachedPrayers));
+      }
+      if (user?.phoneNumber && !immediateContactId) {
         const result = await FirestoreService.checkContactExists(user.phoneNumber);
         if (result?.exists && result.member) {
           setMember(result.member);
-          contactId = result.member.id;
+          fetchPrayers(result.member.id, false);
+          return;
         }
       }
-      fetchPrayers(contactId, false);
+      if (!immediateContactId) {
+        fetchPrayers(undefined, Boolean(initialCachedPrayers));
+      }
     };
     init();
-  }, [user]);
+  }, [user, (authMember as any)?.id]);
 
   const onRefresh = () => {
     setRefreshing(true);

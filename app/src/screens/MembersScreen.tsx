@@ -54,8 +54,12 @@ export default function MembersScreen({ navigation }: any) {
   const { member } = useAuth();
   const { isDark } = useTheme();
   const { t, language } = useLanguage();
-  const [relatedContacts, setRelatedContacts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const initialAccountId = member?.accountId || member?.id || '';
+  const cachedFamilyContacts = (member?.churchId && initialAccountId)
+    ? FirestoreService.getCachedSync<any[]>(`related_contacts_${initialAccountId}`, member.churchId)
+    : null;
+  const [relatedContacts, setRelatedContacts] = useState<any[]>(cachedFamilyContacts || []);
+  const [loading, setLoading] = useState(!cachedFamilyContacts);
   const [showAddModal, setShowAddModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

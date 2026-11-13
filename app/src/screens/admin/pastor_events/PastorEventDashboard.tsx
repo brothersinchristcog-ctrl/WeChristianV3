@@ -33,9 +33,10 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
   const route = useRoute<any>();
   const insets = useSafeAreaInsets();
   const { setActiveTab: setAdminActiveTab } = React.useContext(AdminTabContext);
-  const [events, setEvents] = useState<PastorEvent[]>([]);
+  const cachedPastorEvents = FirestoreService.getCachedSync<PastorEvent[]>('pastor_events');
+  const [events, setEvents] = useState<PastorEvent[]>(cachedPastorEvents || []);
   const [activeTab, setActiveTab] = useState<'today' | 'upcoming' | 'past'>('today');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedPastorEvents);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -44,7 +45,7 @@ export const PastorEventDashboard = ({ navigation }: { navigation: any }) => {
 
   const fetchEvents = async () => {
     try {
-      setLoading(true);
+      if (events.length === 0) setLoading(true);
       const sfEvents = await FirestoreService.getPastorEvents();
       if (sfEvents && sfEvents.length > 0) {
         // Categorize into today, upcoming, past

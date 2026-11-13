@@ -55,8 +55,9 @@ export default function AdminDonationDashboard() {
   const { member } = useAuth();
   const { activeChurch } = useChurch();
   // churchProfile now sourced from activeChurch
-  const [donations, setDonations] = useState<ChurchDonation[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedDonInit = FirestoreService.getCachedSync<ChurchDonation[]>('donations_500');
+  const [donations, setDonations] = useState<ChurchDonation[]>(cachedDonInit || []);
+  const [loading, setLoading] = useState(!cachedDonInit);
   
   // Local UI State
   const [currentSubTab, setCurrentSubTab] = useState<SubTab>('dashboard');
@@ -116,7 +117,7 @@ export default function AdminDonationDashboard() {
   const [showSuccessCard, setShowSuccessCard] = useState(false);
 
   // Members Autocomplete State
-  const [churchMembers, setChurchMembers] = useState<any[]>([]);
+  const [churchMembers, setChurchMembers] = useState<any[]>(() => FirestoreService.getCachedSync<any[]>('members_all') || []);
   const [showDonorDropdown, setShowDonorDropdown] = useState(false);
 
   const displayToast = (msg: string) => {
@@ -127,21 +128,16 @@ export default function AdminDonationDashboard() {
 
   const fetchData = async () => {
     try {
-      const churchId = member?.churchId || member?.primaryChurchId;
-      if (churchId) {
-        const cDoc = await firestore().collection('churches').doc(churchId).get();
-        const docData: any = typeof cDoc.data === 'function' ? cDoc.data() : cDoc.data;
-        if (docData) {
-          if (docData.customDonationCategories && Array.isArray(docData.customDonationCategories)) {
-            setCategories(prev => Array.from(new Set([...prev, ...docData.customDonationCategories])));
-          }
-        }
+      const docData: any = activeChurch as any;
+      if (docData?.customDonationCategories && Array.isArray(docData.customDonationCategories)) {
+        setCategories(prev => Array.from(new Set([...prev, ...docData.customDonationCategories])));
       }
 
-      const donData = await FirestoreService.getDonations(500);
+      const [donData, memData] = await Promise.all([
+        FirestoreService.getDonations(500),
+        FirestoreService.getAllMembers()
+      ]);
       setDonations(donData);
-      
-      const memData = await FirestoreService.getAllMembers();
       setChurchMembers(memData);
       
       const usedCategories = donData.map(e => e.category).filter(Boolean);

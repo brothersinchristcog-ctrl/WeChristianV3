@@ -65,8 +65,9 @@ const MemberAvatar = ({ member, initials, styles }: any) => {
 export default function AdminMembers() {
   const { activeChurch } = useChurch();
   const { setActiveTab } = React.useContext(AdminTabContext);
-  const [members, setMembers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedMembersInit = FirestoreService.getCachedSync<any[]>('members_all', activeChurch?.id);
+  const [members, setMembers] = useState<any[]>(cachedMembersInit || []);
+  const [loading, setLoading] = useState(!cachedMembersInit);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -130,7 +131,7 @@ export default function AdminMembers() {
   const fetchMembers = async (isRefresh = false) => {
     if (isRefresh) {
       setRefreshing(true);
-    } else {
+    } else if (members.length === 0) {
       setLoading(true);
     }
     setError(null);

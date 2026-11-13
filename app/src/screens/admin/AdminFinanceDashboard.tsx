@@ -67,10 +67,12 @@ export default function AdminFinanceDashboard({ navigation, routeParams }: any) 
   const { member } = useAuth();
   const { activeChurch } = useChurch();
   // churchProfile is now sourced from activeChurch (ChurchContext)
-  const [expenses, setExpenses] = useState<ChurchExpense[]>([]);
-  const [invoices, setInvoices] = useState<ChurchInvoice[]>([]);
+  const cachedExpInit = FirestoreService.getCachedSync<ChurchExpense[]>('expenses_200');
+  const cachedInvInit = FirestoreService.getCachedSync<ChurchInvoice[]>('invoices_200');
+  const [expenses, setExpenses] = useState<ChurchExpense[]>(cachedExpInit || []);
+  const [invoices, setInvoices] = useState<ChurchInvoice[]>(cachedInvInit || []);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!(cachedExpInit && cachedInvInit));
   const invoiceRef = React.useRef<any>(null);
   
   // Local UI State
@@ -159,10 +161,9 @@ export default function AdminFinanceDashboard({ navigation, routeParams }: any) 
 
   const fetchData = async () => {
     try {
-      const churchId = member?.churchId || member?.primaryChurchId;
+      const churchId = activeChurch?.id || member?.churchId || member?.primaryChurchId;
       if (churchId) {
-        const cDoc = await firestore().collection('churches').doc(churchId).get();
-        const docData: any = typeof cDoc.data === 'function' ? cDoc.data() : cDoc.data;
+        const docData: any = (activeChurch as any) || null;
         if (docData) {
           if (docData.customExpenseItems && typeof docData.customExpenseItems === 'object') {
             const sanitized: Record<string, string[]> = {};

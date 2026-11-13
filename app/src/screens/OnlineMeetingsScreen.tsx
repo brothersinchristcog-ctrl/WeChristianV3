@@ -46,8 +46,9 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
   const { isDark, toggleTheme } = useTheme();
   const { t } = useLanguage();
   
-  const [meetings, setMeetings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedOnlineMeetings = (globalThis as any).__onlineMeetingsCache?.[activeChurch?.id || ''];
+  const [meetings, setMeetings] = useState<any[]>(cachedOnlineMeetings || []);
+  const [loading, setLoading] = useState(!cachedOnlineMeetings);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<'live' | 'upcoming' | 'completed'>('upcoming');
 
@@ -62,6 +63,8 @@ export default function OnlineMeetingsScreen({ navigation }: any) {
         .get();
 
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      if (!(globalThis as any).__onlineMeetingsCache) (globalThis as any).__onlineMeetingsCache = {};
+      if (activeChurch?.id) (globalThis as any).__onlineMeetingsCache[activeChurch.id] = data;
       setMeetings(data);
     } catch (error) {
       console.error('Error fetching meetings:', error);

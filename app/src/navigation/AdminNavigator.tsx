@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, Dimensions, Alert, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -219,22 +219,18 @@ export default function AdminNavigator({ navigation, route }: any) {
       }
       
 
-      // Defer the heavy component unmount/mount to the next tick. 
-      // This allows the tap animation to finish instantly, making the UI feel highly responsive.
-      setTimeout(() => {
-        setTabHistory(prev => [...prev, activeTab]);
-        const targetTabName = tabs[index]?.name || '';
-        const safeTabNames = [
-          'Promises', 'New Promise', 'Schedule', 'Promise Calendar', 'Add Promise',
-          'Sermons', 'New Sermon', 
-          'Events', 'New Event',
-          'Online Meetings', 'New Online Meeting'
-        ];
-        if (!safeTabNames.includes(targetTabName)) {
-          setEditingData(null);
-        }
-        setActiveTab(index);
-      }, 0);
+      setTabHistory(prev => [...prev, activeTab]);
+      const targetTabName = tabs[index]?.name || '';
+      const safeTabNames = [
+        'Promises', 'New Promise', 'Schedule', 'Promise Calendar', 'Add Promise',
+        'Sermons', 'New Sermon',
+        'Events', 'New Event',
+        'Online Meetings', 'New Online Meeting'
+      ];
+      if (!safeTabNames.includes(targetTabName)) {
+        setEditingData(null);
+      }
+      setActiveTab(index);
     }
   };
 
@@ -271,7 +267,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     return () => backHandler.remove();
   }, [tabHistory]);
 
-  const tabs = [
+  const tabs = useMemo(() => [
     { name: 'Dashboard', icon: DotGridIcon, component: AdminDashboard },
     ...(activeChurch?.isParentOrganization ? [{ name: 'Church Branches', icon: Building2, component: AdminOrganization }] : []),
     { name: 'Promises', icon: BookOpen, component: AdminPromiseList },
@@ -310,7 +306,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     { name: 'AI Thumbnail Creation', icon: Wand2, component: AIContentCreator },
     { name: 'Bible Quiz', icon: Award, component: AdminQuizList },
     ...(isPlatformSuperAdmin ? [{ name: 'App Admin', icon: Shield, component: SuperAdminDashboard }] : []),
-  ];
+  ], [activeChurch?.isParentOrganization, isSuperAdminUser, hasCareCellAccess, member?.userType, isPlatformSuperAdmin]);
 
   const ActiveComponent = tabs[activeTab].component as any;
   const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -467,9 +463,13 @@ export default function AdminNavigator({ navigation, route }: any) {
         )}
 
         <View style={[styles.content, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
-          {activeTab === 0 ? (
+          <View
+            style={{ flex: 1, display: activeTab === 0 ? 'flex' : 'none' }}
+            pointerEvents={activeTab === 0 ? 'auto' : 'none'}
+          >
             <AdminDashboard navigation={navigation} allTabs={tabs} />
-          ) : (
+          </View>
+          {activeTab !== 0 && (
             <ActiveComponent navigation={navigation} routeParams={route?.params} />
           )}
         </View>

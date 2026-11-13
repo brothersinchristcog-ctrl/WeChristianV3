@@ -62,12 +62,17 @@ export default function BaptismRequestScreen({ navigation }: any) {
   const { activeChurch } = useChurch();
   const { isDark } = useTheme();
 
-  const [requests, setRequests] = useState<BaptismRequest[]>([]);
+  const initialMemId = authMember?.id || user?.uid || '';
+  const initialCleanPhone = (authMember?.phone || user?.phoneNumber || '').replace(/\D/g, '').slice(-10);
+  const cachedMyBaptism = activeChurch?.id
+    ? FirestoreService.getCachedSync<BaptismRequest[]>(`baptism_member_${initialMemId || initialCleanPhone}`, activeChurch.id)
+    : null;
+  const [requests, setRequests] = useState<BaptismRequest[]>(cachedMyBaptism || []);
   const [familyMembers, setFamilyMembers] = useState<FamilyCandidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<FamilyCandidate | null>(null);
   const [isOtherSelected, setIsOtherSelected] = useState(false);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedMyBaptism);
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [expandedRequestId, setExpandedRequestId] = useState<string | null>(null);

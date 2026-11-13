@@ -856,29 +856,39 @@ export default function HomeScreen() {
     fetchLiveCelebrations();
   }, [activeChurch?.id, member]);
 
+  const lastHomeFocusFetchRef = React.useRef<{ churchId?: string; ts: number }>({ ts: 0 });
+
   useFocusEffect(
     React.useCallback(() => {
       // Refresh current time on focus to unlock new time-based cards immediately
       setCurrentTime(new Date());
 
-      // Always re-fetch the latest server daily promise on screen focus to ensure zero stale cache
-      FirestoreService.getDailyPromise(true).then((fresh) => {
-        if (fresh) {
-          cachedPromise = fresh;
-          setPromise(fresh);
-          AsyncStorage.setItem('@cached_daily_promise', JSON.stringify(fresh));
-          cachedPromiseThumbnail = fresh.imageUrl || null;
-          setPromiseThumbnail(fresh.imageUrl || null);
-        }
-      }).catch(() => {});
+      const now = Date.now();
+      const churchId = activeChurch?.id;
+      const shouldRevalidateHome =
+        lastHomeFocusFetchRef.current.churchId !== churchId ||
+        now - lastHomeFocusFetchRef.current.ts > 20_000;
 
-      // Always re-fetch the latest published sermon on screen focus to ensure zero stale cache
-      FirestoreService.getLatestSermon().then((fresh) => {
-        if (fresh) {
-          cachedLatestSermon = fresh;
-          setLatestSermon(fresh);
-        }
-      }).catch(() => {});
+      if (shouldRevalidateHome) {
+        lastHomeFocusFetchRef.current = { churchId, ts: now };
+        // Re-fetch latest promise & sermon with a 20s cooldown while live listeners handle real-time updates
+        FirestoreService.getDailyPromise(true).then((fresh) => {
+          if (fresh) {
+            cachedPromise = fresh;
+            setPromise(fresh);
+            AsyncStorage.setItem('@cached_daily_promise', JSON.stringify(fresh));
+            cachedPromiseThumbnail = fresh.imageUrl || null;
+            setPromiseThumbnail(fresh.imageUrl || null);
+          }
+        }).catch(() => {});
+
+        FirestoreService.getLatestSermon().then((fresh) => {
+          if (fresh) {
+            cachedLatestSermon = fresh;
+            setLatestSermon(fresh);
+          }
+        }).catch(() => {});
+      }
 
       if (liveCelebrations.length === 0 || !activeChurch?.id) return;
 
@@ -1098,7 +1108,7 @@ export default function HomeScreen() {
             const mId = res.member.id;
             FirestoreService.updateLastAppOpened(mId);
             // Fetch Latest Prayer async
-            FirestoreService.getPrayerRequests({ contactId: mId }).then((prayers: any[]) => {
+            FirestoreService.getPrayerRequests({ contactId: mId, includeComments: false }).then((prayers: any[]) => {
               if (prayers && prayers.length > 0) {
                 cachedLatestPrayer = prayers[0];
                 cachedPrayerCount = prayers.length;

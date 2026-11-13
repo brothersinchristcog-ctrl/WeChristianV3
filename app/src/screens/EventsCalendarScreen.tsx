@@ -19,8 +19,14 @@ const { width } = Dimensions.get('window');
 
 export default function EventsCalendarScreen() {
   const navigation = useNavigation<any>();
-  const [events, setEvents] = useState<ScheduleEvent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedAllEvents = FirestoreService.getCachedSync<ScheduleEvent[]>('events_all');
+  const [events, setEvents] = useState<ScheduleEvent[]>(() => {
+    if (!cachedAllEvents) return [];
+    const d = new Date();
+    const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return cachedAllEvents.filter(ev => ev.date && ev.date >= todayStr).sort((a, b) => (a.date || '').localeCompare(b.date || '')).slice(0, 15);
+  });
+  const [loading, setLoading] = useState(!cachedAllEvents);
   const [selectedDate, setSelectedDate] = useState(new Date().getDate());
   const [dates, setDates] = useState<{ day: string, date: number, full: Date }[]>([]);
 

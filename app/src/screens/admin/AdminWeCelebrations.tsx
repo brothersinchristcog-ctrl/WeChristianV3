@@ -26,7 +26,7 @@ type ViewMode = 'dashboard' | 'list' | 'details' | 'personalize' | 'themePicker'
 
 export default function AdminWeCelebrations({ navigation }: any) {
   const { activeChurch, setActiveChurch } = useChurch();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !FirestoreService.getCachedSync('celebrations_all'));
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
   const [activeDateFilter, setActiveDateFilter] = useState('Today');
   const [activeCategoryFilter, setActiveCategoryFilter] = useState('All');

@@ -656,43 +656,29 @@ export default function AttendanceScreen({ navigation, route }: any) {
     try {
       const items: EventItem[] = [];
 
-      // 1. Fetch church events & attendance requests concurrently for fast loading
-      const [eventsSnap, fsEvents, attRequestsSnap] = await Promise.all([
-        churchId 
-          ? firestore().collection('churches').doc(churchId).collection('events').get().catch(() => ({ docs: [] }))
-          : Promise.resolve({ docs: [] }),
+      // 1. Fetch church events (SWR cached) & attendance requests concurrently without duplicate reads
+      const [fsEvents, attRequestsSnap] = await Promise.all([
         FirestoreService.getEvents().catch(() => []),
-        churchId
-          ? firestore().collection('churches').doc(churchId).collection('attendanceRequests').get().catch(() => ({ docs: [] }))
-          : Promise.resolve({ docs: [] })
+        FirestoreService.getAttendanceRequests().catch(() => [])
       ]);
 
-      const rawEvents: any[] = [];
-      if (eventsSnap && 'docs' in eventsSnap) {
-        eventsSnap.docs.forEach((doc: any) => rawEvents.push({ id: doc.id, ...doc.data() }));
-      }
-      (fsEvents || []).forEach(fe => {
-        if (!rawEvents.some(r => r.id === fe.id)) {
-          rawEvents.push(fe);
-        }
-      });
+      const rawEvents: any[] = [...(fsEvents || [])];
 
       // Include Attendance Requests so any attendance request created in Admin Dashboard
       // is immediately visible as an event for members to scan and mark attendance!
-      if (attRequestsSnap && 'docs' in attRequestsSnap) {
-        attRequestsSnap.docs.forEach((doc: any) => {
-          const reqData = doc.data();
+      if (Array.isArray(attRequestsSnap)) {
+        attRequestsSnap.forEach((reqData: any) => {
           const existing = rawEvents.find(r => 
-            r.id === doc.id || 
+            r.id === reqData.id || 
             ((r.title || r.name)?.trim().toLowerCase() === (reqData.title)?.trim().toLowerCase() && r.date === reqData.date)
           );
           if (existing) {
-            existing.attendanceRequestId = doc.id;
+            existing.attendanceRequestId = reqData.id;
           } else {
             rawEvents.push({
-              id: doc.id,
-              isAttendanceRequest: true,
               ...reqData,
+              id: reqData.id,
+              isAttendanceRequest: true,
               location: reqData.location || (activeChurch as any)?.address || churchName,
             });
           }

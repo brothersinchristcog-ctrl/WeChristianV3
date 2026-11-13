@@ -168,6 +168,18 @@ export function isMemberInLocation(
 }
 
 class CareCellService {
+  private _cellsCache = new Map<string, { data: CareCell[]; ts: number }>();
+
+  getCachedCareCells(churchId?: string): CareCell[] | null {
+    const entry = churchId ? this._cellsCache.get(churchId) : Array.from(this._cellsCache.values())[0];
+    return entry ? entry.data : null;
+  }
+
+  invalidateCareCellsCache(churchId?: string) {
+    if (churchId) this._cellsCache.delete(churchId);
+    else this._cellsCache.clear();
+  }
+
   /**
    * Helper to retrieve active Church ID with reliable fallback.
    */
@@ -299,7 +311,7 @@ class CareCellService {
       updatedAt: firestore.FieldValue.serverTimestamp(),
     };
 
-    await docRef.set(sanitizeForFirestore(payload));
+    await docRef.set(sanitizeForFirestore(payload)); this.invalidateCareCellsCache(churchId);
     return docRef.id;
   }
 
@@ -326,6 +338,7 @@ class CareCellService {
         updatedAt: firestore.FieldValue.serverTimestamp(),
       })
     );
+    this.invalidateCareCellsCache(churchId);
   }
 
   async archiveCareCell(churchId: string | undefined, cellId: string): Promise<void> {
@@ -337,7 +350,7 @@ class CareCellService {
     const cellCol = await this.getCareCellsRef(activeChurchId);
 
     // 1. Delete Care Cell document
-    await cellCol.doc(cellId).delete();
+    await cellCol.doc(cellId).delete(); this.invalidateCareCellsCache(activeChurchId);
 
     // 2. Remove associated memberships
     try {
@@ -357,21 +370,35 @@ class CareCellService {
 
   async getCareCells(churchId?: string, statusFilter?: 'All' | 'Active' | 'Inactive' | 'Archived'): Promise<CareCell[]> {
     try {
-      const col = await this.getCareCellsRef(churchId);
-      let query: any = col;
+      const cid = churchId || (await this.getChurchId());
+      const cached = this._cellsCache.get(cid);
+      const now = Date.now();
 
-      if (statusFilter && statusFilter !== 'All') {
-        query = query.where('status', '==', statusFilter);
+      const fetchAndCache = async () => {
+        const col = await this.getCareCellsRef(cid);
+        const snap = await col.get();
+        const list = (snap.docs.map((doc: any) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as CareCell[]).sort((a, b) => (a.cellCode || '').localeCompare(b.cellCode || ''));
+        this._cellsCache.set(cid, { data: list, ts: Date.now() });
+        return list;
+      };
+
+      let list: CareCell[];
+      if (cached && now - cached.ts < 30_000) {
+        list = cached.data;
+      } else if (cached && now - cached.ts < 600_000) {
+        list = cached.data;
+        fetchAndCache().catch(() => {});
+      } else {
+        list = await fetchAndCache();
       }
 
-      const snap = await query.get();
-      const list = snap.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as CareCell[];
-
-      // Sort by cellCode ascending
-      return list.sort((a, b) => (a.cellCode || '').localeCompare(b.cellCode || ''));
+      if (statusFilter && statusFilter !== 'All') {
+        return list.filter(c => c.status === statusFilter);
+      }
+      return list;
     } catch (error) {
       console.error('Error fetching Care Cells:', error);
       return [];
@@ -1015,7 +1042,7 @@ class CareCellService {
       createdAt: firestore.FieldValue.serverTimestamp(),
       updatedAt: firestore.FieldValue.serverTimestamp(),
     };
-    await docRef.set(sanitizeForFirestore(payload));
+    await docRef.set(sanitizeForFirestore(payload)); this.invalidateCareCellsCache(churchId);
     return docRef.id;
   }
 
@@ -1086,7 +1113,7 @@ class CareCellService {
       createdAt: firestore.FieldValue.serverTimestamp(),
       updatedAt: firestore.FieldValue.serverTimestamp(),
     };
-    await docRef.set(sanitizeForFirestore(payload));
+    await docRef.set(sanitizeForFirestore(payload)); this.invalidateCareCellsCache(churchId);
     return docRef.id;
   }
 
@@ -1221,7 +1248,7 @@ class CareCellService {
       status: 'Active',
       createdAt: firestore.FieldValue.serverTimestamp(),
     };
-    await docRef.set(sanitizeForFirestore(payload));
+    await docRef.set(sanitizeForFirestore(payload)); this.invalidateCareCellsCache(churchId);
     return docRef.id;
   }
 
@@ -1332,7 +1359,7 @@ class CareCellService {
       updatedAt: firestore.FieldValue.serverTimestamp(),
     };
 
-    await docRef.set(sanitizeForFirestore(payload));
+    await docRef.set(sanitizeForFirestore(payload)); this.invalidateCareCellsCache(churchId);
 
     // 3. Dispatch in-app notifications strictly to target members
     try {
