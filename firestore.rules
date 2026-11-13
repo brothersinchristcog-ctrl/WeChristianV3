@@ -211,29 +211,39 @@ service cloud.firestore {
           return isAuthenticated() && (isGlobalAdmin || isMemberAdmin || isParentAdmin || isPlatformAdmin);
         }
 
-      // Strict multi-tenant church admin check for sensitive Smart Member Locations data
-      function isChurchTenantAdmin() {
-        let hasAuth = request.auth != null;
-        let hasGlobalUser = hasAuth && exists(/databases/$(database)/documents/users/$(request.auth.uid));
-        let globalData = hasGlobalUser ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data : {};
-        let isGlobalAdminRole = hasGlobalUser && globalData.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
-        let isSameChurchGlobal = isGlobalAdminRole && (
-          globalData.get('churchId', '') == churchId ||
-          globalData.get('primaryChurchId', '') == churchId ||
-          globalData.get('userType', '') in ['super_admin', 'Super Admin']
+      // Strict multi-tenant church admin helpers (<= 3 local variables per CEL function)
+      function isGlobalChurchAdmin() {
+        let hasUser = request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+        let uData = hasUser ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data : {};
+        let uType = uData.get('userType', '');
+        return hasUser && uType in ['admin', 'super_admin', 'Admin', 'Super Admin'] && (
+          uData.get('churchId', '') == churchId ||
+          uData.get('primaryChurchId', '') == churchId ||
+          uType in ['super_admin', 'Super Admin']
         );
+      }
 
-        let hasMemberDoc = hasAuth && exists(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
-        let isMemberAdmin = hasMemberDoc && get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
+      function isLocalChurchMemberAdmin() {
+        let memberPath = /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid);
+        return request.auth != null && exists(memberPath) &&
+          get(memberPath).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
+      }
 
+      function isParentChurchMemberAdmin() {
         let churchDocPath = /databases/$(database)/documents/churches/$(churchId);
-        let churchExists = exists(churchDocPath);
-        let parentId = churchExists ? get(churchDocPath).data.get('parentChurchId', null) : null;
-        let hasParentMemberDoc = hasAuth && parentId != null && exists(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid));
-        let isParentAdmin = hasParentMemberDoc && get(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
+        let parentId = exists(churchDocPath) ? get(churchDocPath).data.get('parentChurchId', null) : null;
+        return request.auth != null && parentId != null &&
+          exists(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
+      }
 
-        let isPlatformAdmin = hasAuth && exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid));
-        return hasAuth && (isSameChurchGlobal || isMemberAdmin || isParentAdmin || isPlatformAdmin);
+      function isChurchTenantAdmin() {
+        return request.auth != null && (
+          isGlobalChurchAdmin() ||
+          isLocalChurchMemberAdmin() ||
+          isParentChurchMemberAdmin() ||
+          exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid))
+        );
       }
 
       // Checks whether signed-in user is Leader or Assistant Leader of a given Care Cell in this church
