@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   ScrollView,
+  FlatList,
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
@@ -210,6 +211,7 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
   // Church Songs Library state (Phase 3)
   const [churchSongs, setChurchSongs] = useState<WorshipSong[]>(cachedRosterSongs || []);
   const [loadingSongs, setLoadingSongs] = useState(false);
+  const [openingSongPicker, setOpeningSongPicker] = useState(false);
   const [songLibrarySearch, setSongLibrarySearch] = useState('');
   const [showSongPickerModal, setShowSongPickerModal] = useState(false);
   const [selectedSongIdsForBatch, setSelectedSongIdsForBatch] = useState<string[]>([]);
@@ -2627,12 +2629,22 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
   // PHASE 3: WORSHIP SETLIST MANAGEMENT ACTIONS
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const openSongPicker = () => {
+  const isAddSongLoading = openingSongPicker || loadingSongs;
+
+  const openSongPicker = async () => {
+    if (isAddSongLoading) return;
+    setOpeningSongPicker(true);
     setSongLibrarySearch('');
     setSelectedSongIdsForBatch([]);
-    setShowSongPickerModal(true);
-    if (churchSongs.length === 0 && !loadingSongs) {
-      fetchChurchSongs();
+    try {
+      // Allow UI frame to render spinner immediately on the Add Song button
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      if (churchSongs.length === 0) {
+        await fetchChurchSongs();
+      }
+      setShowSongPickerModal(true);
+    } finally {
+      setOpeningSongPicker(false);
     }
   };
 
@@ -3686,8 +3698,10 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
                 backgroundColor: '#C9A84C',
                 borderColor: '#C9A84C',
                 flexShrink: 0,
+                opacity: activePlannerTab === 'setlist' && isAddSongLoading ? 0.85 : 1,
               }
             ]}
+            disabled={activePlannerTab === 'setlist' && isAddSongLoading}
             onPress={
               activePlannerTab === 'setlist' ? openSongPicker :
               activePlannerTab === 'teams' ? openCreateTeamModal :
@@ -3696,7 +3710,11 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
             }
             activeOpacity={0.85}
           >
-            <Plus size={15} color="#1a2d5a" strokeWidth={2.5} />
+            {activePlannerTab === 'setlist' && isAddSongLoading ? (
+              <ActivityIndicator size="small" color="#1a2d5a" />
+            ) : (
+              <Plus size={15} color="#1a2d5a" strokeWidth={2.5} />
+            )}
             <Text
               style={[
                 styles.newServiceBtnTxt,
@@ -3704,7 +3722,7 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
               ]}
               numberOfLines={1}
             >
-              {activePlannerTab === 'setlist' ? 'Add Song' :
+              {activePlannerTab === 'setlist' ? (isAddSongLoading ? 'Loading...' : 'Add Song') :
                activePlannerTab === 'teams' ? 'Add Team' :
                activePlannerTab === 'skills' ? 'Add Skill' :
                'New Service'}
@@ -4387,11 +4405,18 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
                     </Text>
                   </View>
                   <TouchableOpacity
-                    style={styles.addActivityBtn}
+                    style={[styles.addActivityBtn, isAddSongLoading && { opacity: 0.85 }]}
+                    disabled={isAddSongLoading}
                     onPress={openSongPicker}
                   >
-                    <Plus size={14} color="#FFFFFF" />
-                    <Text style={styles.addActivityBtnTxt}>Add Song</Text>
+                    {isAddSongLoading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Plus size={14} color="#FFFFFF" />
+                    )}
+                    <Text style={styles.addActivityBtnTxt}>
+                      {isAddSongLoading ? 'Loading...' : 'Add Song'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -4519,11 +4544,18 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
                     Select praise and worship songs from your church library, assign song leaders, keys, and instrumentalists.
                   </Text>
                   <TouchableOpacity
-                    style={styles.createEmptyBtn}
+                    style={[styles.createEmptyBtn, isAddSongLoading && { opacity: 0.85 }]}
+                    disabled={isAddSongLoading}
                     onPress={openSongPicker}
                   >
-                    <Plus size={15} color="#FFFFFF" />
-                    <Text style={styles.createEmptyBtnTxt}>Add from Song Library</Text>
+                    {isAddSongLoading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Plus size={15} color="#FFFFFF" />
+                    )}
+                    <Text style={styles.createEmptyBtnTxt}>
+                      {isAddSongLoading ? 'Loading Songs...' : 'Add from Song Library'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               ) : (
@@ -5624,13 +5656,20 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
                 </Text>
               </View>
             ) : (
-              <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
-                {filteredLibrarySongs.map((song, songIdx) => {
+              <FlatList
+                data={filteredLibrarySongs}
+                keyExtractor={(song, songIdx) => (song.id ? `song_${song.id}_${songIdx}` : `song_${songIdx}`)}
+                style={{ maxHeight: 380 }}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                initialNumToRender={14}
+                maxToRenderPerBatch={12}
+                windowSize={5}
+                renderItem={({ item: song }) => {
                   const isAlreadyInSetlist = (showCreateModal ? createSetlist : (selectedPlan?.setlist || [])).some(s => s.songId === song.id);
                   const isSelected = selectedSongIdsForBatch.includes(song.id);
                   return (
                     <TouchableOpacity
-                      key={song.id ? `song_${song.id}_${songIdx}` : `song_${songIdx}`}
                       style={[
                         styles.songPickItem,
                         { borderColor: cardBorder },
@@ -5679,8 +5718,8 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
                       )}
                     </TouchableOpacity>
                   );
-                })}
-              </ScrollView>
+                }}
+              />
             )}
 
             <View style={styles.modalFooter}>

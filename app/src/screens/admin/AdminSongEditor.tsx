@@ -242,6 +242,7 @@ export default function AdminSongEditor() {
 
   // Modals for Song Management in Services
   const [showSongPickerModal, setShowSongPickerModal] = useState(false);
+  const [openingSongPicker, setOpeningSongPicker] = useState(false);
   const [pickerSearch, setPickerSearch] = useState('');
   const [pickerCategory, setPickerCategory] = useState('All');
   const [pickerSelectedSongs, setPickerSelectedSongs] = useState<WorshipSong[]>([]);
@@ -698,13 +699,22 @@ export default function AdminSongEditor() {
   };
 
   // ── SETLIST SONG ACTIONS ──────────────────────────
-  const handleOpenSongPicker = () => {
+  const isAddSongBusy = openingSongPicker || loadingList;
+
+  const handleOpenSongPicker = async () => {
+    if (isAddSongBusy) return;
+    setOpeningSongPicker(true);
     setPickerSearch('');
     setPickerCategory('All');
     setPickerSelectedSongs([]);
-    setShowSongPickerModal(true);
-    if (postedSongs.length === 0 && !loadingList) {
-      fetchPostedSongs();
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 120));
+      if (postedSongs.length === 0) {
+        await fetchPostedSongs();
+      }
+      setShowSongPickerModal(true);
+    } finally {
+      setOpeningSongPicker(false);
     }
   };
 
@@ -2535,12 +2545,20 @@ export default function AdminSongEditor() {
                   borderWidth: 1.5,
                   borderColor: '#93C5FD',
                   paddingVertical: 9,
-                  borderRadius: 10
+                  borderRadius: 10,
+                  opacity: isAddSongBusy ? 0.8 : 1,
                 }}
+                disabled={isAddSongBusy}
                 onPress={handleOpenSongPicker}
               >
-                <BookOpen size={14} color="#1D4ED8" />
-                <Text style={{ color: '#1D4ED8', fontSize: 12, fontWeight: '800' }}>Select from All Songs</Text>
+                {isAddSongBusy ? (
+                  <ActivityIndicator size="small" color="#1D4ED8" />
+                ) : (
+                  <BookOpen size={14} color="#1D4ED8" />
+                )}
+                <Text style={{ color: '#1D4ED8', fontSize: 12, fontWeight: '800' }}>
+                  {isAddSongBusy ? 'Loading...' : 'Select from All Songs'}
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -2794,12 +2812,20 @@ export default function AdminSongEditor() {
                     backgroundColor: '#1a2d5a',
                     paddingHorizontal: 14,
                     paddingVertical: 10,
-                    borderRadius: 10
+                    borderRadius: 10,
+                    opacity: isAddSongBusy ? 0.8 : 1,
                   }}
+                  disabled={isAddSongBusy}
                   onPress={handleOpenSongPicker}
                 >
-                  <BookOpen size={14} color="#fff" />
-                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>Select from All Songs</Text>
+                  {isAddSongBusy ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <BookOpen size={14} color="#fff" />
+                  )}
+                  <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>
+                    {isAddSongBusy ? 'Loading...' : 'Select from All Songs'}
+                  </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
