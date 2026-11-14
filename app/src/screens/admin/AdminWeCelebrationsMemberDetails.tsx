@@ -1,14 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, Linking } from 'react-native';
 import { ChevronLeft, Gift } from 'lucide-react-native';
 
 const MemberAvatar = ({ member, initials, styles, bgColor }: any) => {
   const [imgError, setImgError] = React.useState(false);
-  const possibleUrls = [
+  const possibleUrls = member ? [
     member.profilePhoto, member.photoURL, member.photoUrl, 
     member.ProfilePhoto, member.profileImage, member.Photo, 
     member.PhotoUrl, member.photo
-  ];
+  ] : [];
   const validUrl = possibleUrls.find((url: any) => typeof url === 'string' && url.trim() !== '' && url !== 'null' && url !== 'undefined');
 
   if (validUrl && !imgError) {
@@ -33,12 +33,33 @@ const MemberAvatar = ({ member, initials, styles, bgColor }: any) => {
 
 export default function AdminWeCelebrationsMemberDetails({ member, category, onBack, onPrepareWish }: { member: any, category: string, onBack: () => void, onPrepareWish: () => void }) {
   
-  const getAvatarColor = (name: string) => {
+  const getAvatarColor = (name?: string) => {
     const colors = ['#734062', '#1A4F5B', '#42518E', '#D97736'];
     let hash = 0;
-    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    const str = name || '';
+    for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
     return colors[Math.abs(hash) % colors.length];
   };
+
+  if (!member) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={onBack}>
+            <ChevronLeft size={22} color="#fff" />
+            <Text style={styles.backBtnTxt}>Back</Text>
+          </TouchableOpacity>
+          <View style={styles.heroTitles}>
+            <Text style={styles.headerTitle}>Member Details</Text>
+            <Text style={styles.headerSub}>CELEBRATION</Text>
+          </View>
+        </View>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#64748B', fontSize: 14, fontWeight: '700' }}>No member details selected</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -100,7 +121,32 @@ export default function AdminWeCelebrationsMemberDetails({ member, category, onB
         {/* WhatsApp Number Card */}
         <View style={styles.fullCard}>
           <Text style={styles.cardLabel}>WHATSAPP NUMBER</Text>
-          <Text style={styles.cardValue}>{member.phone || '--'}</Text>
+          {(() => {
+            const displayPhone = member.phone
+              ? member.phone
+              : member.referencePhone
+              ? member.referencePhone
+              : null;
+            const displayLabel = member.phone
+              ? member.phone
+              : member.referencePhone
+              ? `${member.referencePhone} (Parent Reference)`
+              : '--';
+            return displayPhone ? (
+              <TouchableOpacity onPress={() => Linking.openURL(`tel:${displayPhone}`)}>
+                <Text style={[styles.cardValue, { color: '#1a2d5a', textDecorationLine: 'underline' }]}>
+                  {displayLabel}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <Text style={styles.cardValue}>--</Text>
+            );
+          })()}
+          {member.isReferencePhone && (
+            <Text style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>
+              📞 Birthday wishes will be sent to the parent's number
+            </Text>
+          )}
         </View>
 
         {/* Action Button */}

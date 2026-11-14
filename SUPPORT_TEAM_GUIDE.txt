@@ -1,0 +1,188 @@
+================================================================================
+          WECHRISTIAN ADMIN DASHBOARD - SUPPORT TEAM & HELP MANUAL
+================================================================================
+Screen Component : AdminSupportTeam.tsx
+Route Tab Name   : "Support Team" (AdminDashboard Support Card)
+Icon             : Headset / PhoneCall
+Permission Level : All Church Administrators & Staff
+Theme & Canvas   : Parchment (#F7F3EA), Deep Navy (#1a2d5a), Warm Gold (#7A5A24)
+================================================================================
+
+[TABLE OF CONTENTS]
+1. Module Overview & Pastoral Assistance Mission
+2. Visual Interface & Warm Parchment Aesthetic
+3. Direct Support Personnel Directory
+   - S. Sunil Babu (+91 83743 31432)
+   - Y. Prabhakar (+91 93927 23536)
+   - L. Shaik Shafi (+91 96424 02639)
+4. 1-Tap Action Workflows (WhatsApp wa.me & Native Phone Dialer)
+5. Digital Helpdesk Channels
+   - Official Email Support Desk (wechristianapp@gmail.com)
+   - Platform Web Portal (wechristian.app)
+   - Official Video Knowledge Base & YouTube Tutorials (@WeChristianApp)
+6. Pastoral Encouragement & SLA Footnote (Galatians 6:2)
+7. Deep-Link Intent Architecture & URL Protocol Schemes
+8. Common Support Scenarios Handled by the Team
+
+================================================================================
+1. MODULE OVERVIEW & PASTORAL ASSISTANCE MISSION
+================================================================================
+The "Support Team" module (AdminSupportTeam) is the dedicated pastoral care,
+onboarding, and technical assistance hub built directly into the WeChristian
+administration console.
+
+Recognizing that church pastors, elders, and volunteer media teams are often
+serving in high-pressure environments, this module removes all barriers to
+receiving immediate help. Instead of filing robotic support tickets or waiting
+in multi-day queues, church administrators have instant, personal access to the
+founding engineers and ministry specialists behind WeChristian:
+  - 1-Tap WhatsApp Support: Connects directly with support engineers via chat.
+  - 1-Tap Direct Voice Calling: Immediately dials personal helpline numbers.
+  - Digital Helpdesk: Direct links to email support, video tutorials, and web resources.
+
+================================================================================
+2. VISUAL INTERFACE & WARM PARCHMENT AESTHETIC
+================================================================================
+The screen is designed with an inviting, peaceful aesthetic:
+
+  - Hero Topbar (`#1a2d5a`): Deep navy header with back navigation and subtext
+    "WeChristian app assistance".
+  - Content Hero Section: Soft parchment background (`#F7F3EA`) with an elegant
+    radial hero arc, eyebrow title "We're here for you", and headline:
+    "Need help with the WeChristian app? Our support team is happy to help —
+    reach out however's easiest for you."
+  - Subtle Texture: Employs a background watermark (`support_bg.png`) at 10%
+    opacity.
+  - Horizontal Gradient Divider: Fades from warm parchment `#E4DECE` into
+    transparency.
+
+================================================================================
+3. DIRECT SUPPORT PERSONNEL DIRECTORY
+================================================================================
+The module features three direct senior support team members:
+
+  +--------------------------------------------------------------------------+
+  |  [SB]  S. Sunil Babu                                                     |
+  |        +91 83743 31432                                                   |
+  |        [💬 WhatsApp]                           [📞 Call]                 |
+  +--------------------------------------------------------------------------+
+  |  [YP]  Y. Prabhakar                                                      |
+  |        +91 93927 23536                                                   |
+  |        [💬 WhatsApp]                           [📞 Call]                 |
+  +--------------------------------------------------------------------------+
+  |  [SS]  L. Shaik Shafi                                                    |
+  |        +91 96424 02639                                                   |
+  |        [💬 WhatsApp]                           [📞 Call]                 |
+  +--------------------------------------------------------------------------+
+
+Card Anatomy:
+  - Initials Avatar: Circular warm badge displaying member initials (SB, YP, SS).
+  - Personnel Name: Bold 16px font (`#1a2d5a`).
+  - Formatted Phone: Distinct country and area code grouping (`+91 83743 31432`).
+  - Action Row: Dual buttons with distinct color styling:
+    * WhatsApp Button: Forest green tint (`#12603C`) with `MessageCircle` icon.
+    * Call Button: Slate blue tint (`#2F5A8A`) with `Phone` icon.
+
+================================================================================
+4. 1-TAP ACTION WORKFLOWS (WHATSAPP & VOICE DIALER)
+================================================================================
+A. WHATSAPP 1-TAP TRIGGER
+   ```typescript
+   const handleWhatsApp = (phone: string) => {
+     const message = encodeURIComponent(
+       'Hello WeChristian Support Team, I need help with the WeChristian app.'
+     );
+     const url = `https://wa.me/91${phone}?text=${message}`;
+     Linking.openURL(url);
+   };
+   ```
+   - Automatically prefixes India country code (`91`).
+   - Pre-populates a polite opening greeting in the chat input.
+   - Bypasses the need for pastors to save new contacts into their phone address
+     book before asking a question.
+
+B. NATIVE VOICE DIALER TRIGGER
+   ```typescript
+   const handleCall = (phone: string) => {
+     const url = `tel:+91${phone}`;
+     Linking.openURL(url);
+   };
+   ```
+   - Dispatches a native `tel:` system intent directly to the Android or iOS
+     dialer app with the full telephone number pre-filled.
+
+================================================================================
+5. DIGITAL HELPDESK CHANNELS
+================================================================================
+Directly beneath the personal team cards is the "Digital" section:
+
+1. ✉️ EMAIL SUPPORT CARD
+   - Name: WeChristian support
+   - Address: `wechristianapp@gmail.com`
+   - Icon: Circular warm gold container with Lucide `Mail` icon.
+   - Button: `[ Send email ]`
+   - Action: Invokes `mailto:` protocol scheme:
+     `mailto:wechristianapp@gmail.com?subject=WeChristian%20app%20support&body=Hello...`
+   - Pre-fills subject line and body template in the user's default email client.
+
+2. 🌐 OFFICIAL WEBSITE CARD
+   - Name: Our Website
+   - URL: `wechristian.app`
+   - Icon: Circular warm container with Lucide `Globe` icon.
+   - Button: `[ Visit Website ]`
+   - Action: Launches browser to the main platform landing page.
+
+3. ▶️ YOUTUBE VIDEO TUTORIAL CARD
+   - Name: WeChristian on YouTube
+   - Handle: `@WeChristianApp`
+   - Icon: Circular soft rose container (`#FDECEA`) with red `YouTubeIcon`.
+   - Button: `[ Watch on YouTube ]` (Red accent)
+   - Action: Directs to `https://www.youtube.com/@WeChristianApp` for step-by-step
+     video walkthroughs on member imports, AI sermon preparation, and song entry.
+
+================================================================================
+6. PASTORAL ENCOURAGEMENT & SLA FOOTNOTE (GALATIANS 6:2)
+================================================================================
+At the bottom of the support screen rests a spiritual benediction:
+
+  "Carry each other's burdens." — Galatians 6:2
+  "We usually reply within a day."
+
+This reinforces the ministry philosophy of the WeChristian team: technology is
+not treated as a corporate transaction, but as a servant ministry walking
+alongside Christian leaders to empower their congregations.
+
+================================================================================
+7. DEEP-LINK INTENT ARCHITECTURE & URL PROTOCOL SCHEMES
+================================================================================
+Protocol Schemes Executed by the Screen:
+  - WhatsApp: `https://wa.me/{phone}?text={encodedText}`
+  - Voice Call: `tel:+91{phone}`
+  - Email: `mailto:{address}?subject={encodedSubject}&body={encodedBody}`
+  - Web: `https://wechristian.app`
+  - YouTube: `https://www.youtube.com/@WeChristianApp`
+
+All calls are protected with `.catch(err => console.error(err))` to prevent
+app crashes on devices missing specific default handler apps.
+
+================================================================================
+8. COMMON SUPPORT SCENARIOS HANDLED BY THE TEAM
+================================================================================
+1. Onboarding Assistance:
+   Helping newly joined churches upload their initial congregation phone directories
+   and configure their custom primary color and logo.
+
+2. Razorpay Live Verification:
+   Assisting church finance committees in setting up their Razorpay merchant
+   accounts, generating live Key IDs, and testing tithe payments.
+
+3. WhatsApp Meta API Activation:
+   Enabling the `whatsappIntegrationEnabled` flag and verifying Meta WhatsApp
+   Cloud API templates for church birthday automation.
+
+4. Multi-Branch Campus Hierarchy:
+   Enabling `isParentOrganization` flags for growing ministries establishing
+   new regional satellite campuses.
+================================================================================
+                    END OF SUPPORT TEAM MODULE MANUAL
+================================================================================

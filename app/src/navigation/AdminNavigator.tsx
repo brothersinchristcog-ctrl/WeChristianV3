@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Platform, Image, Dimensions, Alert, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -38,7 +38,11 @@ import {
   Sliders,
   ChevronLeft,
   Eye,
-  X
+  X,
+  Wand2,
+  Image as ImageIcon,
+  Award,
+  Droplets
 } from 'lucide-react-native';
 import { useAuth } from '../context/AuthContext';
 import { useChurch } from '../context/ChurchContext';
@@ -66,7 +70,7 @@ import AdminChurchSettings from '../screens/admin/AdminChurchSettings';
 import AdminAttendance from '../screens/admin/AdminAttendance';
 import PastorEventDashboard from '../screens/admin/pastor_events/PastorEventDashboard';
 import SuperAdminDashboard from '../screens/admin/SuperAdminDashboard';
-import AdminSubscriptionScreen from '../screens/admin/AdminSubscriptionScreen';
+
 import AdminWeCelebrations from '../screens/admin/AdminWeCelebrations';
 import AdminWhatsAppInbox from '../screens/admin/AdminWhatsAppInbox';
 import AdminFinanceDashboard from '../screens/admin/AdminFinanceDashboard';
@@ -75,7 +79,20 @@ import DonationsDashboard from '../screens/admin/DonationsDashboard';
 import AdminDashboard from '../screens/admin/AdminDashboard';
 import AdminOnlineMeetings from '../screens/admin/AdminOnlineMeetings';
 import AdminOnlineMeetingEditor from '../screens/admin/AdminOnlineMeetingEditor';
-import { Shield, Video as VideoIcon } from 'lucide-react-native';
+import AdminSupportTeam from '../screens/admin/AdminSupportTeam';
+import AdminGalleryNavigator from '../screens/admin/gallery/AdminGalleryNavigator';
+import { Shield, Video as VideoIcon, Headset } from 'lucide-react-native';
+import AISermonAssistant from '../screens/admin/AISermonAssistant';
+import AIContentCreator from '../screens/admin/AIContentCreator';
+import AdminQuizList from '../screens/admin/quiz/AdminQuizList';
+import ChurchService from '../services/ChurchService';
+import AdminServicePlanner from '../screens/admin/AdminServicePlanner';
+import AdminBaptism from '../screens/admin/AdminBaptism';
+import AdminCareCellsHub from '../screens/admin/care_cells/AdminCareCellsHub';
+import AdminTestimonies from '../screens/admin/AdminTestimonies';
+import AdminVolunteerManagement from '../screens/admin/AdminVolunteerManagement';
+import CareCellService from '../services/CareCellService';
+import { firestore } from '../services/firebaseConfig';
 
 const { width } = Dimensions.get('window');
 
@@ -100,12 +117,60 @@ const DotGridIcon = ({ color, size }: { color: string; size: number }) => {
 };
 
 export default function AdminNavigator({ navigation, route }: any) {
-  const { signOut, user, member, setViewMode } = useAuth();
+  const { signOut, user, member, setViewMode, isPlatformSuperAdmin } = useAuth();
   const { activeChurch, isImpersonating, impersonatedBranchName, stopImpersonation } = useChurch();
   const [activeTab, setActiveTab] = useState(0);
   const [tabHistory, setTabHistory] = useState<number[]>([]);
   const [editingData, setEditingData] = useState(null);
   const [dashboardScrollY, setDashboardScrollY] = useState(0);
+  const [hasCareCellAccess, setHasCareCellAccess] = useState(false);
+
+  const isSuperAdminUser = 
+    String(member?.userType || '').toUpperCase().includes('ADMIN') || 
+    String(member?.userType || '').toUpperCase().includes('SUPER') ||
+    isPlatformSuperAdmin;
+
+  useEffect(() => {
+    if (isSuperAdminUser) {
+      setHasCareCellAccess(true);
+      return;
+    }
+    if (!user?.uid) {
+      setHasCareCellAccess(false);
+      return;
+    }
+
+    const churchId = activeChurch?.id;
+    if (!churchId) {
+      setHasCareCellAccess(false);
+      return;
+    }
+
+    // Initial check
+    CareCellService.checkAdminHasCareCellAccess(churchId, user.uid)
+      .then(hasAccess => setHasCareCellAccess(hasAccess))
+      .catch(() => setHasCareCellAccess(false));
+
+    // Real-time listener for cell assignments
+    const unsubscribe = firestore()
+      .collection('churches')
+      .doc(churchId)
+      .collection('careCells')
+      .onSnapshot((snap) => {
+        if (snap) {
+          const matching = snap.docs.some(doc => {
+            const d = doc.data() || {};
+            const assigned = Array.isArray(d.assignedAdminIds) ? d.assignedAdminIds : [];
+            return assigned.includes(user.uid) || d.leaderId === user.uid || d.assistantLeaderId === user.uid;
+          });
+          setHasCareCellAccess(matching);
+        }
+      }, (err) => {
+        console.warn('⚠️ [AdminNavigator] Care Cells access listener error:', err);
+      });
+
+    return () => unsubscribe();
+  }, [activeChurch?.id, user?.uid, isSuperAdminUser]);
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
     title: string;
@@ -124,7 +189,7 @@ export default function AdminNavigator({ navigation, route }: any) {
         }, 0);
       }
     }
-  }, [route?.params?.targetTab]);
+  }, [route?.params?.targetTab, route?.params?.timestamp, route?.params?.testimonyId]);
 
   const handleSetTab = (index: number) => {
     if (index !== activeTab) {
@@ -140,23 +205,32 @@ export default function AdminNavigator({ navigation, route }: any) {
         return;
       }
       
+      const premiumTabs = [
+        'Promises', 'New Promise', 'Schedule', 'Promise Calendar', 'Add Promise',
+        'Sermons', 'New Sermon', 'Songs', 'Events', 'New Event', 'Pastor Event',
+        'Prayers', 'Celebrations', 'Gallery', 'Expense', 'Donations', 
+        'Online Meetings', 'New Online Meeting', 'AI Sermon Assistant', 'AI Thumbnail Creation', 'AI Content Creator',
+        'WeCelebrations', 'WhatsApp', 'Bible Quiz', 'Baptism'
+      ];
+      
+      if (premiumTabs.includes(tabName) && ChurchService.isSubscriptionExpired(activeChurch)) {
+        navigation.navigate('Subscription');
+        return;
+      }
+      
 
-      // Defer the heavy component unmount/mount to the next tick. 
-      // This allows the tap animation to finish instantly, making the UI feel highly responsive.
-      setTimeout(() => {
-        setTabHistory(prev => [...prev, activeTab]);
-        const targetTabName = tabs[index]?.name || '';
-        const safeTabNames = [
-          'Promises', 'New Promise', 'Schedule', 'Promise Calendar', 'Add Promise',
-          'Sermons', 'New Sermon', 
-          'Events', 'New Event',
-          'Online Meetings', 'New Online Meeting'
-        ];
-        if (!safeTabNames.includes(targetTabName)) {
-          setEditingData(null);
-        }
-        setActiveTab(index);
-      }, 0);
+      setTabHistory(prev => [...prev, activeTab]);
+      const targetTabName = tabs[index]?.name || '';
+      const safeTabNames = [
+        'Promises', 'New Promise', 'Schedule', 'Promise Calendar', 'Add Promise',
+        'Sermons', 'New Sermon',
+        'Events', 'New Event',
+        'Online Meetings', 'New Online Meeting'
+      ];
+      if (!safeTabNames.includes(targetTabName)) {
+        setEditingData(null);
+      }
+      setActiveTab(index);
     }
   };
 
@@ -193,7 +267,7 @@ export default function AdminNavigator({ navigation, route }: any) {
     return () => backHandler.remove();
   }, [tabHistory]);
 
-  const tabs = [
+  const tabs = useMemo(() => [
     { name: 'Dashboard', icon: DotGridIcon, component: AdminDashboard },
     ...(activeChurch?.isParentOrganization ? [{ name: 'Church Branches', icon: Building2, component: AdminOrganization }] : []),
     { name: 'Promises', icon: BookOpen, component: AdminPromiseList },
@@ -207,21 +281,32 @@ export default function AdminNavigator({ navigation, route }: any) {
     { name: 'New Event', icon: CalendarPlus, component: AdminEventEditor },
     { name: 'Pastor Event', icon: Briefcase, component: PastorEventDashboard },
     { name: 'Prayers', icon: Heart, component: AdminPrayerModeration },
+    { name: 'Testimonies', icon: Sparkles, component: AdminTestimonies },
     { name: 'Attendance', icon: ClipboardCheck, component: AdminAttendance },
+    ...(isSuperAdminUser || hasCareCellAccess ? [{ name: 'Care Cells', icon: HeartHandshake, component: AdminCareCellsHub }] : []),
+    { name: 'Service Roster', icon: ClipboardCheck, component: AdminServicePlanner },
+    { name: 'Volunteer Management', icon: HeartHandshake, component: AdminVolunteerManagement },
     { name: 'Members', icon: Users, component: AdminMembers },
+    { name: 'Baptism', icon: Droplets, component: AdminBaptism },
     { name: 'Celebrations', icon: Gift, component: AdminCelebrations },
+    { name: 'Gallery', icon: ImageIcon, component: AdminGalleryNavigator },
     ...(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') ? [{ name: 'WeCelebrations', icon: Sparkles, component: AdminWeCelebrations }] : []),
     ...(String(member?.userType || '').toUpperCase().includes('ADMIN') || String(member?.userType || '').toUpperCase().includes('SUPER') ? [{ name: 'WhatsApp', icon: MessageCircle, component: AdminWhatsAppInbox }] : []),
     { name: 'About Us', icon: Building2, component: AdminAboutUsEditor },
     { name: 'Contact Us', icon: PhoneCall, component: AdminContactUsEditor },
+    { name: 'Support Team', icon: Headset, component: AdminSupportTeam },
     { name: 'Church Settings', icon: Sliders, component: AdminChurchSettings },
     { name: 'Expense', icon: Wallet, component: AdminFinanceDashboard },
     { name: 'Donations', icon: HeartHandshake, component: DonationsDashboard },
-    { name: 'Subscription', icon: Crown, component: AdminSubscriptionScreen },
+
     { name: 'Online Meetings', icon: VideoIcon, component: AdminOnlineMeetings },
     { name: 'New Online Meeting', icon: VideoIcon, component: AdminOnlineMeetingEditor },
-    ...(member?.userType === 'super_admin' ? [{ name: 'Super Admin', icon: Shield, component: SuperAdminDashboard }] : []),
-  ];
+    // ── AI Ministry Tools ──
+    { name: 'AI Sermon Assistant', icon: Sparkles, component: AISermonAssistant },
+    { name: 'AI Thumbnail Creation', icon: Wand2, component: AIContentCreator },
+    { name: 'Bible Quiz', icon: Award, component: AdminQuizList },
+    ...(isPlatformSuperAdmin ? [{ name: 'App Admin', icon: Shield, component: SuperAdminDashboard }] : []),
+  ], [activeChurch?.isParentOrganization, isSuperAdminUser, hasCareCellAccess, member?.userType, isPlatformSuperAdmin]);
 
   const ActiveComponent = tabs[activeTab].component as any;
   const today = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -262,11 +347,16 @@ export default function AdminNavigator({ navigation, route }: any) {
     inactiveIconColor = 'rgba(255,255,255,0.7)';
   }
 
+  const isSuperAdminTab = tabs[activeTab]?.name === 'App Admin';
+  const isAiTab = tabs[activeTab]?.name === 'AI Thumbnail Creation' || tabs[activeTab]?.name === 'AI Content Creator' || tabs[activeTab]?.name === 'AI Sermon Assistant';
+
   // We provide handleSetTab via setActiveTab so child components can push to history
   return (
     <AdminTabContext.Provider value={{ activeTab, setActiveTab: handleSetTab, editingData, setEditingData, goBack: handleBack, setTabByName, dashboardScrollY, setDashboardScrollY }}>
-      <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
-        <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : '#1a2d5a' }} />
+      <View style={[styles.container, { backgroundColor: activeTab === 0 ? '#F4F0EA' : isSuperAdminTab ? '#0a0f1e' : '#f0f2f7' }]}>
+        {!isSuperAdminTab && (
+          <SafeAreaView edges={['top']} style={{ backgroundColor: activeTab === 0 ? '#F4F0EA' : isAiTab ? '#3A2A6B' : '#1a2d5a' }} />
+        )}
         
         {isImpersonating && (
           <TouchableOpacity 
@@ -322,7 +412,7 @@ export default function AdminNavigator({ navigation, route }: any) {
           </TouchableOpacity>
         )}
 
-        {activeTab !== 0 && (
+        {activeTab !== 0 && !isSuperAdminTab && !isAiTab && (
           <View style={[styles.header, { backgroundColor: '#1a2d5a' }]}>
             <View style={styles.headerTop}>
               <View style={styles.headerText}>
@@ -373,9 +463,13 @@ export default function AdminNavigator({ navigation, route }: any) {
         )}
 
         <View style={[styles.content, { backgroundColor: activeTab === 0 ? '#F4F0EA' : '#f0f2f7' }]}>
-          {activeTab === 0 ? (
+          <View
+            style={{ flex: 1, display: activeTab === 0 ? 'flex' : 'none' }}
+            pointerEvents={activeTab === 0 ? 'auto' : 'none'}
+          >
             <AdminDashboard navigation={navigation} allTabs={tabs} />
-          ) : (
+          </View>
+          {activeTab !== 0 && (
             <ActiveComponent navigation={navigation} routeParams={route?.params} />
           )}
         </View>

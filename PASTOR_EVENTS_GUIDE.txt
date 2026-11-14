@@ -1,0 +1,445 @@
+================================================================================
+WECHRISTIAN ADMIN DASHBOARD - PASTOR EVENTS & ITINERARY SYSTEM MANUAL
+================================================================================
+Document: PASTOR_EVENTS_GUIDE.txt
+Module: Pastor Events & Travel Itinerary Planner
+Platform: WeChristian Mobile & Admin Ecosystem
+Location: app/src/screens/admin/pastor_events/
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1.  MODULE OVERVIEW & PASTORAL ARCHITECTURE
+2.  NAVIGATION & SCREEN HIERARCHY
+3.  PASTOR EVENT DASHBOARD (PastorEventDashboard.tsx)
+    3.1 Hero Bar & Action Controls
+    3.2 Schedule Timeline Tabs (Today, Upcoming, Past)
+    3.3 Calendar Date Picker Filter & Banner
+    3.4 Dynamic Starting Location Bar (Geocoding & Persistence)
+    3.5 Stats Summary Grid (Events, Travel Distance, Travel Time)
+    3.6 Event Card Anatomy & Live Journey Tracker
+    3.7 Floating Action Buttons (Route Plan, Map View)
+4.  EVENT CREATION & EDITING WIZARD (CreatePastorEvent.tsx)
+    4.1 Multi-Step Wizard Architecture (Steps 1, 2, 3)
+    4.2 Step 1: Event Information (Title, Category, Dates, Times, Duration)
+    4.3 Step 2: Destination & Geocoding (Venue, Town/Village, Full Address)
+    4.4 Step 3: Additional Context (Description, Preparation Notes)
+    4.5 Pre-Save Geocoding & Coordinate Resolution
+    4.6 Schedule Overlap Conflict Engine
+    4.7 Travel Time & Transit Buffer Conflict Engine
+5.  EVENT DETAIL SCREEN (PastorEventDetail.tsx)
+    5.1 Header & Hero Summary
+    5.2 Text-to-Speech (TTS) Voice Briefing Engine
+    5.3 Venue & Embedded Map Preview
+    5.4 Host Contact Card & Direct Telephony Integration
+    5.5 Chronological Next Event Distance Planning Card
+    5.6 Action Controls (Edit, Delete with Confirmation)
+6.  ROUTE PLANNER (PastorEventRoutePlanner.tsx)
+    6.1 Sequential Waypoint Itinerary Overview
+    6.2 Transport Mode Switcher (Car, Bike, Bus)
+    6.3 Automated Schedule Conflict Detection
+    6.4 External Multi-Waypoint Google Maps Launcher
+7.  MAP VIEW & SCHEMATIC ROUTING (PastorEventMap.tsx)
+    7.1 Map Coordinates & Geographic Polyline Connecting Route
+    7.2 Schematic Fallback Engine & Grouped Pin Markers
+    7.3 Event Details Carousel on Map
+8.  AI ASSISTANT & VOICE COPILOT (AIAssistantModal.tsx)
+    8.1 Bilingual Conversational Assistant (English & Telugu)
+    8.2 Voice Recording & Groq Whisper Transcription
+    8.3 Auto-Speech TTS Playback & Voice Mode Conversation Loop
+    8.4 Structured Event Extraction & Confirmation Card
+9.  DATABASE SCHEMA & FIELD REFERENCE (types/event.ts)
+10. TROUBLESHOOTING & CONFIGURATION TIPS
+
+================================================================================
+1. MODULE OVERVIEW & PASTORAL ARCHITECTURE
+================================================================================
+The Pastor Events module is a confidential ministerial itinerary and travel 
+logistics system designed specifically for the Senior Pastor and executive ministry 
+staff.
+
+Unlike the public Church Calendar (which manages general congregation services, 
+youth retreats, and Sunday school open to all members), the Pastor Events system 
+manages the Senior Pastor's external appointments, guest speaking engagements, 
+ministerial visits, revivals, weddings, funerals, and travel coordination.
+
+Key Capabilities:
+* Complete confidential scheduling separated from member-facing calendars.
+* Multi-mode travel calculation (driving distance, bike, bus, and flight).
+* Real-time GPS geocoding via Google Maps API.
+* Intelligent conflict detection: warns if events double-book or if driving 
+  transit time between two consecutive venues is physically impossible.
+* Live Journey Tracker showing real-time ETA from current location or base home.
+* Multi-stop Route Planning with export directly into Google Maps turn-by-turn.
+* Hands-free AI Ministerial Copilot with Telugu and English voice dictation.
+
+================================================================================
+2. NAVIGATION & SCREEN HIERARCHY
+================================================================================
+The Pastor Events module is organized into six interconnected screens and modals:
+
+[Admin Dashboard Grid] (Pastor Events Tile)
+       |
+       +---> [PastorEventDashboard] (Schedule list, stats, tabs, date filter)
+                 |
+                 +---> [CreatePastorEvent] (3-step creation wizard & geocoding)
+                 |
+                 +---> [PastorEventDetail] (Full itinerary view, host contact, TTS)
+                 |         |
+                 |         +---> [CreatePastorEvent] (Edit mode with prefilled data)
+                 |
+                 +---> [PastorEventRoutePlanner] (Multi-stop route & conflict check)
+                 |
+                 +---> [PastorEventMap] (Geographic & schematic map visualization)
+                 |
+                 +---> [AIAssistantModal] (Voice & text conversational AI copilot)
+
+================================================================================
+3. PASTOR EVENT DASHBOARD (PastorEventDashboard.tsx)
+================================================================================
+The primary hub displaying the Pastor's itinerary, travel metrics, and quick actions.
+
+3.1 Hero Bar & Action Controls
+------------------------------
+* Back Button: Left chevron button. Returns to the previous screen or Admin Dashboard.
+* Title & Subtitle: "Pastor Events | Manage schedule & travel".
+* "+ New" Button: Top-right rounded pill button with navy text on light cream. 
+  Immediately launches the 3-step Create Event Wizard.
+
+3.2 Schedule Timeline Tabs
+--------------------------
+Located right beneath the hero header. Three quick-filter buttons:
+1. "Today": Displays appointments scheduled for the current calendar day. Automatically 
+   activates the Live Journey Tracker on each event card.
+2. "Upcoming": Displays all future appointments from tomorrow onward, sorted in 
+   ascending chronological order (earliest first).
+3. "Past": Displays completed historical engagements, sorted in descending order 
+   (most recent first).
+
+3.3 Calendar Date Picker Filter & Banner
+----------------------------------------
+* Calendar Icon Button: Positioned next to the timeline tabs. Opens a native calendar 
+  dialog (DateTimePicker) allowing the Pastor or secretary to jump to any specific 
+  date (e.g., inspecting an upcoming 3-day revival next month).
+* Date Filter Banner: Appears when a date filter is active. Shows:
+  - Funnel Icon with text: "Filtered: [Month Day, Year]"
+  - "Show All" Button with close-circle icon to reset back to standard Today/Upcoming tabs.
+
+3.4 Dynamic Starting Location Bar
+---------------------------------
+* Label: "STARTING FROM"
+* TextInput Field: Pre-populates with the Pastor's saved base location (e.g., Church 
+  parsonage or home address). If unconfigured, automatically resolves via IP-based 
+  geolocation fallback.
+* "Update" Button: Geocodes the typed address via Google Maps API, persists the new 
+  coordinates into local storage (`locationStore`), and recalculates all driving 
+  distances and travel durations across the entire dashboard in real time.
+
+3.5 Stats Summary Grid
+----------------------
+A high-contrast navy card (`#1a2d5a`) displaying three real-time computed metrics:
+1. Total Events: Total number of appointments matching current filter.
+2. Travel Dist: Total driving distance in kilometers computed across all stops.
+3. Travel Time: Total transit duration (e.g., "1h 45m" or "35 mins") computed via 
+   Google Distance Matrix API.
+
+3.6 Event Card Anatomy & Live Journey Tracker
+---------------------------------------------
+Each appointment is displayed in a clean, elevated white card containing:
+* Title: Bold heading showing the appointment name (e.g., "Guntur Revival Meeting").
+* Calendar Date: Formatted date (e.g., "Friday 15-10-2026").
+* Time Interval: "Start: 06:30 PM | End: 09:00 PM".
+* Meeting Length: Calculated duration (e.g., "2.5 hours").
+* Venue & Location Section:
+  - Venue Name (e.g., "Bethel Fellowship Hall").
+  - Town / Village (e.g., "Arundelpet, Guntur").
+  - Full Address.
+  - "Get Directions" Button: Launches the destination in external Google Maps / Apple Maps.
+* Live Journey Tracker:
+  - When the event is scheduled for Today, an active GPS tracker calculates driving 
+    distance from current location or base home.
+  - Real-time ETA badges and route distance.
+  - If Google Maps API key is missing, displays an informative yellow warning badge.
+
+3.7 Floating Action Buttons
+---------------------------
+Fixed at the bottom of the screen above the navigation bar:
+* "Route Plan" Button: Green button with trail-sign icon. Opens the multi-stop route planner.
+* "Map View" Button: Navy button with map icon. Opens the interactive visual map.
+
+================================================================================
+4. EVENT CREATION & EDITING WIZARD (CreatePastorEvent.tsx)
+================================================================================
+A 3-step structured wizard that guarantees complete travel data, accurate geocoding, 
+and schedule conflict prevention.
+
+4.1 Multi-Step Wizard Architecture
+----------------------------------
+Top visual progress indicator:
+* Step 1: "Event Info" (Circle 1)
+* Step 2: "Destination" (Circle 2)
+* Step 3: "Notes" (Circle 3)
+Lines connect the circles, highlighting in dark blue as each step is validated.
+
+4.2 Step 1: Event Information
+-----------------------------
+* Event Title * (Required):
+  - TextInput placeholder: "e.g. Sunday Service & Prayer".
+  - Validation: Cannot be empty.
+* Event Type (Optional Category):
+  - TextInput placeholder: "e.g. Worship Service, Prayer Meeting, Revival".
+* Start Date * (Required):
+  - Dropdown opening native calendar picker. Defaults to current date.
+* End Date * (Required):
+  - Dropdown opening native calendar picker. Supports multi-day conventions.
+* Start Time * (Required):
+  - Time picker dropdown (12-hour format with AM/PM).
+* End Time * (Required):
+  - Time picker dropdown. Validated: End time must be after Start time.
+* Meeting Length (Calculated):
+  - Read-only auto-computed badge (e.g., "2.5 Hours") updating dynamically.
+
+4.3 Step 2: Destination & Geocoding
+-----------------------------------
+* Venue Name * (Required):
+  - TextInput placeholder: "e.g. Calvary Temple".
+* Town / Village * (Required for Live Tracker Landmark):
+  - TextInput placeholder: "e.g. Guntur".
+* Full Address * (Required for Maps Routing):
+  - Multi-line TextInput placeholder: "e.g. Ring Road, Arundelpet, Guntur, AP, 522002".
+  - Used for Google Maps Geocoding API to resolve exact latitude and longitude.
+
+4.4 Step 3: Additional Context
+------------------------------
+* Description:
+  - Multi-line text input for itinerary purpose, preaching topic, sermon theme, 
+    or ministerial agenda.
+* Special Notes:
+  - Multi-line text input for confidential notes, items to bring (robe, communion set, 
+    anointing oil), contacts to meet, or honorarium details.
+
+4.5 Pre-Save Geocoding & Coordinate Resolution
+----------------------------------------------
+When the user taps "Create Event" / "Update Event":
+1. The app concatenates `[Venue, Town/Village, Full Address]`.
+2. Queries Google Geocoding API (`https://maps.googleapis.com/maps/api/geocode/json`).
+3. Extracts precise `lat` and `lng` coordinates and attaches them to the Firestore document.
+4. If geocoding fails or API key is absent, prompts a graceful alert warning that live 
+   tracking will be disabled while still saving the textual event.
+
+4.6 Schedule Overlap Conflict Engine
+------------------------------------
+Before saving, the system checks all existing events on the target date:
+* If another appointment overlaps the requested time window, a warning dialog appears:
+  "Schedule Conflict: You already have another event scheduled at this exact same time:
+   [Event Title at HH:MM]. Are you sure you want to double-book?"
+* Options: "Cancel" (abort save) or "Proceed Anyway" (override warning).
+
+4.7 Travel Time & Transit Buffer Conflict Engine
+------------------------------------------------
+The system also verifies physical travel feasibility:
+1. Identifies the preceding event on the same day.
+2. Calls the Google Distance Matrix API between the previous event's coordinates and the 
+   new event's coordinates.
+3. Computes the required driving transit time (e.g., 45 minutes).
+4. If `(Previous Event End Time + Transit Time) > New Event Start Time`, triggers:
+   "Schedule Conflict: Insufficient travel time between your previous stop ([Title]) 
+    and this new location. Estimated travel time is [X minutes/hours]."
+5. Gives the Pastor the choice to cancel or proceed anyway.
+
+================================================================================
+5. EVENT DETAIL SCREEN (PastorEventDetail.tsx)
+================================================================================
+Full screen view for deep itinerary inspection, host contact, and navigation.
+
+5.1 Header & Hero Summary
+-------------------------
+* Back button returning to dashboard.
+* Hero title showing "Event Details" and the appointment name.
+
+5.2 Text-to-Speech (TTS) Voice Briefing Engine
+----------------------------------------------
+* Built-in speech synthesizer via `expo-speech`.
+* Reads aloud the event briefing: "You have an upcoming event: [Title]. It is scheduled 
+  for [Date] at [Time]. The venue is [Venue]. Do you have any questions?"
+* Ideal for the Pastor listening to schedule updates while driving.
+
+5.3 Venue & Embedded Map Preview
+--------------------------------
+* If coordinates exist, displays a native embedded MapView snapshot with a location pin.
+* Tapping the map or the "Get Directions" button opens the device's navigation app 
+  (Google Maps or Apple Maps) with the exact route loaded.
+
+5.4 Host Contact Card & Direct Telephony Integration
+----------------------------------------------------
+* Displays Contact Person's name and telephone number.
+* Phone Icon Button: Directly initiates a cellular phone call via `tel:[phone]` without 
+  having to copy-paste numbers.
+
+5.5 Chronological Next Event Distance Planning Card
+---------------------------------------------------
+Shows travel logistics to the Pastor's next scheduled stop:
+* Card displays next appointment title, venue, and start time.
+* Metric 1 (Current to Next): Driving distance and time from this event to the next.
+* Metric 2 (Home to Next): Driving distance and time from home base to the next event.
+
+5.6 Action Controls
+-------------------
+* "Edit Event" Button: Opens the 3-step wizard with all current fields preloaded.
+* "Delete Event" Button: Triggers confirmation alert with destructive styling to 
+  permanently remove the appointment from Firestore.
+
+================================================================================
+6. ROUTE PLANNER (PastorEventRoutePlanner.tsx)
+================================================================================
+A dedicated multi-stop travel planner designed for busy ministry days with multiple visits.
+
+6.1 Sequential Waypoint Itinerary Overview
+------------------------------------------
+* Summarizes the day into an unbroken travel chain:
+  - Stop 0: Starting Point (Home / Church Office)
+  - Stop 1: Morning Service / Hospital Visit
+  - Stop 2: Fellowship Lunch / Member Home
+  - Stop 3: Evening Revival
+* Header Stats: Total Stops, Total Distance (km), and Total Estimated Travel Time.
+
+6.2 Transport Mode Switcher
+---------------------------
+Allows toggling between three transport modes with automatic speed adjustments:
+1. Car (Default): Uses Google Maps real-time driving traffic duration.
+2. Bike (Motorcycle): Applies a 1.35x transit factor for local two-wheeler transit.
+3. Bus (Public Transit): Applies a 1.7x transit factor factoring in bus stops and transfers.
+
+6.3 Automated Schedule Conflict Detection
+-----------------------------------------
+Continuously evaluates the entire chain of stops:
+* If the gap between Stop N end time and Stop N+1 start time is smaller than the calculated 
+  transit duration, displays a prominent amber warning card:
+  "Schedule Conflicts Detected: Insufficient travel time between [Stop A] and [Stop B]."
+* If all timings align comfortably, displays a green success card:
+  "All travel timings align. No conflicts."
+
+6.4 External Multi-Waypoint Google Maps Launcher
+------------------------------------------------
+Tapping "Launch Route in Google Maps":
+* Compiles all waypoints into a multi-stop navigation URL.
+* Launches Google Maps app with all consecutive stops pre-loaded in sequence.
+
+================================================================================
+7. MAP VIEW & SCHEMATIC ROUTING (PastorEventMap.tsx)
+================================================================================
+Provides a geographic overview of the Pastor's itinerary across cities and districts.
+
+7.1 Map Coordinates & Geographic Polyline
+-----------------------------------------
+* Plots every event marker on an interactive map.
+* Draws a dotted polyline connecting Stop 1 -> Stop 2 -> Stop 3 in chronological sequence.
+
+7.2 Schematic Fallback Engine & Grouped Pin Markers
+---------------------------------------------------
+* If native Google Maps / Apple Maps SDK fails or is running in a limited environment, 
+  an automated Schematic SVG Grid Map renders the relative positions of all stops.
+* Grouped Pin Markers: If multiple events occur at the same venue on the same day, 
+  pins group together cleanly with badge counters.
+
+7.3 Event Details Carousel on Map
+---------------------------------
+* Tapping any pin highlights that appointment in a bottom horizontal card.
+* Displays start time, venue, meeting title, and quick direction launcher.
+
+================================================================================
+8. AI ASSISTANT & VOICE COPILOT (AIAssistantModal.tsx)
+================================================================================
+An intelligent voice-enabled ministerial copilot powered by Groq LLM and Whisper speech.
+
+8.1 Bilingual Conversational Assistant (English & Telugu)
+---------------------------------------------------------
+* Supports full conversational planning in English or Telugu (తెలుగు).
+* Language Toggle at top right: Quickly switch between "EN" and "TE".
+* Greets the Pastor respectfully ("🙏 Hello Pastor! What are we planning?" / 
+  "🙏 ఓ పాస్టర్ గారు! నేను ఈవెంట్‌ను క్రియేట్ చేయడానికి మీకు సహాయం చేయగలను.").
+
+8.2 Voice Recording & Groq Whisper Transcription
+------------------------------------------------
+* Tap the microphone button to dictate event details naturally:
+  "Tomorrow at 6 PM I have a prayer meeting at Calvary Temple Guntur with Brother John."
+* Employs real-time audio metering:
+  - Waveform animations respond to speech volume.
+  - Automatic Silence Detection: After 1.5 seconds of silence, the mic automatically stops 
+    and sends the audio for instant transcription via Groq Whisper.
+
+8.3 Auto-Speech TTS Playback & Hands-Free Conversation Loop
+-----------------------------------------------------------
+* In Voice Mode, the AI replies out loud using natural device Text-to-Speech (TTS).
+* Automatically selects appropriate native English or Telugu voice models.
+* Once the AI finishes speaking its question, the microphone automatically opens again, 
+  allowing completely hands-free itinerary scheduling while driving.
+
+8.4 Structured Event Extraction & Confirmation Card
+---------------------------------------------------
+* The AI continuously updates an internal `EventDraft` JSON object as the Pastor speaks:
+  - Extracts title, event type, date, start time, end time, venue, city, address, notes.
+* When all required information is gathered, the AI presents an Event Confirmation Card:
+  - Shows all parsed fields in a neat summary card.
+  - Pastor can tap "Confirm & Create Event" or simply say "Yes, save it".
+  - The appointment is instantly written to Firestore, and a success banner appears.
+
+================================================================================
+9. DATABASE SCHEMA & FIELD REFERENCE (types/event.ts)
+================================================================================
+Pastor events are stored in the Firestore collection `pastor_events`.
+
+Field               | Type             | Description
+--------------------+------------------+------------------------------------------------
+id                  | string           | Unique Firestore document auto-ID
+title               | string           | Meeting or engagement title
+type                | EventType        | 'worship' | 'prayer' | 'meeting' | 'outreach' | 'funeral'
+date                | string (YYYY-MM-DD)| ISO date of the event
+endDate             | string (YYYY-MM-DD)| End date for multi-day conventions
+startTime           | string           | 12-hour formatted time (e.g., "10:30 AM")
+endTime             | string           | 12-hour formatted end time (e.g., "01:00 PM")
+durationMins        | number           | Total duration in minutes (e.g., 150)
+venue               | string           | Name of the church, auditorium, or hall
+city                | string           | Town, village, or district landmark
+address             | string           | Full street address for geocoding
+lat                 | number           | Geocoded latitude (e.g., 16.3067)
+lng                 | number           | Geocoded longitude (e.g., 80.4365)
+contactName         | string           | Host pastor or event coordinator name
+contactPhone        | string           | Coordinator phone number for direct dialing
+description         | string           | Ministerial agenda, sermon theme, Scripture
+notes               | string           | Confidential preparation notes / honorarium
+section             | string           | 'today' | 'upcoming' | 'past' (client calculated)
+travel.distKm       | number           | Driving distance in km from previous stop/home
+travel.car          | number           | Driving time in minutes
+travel.bike         | number           | Motorcycle time in minutes
+travel.bus          | number           | Public transit time in minutes
+travel.originName   | string           | Name of starting point for this leg
+travel.isHomeToEvent| boolean          | True if this stop starts directly from home
+
+================================================================================
+10. TROUBLESHOOTING & CONFIGURATION TIPS
+================================================================================
+1. "Live Tracking Disabled / Google Maps API Key is missing":
+   - The app requires `EXPO_PUBLIC_GOOGLE_MAPS_KEY` in the `.env` file.
+   - Without this key, basic text events still save and display, but geocoding, 
+     live distance calculations, and transit conflict detection are bypassed.
+
+2. Geocoding Status "ZERO_RESULTS":
+   - Occurs if a rural venue has an ambiguous address.
+   - Solution: Include the district name and PIN code in the "Full Address" field 
+     (e.g., "Ring Road, Arundelpet, Guntur, AP, 522002").
+
+3. Voice Assistant Telugu Speech Fallback:
+   - If the AI speaks Telugu in an English accent or remains silent, ensure a Telugu 
+     TTS voice package is installed in the mobile device's system settings:
+     `Settings -> System -> Language & Input -> Text-to-Speech -> Google TTS -> Telugu`.
+
+4. Privacy Separation:
+   - Pastor Events are strictly isolated from normal Church Member logins. They do not 
+     appear on the member app home screen or church calendar, preserving the Pastor's 
+     privacy and pastoral discretion.
+
+================================================================================
+END OF PASTOR EVENTS GUIDE
+================================================================================

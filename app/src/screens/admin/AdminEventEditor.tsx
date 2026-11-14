@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -18,12 +18,12 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import DateTimePickerModal from "react-native-modal-datetime-picker";
+import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import {
   Calendar,
   Clock,
   MapPin,
-  Users,
   Image as ImageIcon,
   Bell,
   Eye,
@@ -32,16 +32,34 @@ import {
   ChevronLeft,
   Info,
   CheckCircle2,
-  ArrowLeft
+  ArrowLeft,
+  CalendarDays,
+  AlertCircle,
+  Trash2,
+  X,
+  Plus,
+  Sparkles,
+  QrCode,
+  Repeat,
+  Music,
+  ArrowUp,
+  ArrowDown,
+  Search,
+  Check,
+  Sliders,
+  Users,
+  HeartHandshake
 } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AdminTabContext } from '../../context/AdminTabContext';
 import { AppAlert } from '../../components/CustomAlert';
 
-import FirestoreService from '../../services/FirestoreService';
+import FirestoreService, { WorshipSong, EventServiceItem } from '../../services/FirestoreService';
+import EventRsvpService from '../../services/EventRsvpService';
 
 const { width, height } = Dimensions.get('window');
 
-const EVENT_TYPES = [
+const DEFAULT_EVENT_TYPES = [
   { label: 'Sunday Service · ఆదివారం సేవ', value: 'Sunday Service' },
   { label: 'Bible study · బైబిల్ అధ్యయనం', value: 'Bible study' },
   { label: "Women's Fasting Prayer · మహిళల ఉపవాస ప్రార్థన", value: "Women's Fasting Prayer" },
@@ -57,11 +75,26 @@ const EVENT_TYPES = [
 
 const RECURRING_OPTIONS = [
   { label: 'One time event', value: 'One-time event' },
+  { label: 'Every day · ప్రతిరోజూ', value: 'Every day' },
   { label: 'Every Sunday', value: 'Every Sunday' },
   { label: 'Every week (specify day)', value: 'Every week' },
   { label: 'First Sunday of every month', value: 'First Sunday' },
   { label: 'Monthly (same date)', value: 'Monthly' }
 ];
+
+const addMonthsToDate = (dStr: string, monthsToAdd: number): string => {
+  try {
+    const parts = dStr.split('-');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10);
+      const year = parseInt(parts[2], 10);
+      const d = new Date(year, month - 1 + monthsToAdd, day);
+      return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+    }
+  } catch {}
+  return dStr;
+};
 
 const DURATION_OPTIONS = [
   { label: 'For 1 month', value: 1 },
@@ -78,8 +111,19 @@ const PUBLISH_STATUS_OPTIONS = [
 ];
 
 export default function AdminEventEditor() {
-  const { setActiveTab, editingData, setEditingData } = useContext(AdminTabContext);
+  const { setActiveTab, editingData, setEditingData, setTabByName } = useContext(AdminTabContext);
   const [loading, setLoading] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [requireEventQR, setRequireEventQR] = useState(false);
+
+  // ── Multi-Service & Setlist State ──
+  const [eventServices, setEventServices] = useState<EventServiceItem[]>([]);
+  const [allAvailableSongs, setAllAvailableSongs] = useState<WorshipSong[]>([]);
+  const [loadingSongsForPicker, setLoadingSongsForPicker] = useState(false);
+  const [showSongPicker, setShowSongPicker] = useState(false);
+  const [targetServiceIdForPicker, setTargetServiceIdForPicker] = useState<string | null>(null);
+  const [songPickerSearch, setSongPickerSearch] = useState('');
+  const [tempSelectedSongs, setTempSelectedSongs] = useState<WorshipSong[]>([]);
 
   // Form State
   const [titleEn, setTitleEn] = useState('');
@@ -88,11 +132,70 @@ export default function AdminEventEditor() {
   const [descEn, setDescEn] = useState('');
   const [descTe, setDescTe] = useState('');
 
+  // Custom Event Types State
+  const [customTypes, setCustomTypes] = useState<{ label: string; value: string }[]>([]);
+  const [showNewTypeModal, setShowNewTypeModal] = useState(false);
+  const [newTypeNameEn, setNewTypeNameEn] = useState('');
+  const [newTypeNameTe, setNewTypeNameTe] = useState('');
+
+  const allEventTypes = React.useMemo(() => {
+    const list = [...DEFAULT_EVENT_TYPES];
+    customTypes.forEach(ct => {
+      if (!list.some(item => item.value.toLowerCase() === ct.value.toLowerCase())) {
+        list.push(ct);
+      }
+    });
+    if (editingData?.type && !list.some(t => t.value.toLowerCase() === editingData.type.toLowerCase())) {
+      list.push({ label: editingData.type, value: editingData.type });
+    } else if (editingData?.eventType && !list.some(t => t.value.toLowerCase() === editingData.eventType.toLowerCase())) {
+      list.push({ label: editingData.eventType, value: editingData.eventType });
+    }
+    return list;
+  }, [customTypes, editingData]);
+
   const today = new Date();
   const todayStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
   const [date, setDate] = useState(todayStr);
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [endDate, setEndDate] = useState(todayStr);
+  const [startTime, setStartTime] = useState('09:00 AM');
+  const [endTime, setEndTime] = useState('12:00 PM');
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [errorModal, setErrorModal] = useState<{
+    visible: boolean;
+    titleEn: string;
+    titleTe?: string;
+    messageEn: string;
+    messageTe?: string;
+    hintEn?: string;
+    hintTe?: string;
+    timeDetails?: {
+      date: string;
+      startTime: string;
+      endTime: string;
+    };
+  } | null>(null);
+
+  const isSameDayTimeIssue = useMemo(() => {
+    if (!date || !endDate || !startTime || !endTime) return false;
+    if (date.trim() !== endDate.trim()) return false;
+    const parseMins = (t: string) => {
+      try {
+        const c = t.toUpperCase().replace(/\s+/g, '').replace(/[\u202F\u00A0]/g, '');
+        const isPM = c.includes('PM');
+        const isAM = c.includes('AM');
+        let [h, m] = c.replace('AM', '').replace('PM', '').split(':').map(Number);
+        if (isNaN(h)) h = 0;
+        if (isNaN(m)) m = 0;
+        if (isPM && h < 12) h += 12;
+        if (isAM && h === 12) h = 0;
+        return h * 60 + m;
+      } catch {
+        return 0;
+      }
+    };
+    return parseMins(endTime) <= parseMins(startTime);
+  }, [date, endDate, startTime, endTime]);
+
   const [recurring, setRecurring] = useState('');
   const [recurrenceDuration, setRecurrenceDuration] = useState(1);
   const [publishStatus, setPublishStatus] = useState('Published');
@@ -102,13 +205,26 @@ export default function AdminEventEditor() {
   const [address, setAddress] = useState('');
   const [mode, setMode] = useState('In person');
 
-  const [rsvpEnabled, setRsvpEnabled] = useState(true);
+  const [rsvpEnabled, setRsvpEnabled] = useState(false);
+  const [rsvpDeadline, setRsvpDeadline] = useState('');
+  const [isRsvpDeadlinePickerVisible, setRsvpDeadlinePickerVisible] = useState(false);
   const [rsvpPublic, setRsvpPublic] = useState(true);
   const [capAttendance, setCapAttendance] = useState(false);
   const [audience, setAudience] = useState('All members');
 
+  // Volunteer Registration State
+  const [volunteerEnabled, setVolunteerEnabled] = useState(false);
+  const [volunteerRoles, setVolunteerRoles] = useState<Array<{ id: string; name: string; slotsNeeded: number }>>([
+    { id: 'role_1', name: 'Ushering & Welcome', slotsNeeded: 4 },
+    { id: 'role_2', name: 'Sound & Audio Engineer', slotsNeeded: 2 },
+  ]);
+  const [newRoleName, setNewRoleName] = useState('');
+  const [newRoleSlots, setNewRoleSlots] = useState('2');
+
   const [bannerColor, setBannerColor] = useState('#c0392b');
   const [bannerUrl, setBannerUrl] = useState('');
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageLoadError, setImageLoadError] = useState(false);
   const [notifyOnPublish, setNotifyOnPublish] = useState(true);
   const [reminder1Day, setReminder1Day] = useState(true);
   const [reminder1Hour, setReminder1Hour] = useState(false);
@@ -120,6 +236,7 @@ export default function AdminEventEditor() {
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [isEndDatePickerVisible, setEndDatePickerVisibility] = useState(false);
   const [isStartTimeVisible, setStartTimeVisibility] = useState(false);
   const [isEndTimeVisible, setEndTimeVisibility] = useState(false);
 
@@ -133,19 +250,16 @@ export default function AdminEventEditor() {
           console.log('📖 [AdminEventEditor] Metadata Loaded:', JSON.stringify(meta, null, 2));
           setMetadata(meta);
 
-          // 🛠️ FIX: If creating NEW event, set defaults from metadata if current is invalid
           if (!editingData) {
             if (meta.types?.length > 0) setEventType(meta.types[0].value);
             if (meta.modes?.length > 0) setMode(meta.modes[0].value);
             if (meta.audiences?.length > 0) setAudience(meta.audiences[0].value);
 
-            // 🛠️ FIX Status Picklist: Ensure 'Published' is a valid value, otherwise use metadata
             if (meta.statuses?.length > 0) {
               const hasPublished = meta.statuses.some((s: any) => s.value === 'Published');
               if (!hasPublished) setPublishStatus(meta.statuses[0].value);
             }
 
-            // 🛠️ FIX Recurring Picklist:
             if (meta.recurring?.length > 0) {
               const hasOneTime = meta.recurring.some((s: any) => s.value === 'One-time event');
               if (!hasOneTime) setRecurring(meta.recurring[0].value);
@@ -154,6 +268,31 @@ export default function AdminEventEditor() {
         }
       } catch (err) {
         console.warn('⚠️ [AdminEventEditor] Metadata Discovery Failed:', err);
+      }
+
+      // Load custom event types from storage & Firestore
+      try {
+        const local = await AsyncStorage.getItem('@church_custom_event_types');
+        let combined: { label: string; value: string }[] = [];
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (Array.isArray(parsed)) combined = parsed;
+        }
+        try {
+          const remote = await FirestoreService.getCustomEventTypes();
+          if (Array.isArray(remote) && remote.length > 0) {
+            remote.forEach(r => {
+              if (!combined.some(c => c.value.toLowerCase() === r.value.toLowerCase())) {
+                combined.push(r);
+              }
+            });
+          }
+        } catch (_) {}
+        if (combined.length > 0) {
+          setCustomTypes(combined);
+        }
+      } catch (err) {
+        console.warn('⚠️ [AdminEventEditor] Custom Event Types Load Failed:', err);
       }
     };
 
@@ -175,7 +314,7 @@ export default function AdminEventEditor() {
 
     const formatFromSFDate = (sfDate: string) => {
       if (!sfDate || typeof sfDate !== 'string') return '20-04-2026';
-      if (sfDate.includes('-') && sfDate.split('-')[0].length === 2) return sfDate; // Already DD-MM-YYYY
+      if (sfDate.includes('-') && sfDate.split('-')[0].length === 2) return sfDate;
       try {
         const dateOnly = sfDate.split('T')[0];
         const [y, m, d] = dateOnly.split('-');
@@ -187,23 +326,151 @@ export default function AdminEventEditor() {
       setTitleEn(editingData.name || '');
       setTitleTe(editingData.titleTe || '');
       setDate(formatFromSFDate(editingData.date));
+      setEndDate(editingData.endDate ? formatFromSFDate(editingData.endDate) : formatFromSFDate(editingData.date));
       setVenueEn(editingData.location || '');
       setVenueTe(editingData.locationTe || '');
       setAddress(editingData.address || '');
-      setStartTime(formatFromSFTime(editingData.startTime));
-      setEndTime(formatFromSFTime(editingData.endTime || '10:00 AM'));
-      setEventType(editingData.type || 'Sunday Service');
+      setStartTime(formatFromSFTime(editingData.startTime || '09:00 AM'));
+      setEndTime(formatFromSFTime(editingData.endTime || '12:00 PM'));
+      setEventType(editingData.type || editingData.eventType || 'Sunday Service');
       setMode(editingData.mode || 'In person');
-      setRsvpEnabled(editingData.rsvpEnabled ?? true);
+      setRsvpEnabled(editingData.rsvpEnabled === true);
+      setRsvpDeadline(editingData.rsvpDeadline || '');
       setRsvpPublic(editingData.rsvpPublic ?? true);
+      setVolunteerEnabled(editingData.volunteerEnabled === true);
+      if (Array.isArray(editingData.volunteerRoles) && editingData.volunteerRoles.length > 0) {
+        setVolunteerRoles(editingData.volunteerRoles);
+      }
+      if (Array.isArray(editingData.services) && editingData.services.length > 0) {
+        setEventServices(editingData.services);
+      } else {
+        setEventServices([]);
+      }
       setAudience(editingData.audience || 'All members');
       setPublishStatus(editingData.status || 'Published');
       setRecurring(editingData.recurring || 'One-time event');
       setRecurrenceDuration(editingData.recurrenceDuration || 1);
+      setRequireEventQR(editingData.requireEventQR === true || editingData.requireEventQr === true);
       setBannerUrl(editingData.bannerUrl || '');
       setBannerColor(editingData.bannerColor || '#c0392b');
     }
   }, [editingData]);
+
+  // ── Event Services & Song Helpers ──
+  const handleAddService = () => {
+    const nextNum = eventServices.length + 1;
+    const defaultName = nextNum === 1 ? '1st Service' : nextNum === 2 ? '2nd Service' : `${nextNum}th Service`;
+    const newService: EventServiceItem = {
+      id: 'srv_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+      name: defaultName,
+      time: '',
+      songLeader: '',
+      songs: []
+    };
+    setEventServices(prev => [...prev, newService]);
+  };
+
+  const handleRemoveService = (serviceId: string) => {
+    setEventServices(prev => prev.filter(s => s.id !== serviceId));
+  };
+
+  const handleUpdateServiceName = (serviceId: string, name: string) => {
+    setEventServices(prev => prev.map(s => s.id === serviceId ? { ...s, name } : s));
+  };
+
+  const handleUpdateServiceTime = (serviceId: string, time: string) => {
+    setEventServices(prev => prev.map(s => s.id === serviceId ? { ...s, time } : s));
+  };
+
+  const handleUpdateServiceLeader = (serviceId: string, songLeader: string) => {
+    setEventServices(prev => prev.map(s => s.id === serviceId ? { ...s, songLeader } : s));
+  };
+
+  const handleRemoveSongFromService = (serviceId: string, songIdx: number) => {
+    setEventServices(prev => prev.map(s => {
+      if (s.id !== serviceId) return s;
+      const updated = [...s.songs];
+      updated.splice(songIdx, 1);
+      return { ...s, songs: updated };
+    }));
+  };
+
+  const handleMoveSongInService = (serviceId: string, songIdx: number, direction: 'up' | 'down') => {
+    setEventServices(prev => prev.map(s => {
+      if (s.id !== serviceId) return s;
+      const targetIdx = direction === 'up' ? songIdx - 1 : songIdx + 1;
+      if (targetIdx < 0 || targetIdx >= s.songs.length) return s;
+      const updated = [...s.songs];
+      const temp = updated[songIdx];
+      updated[songIdx] = updated[targetIdx];
+      updated[targetIdx] = temp;
+      return { ...s, songs: updated };
+    }));
+  };
+
+  const openSongPickerForService = async (serviceId: string) => {
+    setTargetServiceIdForPicker(serviceId);
+    const srv = eventServices.find(s => s.id === serviceId);
+    setTempSelectedSongs(srv?.songs ? [...srv.songs] : []);
+    setSongPickerSearch('');
+    setShowSongPicker(true);
+    if (!allAvailableSongs || allAvailableSongs.length === 0) {
+      setLoadingSongsForPicker(true);
+      try {
+        const songs = await FirestoreService.getWorshipSongs();
+        if (Array.isArray(songs)) setAllAvailableSongs(songs);
+      } catch (e) {
+        console.warn('Failed to load songs on modal open:', e);
+      } finally {
+        setLoadingSongsForPicker(false);
+      }
+    }
+  };
+
+  const handleSavePickedSongs = () => {
+    if (!targetServiceIdForPicker) return;
+    setEventServices(prev => prev.map(s => {
+      if (s.id !== targetServiceIdForPicker) return s;
+      return { ...s, songs: tempSelectedSongs };
+    }));
+    setShowSongPicker(false);
+    setTargetServiceIdForPicker(null);
+  };
+
+  const handleAddNewEventType = async () => {
+    const trimmedEn = newTypeNameEn.trim();
+    const trimmedTe = newTypeNameTe.trim();
+    if (!trimmedEn) {
+      AppAlert.alert('Required Field · అవసరమైన వివరాలు', 'Please enter a name for the new Event Type.\nదయచేసి ఈవెంట్ రకం పేరును నమోదు చేయండి.', undefined, 'error');
+      return;
+    }
+
+    const newLabel = trimmedTe ? `${trimmedEn} · ${trimmedTe}` : trimmedEn;
+    const newEntry = { label: newLabel, value: trimmedEn };
+
+    const exists = allEventTypes.some(t => t.value.toLowerCase() === trimmedEn.toLowerCase());
+    if (exists) {
+      setEventType(trimmedEn);
+      setShowNewTypeModal(false);
+      setNewTypeNameEn('');
+      setNewTypeNameTe('');
+      return;
+    }
+
+    const updatedCustom = [...customTypes, newEntry];
+    setCustomTypes(updatedCustom);
+    setEventType(trimmedEn);
+    setShowNewTypeModal(false);
+    setNewTypeNameEn('');
+    setNewTypeNameTe('');
+
+    try {
+      await AsyncStorage.setItem('@church_custom_event_types', JSON.stringify(updatedCustom));
+      await FirestoreService.saveCustomEventType(newEntry);
+    } catch (e) {
+      console.warn('Failed saving custom event type:', e);
+    }
+  };
 
   const uploadImageToCloud = async (localUri: string): Promise<string> => {
     try {
@@ -232,17 +499,19 @@ export default function AdminEventEditor() {
 
       if (!result.canceled) {
         const localUri = result.assets[0].uri;
-        setLoading(true);
+        setIsUploadingBanner(true);
         try {
           const cloudUrl = await uploadImageToCloud(localUri);
           setBannerUrl(cloudUrl);
+          setImageLoadError(false);
           AppAlert.alert('Success · విజయం', 'Banner uploaded to cloud successfully! all members will be able to see it.', undefined, 'success');
         } catch (err) {
           console.error('Cloud upload error:', err);
           setBannerUrl(localUri);
+          setImageLoadError(false);
           AppAlert.alert('Upload Failed · అప్‌లోడ్ విఫలమైంది', 'Failed to upload banner to the cloud. You can still save it or manually paste a public web link in the text box.', undefined, 'error');
         } finally {
-          setLoading(false);
+          setIsUploadingBanner(false);
         }
       }
     } catch (err) {
@@ -250,37 +519,150 @@ export default function AdminEventEditor() {
     }
   };
 
-  const [showDatePickerNative, setShowDatePickerNative] = useState(false);
-  const [showStartTimeNative, setShowStartTimeNative] = useState(false);
-  const [showEndTimeNative, setShowEndTimeNative] = useState(false);
-
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const reportError = (
+    titleEn: string,
+    titleTe: string,
+    messageEn: string,
+    messageTe?: string,
+    hintEn?: string,
+    hintTe?: string,
+    timeDetails?: { date: string; startTime: string; endTime: string }
+  ) => {
+    setValidationError(messageEn);
+    setErrorModal({
+      visible: true,
+      titleEn,
+      titleTe,
+      messageEn,
+      messageTe,
+      hintEn,
+      hintTe,
+      timeDetails
+    });
+  };
+
   const handleSave = async (status: 'Published' | 'Draft') => {
+    if (!titleEn || !titleEn.trim()) {
+      reportError('Required Field', 'అవసరమైన వివరాలు', 'Please enter an event title in English.', 'దయచేసి కార్యక్రమం పేరును నమోదు చేయండి.');
+      return;
+    }
+    if (!date || !date.trim()) {
+      reportError('Required Field', 'అవసరమైన వివరాలు', 'Please select a Start Date.', 'దయచేసి ప్రారంభ తేదీని ఎంచుకోండి.');
+      return;
+    }
+    if (!endDate || !endDate.trim()) {
+      reportError('Required Field', 'అవసరమైన వివరాలు', 'Please select an End Date.', 'దయచేసి ముగింపు తేదీని ఎంచుకోండి.');
+      return;
+    }
+    if (!startTime || !startTime.trim()) {
+      reportError('Required Field', 'అవసరమైన వివరాలు', 'Please select a Start Time.', 'దయచేసి ప్రారంభ సమయాన్ని ఎంచుకోండి.');
+      return;
+    }
+    if (!endTime || !endTime.trim()) {
+      reportError('Required Field', 'అవసరమైన వివరాలు', 'Please select an End Time.', 'దయచేసి ముగింపు సమయాన్ని ఎంచుకోండి.');
+      return;
+    }
+
+    const cleanDate = (date || '').trim();
+    const cleanEndDate = (endDate || '').trim();
+
+    let sfDate = cleanDate;
+    if (cleanDate.includes('-')) {
+      const parts = cleanDate.split('-');
+      if (parts[0].length === 2) {
+        sfDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
+
+    let sfEndDate = cleanEndDate;
+    if (cleanEndDate.includes('-')) {
+      const parts = cleanEndDate.split('-');
+      if (parts[0].length === 2) {
+        sfEndDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
+      }
+    }
+
+    if (sfEndDate < sfDate) {
+      reportError('Invalid Date Range', 'చెల్లని తేదీ పరిధి', 'End Date cannot be before Start Date.', 'ముగింపు తేదీ ప్రారంభ తేదీ కంటే ముందు ఉండకూడదు.');
+      return;
+    }
+
+    const parseTimeToMinutes = (timeStr: string): number => {
+      if (!timeStr) return 0;
+      try {
+        const cleanStr = timeStr.toUpperCase().replace(/\s+/g, '').replace(/[\u202F\u00A0]/g, '');
+        const isPM = cleanStr.includes('PM');
+        const isAM = cleanStr.includes('AM');
+        const timePart = cleanStr.replace('AM', '').replace('PM', '');
+        let [hours, minutes] = timePart.split(':').map(Number);
+        if (isNaN(hours)) hours = 0;
+        if (isNaN(minutes)) minutes = 0;
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
+        return hours * 60 + minutes;
+      } catch {
+        return 0;
+      }
+    };
+
+    if (sfEndDate === sfDate) {
+      const startMins = parseTimeToMinutes(startTime);
+      const endMins = parseTimeToMinutes(endTime);
+      if (endMins <= startMins) {
+        reportError(
+          'Adjust Event End Time',
+          'ఈవెంట్ ముగింపు సమయాన్ని సర్దుబాటు చేయండి',
+          `End Time (${endTime}) is earlier than Start Time (${startTime}) on the same date (${cleanDate}).`,
+          'ఒకే రోజున ముగింపు సమయం ప్రారంభ సమయం కంటే ముందు ఉండకూడదు.',
+          'If this event continues past midnight into tomorrow morning, please change the End Date to the next day.',
+          'ఈవెంట్ అర్ధరాత్రి దాటితే, దయచేసి ముగింపు తేదీని మరుసటి రోజుకు మార్చండి.',
+          { date: cleanDate, startTime, endTime }
+        );
+        return;
+      }
+    }
+
+    if (eventServices.length > 0) {
+      const unnamedIdx = eventServices.findIndex(s => !s.name || !s.name.trim());
+      if (unnamedIdx !== -1) {
+        reportError(
+          'Service Name Required',
+          'సర్వీస్ పేరు అవసరం',
+          `Please enter a Service Name for Service #${unnamedIdx + 1}.`,
+          `దయచేసి సర్వీస్ #${unnamedIdx + 1} కొరకు పేరును నమోదు చేయండి.`
+        );
+        return;
+      }
+    }
+
+    setValidationError(null);
+    setErrorModal(null);
+
     const executeSave = async (updateMode?: 'single' | 'future') => {
       setPublishStatus(status);
       setLoading(true);
-    // 🛠️ FIX: Re-format date for Salesforce (wants YYYY-MM-DD)
-    const dateParts = date.split('-');
-    const sfDate = `${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`;
 
     const formatToSFTime = (timeStr: string) => {
       if (!timeStr) return null;
       try {
-        const [time, period] = timeStr.split(' ');
-        let [hours, minutes] = time.split(':').map(Number);
-        if (period === 'PM' && hours < 12) hours += 12;
-        if (period === 'AM' && hours === 12) hours = 0;
+        const cleanStr = timeStr.toUpperCase().replace(/\s+/g, '').replace(/[\u202F\u00A0]/g, '');
+        const isPM = cleanStr.includes('PM');
+        const isAM = cleanStr.includes('AM');
+        const timePart = cleanStr.replace('AM', '').replace('PM', '');
+        let [hours, minutes] = timePart.split(':').map(Number);
+        if (isNaN(minutes)) minutes = 0;
+        if (isPM && hours < 12) hours += 12;
+        if (isAM && hours === 12) hours = 0;
         return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:00.000Z`;
       } catch (e) {
-        return timeStr; // Fallback to original if format is unexpected
+        return timeStr;
       }
     };
 
     const resolveStatus = (requested: string) => {
       if (!metadata?.statuses || metadata.statuses.length === 0) return requested;
-      
-      // Try to find a flexible match (Published, Active, etc.)
       const match = metadata.statuses.find((s: any) =>
         s.value === requested ||
         s.label === requested ||
@@ -289,58 +671,48 @@ export default function AdminEventEditor() {
         s.label.toLowerCase().includes('pub') ||
         s.label.toLowerCase().includes('act')
       );
-
-      // If we are looking for Draft
       if (requested.toLowerCase() === 'draft') {
         const draftMatch = metadata.statuses.find((s: any) => 
           s.value.toLowerCase().includes('dra') || s.label.toLowerCase().includes('dra')
         );
         if (draftMatch) return draftMatch.value;
       }
-
-      // If we found a match for Published/Active, use it. 
-      // Otherwise, use the first status in the list to avoid "Bad Value" errors.
       return match ? match.value : metadata.statuses[0].value;
     };
 
     const resolveValue = (field: string, val: string) => {
-      if (!metadata?.[field] || metadata[field].length === 0) {
-        console.warn(`⚠️ [AdminEventEditor] No metadata found for field: ${field}. Available metadata keys:`, Object.keys(metadata || {}));
-        return val;
-      }
-      
+      if (!metadata?.[field] || metadata[field].length === 0) return val;
       const list = metadata[field];
-      // 🛠️ FIX: Strip out Telugu/hyphens from old values (e.g. "Sunday Service - ఆదివారం సేవ" -> "Sunday Service")
       const cleanVal = val.split(' - ')[0].split(' · ')[0].trim();
       const normalizedVal = cleanVal.toLowerCase();
-      
       const match = list.find((m: any) => {
         const mVal = m.value.trim().toLowerCase();
         const mLbl = m.label.trim().toLowerCase();
         return mVal === normalizedVal || mLbl === normalizedVal || mVal.includes(normalizedVal) || normalizedVal.includes(mVal);
       });
-      
-      const finalVal = match ? match.value : cleanVal;
-      console.log(`🔍 [AdminEventEditor] Resolving ${field}: "${val}" -> "${finalVal}"`);
-      return finalVal;
+      return match ? match.value : cleanVal;
     };
 
     const payload = {
       id: editingData?.id,
-      // Save under BOTH field names so all screens (admin + member) can read them
       titleEn, titleTe,
-      name: titleEn,          // AdminEventList reads event.name
-      title: titleEn,         // EventsScreen reads item.title
-      titleTelugu: titleTe,   // EventsScreen reads item.titleTelugu
+      name: titleEn,
+      title: titleEn,
+      titleTelugu: titleTe,
       date: sfDate,
+      endDate: sfEndDate,
       startTime: formatToSFTime(startTime),
       endTime: formatToSFTime(endTime),
       descEn, descTe, venueEn, venueTe, address,
-      location: venueEn,      // EventsScreen reads item.location
+      location: venueEn,
       eventType: resolveValue('types', eventType),
       type: resolveValue('types', eventType),
       mode: resolveValue('modes', mode),
-      rsvpEnabled, rsvpPublic,
+      rsvpEnabled: rsvpEnabled === true,
+      rsvpDeadline: rsvpDeadline || null,
+      rsvpPublic,
+      volunteerEnabled: volunteerEnabled === true,
+      volunteerRoles: volunteerEnabled ? volunteerRoles : [],
       audience: resolveValue('audiences', audience),
       publishStatus: resolveStatus(status),
       status: resolveStatus(status),
@@ -349,30 +721,53 @@ export default function AdminEventEditor() {
       image: bannerUrl,
       recurring: resolveValue('recurring', recurring),
       recurrenceDuration,
+      requireEventQR,
       notifyOnPublish, reminder1Day, reminder1Hour,
       rsvpCap: capAttendance ? 100 : 0,
-      updateMode
+      updateMode,
+      hasWorshipServices: eventServices.length > 0,
+      services: eventServices.length > 0 ? eventServices : []
     };
 
-    console.log('📤 [AdminEventEditor] Saving Payload:', JSON.stringify(payload, null, 2));
-
     try {
-      await FirestoreService.createEvent(payload);
+      const savedResult = await FirestoreService.createEvent(payload);
+      const finalEventId = (typeof savedResult === 'string' && savedResult) ? savedResult : (editingData?.id || payload.id);
 
-      // 🔔 Push notification to all members when publishing
       if (notifyOnPublish && status === 'Published') {
         try {
-          const { getFirestore, collection, addDoc, serverTimestamp } = require('@react-native-firebase/firestore');
+          const { getFirestore } = require('@react-native-firebase/firestore');
           const churchId = await FirestoreService.getChurchId();
-          const db = getFirestore();
-          await FirestoreService.createNotificationBroadcast({
+           const formatDisplayDate = (d: string) => {
+              try {
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                const parts = d.split('-');
+                if (parts.length === 3 && parts[0].length === 4) {
+                  return `${parseInt(parts[2])} ${months[parseInt(parts[1]) - 1]} ${parts[0]}`;
+                }
+                return d;
+              } catch { return d; }
+            };
+            const displayDate = formatDisplayDate(sfDate);
+            const displayEndDate = formatDisplayDate(sfEndDate);
+           await FirestoreService.createNotificationBroadcast({
             title: `📅 New Event: ${titleEn}`,
-            content: `Join us for "${titleEn}" on ${sfDate} at ${startTime}${venueEn ? ` · ${venueEn}` : ''}. ${descEn ? descEn.substring(0, 100) : ''}`,
+            content: `Join us for "${titleEn}" from ${displayDate} to ${displayEndDate} at ${startTime}${venueEn ? ` · ${venueEn}` : ''}. ${descEn ? descEn.substring(0, 100) : ''}`,
+            type: eventType,
             date: sfDate,
-            type: 'event',
+            endDate: sfEndDate,
+            startTime: startTime || undefined,
             targetChurchId: churchId,
           });
-          console.log('🔔 Event push notification queued.');
+
+          // If RSVP was enabled after event publication, notify members that RSVP is now open
+          if (editingData && !editingData.rsvpEnabled && rsvpEnabled && churchId && finalEventId) {
+            await EventRsvpService.notifyRsvpOpened({
+              churchId,
+              eventId: finalEventId,
+              eventTitle: titleEn,
+              eventDate: displayDate,
+            });
+          }
         } catch (notifErr) {
           console.warn('⚠️ Event push notification failed (non-critical):', notifErr);
         }
@@ -381,15 +776,7 @@ export default function AdminEventEditor() {
       setShowSuccess(true);
     } catch (err) {
       console.error('❌ [AdminEventEditor] Save Failed:', err);
-      const errorMsg = String(err);
-      
-      // 🛠️ SMART HELP: If it's a picklist error, show the user the available options
-      if (errorMsg.includes('bad value for restricted picklist field')) {
-        const availableTypes = metadata?.types?.map((t: any) => t.value).join('\n') || 'None found';
-        alert(`Salesforce Error: ${errorMsg}\n\nAvailable types in your Org:\n${availableTypes}`);
-      } else {
-        alert(`Error saving event: ${err}`);
-      }
+      alert(`Error saving event: ${err}`);
       } finally {
         setLoading(false);
       }
@@ -414,61 +801,177 @@ export default function AdminEventEditor() {
     setTitleEn(''); setTitleTe(''); setDescEn(''); setDescTe('');
     setVenueEn(''); setVenueTe(''); setAddress('');
     setBannerUrl('');
+    setImageLoadError(false);
+    setImageLoading(false);
     const d = new Date();
-    setDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`); 
-    setStartTime('09:00 AM'); setEndTime('12:00 PM');
+    const ds = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+    setDate(ds); setEndDate(ds);
+    setStartTime('09:00 AM'); setEndTime('12:00 PM');
     setNotifyOnPublish(true); setReminder1Day(true); setReminder1Hour(false);
+    setRequireEventQR(false);
+    setRsvpEnabled(false);
+    setRsvpDeadline('');
+    setVolunteerEnabled(false);
+    setEventServices([]);
     setEditingData(null);
   };
 
-  const SuccessModal = () => (
-    <Modal visible={showSuccess} transparent animationType="slide">
-      <View style={styles.modalOverlay}>
-        <View style={styles.successCard}>
-          <View style={styles.successIconOuter}>
-            <View style={styles.successIconInner}>
-              <CheckCircle2 size={40} color="#fff" />
+  const SuccessModal = () => {
+    const isPublished = publishStatus === 'Published';
+    return (
+      <Modal visible={showSuccess} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.successCard}>
+            {/* Top Close Button */}
+            <TouchableOpacity 
+              style={styles.successCloseBtn} 
+              onPress={() => { setShowSuccess(false); resetForm(); setTabByName?.('Events'); }}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <X size={18} color="#64748b" />
+            </TouchableOpacity>
+
+            {/* Status Pill */}
+            <View style={[styles.successPill, { backgroundColor: isPublished ? '#ecfdf5' : '#eff6ff', borderColor: isPublished ? '#a7f3d0' : '#bfdbfe', marginTop: 10 }]}>
+              <Sparkles size={13} color={isPublished ? '#059669' : '#1d4ed8'} style={{ marginRight: 6 }} />
+              <Text style={[styles.successPillTxt, { color: isPublished ? '#065f46' : '#1e40af' }]}>
+                {isPublished ? 'PUBLISHED TO CHURCH APP' : 'SAVED AS DRAFT'}
+              </Text>
             </View>
+
+            {/* Title & Bilingual Subtitle */}
+            <Text style={styles.successTitle}>
+              {isPublished ? 'Event Published! 🎉' : 'Event Saved! 📝'}
+            </Text>
+            <Text style={styles.successTeluguTitle}>
+              {isPublished ? 'కార్యక్రమం విజయవంతంగా ప్రచురించబడింది!' : 'ఈవెంట్ డ్రాఫ్ట్‌గా సేవ్ చేయబడింది!'}
+            </Text>
+
+            {/* Event Summary Card */}
+            <View style={styles.successSummaryBox}>
+              <Text style={styles.successEventTitle} numberOfLines={2}>
+                {titleEn}{titleTe ? ` · ${titleTe}` : ''}
+              </Text>
+              
+              <View style={styles.summaryDivider} />
+
+              <View style={styles.summaryRow}>
+                <Calendar size={13} color="#1a2d5a" style={styles.summaryIcon} />
+                <Text style={styles.summaryLabel}>Date:</Text>
+                <Text style={styles.summaryVal}>
+                  {date === endDate || !endDate ? date : `${date} → ${endDate}`}
+                </Text>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Clock size={13} color="#b91c1c" style={styles.summaryIcon} />
+                <Text style={styles.summaryLabel}>Time:</Text>
+                <Text style={styles.summaryVal}>{startTime} – {endTime}</Text>
+              </View>
+
+              {venueEn ? (
+                <View style={styles.summaryRow}>
+                  <MapPin size={13} color="#059669" style={styles.summaryIcon} />
+                  <Text style={styles.summaryLabel}>Venue:</Text>
+                  <Text style={styles.summaryVal} numberOfLines={1}>{venueEn}</Text>
+                </View>
+              ) : null}
+            </View>
+
+            {/* Action Buttons */}
+            <TouchableOpacity 
+              activeOpacity={0.88}
+              style={styles.successBtnPrimary} 
+              onPress={() => { setShowSuccess(false); resetForm(); setTabByName?.('Events'); }}
+            >
+              <LinearGradient
+                colors={['#1a2d5a', '#2b4c8c']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.successBtnGradient}
+              >
+                <Text style={styles.successBtnPrimaryTxt}>View Church Events →</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              activeOpacity={0.7}
+              style={styles.successBtnSecondary} 
+              onPress={() => { setShowSuccess(false); resetForm(); }}
+            >
+              <Plus size={15} color="#1a2d5a" style={{ marginRight: 6 }} />
+              <Text style={styles.successBtnSecondaryTxt}>Create Another Event</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.successTitle}>Event {publishStatus === 'Published' ? 'Published' : 'Saved'}!</Text>
-          <Text style={styles.successSub}>
-            Your event "{titleEn}" has been successfully {publishStatus === 'Published' ? 'published to all members' : 'saved as a draft'}.
-          </Text>
-
-          <TouchableOpacity style={styles.successBtnPrimary} onPress={() => { setShowSuccess(false); resetForm(); setActiveTab(8); }}>
-            <Text style={styles.successBtnPrimaryTxt}>View Event List</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.successBtnSecondary} onPress={() => { setShowSuccess(false); resetForm(); }}>
-            <Text style={styles.successBtnSecondaryTxt}>Create Another</Text>
-          </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
 
-  const SectionHeader = ({ icon: Icon, title, color }: any) => (
-    <View style={[styles.sectionHeader, { backgroundColor: color + '10' }]}>
-      <Icon size={16} color={color} />
-      <Text style={[styles.sectionHeaderText, { color }]}>{title}</Text>
-    </View>
-  );
+  const ValidationErrorModal = () => {
+    if (!errorModal || !errorModal.visible) return null;
 
-  const MONTH_NAMES = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+    return (
+      <Modal visible={errorModal.visible} transparent animationType="fade">
+        <View style={styles.errorModalOverlay}>
+          <View style={styles.errorCard}>
+            {/* Top Close Button */}
+            <TouchableOpacity 
+              style={styles.errorCloseBtn} 
+              onPress={() => setErrorModal(null)}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <X size={18} color="#94a3b8" />
+            </TouchableOpacity>
 
+            {/* Clean, Refined Icon */}
+            <View style={styles.errorIconCircle}>
+              <AlertCircle size={26} color="#d97706" />
+            </View>
+
+            {/* Clear Single Title */}
+            <Text style={styles.errorTitle}>{errorModal.titleEn}</Text>
+
+            {/* Crisp Message */}
+            <Text style={styles.errorMessageText}>{errorModal.messageEn}</Text>
+
+            {/* Optional Clean Hint */}
+            {errorModal.hintEn ? (
+              <View style={styles.errorHintBox}>
+                <Text style={styles.errorHintText}>💡 {errorModal.hintEn}</Text>
+              </View>
+            ) : null}
+
+            {/* Action Button */}
+            <TouchableOpacity 
+              activeOpacity={0.88}
+              style={styles.errorActionBtn} 
+              onPress={() => setErrorModal(null)}
+            >
+              <LinearGradient
+                colors={['#1a2d5a', '#2b4c8c']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.errorBtnGradient}
+              >
+                <Text style={styles.errorActionBtnTxt}>Got It</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <SuccessModal />
+      <ValidationErrorModal />
 
-      {/* ── Page Header ── */}
       <View style={styles.hero}>
         <View style={styles.heroTitleRow}>
-          <TouchableOpacity onPress={() => setActiveTab(0)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <TouchableOpacity onPress={() => setTabByName?.('Events')} style={{ flexDirection: 'row', alignItems: 'center' }}>
             <ChevronLeft size={20} color="#fff" style={{ marginLeft: -6, marginRight: 4 }} />
             <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>Back</Text>
           </TouchableOpacity>
@@ -479,7 +982,6 @@ export default function AdminEventEditor() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         
-        {/* 1. Event Details */}
         <View style={[styles.section, styles.secNavy]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
@@ -501,16 +1003,30 @@ export default function AdminEventEditor() {
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Event Type</Text>
             <TouchableOpacity style={styles.inputWrap} onPress={() => setShowTypeDropdown(!showTypeDropdown)}>
-              <Text style={styles.inputText}>{EVENT_TYPES.find((t: any) => t.value === eventType)?.label || eventType || 'Select Type'}</Text>
+              <Text style={styles.inputText}>{allEventTypes.find((t: any) => t.value === eventType)?.label || eventType || 'Select Type'}</Text>
               <ChevronDown size={14} color="#374151" />
             </TouchableOpacity>
             {showTypeDropdown && (
               <View style={styles.dropdownMenu}>
-                {EVENT_TYPES.map(t => (
-                  <TouchableOpacity key={t.value} style={[styles.dropdownItem, eventType === t.value && styles.dropdownItemActive]} onPress={() => { setEventType(t.value); setShowTypeDropdown(false); }}>
-                    <Text style={[styles.dropdownItemTxt, eventType === t.value && styles.dropdownItemTxtActive]}>{t.label}</Text>
+                <ScrollView nestedScrollEnabled style={{ maxHeight: 260 }}>
+                  {allEventTypes.map(t => (
+                    <TouchableOpacity key={t.value} style={[styles.dropdownItem, eventType === t.value && styles.dropdownItemActive]} onPress={() => { setEventType(t.value); setShowTypeDropdown(false); }}>
+                      <Text style={[styles.dropdownItemTxt, eventType === t.value && styles.dropdownItemTxtActive]}>{t.label}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity 
+                    style={[styles.dropdownItem, styles.dropdownItemNew]} 
+                    onPress={() => { 
+                      setShowTypeDropdown(false); 
+                      setNewTypeNameEn('');
+                      setNewTypeNameTe('');
+                      setShowNewTypeModal(true); 
+                    }}
+                  >
+                    <Plus size={16} color="#A67C3D" style={{ marginRight: 8 }} />
+                    <Text style={styles.dropdownItemNewTxt}>New Event Type...</Text>
                   </TouchableOpacity>
-                ))}
+                </ScrollView>
               </View>
             )}
           </View>
@@ -526,7 +1042,6 @@ export default function AdminEventEditor() {
           </View>
         </View>
 
-        {/* 2. Date & Schedule */}
         <View style={[styles.section, styles.secRed]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
@@ -535,12 +1050,21 @@ export default function AdminEventEditor() {
             <Text style={styles.secHdTXT}>Date & Schedule</Text>
           </View>
 
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Date <Text style={{color:'#c0392b'}}>*</Text></Text>
-            <TouchableOpacity style={styles.inputWrap} onPress={() => setDatePickerVisibility(true)}>
-              <Text style={styles.inputText}>{date || 'DD-MM-YYYY'}</Text>
-              <Calendar size={14} color="#374151" />
-            </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.fLabel}>Start Date <Text style={{color:'#c0392b'}}>*</Text></Text>
+              <TouchableOpacity style={styles.inputWrap} onPress={() => setDatePickerVisibility(true)}>
+                <CalendarDays size={18} color="#64748b" style={{ marginRight: 8 }} />
+                <Text style={styles.inputText}>{date || 'DD-MM-YYYY'}</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.fLabel}>End Date <Text style={{color:'#c0392b'}}>*</Text></Text>
+              <TouchableOpacity style={styles.inputWrap} onPress={() => setEndDatePickerVisibility(true)}>
+                <CalendarDays size={18} color="#64748b" style={{ marginRight: 8 }} />
+                <Text style={styles.inputText}>{endDate || 'DD-MM-YYYY'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
           
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
@@ -552,13 +1076,27 @@ export default function AdminEventEditor() {
               </TouchableOpacity>
             </View>
             <View style={[styles.fGroup, { flex: 1 }]}>
-              <Text style={styles.fLabel}>End Time</Text>
+              <Text style={styles.fLabel}>End Time <Text style={{color:'#c0392b'}}>*</Text></Text>
               <TouchableOpacity style={styles.inputWrap} onPress={() => setEndTimeVisibility(true)}>
                 <Text style={styles.inputText}>{endTime || '12:00 PM'}</Text>
                 <Clock size={14} color="#374151" />
               </TouchableOpacity>
             </View>
           </View>
+
+          {isSameDayTimeIssue && (
+            <View style={styles.scheduleTipBox}>
+              <Info size={14} color="#0369a1" style={{ marginTop: 2, marginRight: 8 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.scheduleTipTxt}>
+                  💡 <Text style={{ fontWeight: '700' }}>Schedule Guidance:</Text> End Time ({endTime}) is earlier than Start Time ({startTime}) on the same date. If this event runs past midnight, please set the <Text style={{ fontWeight: '700' }}>End Date</Text> to the next day.
+                </Text>
+                <Text style={styles.scheduleTipTe}>
+                  ఈవెంట్ అర్ధరాత్రి దాటి జరిగితే, దయచేసి ముగింపు తేదీని మరుసటి రోజుగా ఎంచుకోండి.
+                </Text>
+              </View>
+            </View>
+          )}
 
           <View style={styles.fGroup}>
             <Text style={styles.fLabel}>Recurring</Text>
@@ -569,7 +1107,19 @@ export default function AdminEventEditor() {
             {showRecurringDropdown && (
               <View style={styles.dropdownMenu}>
                 {RECURRING_OPTIONS.map(r => (
-                  <TouchableOpacity key={r.value} style={[styles.dropdownItem, recurring === r.value && styles.dropdownItemActive]} onPress={() => { setRecurring(r.value); setShowRecurringDropdown(false); }}>
+                  <TouchableOpacity
+                    key={r.value}
+                    style={[styles.dropdownItem, recurring === r.value && styles.dropdownItemActive]}
+                    onPress={() => {
+                      setRecurring(r.value);
+                      setShowRecurringDropdown(false);
+                      if (r.value !== 'One-time event' && date) {
+                        if (endDate === date) {
+                          setEndDate(addMonthsToDate(date, recurrenceDuration || 1));
+                        }
+                      }
+                    }}
+                  >
                     <Text style={[styles.dropdownItemTxt, recurring === r.value && styles.dropdownItemTxtActive]}>{r.label}</Text>
                   </TouchableOpacity>
                 ))}
@@ -587,7 +1137,17 @@ export default function AdminEventEditor() {
               {showDurationDropdown && (
                 <View style={styles.dropdownMenu}>
                   {DURATION_OPTIONS.map(o => (
-                    <TouchableOpacity key={o.value} style={[styles.dropdownItem, recurrenceDuration === o.value && styles.dropdownItemActive]} onPress={() => { setRecurrenceDuration(o.value); setShowDurationDropdown(false); }}>
+                    <TouchableOpacity
+                      key={o.value}
+                      style={[styles.dropdownItem, recurrenceDuration === o.value && styles.dropdownItemActive]}
+                      onPress={() => {
+                        setRecurrenceDuration(o.value);
+                        setShowDurationDropdown(false);
+                        if (date) {
+                          setEndDate(addMonthsToDate(date, o.value));
+                        }
+                      }}
+                    >
                       <Text style={[styles.dropdownItemTxt, recurrenceDuration === o.value && styles.dropdownItemTxtActive]}>{o.label}</Text>
                     </TouchableOpacity>
                   ))}
@@ -595,9 +1155,32 @@ export default function AdminEventEditor() {
               )}
             </View>
           )}
+
+          {recurring !== 'One-time event' && (
+            <View style={styles.recurringInfoCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <Repeat size={14} color="#0D9488" style={{ marginRight: 6 }} />
+                <View style={styles.recurringInfoBadge}>
+                  <Text style={styles.recurringInfoBadgeTxt}>
+                    {recurring === 'Every day' ? 'DAILY EVENT SERIES' : 'RECURRING EVENT SERIES'}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.recurringInfoHeading}>
+                {recurring === 'Every day'
+                  ? `Repeats Every Day from ${date} to ${endDate}`
+                  : `Repeats (${recurring}) from ${date} to ${endDate}`}
+              </Text>
+              <Text style={styles.recurringInfoSub}>
+                Every day in this period will automatically be generated as its own event occurrence. Attendance is recorded independently for each day.
+              </Text>
+              <Text style={styles.recurringInfoTe}>
+                ఈ కాలంలోని ప్రతి రోజు స్వతంత్ర ఈవెంట్‌గా సృష్టించబడుతుంది మరియు ప్రతి రోజు హాజరు ప్రత్యేకంగా నమోదు చేయబడుతుంది.
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* 3. Venue & Location */}
         <View style={[styles.section, styles.secGreen]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
@@ -607,7 +1190,7 @@ export default function AdminEventEditor() {
           </View>
 
           <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Venue Name — English <Text style={{color:'#c0392b'}}>*</Text></Text>
+            <Text style={styles.fLabel}>Venue Name — English</Text>
             <TextInput style={styles.input} placeholder="e.g. Main Auditorium" value={venueEn} onChangeText={setVenueEn} />
           </View>
 
@@ -637,89 +1220,592 @@ export default function AdminEventEditor() {
           </View>
         </View>
 
-        {/* 4. RSVP & Audience */}
-        <View style={[styles.section, styles.secAmber]}>
-          <View style={styles.secHd}>
-            <View style={styles.secHdPill}>
-              <Users size={13} color="#fff" />
-            </View>
-            <Text style={styles.secHdTXT}>RSVP & Audience</Text>
-          </View>
 
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Enable RSVP from members</Text>
-            <Switch value={rsvpEnabled} onValueChange={setRsvpEnabled} trackColor={{ true: '#1a2d5a' }} />
-          </View>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Show RSVP count publicly</Text>
-            <Switch value={rsvpPublic} onValueChange={setRsvpPublic} trackColor={{ true: '#1a2d5a' }} />
-          </View>
-          <View style={styles.switchRow}>
-            <Text style={styles.switchLabel}>Cap attendance (set max)</Text>
-            <Switch value={capAttendance} onValueChange={setCapAttendance} trackColor={{ true: '#1a2d5a' }} />
-          </View>
-
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Audience</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipRow}>
-              {(metadata?.audiences?.length > 0 ? metadata.audiences : [
-                { label: 'All members', value: 'All members' },
-                { label: 'Youth', value: 'Youth' },
-                { label: 'Women', value: 'Women' },
-                { label: 'Men', value: 'Men' },
-                { label: 'Leaders', value: 'Leaders' }
-              ]).map((a: any) => (
-                <TouchableOpacity key={a.value} style={[styles.chip, audience === a.value && styles.chipActive]} onPress={() => setAudience(a.value)}>
-                  <Text style={[styles.chipTxt, audience === a.value && styles.chipTxtActive]}>{a.label}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        </View>
-
-        {/* 5. Banner & Media */}
         <View style={[styles.section, styles.secPurple]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
               <ImageIcon size={13} color="#fff" />
             </View>
-            <Text style={styles.secHdTXT}>Event Banner</Text>
+            <Text style={styles.secHdTXT}>Event Banner & Poster</Text>
           </View>
 
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Upload Banner Image</Text>
-            {bannerUrl ? (
-              <View style={styles.thumbnailPreviewContainer}>
-                <Image source={{ uri: bannerUrl }} style={styles.thumbnailImg} resizeMode="cover" />
-                <TouchableOpacity style={styles.removeThumbnailBtn} onPress={() => setBannerUrl('')}>
-                  <Text style={styles.btnChangeThumbTxt}>Remove Image</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity style={styles.btnUploadThumb} onPress={pickImage}>
-                <ImageIcon size={24} color="#7C3AED" style={{ marginBottom: 8 }} />
-                <Text style={styles.btnUploadThumbTxt}>Pick from Gallery / Files</Text>
-                <Text style={styles.fHint}>Select a high-quality banner</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Or Paste Image URL</Text>
-            <TextInput style={styles.input} value={bannerUrl} onChangeText={setBannerUrl} placeholder="https://example.com/image.jpg" />
-          </View>
-
-          <View style={styles.fGroup}>
-            <Text style={styles.fLabel}>Fallback Banner Color</Text>
-            <View style={styles.themeRow}>
-              {['#c0392b', '#1a2d5a', '#15803D', '#7C3AED', '#D97706', '#dc2626'].map(c => (
-                <TouchableOpacity key={c} style={[styles.themeChip, { backgroundColor: c }, bannerColor === c && styles.themeActive]} onPress={() => setBannerColor(c)} />
-              ))}
+          {isUploadingBanner ? (
+            <View style={styles.btnUploadThumb}>
+              <ActivityIndicator size="small" color="#7C3AED" />
+              <Text style={styles.btnUploadThumbTxt}>Uploading poster to cloud...</Text>
             </View>
+          ) : bannerUrl && bannerUrl.trim().length > 0 ? (
+            <View style={styles.fGroup}>
+              <View style={styles.bannerPreviewCard}>
+                <Image 
+                  source={{ uri: bannerUrl.trim() }} 
+                  style={styles.bannerPreviewImg} 
+                  resizeMode="cover" 
+                  onLoadStart={() => { setImageLoading(true); setImageLoadError(false); }}
+                  onLoadEnd={() => setImageLoading(false)}
+                  onError={() => { setImageLoading(false); setImageLoadError(true); }}
+                />
+                {imageLoading && (
+                  <View style={styles.imageLoadingOverlay}>
+                    <ActivityIndicator size="large" color="#7C3AED" />
+                  </View>
+                )}
+                {imageLoadError && (
+                  <View style={styles.imageErrorOverlay}>
+                    <AlertCircle size={28} color="#DC2626" style={{ marginBottom: 6 }} />
+                    <Text style={styles.imageErrorTxt}>Unable to load image preview</Text>
+                    <Text style={styles.imageErrorSub}>Please verify this is a direct, public image link (jpg, png, webp).</Text>
+                  </View>
+                )}
+                <View style={styles.bannerOverlayBar}>
+                  <TouchableOpacity style={styles.bannerBtnEdit} onPress={pickImage}>
+                    <ImageIcon size={14} color="#fff" />
+                    <Text style={styles.bannerBtnTxt}>Change</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.bannerBtnDelete} onPress={() => { setBannerUrl(''); setImageLoadError(false); }}>
+                    <Trash2 size={14} color="#fff" />
+                    <Text style={styles.bannerBtnTxt}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          ) : (
+            <TouchableOpacity style={styles.btnUploadThumb} onPress={pickImage}>
+              <ImageIcon size={32} color="#7C3AED" style={{ marginBottom: 10 }} />
+              <Text style={styles.btnUploadThumbTxt}>Upload Poster from Gallery</Text>
+              <Text style={styles.fHint}>Recommended aspect ratio: 16:9 widescreen</Text>
+            </TouchableOpacity>
+          )}
+
+          <View style={[styles.fGroup, { marginTop: 14 }]}>
+            <Text style={styles.fLabel}>Or Paste Image URL</Text>
+            <View style={styles.urlInputWrap}>
+              <TextInput 
+                style={[styles.input, { flex: 1, paddingRight: bannerUrl ? 36 : 12 }]} 
+                value={bannerUrl} 
+                onChangeText={(val) => {
+                  setBannerUrl(val.trim());
+                  setImageLoadError(false);
+                }} 
+                placeholder="https://example.com/poster.jpg" 
+                placeholderTextColor="#9CA3AF"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {bannerUrl.length > 0 && (
+                <TouchableOpacity 
+                  style={styles.urlClearBtn} 
+                  onPress={() => { setBannerUrl(''); setImageLoadError(false); }}
+                >
+                  <X size={16} color="#9CA3AF" />
+                </TouchableOpacity>
+              )}
+            </View>
+            <Text style={styles.fHint}>Supports JPG, PNG, WEBP, and direct cloud image URLs.</Text>
           </View>
         </View>
 
-        {/* 6. Notifications */}
+        {/* ── Worship Services & Setlist Section (Optional) ── */}
+        <View style={styles.section}>
+          <View style={[styles.secHd, { justifyContent: 'space-between', alignItems: 'center' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+              <View style={[styles.secHdPill, { backgroundColor: '#10B981' }]}>
+                <Music size={13} color="#fff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.secHdTXT}>Worship Services & Song Setlists</Text>
+                <Text style={{ fontSize: 11, color: '#64748B', marginTop: 1 }}>
+                  {eventServices.length === 0 ? 'Optional: attach worship services & song setlists to this event' : `${eventServices.length} service${eventServices.length > 1 ? 's' : ''} configured`}
+                </Text>
+              </View>
+            </View>
+            {eventServices.length > 0 && (
+              <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#047857' }}>ENABLED</Text>
+              </View>
+            )}
+          </View>
+
+          {/* List of Configured Services */}
+          {eventServices.map((service, sIndex) => (
+            <View key={service.id} style={{
+              backgroundColor: '#F8FAFC',
+              borderRadius: 14,
+              borderWidth: 1.5,
+              borderColor: '#E2E8F0',
+              padding: 14,
+              marginBottom: 14
+            }}>
+              {/* Service Card Header: Service Name (Required) */}
+              <View style={{ marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#1a2d5a', letterSpacing: 0.4 }}>SERVICE NAME</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#DC2626' }}>*</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleRemoveService(service.id)}
+                    style={{
+                      paddingVertical: 4,
+                      paddingHorizontal: 8,
+                      borderRadius: 6,
+                      backgroundColor: '#FEE2E2',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Trash2 size={13} color="#DC2626" />
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#DC2626' }}>Remove</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 28, height: 28, borderRadius: 7, backgroundColor: '#10B981', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '900' }}>{sIndex + 1}</Text>
+                  </View>
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      fontSize: 14,
+                      fontWeight: '700',
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      borderWidth: 1.5,
+                      borderColor: !service.name?.trim() ? '#EF4444' : '#CBD5E1',
+                      borderRadius: 8,
+                      paddingHorizontal: 10,
+                      paddingVertical: 7
+                    }}
+                    value={service.name}
+                    onChangeText={(val) => handleUpdateServiceName(service.id, val)}
+                    placeholder="e.g. English Service, Morning Worship (Required)"
+                    placeholderTextColor="#94A3B8"
+                  />
+                </View>
+                {!service.name?.trim() && (
+                  <Text style={{ fontSize: 11, color: '#DC2626', fontWeight: '600', marginTop: 4, marginLeft: 36 }}>
+                    Service Name is required
+                  </Text>
+                )}
+              </View>
+
+              {/* Song Leader (Optional) */}
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 10, fontWeight: '800', color: '#64748B', marginBottom: 4, letterSpacing: 0.5 }}>SONG LEADER (OPTIONAL)</Text>
+                <TextInput
+                  style={{
+                    fontSize: 12,
+                    fontWeight: '600',
+                    color: '#0F172A',
+                    backgroundColor: '#FFFFFF',
+                    borderWidth: 1.5,
+                    borderColor: '#E2E8F0',
+                    borderRadius: 8,
+                    paddingHorizontal: 10,
+                    paddingVertical: 7
+                  }}
+                  value={service.songLeader || ''}
+                  onChangeText={(val) => handleUpdateServiceLeader(service.id, val)}
+                  placeholder="e.g. Bro. David"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+
+              {/* Scheduled Songs for this Service */}
+              <View style={{ borderTopWidth: 1, borderTopColor: '#E2E8F0', paddingTop: 10 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: '#0F172A' }}>
+                    Scheduled Songs ({service.songs?.length || 0})
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => openSongPickerForService(service.id)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      backgroundColor: '#EFF6FF',
+                      borderWidth: 1,
+                      borderColor: '#BFDBFE',
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 8
+                    }}
+                  >
+                    <Plus size={13} color="#1D4ED8" />
+                    <Text style={{ fontSize: 11, fontWeight: '800', color: '#1D4ED8' }}>
+                      {service.songs?.length ? 'Manage / Add Songs' : 'Add Songs'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {(!service.songs || service.songs.length === 0) ? (
+                  <View style={{ backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, alignItems: 'center', borderWidth: 1, borderColor: '#E2E8F0', borderStyle: 'dashed' }}>
+                    <Music size={20} color="#94A3B8" />
+                    <Text style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>No songs added yet for this service.</Text>
+                  </View>
+                ) : (
+                  service.songs.map((song, songIdx) => (
+                    <View key={song.id || songIdx} style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 10,
+                      padding: 10,
+                      marginBottom: 6,
+                      borderWidth: 1,
+                      borderColor: '#E2E8F0'
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, marginRight: 8 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '800', color: '#64748B', width: 20 }}>
+                          {songIdx + 1}.
+                        </Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }} numberOfLines={1}>
+                            {song.title}
+                          </Text>
+                          {song.titleTe ? (
+                            <Text style={{ fontSize: 10, color: '#64748B' }} numberOfLines={1}>
+                              {song.titleTe}
+                            </Text>
+                          ) : null}
+                        </View>
+                        {song.key ? (
+                          <View style={{ backgroundColor: '#EEF2FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                            <Text style={{ fontSize: 10, fontWeight: '800', color: '#4338CA' }}>{song.key}</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <TouchableOpacity
+                          disabled={songIdx === 0}
+                          onPress={() => handleMoveSongInService(service.id, songIdx, 'up')}
+                          style={{ padding: 4, opacity: songIdx === 0 ? 0.3 : 1 }}
+                        >
+                          <ArrowUp size={13} color="#475569" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          disabled={songIdx === service.songs.length - 1}
+                          onPress={() => handleMoveSongInService(service.id, songIdx, 'down')}
+                          style={{ padding: 4, opacity: songIdx === service.songs.length - 1 ? 0.3 : 1 }}
+                        >
+                          <ArrowDown size={13} color="#475569" />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleRemoveSongFromService(service.id, songIdx)}
+                          style={{ padding: 4, marginLeft: 2 }}
+                        >
+                          <Trash2 size={13} color="#DC2626" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))
+                )}
+              </View>
+            </View>
+          ))}
+
+          {/* Action button to add worship service */}
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#1a2d5a',
+              borderRadius: 12,
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              gap: 8,
+              marginTop: 6
+            }}
+            onPress={handleAddService}
+            activeOpacity={0.8}
+          >
+            <Plus size={16} color="#FFFFFF" strokeWidth={2.5} />
+            <Text style={{ fontSize: 13, fontWeight: '800', color: '#FFFFFF' }}>
+              {eventServices.length === 0 ? 'Add Worship Service / Setlist' : 'Add Another Service'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Attendance & QR Check-In Settings ── */}
+        <View style={[styles.section, styles.secNavy]}>
+          <View style={styles.secHd}>
+            <View style={[styles.secHdPill, { backgroundColor: '#1a2d5a' }]}>
+              <QrCode size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>Attendance Check-In Settings</Text>
+          </View>
+
+          <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
+            <View style={{ flex: 1, paddingRight: 14 }}>
+              <Text style={styles.switchLabel}>Event QR Code Required</Text>
+              <Text style={[styles.fHint, { marginTop: 4, lineHeight: 16 }]}>
+                {requireEventQR
+                  ? 'Attendance for this event is allowed ONLY through its specific Event QR Code. The Church QR Code will NOT work.'
+                  : 'Church QR Code is allowed. Members can scan either the permanent Church QR or this Event QR to mark attendance.'}
+              </Text>
+            </View>
+            <Switch
+              value={requireEventQR}
+              onValueChange={setRequireEventQR}
+              trackColor={{ false: '#CBD5E1', true: '#1a2d5a' }}
+              thumbColor={requireEventQR ? '#C9A84C' : '#FFFFFF'}
+            />
+          </View>
+        </View>
+
+        {/* ── RSVP Poll Settings ── */}
+        <View
+          style={[
+            styles.section,
+            styles.secNavy,
+            rsvpEnabled && {
+              borderColor: '#4F46E5',
+              borderWidth: 1.5,
+              backgroundColor: '#EEF2FF',
+            },
+          ]}
+        >
+          <View style={styles.secHd}>
+            <View style={[styles.secHdPill, { backgroundColor: rsvpEnabled ? '#4F46E5' : '#1a2d5a' }]}>
+              <Users size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>Member RSVP Poll</Text>
+            {rsvpEnabled && (
+              <View
+                style={{
+                  backgroundColor: '#E0E7FF',
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 6,
+                  marginLeft: 'auto',
+                }}
+              >
+                <Text style={{ fontSize: 10, fontWeight: '800', color: '#4338CA' }}>
+                  POLL ACTIVE
+                </Text>
+              </View>
+            )}
+          </View>
+
+          <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
+            <View style={{ flex: 1, paddingRight: 14 }}>
+              <Text style={styles.switchLabel}>Enable Member RSVP Poll</Text>
+              <Text style={[styles.fHint, { marginTop: 4, lineHeight: 16 }]}>
+                {rsvpEnabled
+                  ? 'Members can submit RSVP responses (Going, Interested, Not Going) on the Event Details screen with live analytics for leaders.'
+                  : 'RSVP is disabled by default. Members will see event details without RSVP options.'}
+              </Text>
+            </View>
+            <Switch
+              value={rsvpEnabled}
+              onValueChange={setRsvpEnabled}
+              trackColor={{ false: '#CBD5E1', true: '#4F46E5' }}
+              thumbColor={rsvpEnabled ? '#818CF8' : '#FFFFFF'}
+            />
+          </View>
+
+          {rsvpEnabled && (
+            <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+              <Text style={styles.fLabel}>RSVP DEADLINE (OPTIONAL)</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, alignItems: 'center' }}>
+                <TouchableOpacity
+                  style={[styles.inputWrap, { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12 }]}
+                  onPress={() => setRsvpDeadlinePickerVisible(true)}
+                >
+                  <Text
+                    style={{
+                      flex: 1,
+                      fontSize: 13,
+                      color: rsvpDeadline ? '#0F172A' : '#64748B',
+                      fontWeight: rsvpDeadline ? '600' : '400',
+                    }}
+                  >
+                    {rsvpDeadline || 'Select deadline date (defaults to event start)'}
+                  </Text>
+                  <Calendar size={16} color="#64748B" />
+                </TouchableOpacity>
+                {!!rsvpDeadline && (
+                  <TouchableOpacity
+                    onPress={() => setRsvpDeadline('')}
+                    style={{ padding: 10, borderRadius: 10, backgroundColor: '#F1F5F9' }}
+                  >
+                    <X size={16} color="#64748B" />
+                  </TouchableOpacity>
+                )}
+              </View>
+              <Text style={[styles.fHint, { marginTop: 6 }]}>
+                After this deadline, the RSVP poll will become read-only and no new or modified responses will be accepted.
+              </Text>
+
+              <View
+                style={{
+                  marginTop: 12,
+                  padding: 10,
+                  borderRadius: 10,
+                  backgroundColor: '#FFFFFF',
+                  borderWidth: 1,
+                  borderColor: '#C7D2FE',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                }}
+              >
+                <Info size={16} color="#4F46E5" />
+                <Text style={{ flex: 1, fontSize: 11, color: '#3730A3', lineHeight: 15 }}>
+                  RSVP options: 🟢 Going · 🟡 Interested · 🔴 Not Going. Church leaders will have access to participation breakdown, member roster, and exportable reports.
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* ── VOLUNTEER REGISTRATION CONFIGURATION ── */}
+        <View style={[styles.section, styles.secNavy, volunteerEnabled && { borderColor: '#059669', borderWidth: 1.5, backgroundColor: '#ECFDF5' }]}>
+          <View style={styles.secHd}>
+            <View style={[styles.secHdPill, { backgroundColor: volunteerEnabled ? '#059669' : '#1a2d5a' }]}>
+              <HeartHandshake size={13} color="#fff" />
+            </View>
+            <Text style={styles.secHdTXT}>Volunteer Registration</Text>
+            {volunteerEnabled && (
+              <View style={{ backgroundColor: '#D1FAE5', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginLeft: 'auto' }}>
+                <Text style={{ fontSize: 10, fontWeight: '800', color: '#047857' }}>VOLUNTEERING ON</Text>
+              </View>
+            )}
+          </View>
+
+          <View style={[styles.switchRow, { alignItems: 'flex-start' }]}>
+            <View style={{ flex: 1, paddingRight: 14 }}>
+              <Text style={styles.switchLabel}>Enable Volunteer Registration</Text>
+              <Text style={[styles.fHint, { marginTop: 4, lineHeight: 16 }]}>
+                {volunteerEnabled
+                  ? 'Members can apply for specific volunteer roles for this event. Authorized admins will be notified of every submission.'
+                  : 'Volunteering is OFF. Turn ON to open volunteer applications for this event.'}
+              </Text>
+            </View>
+            <Switch
+              value={volunteerEnabled}
+              onValueChange={setVolunteerEnabled}
+              trackColor={{ false: '#CBD5E1', true: '#059669' }}
+              thumbColor={volunteerEnabled ? '#10B981' : '#FFFFFF'}
+            />
+          </View>
+
+          {volunteerEnabled && (
+            <View style={{ marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+              <Text style={styles.fLabel}>VOLUNTEER ROLES NEEDED</Text>
+              <Text style={[styles.fHint, { marginBottom: 10 }]}>
+                Specify which service roles and headcounts are needed for this event:
+              </Text>
+
+              {volunteerRoles.map((role, idx) => (
+                <View
+                  key={role.id || idx}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingVertical: 8,
+                    paddingHorizontal: 12,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: '#E2E8F0',
+                    marginBottom: 6,
+                  }}
+                >
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                      {role.name}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: '#64748B' }}>
+                      {role.slotsNeeded} {role.slotsNeeded === 1 ? 'volunteer needed' : 'volunteers needed'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setVolunteerRoles(prev => prev.filter((_, i) => i !== idx));
+                    }}
+                    style={{ padding: 6 }}
+                  >
+                    <Trash2 size={16} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {/* Add New Role Row */}
+              <View style={{ marginTop: 8, flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      flex: 2,
+                      paddingHorizontal: 12,
+                      paddingVertical: 0,
+                      fontSize: 13,
+                      height: 42,
+                      textAlignVertical: 'center',
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      borderColor: '#CBD5E1',
+                    },
+                  ]}
+                  placeholder="e.g. Stage Setup & Welcome"
+                  placeholderTextColor="#94A3B8"
+                  value={newRoleName}
+                  onChangeText={setNewRoleName}
+                />
+                <TextInput
+                  style={[
+                    styles.input,
+                    {
+                      width: 60,
+                      paddingHorizontal: 8,
+                      paddingVertical: 0,
+                      fontSize: 13,
+                      height: 42,
+                      textAlign: 'center',
+                      textAlignVertical: 'center',
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      borderColor: '#CBD5E1',
+                    },
+                  ]}
+                  placeholder="Qty"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="numeric"
+                  value={newRoleSlots}
+                  onChangeText={setNewRoleSlots}
+                />
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#059669',
+                    borderRadius: 8,
+                    height: 40,
+                    paddingHorizontal: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => {
+                    if (!newRoleName.trim()) return;
+                    const slots = parseInt(newRoleSlots, 10) || 1;
+                    setVolunteerRoles(prev => [
+                      ...prev,
+                      { id: `role_${Date.now()}`, name: newRoleName.trim(), slotsNeeded: slots },
+                    ]);
+                    setNewRoleName('');
+                    setNewRoleSlots('2');
+                  }}
+                >
+                  <Plus size={16} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+        </View>
+
         <View style={[styles.section, styles.secBlue]}>
           <View style={styles.secHd}>
             <View style={styles.secHdPill}>
@@ -742,7 +1828,6 @@ export default function AdminEventEditor() {
           </View>
         </View>
 
-        {/* Footer Actions */}
         <View style={styles.footerBtnRow}>
           <TouchableOpacity style={styles.btnDraft} onPress={() => handleSave('Draft')} disabled={loading}>
             {loading && publishStatus === 'Draft' ? (
@@ -760,7 +1845,7 @@ export default function AdminEventEditor() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.btnBack} onPress={() => { resetForm(); setActiveTab(8); }}>
+        <TouchableOpacity style={styles.btnBack} onPress={() => { resetForm(); setTabByName?.('Events'); }}>
           <Text style={styles.btnBackTxt}>← Back to list</Text>
         </TouchableOpacity>
 
@@ -771,17 +1856,39 @@ export default function AdminEventEditor() {
         isVisible={isDatePickerVisible}
         mode="date"
         onConfirm={(d) => {
-          setDate(d.toLocaleDateString('en-GB').replace(/\//g, '-'));
+          const newDateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+          setDate(newDateStr);
           setDatePickerVisibility(false);
+          setValidationError(null);
+          if (recurring && recurring !== 'One-time event') {
+            setEndDate(addMonthsToDate(newDateStr, recurrenceDuration || 1));
+          }
         }}
         onCancel={() => setDatePickerVisibility(false)}
       />
+
+      <DateTimePickerModal
+        isVisible={isEndDatePickerVisible}
+        mode="date"
+        onConfirm={(d) => {
+          setEndDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`);
+          setEndDatePickerVisibility(false);
+          setValidationError(null);
+        }}
+        onCancel={() => setEndDatePickerVisibility(false)}
+      />
+
       <DateTimePickerModal
         isVisible={isStartTimeVisible}
         mode="time"
         onConfirm={(t) => {
-          setStartTime(t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+          let h = t.getHours();
+          const m = String(t.getMinutes()).padStart(2, '0');
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          h = h % 12 || 12;
+          setStartTime(`${String(h).padStart(2, '0')}:${m} ${ampm}`);
           setStartTimeVisibility(false);
+          setValidationError(null);
         }}
         onCancel={() => setStartTimeVisibility(false)}
       />
@@ -789,11 +1896,291 @@ export default function AdminEventEditor() {
         isVisible={isEndTimeVisible}
         mode="time"
         onConfirm={(t) => {
-          setEndTime(t.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+          let h = t.getHours();
+          const m = String(t.getMinutes()).padStart(2, '0');
+          const ampm = h >= 12 ? 'PM' : 'AM';
+          h = h % 12 || 12;
+          setEndTime(`${String(h).padStart(2, '0')}:${m} ${ampm}`);
           setEndTimeVisibility(false);
+          setValidationError(null);
         }}
         onCancel={() => setEndTimeVisibility(false)}
       />
+
+      <DateTimePickerModal
+        isVisible={isRsvpDeadlinePickerVisible}
+        mode="date"
+        onConfirm={(d) => {
+          const newDateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+          setRsvpDeadline(newDateStr);
+          setRsvpDeadlinePickerVisible(false);
+        }}
+        onCancel={() => setRsvpDeadlinePickerVisible(false)}
+      />
+
+      {/* ── Multi-Select Song Picker Modal ── */}
+      <Modal visible={showSongPicker} transparent animationType="slide">
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' }}>
+          <View style={{
+            backgroundColor: '#FFFFFF',
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            height: '85%',
+            paddingTop: 16,
+            paddingHorizontal: 16,
+            paddingBottom: 24
+          }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: '#EFF6FF', alignItems: 'center', justifyContent: 'center' }}>
+                  <Music size={20} color="#2563EB" />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 16, fontWeight: '800', color: '#1a2d5a' }}>
+                    Select Service Songs
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '600' }}>
+                    {tempSelectedSongs.length} {tempSelectedSongs.length === 1 ? 'song selected' : 'songs selected'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowSongPicker(false)}
+                style={{ padding: 6, borderRadius: 8, backgroundColor: '#F1F5F9' }}
+              >
+                <X size={18} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Input */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: '#F8FAFC',
+              borderWidth: 1,
+              borderColor: '#E2E8F0',
+              borderRadius: 12,
+              paddingHorizontal: 12,
+              paddingVertical: 8,
+              marginBottom: 10,
+              gap: 8
+            }}>
+              <Search size={16} color="#94A3B8" />
+              <TextInput
+                style={{ flex: 1, fontSize: 13, color: '#0F172A' }}
+                placeholder="Search songs by English or Telugu title..."
+                placeholderTextColor="#94A3B8"
+                value={songPickerSearch}
+                onChangeText={setSongPickerSearch}
+                autoCorrect={false}
+              />
+              {songPickerSearch ? (
+                <TouchableOpacity onPress={() => setSongPickerSearch('')}>
+                  <X size={16} color="#94A3B8" />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+
+            {/* Songs List */}
+            {(() => {
+              if (loadingSongsForPicker) {
+                return (
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 }}>
+                    <ActivityIndicator size="large" color="#1a2d5a" />
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#1a2d5a' }}>
+                      Loading worship songs...
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center' }}>
+                      Please wait while songs are being fetched.
+                    </Text>
+                  </View>
+                );
+              }
+
+              const q = songPickerSearch.trim().toLowerCase();
+              const filtered = allAvailableSongs.filter(s => {
+                if (!s) return false;
+                if (!q) return true;
+                const matchEn = (s.title || '').toLowerCase().includes(q);
+                const matchTe = (s.titleTe || '').toLowerCase().includes(q);
+                return matchEn || matchTe;
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                    <Music size={36} color="#CBD5E1" />
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748B', marginTop: 8 }}>
+                      No songs found
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#94A3B8', marginTop: 4 }}>
+                      Try typing a different song title or keyword
+                    </Text>
+                  </View>
+                );
+              }
+
+              return (
+                <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+                  {filtered.map((song, idx) => {
+                    const isSelected = tempSelectedSongs.some(ts => ts.id === song.id || ts.title.trim().toLowerCase() === song.title.trim().toLowerCase());
+                    return (
+                      <TouchableOpacity
+                        key={song.id || idx}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          if (isSelected) {
+                            setTempSelectedSongs(prev => prev.filter(ts => ts.id !== song.id && ts.title.trim().toLowerCase() !== song.title.trim().toLowerCase()));
+                          } else {
+                            setTempSelectedSongs(prev => [...prev, song]);
+                          }
+                        }}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          paddingVertical: 10,
+                          paddingHorizontal: 12,
+                          backgroundColor: isSelected ? '#EFF6FF' : '#FFFFFF',
+                          borderWidth: 1,
+                          borderColor: isSelected ? '#93C5FD' : '#E2E8F0',
+                          borderRadius: 12,
+                          marginBottom: 6
+                        }}
+                      >
+                        <View style={{ flex: 1, marginRight: 10 }}>
+                          <Text style={{ fontSize: 14, fontWeight: '700', color: isSelected ? '#1D4ED8' : '#1a2d5a' }} numberOfLines={1}>
+                            {song.title}
+                          </Text>
+                          {song.titleTe ? (
+                            <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }} numberOfLines={1}>
+                              {song.titleTe}
+                            </Text>
+                          ) : null}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                            {song.key ? (
+                              <View style={{ backgroundColor: '#F1F5F9', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                                <Text style={{ fontSize: 10, fontWeight: '700', color: '#475569' }}>Key: {song.key}</Text>
+                              </View>
+                            ) : null}
+                            {song.category ? (
+                              <Text style={{ fontSize: 10, color: '#94A3B8' }}>{song.category}</Text>
+                            ) : null}
+                          </View>
+                        </View>
+
+                        <View style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          borderWidth: 1.5,
+                          borderColor: isSelected ? '#2563EB' : '#CBD5E1',
+                          backgroundColor: isSelected ? '#2563EB' : '#FFFFFF',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}>
+                          {isSelected && <Check size={14} color="#FFFFFF" />}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </ScrollView>
+              );
+            })()}
+
+            {/* Bottom Actions */}
+            <View style={{ flexDirection: 'row', gap: 10, paddingTop: 14, borderTopWidth: 1, borderTopColor: '#E2E8F0' }}>
+              <TouchableOpacity
+                onPress={() => setShowSongPicker(false)}
+                style={{ flex: 1, paddingVertical: 12, borderRadius: 12, backgroundColor: '#F1F5F9', alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#475569' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handleSavePickedSongs}
+                style={{ flex: 2, paddingVertical: 12, borderRadius: 12, backgroundColor: '#1a2d5a', alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 14, fontWeight: '800', color: '#FFFFFF' }}>
+                  Done ({tempSelectedSongs.length})
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal for Creating New Event Type */}
+      <Modal visible={showNewTypeModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.newTypeCard}>
+            <View style={styles.newTypeHeader}>
+              <View style={styles.newTypeIconWrap}>
+                <Plus size={20} color="#1a2d5a" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.newTypeTitle}>Create New Event Type</Text>
+                <Text style={styles.newTypeSub}>కొత్త ఈవెంట్ రకాన్ని జోడించండి</Text>
+              </View>
+              <TouchableOpacity 
+                onPress={() => {
+                  setShowNewTypeModal(false);
+                  setNewTypeNameEn('');
+                  setNewTypeNameTe('');
+                }} 
+                style={styles.newTypeCloseBtn}
+              >
+                <X size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.newTypeBody}>
+              <View style={styles.newTypeField}>
+                <Text style={styles.newTypeLabel}>Event Type Name (English) <Text style={{ color: '#c0392b' }}>*</Text></Text>
+                <TextInput
+                  style={styles.newTypeInput}
+                  placeholder="e.g. Youth Camp, VBS, Fellowship"
+                  placeholderTextColor="#9ca3af"
+                  value={newTypeNameEn}
+                  onChangeText={setNewTypeNameEn}
+                  autoFocus
+                />
+              </View>
+
+              <View style={styles.newTypeField}>
+                <Text style={styles.newTypeLabel}>Event Type Name (Telugu — Optional)</Text>
+                <TextInput
+                  style={[styles.newTypeInput, styles.teIn]}
+                  placeholder="ఉదా: వేసవి బైబిల్ పాఠశాల"
+                  placeholderTextColor="#9ca3af"
+                  value={newTypeNameTe}
+                  onChangeText={setNewTypeNameTe}
+                />
+              </View>
+            </View>
+
+            <View style={styles.newTypeActions}>
+              <TouchableOpacity 
+                style={styles.newTypeCancelBtn} 
+                onPress={() => {
+                  setShowNewTypeModal(false);
+                  setNewTypeNameEn('');
+                  setNewTypeNameTe('');
+                }}
+              >
+                <Text style={styles.newTypeCancelTxt}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.newTypeSubmitBtn} 
+                onPress={handleAddNewEventType}
+              >
+                <Text style={styles.newTypeSubmitTxt}>Add & Select</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
     </View>
   );
@@ -803,19 +2190,47 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#EDE8DC' },
   scroll: { padding: 14, paddingBottom: 100 },
 
+  validationErrorCard: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fca5a5',
+    borderWidth: 1.5,
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+    elevation: 3,
+    shadowColor: '#ef4444',
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  validationErrorTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#991b1b',
+    marginBottom: 4,
+  },
+  validationErrorText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#b91c1c',
+    lineHeight: 17,
+  },
+
   hero: { 
     backgroundColor: '#1a2d5a', 
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    paddingHorizontal: 22,
-    paddingTop: 10,
-    paddingBottom: 24,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
     overflow: 'visible',
     position: 'relative',
     marginBottom: 6
   },
   heroTitleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-start' },
-  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroTitle: { color: '#fff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
 
   section: {
     backgroundColor: '#FFFFFF',
@@ -909,6 +2324,113 @@ const styles = StyleSheet.create({
   dropdownItemActive: { backgroundColor: '#1a2d5a' },
   dropdownItemTxt: { fontSize: 13, color: '#1e293b' },
   dropdownItemTxtActive: { color: '#fff', fontWeight: '700' },
+  dropdownItemNew: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fffdf5',
+    borderTopWidth: 1.5,
+    borderTopColor: '#f1e6cf',
+    paddingVertical: 12,
+  },
+  dropdownItemNewTxt: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#8C6428',
+  },
+
+  // New Type Modal
+  newTypeCard: {
+    backgroundColor: '#fff',
+    width: '90%',
+    maxWidth: 440,
+    borderRadius: 20,
+    padding: 22,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
+  newTypeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  newTypeIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#eef2ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  newTypeTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1a2d5a',
+  },
+  newTypeSub: {
+    fontSize: 11,
+    color: '#64748b',
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  newTypeCloseBtn: {
+    padding: 4,
+  },
+  newTypeBody: {
+    marginVertical: 16,
+    gap: 14,
+  },
+  newTypeField: {
+    gap: 6,
+  },
+  newTypeLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  newTypeInput: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: '#0f172a',
+  },
+  newTypeActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  newTypeCancelBtn: {
+    flex: 1,
+    backgroundColor: '#f1f5f9',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  newTypeCancelTxt: {
+    color: '#475569',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  newTypeSubmitBtn: {
+    flex: 1.5,
+    backgroundColor: '#1a2d5a',
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  newTypeSubmitTxt: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 13,
+  },
 
   modeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   modeBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#e2e8f0' },
@@ -922,10 +2444,6 @@ const styles = StyleSheet.create({
   chipTxt: { fontSize: 12, color: '#475569', fontWeight: '600' },
   chipTxtActive: { color: '#fff' },
 
-  themeRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6, gap: 10, paddingVertical: 4 },
-  themeChip: { width: 38, height: 38, borderRadius: 19, borderWidth: 2.5, borderColor: 'transparent' },
-  themeActive: { borderColor: '#C9A84C', transform: [{ scale: 1.1 }] },
-
   btnUploadThumb: {
     backgroundColor: '#FAFAF9',
     borderRadius: 14,
@@ -936,10 +2454,87 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   btnUploadThumbTxt: { color: '#4B5563', fontSize: 14, fontWeight: '700' },
-  thumbnailPreviewContainer: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 15 },
-  thumbnailImg: { width: 100, height: 100, borderRadius: 12, backgroundColor: '#E5E7EB', borderWidth: 1, borderColor: '#D9D3C7' },
-  removeThumbnailBtn: { backgroundColor: '#FEE2E2', paddingHorizontal: 14, paddingVertical: 10, borderRadius: 8, borderWidth: 1, borderColor: '#FECACA' },
-  btnChangeThumbTxt: { color: '#991B1B', fontSize: 13, fontWeight: '700' },
+  bannerPreviewCard: {
+    width: '100%',
+    height: 190,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#0F172A',
+    position: 'relative',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    marginBottom: 8,
+  },
+  bannerPreviewImg: {
+    width: '100%',
+    height: '100%',
+  },
+  imageLoadingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageErrorOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#FEF2F2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  imageErrorTxt: {
+    color: '#DC2626',
+    fontWeight: '700',
+    fontSize: 14,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  imageErrorSub: {
+    color: '#991B1B',
+    fontSize: 11,
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+  bannerOverlayBar: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  bannerBtnEdit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(26,45,90,0.88)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  bannerBtnDelete: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(220,38,38,0.88)',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+  },
+  bannerBtnTxt: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  urlInputWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  urlClearBtn: {
+    position: 'absolute',
+    right: 12,
+    padding: 6,
+  },
 
   footerBtnRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
   btnSave: {
@@ -971,16 +2566,325 @@ const styles = StyleSheet.create({
   modalConfirm: { flex: 1, padding: 10, alignItems: 'center', backgroundColor: '#1a2d5a', borderRadius: 8 },
   modalConfirmTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
 
-  // Success Modal
-  successCard: { backgroundColor: '#fff', width: '85%', borderRadius: 24, padding: 25, alignItems: 'center' },
-  successIconOuter: { backgroundColor: '#F0FDF4', borderRadius: 50, padding: 10, marginBottom: 20 },
-  successIconInner: { backgroundColor: '#22c55e', borderRadius: 40, padding: 15 },
-  successTitle: { fontSize: 22, fontWeight: '800', color: '#1a2d5a', marginBottom: 10 },
-  successSub: { fontSize: 14, color: '#64748b', textAlign: 'center', marginBottom: 25, lineHeight: 22 },
-  successBtnPrimary: { backgroundColor: '#1a2d5a', width: '100%', paddingVertical: 15, borderRadius: 12, alignItems: 'center', marginBottom: 10 },
-  successBtnPrimaryTxt: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  successBtnSecondary: { width: '100%', paddingVertical: 15, alignItems: 'center' },
-  successBtnSecondaryTxt: { color: '#1a2d5a', fontWeight: '700', fontSize: 15 },
+  // Success Modal (Premium & Beautiful)
+  successCard: { 
+    backgroundColor: '#fff', 
+    width: '90%', 
+    maxWidth: 380,
+    borderRadius: 28, 
+    paddingTop: 32,
+    paddingBottom: 24,
+    paddingHorizontal: 22, 
+    alignItems: 'center',
+    position: 'relative',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 25,
+    shadowOffset: { width: 0, height: 10 },
+  },
+  successCloseBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  successIconPulse: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: '#ecfdf5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 6,
+    borderColor: '#d1fae5',
+  },
+  successIconOuter: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    overflow: 'hidden',
+  },
+  successIconGradient: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  successPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 10,
+  },
+  successPillTxt: {
+    fontSize: 10.5,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  successTitle: { 
+    fontSize: 21, 
+    fontWeight: '800', 
+    color: '#0f172a', 
+    textAlign: 'center',
+    letterSpacing: -0.3,
+  },
+  successTeluguTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#059669',
+    marginTop: 3,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  successSummaryBox: {
+    width: '100%',
+    backgroundColor: '#f8fafc',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 18,
+  },
+  successEventTitle: {
+    fontSize: 14.5,
+    fontWeight: '800',
+    color: '#1a2d5a',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  summaryDivider: {
+    height: 1,
+    backgroundColor: '#e2e8f0',
+    marginVertical: 10,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  summaryIcon: {
+    marginRight: 6,
+  },
+  summaryLabel: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#64748b',
+    width: 48,
+  },
+  summaryVal: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1e293b',
+    flex: 1,
+  },
+  successBtnPrimary: { 
+    width: '100%', 
+    borderRadius: 14, 
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#1a2d5a',
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    marginBottom: 10,
+  },
+  successBtnGradient: {
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  successBtnPrimaryTxt: { 
+    color: '#fff', 
+    fontWeight: '800', 
+    fontSize: 14.5,
+    letterSpacing: 0.3,
+  },
+  successBtnSecondary: { 
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%', 
+    paddingVertical: 12, 
+    borderRadius: 14,
+    backgroundColor: '#f1f5f9',
+  },
+  successBtnSecondaryTxt: { 
+    color: '#1a2d5a', 
+    fontWeight: '700', 
+    fontSize: 13.5,
+  },
+
+  // Validation Error Modal (Custom & Beautiful)
+  errorModalOverlay: { 
+    flex: 1, 
+    backgroundColor: 'rgba(15, 23, 42, 0.65)', 
+    justifyContent: 'center', 
+    alignItems: 'center',
+    padding: 16,
+  },
+  errorCard: { 
+    backgroundColor: '#fff', 
+    width: '88%', 
+    maxWidth: 340,
+    borderRadius: 22, 
+    paddingTop: 24,
+    paddingBottom: 20,
+    paddingHorizontal: 22, 
+    alignItems: 'center',
+    position: 'relative',
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+  },
+  errorCloseBtn: {
+    position: 'absolute',
+    top: 14,
+    right: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  errorIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#fef3c7',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  errorTitle: { 
+    fontSize: 18, 
+    fontWeight: '800', 
+    color: '#0f172a', 
+    textAlign: 'center',
+    marginBottom: 6,
+    letterSpacing: -0.2,
+  },
+  errorMessageText: {
+    fontSize: 13.5,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 19,
+    fontWeight: '500',
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  errorHintBox: {
+    width: '100%',
+    backgroundColor: '#fffbeb',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  errorHintText: {
+    fontSize: 12,
+    color: '#92400e',
+    textAlign: 'center',
+    lineHeight: 17,
+    fontWeight: '500',
+  },
+  errorActionBtn: { 
+    width: '100%', 
+    borderRadius: 12, 
+    overflow: 'hidden',
+  },
+  errorBtnGradient: {
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorActionBtnTxt: { 
+    color: '#fff', 
+    fontWeight: '700', 
+    fontSize: 14,
+    letterSpacing: 0.2,
+  },
+
+  scheduleTipBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  scheduleTipTxt: {
+    fontSize: 12,
+    color: '#1e40af',
+    lineHeight: 18,
+    fontWeight: '500',
+  },
+  scheduleTipTe: {
+    fontSize: 11,
+    color: '#2563eb',
+    marginTop: 3,
+    lineHeight: 16,
+    fontWeight: '600',
+  },
+
   sectionHeader: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8, alignSelf: 'flex-start', marginBottom: 16 },
-  sectionHeaderText: { fontFamily: 'Outfit-Bold', fontSize: 14, fontWeight: '700' }
+  sectionHeaderText: { fontFamily: 'Outfit-Bold', fontSize: 14, fontWeight: '700' },
+
+  recurringInfoCard: {
+    backgroundColor: '#F0FDFA',
+    borderWidth: 1,
+    borderColor: '#99F6E4',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  recurringInfoBadge: {
+    backgroundColor: '#CCFBF1',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  recurringInfoBadgeTxt: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#0F766E',
+    letterSpacing: 0.5,
+  },
+  recurringInfoHeading: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#134E4A',
+    marginBottom: 4,
+  },
+  recurringInfoSub: {
+    fontSize: 12,
+    color: '#0F766E',
+    lineHeight: 17,
+    fontWeight: '500',
+  },
+  recurringInfoTe: {
+    fontSize: 11,
+    color: '#115E59',
+    lineHeight: 16,
+    marginTop: 3,
+    fontWeight: '600',
+  }
 });

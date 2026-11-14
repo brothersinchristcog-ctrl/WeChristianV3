@@ -508,7 +508,13 @@ export default function AIAssistantModal({ navigation }: { navigation: any }) {
 
       {isSuccessVisible ? (
         <View style={styles.confirmationContainer}>
-          <EventSuccessCard onDone={() => navigation.navigate('Dashboard', { refresh: true })} />
+          <EventSuccessCard onDone={() => {
+            if (navigation.canGoBack()) {
+              navigation.goBack();
+            } else {
+              navigation.navigate('AdminRoot');
+            }
+          }} />
         </View>
       ) : isConfirmationReady ? (
         <View style={styles.confirmationContainer}>

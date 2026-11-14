@@ -1,1 +1,1 @@
-{"version":3,"file":"meetings.d.ts","sourceRoot":"","sources":["meetings.ts"],"names":[],"mappings":"AA0BA;;;GAGG;AACH,eAAO,MAAM,mBAAmB,qDA6D9B,CAAC;AAEH;;;GAGG;AACH,eAAO,MAAM,qBAAqB;;;;YAoHhC,CAAC"}
+{"version":3,"file":"meetings.d.ts","sourceRoot":"","sources":["meetings.ts"],"names":[],"mappings":"AAQA;;GAEG;AACH,wBAAsB,0BAA0B,IAAI,OAAO,CAAC,MAAM,CAAC,CAqClE;AAED,wBAAgB,iBAAiB,CAAC,WAAW,EAAE,MAAM,GAAG,MAAM,CAW7D;AAED;;;;GAIG;AACH,eAAO,MAAM,iBAAiB;;;;;;YA2D5B,CAAC;AAEH;;GAEG;AACH,eAAO,MAAM,qBAAqB,qDAwDhC,CAAC"}

@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Image, ActivityIndicator, Alert } from 'react-native';
 import { Edit2, ChevronLeft } from 'lucide-react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Circle, G, Path } from 'react-native-svg';
-import { captureRef } from 'react-native-view-shot';
+import ViewShot from 'react-native-view-shot';
 
 const ICONS = {
   whatsapp: (
@@ -39,8 +39,8 @@ export default function AdminCelebrationsWhatsAppPreview({
   message: string,
   verse: {ref: string, text: string},
   churchName: string,
-  onEdit: () => void, 
-  onSendWhatsApp: (imageUri: string) => Promise<void>,
+  onEdit: () => void,
+  onSendWhatsApp: (imageUri?: string) => Promise<void>,
   onSendPush: (imageUri: string) => Promise<void>
 }) {
   const [isSendingWhatsApp, setIsSendingWhatsApp] = useState(false);
@@ -56,25 +56,49 @@ export default function AdminCelebrationsWhatsAppPreview({
   const parts = member.name.split(' ');
   const initials = (parts[0][0] + (parts[1]?parts[1][0]:'')).toUpperCase();
 
-  const viewRef = useRef<View>(null);
+  const viewShotRef = useRef<ViewShot>(null);
 
   const handleCaptureAndSend = async (type: 'whatsapp' | 'push') => {
     if (type === 'whatsapp') setIsSendingWhatsApp(true);
     if (type === 'push') setIsSendingPush(true);
     
     try {
-      const uri = await captureRef(viewRef, {
-        format: 'png',
-        quality: 1,
-      });
-      
+      // Allow layout and image rendering to fully complete
+      await new Promise(resolve => setTimeout(resolve, 400));
+
+      let uri: string | undefined;
+      if (viewShotRef.current && typeof viewShotRef.current.capture === 'function') {
+        uri = await viewShotRef.current.capture();
+      }
+
+      if (!uri) {
+        throw new Error('ViewShot capture returned empty URI');
+      }
+
+      console.log(`[Celebrations] Successfully captured greeting card URI for ${type}:`, uri);
+
       if (type === 'whatsapp') {
         await onSendWhatsApp(uri);
       } else {
         await onSendPush(uri);
       }
-    } catch (err) {
-      console.error(`Capture for ${type} failed`, err);
+    } catch (err: any) {
+      console.error(`Capture for ${type} failed:`, err);
+      if (type === 'whatsapp') {
+        Alert.alert(
+          'Image Snapshot Failed',
+          'Could not capture the card image snapshot. Would you like to send text only to WhatsApp instead?',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { 
+              text: 'Send Text Only', 
+              onPress: () => onSendWhatsApp() 
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Error', 'Failed to snapshot celebration card image for push notification.');
+      }
     } finally {
       setIsSendingWhatsApp(false);
       setIsSendingPush(false);
@@ -116,56 +140,60 @@ export default function AdminCelebrationsWhatsAppPreview({
 
         <View style={styles.waBody}>
           <View style={styles.waBubble}>
-            <View ref={viewRef} collapsable={false}>
-              <View style={styles.greetingFrame}>
+            <ViewShot 
+              ref={viewShotRef} 
+              options={{ format: 'png', quality: 1 }} 
+              style={styles.greetingFrame}
+            >
+              <View collapsable={false} style={[StyleSheet.absoluteFillObject, { borderRadius: 6, overflow: 'hidden' }]}>
                 {theme?.imageUrl && (
                   <Image source={{ uri: theme.imageUrl }} style={[StyleSheet.absoluteFillObject, { resizeMode: 'cover' }]} />
                 )}
-              <Svg width="100%" height={350} viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice">
-                <Defs>
-                  <LinearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
-                    <Stop offset="0%" stopColor={colors[0]} stopOpacity={theme?.imageUrl ? 0.2 : 1} />
-                    <Stop offset="100%" stopColor={colors[1]} stopOpacity={theme?.imageUrl ? 0.7 : 1} />
-                  </LinearGradient>
-                </Defs>
-                <Rect width="400" height="500" fill="url(#pg)" />
-                {!theme?.imageUrl && (
-                  <>
-                    <G fill="#ffffff" opacity="0.10">
-                      <Circle cx="60" cy="60" r="70" />
-                      <Circle cx="360" cy="440" r="90" />
-                      <Circle cx="370" cy="60" r="40" />
-                    </G>
-                    <G fill="none" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1.5">
-                      <Circle cx="200" cy="250" r="150" />
-                      <Circle cx="200" cy="250" r="110" />
-                    </G>
-                  </>
-                )}
-              </Svg>
+                <Svg width="100%" height={350} viewBox="0 0 400 500" preserveAspectRatio="xMidYMid slice">
+                  <Defs>
+                    <LinearGradient id="pg" x1="0" y1="0" x2="1" y2="1">
+                      <Stop offset="0%" stopColor={colors[0]} stopOpacity={theme?.imageUrl ? 0.2 : 1} />
+                      <Stop offset="100%" stopColor={colors[1]} stopOpacity={theme?.imageUrl ? 0.7 : 1} />
+                    </LinearGradient>
+                  </Defs>
+                  <Rect width="400" height="500" fill="url(#pg)" />
+                  {!theme?.imageUrl && (
+                    <>
+                      <G fill="#ffffff" opacity="0.10">
+                        <Circle cx="60" cy="60" r="70" />
+                        <Circle cx="360" cy="440" r="90" />
+                        <Circle cx="370" cy="60" r="40" />
+                      </G>
+                      <G fill="none" stroke="#ffffff" strokeOpacity="0.25" strokeWidth="1.5">
+                        <Circle cx="200" cy="250" r="150" />
+                        <Circle cx="200" cy="250" r="110" />
+                      </G>
+                    </>
+                  )}
+                </Svg>
 
-              <View style={styles.greetingOverlay}>
-                <Text style={styles.gCrest}>{churchName || 'Grace Community Church'}</Text>
-                
-                {layout === 'theme' && photoUri && (
-                  <View style={{alignItems: 'center', marginVertical: 8}}>
-                    <Image source={{uri: photoUri}} style={{width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: '#fff'}} />
-                  </View>
-                )}
+                <View style={styles.greetingOverlay}>
+                  <Text style={styles.gCrest}>{churchName || 'Grace Community Church'}</Text>
+                  
+                  {layout === 'theme' && photoUri && (
+                    <View style={{alignItems: 'center', marginVertical: 8}}>
+                      <Image source={{uri: photoUri}} style={{width: 80, height: 80, borderRadius: 40, borderWidth: 3, borderColor: '#fff'}} />
+                    </View>
+                  )}
 
-                <Text style={styles.gTitle}>{titleOverlay || categoryLabel}</Text>
-                <Text style={styles.gName}>{nameOverlay || member.name}</Text>
-                <Text style={styles.gMsg}>{message}</Text>
-                {verse?.text ? (
-                  <Text style={[styles.gVerse, /[\u0C00-\u0C7F]/.test(verse.text) && { fontFamily: undefined }]}>
-                    "{verse.text.length > 100 ? verse.text.substring(0, 100) + '...' : verse.text}"
-                    {'\n'}— {verse.ref}
-                  </Text>
-                ) : null}
-                <Text style={styles.gSender}>Sent with love</Text>
+                  <Text style={styles.gTitle}>{titleOverlay || categoryLabel}</Text>
+                  <Text style={styles.gName}>{nameOverlay || member.name}</Text>
+                  <Text style={styles.gMsg}>{message}</Text>
+                  {verse?.text ? (
+                    <Text style={[styles.gVerse, /[\u0C00-\u0C7F]/.test(verse.text) && { fontFamily: undefined }]}>
+                      "{verse.text.length > 100 ? verse.text.substring(0, 100) + '...' : verse.text}"
+                      {'\n'}— {verse.ref}
+                    </Text>
+                  ) : null}
+                  <Text style={styles.gSender}>Sent with love</Text>
+                </View>
               </View>
-            </View>
-            </View>
+            </ViewShot>
 
             <Text style={styles.waCaption}>Praise the Lord!{'\n\n'}{message}</Text>
             {verse?.text && <Text style={styles.waVerse}>{'\n\n'}"{verse.text}"{'\n'}— {verse.ref}</Text>}
@@ -298,8 +326,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 8,
-    maxWidth: '90%',
-    marginLeft: 'auto', // push to right
+    width: '94%',
+    alignSelf: 'flex-end',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,

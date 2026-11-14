@@ -1,0 +1,1357 @@
+import { Linking } from 'react-native';
+import * as ExpoLocation from 'expo-location';
+import { getApp } from '@react-native-firebase/app';
+import { getFunctions, httpsCallable } from '@react-native-firebase/functions';
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  onSnapshot,
+  serverTimestamp,
+  deleteField,
+} from '@react-native-firebase/firestore';
+import {
+  LocationAccuracy,
+  MemberLocationRecord,
+  MemberVisitBadgeStatus,
+  MemberVisitResponseStatus,
+  NearbyMemberMatch,
+  VisitRoutePoint,
+} from '../types/CareCellTypes';
+import { encodeGeohash, haversineDistanceKm } from '../utils/geohash';
+
+const CHURCHES_COLLECTION = 'churches';
+const LOCATIONS_SUBCOLLECTION = 'memberLocations';
+const PRIVATE_HOME_SUBCOLLECTION = 'privateHome';
+const FUNCTIONS_REGION = 'asia-south1';
+
+const ROUTE_GEOCODE_CACHE = new Map<string, { latitude: number; longitude: number } | null>();
+
+export type TravelMode = 'driving' | 'walking';
+
+export interface RoadRouteStep {
+  instruction: string;
+  distanceMeters: number;
+  durationSeconds: number;
+  roadName?: string;
+  location: { latitude: number; longitude: number };
+}
+
+export interface RoadRouteLeg {
+  distanceMeters: number;
+  durationSeconds: number;
+  steps: RoadRouteStep[];
+}
+
+export interface RoadRouteResult {
+  coordinates: Array<{ latitude: number; longitude: number }>;
+  totalDistanceMeters: number;
+  totalDurationSeconds: number;
+  legs: RoadRouteLeg[];
+  isRoadRoute: boolean;
+}
+
+export interface MapMarkerGroup {
+  id: string;
+  latitude: number;
+  longitude: number;
+  isCluster: boolean;
+  isSameVillageGroup: boolean;
+  label: string;
+  subtitle: string;
+  members: MemberLocationRecord[];
+  dominantBadgeStatus: MemberVisitBadgeStatus;
+  hasVerifiedHome: boolean;
+  allVerifiedHome: boolean;
+}
+
+export interface SyncLocationsResult {
+  totalMembers: number;
+  syncedCount: number;
+  geocodedFromApi: number;
+  reusedCache: number;
+  needsReviewCount: number;
+  failedCount: number;
+  geocodingKeyConfigured: boolean;
+}
+
+const getRegionalCallable = (name: string) => {
+  try {
+    const regionalFns = getFunctions(getApp(), FUNCTIONS_REGION);
+    return httpsCallable(regionalFns, name);
+  } catch (_) {
+    return httpsCallable(getFunctions(getApp()), name);
+  }
+};
+
+/**
+ * Removes undefined keys recursively before writing to Firestore.
+ */
+function sanitizePayload<T extends Record<string, any>>(obj: T): Partial<T> {
+  const clean: Record<string, any> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    if (v === undefined) continue;
+    clean[k] = v;
+  }
+  return clean as Partial<T>;
+}
+
+/**
+ * Returns the coordinates authorized for map display & routing, strictly respecting member consent.
+ */
+export function getEffectiveCoordinates(
+  loc: Partial<MemberLocationRecord> | null | undefined
+): { latitude: number; longitude: number; accuracy: LocationAccuracy } | null {
+  if (!loc) return null;
+
+  const hasVerifiedPin =
+    loc.locationSharingConsent === true &&
+    loc.locationAccuracy === 'verified_home' &&
+    typeof loc.confirmedLatitude === 'number' &&
+    typeof loc.confirmedLongitude === 'number' &&
+    Number.isFinite(loc.confirmedLatitude) &&
+    Number.isFinite(loc.confirmedLongitude);
+
+  if (hasVerifiedPin) {
+    return {
+      latitude: loc.confirmedLatitude as number,
+      longitude: loc.confirmedLongitude as number,
+      accuracy: 'verified_home',
+    };
+  }
+
+  if (
+    typeof loc.latitude === 'number' &&
+    typeof loc.longitude === 'number' &&
+    Number.isFinite(loc.latitude) &&
+    Number.isFinite(loc.longitude)
+  ) {
+    return {
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      accuracy: 'village_approximate',
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Derives visit status badge color bucket for a member location pin.
+ * Green: No pending visit | Blue: Confirmed/In Progress | Orange: Awaiting/Scheduled | Red: Requires follow-up
+ */
+export function getMemberVisitBadgeStatus(
+  loc: Partial<MemberLocationRecord> | null | undefined
+): MemberVisitBadgeStatus {
+  if (!loc) return 'no_pending';
+  const visitStatus = String(loc.upcomingVisitStatus || '');
+  if (loc.requiresFollowup || visitStatus === 'Declined') {
+    return 'requires_followup';
+  }
+  if (visitStatus === 'Awaiting Confirmation' || visitStatus === 'Scheduled') {
+    return 'awaiting_confirmation';
+  }
+  if (visitStatus === 'Confirmed' || visitStatus === 'In Progress') {
+    return 'scheduled';
+  }
+  return 'no_pending';
+}
+
+export function getVisitBadgeColor(status: MemberVisitBadgeStatus): string {
+  switch (status) {
+    case 'requires_followup':
+      return '#DC2626'; // Red
+    case 'awaiting_confirmation':
+      return '#EA580C'; // Orange
+    case 'scheduled':
+      return '#2563EB'; // Blue
+    case 'no_pending':
+    default:
+      return '#16A34A'; // Green
+  }
+}
+
+export function getVisitBadgeLabel(status: MemberVisitBadgeStatus): string {
+  switch (status) {
+    case 'requires_followup':
+      return 'Follow-up';
+    case 'awaiting_confirmation':
+      return 'Awaiting Confirmation';
+    case 'scheduled':
+      return 'Visit Scheduled';
+    case 'no_pending':
+    default:
+      return 'No Pending Visit';
+  }
+}
+
+function getBadgePriority(status: MemberVisitBadgeStatus): number {
+  switch (status) {
+    case 'requires_followup':
+      return 4;
+    case 'awaiting_confirmation':
+      return 3;
+    case 'scheduled':
+      return 2;
+    case 'no_pending':
+    default:
+      return 1;
+  }
+}
+
+/**
+ * Formats a concise human-readable locality line from existing profile fields.
+ */
+export function formatMemberAreaText(
+  loc: Partial<MemberLocationRecord> | null | undefined
+): string {
+  if (!loc) return '';
+  const parts = [
+    loc.village,
+    loc.city && loc.city !== loc.village ? loc.city : undefined,
+    loc.district,
+    loc.state,
+  ]
+    .map((p) => (p || '').trim())
+    .filter(Boolean);
+  return parts.join(', ');
+}
+
+export class MemberLocationService {
+  /**
+   * Real-time single-collection listener on churches/{churchId}/memberLocations.
+   */
+  static subscribeMemberLocations(
+    churchId: string,
+    onUpdate: (records: MemberLocationRecord[]) => void,
+    onError?: (err: Error) => void
+  ): () => void {
+    if (!churchId) {
+      onUpdate([]);
+      return () => {};
+    }
+
+    const firestoreDb = getFirestore();
+    const locationsColRef = collection(
+      firestoreDb,
+      CHURCHES_COLLECTION,
+      churchId,
+      LOCATIONS_SUBCOLLECTION
+    );
+
+    return onSnapshot(
+      locationsColRef,
+      (snapshot) => {
+        const list: MemberLocationRecord[] = snapshot.docs.map((docSnap) => {
+          const d = docSnap.data() || {};
+          const hasConsent = d.locationSharingConsent === true;
+          return {
+            ...d,
+            memberId: d.memberId || docSnap.id,
+            churchId: d.churchId || churchId,
+            memberName: d.memberName || 'Member',
+            locationSource: d.locationSource || 'profile_geocoding',
+            locationAccuracy:
+              hasConsent && d.locationAccuracy === 'verified_home'
+                ? 'verified_home'
+                : typeof d.latitude === 'number' && typeof d.longitude === 'number'
+                  ? 'village_approximate'
+                  : 'not_verified',
+            geocodingStatus: d.geocodingStatus || 'pending',
+            locationSharingConsent: hasConsent,
+            confirmedLatitude: hasConsent ? d.confirmedLatitude : undefined,
+            confirmedLongitude: hasConsent ? d.confirmedLongitude : undefined,
+            completeAddress: hasConsent ? d.completeAddress : undefined,
+            landmark: hasConsent ? d.landmark : undefined,
+          } as MemberLocationRecord;
+        });
+        list.sort((a, b) => a.memberName.localeCompare(b.memberName));
+        onUpdate(list);
+      },
+      (err) => {
+        if (onError) onError(err);
+      }
+    );
+  }
+
+  /**
+   * Fetches all member locations once for a church.
+   */
+  static async getMemberLocations(churchId: string): Promise<MemberLocationRecord[]> {
+    if (!churchId) return [];
+    const firestoreDb = getFirestore();
+    const snap = await getDocs(
+      collection(firestoreDb, CHURCHES_COLLECTION, churchId, LOCATIONS_SUBCOLLECTION)
+    );
+    return snap.docs.map((docSnap) => {
+      const d = docSnap.data() || {};
+      const hasConsent = d.locationSharingConsent === true;
+      return {
+        ...d,
+        memberId: d.memberId || docSnap.id,
+        churchId: d.churchId || churchId,
+        memberName: d.memberName || 'Member',
+        locationSource: d.locationSource || 'profile_geocoding',
+        locationAccuracy:
+          hasConsent && d.locationAccuracy === 'verified_home'
+            ? 'verified_home'
+            : typeof d.latitude === 'number' && typeof d.longitude === 'number'
+              ? 'village_approximate'
+              : 'not_verified',
+        geocodingStatus: d.geocodingStatus || 'pending',
+        locationSharingConsent: hasConsent,
+        confirmedLatitude: hasConsent ? d.confirmedLatitude : undefined,
+        confirmedLongitude: hasConsent ? d.confirmedLongitude : undefined,
+        completeAddress: hasConsent ? d.completeAddress : undefined,
+        landmark: hasConsent ? d.landmark : undefined,
+      } as MemberLocationRecord;
+    });
+  }
+
+  /**
+   * Fetches a single member's location doc for their My Home Location screen.
+   */
+  static async getMyHomeLocation(
+    churchId: string,
+    memberId: string
+  ): Promise<MemberLocationRecord | null> {
+    if (!churchId || !memberId) return null;
+    try {
+      const firestoreDb = getFirestore();
+      const snap = await getDoc(
+        doc(firestoreDb, CHURCHES_COLLECTION, churchId, LOCATIONS_SUBCOLLECTION, memberId)
+      );
+      if (!snap.exists()) return null;
+      const d = snap.data() || {};
+      return {
+        ...d,
+        memberId: d.memberId || snap.id,
+        churchId: d.churchId || churchId,
+        memberName: d.memberName || 'Member',
+        locationSource: d.locationSource || 'profile_geocoding',
+        locationAccuracy: d.locationAccuracy || 'not_verified',
+        geocodingStatus: d.geocodingStatus || 'pending',
+        locationSharingConsent: d.locationSharingConsent === true,
+      } as MemberLocationRecord;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * Triggers server-side batch sync & cached Google Maps geocoding for church members.
+   */
+  static async syncChurchMemberLocations(
+    churchId: string,
+    forceRefresh = false
+  ): Promise<SyncLocationsResult> {
+    const callable = getRegionalCallable('syncChurchMemberLocations');
+    const result = await callable({ churchId, forceRefresh });
+    return (result.data || {}) as SyncLocationsResult;
+  }
+
+  /**
+   * Saves or updates a member's confirmed Google Maps home pin with explicit consent.
+   */
+  static async saveMyHomeLocation(params: {
+    churchId: string;
+    memberId: string;
+    memberName?: string;
+    latitude: number;
+    longitude: number;
+    completeAddress: string;
+    landmark?: string;
+    village?: string;
+    city?: string;
+    district?: string;
+    state?: string;
+    country?: string;
+  }): Promise<void> {
+    const {
+      churchId,
+      memberId,
+      latitude,
+      longitude,
+      completeAddress,
+      landmark = '',
+    } = params;
+
+    try {
+      const callable = getRegionalCallable('saveMemberHomeLocationPin');
+      await callable({
+        churchId,
+        memberId,
+        latitude,
+        longitude,
+        completeAddress: completeAddress.trim(),
+        landmark: landmark.trim(),
+        action: 'save',
+        locationSharingConsent: true,
+      });
+      return;
+    } catch (fnErr: any) {
+      // Fallback to direct consent-protected Firestore write if callable isn't deployed yet
+      const code = String(fnErr?.code || '').toLowerCase();
+      if (!code.includes('not-found') && !code.includes('unimplemented') && !code.includes('unavailable')) {
+        throw fnErr;
+      }
+    }
+
+    const geohash = encodeGeohash(latitude, longitude, 9);
+    const firestoreDb = getFirestore();
+    const locRef = doc(
+      firestoreDb,
+      CHURCHES_COLLECTION,
+      churchId,
+      LOCATIONS_SUBCOLLECTION,
+      memberId
+    );
+    const pinRef = doc(
+      firestoreDb,
+      CHURCHES_COLLECTION,
+      churchId,
+      LOCATIONS_SUBCOLLECTION,
+      memberId,
+      PRIVATE_HOME_SUBCOLLECTION,
+      'pin'
+    );
+
+    await Promise.all([
+      setDoc(
+        locRef,
+        sanitizePayload({
+          memberId,
+          churchId,
+          memberName: params.memberName || 'Member',
+          village: params.village,
+          city: params.city,
+          district: params.district,
+          state: params.state,
+          country: params.country || 'India',
+          locationSource: 'member_confirmed_pin',
+          locationAccuracy: 'verified_home',
+          locationSharingConsent: true,
+          confirmedLatitude: latitude,
+          confirmedLongitude: longitude,
+          confirmedGeohash: geohash,
+          geohash,
+          completeAddress: completeAddress.trim(),
+          landmark: landmark.trim() || undefined,
+          confirmedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        }),
+        { merge: true }
+      ),
+      setDoc(
+        pinRef,
+        sanitizePayload({
+          memberId,
+          churchId,
+          latitude,
+          longitude,
+          completeAddress: completeAddress.trim(),
+          landmark: landmark.trim() || undefined,
+          locationSharingConsent: true,
+          locationAccuracy: 'verified_home',
+          updatedAt: serverTimestamp(),
+        }),
+        { merge: true }
+      ),
+    ]);
+  }
+
+  /**
+   * Revokes member consent for exact home coordinates and removes pin data.
+   * Existing village/city profile coordinates continue to work automatically.
+   */
+  static async revokeMyHomeLocationSharing(
+    churchId: string,
+    memberId: string
+  ): Promise<void> {
+    try {
+      const callable = getRegionalCallable('saveMemberHomeLocationPin');
+      await callable({
+        churchId,
+        memberId,
+        action: 'revoke',
+        locationSharingConsent: false,
+      });
+      return;
+    } catch (fnErr: any) {
+      const code = String(fnErr?.code || '').toLowerCase();
+      if (!code.includes('not-found') && !code.includes('unimplemented') && !code.includes('unavailable')) {
+        throw fnErr;
+      }
+    }
+
+    const firestoreDb = getFirestore();
+    const locRef = doc(
+      firestoreDb,
+      CHURCHES_COLLECTION,
+      churchId,
+      LOCATIONS_SUBCOLLECTION,
+      memberId
+    );
+    const pinRef = doc(
+      firestoreDb,
+      CHURCHES_COLLECTION,
+      churchId,
+      LOCATIONS_SUBCOLLECTION,
+      memberId,
+      PRIVATE_HOME_SUBCOLLECTION,
+      'pin'
+    );
+    const snap = await getDoc(locRef);
+    const d = snap.data() || {};
+    const hasApprox =
+      typeof d.latitude === 'number' && typeof d.longitude === 'number';
+
+    await Promise.all([
+      setDoc(
+        locRef,
+        {
+          locationSharingConsent: false,
+          locationSource: 'profile_geocoding',
+          locationAccuracy: hasApprox ? 'village_approximate' : 'not_verified',
+          geohash: hasApprox
+            ? encodeGeohash(d.latitude, d.longitude, 9)
+            : deleteField(),
+          confirmedLatitude: deleteField(),
+          confirmedLongitude: deleteField(),
+          confirmedGeohash: deleteField(),
+          completeAddress: deleteField(),
+          landmark: deleteField(),
+          confirmedAt: deleteField(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      ),
+      deleteDoc(pinRef).catch(() => {}),
+    ]);
+  }
+
+  /**
+   * Finds members within radiusKm (1, 2, 5, 10 km) using server geohash query with local Haversine fallback.
+   */
+  static async findNearbyMembers(params: {
+    churchId: string;
+    centerLatitude: number;
+    centerLongitude: number;
+    radiusKm: number;
+    excludeMemberId?: string;
+    localFallbackRecords?: MemberLocationRecord[];
+  }): Promise<NearbyMemberMatch[]> {
+    const {
+      churchId,
+      centerLatitude,
+      centerLongitude,
+      radiusKm,
+      excludeMemberId,
+      localFallbackRecords,
+    } = params;
+
+    try {
+      const callable = getRegionalCallable('findNearbyChurchMembers');
+      const res = await callable({
+        churchId,
+        centerLatitude,
+        centerLongitude,
+        radiusKm,
+        excludeMemberId,
+      });
+      const matches = ((res.data as any)?.matches || []) as NearbyMemberMatch[];
+      if (Array.isArray(matches)) return matches;
+    } catch (_) {
+      // Fallback gracefully below if offline or callable unavailable
+    }
+
+    const pool =
+      localFallbackRecords || (await MemberLocationService.getMemberLocations(churchId));
+    const results: NearbyMemberMatch[] = [];
+    for (const loc of pool) {
+      if (excludeMemberId && loc.memberId === excludeMemberId) continue;
+      const coords = getEffectiveCoordinates(loc);
+      if (!coords) continue;
+      const distKm = haversineDistanceKm(
+        { latitude: centerLatitude, longitude: centerLongitude },
+        { latitude: coords.latitude, longitude: coords.longitude }
+      );
+      if (distKm <= radiusKm) {
+        results.push({
+          location: loc,
+          distanceKm: Number(distKm.toFixed(2)),
+          isApproximateDistance: coords.accuracy !== 'verified_home',
+          effectiveLatitude: coords.latitude,
+          effectiveLongitude: coords.longitude,
+        });
+      }
+    }
+    return results.sort((a, b) => a.distanceKm - b.distanceKm);
+  }
+
+  /**
+   * Groups co-located members (same village/area) and clusters zoomed-out regions.
+   * Ensures clicking a village marker reveals all members sharing that village area.
+   */
+  static groupLocationsForMap(
+    records: MemberLocationRecord[],
+    latitudeDelta: number
+  ): MapMarkerGroup[] {
+    // 1. Exact co-location grouping (~11m bucket) so same-village geocodes stack together cleanly
+    const samePointBuckets = new Map<string, MemberLocationRecord[]>();
+    for (const r of records) {
+      const coords = getEffectiveCoordinates(r);
+      if (!coords) continue;
+      const latKey = coords.latitude.toFixed(4);
+      const lngKey = coords.longitude.toFixed(4);
+      const key = `${latKey},${lngKey}`;
+      const existing = samePointBuckets.get(key);
+      if (existing) existing.push(r);
+      else samePointBuckets.set(key, [r]);
+    }
+
+    const areaGroups: MapMarkerGroup[] = [];
+    samePointBuckets.forEach((groupMembers, key) => {
+      const first = groupMembers[0];
+      const coords = getEffectiveCoordinates(first)!;
+      let dominant: MemberVisitBadgeStatus = 'no_pending';
+      let verifiedCount = 0;
+
+      for (const m of groupMembers) {
+        const badge = getMemberVisitBadgeStatus(m);
+        if (getBadgePriority(badge) > getBadgePriority(dominant)) {
+          dominant = badge;
+        }
+        if (m.locationAccuracy === 'verified_home' && m.locationSharingConsent) {
+          verifiedCount += 1;
+        }
+      }
+
+      const areaName =
+        first.village ||
+        first.city ||
+        first.resolvedLocality ||
+        first.district ||
+        'Area';
+
+      areaGroups.push({
+        id: `area_${key}`,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        isCluster: groupMembers.length > 1,
+        isSameVillageGroup: groupMembers.length > 1,
+        label:
+          groupMembers.length === 1
+            ? first.memberName
+            : `${areaName} (${groupMembers.length} members)`,
+        subtitle:
+          groupMembers.length === 1
+            ? formatMemberAreaText(first)
+            : `${groupMembers.length} members in ${areaName}`,
+        members: groupMembers,
+        dominantBadgeStatus: dominant,
+        hasVerifiedHome: verifiedCount > 0,
+        allVerifiedHome: verifiedCount === groupMembers.length,
+      });
+    });
+
+    // 2. When zoomed out (delta > 0.14), merge nearby village pins into spatial clusters
+    if (latitudeDelta <= 0.14 || areaGroups.length <= 12) {
+      return areaGroups;
+    }
+
+    const cellDeg = Math.max(0.02, latitudeDelta * 0.14);
+    const gridBuckets = new Map<string, MapMarkerGroup[]>();
+    for (const g of areaGroups) {
+      const row = Math.round(g.latitude / cellDeg);
+      const col = Math.round(g.longitude / cellDeg);
+      const key = `${row}_${col}`;
+      const arr = gridBuckets.get(key);
+      if (arr) arr.push(g);
+      else gridBuckets.set(key, [g]);
+    }
+
+    const clustered: MapMarkerGroup[] = [];
+    gridBuckets.forEach((bucket, key) => {
+      if (bucket.length === 1) {
+        clustered.push(bucket[0]);
+        return;
+      }
+
+      const allMembers = bucket.flatMap((b) => b.members);
+      let latSum = 0;
+      let lngSum = 0;
+      let dominant: MemberVisitBadgeStatus = 'no_pending';
+      let verifiedCount = 0;
+
+      for (const m of allMembers) {
+        const c = getEffectiveCoordinates(m)!;
+        latSum += c.latitude;
+        lngSum += c.longitude;
+        const badge = getMemberVisitBadgeStatus(m);
+        if (getBadgePriority(badge) > getBadgePriority(dominant)) {
+          dominant = badge;
+        }
+        if (m.locationAccuracy === 'verified_home' && m.locationSharingConsent) {
+          verifiedCount += 1;
+        }
+      }
+
+      clustered.push({
+        id: `cluster_${key}`,
+        latitude: latSum / allMembers.length,
+        longitude: lngSum / allMembers.length,
+        isCluster: true,
+        isSameVillageGroup: false,
+        label: `${allMembers.length} Members`,
+        subtitle: `${bucket.length} areas • Tap to view or zoom in`,
+        members: allMembers,
+        dominantBadgeStatus: dominant,
+        hasVerifiedHome: verifiedCount > 0,
+        allVerifiedHome: verifiedCount === allMembers.length,
+      });
+    });
+
+    return clustered;
+  }
+
+  /**
+   * Computes an efficient nearest-neighbor multi-stop visiting order from an optional starting coordinate.
+   */
+  static suggestOptimalVisitOrder(
+    members: MemberLocationRecord[],
+    startPoint?: { latitude: number; longitude: number }
+  ): VisitRoutePoint[] {
+    const valid = members
+      .map((m) => {
+        const coords = getEffectiveCoordinates(m);
+        if (!coords) return null;
+        return { m, coords };
+      })
+      .filter(Boolean) as Array<{
+      m: MemberLocationRecord;
+      coords: { latitude: number; longitude: number; accuracy: LocationAccuracy };
+    }>;
+
+    if (valid.length === 0) return [];
+
+    const remaining = [...valid];
+    const ordered: VisitRoutePoint[] = [];
+    let currentPos = startPoint || remaining[0].coords;
+
+    while (remaining.length > 0) {
+      let bestIdx = 0;
+      let bestDist = Infinity;
+      for (let i = 0; i < remaining.length; i++) {
+        const d = haversineDistanceKm(currentPos, remaining[i].coords);
+        if (d < bestDist) {
+          bestDist = d;
+          bestIdx = i;
+        }
+      }
+
+      const [chosen] = remaining.splice(bestIdx, 1);
+      const isConsent = chosen.coords.accuracy === 'verified_home';
+      ordered.push({
+        memberId: chosen.m.memberId,
+        memberName: chosen.m.memberName,
+        memberPhone: chosen.m.phone,
+        address: isConsent
+          ? chosen.m.completeAddress || formatMemberAreaText(chosen.m)
+          : formatMemberAreaText(chosen.m),
+        locality: chosen.m.village || chosen.m.city || chosen.m.district,
+        latitude: chosen.coords.latitude,
+        longitude: chosen.coords.longitude,
+        order: ordered.length + 1,
+        accuracy: chosen.coords.accuracy,
+        distanceFromPreviousKm:
+          ordered.length === 0 && !startPoint ? 0 : Number(bestDist.toFixed(2)),
+        isApproximateDistance: !isConsent,
+        consent: isConsent,
+      });
+      currentPos = chosen.coords;
+    }
+
+    return ordered;
+  }
+
+  /**
+   * Parses a member's preferredTime (e.g. "Morning (10:00 AM - 12:00 PM)", "17:00", "5:30 PM", "Evening")
+   * into minutes from midnight (0..1439), returning null when no clear time is specified.
+   */
+  static parsePreferredVisitMinutes(
+    preferredTime?: string,
+    fallbackVisitTime?: string
+  ): number | null {
+    const parseSingle = (raw?: string): number | null => {
+      const s = (raw || '').trim();
+      if (!s) return null;
+
+      // Match 12-hour format first: e.g. "10:00 AM", "5 PM", "5:30 p.m."
+      const amPmMatch = s.match(/(\d{1,2})(?::(\d{2}))?\s*(a\.?m\.?|p\.?m\.?)/i);
+      if (amPmMatch) {
+        let h = parseInt(amPmMatch[1], 10);
+        const m = amPmMatch[2] ? parseInt(amPmMatch[2], 10) : 0;
+        const isPm = amPmMatch[3].toLowerCase().startsWith('p');
+        if (h === 12) h = isPm ? 12 : 0;
+        else if (isPm) h += 12;
+        if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+          return h * 60 + m;
+        }
+      }
+
+      // Match 24-hour HH:MM: e.g. "17:00" or "Scheduled Time (17:00)"
+      const h24Match = s.match(/\b(\d{1,2}):(\d{2})\b/);
+      if (h24Match) {
+        const h = parseInt(h24Match[1], 10);
+        const m = parseInt(h24Match[2], 10);
+        if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+          return h * 60 + m;
+        }
+      }
+
+      // Keyword fallback ("Morning", "Afternoon", "Evening", "Night")
+      const lower = s.toLowerCase();
+      if (lower.includes('morning')) return 10 * 60;
+      if (lower.includes('afternoon')) return 14 * 60;
+      if (lower.includes('evening')) return 17 * 60;
+      if (lower.includes('night')) return 19 * 60;
+
+      return null;
+    };
+
+    const primary = parseSingle(preferredTime);
+    if (primary !== null) return primary;
+    return parseSingle(fallbackVisitTime);
+  }
+
+  /**
+   * Optimizes visit order by combining:
+   * 1) Acceptance filtering (excludes Declined by default; focuses on Accepted when available)
+   * 2) Chronological 30-min preferred time windows (e.g. Morning -> Afternoon -> Evening -> Night)
+   * 3) Shortest nearest-neighbor distance within each time window chained across windows.
+   */
+  static suggestTimeAndDistanceVisitOrder(params: {
+    members: MemberLocationRecord[];
+    startPoint?: { latitude: number; longitude: number };
+    visitMemberMeta?: Record<
+      string,
+      { response?: MemberVisitResponseStatus; preferredTime?: string }
+    >;
+    fallbackVisitTime?: string;
+    acceptedOnly?: boolean;
+    excludeDeclined?: boolean;
+  }): VisitRoutePoint[] {
+    const meta = params.visitMemberMeta || {};
+    const excludeDeclined = params.excludeDeclined !== false;
+
+    const valid = (params.members || [])
+      .map((m) => {
+        const coords = getEffectiveCoordinates(m);
+        if (!coords) return null;
+        const mMeta = meta[m.memberId];
+        return {
+          m,
+          coords,
+          responseStatus: mMeta?.response,
+          preferredTime: mMeta?.preferredTime,
+        };
+      })
+      .filter(Boolean) as Array<{
+      m: MemberLocationRecord;
+      coords: { latitude: number; longitude: number; accuracy: LocationAccuracy };
+      responseStatus?: MemberVisitResponseStatus;
+      preferredTime?: string;
+    }>;
+
+    if (valid.length === 0) return [];
+
+    // Filter by acceptance status cleanly
+    let filtered = excludeDeclined
+      ? valid.filter((item) => item.responseStatus !== 'Declined')
+      : valid;
+
+    if (params.acceptedOnly) {
+      const acceptedList = filtered.filter((item) => item.responseStatus === 'Accepted');
+      if (acceptedList.length > 0) {
+        filtered = acceptedList;
+      }
+    }
+
+    if (filtered.length === 0) return [];
+
+    // Group into chronological 30-min time-window buckets; flexible/unspecified goes last
+    const UNSPECIFIED_BUCKET = 9999;
+    const buckets = new Map<number, typeof filtered>();
+
+    for (const item of filtered) {
+      const mins = MemberLocationService.parsePreferredVisitMinutes(
+        item.preferredTime,
+        params.fallbackVisitTime
+      );
+      const bucketKey = mins !== null ? Math.floor(mins / 30) * 30 : UNSPECIFIED_BUCKET;
+      const arr = buckets.get(bucketKey);
+      if (arr) arr.push(item);
+      else buckets.set(bucketKey, [item]);
+    }
+
+    const sortedBucketKeys = Array.from(buckets.keys()).sort((a, b) => a - b);
+    const ordered: VisitRoutePoint[] = [];
+    let currentPos = params.startPoint;
+
+    for (const bucketKey of sortedBucketKeys) {
+      const remaining = [...(buckets.get(bucketKey) || [])];
+      if (!currentPos && remaining.length > 0) {
+        currentPos = remaining[0].coords;
+      }
+
+      while (remaining.length > 0) {
+        let bestIdx = 0;
+        let bestDist = Infinity;
+        for (let i = 0; i < remaining.length; i++) {
+          const d = currentPos
+            ? haversineDistanceKm(currentPos, remaining[i].coords)
+            : 0;
+          if (d < bestDist) {
+            bestDist = d;
+            bestIdx = i;
+          }
+        }
+
+        const [chosen] = remaining.splice(bestIdx, 1);
+        const isConsent = chosen.coords.accuracy === 'verified_home';
+        ordered.push({
+          memberId: chosen.m.memberId,
+          memberName: chosen.m.memberName,
+          memberPhone: chosen.m.phone,
+          address: isConsent
+            ? chosen.m.completeAddress || formatMemberAreaText(chosen.m)
+            : formatMemberAreaText(chosen.m),
+          locality: chosen.m.village || chosen.m.city || chosen.m.district,
+          latitude: chosen.coords.latitude,
+          longitude: chosen.coords.longitude,
+          order: ordered.length + 1,
+          accuracy: chosen.coords.accuracy,
+          distanceFromPreviousKm:
+            ordered.length === 0 && !params.startPoint
+              ? 0
+              : Number(bestDist.toFixed(2)),
+          isApproximateDistance: !isConsent,
+          consent: isConsent,
+          preferredTime: chosen.preferredTime || undefined,
+          responseStatus: chosen.responseStatus || undefined,
+        });
+        currentPos = chosen.coords;
+      }
+    }
+
+    return ordered;
+  }
+
+  /**
+   * Opens Google Maps single-destination directions with optional explicit origin and travel mode.
+   */
+  static async openGoogleMapsDirections(params: {
+    destinationLat: number;
+    destinationLng: number;
+    originLat?: number;
+    originLng?: number;
+    travelMode?: TravelMode;
+  }): Promise<void> {
+    const mode = params.travelMode || 'driving';
+    let url = `https://www.google.com/maps/dir/?api=1&destination=${params.destinationLat},${params.destinationLng}&travelmode=${mode}`;
+    if (
+      typeof params.originLat === 'number' &&
+      typeof params.originLng === 'number'
+    ) {
+      url += `&origin=${params.originLat},${params.originLng}`;
+    }
+    await Linking.openURL(url);
+  }
+
+  /**
+   * Opens Google Maps multi-stop route in driving or walking mode (supports up to 10 total stops).
+   */
+  static async openGoogleMapsMultiStopRoute(params: {
+    stops: VisitRoutePoint[];
+    originLat?: number;
+    originLng?: number;
+    travelMode?: TravelMode;
+  }): Promise<void> {
+    if (!params.stops || params.stops.length === 0) return;
+    if (params.stops.length === 1) {
+      await MemberLocationService.openGoogleMapsDirections({
+        destinationLat: params.stops[0].latitude,
+        destinationLng: params.stops[0].longitude,
+        originLat: params.originLat,
+        originLng: params.originLng,
+        travelMode: params.travelMode,
+      });
+      return;
+    }
+
+    const mode = params.travelMode || 'driving';
+    const limited = params.stops.slice(0, 10);
+    const destination = limited[limited.length - 1];
+    const waypoints = limited
+      .slice(0, -1)
+      .map((s) => `${s.latitude},${s.longitude}`)
+      .join('|');
+
+    let url = `https://www.google.com/maps/dir/?api=1&destination=${destination.latitude},${destination.longitude}&waypoints=${encodeURIComponent(waypoints)}&travelmode=${mode}`;
+    if (
+      typeof params.originLat === 'number' &&
+      typeof params.originLng === 'number'
+    ) {
+      url += `&origin=${params.originLat},${params.originLng}`;
+    }
+    await Linking.openURL(url);
+  }
+
+  /**
+   * Cached device geocoder helper used across Care Cell maps and visit routing.
+   */
+  static async geocodePlaceCached(
+    query: string
+  ): Promise<{ latitude: number; longitude: number } | null> {
+    const clean = query.trim();
+    if (!clean) return null;
+    const key = clean.toLowerCase();
+    if (ROUTE_GEOCODE_CACHE.has(key)) {
+      return ROUTE_GEOCODE_CACHE.get(key) || null;
+    }
+    try {
+      const results = await ExpoLocation.geocodeAsync(clean);
+      if (
+        results &&
+        results.length > 0 &&
+        Number.isFinite(results[0].latitude) &&
+        Number.isFinite(results[0].longitude)
+      ) {
+        const coords = {
+          latitude: results[0].latitude,
+          longitude: results[0].longitude,
+        };
+        ROUTE_GEOCODE_CACHE.set(key, coords);
+        return coords;
+      }
+    } catch (_) {
+      // Ignore transient device geocoder failures
+    }
+    ROUTE_GEOCODE_CACHE.set(key, null);
+    return null;
+  }
+
+  /**
+   * Computes total straight-line km across an ordered list of visit stops.
+   */
+  static computeRouteDistanceKm(stops: VisitRoutePoint[]): number {
+    if (!stops || stops.length < 2) return 0;
+    let total = 0;
+    for (let i = 1; i < stops.length; i++) {
+      total += haversineDistanceKm(
+        { latitude: stops[i - 1].latitude, longitude: stops[i - 1].longitude },
+        { latitude: stops[i].latitude, longitude: stops[i].longitude }
+      );
+    }
+    return Number(total.toFixed(1));
+  }
+
+  /**
+   * Resolves live memberLocations + fallback device geocoding for a set of Care Cell members
+   * and returns VisitRoutePoint[] (either nearest-neighbor optimized or in supplied order).
+   */
+  static async buildOptimizedVisitRoute(params: {
+    churchId: string;
+    members: Array<{
+      memberId: string;
+      memberName: string;
+      memberPhone?: string;
+      locality?: string;
+      city?: string;
+      address?: string;
+      latitude?: number;
+      longitude?: number;
+    }>;
+    fallbackLocationHint?: string;
+    startPoint?: { latitude: number; longitude: number };
+    preloadedLocations?: Record<string, MemberLocationRecord>;
+    preserveOrder?: boolean;
+    visitMemberMeta?: Record<
+      string,
+      { response?: MemberVisitResponseStatus; preferredTime?: string }
+    >;
+    fallbackVisitTime?: string;
+    acceptedOnly?: boolean;
+    excludeDeclined?: boolean;
+  }): Promise<VisitRoutePoint[]> {
+    if (!params.members || params.members.length === 0) return [];
+
+    let locById = params.preloadedLocations;
+    if (!locById && params.churchId) {
+      try {
+        const list = await MemberLocationService.getMemberLocations(params.churchId);
+        locById = {};
+        list.forEach((rec) => {
+          if (rec.memberId) locById![rec.memberId] = rec;
+        });
+      } catch (_) {
+        locById = {};
+      }
+    }
+    const safeLocMap = locById || {};
+
+    const cellFallback = params.fallbackLocationHint
+      ? await MemberLocationService.geocodePlaceCached(params.fallbackLocationHint)
+      : null;
+
+    const syntheticRecords: MemberLocationRecord[] = [];
+
+    for (const m of params.members) {
+      const existingLoc = safeLocMap[m.memberId];
+      const existingCoords = existingLoc
+        ? getEffectiveCoordinates(existingLoc)
+        : null;
+
+      if (existingLoc && existingCoords) {
+        syntheticRecords.push(existingLoc);
+        continue;
+      }
+
+      let resolvedCoords: { latitude: number; longitude: number } | null = null;
+      if (
+        typeof m.latitude === 'number' &&
+        typeof m.longitude === 'number' &&
+        Number.isFinite(m.latitude) &&
+        Number.isFinite(m.longitude)
+      ) {
+        resolvedCoords = { latitude: m.latitude, longitude: m.longitude };
+      } else {
+        const fullQuery = [m.address, m.locality || m.city || params.fallbackLocationHint]
+          .filter(Boolean)
+          .join(', ');
+        if (fullQuery) {
+          resolvedCoords = await MemberLocationService.geocodePlaceCached(fullQuery);
+        }
+        if (!resolvedCoords && (m.locality || m.city)) {
+          resolvedCoords = await MemberLocationService.geocodePlaceCached(
+            String(m.locality || m.city)
+          );
+        }
+        if (!resolvedCoords && cellFallback) {
+          resolvedCoords = cellFallback;
+        }
+      }
+
+      if (!resolvedCoords) continue;
+
+      syntheticRecords.push({
+        memberId: m.memberId,
+        churchId: params.churchId,
+        memberName: m.memberName,
+        phone: m.memberPhone || existingLoc?.phone,
+        village: m.locality || existingLoc?.village,
+        city: m.city || existingLoc?.city || params.fallbackLocationHint,
+        residentialAddress: m.address || existingLoc?.residentialAddress,
+        latitude: resolvedCoords.latitude,
+        longitude: resolvedCoords.longitude,
+        locationSource: existingLoc?.locationSource || 'profile_geocoding',
+        locationAccuracy: 'village_approximate',
+        geocodingStatus: 'completed',
+        locationSharingConsent: false,
+      });
+    }
+
+    if (syntheticRecords.length === 0) return [];
+
+    if (!params.preserveOrder) {
+      if (params.visitMemberMeta || params.fallbackVisitTime || params.acceptedOnly) {
+        return MemberLocationService.suggestTimeAndDistanceVisitOrder({
+          members: syntheticRecords,
+          startPoint: params.startPoint,
+          visitMemberMeta: params.visitMemberMeta,
+          fallbackVisitTime: params.fallbackVisitTime,
+          acceptedOnly: params.acceptedOnly,
+          excludeDeclined: params.excludeDeclined,
+        });
+      }
+      return MemberLocationService.suggestOptimalVisitOrder(
+        syntheticRecords,
+        params.startPoint
+      );
+    }
+
+    const stops: VisitRoutePoint[] = [];
+    let prevPos = params.startPoint;
+    syntheticRecords.forEach((rec) => {
+      const coords = getEffectiveCoordinates(rec);
+      if (!coords) return;
+      const dist = prevPos ? haversineDistanceKm(prevPos, coords) : 0;
+      const isConsent = coords.accuracy === 'verified_home';
+      const meta = params.visitMemberMeta?.[rec.memberId];
+      stops.push({
+        memberId: rec.memberId,
+        memberName: rec.memberName,
+        memberPhone: rec.phone,
+        address: isConsent
+          ? rec.completeAddress || formatMemberAreaText(rec)
+          : formatMemberAreaText(rec),
+        locality: rec.village || rec.city || rec.district,
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        order: stops.length + 1,
+        accuracy: coords.accuracy,
+        distanceFromPreviousKm: Number(dist.toFixed(2)),
+        isApproximateDistance: !isConsent,
+        consent: isConsent,
+        preferredTime: meta?.preferredTime || undefined,
+        responseStatus: meta?.response || undefined,
+      });
+      prevPos = coords;
+    });
+    return stops;
+  }
+
+  /**
+   * Computes straight-line distance in kilometers between two GPS coordinates.
+   */
+  static distanceBetweenKm(
+    a: { latitude: number; longitude: number },
+    b: { latitude: number; longitude: number }
+  ): number {
+    return haversineDistanceKm(a, b);
+  }
+
+  /**
+   * Fetches turn-by-turn road polyline & step instructions for in-app route navigation.
+   * Uses OSRM road routing when online and falls back gracefully to straight-line legs if offline.
+   */
+  static async fetchRoadRouteDirections(params: {
+    waypoints: Array<{ latitude: number; longitude: number; label?: string }>;
+    travelMode?: TravelMode;
+  }): Promise<RoadRouteResult> {
+    const pts = (params.waypoints || []).filter(
+      (p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude)
+    );
+    const mode = params.travelMode || 'driving';
+
+    const buildFallback = (): RoadRouteResult => {
+      const legs: RoadRouteLeg[] = [];
+      let totalDistM = 0;
+      let totalDurS = 0;
+      const speedKmh = mode === 'walking' ? 4.8 : 28;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const km = haversineDistanceKm(pts[i], pts[i + 1]);
+        const distM = Math.round(km * 1000);
+        const durS = Math.max(30, Math.round((km / speedKmh) * 3600));
+        totalDistM += distM;
+        totalDurS += durS;
+        legs.push({
+          distanceMeters: distM,
+          durationSeconds: durS,
+          steps: [
+            {
+              instruction: pts[i + 1].label
+                ? `Proceed toward ${pts[i + 1].label}`
+                : `Proceed toward Stop ${i + 1}`,
+              distanceMeters: distM,
+              durationSeconds: durS,
+              location: { latitude: pts[i].latitude, longitude: pts[i].longitude },
+            },
+          ],
+        });
+      }
+      return {
+        coordinates: pts.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
+        totalDistanceMeters: totalDistM,
+        totalDurationSeconds: totalDurS,
+        legs,
+        isRoadRoute: false,
+      };
+    };
+
+    if (pts.length < 2) {
+      return {
+        coordinates: pts.map((p) => ({ latitude: p.latitude, longitude: p.longitude })),
+        totalDistanceMeters: 0,
+        totalDurationSeconds: 0,
+        legs: [],
+        isRoadRoute: false,
+      };
+    }
+
+    const profile = mode === 'walking' ? 'foot' : 'driving';
+    const coordStr = pts
+      .slice(0, 12)
+      .map((p) => `${p.longitude.toFixed(6)},${p.latitude.toFixed(6)}`)
+      .join(';');
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const url = `https://router.project-osrm.org/route/v1/${profile}/${coordStr}?overview=full&geometries=geojson&steps=true`;
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) return buildFallback();
+
+      const json: any = await res.json();
+      const route = json?.routes?.[0];
+      const rawCoords: Array<[number, number]> = route?.geometry?.coordinates || [];
+      if (!route || rawCoords.length < 2) return buildFallback();
+
+      const coordinates = rawCoords.map(([lng, lat]) => ({
+        latitude: lat,
+        longitude: lng,
+      }));
+
+      const formatManeuver = (step: any): string => {
+        const mType: string = step?.maneuver?.type || 'continue';
+        const mod: string = step?.maneuver?.modifier || '';
+        const road: string = typeof step?.name === 'string' && step.name.trim() ? step.name.trim() : '';
+        const roadSuffix = road ? ` onto ${road}` : '';
+
+        if (mType === 'depart') return road ? `Head on ${road}` : 'Start trip';
+        if (mType === 'arrive') return road ? `Arrive at ${road}` : 'Arrive at destination';
+        if (mType === 'roundabout' || mType === 'rotary') {
+          const exit = step?.maneuver?.exit;
+          return `Take roundabout${exit ? ` (exit ${exit})` : ''}${roadSuffix}`;
+        }
+        if (mod.includes('left')) return `Turn ${mod}${roadSuffix}`;
+        if (mod.includes('right')) return `Turn ${mod}${roadSuffix}`;
+        if (mType === 'turn') return `Turn ${mod || 'ahead'}${roadSuffix}`;
+        return road ? `Continue onto ${road}` : 'Continue straight';
+      };
+
+      const legs: RoadRouteLeg[] = (route.legs || []).map((leg: any) => ({
+        distanceMeters: Math.round(leg.distance || 0),
+        durationSeconds: Math.round(leg.duration || 0),
+        steps: (leg.steps || []).map((step: any) => ({
+          instruction: formatManeuver(step),
+          distanceMeters: Math.round(step.distance || 0),
+          durationSeconds: Math.round(step.duration || 0),
+          roadName: typeof step?.name === 'string' ? step.name : undefined,
+          location: {
+            latitude: step?.maneuver?.location?.[1] ?? pts[0].latitude,
+            longitude: step?.maneuver?.location?.[0] ?? pts[0].longitude,
+          },
+        })),
+      }));
+
+      return {
+        coordinates,
+        totalDistanceMeters: Math.round(route.distance || 0),
+        totalDurationSeconds: Math.round(route.duration || 0),
+        legs,
+        isRoadRoute: true,
+      };
+    } catch (_) {
+      clearTimeout(timer);
+      return buildFallback();
+    }
+  }
+}

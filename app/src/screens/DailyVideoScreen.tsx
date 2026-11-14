@@ -46,8 +46,20 @@ interface DevotionalVideo extends FirestoreVideo {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DailyVideoScreen({ navigation, route }: any) {
-  const [videos, setVideos] = useState<DevotionalVideo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedArchiveForVideos = FirestoreService.getCachedSync<any[]>('promises_archive');
+  const initialVideos: DevotionalVideo[] = cachedArchiveForVideos
+    ? cachedArchiveForVideos.filter(p => p.youtubeId).map(p => ({
+        id: p.id || '',
+        title: p.videoTitle || "Today's Devotional",
+        youtubeId: p.youtubeId || '',
+        publishedAt: p.date,
+        date: p.date,
+        duration: p.duration || '',
+        pastor: p.pastor || 'Pastor'
+      }))
+    : [];
+  const [videos, setVideos] = useState<DevotionalVideo[]>(initialVideos);
+  const [loading, setLoading] = useState(!cachedArchiveForVideos);
   const [playing, setPlaying] = useState(false);
   const [activeVideo, setActiveVideo] = useState<DevotionalVideo | null>(null);
   const { activeChurch } = useChurch();
@@ -66,7 +78,7 @@ export default function DailyVideoScreen({ navigation, route }: any) {
           publishedAt: p.date,
           date: p.date,
           duration: p.duration || '',
-          pastor: p.pastor || 'Brother Y. Rajesh'
+          pastor: p.pastor || 'Pastor'
         }));
       setVideos(data);
       
@@ -87,7 +99,7 @@ export default function DailyVideoScreen({ navigation, route }: any) {
             publishedAt: 'Today',
             date: 'Today',
             duration: '',
-            pastor: paramPastor || 'Brother Y. Rajesh'
+            pastor: paramPastor || 'Pastor'
           });
         }
       } else {
@@ -182,7 +194,7 @@ export default function DailyVideoScreen({ navigation, route }: any) {
           <View style={styles.pastorCard}>
             <View style={styles.pastorAv}><Text style={styles.pastorAvTxt}>P</Text></View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.pastorName}>{activeVideo?.pastor || 'Brother Y. Rajesh'}</Text>
+              <Text style={styles.pastorName}>{activeVideo?.pastor || 'Pastor'}</Text>
               <Text style={styles.pastorRole}>Main Speaker</Text>
             </View>
             <TouchableOpacity style={styles.subBtn} onPress={handleSubscribe}>

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { firestore } from '../services/firebaseConfig';
 import ChurchService, { ChurchDetails } from '../services/ChurchService';
 import { useAuth } from './AuthContext';
 
@@ -29,6 +30,26 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [originalChurchId, setOriginalChurchId] = useState<string | null>(null);
   const [impersonatedBranchName, setImpersonatedBranchName] = useState<string | null>(null);
   const isImpersonating = !!originalChurchId;
+
+  // Real-time listener for active church document so changes (service timings, theme, etc.) reflect immediately
+  useEffect(() => {
+    if (!churchId) return;
+    const unsub = firestore()
+      .collection('churches')
+      .doc(churchId)
+      .onSnapshot(
+        (docSnap) => {
+          if (docSnap && docSnap.exists()) {
+            const data = { id: docSnap.id, ...docSnap.data() } as ChurchDetails;
+            setActiveChurch(data);
+          }
+        },
+        (error) => {
+          console.warn('[ChurchContext] onSnapshot error:', error);
+        }
+      );
+    return () => unsub();
+  }, [churchId]);
 
   // When auth state changes, if the member has a churchId, use it.
   useEffect(() => {
@@ -70,8 +91,14 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setChurchIdState(id);
         await AsyncStorage.setItem('@cached_church_id', id);
         // Sync with FirestoreService singleton
-        await require('../services/FirestoreService').default.setChurchId(id);
-        await require('../services/NotificationService').default.subscribeToChurchTopic(id);
+        const fsSvc = require('../services/FirestoreService').default;
+        await fsSvc.setChurchId(id);
+        setTimeout(() => {
+          fsSvc.prefetchChurchData(id).catch(() => {});
+        }, 650);
+        const notifSvc = require('../services/NotificationService').default;
+        await notifSvc.subscribeToChurchTopic(id);
+        notifSvc.getFcmToken(id).catch(() => {});
       } else {
         console.warn('Church not found for id:', id);
         if (churchId) {
@@ -99,7 +126,9 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setImpersonatedBranchName(branchName);
         setActiveChurch(details);
         setChurchIdState(branchId);
-        await require('../services/FirestoreService').default.setChurchId(branchId);
+        const fsSvc = require('../services/FirestoreService').default;
+        await fsSvc.setChurchId(branchId);
+        setTimeout(() => fsSvc.prefetchChurchData(branchId).catch(() => {}), 450);
       }
     } catch (e) {
       console.error('Error starting impersonation', e);
@@ -116,7 +145,9 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (details) {
           setActiveChurch(details);
           setChurchIdState(originalChurchId);
-          await require('../services/FirestoreService').default.setChurchId(originalChurchId);
+          const fsSvc = require('../services/FirestoreService').default;
+          await fsSvc.setChurchId(originalChurchId);
+          setTimeout(() => fsSvc.prefetchChurchData(originalChurchId).catch(() => {}), 450);
           setOriginalChurchId(null);
           setImpersonatedBranchName(null);
         }

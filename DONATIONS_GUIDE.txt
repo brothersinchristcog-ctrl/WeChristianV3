@@ -1,0 +1,328 @@
+================================================================================
+WECHRISTIAN ADMIN DASHBOARD - DONATIONS & TITHES SYSTEM MANUAL
+================================================================================
+Document: DONATIONS_GUIDE.txt
+Module: Church Tithes, Offerings & Tax Receipt Generator (DonationsDashboard)
+Platform: WeChristian Mobile & Admin Ecosystem
+Location: app/src/screens/admin/DonationsDashboard.tsx
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS
+--------------------------------------------------------------------------------
+1.  MODULE OVERVIEW & STEWARDSHIP ARCHITECTURE
+2.  NAVIGATION & OPERATIONAL SUB-TABS (Dashboard vs. Donations)
+3.  TIME-PERIOD FILTERING & AUDITING VIEWS
+4.  DONATION DASHBOARD VIEW (SubTab: 'dashboard')
+    4.1 Total Collections Summary Banner
+    4.2 Category Collections Breakdown (Tithes, Offering, Building Fund, Missionary)
+    4.3 Online Pending Donations Alert Card
+    4.4 Recent Collections Activity Stream
+5.  DONATIONS LEDGER & DIRECTORY (SubTab: 'donations')
+    5.1 Real-Time Donor Search & Keyword Matching
+    5.2 Category Filter Modal
+    5.3 Donation Card Anatomy (Donor, Category, Date, Method, Amount)
+    5.4 Edit & Delete Record Actions
+6.  RECORDING A NEW DONATION (Add Donation Modal)
+    6.1 Intelligent Church Member Autocomplete
+    6.2 Donor Phone Number Auto-Fill
+    6.3 Donation Category Selection & Custom Category Creator
+    6.4 Amount Input & Currency Formatting (₹ INR)
+    6.5 Payment Method (Cash, Online, UPI, Cheque, Bank Transfer)
+    6.6 Date Selection & Pastoral Notes
+7.  ONLINE DONATIONS VERIFICATION & APPROVAL WORKFLOW
+    7.1 Pending Member Donations Review Modal
+    7.2 Verification of Online Transaction Proof & Reference Numbers
+    7.3 One-Tap Approval & Rejection Actions
+8.  OFFICIAL DONATION RECEIPTS & 80G TAX INVOICES
+    8.1 Sequential Receipt Numbering System (e.g., RCPT-WEC-0000108)
+    8.2 Single Donation Receipt Generation
+    8.3 Category / Period Batch Financial Summary Report
+    8.4 Legal & Tax-Compliant Receipt Template (HTML5 Layout)
+9.  PRINTING, EXPORT & DONOR WHATSAPP DISPATCH
+    9.1 PDF Compilation & Wireless AirPrint (expo-print)
+    9.2 High-Resolution Graphic Snapshot (ViewShot Engine)
+    9.3 Save Receipt to Mobile Gallery (MediaLibrary Integration)
+    9.4 Direct WhatsApp Dispatch to Donor's Phone
+10. DATABASE SCHEMA & FIRESTORE INTEGRATION
+11. CHURCH STEWARDSHIP & FINANCIAL BEST PRACTICES
+
+================================================================================
+1. MODULE OVERVIEW & STEWARDSHIP ARCHITECTURE
+================================================================================
+The Donations module (`DonationsDashboard.tsx`) is a secure, double-authenticated 
+church financial stewardship platform. It enables church leaders to record, verify, 
+audit, and acknowledge tithes, love offerings, mission pledges, and building fund 
+contributions.
+
+Core Capabilities:
+* Complete Stewardship Tracking: Track Sunday collections, personal tithes, building 
+  fund contributions, and designated mission offerings.
+* Member Autocomplete: Rapidly lookup registered church members to record offerings 
+  without repetitive manual data entry.
+* Online Donation Verification: Review and approve digital offerings submitted by 
+  congregation members through the WeChristian mobile app.
+* Official Receipts & Tax Certificates: Generate instant branded receipts formatted for 
+  tax exemptions (such as Section 80G in India) with automated sequential numbering.
+* Direct WhatsApp Delivery: Deliver official receipts to donors' WhatsApp chats within 
+  seconds of receiving their gift.
+
+================================================================================
+2. NAVIGATION & OPERATIONAL SUB-TABS
+================================================================================
+Located in the Admin Dashboard under "Church Ledger & Finances" as "Donations":
+
+[Donations Tile in Admin Dashboard] (HeartHandshake Icon)
+                 |
+                 +---> [DonationsDashboard Screen]
+                           |
+                           +---> SubTab 1: 'dashboard' (Metrics, breakdown, pending review)
+                           |
+                           +---> SubTab 2: 'donations' (Master ledger table & donor search)
+
+* Header Navigation: Back button returning to the Admin Dashboard (`setActiveTab(0)`), 
+  sub-tab pills (`Dashboard` and `Donations`), and the `+ Record Donation` action button.
+
+================================================================================
+3. TIME-PERIOD FILTERING & AUDITING VIEWS
+================================================================================
+Provides 6 flexible time filters at the top of the screen:
+1. "Today": Offerings received on the current calendar date (ideal for Sunday count).
+2. "Week": Offerings received across the rolling 7-day period.
+3. "Month": Total monthly collections.
+4. "Year": Year-to-date giving for the current calendar year.
+5. "Custom Range": Opens dual modal date pickers (`DateTimePickerModal`) for specific 
+   audit dates (e.g., Christmas convention week).
+6. "All Time": Cumulative historical donations record since church onboarding.
+
+================================================================================
+4. DONATION DASHBOARD VIEW (SubTab: 'dashboard')
+================================================================================
+4.1 Total Collections Summary Banner
+------------------------------------
+* Deep royal navy card (`#1b2a4a`) with gold accents (`#c9973f`).
+* Displays:
+  - Active Filter Badge (e.g., "THIS MONTH", "TODAY", "YEAR 2026").
+  - Grand Total Giving: Prominently formatted in Indian Rupees (e.g., `₹3,85,000`).
+  - Active church branch name.
+
+4.2 Category Collections Breakdown
+----------------------------------
+Four pre-configured primary stewardship funds:
+1. "Tithes" (దశమభాగములు): Personal monthly tithes from church members.
+2. "Offering" (కానుకలు): Sunday morning general offerings, worship offerings.
+3. "Building Fund" (భవన నిధి): Capital campaign giving, land acquisition, sanctuary repair.
+4. "Missionary" (మిషనరీ పరిచర్య): Support for rural evangelists, church planters, outreach.
+5. Custom Funds: Additional categories configured by the church (e.g., "Youth Camp", "Charity").
+Each card displays the count of donors and the total rupee amount collected.
+
+4.3 Online Pending Donations Alert Card
+---------------------------------------
+* Appears dynamically whenever members have submitted online offerings requiring approval.
+* Displays: "X Online Donations Pending Review".
+* Tapping the card opens the Pending Donations Review Modal.
+
+4.4 Recent Collections Activity Stream
+--------------------------------------
+A chronological list of the most recent donations displaying:
+* Donor full name and phone number.
+* Category badge (e.g., `Tithes` / `Building Fund`).
+* Payment method tag (e.g., `Cash`, `Online / UPI`, `Bank Transfer`).
+* Rupee amount.
+
+================================================================================
+5. DONATIONS LEDGER & DIRECTORY (SubTab: 'donations')
+================================================================================
+The master donor database providing comprehensive search and audit records.
+
+5.1 Real-Time Donor Search & Keyword Matching
+---------------------------------------------
+* Search bar dynamically filters the ledger in real time by:
+  - Donor Name (First name, middle name, or surname)
+  - Donor Phone Number
+  - Receipt Number (e.g., "RCPT-WEC-0000045")
+  - Specific Notes content
+
+5.2 Category Filter Modal
+-------------------------
+* Allows filtering the ledger table to isolate a single fund (e.g., viewing only 
+  "Building Fund" contributors for a capital project report).
+
+5.3 Donation Card Anatomy
+-------------------------
+Each recorded donation is rendered with full financial clarity:
+* Category Badge: Top-left tag with gold styling.
+* Donor Name & Phone: e.g., "Bro. K. Daniel • +91 98480 12345".
+* Receipt Number: e.g., "Receipt: RCPT-WEC-0000045".
+* Donation Date: Formatted date (e.g., "14 Oct 2026").
+* Payment Method Tag: Green `Cash` badge or Indigo `Online / UPI` badge.
+* Total Amount: Bold rupee figure (e.g., `₹10,000`).
+* Action Buttons:
+  - Receipt Icon (FileText): Instantly launches the official printable receipt.
+  - Pencil Icon: Opens the edit modal to update amounts or notes.
+  - Trash Icon: Prompts destructive confirmation to delete record.
+
+================================================================================
+6. RECORDING A NEW DONATION (Add Donation Modal)
+================================================================================
+Accessible via the `+ Record Donation` button in the top bar.
+
+6.1 Intelligent Church Member Autocomplete
+------------------------------------------
+* As the administrator begins typing in the "Donor Name" field, an autocomplete dropdown 
+  suggests registered church members matching the text.
+* Tapping a suggested member automatically populates their full legal name and contact phone.
+* Non-members / Guest donors can also be typed manually.
+
+6.2 Donor Phone Number Auto-Fill
+--------------------------------
+* Automatically binds the donor's mobile phone number for instant WhatsApp receipt delivery.
+
+6.3 Category Selection & Custom Category Creator
+------------------------------------------------
+* Category Dropdown: Tithes, Offering, Building Fund, Missionary, Other.
+* "+ Add Custom Category": Allows the treasurer to create new funds on the fly 
+  (e.g., "Medical Aid Fund", "Orphanage Support").
+* Automatically persists new categories to the church's Firestore document.
+
+6.4 Amount Input & Currency Formatting
+--------------------------------------
+* Numeric input with currency symbol (`₹`). Validates that amounts are greater than zero.
+
+6.5 Payment Method & Date
+-------------------------
+* Payment Method: Cash, Online / UPI, Cheque, Bank Transfer.
+* Date Picker: Calendar modal defaulting to today.
+* Notes: Optional text input for special dedication intentions, memorial gifts, or 
+  family thanksgiving prayers.
+
+6.6 Instant Post-Save Receipt Launch
+------------------------------------
+* Upon tapping "Save Donation", the record is committed to Firestore, an animated 
+  success notification appears, and the app instantly launches the official receipt 
+  preview for printing or WhatsApp delivery!
+
+================================================================================
+7. ONLINE DONATIONS VERIFICATION & APPROVAL WORKFLOW
+================================================================================
+When members contribute online through the WeChristian member portal:
+
+7.1 Pending Member Donations Review Modal
+-----------------------------------------
+* Accessible from the dashboard alert card.
+* Displays a list of all unverified digital offerings.
+
+7.2 Verification of Online Transaction Proof
+--------------------------------------------
+* Shows:
+  - Donor Name and registered phone number.
+  - Designated category (e.g., Tithes).
+  - Claimed amount.
+  - Digital Transaction ID / UPI Reference Number / Bank UTR.
+  - Uploaded screenshot of the UPI payment receipt (Google Pay, PhonePe, Paytm).
+
+7.3 One-Tap Approval & Rejection Actions
+----------------------------------------
+* "Approve Donation" Button:
+  - Verifies the funds have cleared the church's bank account.
+  - Updates donation status to `Success`.
+  - Automatically incorporates the sum into the official church ledger.
+  - Dispatches an automated confirmation receipt to the member's app.
+* "Reject Donation" Button:
+  - Flags the submission as `Rejected` with a customizable rejection reason.
+
+================================================================================
+8. OFFICIAL DONATION RECEIPTS & 80G TAX INVOICES
+================================================================================
+8.1 Sequential Receipt Numbering System
+---------------------------------------
+* Automatically issues tamper-evident sequential receipt codes:
+  `RCPT-[CHURCH_CODE]-[SEQUENCE_NUMBER]`
+  (e.g., `RCPT-WEC-0000045` or `RCPT-CAL-0000108`).
+
+8.2 Single Donation Receipt Generation
+--------------------------------------
+* Generates an official, legal-grade digital receipt for individual givers.
+
+8.3 Category / Period Batch Financial Summary Report
+----------------------------------------------------
+* Tapping the Report icon in the top header allows treasurers to generate a consolidated 
+  batch report of all donations for a specific category or time frame (e.g., a complete 
+  monthly tithes report for the church finance committee).
+
+8.4 Legal & Tax-Compliant Receipt Template (HTML5 Layout)
+---------------------------------------------------------
+The rendered template includes:
+* Church Branding Header: High-res Church Crest/Logo, Church Legal Name, Registered 
+  Address, and Phone.
+* Metadata Block: Receipt Number, Donation Date, Received From (Donor Name), and 
+  Donor Phone.
+* Line Items Table: Columns for `DONATION CATEGORY`, `PAYMENT METHOD`, and `AMOUNT`.
+* Notes / Dedication: Displays donor's special prayer intention or memorial note.
+* Grand Total Box: High-contrast navy container with prominent rupee amount.
+* Pastoral Blessing:
+  *"Thank you for your generous donation. May God bless you abundantly."*
+* Formal Audit Sign-off: Dedicated dotted boxes for "Church Seal" and "Authorized Signature".
+
+================================================================================
+9. PRINTING, EXPORT & DONOR WHATSAPP DISPATCH
+================================================================================
+9.1 PDF Compilation & Wireless AirPrint (expo-print)
+----------------------------------------------------
+* "Print PDF" compiles the receipt into an official vector PDF.
+* Connects directly to office wireless printers for physical paper receipt issuing.
+
+9.2 High-Resolution Graphic Snapshot (ViewShot Engine)
+------------------------------------------------------
+* `ViewShot.capture()` renders the entire receipt off-screen at full native pixel 
+  resolution into a crystal-clear PNG image.
+
+9.3 Save Receipt to Mobile Gallery (MediaLibrary Integration)
+-------------------------------------------------------------
+* Saves a digital copy of the receipt image directly to the phone's native Photos library 
+  under the "WeChristian" album.
+
+9.4 Direct WhatsApp Dispatch to Donor's Phone
+---------------------------------------------
+* Tapping "Share Receipt":
+  - Launches native sharing (`Sharing.shareAsync`).
+  - Pre-selects or opens WhatsApp to send the receipt image and message directly to 
+    the donor's phone number.
+
+================================================================================
+10. DATABASE SCHEMA & FIRESTORE INTEGRATION
+================================================================================
+Donation records are stored in the Firestore collection `church_donations`:
+
+Field               | Type             | Description
+--------------------+------------------+------------------------------------------------
+id                  | string           | Unique donation document auto-ID
+churchId            | string           | Associated church document ID
+category            | string           | 'Tithes', 'Offering', 'Building Fund', etc.
+donorName           | string           | Member or guest donor name
+donorPhone          | string           | Contact telephone number
+amount              | number           | Contribution in INR (₹)
+date                | string (YYYY-MM-DD)| Transaction date
+paymentMethod       | string           | 'Cash', 'Online', 'UPI', 'Cheque', 'Bank Transfer'
+status              | string           | 'Success' | 'Pending' | 'Rejected'
+notes               | string           | Dedication, prayer request, or UTR number
+receiptNo           | string           | Formatted receipt number (e.g., 'RCPT-WEC-0000045')
+addedBy             | string           | Administrator name or member ID
+createdAt           | timestamp        | Server creation timestamp
+
+================================================================================
+11. CHURCH STEWARDSHIP & FINANCIAL BEST PRACTICES
+================================================================================
+1. Immediate Receipt Issuance:
+   - Always issue a digital WhatsApp receipt immediately after counting Sunday offerings. 
+     This builds deep trust and financial transparency across the congregation.
+2. Dual Custody Counting:
+   - Ensure two church council members or deacons are present when counting physical cash 
+     offerings and recording them into the Donations ledger.
+3. Annual Giving Statements:
+   - At the close of the financial year (March 31 in India), use the Category / Period 
+     batch report to issue annual giving tax statements for income tax deductions.
+
+================================================================================
+END OF DONATIONS & TITHES SYSTEM MANUAL
+================================================================================

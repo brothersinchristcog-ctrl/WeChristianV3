@@ -1,0 +1,337 @@
+================================================================================
+          WECHRISTIAN ADMIN DASHBOARD - CHURCH BRANCHES MANUAL
+================================================================================
+Screen Component : AdminOrganization.tsx
+Route Tab Name   : "Church Branches" (Dynamic tab for parent church organizations)
+Icon             : Building2
+Target Database  : Firestore collections: `churches`, `users`
+Permission Level : Parent Church Admin / Platform Super Admin
+Theme & Canvas   : Deep Navy (#1a2d5a), Parchment (#EDE8DC), Forest Green (#16a34a)
+================================================================================
+
+[TABLE OF CONTENTS]
+1. Module Overview & Multi-Campus Architecture
+2. Screen Layout & Visual Hierarchy
+3. Top Network Overview KPI Card
+4. Branch List & Campus Card Breakdown
+5. "Create New Branch" Workflow & Modal
+6. Auto-Generated Branch Codes & Subdomain Logic
+7. Branch Administrator Provisioning (On-The-Fly)
+8. Impersonation & Instant Campus Switching
+9. WhatsApp Campus Invitation Generator & Sharing
+10. Editing & Deleting Branches (Consistency Safeguards)
+11. Firestore Document Schema & Relationship Models
+12. Security, Isolation & Multi-Tenancy Architecture
+13. Admin Troubleshooting & Frequently Asked Questions
+
+================================================================================
+1. MODULE OVERVIEW & MULTI-CAMPUS ARCHITECTURE
+================================================================================
+The "Church Branches" module (AdminOrganization) is the multi-campus command
+center of the WeChristian platform. It is conditionally exposed exclusively to
+churches that have `isParentOrganization: true` enabled on their root church
+record.
+
+Key Capabilities:
+  - Parent / Child Church Hierarchy: Main headquarters church can establish,
+    monitor, and govern unlimited satellite branches or campus locations.
+  - Configuration Inheritance: Child branches automatically inherit parent
+    branding (primary and accent colors), feature permissions, and contact
+    defaults while retaining independent rosters and financial ledgers.
+  - Zero-Setup Branch Provisioning: Create a satellite branch in under 30 seconds
+    with automated Church Join Code generation.
+  - Co-Admin Assignment: Simultaneously create and register the branch pastor
+    or local administrator during branch instantiation.
+  - Native Impersonation: Headquarters administrators can seamlessly switch
+    their active context to any branch dashboard with a single tap to audit
+    attendance, review sermon uploads, or monitor donations.
+  - Multi-Channel Onboarding: Generate custom WhatsApp invitation messages
+    containing direct Google Play Store links and branch-specific join codes.
+
+================================================================================
+2. SCREEN LAYOUT & VISUAL HIERARCHY
+================================================================================
+AdminOrganization is structured into a clean, executive interface:
+
+  +--------------------------------------------------------------------------+
+  | [Back] | Church Branches                                                 |  <- Hero Header (#1a2d5a)
+  +--------------------------------------------------------------------------+
+  |  +--------------------------------------------------------------------+  |
+  |  | [Building2] Network Overview                   Total Branches: [ 4 ]|  |  <- KPI Summary Card
+  |  +--------------------------------------------------------------------+  |
+  |                                                                          |
+  |  Church Branches                                    [+ Add Branch]       |  <- Section Header Row
+  |                                                                          |
+  |  +--------------------------------------------------------------------+  |
+  |  |  [Building2] Guntur Satellite Campus                               |  |
+  |  |              Code: CHUR001 | Subdomain: chur001                    |  |
+  |  |  ----------------------------------------------------------------  |  |
+  |  |  [Share Invite]    [Edit]    [Delete]         [View Dashboard ->]  |  |  <- Branch Campus Card
+  |  +--------------------------------------------------------------------+  |
+  |                                                                          |
+  |  +--------------------------------------------------------------------+  |
+  |  |  [Building2] Tenali City Fellowship                                |  |
+  |  |              Code: CHUR002 | Subdomain: chur002                    |  |
+  |  |  ----------------------------------------------------------------  |  |
+  |  |  [Share Invite]    [Edit]    [Delete]         [View Dashboard ->]  |  |
+  |  +--------------------------------------------------------------------+  |
+  +--------------------------------------------------------------------------+
+
+================================================================================
+3. TOP NETWORK OVERVIEW KPI CARD
+================================================================================
+Located at the top of the scrollable canvas (`styles.premiumSummaryCard`):
+
+  Element              Visual Style          Function / Value
+  -------------------- --------------------- ---------------------------------
+  Icon Container       Circular navy tint    Displays Lucide `Building2` icon
+  Category Title       Dark navy bold        "Network Overview"
+  Metric Label         Muted slate 12px      "Total Branches"
+  Metric Value         Bold large 28px navy  Live count (`branches.length`)
+
+This KPI provides the executive pastor an immediate tally of all active satellite
+congregations operating under their denominational umbrella.
+
+================================================================================
+4. BRANCH LIST & CAMPUS CARD BREAKDOWN
+================================================================================
+Each satellite campus in the network is rendered as a elevated white card:
+
+  Card Element         UI Component / Icon   Action / Behavior
+  -------------------- --------------------- ---------------------------------
+  Campus Icon          Circular slate badge  Lucide `Building2` (20px navy)
+  Branch Name          16px Bold Navy        Displays `branch.name`
+  Church Code Pill     Rounded gray badge    Displays `branch.churchCode` (caps)
+  Subdomain Pill       Monospace badge       Displays `branch.subdomain`
+  Share Invite Button  Lucide `Share2`       Invokes system sharing intent with
+                                             custom WhatsApp branch join copy.
+  Edit Button          Lucide `Edit2`        Re-opens modal pre-filled with name
+                                             and code for instant renaming.
+  Delete Button        Lucide `Trash2`       Triggers confirmation dialog before
+                                             purging branch record.
+  View Dashboard Btn   Navy pill + Chevron   Triggers `handleImpersonate` to
+                                             switch active church context.
+
+================================================================================
+5. "CREATE NEW BRANCH" WORKFLOW & MODAL
+================================================================================
+Clicking the `[+ Add Branch]` button in the header triggers a sleek popup modal:
+
+  Step 1: Campus Identity
+    - Field: "Branch Name *"
+    - Placeholder: "e.g. Hyderabad Campus, North City Branch"
+    - Behavior: Typing automatically recalculates the recommended Church Code.
+
+  Step 2: Join Code Verification
+    - Field: "Branch Church Code *"
+    - Behavior: Defaults to auto-generated syntax. Can be manually customized
+      to any alphanumeric string (e.g., "COGH01", "BICGUNTUR").
+    - Sanitization: Automatically converted to UPPERCASE and trimmed of spaces.
+
+  Step 3: Branch Administrator Assignment (Optional)
+    - Field: "Branch Admin Name" (e.g. "Pastor David Raju")
+    - Field: "Branch Admin Phone" (e.g. "9876543210")
+    - Impact: If provided, the system directly invokes `FirestoreService.adminAddMember`
+      on the newly created branch ID, provisioning them with `userType: 'Admin'`.
+
+  Step 4: Submission & Propagation
+    - Button: `[ Create Branch ]` (Navy button with loading spinner)
+    - Inherits:
+      * Parent church `theme` (primary color, logo URL, fonts)
+      * Parent church `features` (enabled modules)
+      * Parent church `contactEmail`
+      * `isParentOrganization: false`
+      * `parentChurchId: activeChurch.id`
+    - Feedback: Closes modal and opens the "Branch Created Successfully!" sharing
+      sheet.
+
+================================================================================
+6. AUTO-GENERATED BRANCH CODES & SUBDOMAIN LOGIC
+================================================================================
+To prevent code collisions and simplify campus onboarding, WeChristian includes
+an intelligent code generator (`handleNameChange`):
+
+  1. Base Code Extraction:
+     - Uses `activeChurch.churchCode` if present.
+     - Else, extracts the first 5 alphanumeric characters of `activeChurch.name`.
+     - Defaults to "MAIN" if neither exists.
+  
+  2. Sequence Calculation:
+     - Number of existing branches + 1
+     - Padded to 3 digits (`001`, `002`, `003`...)
+  
+  3. Example Generation:
+     - Parent Church: "Brothers In Christ" (Code: "BICOG")
+     - 1st Branch: `BICOG001`
+     - 2nd Branch: `BICOG002`
+     - Subdomain: Sanitized lowercase without punctuation (`bicog001`).
+
+================================================================================
+7. BRANCH ADMINISTRATOR PROVISIONING (ON-THE-FLY)
+================================================================================
+When creating a branch, entering an administrator's name and phone number creates
+an immediate administrative link:
+
+  ```typescript
+  if (newAdminName && newAdminPhone) {
+    await FirestoreService.adminAddMember(newBranchId, {
+      name: newAdminName,
+      phone: newAdminPhone,
+      userType: 'Admin'
+    });
+  }
+  ```
+
+  - When this pastor signs into the WeChristian mobile app using their phone
+    number and OTP, they are instantly recognized as an Administrator of that
+    specific satellite branch.
+  - They gain access to their local sermon uploads, local member directory,
+    local attendance scanner, and local prayer moderation without viewing or
+    disturbing other sister branches.
+
+================================================================================
+8. IMPERSONATION & INSTANT CAMPUS SWITCHING
+================================================================================
+Senior leaders at headquarters frequently need to verify branch data. Instead of
+requesting login credentials, the module provides 1-Tap Impersonation:
+
+  1. Tap `[View Dashboard ->]` on any branch card.
+  2. Confirmation Prompt appears:
+     "View Dashboard: Are you sure you want to view the dashboard as [Branch Name]?"
+  3. Upon confirmation:
+     - `startImpersonation(branch.id, branch.name)` is executed in `ChurchContext`.
+     - `AdminTabContext` resets the dashboard scroll position to 0 and switches
+       active tab to 0 (Dashboard).
+     - Global Header switches to show:
+       "[Branch Name] (Viewing as Admin)" with an orange banner and an [Exit] button.
+  4. Headquarters admin can now inspect the branch's exact finances, attendance,
+     and members.
+  5. Tapping `[Exit Impersonation]` in the top header immediately restores the
+     headquarters parent church session.
+
+================================================================================
+9. WHATSAPP CAMPUS INVITATION GENERATOR & SHARING
+================================================================================
+Sharing satellite campus credentials with local members is completely automated:
+
+  Trigger Points:
+    a) Automatic prompt immediately following branch creation (`setBranchSuccess`).
+    b) Lucide `Share2` button on any campus card (`handleShareBranch`).
+
+  Generated Message Format:
+  ------------------------------------------------------------------------------
+  We've created a new branch: [Branch Name]!
+  You have been added to "[Parent Church Name]" on WeChristian!
+
+  Please download the app here:
+  https://play.google.com/store/apps/details?id=com.wechristian.app
+
+  Once downloaded, sign in with your phone number.
+  If asked, use Church Code: [BRANCH_CODE]
+  ------------------------------------------------------------------------------
+
+Native share dialog invokes WhatsApp, SMS, Telegram, or Gmail with one tap.
+
+================================================================================
+10. EDITING & DELETING BRANCHES (CONSISTENCY SAFEGUARDS)
+================================================================================
+Editing Branches:
+  - Tapping `[Edit]` loads the branch into the modal.
+  - Updates both `name` and sanitized uppercase `churchCode`.
+  - Refreshes local branch state immediately.
+
+Deleting Branches & Eventual Consistency Safeguard:
+  - Tapping `[Delete]` opens a high-visibility danger alert dialog.
+  - UI Optimistic Update:
+    ```typescript
+    setBranches(prev => prev.filter(b => b.id !== branch.id));
+    await ChurchService.deleteBranch(branch.id);
+    ```
+  - Crucial Architecture Note:
+    Firestore `where('parentChurchId', '==', activeChurch.id)` queries are
+    eventually consistent. If an immediate re-fetch was invoked, Firestore would
+    often return the deleted document for 2-4 seconds.
+    To prevent this jarring "ghost item" UI flicker, WeChristian uses optimistic
+    state pruning and skips the immediate query re-fetch. If an error occurs,
+    it re-fetches to restore state.
+
+================================================================================
+11. FIRESTORE DOCUMENT SCHEMA & RELATIONSHIP MODELS
+================================================================================
+Collection: `churches`
+Document ID: Auto-generated string (e.g. `ch_xyz789`)
+
+```json
+{
+  "id": "ch_branch_002",
+  "name": "Tenali City Branch",
+  "churchCode": "BICOG002",
+  "subdomain": "bicog002",
+  "isParentOrganization": false,
+  "parentChurchId": "ch_main_headquarters",
+  "createdBy": "user_uid_pastor_john",
+  "contactEmail": "hq@brothersinchrist.org",
+  "theme": {
+    "primaryColor": "#1a2d5a",
+    "secondaryColor": "#b45309",
+    "logoUrl": "https://storage.googleapis.com/.../logo.jpg"
+  },
+  "features": {
+    "hasSermons": true,
+    "hasDailyPromises": true,
+    "hasWorshipSongs": true,
+    "hasGiving": true,
+    "hasWhatsAppAutomation": false
+  },
+  "createdAt": "2026-04-12T10:00:00Z"
+}
+```
+
+Collection: `users` (Branch Admin record)
+```json
+{
+  "uid": "user_branch_pastor_tenali",
+  "name": "Pastor K. Samuel",
+  "phone": "+919848022338",
+  "churchId": "ch_branch_002",
+  "userType": "Admin"
+}
+```
+
+================================================================================
+12. SECURITY, ISOLATION & MULTI-TENANCY ARCHITECTURE
+================================================================================
+1. Database Isolation:
+   Every query executed in WeChristian incorporates `where('churchId', '==', activeChurch.id)`.
+   Satellite branches cannot read or alter members, expenses, prayers, or
+   pastor events belonging to other branches or headquarters.
+
+2. Headquarters Oversight:
+   Parent church administrators retain read-write override access across all
+   branches via the `parentChurchId` index and impersonation system.
+
+3. Code Uniqueness:
+   Church Join Codes must be unique across the platform to ensure members
+   typing the code during app onboarding are placed into the correct congregation.
+
+================================================================================
+13. ADMIN TROUBLESHOOTING & FREQUENTLY ASKED QUESTIONS
+================================================================================
+Q1: Why does the "Church Branches" card not show up on my dashboard?
+A: Church Branches is only visible if your church record has
+   `isParentOrganization: true`. If your church has established satellite
+   branches, contact WeChristian support to activate the parent organization flag.
+
+Q2: Can a branch have its own custom theme color and logo?
+A: Yes! When first created, the branch inherits the parent's colors and logo.
+   However, logging into that branch (or impersonating it) and opening
+   "Church Settings" allows the branch pastor to set a unique campus logo,
+   specific Sunday service timings, and distinct local UPI payment IDs.
+
+Q3: Can a branch administrator see the parent church's expenses?
+A: No. Financial ledgers and member databases are strictly sandboxed per church
+   document ID. Only headquarters leadership with impersonation permissions can
+   view cross-branch figures.
+================================================================================
+                   END OF CHURCH BRANCHES MODULE MANUAL
+================================================================================

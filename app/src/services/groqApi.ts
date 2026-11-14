@@ -246,9 +246,12 @@ export const sendToGroq = async (
   conflicts: string[] = [],
   selectedLang: 'en' | 'te' = 'en'
 ): Promise<string> => {
-  const apiKey = process.env.EXPO_PUBLIC_GROQ_API_KEY;
-  if (!apiKey) {
-    throw new Error('Groq API key is missing');
+  const groqApiKey = process.env.EXPO_PUBLIC_GROQ_API_KEY;
+  const geminiApiKey = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
+  const sarvamApiKey = process.env.EXPO_PUBLIC_SARVAM_API_KEY;
+
+  if (!groqApiKey && !geminiApiKey && !sarvamApiKey) {
+    throw new Error('AI API key is missing. Please check your configuration.');
   }
 
   // Send the last 10 messages so the AI actually has context of the conversation
@@ -265,46 +268,60 @@ export const sendToGroq = async (
       const systemMsg = msgs.find(m => m.role === 'system');
       const userMsgs = msgs.filter(m => m.role !== 'system');
 
-      const providers = [
-        {
+      const providers: { name: string; run: () => Promise<any> }[] = [];
+
+      if (groqApiKey) {
+        providers.push({
           name: 'Groq',
           run: async () => {
-            const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-              },
-              body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
-                messages: msgs,
-                max_tokens: 1000
-              })
-            });
+            const models = ['qwen/qwen3.8-27b', 'openai/gpt-oss-120b'];
+            let lastGroqErr: any = null;
+            for (const model of models) {
+              try {
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${groqApiKey}`
+                  },
+                  body: JSON.stringify({
+                    model,
+                    messages: msgs,
+                    max_tokens: 1000
+                  })
+                });
 
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`Groq ${response.status}: ${errorText}`);
+                if (!response.ok) {
+                  const errorText = await response.text();
+                  throw new Error(`Groq [${model}] ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                return data.choices[0].message;
+              } catch (err: any) {
+                lastGroqErr = err;
+                if (err.message && err.message.includes('429')) {
+                  throw err;
+                }
+              }
             }
-
-            const data = await response.json();
-            return data.choices[0].message;
+            throw lastGroqErr || new Error('Groq failed on all models');
           }
-        },
-        {
+        });
+      }
+
+      if (geminiApiKey) {
+        providers.push({
           name: 'Gemini',
           run: async () => {
-            const key = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
-            if (!key) throw new Error('Gemini API key missing');
-            
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${key}`, {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${geminiApiKey}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 systemInstruction: systemMsg ? { parts: [{ text: systemMsg.content }] } : undefined,
                 contents: userMsgs.map(m => ({
                   role: m.role === 'assistant' ? 'model' : 'user',
-                  parts: [{ text: m.content }]
+                  parts: [{ text: m.content || '' }]
                 })),
                 generationConfig: { maxOutputTokens: 1000 }
               })
@@ -316,20 +333,24 @@ export const sendToGroq = async (
             }
 
             const data = await response.json();
-            return { role: 'assistant', content: data.candidates[0].content.parts[0].text };
+            const text = data.candidates?.[0]?.content?.parts
+              ?.map((p: any) => p.text || '')
+              .filter(Boolean)
+              .join('\n') || '';
+            return { role: 'assistant', content: text };
           }
-        },
-        {
+        });
+      }
+
+      if (sarvamApiKey) {
+        providers.push({
           name: 'Sarvam',
           run: async () => {
-            const key = process.env.EXPO_PUBLIC_SARVAM_API_KEY;
-            if (!key) throw new Error('Sarvam API key missing');
-            
             const response = await fetch('https://api.sarvam.ai/v1/chat/completions', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'api-subscription-key': key
+                'api-subscription-key': sarvamApiKey
               },
               body: JSON.stringify({
                 model: 'sarvam-30b',
@@ -346,22 +367,20 @@ export const sendToGroq = async (
             const data = await response.json();
             return data.choices[0].message;
           }
-        },
-      ];
+        });
+      }
 
-      let lastError: any = null;
+      const errors: string[] = [];
       for (const provider of providers) {
         try {
           return await provider.run();
         } catch (e: any) {
-          lastError = e;
-          const isMissingKey = e.message?.includes('key missing');
-          
-          console.warn(`${provider.name} unavailable (${isMissingKey ? 'Not Configured' : e.message}), trying next provider...`);
+          errors.push(`${provider.name} (${e.message})`);
+          console.warn(`${provider.name} unavailable (${e.message}), trying next provider...`);
         }
       }
-      
-      throw lastError;
+
+      throw new Error(`All configured AI providers failed: ${errors.join('; ')}`);
     });
   };
 

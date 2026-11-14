@@ -36,15 +36,20 @@ import {
 } from 'lucide-react-native';
 import Theme from '../../theme/Theme';
 import FirestoreService from '../../services/FirestoreService';
+import { useChurch } from '../../context/ChurchContext';
 import {
-  getFirestore, 
-  collection, 
-  doc, 
-  getDoc, 
-  setDoc, 
-  addDoc, 
-  getDocs, 
-  serverTimestamp 
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  addDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  onSnapshot,
+  serverTimestamp
 } from '@react-native-firebase/firestore';
 
 const { width } = Dimensions.get('window');
@@ -73,8 +78,20 @@ const FONTS = {
 
 const LOCATIONS = ['Main Sanctuary', 'Zoom Conference Room', 'Pastor\'s Office', 'Board Room', 'Fellowship Hall'];
 
-export default function AdminNotificationBroadcast() {
-  const { setActiveTab } = React.useContext(AdminTabContext);
+const ADMIN_ALERT_META: Record<string, { label: string; tab: string; accent: string }> = {
+  testimony_admin: { label: 'TESTIMONY', tab: 'Testimonies', accent: '#D97706' },
+  prayer_request_admin: { label: 'PRAYER REQUEST', tab: 'Prayers', accent: '#7C3AED' },
+  baptism_request_admin: { label: 'BAPTISM', tab: 'Baptism', accent: '#0284C7' },
+  volunteer_application_admin: { label: 'VOLUNTEER', tab: 'Volunteer Management', accent: '#059669' },
+  admin_roster_alert: { label: 'ROSTER', tab: 'Service Roster', accent: '#EA580C' },
+  care_cell_visit_declined: { label: 'VISIT DECLINED', tab: 'Care Cells', accent: '#E11D48' },
+};
+
+export default function AdminNotificationBroadcast({ navigation }: any) {
+  const { setActiveTab, setTabByName } = React.useContext(AdminTabContext);
+  const { activeChurch } = useChurch();
+  const [churchId, setChurchId] = useState<string | null>(activeChurch?.id || null);
+  const [incomingAlerts, setIncomingAlerts] = useState<any[]>([]);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -145,6 +162,72 @@ export default function AdminNotificationBroadcast() {
   });
 
   const [showSimulateSuccess, setShowSimulateSuccess] = useState({ visible: false, title: '', message: '' });
+
+  // ── Resolve Church ID & Subscribe to Incoming Admin Alerts & Updates ──
+  React.useEffect(() => {
+    let cancelled = false;
+    if (activeChurch?.id) {
+      setChurchId(activeChurch.id);
+    } else {
+      FirestoreService.getChurchId().then((cid) => {
+        if (!cancelled && cid) setChurchId(cid);
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [activeChurch?.id]);
+
+  React.useEffect(() => {
+    if (!churchId) {
+      setIncomingAlerts([]);
+      return;
+    }
+    const db = getFirestore();
+    const qAlerts = query(
+      collection(db, 'churches', churchId, 'notifications'),
+      orderBy('createdAt', 'desc'),
+      limit(20)
+    );
+    const unsubAlerts = onSnapshot(
+      qAlerts,
+      (snap) => {
+        if (!snap) return;
+        const items = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .filter((item: any) => Boolean(ADMIN_ALERT_META[item.type]));
+        setIncomingAlerts(items);
+      },
+      (err) => {
+        console.warn('Incoming admin alerts listener error:', err);
+      }
+    );
+    return () => unsubAlerts();
+  }, [churchId]);
+
+  const handleOpenAlertItem = (item: any) => {
+    const meta = ADMIN_ALERT_META[item.type];
+    const targetTab = meta?.tab || item.targetTab;
+    if (!targetTab) {
+      navigation?.navigate('Updates');
+      return;
+    }
+    if (navigation?.navigate) {
+      navigation.navigate('AdminRoot', {
+        targetTab,
+        churchId: item.churchId || churchId,
+        testimonyId: item.testimonyId || item.relatedId,
+        serviceId: item.serviceId,
+        roleId: item.roleId,
+        cellId: item.cellId,
+        visitId: item.visitId,
+        careCellTab: item.careCellTab || 'visits',
+        timestamp: Date.now(),
+      });
+    } else if (setTabByName) {
+      setTabByName(targetTab);
+    }
+  };
 
   // ── 1. Fetch Settings on Mount ──
   React.useEffect(() => {
@@ -486,7 +569,67 @@ export default function AdminNotificationBroadcast() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        
+
+        {/* ── 0. Incoming Admin Alerts & Updates ── */}
+        <View style={[styles.sectionHeader, { justifyContent: 'space-between' }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Bell size={16} color="#1a2d5a" />
+            <Text style={styles.sectionTitle}>Incoming Admin Alerts ({incomingAlerts.length})</Text>
+          </View>
+          {navigation?.navigate && (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Updates')}
+              style={{
+                backgroundColor: '#1a2d5a',
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 12,
+              }}
+            >
+              <Text style={{ color: '#fff', fontSize: 11, fontWeight: '700' }}>All Updates</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <View style={styles.card}>
+          {incomingAlerts.length === 0 ? (
+            <Text style={{ fontSize: 13, color: COLORS.inkSoft, textAlign: 'center', paddingVertical: 8 }}>
+              No incoming member alerts right now. New testimonies, prayer requests, and roster alerts will appear here.
+            </Text>
+          ) : (
+            incomingAlerts.slice(0, 6).map((item: any, idx: number) => {
+              const meta = ADMIN_ALERT_META[item.type] || { label: 'ALERT', tab: 'Notifications', accent: '#1a2d5a' };
+              const createdMs = item.createdAt?.toMillis?.() || (item.createdAt?.seconds ? item.createdAt.seconds * 1000 : 0);
+              const dateLabel = createdMs
+                ? new Date(createdMs).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+                : '';
+              return (
+                <TouchableOpacity
+                  key={item.id}
+                  activeOpacity={0.75}
+                  onPress={() => handleOpenAlertItem(item)}
+                  style={{
+                    paddingVertical: 11,
+                    borderBottomWidth: idx === Math.min(incomingAlerts.length, 6) - 1 ? 0 : 1,
+                    borderBottomColor: 'rgba(26,45,90,0.08)',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <View style={{ backgroundColor: meta.accent + '18', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: meta.accent, fontSize: 10, fontWeight: '800', letterSpacing: 0.4 }}>{meta.label}</Text>
+                    </View>
+                    {!!dateLabel && <Text style={{ color: COLORS.inkSoft, fontSize: 11 }}>{dateLabel}</Text>}
+                  </View>
+                  <Text style={{ fontSize: 14, fontWeight: '700', color: COLORS.ink, marginBottom: 2 }}>{item.title || 'Admin Alert'}</Text>
+                  <Text style={{ fontSize: 12.5, color: COLORS.inkSoft, lineHeight: 17 }} numberOfLines={2}>
+                    {item.content || item.body || ''}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })
+          )}
+        </View>
+
         {/* ── 1. Daily Promise Notification ── */}
         <View style={styles.sectionHeader}>
           <Layout size={16} color="#1a2d5a" />
@@ -814,17 +957,17 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#EDE8DC' },
   hero: {
     backgroundColor: '#1a2d5a',
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
-    paddingHorizontal: 22,
-    paddingTop: 10,
-    paddingBottom: 24,
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
     overflow: 'visible',
     position: 'relative',
     marginBottom: 6,
   },
   heroTitleRow: { flexDirection: 'row', alignItems: 'center' },
-  heroTitle: { color: '#fff', fontSize: 24, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
+  heroTitle: { color: '#fff', fontSize: 20, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', fontWeight: '600', letterSpacing: -0.5 },
 
   scroll: { padding: 14, paddingBottom: 150 },
 

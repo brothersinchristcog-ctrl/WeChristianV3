@@ -13,6 +13,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, spacing, radius, typography, shadow } from '../../../theme/Theme';
 import { PastorEvent } from '../../../types/event';
 import EventTypeBadge from '../../../components/EventTypeBadge';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Try to safely load react-native-maps
 let MapView: any = null;
@@ -190,6 +191,7 @@ export const PastorEventMap = ({ route, navigation }: { route: any; navigation: 
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const mapRef = useRef<any>(null);
   const flatListRef = useRef<FlatList>(null);
+  const insets = useSafeAreaInsets();
 
   // Helper to convert time strings like "9:00 AM" to sortable minutes
   const timeToMins = (timeStr: string) => {
@@ -315,11 +317,11 @@ export const PastorEventMap = ({ route, navigation }: { route: any; navigation: 
   }));
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.bgPrimary} />
       
       {/* Navbar */}
-      <View style={styles.navBar}>
+      <View style={[styles.navBar, { paddingTop: insets.top }]}>
         <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
         </TouchableOpacity>
@@ -423,7 +425,7 @@ export const PastorEventMap = ({ route, navigation }: { route: any; navigation: 
           )}
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -437,11 +439,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    height: 56,
     backgroundColor: colors.bgPrimary,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-    zIndex: 10
+    zIndex: 10,
+    paddingBottom: 10
   },
   backButton: {
     padding: spacing.xs

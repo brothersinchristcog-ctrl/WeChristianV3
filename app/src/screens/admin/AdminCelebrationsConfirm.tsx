@@ -56,16 +56,22 @@ export default function AdminCelebrationsConfirm({
       <Text style={styles.title}>Greeting Sent!</Text>
       
       <Text style={styles.message}>
-        Your {categoryLabel.toLowerCase()} wish for <Text style={styles.bold}>{member?.name}</Text> has been sent via WhatsApp.
+        Your {categoryLabel.toLowerCase()} wish for <Text style={styles.bold}>{member?.name}</Text> has been prepared & sent via WhatsApp.
       </Text>
 
-              <TouchableOpacity style={styles.btnPrimary} onPress={onDone}>
-          <Home stroke="#FFFFFF" width={20} height={20} />
-          <Text style={styles.btnPrimaryText}>Back to Celebrations</Text>
-        </TouchableOpacity>
+      <View style={styles.infoBanner}>
+        <Text style={styles.infoBannerText}>
+          📸 Card saved to Gallery &nbsp;|&nbsp; 📋 Message copied to clipboard
+        </Text>
       </View>
+
+      <TouchableOpacity style={styles.btnPrimary} onPress={onDone}>
+        <Home stroke="#FFFFFF" width={20} height={20} />
+        <Text style={styles.btnPrimaryText}>Back to Celebrations</Text>
+      </TouchableOpacity>
     </View>
-  );
+  </View>
+);
 }
 
 const styles = StyleSheet.create({
@@ -151,5 +157,22 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Bold',
     fontSize: 15,
     color: '#FFFFFF',
-  }
+  },
+  infoBanner: {
+    backgroundColor: '#EEF2F6',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    maxWidth: 320,
+    alignItems: 'center',
+  },
+  infoBannerText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 12,
+    color: '#475569',
+    textAlign: 'center',
+  },
 });

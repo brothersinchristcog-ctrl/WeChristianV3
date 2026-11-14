@@ -1,13 +1,67 @@
-import { Platform, PermissionsAndroid, Linking } from 'react-native';
-import { messaging, firestore, auth } from './firebaseConfig';
+import { Platform, PermissionsAndroid, Linking, Alert } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { getFirestore, doc, setDoc, serverTimestamp } from '@react-native-firebase/firestore';
+import { messaging, auth } from './firebaseConfig';
 
 class NotificationService {
+  private pendingDispatcher: ((remoteMessage: any) => void) | null = null;
+  private foregroundUnsubscribe: (() => void) | null = null;
+  private recentForegroundKeys: Map<string, number> = new Map();
+  private channelsInitialized = false;
+
+  /**
+   * Ensure Android 8+ notification channels used by FCM push payloads
+   * (especially 'church_alerts' for chat, care cells, roster, etc.) exist on the device.
+   */
+  async ensureAndroidNotificationChannels() {
+    if (Platform.OS !== 'android' || this.channelsInitialized) return;
+    try {
+      await Notifications.setNotificationChannelAsync('church_alerts', {
+        name: 'Church & Chat Alerts',
+        description: 'Direct messages, group chats, prayer requests, and church alerts',
+        importance: Notifications.AndroidImportance.MAX,
+        sound: 'default',
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#1a2d5a',
+        showBadge: true,
+      });
+      await Notifications.setNotificationChannelAsync('church_updates', {
+        name: 'Church Updates',
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: 'default',
+        showBadge: true,
+      });
+      this.channelsInitialized = true;
+    } catch (err) {
+      console.warn('⚠️ Failed to ensure Android notification channels:', err);
+    }
+  }
+
+  registerPendingDispatcher(dispatcher: ((remoteMessage: any) => void) | null) {
+    this.pendingDispatcher = dispatcher;
+  }
+
+  /**
+   * Unified entry point for foreground banner taps, local notification taps,
+   * and view-switching in-app update clicks so admin notifications safely
+   * switch to Admin View before navigating to AdminRoot.
+   */
+  dispatchNotification(remoteMessage: any, navigation?: any) {
+    if (!remoteMessage) return;
+    if (this.pendingDispatcher) {
+      this.pendingDispatcher(remoteMessage);
+      return;
+    }
+    this.handleNotificationNavigation(remoteMessage, navigation);
+  }
+
   messaging() {
     return messaging();
   }
 
   async requestUserPermission() {
     console.log('🧐 Requesting Notification Permissions...');
+    await this.ensureAndroidNotificationChannels();
     if (Platform.OS === 'android' && Platform.Version >= 33) {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
@@ -25,12 +79,13 @@ class NotificationService {
     return enabled;
   }
 
-  async getFcmToken() {
+  async getFcmToken(extraChurchId?: string) {
     try {
+      await this.ensureAndroidNotificationChannels();
       const token = await messaging().getToken();
       if (token) {
         console.log('✅ FCM Token Found:', token);
-        await this.saveTokenToFirestore(token);
+        await this.saveTokenToFirestore(token, extraChurchId);
         return token;
       } else {
         console.log('❌ No FCM token returned from messaging()');
@@ -41,38 +96,53 @@ class NotificationService {
     return null;
   }
 
-  async saveTokenToFirestore(token: string) {
+  async saveTokenToFirestore(token: string, extraChurchId?: string) {
     try {
       const user = auth().currentUser;
-      if (!user) {
+      if (!user || !token) {
         console.log('⚠️ Cannot save token: No user logged in');
         return;
       }
 
       console.log('📤 Fetching user global church association to save token for UID:', user.uid);
       const FirestoreService = require('./FirestoreService').default;
-      const globalUser = await FirestoreService.getGlobalUser(user.uid);
+      const globalUser = await FirestoreService.getGlobalUser(user.uid).catch(() => null);
+      const db = getFirestore();
 
-      if (globalUser?.primaryChurchId) {
-        // Save to church members subcollection
-        await firestore().collection('churches').doc(globalUser.primaryChurchId).collection('members').doc(user.uid).set({
-          fcmToken: token,
-          lastTokenUpdate: firestore.FieldValue.serverTimestamp(),
-          platform: Platform.OS,
-        }, { merge: true });
+      const churchIds = Array.from(
+        new Set(
+          [globalUser?.primaryChurchId, extraChurchId]
+            .filter((cid): cid is string => typeof cid === 'string' && cid.trim().length > 0)
+            .map((cid) => cid.trim())
+        )
+      );
 
-        // ALSO save to global users collection — Cloud Functions read tokens from here
-        await firestore().collection('users').doc(user.uid).set({
-          fcmToken: token,
-          lastTokenUpdate: firestore.FieldValue.serverTimestamp(),
-          primaryChurchId: globalUser.primaryChurchId,
-          platform: Platform.OS,
-        }, { merge: true });
-
-        console.log('✨ Token saved successfully to member profile AND global users!');
-      } else {
-        console.log('⚠️ Token not saved: User does not belong to a church yet.');
+      for (const cid of churchIds) {
+        await setDoc(
+          doc(db, 'churches', cid, 'members', user.uid),
+          {
+            uid: user.uid,
+            fcmToken: token,
+            lastTokenUpdate: serverTimestamp(),
+            platform: Platform.OS,
+          },
+          { merge: true }
+        );
       }
+
+      // ALWAYS save to global users collection — Cloud Functions resolve tokens from here too
+      const userPayload: Record<string, any> = {
+        uid: user.uid,
+        fcmToken: token,
+        lastTokenUpdate: serverTimestamp(),
+        platform: Platform.OS,
+      };
+      if (churchIds[0]) {
+        userPayload.primaryChurchId = churchIds[0];
+      }
+      await setDoc(doc(db, 'users', user.uid), userPayload, { merge: true });
+
+      console.log('✨ Token saved successfully to global users and church member doc(s):', churchIds);
     } catch (err) {
       console.error('❌ Firestore Token Save Error:', err);
     }
@@ -98,11 +168,29 @@ class NotificationService {
       return;
     }
 
-    const { type, id } = remoteMessage.data || {};
+    const rawData = remoteMessage?.data || remoteMessage || {};
+    const type = ((rawData.type || (rawData.screen === 'BibleQuizDetail' || rawData.quizId ? 'quiz' : '')) as string).toLowerCase();
+    const id = rawData.quizId || rawData.relatedId || rawData.id;
+    const rootRouteNames: string[] = nav.getRootState?.()?.routeNames || [];
+    const hasAdminRoot = rootRouteNames.length === 0 || rootRouteNames.includes('AdminRoot');
+    const navigateToAdmin = (params: Record<string, any>) => {
+      if (!hasAdminRoot) {
+        console.warn('⚠️ AdminRoot is not mounted in the active navigator, routing to Updates instead.');
+        nav.navigate('Updates', { highlightId: id, highlightType: type });
+        return;
+      }
+      nav.navigate('AdminRoot', params);
+    };
     console.log('🚀 Navigating for notification type:', type);
 
     try {
       switch (type) {
+        case 'daily_verse': {
+          const verseId = rawData.verseId || id;
+          const period = rawData.period || 'Morning';
+          nav.navigate('VerseOfTheDay', { verseId, period });
+          break;
+        }
         case 'sermon':
           nav.navigate('Sermons');
           break;
@@ -110,10 +198,18 @@ class NotificationService {
           nav.navigate('Events');
           break;
         case 'online_meeting':
-          nav.navigate('OnlineMeetings');
+          try {
+            nav.navigate('OnlineMeetings');
+          } catch (_) {
+            try {
+              navigateToAdmin({ targetTab: 'Online Meetings' });
+            } catch (e) {
+              console.warn('Navigation to online meetings failed:', e);
+            }
+          }
           break;
         case 'invoice':
-          nav.navigate('AdminRoot', { targetTab: 'Expense', highlightInvoiceId: id });
+          navigateToAdmin({ targetTab: 'Expense', highlightInvoiceId: id });
           break;
         case 'promise':
           nav.navigate('Updates');
@@ -121,17 +217,75 @@ class NotificationService {
         case 'attendance':
           nav.navigate('AttendanceScreen');
           break;
-        case 'birthday':
+        case 'baptism_request_admin':
+          navigateToAdmin({ targetTab: 'Baptism' });
           break;
-        case 'invoice':
-          nav.navigate('AdminRoot', { targetTab: 'Expense', highlightInvoiceId: id });
+        case 'testimony_admin': {
+          const testimonyId = rawData.testimonyId || rawData.relatedId || rawData.id || id;
+          navigateToAdmin({
+            targetTab: 'Testimonies',
+            testimonyId,
+            churchId: rawData.churchId,
+            timestamp: Date.now(),
+          });
           break;
-        case 'promise':
-          nav.navigate('Updates');
+        }
+        case 'testimony_member_status': {
+          const testimonyId = rawData.testimonyId || rawData.relatedId || rawData.id || id;
+          if (testimonyId) {
+            nav.navigate('TestimonyDetail', {
+              testimonyId,
+              churchId: rawData.churchId,
+            });
+          } else {
+            nav.navigate('Testimonies', { initialTab: 'mine' });
+          }
           break;
-        case 'attendance':
-          nav.navigate('AttendanceScreen');
+        }
+        case 'testimony_published':
+        case 'testimony': {
+          const testimonyId = rawData.testimonyId || rawData.relatedId || rawData.id || id;
+          if (testimonyId) {
+            nav.navigate('TestimonyDetail', {
+              testimonyId,
+              churchId: rawData.churchId,
+            });
+          } else {
+            nav.navigate('Testimonies', { initialTab: 'feed' });
+          }
           break;
+        }
+        case 'volunteer_application_admin': {
+          const appId = rawData.applicationId || rawData.requestId || id;
+          navigateToAdmin({
+            targetTab: 'Volunteer Management',
+            applicationId: appId,
+            subType: rawData.volunteerType || rawData.subType || 'general',
+            timestamp: Date.now(),
+          });
+          break;
+        }
+        case 'volunteer_application_member': {
+          const eventId = rawData.eventId;
+          if (eventId) {
+            nav.navigate('EventDetails', { eventId, id: eventId });
+          } else {
+            nav.navigate('Volunteer');
+          }
+          break;
+        }
+        case 'volunteer_assignment':
+        case 'volunteer_reminder':
+        case 'volunteer_event_change': {
+          const eventId = rawData.eventId || id;
+          if (eventId) {
+            nav.navigate('EventDetails', { eventId, id: eventId });
+          } else {
+            nav.navigate('Volunteer');
+          }
+          break;
+        }
+        case 'baptism_request_member':
         case 'birthday':
         case 'anniversary':
         case 'baptism':
@@ -139,23 +293,139 @@ class NotificationService {
         case 'emergency':
           nav.navigate('Updates', { highlightId: id, highlightType: type });
           break;
-        case 'youtube_live':
-          {
-            const liveUrl = remoteMessage.data?.url || 'https://www.youtube.com/@Brothersinchristfellowship/live';
-            Linking.openURL(liveUrl).catch((err: any) => {
-              console.error("Couldn't open live stream URL", err);
-            });
-          }
+        case 'youtube_live': {
+          const liveUrl = remoteMessage.data && remoteMessage.data.url ? remoteMessage.data.url : 'https://www.youtube.com/@Brothersinchristfellowship/live';
+          Linking.openURL(liveUrl).catch(function(err) {
+            console.error("Couldn't open live stream URL", err);
+          });
           break;
+        }
         case 'LIVE_CELEBRATION':
           nav.navigate('LiveCelebrationsChat', {});
           break;
+        case 'new_church':
+          navigateToAdmin({ targetTab: 'App Admin' });
+          break;
+        case 'prayer_request_admin':
+        case 'prayer_request':
+        case 'prayer':
+          navigateToAdmin({ targetTab: 'Prayers' });
+          break;
+        case 'prayer_request_public':
+          nav.navigate('PrayerWall', { tab: 'public_requests' });
+          break;
+        case 'prayer_request_member':
+          nav.navigate('PrayerWall', { tab: 'my_requests' });
+          break;
+        case 'quiz':
+        case 'quiz_scheduled':
+        case 'bible_quiz': {
+          const quizTargetId = rawData.quizId || rawData.relatedId || rawData.id || id;
+          const targetChurchId = rawData.churchId;
+          console.log('📖 [NotificationService] Routing directly to Bible quiz:', { quizTargetId, targetChurchId });
+          if (quizTargetId) {
+            nav.navigate('BibleQuizDetail', {
+              quizId: quizTargetId,
+              id: quizTargetId,
+              relatedId: rawData.relatedId || quizTargetId,
+              churchId: targetChurchId,
+            });
+          } else {
+            nav.navigate('ChurchQuizzes');
+          }
+          break;
+        }
+        case 'admin_roster_alert': {
+          navigateToAdmin({
+            targetTab: 'Service Roster',
+            serviceId: rawData.serviceId,
+            roleId: rawData.roleId,
+            timestamp: Date.now(),
+          });
+          break;
+        }
+        case 'service_responsibility_broadcast':
+        case 'service_reminder':
+        case 'rehearsal_alert':
+        case 'service_assignment':
+        case 'service_roster':
+        case 'roster_assignment': {
+          const initialTab =
+            type === 'service_assignment' ||
+            type === 'service_responsibility_broadcast' ||
+            type === 'service_reminder'
+              ? 'responsibilities'
+              : 'roster';
+          nav.navigate('MyService', {
+            serviceId: rawData.serviceId,
+            initialTab,
+          });
+          break;
+        }
+        case 'care_cell_visit_declined':
+        case 'care_cell_visit_confirmed':
+        case 'care_cell_visit_completed': {
+          navigateToAdmin({
+            targetTab: 'Care Cells',
+            careCellTab: rawData.careCellTab || 'visits',
+            cellId: rawData.cellId,
+            visitId: rawData.visitId || id,
+            timestamp: Date.now(),
+          });
+          break;
+        }
+        case 'care_cell_visit_reminder':
+        case 'care_cell_visit_cancelled':
+        case 'care_cell_visit':
+        case 'care_cell_meeting':
+        case 'care_cell_announcement':
+        case 'care_cell_prayer': {
+          if (type === 'care_cell_visit_reminder' && rawData.screen === 'AdminRoot') {
+            navigateToAdmin({
+              targetTab: 'Care Cells',
+              careCellTab: 'visits',
+              cellId: rawData.cellId,
+              visitId: rawData.visitId || id,
+              timestamp: Date.now(),
+            });
+            break;
+          }
+          const initialTab =
+            type === 'care_cell_visit' ||
+            type === 'care_cell_visit_reminder' ||
+            type === 'care_cell_visit_cancelled'
+              ? 'visits'
+              : type === 'care_cell_prayer'
+              ? 'prayers'
+              : type === 'care_cell_announcement'
+              ? 'notices'
+              : 'gatherings';
+          nav.navigate('CareCell', {
+            initialTab,
+            visitId: rawData.visitId || id,
+            cellId: rawData.cellId,
+          });
+          break;
+        }
+        case 'chat_message': {
+          const chatId = rawData.chatId || rawData.relatedId || id;
+          if (chatId) {
+            nav.navigate('ChatRoom', {
+              chatId,
+              churchId: rawData.churchId,
+              title: rawData.title || 'Church Chat',
+              chatType: rawData.chatType || 'direct',
+            });
+          } else {
+            nav.navigate('ChatList');
+          }
+          break;
+        }
         default:
-          // Fallback: navigate to Updates if it has a broadcast ID
           if (id) {
             nav.navigate('Updates', { highlightId: id, highlightType: type });
           } else {
-            console.log('❓ Unknown notification type, staying on current screen');
+            console.log('Unknown notification type, staying on current screen');
           }
       }
     } catch (e) {
@@ -170,10 +440,20 @@ class NotificationService {
     });
   }
 
-  // Subscribe user to a specific church topic for isolated notifications
   async subscribeToChurchTopic(churchId: string) {
     if (!churchId) return;
     try {
+      // Check permission first to prevent silent failures on fresh installs (especially iOS APNS)
+      const authStatus = await messaging().hasPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        
+      if (!enabled) {
+        console.log(`⚠️ Cannot subscribe to church_${churchId} yet: Permissions not granted.`);
+        return;
+      }
+
       const topicName = `church_${churchId}`;
       await messaging().subscribeToTopic(topicName);
       console.log(`📡 Subscribed to FCM topic: ${topicName}`);
@@ -194,15 +474,97 @@ class NotificationService {
     }
   }
 
+  // Subscribe Admin users to church admin alerts (e.g. Prayer Requests, Mod Alerts)
+  async subscribeToChurchAdminTopic(churchId: string) {
+    if (!churchId) return;
+    try {
+      const authStatus = await messaging().hasPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      if (!enabled) return;
+
+      const topicName = `church_${churchId}_admin`;
+      await messaging().subscribeToTopic(topicName);
+      console.log(`📡 Subscribed to FCM admin topic: ${topicName}`);
+    } catch (error) {
+      console.error(`❌ Failed to subscribe to topic church_${churchId}_admin:`, error);
+    }
+  }
+
+  // Unsubscribe Admin from church admin alerts (on logout or church switch)
+  async unsubscribeFromChurchAdminTopic(churchId: string) {
+    if (!churchId) return;
+    try {
+      const topicName = `church_${churchId}_admin`;
+      await messaging().unsubscribeFromTopic(topicName);
+      console.log(`🔌 Unsubscribed from FCM admin topic: ${topicName}`);
+    } catch (error) {
+      console.error(`❌ Failed to unsubscribe from topic church_${churchId}_admin:`, error);
+    }
+  }
+
+  // Subscribe Super Admin users to platform-wide alerts
+  async subscribeToSuperAdminTopic() {
+    try {
+      const authStatus = await messaging().hasPermission();
+      const enabled =
+        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+      if (!enabled) return;
+      await messaging().subscribeToTopic('platform_super_admins');
+      console.log('📡 Subscribed to FCM topic: platform_super_admins');
+    } catch (error) {
+      console.error('❌ Failed to subscribe to platform_super_admins topic:', error);
+    }
+  }
+
+  // Unsubscribe Super Admin from platform-wide alerts (on logout)
+  async unsubscribeFromSuperAdminTopic() {
+    try {
+      await messaging().unsubscribeFromTopic('platform_super_admins');
+      console.log('🔌 Unsubscribed from FCM topic: platform_super_admins');
+    } catch (error) {
+      console.error('❌ Failed to unsubscribe from platform_super_admins topic:', error);
+    }
+  }
+
   // Handle notifications when the app is open (foreground)
-  // NOTE: FCM already shows a system heads-up notification on Android even when the app is in foreground.
-  // Do NOT show an Alert here — that would cause a double notification (system tray + in-app popup).
-  // Navigation on tap is handled by onNotificationOpenedApp in RootNavigator.
   setupForegroundListener(navigation?: any) {
-    return messaging().onMessage(async remoteMessage => {
-      // Only log — do not show Alert (system notification already shown by FCM)
-      console.log('⚡ Foreground push received (system notification already shown):', remoteMessage?.notification?.title);
+    this.ensureAndroidNotificationChannels().catch(() => {});
+    if (this.foregroundUnsubscribe) {
+      this.foregroundUnsubscribe();
+      this.foregroundUnsubscribe = null;
+    }
+
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      const now = Date.now();
+      const title = remoteMessage?.notification?.title || remoteMessage?.data?.title || '';
+      const body = remoteMessage?.notification?.body || remoteMessage?.data?.body || '';
+      const key = remoteMessage?.messageId || `${title}|${body}`;
+      const lastSeen = this.recentForegroundKeys.get(key);
+      if (lastSeen && now - lastSeen < 8000) {
+        return;
+      }
+      this.recentForegroundKeys.set(key, now);
+      if (this.recentForegroundKeys.size > 50) {
+        for (const [k, ts] of this.recentForegroundKeys.entries()) {
+          if (now - ts > 15000) this.recentForegroundKeys.delete(k);
+        }
+      }
+
+      console.log('⚡ Foreground push received:', title || remoteMessage?.notification?.title);
+      // Foreground notifications are cleanly displayed via the in-app sliding banner in App.js
+      // System modal Alert.alert is suppressed to avoid duplicate intrusive popups
     });
+
+    this.foregroundUnsubscribe = unsubscribe;
+    return () => {
+      if (this.foregroundUnsubscribe === unsubscribe) {
+        this.foregroundUnsubscribe = null;
+      }
+      unsubscribe();
+    };
   }
 }
 

@@ -26,9 +26,21 @@ service cloud.firestore {
 
     // --- TOP-LEVEL COLLECTIONS ---
 
-    // Collection Group queries for members
+    // Collection Group queries for members, attendance, and bibleQuizzes
     match /{path=**}/members/{memberId} {
       allow read: if isAuthenticated();
+    }
+    match /{path=**}/attendanceRecords/{recordId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /{path=**}/attendees/{attendeeId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /{path=**}/bibleQuizzes/{quizId} {
+      allow read, write: if isAuthenticated();
+    }
+    match /bibleQuizzes/{quizId} {
+      allow read, write: if isAuthenticated();
     }
 
     match /unmappedWhatsappMessages/{messageId} {
@@ -47,6 +59,14 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
+    match /daily_verses/{verseId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /daily_verses_meta/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
     match /dailyVideos/{videoId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
@@ -56,6 +76,14 @@ service cloud.firestore {
     match /events/{eventId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
+
+      match /attendees/{attendeeId} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    match /attendanceRecords/{recordId} {
+      allow read, write: if isAuthenticated();
     }
 
     // 4. Prayer Requests
@@ -99,9 +127,24 @@ service cloud.firestore {
       allow write: if isAdminGlobally();
     }
 
+    match /platform_admins/{adminId} {
+      allow read: if isAuthenticated();
+    }
+
     // 9. Worship Songs
     match /worshipSongs/{songId} {
       allow read, write: if isAuthenticated();
+    }
+
+    // Helper: Is this user a platform super admin?
+    function isPlatformAdmin() {
+      return isAuthenticated() && exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid));
+    }
+
+    // Global Master Songs
+    match /masterSongs/{songId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminGlobally() || isPlatformAdmin();
     }
 
     // 10. Subscription Plans
@@ -123,6 +166,30 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // 13. Referral Codes
+    match /referral_codes/{codeId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // 14. Vouchers
+    match /vouchers/{voucherCode} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // 15. Bible Quizzes
+    match /bibleQuizzes/{quizId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+      match /{allChildren=**} {
+        allow read, write: if isAuthenticated();
+      }
+    }
+
+    // 16. Quiz Attempts
+    match /quizAttempts/{attemptId} {
+      allow read, write: if isAuthenticated();
+    }
+
     // --- CHURCH-SCOPED COLLECTIONS (all data lives here) ---
     match /churches/{churchId} {
       // Helper: Is this user an admin for this specific church?
@@ -133,13 +200,85 @@ service cloud.firestore {
           let hasMemberDoc = exists(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid));
           let isMemberAdmin = hasMemberDoc && get(/databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
           
-          let churchData = resource != null ? resource.data : get(/databases/$(database)/documents/churches/$(churchId)).data;
-          let parentId = churchData.get('parentChurchId', null);
+          let churchDocPath = /databases/$(database)/documents/churches/$(churchId);
+          let churchExists = exists(churchDocPath);
+          let parentId = churchExists ? get(churchDocPath).data.get('parentChurchId', null) : null;
           let hasParentMemberDoc = parentId != null && exists(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid));
           let isParentAdmin = hasParentMemberDoc && get(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin'];
 
-          return isAuthenticated() && (isGlobalAdmin || isMemberAdmin || isParentAdmin);
+          let isPlatformAdmin = exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid));
+
+          return isAuthenticated() && (isGlobalAdmin || isMemberAdmin || isParentAdmin || isPlatformAdmin);
         }
+
+      // Strict multi-tenant church admin helpers (<= 3 local variables per CEL function)
+      function isGlobalChurchAdmin() {
+        let hasUser = request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+        let uData = hasUser ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data : {};
+        let uType = uData.get('userType', '');
+        return hasUser && (
+          uType in ['admin', 'super_admin', 'Admin', 'Super Admin', 'pastor', 'Pastor', 'church_admin', 'Church Admin'] ||
+          uData.get('isAdmin', false) == true ||
+          uData.get('isSuperAdmin', false) == true
+        ) && (
+          uData.get('churchId', '') == churchId ||
+          uData.get('primaryChurchId', '') == churchId ||
+          uType in ['super_admin', 'Super Admin'] ||
+          uData.get('isSuperAdmin', false) == true
+        );
+      }
+
+      function isLocalChurchMemberAdmin() {
+        let memberPath = /databases/$(database)/documents/churches/$(churchId)/members/$(request.auth.uid);
+        return request.auth != null && exists(memberPath) && (
+          get(memberPath).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin', 'pastor', 'Pastor', 'church_admin', 'Church Admin'] ||
+          get(memberPath).data.get('isAdmin', false) == true
+        );
+      }
+
+      function isParentChurchMemberAdmin() {
+        let churchDocPath = /databases/$(database)/documents/churches/$(churchId);
+        let parentId = exists(churchDocPath) ? get(churchDocPath).data.get('parentChurchId', null) : null;
+        return request.auth != null && parentId != null &&
+          exists(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/churches/$(parentId)/members/$(request.auth.uid)).data.get('userType', '') in ['admin', 'super_admin', 'Admin', 'Super Admin', 'pastor', 'Pastor', 'church_admin', 'Church Admin'];
+      }
+
+      function isChurchTenantAdmin() {
+        return request.auth != null && (
+          isGlobalChurchAdmin() ||
+          isLocalChurchMemberAdmin() ||
+          isParentChurchMemberAdmin() ||
+          exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid))
+        );
+      }
+
+      // Checks whether signed-in user is Leader or Assistant Leader of a given Care Cell in this church
+      function isAssignedCareCellLeaderForCell(cellId) {
+        let hasCell = request.auth != null && cellId != null && cellId != '' && exists(/databases/$(database)/documents/churches/$(churchId)/careCells/$(cellId));
+        let cellData = hasCell ? get(/databases/$(database)/documents/churches/$(churchId)/careCells/$(cellId)).data : {};
+        return hasCell && (
+          cellData.get('leaderId', '') == request.auth.uid ||
+          cellData.get('assistantLeaderId', '') == request.auth.uid
+        );
+      }
+
+      function isMemberLocationSelf(memberId) {
+        let memberPath = /databases/$(database)/documents/churches/$(churchId)/members/$(memberId);
+        let hasMember = exists(memberPath);
+        let mData = hasMember ? get(memberPath).data : {};
+        return request.auth != null && (
+          request.auth.uid == memberId ||
+          (hasMember && mData.get('uid', '') == request.auth.uid) ||
+          (hasMember && request.auth.token.email != null && mData.get('email', '') == request.auth.token.email) ||
+          (hasMember && request.auth.token.phone_number != null && (
+            mData.get('phone', '') == request.auth.token.phone_number ||
+            ('+91' + mData.get('phone', '')) == request.auth.token.phone_number ||
+            mData.get('phoneNumber', '') == request.auth.token.phone_number ||
+            ('+91' + mData.get('phoneNumber', '')) == request.auth.token.phone_number
+          ))
+        );
+      }
 
       // Church info is public — allow lookup by code even before login (needed during signup).
       allow read: if true;
@@ -160,6 +299,10 @@ service cloud.firestore {
       match /events/{docId} {
         allow read: if isAuthenticated();
         allow write: if isChurchAdmin();
+
+        match /attendees/{attendeeId} {
+          allow read, write: if isAuthenticated();
+        }
       }
 
       // Sermons
@@ -180,6 +323,17 @@ service cloud.firestore {
         allow write: if isChurchAdmin();
       }
 
+      // Gallery Albums
+      match /gallery_albums/{albumId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+        
+        match /photos/{photoId} {
+          allow read: if isAuthenticated();
+          allow write: if isChurchAdmin();
+        }
+      }
+
       // About Us content
       match /aboutUs/{docId} {
         allow read: if isAuthenticated();
@@ -196,13 +350,69 @@ service cloud.firestore {
       match /members/{memberId} {
         allow read: if isAuthenticated() && (isOwner(memberId) || isChurchAdmin());
         allow create: if isAuthenticated(); // Allow new member creation during signup
-        allow update: if isAuthenticated() && (isOwner(memberId) || isChurchAdmin());
-        allow delete: if isChurchAdmin();
+        allow update: if isAuthenticated() && (isOwner(memberId) || isChurchAdmin() || (request.auth.token.phone_number != null && resource.data.phone == request.auth.token.phone_number));
+        allow delete: if isChurchAdmin() || (isAuthenticated() && request.auth.token.phone_number != null && resource.data.phone == request.auth.token.phone_number);
       }
 
       // Member Subscriptions
       match /members/{memberId}/subscriptions/{subId} {
         allow read, write: if isAuthenticated() && (isOwner(memberId) || isChurchAdmin());
+      }
+
+      // Member Notifications (Roster assignments, alerts, reminders)
+      match /members/{memberId}/notifications/{notifId} {
+        allow read, write: if isAuthenticated();
+      }
+
+      // Service Roster: Service Plans & Subcollections
+      match /servicePlans/{planId} {
+        allow read: if isAuthenticated();
+        allow create, delete: if isChurchAdmin();
+        allow update: if isAuthenticated();
+
+        match /assignmentQueues/{roleId} {
+          allow read, write: if isAuthenticated();
+        }
+
+        match /rehearsals/{rehearsalId} {
+          allow read: if isAuthenticated();
+          allow write: if isChurchAdmin();
+        }
+
+        match /attendance/{docId} {
+          allow read, write: if isAuthenticated();
+        }
+
+        match /volunteerAttendance/{docId} {
+          allow read, write: if isAuthenticated();
+        }
+      }
+
+      // Service Roster: Templates, Ministry Teams, Categories
+      match /serviceTemplates/{templateId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      match /ministryTeams/{teamId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      match /activityCategories/{catId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin();
+      }
+
+      // Service Roster: Member Skills & Blockout Availability
+      match /memberSkills/{skillId} {
+        allow read: if isAuthenticated();
+        allow create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin();
+      }
+
+      match /memberAvailability/{availId} {
+        allow read, write: if isAuthenticated();
       }
 
       // Prayer Requests (church-scoped)
@@ -284,6 +494,115 @@ service cloud.firestore {
           allow read: if isAuthenticated();
           allow write: if isAuthenticated();
         }
+      }
+
+      // Attendance Records (Church-wide check-in logs)
+      match /attendanceRecords/{recordId} {
+        allow read, write: if isAuthenticated();
+      }
+
+      // Bible Quizzes
+      match /bibleQuizzes/{quizId} {
+        allow read: if isAuthenticated();
+        allow write: if isChurchAdmin() || churchId == 'global' || isAuthenticated();
+      }
+
+      // Quiz Attempts (members can create their own attempts, everyone can read leaderboard)
+      match /quizAttempts/{attemptId} {
+        allow read, write: if isAuthenticated();
+      }
+
+      // Care Cells: Member Visit Responses, Prayer Requests & Leader Collaboration
+      match /careCellVisits/{visitId} {
+        allow read: if isAuthenticated();
+        allow create: if isChurchAdmin() || (request.auth != null && isAssignedCareCellLeaderForCell(request.resource.data.get('cellId', '')));
+        allow delete: if isChurchAdmin();
+        allow update: if isAuthenticated();
+      }
+
+      // Smart Member Locations & Geocoding Cache (Strict church isolation + consent protection)
+      match /memberLocations/{memberId} {
+        allow read: if request.auth != null && (
+          isMemberLocationSelf(memberId) ||
+          isChurchTenantAdmin() ||
+          (resource != null && isAssignedCareCellLeaderForCell(resource.data.get('careCellId', '')))
+        );
+        allow create, update: if request.auth != null && (
+          isMemberLocationSelf(memberId) ||
+          isChurchTenantAdmin()
+        );
+        allow delete: if isChurchTenantAdmin();
+
+        match /privateHome/{docId} {
+          allow read: if request.auth != null && (
+            isMemberLocationSelf(memberId) ||
+            isChurchTenantAdmin() ||
+            (
+              exists(/databases/$(database)/documents/churches/$(churchId)/memberLocations/$(memberId)) &&
+              isAssignedCareCellLeaderForCell(
+                get(/databases/$(database)/documents/churches/$(churchId)/memberLocations/$(memberId)).data.get('careCellId', '')
+              )
+            )
+          );
+          allow write: if request.auth != null && (
+            isMemberLocationSelf(memberId) ||
+            isChurchTenantAdmin()
+          );
+        }
+      }
+
+      match /geocodeCache/{fingerprint} {
+        allow read, write: if false;
+      }
+
+      match /careCellPrayerRequests/{requestId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin() || resource.data.memberId == request.auth.uid;
+      }
+
+      match /careCellAnnouncements/{announcementId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin();
+      }
+
+      match /careCellFollowups/{followupId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin();
+      }
+
+      match /careCellMeetings/{meetingId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin();
+      }
+
+      match /careCellAttendance/{attendanceId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin();
+      }
+
+      // Church Chat & Group Messaging (multi-tenant strictly scoped per church)
+      match /chats/{chatId} {
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isChurchAdmin() || (
+          isAuthenticated() && (
+            (resource.data.adminIds is list && request.auth.uid in resource.data.adminIds) ||
+            resource.data.createdBy == request.auth.uid
+          )
+        );
+
+        match /messages/{messageId} {
+          allow read, create, update: if isAuthenticated();
+          allow delete: if isChurchAdmin() || isAuthenticated();
+        }
+      }
+
+      match /chat_blocks/{memberId} {
+        allow read, write: if isAuthenticated();
+      }
+
+      match /chat_reports/{reportId} {
+        allow create: if isAuthenticated();
+        allow read, update, delete: if isChurchAdmin();
       }
 
       // Any other church subcollection: authenticated members can read, admins can write

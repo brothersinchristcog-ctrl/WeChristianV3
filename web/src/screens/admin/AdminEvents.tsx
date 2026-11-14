@@ -1,9 +1,9 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDoc, getDocs, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, deleteDoc, setDoc, writeBatch } from 'firebase/firestore';
 
-const EVENT_TYPES = [
+const DEFAULT_EVENT_TYPES = [
   { label: 'Sunday Service', value: 'Sunday Service' },
   { label: 'Bible study', value: 'Bible study' },
   { label: "Women's Fasting Prayer", value: "Women's Fasting Prayer" },
@@ -19,6 +19,7 @@ const EVENT_TYPES = [
 
 const RECURRING_OPTIONS = [
   { label: 'One-time event', value: 'One-time event' },
+  { label: 'Every day', value: 'Every day' },
   { label: 'Every Sunday', value: 'Every Sunday' },
   { label: 'Every week', value: 'Every week' },
   { label: 'First Sunday', value: 'First Sunday' },
@@ -29,6 +30,7 @@ export default function AdminEventsPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [churchId, setChurchId] = useState<string>('');
+  const [customTypes, setCustomTypes] = useState<string[]>([]);
   
   const [view, setView] = useState<'list' | 'edit'>('list');
   const [editingEvent, setEditingEvent] = useState<any>(null);
@@ -37,12 +39,23 @@ export default function AdminEventsPage() {
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const allEventTypes = React.useMemo(() => {
+    const list = [...DEFAULT_EVENT_TYPES];
+    customTypes.forEach(ct => {
+      if (!list.some(item => item.value.toLowerCase() === ct.toLowerCase())) {
+        list.push({ label: ct, value: ct });
+      }
+    });
+    return list;
+  }, [customTypes]);
+
   // Exact Mobile App State Parity
   const [form, setForm] = useState({
     titleEn: '', titleTe: '',
     eventType: 'Sunday Service',
     descEn: '', descTe: '',
     date: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
     startTime: '10:00 AM', endTime: '12:00 PM',
     recurring: 'One-time event', recurrenceDuration: 1,
     publishStatus: 'Published',
@@ -88,6 +101,7 @@ export default function AdminEventsPage() {
         descEn: ev.descEn || '',
         descTe: ev.descTe || '',
         date: ev.date || new Date().toISOString().split('T')[0],
+        endDate: ev.endDate || ev.date || new Date().toISOString().split('T')[0],
         startTime: ev.startTime || '10:00 AM',
         endTime: ev.endTime || '12:00 PM',
         recurring: ev.recurring || 'One-time event',
@@ -110,7 +124,9 @@ export default function AdminEventsPage() {
     } else {
       setForm({
         titleEn: '', titleTe: '', eventType: 'Sunday Service', descEn: '', descTe: '',
-        date: new Date().toISOString().split('T')[0], startTime: '10:00 AM', endTime: '12:00 PM',
+        date: new Date().toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0],
+        startTime: '10:00 AM', endTime: '12:00 PM',
         recurring: 'One-time event', recurrenceDuration: 1, publishStatus: 'Published',
         venueEn: 'Main Church', venueTe: '', address: '', mode: 'In person',
         rsvpEnabled: true, rsvpPublic: true, capAttendance: false, audience: 'All members',
@@ -136,6 +152,32 @@ export default function AdminEventsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!churchId) return;
+
+    if (!form.date) {
+      setMessage("Start Date is required.");
+      return;
+    }
+    if (!form.endDate) {
+      setMessage("End Date is required.");
+      return;
+    }
+    if (!form.startTime) {
+      setMessage("Start Time is required.");
+      return;
+    }
+    if (!form.endTime) {
+      setMessage("End Time is required.");
+      return;
+    }
+    if (form.endDate < form.date) {
+      setMessage("End Date cannot be before Start Date.");
+      return;
+    }
+    if (form.endDate === form.date && form.endTime <= form.startTime) {
+      setMessage(`End Time (${form.endTime}) cannot be earlier than or equal to Start Time (${form.startTime}) on the same date. If this event continues past midnight, please set the End Date to the next day.`);
+      return;
+    }
+
     setSaving(true);
     setMessage('');
     try {
@@ -150,8 +192,56 @@ export default function AdminEventsPage() {
       if (editingEvent?.id) {
         await setDoc(doc(db, 'churches', churchId, 'events', editingEvent.id), payload, { merge: true });
       } else {
-        const newRef = doc(collection(db, 'churches', churchId, 'events'));
-        await setDoc(newRef, { ...payload, id: newRef.id, createdAt: new Date().toISOString() });
+        const isRecurring = form.recurring && form.recurring !== 'One-time event';
+        if (isRecurring) {
+          const groupId = `req_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+          const [year, month, day] = form.date.split('-').map(Number);
+          let current = new Date(year, month - 1, day);
+          let targetEnd: Date;
+          if (form.endDate && form.endDate > form.date) {
+            const [ey, em, ed] = form.endDate.split('-').map(Number);
+            targetEnd = new Date(ey, em - 1, ed, 23, 59, 59);
+          } else {
+            targetEnd = new Date(year, month - 1 + Number(form.recurrenceDuration || 1), day, 23, 59, 59);
+          }
+          const dates: string[] = [];
+          const typeLower = (form.recurring || '').toLowerCase();
+          while (current <= targetEnd && dates.length < 366) {
+            const y = current.getFullYear();
+            const m = String(current.getMonth() + 1).padStart(2, '0');
+            const d = String(current.getDate()).padStart(2, '0');
+            dates.push(`${y}-${m}-${d}`);
+            if (typeLower.includes('daily') || typeLower.includes('every day')) {
+              current.setDate(current.getDate() + 1);
+            } else if (typeLower.includes('week') || typeLower.includes('every sunday')) {
+              current.setDate(current.getDate() + 7);
+            } else if (typeLower.includes('monthly')) {
+              current.setMonth(current.getMonth() + 1);
+            } else {
+              break;
+            }
+          }
+          const batch = writeBatch(db);
+          dates.forEach((dateStr, idx) => {
+            const newRef = doc(collection(db, 'churches', churchId, 'events'));
+            batch.set(newRef, {
+              ...payload,
+              id: newRef.id,
+              date: dateStr,
+              endDate: dateStr,
+              seriesStartDate: form.date,
+              seriesEndDate: form.endDate,
+              recurringGroupId: groupId,
+              occurrenceIndex: idx + 1,
+              totalOccurrences: dates.length,
+              createdAt: new Date().toISOString()
+            });
+          });
+          await batch.commit();
+        } else {
+          const newRef = doc(collection(db, 'churches', churchId, 'events'));
+          await setDoc(newRef, { ...payload, id: newRef.id, createdAt: new Date().toISOString() });
+        }
       }
 
       await fetchEvents();
@@ -217,7 +307,7 @@ export default function AdminEventsPage() {
                 
                 <div className="flex flex-col gap-1 mb-4">
                   <div className="flex items-center text-sm text-gray-600">
-                    <span className="mr-2">📅</span> {ev.date}
+                    <span className="mr-2">📅</span> Start: {ev.date} {ev.endDate && ev.endDate !== ev.date ? `• End: ${ev.endDate}` : ''}
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <span className="mr-2">⏰</span> {ev.startTime} - {ev.endTime}
@@ -254,13 +344,45 @@ export default function AdminEventsPage() {
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Event Title</label>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Event Title <span className="text-red-500">*</span></label>
                   <input type="text" required value={form.titleEn} onChange={e => setForm({...form, titleEn: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Event Type</label>
-                  <select value={form.eventType} onChange={e => setForm({...form, eventType: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none bg-white">
-                    {EVENT_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-bold text-ink-soft uppercase">Event Type <span className="text-red-500">*</span></label>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        const entered = window.prompt("Enter new Event Type:");
+                        if (entered && entered.trim()) {
+                          const val = entered.trim();
+                          setCustomTypes(prev => prev.includes(val) ? prev : [...prev, val]);
+                          setForm(f => ({ ...f, eventType: val }));
+                        }
+                      }}
+                      className="text-xs font-bold text-gold-deep hover:underline"
+                    >
+                      + New
+                    </button>
+                  </div>
+                  <select 
+                    value={form.eventType} 
+                    onChange={e => {
+                      if (e.target.value === '__NEW__') {
+                        const entered = window.prompt("Enter new Event Type:");
+                        if (entered && entered.trim()) {
+                          const val = entered.trim();
+                          setCustomTypes(prev => prev.includes(val) ? prev : [...prev, val]);
+                          setForm({ ...form, eventType: val });
+                        }
+                      } else {
+                        setForm({...form, eventType: e.target.value});
+                      }
+                    }} 
+                    className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none bg-white"
+                  >
+                    {allEventTypes.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    <option value="__NEW__">+ New Event Type...</option>
                   </select>
                 </div>
                 <div>
@@ -268,7 +390,7 @@ export default function AdminEventsPage() {
                   <textarea rows={3} value={form.descEn} onChange={e => setForm({...form, descEn: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none resize-none"></textarea>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Venue Name</label>
+                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Venue Name <span className="text-red-500">*</span></label>
                   <input type="text" required value={form.venueEn} onChange={e => setForm({...form, venueEn: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
                 </div>
               </div>
@@ -278,17 +400,23 @@ export default function AdminEventsPage() {
               <h3 className="text-sm font-bold text-ink mb-4 border-b border-gray-100 pb-2">Scheduling</h3>
               
               <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Date</label>
-                  <input type="date" required value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Start Date <span className="text-red-500">*</span></label>
+                    <input type="date" required value={form.date} onChange={e => setForm({...form, date: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-ink-soft uppercase mb-1">End Date <span className="text-red-500">*</span></label>
+                    <input type="date" required value={form.endDate || form.date} onChange={e => setForm({...form, endDate: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
+                  </div>
                 </div>
                 <div className="flex gap-4">
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Start Time</label>
+                    <label className="block text-xs font-bold text-ink-soft uppercase mb-1">Start Time <span className="text-red-500">*</span></label>
                     <input type="text" placeholder="10:00 AM" required value={form.startTime} onChange={e => setForm({...form, startTime: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-ink-soft uppercase mb-1">End Time</label>
+                    <label className="block text-xs font-bold text-ink-soft uppercase mb-1">End Time <span className="text-red-500">*</span></label>
                     <input type="text" placeholder="12:00 PM" required value={form.endTime} onChange={e => setForm({...form, endTime: e.target.value})} className="w-full p-3 border border-gray-300 rounded-lg text-ink focus:border-ink outline-none" />
                   </div>
                 </div>

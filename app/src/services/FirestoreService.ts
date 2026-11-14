@@ -1,5 +1,6 @@
 import { firestore, FieldValue } from './firebaseConfig';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { formatDateDisplay } from '../utils/DateUtils';
 
 // ─── Data Interfaces ─────────────────────────────────────────────────────────
 
@@ -45,8 +46,48 @@ export interface AppMember {
   accountId?: string;
   description?: string;
   mailingCity?: string;
+  city?: string;
+  village?: string;
   mailingState?: string;
   mailingStreet?: string;
+  dob?: string;
+  baptismDate?: string;
+  anniversaryDate?: string;
+  primarySkill?: string;
+  secondarySkill?: string;
+  skills?: string[];
+}
+
+export interface BaptismHistoryItem {
+  status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'completed';
+  note?: string;
+  changedBy?: string;
+  timestamp: string | any;
+}
+
+export interface BaptismRequest {
+  id: string;
+  churchId: string;
+  churchName?: string;
+  memberId: string;
+  memberName: string;
+  memberPhone: string;
+  dob?: string;
+  age?: number | string;
+  gender?: 'Male' | 'Female' | 'Other' | string;
+  address?: string;
+  previousBaptism?: boolean | string;
+  reason: string;
+  preferredDate?: string;
+  additionalNotes?: string;
+  status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'completed';
+  adminRemarks?: string;
+  confirmedDate?: string;
+  confirmedTime?: string;
+  confirmedLocation?: string;
+  history?: BaptismHistoryItem[];
+  createdAt: any;
+  updatedAt: any;
 }
 
 export interface FirestorePromise {
@@ -92,12 +133,44 @@ export interface WorshipSong {
   id: string;
   title: string;
   titleTe?: string;
-  artist: string;
-  key: string;
+  titleEn?: string;
+  titleHi?: string;
+  titleTa?: string;
+  titleMr?: string;
+  titleMl?: string;
+  titleKn?: string;
+  artist?: string; // made optional
+  key?: string; // made optional
   lyrics?: string;
+  lyricsTe?: string;
+  lyricsEn?: string;
+  lyricsHi?: string;
+  lyricsTa?: string;
+  lyricsMr?: string;
+  lyricsMl?: string;
+  lyricsKn?: string;
   category?: string;
   youtubeId?: string;
   isThemeSong?: boolean;
+  isDefault?: boolean;
+  overridesMasterSongId?: string;
+  isHidden?: boolean;
+  isChurchOwn?: boolean;
+  translations?: Record<string, { title?: string; lyrics?: string }>;
+  timeSignature?: string;
+  tempo?: string;
+  verses?: string;
+  prelude?: string;
+  interlude?: string;
+  notes?: string;
+  ledBy?: string;
+}
+export interface EventServiceItem {
+  id: string;
+  name: string;
+  time?: string;
+  songLeader?: string;
+  songs: WorshipSong[];
 }
 
 export interface ScheduleEvent {
@@ -106,6 +179,7 @@ export interface ScheduleEvent {
   title: string;
   titleTelugu?: string;
   date: string;
+  endDate?: string;
   time?: string;
   startTime: string;
   endTime: string;
@@ -117,6 +191,8 @@ export interface ScheduleEvent {
   image: string;
   bannerUrl?: string;
   youtubeId?: string;
+  eventType?: string;
+  type?: string;
 }
 
 export interface Sermon {
@@ -132,7 +208,15 @@ export interface Sermon {
   viewCount?: number;
   status?: string;
   series?: string;
+  categories?: string;
   audioUrl?: string;
+  notesUrl?: string;
+  notesFileName?: string;
+  notesFileType?: string;
+  notesText?: string;
+  notesFileSize?: number;
+  thumbnailUrl?: string;
+  imageUrl?: string;
 }
 
 export interface ChurchExpense {
@@ -165,6 +249,9 @@ export interface ChurchDonation {
   paymentMethod: string;
   notes?: string;
   addedBy?: string;
+  status?: string;
+  receiptNo?: string;
+  receiptUrl?: string;
   createdAt?: any;
   updatedAt?: any;
 }
@@ -192,9 +279,139 @@ export interface ChurchInvoice {
 
 class FirestoreService {
   private churchId: string | null = null;
+  private _cache = new Map<string, { data: any; ts: number; churchId: string }>();
+  private _inFlight = new Map<string, Promise<any>>();
+  private _prefetchDoneForChurch: string | null = null;
+
+  /**
+   * Synchronously read cached data for the currently active churchId.
+   * Used by screens in useState initializers for 0ms instant tab rendering.
+   */
+  getCachedSync<T>(key: string, explicitChurchId?: string): T | null {
+    const cid = explicitChurchId || this.churchId;
+    if (!cid) return null;
+    const entry = this._cache.get(`${cid}:${key}`);
+    return entry ? (entry.data as T) : null;
+  }
+
+  /**
+   * Invalidate cached entries matching any prefix (or all entries for a church if no prefixes).
+   */
+  invalidateCache(prefixes?: string[], explicitChurchId?: string) {
+    const cid = explicitChurchId || this.churchId;
+    if (!prefixes || prefixes.length === 0) {
+      if (!cid) {
+        this._cache.clear();
+        this._inFlight.clear();
+      } else {
+        for (const k of Array.from(this._cache.keys())) {
+          if (k.startsWith(`${cid}:`)) this._cache.delete(k);
+        }
+        for (const k of Array.from(this._inFlight.keys())) {
+          if (k.startsWith(`${cid}:`)) this._inFlight.delete(k);
+        }
+      }
+      return;
+    }
+    const targets = prefixes.map(p => (cid ? `${cid}:${p}` : p));
+    for (const k of Array.from(this._cache.keys())) {
+      if (targets.some(t => (cid ? k.startsWith(t) : k.includes(`:${t}`)))) {
+        this._cache.delete(k);
+      }
+    }
+    for (const k of Array.from(this._inFlight.keys())) {
+      if (targets.some(t => (cid ? k.startsWith(t) : k.includes(`:${t}`)))) {
+        this._inFlight.delete(k);
+      }
+    }
+  }
+
+  /**
+   * Stale-While-Revalidate cache wrapper with in-flight request deduplication.
+   */
+  private async _swr<T>(
+    key: string,
+    fetcher: () => Promise<T>,
+    options?: { ttlMs?: number; staleMs?: number; forceFresh?: boolean; churchId?: string }
+  ): Promise<T> {
+    const cid = options?.churchId || (await this.getChurchId()) || 'default';
+    const cacheKey = `${cid}:${key}`;
+    const ttlMs = options?.ttlMs ?? 60_000;
+    const staleMs = options?.staleMs ?? 900_000;
+    const now = Date.now();
+    const cached = this._cache.get(cacheKey);
+
+    if (!options?.forceFresh && cached) {
+      const age = now - cached.ts;
+      if (age < ttlMs) {
+        return cached.data as T;
+      }
+      if (age < staleMs) {
+        if (!this._inFlight.has(cacheKey)) {
+          const bg = fetcher()
+            .then(fresh => {
+              this._cache.set(cacheKey, { data: fresh, ts: Date.now(), churchId: cid });
+              return fresh;
+            })
+            .catch(() => cached.data)
+            .finally(() => {
+              this._inFlight.delete(cacheKey);
+            });
+          this._inFlight.set(cacheKey, bg);
+        }
+        return cached.data as T;
+      }
+    }
+
+    const existing = this._inFlight.get(cacheKey);
+    if (existing && !options?.forceFresh) {
+      return existing as Promise<T>;
+    }
+
+    const req = fetcher()
+      .then(data => {
+        this._cache.set(cacheKey, { data, ts: Date.now(), churchId: cid });
+        return data;
+      })
+      .finally(() => {
+        this._inFlight.delete(cacheKey);
+      });
+
+    this._inFlight.set(cacheKey, req);
+    return req;
+  }
+
+  /**
+   * Quietly pre-warm core church collections in background after church selection / boot
+   * so switching to Events, Sermons, Songs, Promises, or Admin tabs renders with 0ms delay.
+   */
+  async prefetchChurchData(explicitChurchId?: string) {
+    try {
+      const cid = explicitChurchId || (await this.getChurchId());
+      if (!cid || this._prefetchDoneForChurch === cid) return;
+      this._prefetchDoneForChurch = cid;
+      await Promise.allSettled([
+        this.getEvents(),
+        this.getSermons(64),
+        this.getDailyPromisesArchive(),
+        this.getWorshipSongs(),
+        this.getAllMembers(),
+      ]);
+    } catch {
+      // Non-critical background warmup
+    }
+  }
 
   async setChurchId(id: string) {
+    const prevId = this.churchId;
     this.churchId = id;
+    if (prevId && prevId !== id) {
+      this._cache.clear();
+      this._inFlight.clear();
+      this._worshipSongsCache = null;
+      this._worshipSongsCacheChurchId = null;
+      this._prefetchDoneForChurch = null;
+    }
     await AsyncStorage.setItem('@active_church_id', id);
   }
 
@@ -211,17 +428,58 @@ class FirestoreService {
     return firestore().collection('churches').doc(id).collection(collectionName);
   }
 
-  // ─── Expenses ───────────────────────────────────────────────────────────────
+  async getChurchDoc() {
+    const id = await this.getChurchId();
+    if (!id) return null;
+    return firestore().collection('churches').doc(id);
+  }
+
+  // ─── STRICT DUPLICATE CHECK FOR CHURCH ───
+  async checkMemberExistsInChurch(churchId: string, phone: string, excludeMemberId?: string): Promise<boolean> {
+    if (!phone) return false;
+    const rawDigits = phone.replace(/\D/g, '');
+    if (rawDigits.length < 10) return false;
+    const last10 = rawDigits.slice(-10);
+    const plus91 = `+91${last10}`;
+    const format91 = `91${last10}`;
+    
+    // Check local church collection directly
+    const possibleFormats = [last10, plus91, format91, phone, `+91 ${last10}`];
+    
+    try {
+      const queries = possibleFormats.map(format => 
+        firestore().collection('churches').doc(churchId).collection('members').where('phone', '==', format).get()
+      );
+      const results = await Promise.all(queries);
+      for (const snap of results) {
+        if (!snap.empty) {
+          if (excludeMemberId) {
+            const hasOther = snap.docs.some(doc => doc.id !== excludeMemberId);
+            if (hasOther) return true;
+          } else {
+            return true;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error checking duplicate member:', e);
+    }
+    return false;
+  }
+
+  // ─── App Users / Auth ───────────────────────────────────────────────────────────────
 
   async getExpenses(limitNum = 200): Promise<ChurchExpense[]> {
-    try {
-      const expensesRef = await this.getCollection('expenses');
-      const snapshot = await expensesRef.orderBy('date', 'desc').limit(limitNum).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChurchExpense));
-    } catch (error) {
-      console.error('Error fetching expenses:', error);
-      return [];
-    }
+    return this._swr(`expenses_${limitNum}`, async () => {
+      try {
+        const expensesRef = await this.getCollection('expenses');
+        const snapshot = await expensesRef.orderBy('date', 'desc').limit(limitNum).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChurchExpense));
+      } catch (error) {
+        console.error('Error fetching expenses:', error);
+        return [];
+      }
+    });
   }
 
   async getExpense(id: string): Promise<ChurchExpense | null> {
@@ -239,19 +497,22 @@ class FirestoreService {
   async createExpense(data: Partial<ChurchExpense>): Promise<string> {
     try {
       const expensesRef = await this.getCollection('expenses');
+      let id: string;
       if (data.id) {
         await expensesRef.doc(data.id).set({
           ...data,
           createdAt: firestore.FieldValue.serverTimestamp()
         });
-        return data.id;
+        id = data.id;
       } else {
         const docRef = await expensesRef.add({
           ...data,
           createdAt: firestore.FieldValue.serverTimestamp()
         });
-        return docRef.id;
+        id = docRef.id;
       }
+      this.invalidateCache(['expenses_']);
+      return id;
     } catch (error) {
       console.error('Error creating expense:', error);
       throw error;
@@ -262,6 +523,7 @@ class FirestoreService {
     try {
       const expensesRef = await this.getCollection('expenses');
       await expensesRef.doc(id).update(data);
+      this.invalidateCache(['expenses_']);
     } catch (error) {
       console.error('Error updating expense:', error);
       throw error;
@@ -272,6 +534,7 @@ class FirestoreService {
     try {
       const expensesRef = await this.getCollection('expenses');
       await expensesRef.doc(id).delete();
+      this.invalidateCache(['expenses_']);
     } catch (error) {
       console.error('Error deleting expense:', error);
       throw error;
@@ -281,33 +544,38 @@ class FirestoreService {
   // ─── Invoices ───────────────────────────────────────────────────────────────
 
   async getInvoices(limitNum = 200): Promise<ChurchInvoice[]> {
-    try {
-      const invoicesRef = await this.getCollection('invoices');
-      const snapshot = await invoicesRef.orderBy('createdAt', 'desc').limit(limitNum).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChurchInvoice));
-    } catch (error) {
-      console.error('Error fetching invoices:', error);
-      return [];
-    }
+    return this._swr(`invoices_${limitNum}`, async () => {
+      try {
+        const invoicesRef = await this.getCollection('invoices');
+        const snapshot = await invoicesRef.orderBy('createdAt', 'desc').limit(limitNum).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChurchInvoice));
+      } catch (error) {
+        console.error('Error fetching invoices:', error);
+        return [];
+      }
+    });
   }
 
   async saveInvoice(data: Partial<ChurchInvoice>): Promise<string> {
     try {
       const invoicesRef = await this.getCollection('invoices');
       // If the ID is explicitly provided (e.g. EXP-2026-00028), use it as the doc ID
+      let id: string;
       if (data.id) {
         await invoicesRef.doc(data.id).set({
           ...data,
           createdAt: firestore.FieldValue.serverTimestamp()
         });
-        return data.id;
+        id = data.id;
       } else {
         const docRef = await invoicesRef.add({
           ...data,
           createdAt: firestore.FieldValue.serverTimestamp()
         });
-        return docRef.id;
+        id = docRef.id;
       }
+      this.invalidateCache(['invoices_']);
+      return id;
     } catch (error) {
       console.error('Error saving invoice:', error);
       throw error;
@@ -321,6 +589,7 @@ class FirestoreService {
         ...data,
         updatedAt: firestore.FieldValue.serverTimestamp()
       }, { merge: true });
+      this.invalidateCache(['invoices_']);
     } catch (error) {
       console.error('Error updating invoice:', error);
       throw error;
@@ -331,6 +600,7 @@ class FirestoreService {
     try {
       const invoicesRef = await this.getCollection('invoices');
       await invoicesRef.doc(id).delete();
+      this.invalidateCache(['invoices_']);
     } catch (error) {
       console.error('Error deleting invoice:', error);
       throw error;
@@ -353,17 +623,321 @@ class FirestoreService {
     }
   }
 
+  async deleteChurchSubscriptionHistory(churchId: string, subscriptionId: string) {
+    try {
+      await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('subscriptions')
+        .doc(subscriptionId)
+        .delete();
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting subscription history:', error);
+      throw error;
+    }
+  }
+
+  async getSubscribedMembers(churchId: string, limitNum: number = 20, lastDoc?: any, searchQuery?: string, statusFilter: string = 'all') {
+    try {
+      let membersRef = firestore().collection('churches').doc(churchId).collection('members');
+      
+      let query: any = membersRef;
+      
+      // For active/inactive, we can query directly
+      if (statusFilter === 'active' || statusFilter === 'inactive') {
+        query = query.where('subscription.status', '==', statusFilter);
+      }
+      
+      if (searchQuery && searchQuery.trim().length > 0) {
+         // Firestore doesn't support full-text search directly via simple queries for case-insensitive substrings.
+         // For a simple implementation, we can order by name and use startAt/endAt.
+         // Note: If 'name' is missing, it might use 'firstName'. This requires a composite index.
+         // To avoid index issues and keep existing functionality undisturbed, we will fetch without search 
+         // and filter locally if a search query is provided, or rely on a simple where clause if possible.
+         // For now, we will fetch ordered by subscription.validUntil.
+      }
+      // If we are filtering for trial or searching, we fetch a larger batch because we have to filter locally
+      // (since missing fields or partial strings can't be queried directly in Firestore).
+      const fetchLimit = (statusFilter === 'trial' || (searchQuery && searchQuery.trim().length > 0)) ? 100 : limitNum;
+      query = query.limit(fetchLimit);
+
+      if (lastDoc) {
+        query = query.startAfter(lastDoc);
+      }
+
+      const snapshot = await query.get();
+      
+      let docs = snapshot.docs;
+      
+      // Filter out members who have Left
+      docs = docs.filter((doc: any) => doc.data()?.status !== 'Left');
+      
+      // Local filtering for trial (including missing status)
+      if (statusFilter === 'trial') {
+         docs = docs.filter((doc: any) => {
+           const status = doc.data()?.subscription?.status;
+           return status === 'trial' || !status;
+         });
+      }
+      
+      // Local search filter as fallback if search query is provided
+      if (searchQuery && searchQuery.trim().length > 0) {
+         const lowerSearch = searchQuery.toLowerCase();
+         docs = docs.filter((doc: any) => {
+           const data = doc.data();
+           const name = (data.name || data.firstName || '').toLowerCase();
+           return name.includes(lowerSearch);
+         });
+      }
+      
+      const members = docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+
+      return {
+        members,
+        lastDoc: snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null
+      };
+    } catch (error) {
+      console.error('Error fetching subscribed members:', error);
+      return { members: [], lastDoc: null };
+    }
+  }
+
+  async getMemberSubscriptionHistory(churchId: string, memberId: string) {
+    try {
+      const snap = await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('members')
+        .doc(memberId)
+        .collection('subscriptions')
+        .orderBy('paidAt', 'desc')
+        .get();
+        
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error fetching member subscription history:', error);
+      return [];
+    }
+  }
+
+  async getChurchSubscriptionHistory(churchId: string) {
+    try {
+      const snap = await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('subscriptions')
+        .orderBy('paidAt', 'desc')
+        .get();
+        
+      return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+      console.error('Error fetching church subscription history:', error);
+      return [];
+    }
+  }
+
+  async deleteSubscriptionHistory(churchId: string, memberId: string, historyId: string) {
+    try {
+      await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('members')
+        .doc(memberId)
+        .collection('subscriptions')
+        .doc(historyId)
+        .delete();
+      return true;
+    } catch (e) {
+      console.error('Error deleting subscription history:', e);
+      return false;
+    }
+  }
+
+  async logCancelledSubscription(churchId: string, memberId: string, amount: number, plan: string) {
+    try {
+      await firestore()
+        .collection('churches')
+        .doc(churchId)
+        .collection('members')
+        .doc(memberId)
+        .collection('subscriptions')
+        .add({
+          amount,
+          plan,
+          status: 'cancelled',
+          paidAt: firestore.FieldValue.serverTimestamp()
+        });
+      return true;
+    } catch (e) {
+      console.warn('Error logging cancelled subscription:', e);
+      return false;
+    }
+  }
+
+  /**
+   * Redeem a Voucher Code for a Church
+   * Tries Cloud Function first; if not reachable, runs atomic client Firestore transaction.
+   */
+  async redeemVoucher({
+    code,
+    churchId,
+    churchName,
+    userId,
+    userName,
+  }: {
+    code: string;
+    churchId: string;
+    churchName?: string;
+    userId?: string;
+    userName?: string;
+  }) {
+    const normalizedCode = code.trim().toUpperCase().replace(/\s+/g, '');
+
+    // 1. Try Cloud Function
+    try {
+      const { functions } = require('./firebaseConfig');
+      const redeemFn = functions().httpsCallable('redeemVoucherV1');
+      const response = await redeemFn({
+        code: normalizedCode,
+        churchId,
+        churchName,
+        userId,
+        userName,
+      });
+      if (response?.data) return response.data;
+    } catch (cfError: any) {
+      console.log('Cloud Function unavailable, running atomic client transaction fallback...', cfError?.message);
+    }
+
+    // 2. Client Firestore Atomic Transaction Fallback
+    return await firestore().runTransaction(async (transaction) => {
+      const voucherRef = firestore().collection('vouchers').doc(normalizedCode);
+      const churchRef = firestore().collection('churches').doc(churchId);
+
+      const voucherDoc = await transaction.get(voucherRef);
+      if (!voucherDoc.exists) {
+        throw new Error('Invalid voucher code. Please check and try again.');
+      }
+
+      const voucherData = voucherDoc.data();
+      if (!voucherData) throw new Error('Voucher data is empty.');
+
+      if (voucherData.status === 'redeemed') {
+        throw new Error('This voucher code has already been redeemed.');
+      }
+      if (voucherData.status === 'disabled') {
+        throw new Error('This voucher code has been disabled. Please contact support.');
+      }
+
+      const now = new Date();
+      if (voucherData.voucherExpiryDate) {
+        const expDate = new Date(voucherData.voucherExpiryDate);
+        if (expDate < now) {
+          throw new Error(`This voucher expired on ${expDate.toLocaleDateString()} and cannot be used.`);
+        }
+      }
+
+      const churchDoc = await transaction.get(churchRef);
+      if (!churchDoc.exists) {
+        throw new Error('Church record not found.');
+      }
+
+      const churchData = churchDoc.data();
+      let baseDate = now;
+      const currentValidUntil = churchData?.subscription?.validUntil;
+      const trialEndsAt = churchData?.subscription?.trialEndsAt;
+
+      if (currentValidUntil && new Date(currentValidUntil) > now) {
+        baseDate = new Date(currentValidUntil);
+      } else if (trialEndsAt && new Date(trialEndsAt) > now) {
+        baseDate = new Date(trialEndsAt);
+      } else if (churchData?.createdAt) {
+        const createdDate = churchData.createdAt.toDate ? churchData.createdAt.toDate() : new Date(churchData.createdAt);
+        const trialEnd = new Date(createdDate.getTime() + 60 * 24 * 60 * 60 * 1000);
+        if (trialEnd > now) baseDate = trialEnd;
+      }
+
+      const durationDays = voucherData.durationDays || 365;
+      const newExpiry = new Date(baseDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+      const redemptionDateIso = now.toISOString();
+      const newExpiryIso = newExpiry.toISOString();
+      const transactionId = `VOUCHER_${normalizedCode}_${Date.now()}`;
+
+      // Update Voucher
+      transaction.update(voucherRef, {
+        status: 'redeemed',
+        redeemedAt: redemptionDateIso,
+        redeemedChurchId: churchId,
+        redeemedChurchName: churchName || churchData?.name || 'Church',
+        redeemedByUserId: userId || null,
+        redeemedByUserName: userName || 'Admin',
+      });
+
+      // Update Church
+      transaction.update(churchRef, {
+        'subscription.status': 'active',
+        'subscription.tier': 'premium',
+        'subscriptionTier': 'premium',
+        'subscription.validUntil': newExpiryIso,
+        'subscription.lastVoucherCode': normalizedCode,
+        'subscription.voucherRedeemedAt': redemptionDateIso,
+        'subscription.lastPaymentId': transactionId,
+        'isActive': true,
+      });
+
+      // Add subscription audit record
+      const receiptRef = churchRef.collection('subscriptions').doc(transactionId);
+      transaction.set(receiptRef, {
+        type: 'voucher',
+        voucherCode: normalizedCode,
+        plan: 'annual',
+        amount: 0,
+        status: 'active',
+        durationDays,
+        validUntil: newExpiryIso,
+        paidAt: redemptionDateIso,
+        paymentId: transactionId,
+        redeemedBy: userId || null,
+        redeemedByName: userName || 'Church Admin',
+        notes: `Redeemed Voucher: ${normalizedCode} (${durationDays} Days Subscription)`,
+        platform: 'mobile',
+      });
+
+      return {
+        success: true,
+        message: `Voucher ${normalizedCode} applied successfully! Subscription active until ${newExpiry.toLocaleDateString()}.`,
+        validUntil: newExpiryIso,
+        voucherCode: normalizedCode,
+        durationDays,
+      };
+    });
+  }
+
   // --- 👤 Global User & Member Logic ---
 
   async getGlobalUser(uid: string): Promise<GlobalUser | null> {
     try {
-      // Find the member across all churches to determine their primary church
-      const snap = await firestore().collectionGroup('members').where('id', '==', uid).limit(1).get();
+      // Find all memberships across all churches for this uid
+      const snap = await firestore().collectionGroup('members').where('id', '==', uid).get();
       if (!snap.empty) {
-        const doc = snap.docs[0];
-        // The parent of the member doc is the 'members' collection. The parent of that is the church doc.
-        const churchId = doc.ref.parent.parent?.id;
-        return { uid: doc.id, primaryChurchId: churchId, ...doc.data() } as GlobalUser;
+        // Prioritize the 'Active' membership
+        let activeDoc = snap.docs.find(d => {
+          const data = d.data();
+          return !data.status || data.status === 'Active'; // default to Active if missing
+        });
+
+        if (!activeDoc) {
+          // If the user has memberships but NONE are active (all 'Left' or 'Inactive'),
+          // we return null to force them into onboarding so they can join a new church.
+          return null;
+        }
+
+        const churchId = activeDoc.ref.parent.parent?.id;
+        return { uid: activeDoc.id, primaryChurchId: churchId, ...activeDoc.data() } as GlobalUser;
       }
       return null;
     } catch (error) {
@@ -385,8 +959,17 @@ class FirestoreService {
     }
   }
 
-  async checkContactExists(phone: string, churchId?: string): Promise<any> {
-    const rawDigits = phone.replace(/\D/g, '');
+  async checkContactExists(phone: string, churchId?: string, strictChurch?: boolean): Promise<any> {
+    const rawDigits = (phone || '').replace(/\D/g, '');
+    const last10 = rawDigits.slice(-10);
+    if (!strictChurch && last10.length >= 10) {
+      return this._swr(`contact_exists_${last10}`, () => this._checkContactExistsUncached(phone, churchId, false), { ttlMs: 300_000, staleMs: 900_000, churchId });
+    }
+    return this._checkContactExistsUncached(phone, churchId, strictChurch);
+  }
+
+  private async _checkContactExistsUncached(phone: string, churchId?: string, strictChurch?: boolean): Promise<any> {
+    const rawDigits = (phone || '').replace(/\D/g, '');
     const last10 = rawDigits.slice(-10);
     const plus91 = `+91${last10}`;
     const spaced1 = `+91 ${last10}`;
@@ -411,17 +994,25 @@ class FirestoreService {
       const runManualFallback = async () => {
         console.log("Running manual fallback traversal...");
         const churchesSnap = await firestore().collection('churches').get();
+        let bestMember: any = null;
         for (const churchDoc of churchesSnap.docs) {
           const queries = possibleFormats.map(format => 
-            churchDoc.ref.collection('members').where('phone', '==', format).limit(1).get()
+            churchDoc.ref.collection('members').where('phone', '==', format).get()
           );
           const results = await Promise.all(queries);
           for (const snap of results) {
-            if (!snap.empty) {
-              const doc = snap.docs[0];
-              return { exists: true, member: { id: doc.id, ...doc.data() } };
+            for (const doc of snap.docs) {
+              const data = doc.data();
+              const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+              if (!bestMember || isElevated) {
+                bestMember = { id: doc.id, churchId: churchDoc.id, ...data };
+              }
+              if (isElevated) break;
             }
           }
+        }
+        if (bestMember) {
+          return { exists: true, member: bestMember as AppMember };
         }
         return { exists: false };
       };
@@ -430,15 +1021,23 @@ class FirestoreService {
         try {
           console.log("Trying collectionGroup search...");
           const queries = possibleFormats.map(format => 
-            firestore().collectionGroup('members').where('phone', '==', format).limit(1).get()
+            firestore().collectionGroup('members').where('phone', '==', format).get()
           );
           const results = await Promise.all(queries);
+          let bestMember: any = null;
           for (const snap of results) {
-            if (!snap.empty) {
-              const doc = snap.docs[0];
-              console.log("Found member in collectionGroup. From cache?", doc.metadata?.fromCache);
-              return { exists: true, member: { id: doc.id, ...doc.data() } };
+            for (const doc of snap.docs) {
+              const data = doc.data();
+              const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+              if (!bestMember || isElevated) {
+                bestMember = { id: doc.id, churchId: doc.ref.parent.parent?.id, ...data };
+              }
+              if (isElevated) break;
             }
+          }
+          if (bestMember) {
+            console.log("Found member in collectionGroup.");
+            return { exists: true, member: bestMember as AppMember };
           }
           return { exists: false };
         } catch (cgError: any) {
@@ -447,18 +1046,68 @@ class FirestoreService {
         }
       }
 
-      // Query specific church members
+      // Enforce strictChurch using collectionGroup if specific query fails or to avoid index requirements
+      if (strictChurch) {
+        console.log(`Checking strict church: ${churchId} using collectionGroup fallback.`);
+        try {
+          const queries = possibleFormats.map(format => 
+            firestore().collectionGroup('members').where('phone', '==', format).get({ source: 'server' })
+          );
+          const results = await Promise.all(queries);
+          let bestMember: any = null;
+          let foundAny = false;
+          for (const snap of results) {
+            for (const doc of snap.docs) {
+              foundAny = true;
+              const data = doc.data();
+              console.log("Found matching member doc at path:", doc.ref.path, "with data:", JSON.stringify(data));
+              // Ensure this member actually belongs to the requested church
+              const parentChurchId = doc.ref.parent.parent?.id;
+              console.log("Validating churchId. Parent churchId:", parentChurchId, "Data churchId:", data.churchId, "Expected:", churchId);
+              if (parentChurchId === churchId || data.churchId === churchId) {
+                const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+                if (!bestMember || isElevated) {
+                  bestMember = { id: doc.id, churchId: parentChurchId, ...data };
+                }
+                if (isElevated) break;
+              }
+            }
+          }
+          if (bestMember) {
+            return { exists: true, member: bestMember as AppMember };
+          }
+          if (!foundAny) {
+            console.log("Strict church mode: collectionGroup found absolutely no matching documents for any format.");
+          } else {
+            console.log("Strict church mode: member found, but it belonged to a different church.");
+          }
+          return { exists: false };
+        } catch (err: any) {
+          console.log("Strict church query failed:", err.message);
+          return { exists: false };
+        }
+      }
+
+      // If NOT strictChurch, try specific first, then global fallback
       try {
         console.log(`Checking specific church: ${churchId}`);
         const queries = possibleFormats.map(format => 
-          firestore().collection('churches').doc(churchId).collection('members').where('phone', '==', format).limit(1).get({ source: 'server' })
+          firestore().collection('churches').doc(churchId!).collection('members').where('phone', '==', format).get({ source: 'server' })
         );
         const results = await Promise.all(queries);
+        let bestMember: any = null;
         for (const snap of results) {
-          if (!snap.empty) {
-            const doc = snap.docs[0];
-            return { exists: true, member: { id: doc.id, ...doc.data() } };
+          for (const doc of snap.docs) {
+            const data = doc.data();
+            const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+            if (!bestMember || isElevated) {
+              bestMember = { id: doc.id, churchId: churchId, ...data };
+            }
+            if (isElevated) break;
           }
+        }
+        if (bestMember) {
+          return { exists: true, member: bestMember as AppMember };
         }
       } catch (err: any) {
         console.log("Specific church query failed:", err.message);
@@ -468,14 +1117,22 @@ class FirestoreService {
       try {
         console.log("Not found in specific church. Trying global collectionGroup search...");
         const globalQueries = possibleFormats.map(format => 
-          firestore().collectionGroup('members').where('phone', '==', format).limit(1).get({ source: 'server' })
+          firestore().collectionGroup('members').where('phone', '==', format).get({ source: 'server' })
         );
         const globalResults = await Promise.all(globalQueries);
+        let bestMember: any = null;
         for (const snap of globalResults) {
-          if (!snap.empty) {
-            const doc = snap.docs[0];
-            return { exists: true, member: { id: doc.id, ...doc.data() } };
+          for (const doc of snap.docs) {
+            const data = doc.data();
+            const isElevated = String(data.userType || '').toUpperCase().includes('ADMIN') || String(data.userType || '').toUpperCase().includes('SUPER');
+            if (!bestMember || isElevated) {
+              bestMember = { id: doc.id, churchId: doc.ref.parent.parent?.id, ...data };
+            }
+            if (isElevated) break;
           }
+        }
+        if (bestMember) {
+          return { exists: true, member: bestMember as AppMember };
         }
       } catch (cgError: any) {
          console.log("Global collection group index failed, falling back...", cgError.message);
@@ -491,11 +1148,20 @@ class FirestoreService {
 
   async adminAddMember(churchId: string, details: any) {
     try {
+      if (details.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, details.phone);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
+
       const docRef = await firestore().collection('churches').doc(churchId).collection('members').add({
         ...details,
+        status: 'Active',
         joinDate: new Date().toISOString(),
         onboardingComplete: false,
       });
+      this.invalidateCache(['members_all', 'admin_members', 'celebrations_all', 'related_contacts_'], churchId);
       return { success: true, id: docRef.id };
     } catch (error: any) {
       console.error("Error adding member manually:", error);
@@ -505,7 +1171,14 @@ class FirestoreService {
 
   async adminUpdateMember(churchId: string, memberId: string, details: any) {
     try {
+      if (details.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, details.phone, memberId);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
       await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).update(details);
+      this.invalidateCache(['members_all', 'admin_members', 'celebrations_all', 'related_contacts_'], churchId);
       return { success: true };
     } catch (error: any) {
       console.error("Error updating member:", error);
@@ -515,7 +1188,10 @@ class FirestoreService {
 
   async adminRemoveMember(churchId: string, memberId: string) {
     try {
-      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).delete();
+      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).update({
+        status: 'Left'
+      });
+      this.invalidateCache(['members_all', 'admin_members', 'celebrations_all', 'related_contacts_'], churchId);
       return { success: true };
     } catch (error: any) {
       console.error("Error removing member:", error);
@@ -523,9 +1199,27 @@ class FirestoreService {
     }
   }
 
+  async deleteMemberPermanent(churchId: string, memberId: string) {
+    try {
+      await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).delete();
+      this.invalidateCache(['members_all', 'admin_members', 'celebrations_all', 'related_contacts_'], churchId);
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error permanently deleting member:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
   async updateMemberProfile(churchId: string, memberId: string, details: any) {
     try {
+      if (details.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, details.phone, memberId);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
       await firestore().collection('churches').doc(churchId).collection('members').doc(memberId).set(details, { merge: true });
+      this.invalidateCache(['members_all', 'admin_members', 'celebrations_all', 'related_contacts_'], churchId);
       return true;
     } catch (error) {
       console.error('Error updating member profile', error);
@@ -536,7 +1230,53 @@ class FirestoreService {
   async updateMemberRole(memberId: string, userType: string): Promise<boolean> {
     try {
       const col = await this.getCollection('members');
+      const memberDoc = await col.doc(memberId).get();
+      
+      // Update the primary targeted document first
       await col.doc(memberId).update({ userType });
+      
+      // Critical Fix: If the admin is updating a "phone" document but the user is logged in
+      // and listening to their "uid" document, we MUST update the uid document too so their app updates instantly!
+      const memberData = memberDoc.data();
+      if (memberData) {
+        const phone = memberData.phone;
+        if (phone) {
+          try {
+            const rawDigits = phone.replace(/\D/g, '');
+            const last10 = rawDigits.slice(-10);
+            const formats = [last10, `+91${last10}`, `91${last10}`, phone, `+91 ${last10}`, parseInt(last10, 10)];
+            const possibleFormats = formats.filter(v => v !== undefined && v !== null && !Number.isNaN(v));
+            
+            const queries = possibleFormats.map(format => 
+              firestore().collectionGroup('members').where('phone', '==', format).get()
+            );
+            const results = await Promise.all(queries);
+            
+            // Collect all unique document references that belong to this phone number
+            const docsToUpdate = new Map<string, any>();
+            results.forEach(snap => {
+              snap.docs.forEach(doc => {
+                if (doc.id !== memberId) {
+                  docsToUpdate.set(doc.ref.path, doc.ref);
+                }
+              });
+            });
+            
+            // Update all duplicate documents found (e.g. the active uid document)
+            if (docsToUpdate.size > 0) {
+              const batch = firestore().batch();
+              docsToUpdate.forEach(ref => {
+                batch.update(ref, { userType });
+              });
+              await batch.commit();
+              console.log(`[Admin] Successfully synced role '${userType}' across ${docsToUpdate.size} duplicate documents!`);
+            }
+          } catch (syncError) {
+            console.warn('[Admin] Failed to sync role to duplicate documents, but main doc was updated', syncError);
+          }
+        }
+      }
+      
       return true;
     } catch (error) {
       console.error('Error updating member role', error);
@@ -569,9 +1309,10 @@ class FirestoreService {
       const membersRef = firestore().collection('churches').doc(churchId).collection('members');
       const oldDoc = await membersRef.doc(contactId).get();
       
-      if (oldDoc.exists()) {
+      const docExists = typeof oldDoc.exists === 'function' ? oldDoc.exists() : oldDoc.exists;
+      if (docExists) {
         // Move data to new document with the correct UID
-        await membersRef.doc(uid).set({ ...oldDoc.data(), uid }, { merge: true });
+        await membersRef.doc(uid).set({ ...oldDoc.data(), uid, id: uid }, { merge: true });
         // Delete the old document with the random ID
         await membersRef.doc(contactId).delete();
       } else {
@@ -584,17 +1325,26 @@ class FirestoreService {
   }
 
   async getRelatedContacts(churchId: string, accountId: string): Promise<any[]> {
-    try {
-      const snapshot = await firestore().collection('churches').doc(churchId).collection('members').where('accountId', '==', accountId).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-      return [];
-    }
+    return this._swr(`related_contacts_${accountId}`, async () => {
+      try {
+        const snapshot = await firestore().collection('churches').doc(churchId).collection('members').where('accountId', '==', accountId).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (e) {
+        return [];
+      }
+    }, { churchId });
   }
 
   async addFamilyMember(churchId: string, accountId: string, newMember: any) {
     try {
+      if (newMember.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, newMember.phone);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
       await firestore().collection('churches').doc(churchId).collection('members').add({ ...newMember, accountId });
+      this.invalidateCache(['members_all', 'celebrations_all', 'related_contacts_'], churchId);
       return true;
     } catch (e) {
       throw e;
@@ -603,47 +1353,63 @@ class FirestoreService {
 
   async createMember(churchId: string, data: any, customId?: string) {
     try {
+      if (data.phone) {
+        const isDuplicate = await this.checkMemberExistsInChurch(churchId, data.phone);
+        if (isDuplicate) {
+          throw new Error('DUPLICATE_MEMBER');
+        }
+      }
+
+      const memberData = { ...data, status: data.status || 'Active' };
       if (customId) {
-        await firestore().collection('churches').doc(churchId).collection('members').doc(customId).set(data);
+        await firestore().collection('churches').doc(churchId).collection('members').doc(customId).set(memberData);
+        this.invalidateCache(['members_all', 'admin_members', 'celebrations_all', 'related_contacts_'], churchId);
         return { success: true, id: customId };
       } else {
-        const docRef = await firestore().collection('churches').doc(churchId).collection('members').add(data);
+        const docRef = await firestore().collection('churches').doc(churchId).collection('members').add(memberData);
+        this.invalidateCache(['members_all', 'admin_members', 'celebrations_all', 'related_contacts_'], churchId);
         return { success: true, id: docRef.id };
       }
     } catch (e) {
       throw e;
     }
   }
-  async getAllMembers(): Promise<any[]> {
-    try {
-      const col = await this.getCollection('members');
-      const snapshot = await col.get();
-      return snapshot.docs.map((doc: any) => ({ 
-        name: doc.data().name || doc.data().firstName || 'Unknown',
-        email: doc.data().email || '',
-        ...doc.data(),
-        id: doc.id
-      }));
-    } catch (error) {
-      console.error('Error fetching all members:', error);
-      return [];
-    }
+  async getAllMembers(options?: { forceFresh?: boolean }): Promise<any[]> {
+    return this._swr('members_all', async () => {
+      try {
+        const col = await this.getCollection('members');
+        const snapshot = await col.get();
+        return snapshot.docs
+          .filter((doc: any) => doc.data().status !== 'Left')
+          .map((doc: any) => ({ 
+            name: doc.data().name || doc.data().firstName || 'Unknown',
+            email: doc.data().email || '',
+            ...doc.data(),
+            id: doc.id
+          }));
+      } catch (error) {
+        console.error('Error fetching all members:', error);
+        return [];
+      }
+    }, { forceFresh: options?.forceFresh, ttlMs: 90_000 });
   }
 
   async getAdminMembers(): Promise<any[]> {
-    try {
-      const col = await this.getCollection('members');
-      const snapshot = await col.where('userType', '==', 'Admin').get();
-      return snapshot.docs.map((doc: any) => ({ 
-        id: doc.id, 
-        name: doc.data().name || doc.data().firstName || 'Unknown',
-        email: doc.data().email || '',
-        ...doc.data() 
-      }));
-    } catch (error) {
-      console.error('Error fetching admin members:', error);
-      return [];
-    }
+    return this._swr('admin_members', async () => {
+      try {
+        const col = await this.getCollection('members');
+        const snapshot = await col.where('userType', '==', 'Admin').get();
+        return snapshot.docs.map((doc: any) => ({ 
+          id: doc.id, 
+          name: doc.data().name || doc.data().firstName || 'Unknown',
+          email: doc.data().email || '',
+          ...doc.data() 
+        }));
+      } catch (error) {
+        console.error('Error fetching admin members:', error);
+        return [];
+      }
+    }, { ttlMs: 90_000 });
   }
 
   // --- 🎥 Videos, Sermons, Promises ---
@@ -651,44 +1417,268 @@ class FirestoreService {
 
 
   async getDailyVideos(limit: number = 10): Promise<FirestoreVideo[]> {
-    try {
-      const col = await this.getCollection('dailyVideos');
-      const snapshot = await col.orderBy('publishedAt', 'desc').limit(limit).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as FirestoreVideo[];
-    } catch (error) {
-      return [];
-    }
+    return this._swr(`daily_videos_${limit}`, async () => {
+      try {
+        const col = await this.getCollection('dailyVideos');
+        const snapshot = await col.orderBy('publishedAt', 'desc').limit(limit).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as FirestoreVideo[];
+      } catch (error) {
+        return [];
+      }
+    });
   }
 
   async getSermons(limit = 50): Promise<Sermon[]> {
+    const fetchLimit = Math.max(limit, 100);
+    const all = await this._swr(`sermons_${fetchLimit}`, async () => {
+      try {
+        const col = await this.getCollection('sermons');
+        let snapshot;
+        try {
+          snapshot = await col.orderBy('createdAt', 'desc').limit(fetchLimit).get();
+          if (!snapshot || snapshot.empty) {
+            snapshot = await col.limit(fetchLimit).get();
+          }
+        } catch (err) {
+          snapshot = await col.limit(fetchLimit).get();
+        }
+        const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Sermon[];
+        return list.sort((a: any, b: any) => {
+          const dateA = a.date || '';
+          const dateB = b.date || '';
+          if (dateA && dateB && dateA !== dateB) {
+            return dateB.localeCompare(dateA);
+          }
+          const getTime = (doc: any) => {
+            const u = doc.updatedAt?.toMillis ? doc.updatedAt.toMillis() : (doc.updatedAt?.seconds ? doc.updatedAt.seconds * 1000 : 0);
+            const c = doc.createdAt?.toMillis ? doc.createdAt.toMillis() : (doc.createdAt?.seconds ? doc.createdAt.seconds * 1000 : 0);
+            return Math.max(u, c);
+          };
+          return getTime(b) - getTime(a);
+        });
+      } catch (error) {
+        console.error('Error in getSermons:', error);
+        return [];
+      }
+    });
+    return all.slice(0, limit);
+  }
+
+  async getLatestSermon(): Promise<Sermon | null> {
+    try {
+      const cachedAll = this.getCachedSync<Sermon[]>('sermons_100');
+      if (cachedAll && cachedAll.length > 0) {
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const visible = cachedAll.filter(s => {
+          if (s.status === 'Draft') return false;
+          if (s.status === 'Scheduled' && s.date && s.date > todayStr) return false;
+          return true;
+        });
+        if (visible.length > 0) return visible[0];
+      }
+      const col = await this.getCollection('sermons');
+      let snapshot;
+      try {
+        snapshot = await col.orderBy('createdAt', 'desc').limit(20).get();
+        if (!snapshot || snapshot.empty) {
+          snapshot = await col.limit(20).get();
+        }
+      } catch (err) {
+        snapshot = await col.limit(20).get();
+      }
+
+      if (!snapshot || snapshot.empty) return null;
+
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+      const sermons = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sermon));
+      const visible = sermons.filter(s => {
+        if (s.status === 'Draft') return false;
+        if (s.status === 'Scheduled' && s.date && s.date > todayStr) return false;
+        return true;
+      });
+
+      if (visible.length === 0) return null;
+
+      visible.sort((a: any, b: any) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        if (dateA && dateB && dateA !== dateB) {
+          return dateB.localeCompare(dateA);
+        }
+        const getTime = (doc: any) => {
+          const u = doc.updatedAt?.toMillis ? doc.updatedAt.toMillis() : (doc.updatedAt?.seconds ? doc.updatedAt.seconds * 1000 : 0);
+          const c = doc.createdAt?.toMillis ? doc.createdAt.toMillis() : (doc.createdAt?.seconds ? doc.createdAt.seconds * 1000 : 0);
+          return Math.max(u, c);
+        };
+        return getTime(b) - getTime(a);
+      });
+
+      return visible[0];
+    } catch (e) {
+      console.error('Error fetching latest sermon:', e);
+      return null;
+    }
+  }
+
+  async listenLatestSermon(callback: (sermon: Sermon | null) => void): Promise<() => void> {
     try {
       const col = await this.getCollection('sermons');
-      const snapshot = await col.orderBy('date', 'desc').limit(limit).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Sermon[];
+      return col.limit(20).onSnapshot(
+        snapshot => {
+          if (!snapshot || snapshot.empty) {
+            callback(null);
+            return;
+          }
+          const today = new Date();
+          const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+          const sermons = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Sermon));
+          const visible = sermons.filter(s => {
+            if (s.status === 'Draft') return false;
+            if (s.status === 'Scheduled' && s.date && s.date > todayStr) return false;
+            return true;
+          });
+
+          if (visible.length === 0) {
+            callback(null);
+            return;
+          }
+
+          visible.sort((a: any, b: any) => {
+            const dateA = a.date || '';
+            const dateB = b.date || '';
+            if (dateA && dateB && dateA !== dateB) {
+              return dateB.localeCompare(dateA);
+            }
+            const getTime = (doc: any) => {
+              const u = doc.updatedAt?.toMillis ? doc.updatedAt.toMillis() : (doc.updatedAt?.seconds ? doc.updatedAt.seconds * 1000 : 0);
+              const c = doc.createdAt?.toMillis ? doc.createdAt.toMillis() : (doc.createdAt?.seconds ? doc.createdAt.seconds * 1000 : 0);
+              return Math.max(u, c);
+            };
+            return getTime(b) - getTime(a);
+          });
+
+          callback(visible[0]);
+        },
+        err => {
+          console.warn('[FirestoreService] listenLatestSermon error:', err);
+        }
+      );
+    } catch (e) {
+      console.warn('Failed to listen to latest sermon:', e);
+      return () => {};
+    }
+  }
+
+  // In-memory cache to avoid re-fetching on tab switches
+  private _worshipSongsCache: WorshipSong[] | null = null;
+  private _worshipSongsCacheChurchId: string | null = null;
+
+  getWorshipSongsCachedSync(explicitChurchId?: string): WorshipSong[] | null {
+    const cid = explicitChurchId || this.churchId;
+    if (!cid || !this._worshipSongsCache || this._worshipSongsCacheChurchId !== cid) return null;
+    return this._worshipSongsCache;
+  }
+
+  clearWorshipSongsCache() {
+    this._worshipSongsCache = null;
+    this._worshipSongsCacheChurchId = null;
+  }
+
+  async getWorshipSongs(options?: { forceRefresh?: boolean; limit?: number; offset?: number }): Promise<WorshipSong[]> {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return [];
+
+      // Return cache if available and same church (unless forced refresh)
+      if (
+        !options?.forceRefresh &&
+        this._worshipSongsCache &&
+        this._worshipSongsCacheChurchId === churchId
+      ) {
+        const allCached = this._worshipSongsCache;
+        if (options?.limit) {
+          return allCached.slice(options.offset ?? 0, (options.offset ?? 0) + options.limit);
+        }
+        return allCached;
+      }
+
+      const churchDoc = await firestore().collection('churches').doc(churchId).get();
+      const disableMasterSongs = churchDoc.data()?.disableMasterSongs === true;
+
+      const customCol = firestore().collection('churches').doc(churchId).collection('worshipSongs');
+      const masterCol = firestore().collection('masterSongs');
+
+      const fetchFromSource = async (source: 'cache' | 'server') => {
+        const promises: any[] = [customCol.get({ source })];
+        if (!disableMasterSongs) {
+          promises.push(masterCol.where('isDefault', '==', true).get({ source }));
+        }
+        const results = await Promise.all(promises);
+        const customSnap = results[0];
+        const masterSnap = !disableMasterSongs ? results[1] : { docs: [] };
+        
+        const customSongs = customSnap.docs.map((doc: any) => ({ id: doc.id, ...doc.data(), isChurchOwn: true } as WorshipSong));
+        const overriddenIds = new Set(customSongs.map((s: WorshipSong) => s.overridesMasterSongId).filter(Boolean));
+        const masterSongs = masterSnap.docs
+          .map((doc: any) => ({ id: doc.id, ...doc.data() } as WorshipSong))
+          .filter((s: WorshipSong) => !overriddenIds.has(s.id));
+          
+        return [...customSongs, ...masterSongs].filter(s => !s.isHidden);
+      };
+
+      let finalSongs: WorshipSong[];
+      if (!options?.forceRefresh) {
+        try {
+          finalSongs = await fetchFromSource('cache');
+          if (finalSongs.length === 0) throw new Error('Empty cache');
+          
+          // Background fetch to ensure cache stays warm
+          fetchFromSource('server').catch(() => {});
+        } catch (e) {
+          finalSongs = await fetchFromSource('server');
+        }
+      } else {
+        finalSongs = await fetchFromSource('server');
+      }
+
+      // Cache the full result in memory for identical subsequent calls
+      this._worshipSongsCache = finalSongs;
+      this._worshipSongsCacheChurchId = churchId;
+
+      if (options?.limit) {
+        return finalSongs.slice(options.offset ?? 0, (options.offset ?? 0) + options.limit);
+      }
+      return finalSongs;
     } catch (error) {
+      console.error('Error fetching worship songs:', error);
       return [];
     }
   }
 
-  async getWorshipSongs(): Promise<WorshipSong[]> {
-    try {
-      const col = await this.getCollection('worshipSongs');
-      const snapshot = await col.get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as WorshipSong[];
-    } catch (error) {
-      return [];
-    }
-  }
 
   async createSermon(data: any) {
     try {
       const col = await this.getCollection('sermons');
       const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
       if (cleanData.id) {
-        await col.doc(cleanData.id as string).set({ ...cleanData, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        const updatePayload: any = { ...cleanData, updatedAt: FieldValue.serverTimestamp() };
+        if (!cleanData.createdAt) {
+          updatePayload.createdAt = FieldValue.serverTimestamp();
+        }
+        await col.doc(cleanData.id as string).set(updatePayload, { merge: true });
+        this.invalidateCache(['sermons_', 'sermon_categories']);
         return cleanData.id;
       } else {
-        const docRef = await col.add({ ...cleanData, createdAt: FieldValue.serverTimestamp() });
+        const docRef = await col.add({
+          ...cleanData,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp()
+        });
+        this.invalidateCache(['sermons_', 'sermon_categories']);
         return docRef.id;
       }
     } catch (e) {
@@ -700,8 +1690,90 @@ class FirestoreService {
     try {
       const col = await this.getCollection('sermons');
       await col.doc(id).delete();
+      this.invalidateCache(['sermons_', 'sermon_categories']);
       return true;
     } catch (e) {
+      throw e;
+    }
+  }
+
+  // --- 🎙️ Sermon Categories ---
+  async getSermonCategories(): Promise<string[]> {
+    const defaults = [
+      'Bible Study',
+      "Women's Fasting Prayer",
+      'Second Saturday Prayer',
+      'Sunday Service',
+      'All-Night Prayer',
+      'Youth Meeting',
+      'Revival Meeting',
+      'Special Messages',
+      'Shorts',
+      'Testimonies',
+    ];
+    return this._swr('sermon_categories', async () => {
+      try {
+        const churchId = await this.getChurchId();
+        const [churchDoc, sermons] = await Promise.all([
+          churchId ? firestore().collection('churches').doc(churchId).get() : Promise.resolve(null),
+          this.getSermons(100),
+        ]);
+        const customCats: string[] = [];
+        const data = churchDoc?.data();
+        if (Array.isArray(data?.sermonCategories)) {
+          data.sermonCategories.forEach((c: any) => {
+            if (typeof c === 'string' && c.trim() && !customCats.includes(c.trim())) {
+              customCats.push(c.trim());
+            }
+          });
+        }
+
+        // Also harvest any categories from cached sermons so none are ever missed
+        sermons.forEach((s: any) => {
+          if (typeof s.categories === 'string') {
+            s.categories.split(';').forEach((c: string) => {
+              const t = c.trim();
+              if (t && !defaults.includes(t) && !customCats.includes(t)) {
+                customCats.push(t);
+              }
+            });
+          } else if (Array.isArray(s.categories)) {
+            s.categories.forEach((c: any) => {
+              const t = typeof c === 'string' ? c.trim() : '';
+              if (t && !defaults.includes(t) && !customCats.includes(t)) {
+                customCats.push(t);
+              }
+            });
+          }
+        });
+
+        const combined = [...defaults];
+        customCats.forEach(c => {
+          if (!combined.includes(c)) combined.push(c);
+        });
+        return combined;
+      } catch (e) {
+        console.error('Error fetching sermon categories:', e);
+        return defaults;
+      }
+    }, { ttlMs: 120_000 });
+  }
+
+  async addSermonCategory(categoryName: string): Promise<string[]> {
+    const trimmed = (categoryName || '').trim();
+    if (!trimmed) throw new Error('Category name cannot be empty');
+    try {
+      const churchId = await this.getChurchId();
+      if (churchId) {
+        await firestore().collection('churches').doc(churchId).set({
+          sermonCategories: FieldValue.arrayUnion(trimmed),
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+      this.invalidateCache(['sermon_categories']);
+      return await this.getSermonCategories();
+    } catch (e) {
+      console.error('Error adding sermon category:', e);
       throw e;
     }
   }
@@ -712,9 +1784,11 @@ class FirestoreService {
       const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
       if (cleanData.id) {
         await col.doc(cleanData.id as string).set({ ...cleanData, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+        this.clearWorshipSongsCache();
         return cleanData.id;
       } else {
         const docRef = await col.add({ ...cleanData, createdAt: FieldValue.serverTimestamp() });
+        this.clearWorshipSongsCache();
         return docRef.id;
       }
     } catch (e) {
@@ -724,8 +1798,24 @@ class FirestoreService {
 
   async deleteWorshipSong(id: string) {
     try {
+      const masterDoc = await firestore().collection('masterSongs').doc(id).get();
+      // Ensure we check existence properly based on the firebase version's type
+      const docExists = typeof masterDoc.exists === 'function' ? masterDoc.exists() : masterDoc.exists;
+      if (docExists && masterDoc.data()?.isDefault) {
+        const col = await this.getCollection('worshipSongs');
+        // Hide the master song for this church without actually deleting it from the global DB
+        await col.add({
+          overridesMasterSongId: id,
+          isHidden: true,
+          createdAt: FieldValue.serverTimestamp()
+        });
+        this.clearWorshipSongsCache();
+        return true;
+      }
+
       const col = await this.getCollection('worshipSongs');
       await col.doc(id).delete();
+      this.clearWorshipSongsCache();
       return true;
     } catch (e) {
       throw e;
@@ -734,12 +1824,105 @@ class FirestoreService {
 
   async updateWorshipSong(id: string, data: any) {
     try {
+      const masterDoc = await firestore().collection('masterSongs').doc(id).get();
+      const docExists = typeof masterDoc.exists === 'function' ? masterDoc.exists() : masterDoc.exists;
+      if (docExists && masterDoc.data()?.isDefault) {
+        // Smart Edit Override: Instead of updating global document, create a custom copy
+        const col = await this.getCollection('worshipSongs');
+        const originalData = masterDoc.data();
+        // Omit the `id` from originalData so it doesn't conflict
+        const { id: _ignoredId, ...dataWithoutId } = originalData || {};
+        const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
+        
+        await col.add({
+          ...dataWithoutId,
+          ...cleanData,
+          overridesMasterSongId: id,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp()
+        });
+        this.clearWorshipSongsCache();
+        return true;
+      }
+
       const col = await this.getCollection('worshipSongs');
       const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
-      await col.doc(id).update({ ...cleanData, updatedAt: FieldValue.serverTimestamp() });
+      await col.doc(id).update({ ...cleanData, updatedAt: FieldValue.serverTimestamp() }); this.clearWorshipSongsCache();
       return true;
     } catch (e) {
       throw e;
+    }
+  }
+
+  // --- 🎵 Worship Services & Setlists (Sunday Service Flow) ---
+  async saveWorshipServices(services: any[]) {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return;
+      const cleanServices = Array.isArray(services) ? services.filter(Boolean) : [];
+      await firestore().collection('churches').doc(churchId).collection('setlists').doc('all_services').set({
+        services: cleanServices,
+        updatedAt: FieldValue.serverTimestamp()
+      }, { merge: true });
+
+      // Backwards-compatible sync for legacy 1S and 2S setlists
+      const s1 = cleanServices.find((s: any) => s && (s.id === '1S' || (s.name && String(s.name).includes('1st'))));
+      if (s1 && s1.songs) {
+        await this.saveChurchSetlist('1S', s1.songs);
+      }
+      const s2 = cleanServices.find((s: any) => s && (s.id === '2S' || (s.name && String(s.name).includes('2nd'))));
+      if (s2 && s2.songs) {
+        await this.saveChurchSetlist('2S', s2.songs);
+      }
+    } catch (e) {
+      console.warn('Failed to save worship services to Firestore:', e);
+    }
+  }
+
+  async getWorshipServices(): Promise<any[] | null> {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return null;
+      const docSnap = await firestore().collection('churches').doc(churchId).collection('setlists').doc('all_services').get();
+      const docExists = typeof (docSnap as any).exists === 'function' ? (docSnap as any).exists() : (docSnap as any).exists;
+      if (docExists && docSnap.data()?.services) {
+        const rawServices = docSnap.data()?.services;
+        return Array.isArray(rawServices) ? rawServices.filter(Boolean) : [];
+      }
+      return null;
+    } catch (e) {
+      console.warn('Failed to get worship services from Firestore:', e);
+      return null;
+    }
+  }
+
+  async saveChurchSetlist(service: '1S' | '2S' | string, items: any[]) {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return;
+      await firestore().collection('churches').doc(churchId).collection('setlists').doc(service).set({
+        service,
+        items,
+        updatedAt: FieldValue.serverTimestamp()
+      }, { merge: true });
+    } catch (e) {
+      console.warn('Failed to save setlist to Firestore:', e);
+    }
+  }
+
+  async getChurchSetlist(service: '1S' | '2S' | string): Promise<any[] | null> {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return null;
+      const docSnap = await firestore().collection('churches').doc(churchId).collection('setlists').doc(service).get();
+      const docExists = typeof (docSnap as any).exists === 'function' ? (docSnap as any).exists() : (docSnap as any).exists;
+      if (docExists && docSnap.data()?.items) {
+        return docSnap.data()?.items;
+      }
+      return null;
+    } catch (e) {
+      console.warn('Failed to get setlist from Firestore:', e);
+      return null;
     }
   }
 
@@ -747,92 +1930,93 @@ class FirestoreService {
 
 
 
-  async getPastEvents(limit = 5): Promise<ScheduleEvent[]> {
-    try {
-      const col = await this.getCollection('events');
-      const today = new Date().toISOString().split('T')[0];
-      const snapshot = await col.where('date', '<', today).orderBy('date', 'desc').limit(limit).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as ScheduleEvent[];
-    } catch (error) {
-      return [];
-    }
-  }
 
   // --- 🙏 Prayer Wall ---
 
   async getPrayerRequests(filters: any = {}) {
-    try {
-      const col = await this.getCollection('prayerRequests');
-      let query: any = col;
+    const includeComments = filters.includeComments !== false;
+    const key = filters.isAdmin
+      ? 'prayer_requests_admin'
+      : `prayer_requests_${filters.contactId || filters.phone || 'public'}_${includeComments ? 'withc' : 'noc'}`;
+    return this._swr(key, async () => {
+      try {
+        const col = await this.getCollection('prayerRequests');
+        let query: any = col;
 
-      let rawItems: any[] = [];
-      if (filters.isAdmin) {
-        // Admin sees all requests
-        const snapshot = await query.orderBy('createdAt', 'desc').get();
-        rawItems = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-      } else {
-        // Members see all approved requests
-        let approvedQuery = query.where('isAnswered', '==', true);
-        const approvedSnapshot = await approvedQuery.get();
-        let list = approvedSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-
-        // Plus member's own pending requests (so they see their request immediately after submitting)
-        const userIdentifier = filters.contactId || filters.phone;
-        if (userIdentifier) {
-          let pendingQuery = query.where('isAnswered', '==', false);
-          if (filters.contactId) {
-            pendingQuery = pendingQuery.where('contactId', '==', filters.contactId);
-          } else {
-            pendingQuery = pendingQuery.where('phone', '==', filters.phone);
+        let rawItems: any[] = [];
+        if (filters.isAdmin) {
+          // Admin sees all requests
+          const snapshot = await query.orderBy('createdAt', 'desc').get();
+          rawItems = snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+        } else {
+          // Members see their own requests AND public approved requests in parallel
+          const userIdentifier = filters.contactId || filters.phone;
+          const publicQuery = query.where('isPublic', '==', true).where('isAnswered', '==', true);
+          let ownQuery: any = null;
+          if (userIdentifier) {
+            ownQuery = filters.contactId
+              ? query.where('contactId', '==', filters.contactId)
+              : query.where('phone', '==', filters.phone);
           }
-          const pendingSnapshot = await pendingQuery.get();
-          const pendingList = pendingSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
 
-          // Merge lists and prevent duplicates
-          const seen = new Set(list.map((p: any) => p.id));
-          for (const p of pendingList) {
-            if (!seen.has(p.id)) {
-              list.push(p);
+          const [publicSnapshot, ownSnapshot] = await Promise.all([
+            publicQuery.get(),
+            ownQuery ? ownQuery.get() : Promise.resolve(null),
+          ]);
+
+          const list: any[] = publicSnapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+          if (ownSnapshot) {
+            const seen = new Set(list.map((p: any) => p.id));
+            for (const doc of ownSnapshot.docs) {
+              if (!seen.has(doc.id)) {
+                list.push({ id: doc.id, ...doc.data() });
+              }
             }
           }
-        }
 
-        // Sort combined list by createdAt desc
-        list.sort((a: any, b: any) => {
-          const t1 = a.createdAt?.seconds || 0;
-          const t2 = b.createdAt?.seconds || 0;
-          return t2 - t1;
-        });
-
-        rawItems = list;
-      }
-
-      // Fetch comments for each request document in parallel
-      const itemsWithComments = await Promise.all(rawItems.map(async (item: any) => {
-        try {
-          const commentsSnapshot = await col.doc(item.id).collection('comments').orderBy('createdAt', 'asc').get();
-          const replies = commentsSnapshot.docs.map((cDoc: any) => {
-            const cData = cDoc.data();
-            return {
-              id: cDoc.id,
-              author: cData.authorName || cData.author || 'Anonymous',
-              body: cData.comment || cData.body || '',
-              date: cData.createdAt ? (cData.createdAt.toDate ? cData.createdAt.toDate().toISOString() : new Date(cData.createdAt).toISOString()) : new Date().toISOString()
-            };
+          list.sort((a: any, b: any) => {
+            const t1 = a.createdAt?.seconds || 0;
+            const t2 = b.createdAt?.seconds || 0;
+            return t2 - t1;
           });
-          const createdAtStr = item.createdAt ? (item.createdAt.toDate ? item.createdAt.toDate().toISOString() : new Date(item.createdAt).toISOString()) : new Date().toISOString();
-          return { ...item, createdAt: createdAtStr, replies };
-        } catch (commentErr) {
-          console.warn(`Error fetching comments for request ${item.id}:`, commentErr);
-          return { ...item, replies: [] };
-        }
-      }));
 
-      return itemsWithComments;
-    } catch (error) {
-      console.error('Error in getPrayerRequests:', error);
-      return [];
-    }
+          rawItems = list;
+        }
+
+        if (!includeComments) {
+          return rawItems.map((item: any) => {
+            const createdAtStr = item.createdAt ? (item.createdAt.toDate ? item.createdAt.toDate().toISOString() : new Date(item.createdAt).toISOString()) : new Date().toISOString();
+            return { ...item, createdAt: createdAtStr, replies: [] };
+          });
+        }
+
+        // Fetch comments for each request document in parallel
+        const itemsWithComments = await Promise.all(rawItems.map(async (item: any) => {
+          try {
+            const commentsSnapshot = await col.doc(item.id).collection('comments').orderBy('createdAt', 'asc').get();
+            const replies = commentsSnapshot.docs.map((cDoc: any) => {
+              const cData = cDoc.data();
+              return {
+                id: cDoc.id,
+                author: cData.authorName || cData.author || 'Anonymous',
+                body: cData.comment || cData.body || '',
+                date: cData.createdAt ? (cData.createdAt.toDate ? cData.createdAt.toDate().toISOString() : new Date(cData.createdAt).toISOString()) : new Date().toISOString()
+              };
+            });
+            const createdAtStr = item.createdAt ? (item.createdAt.toDate ? item.createdAt.toDate().toISOString() : new Date(item.createdAt).toISOString()) : new Date().toISOString();
+            return { ...item, createdAt: createdAtStr, replies };
+          } catch (commentErr) {
+            console.warn(`Error fetching comments for request ${item.id}:`, commentErr);
+            return { ...item, replies: [] };
+          }
+        }));
+
+        return itemsWithComments;
+      } catch (error) {
+        console.error('Error in getPrayerRequests:', error);
+        return [];
+      }
+    }, { ttlMs: 30_000, forceFresh: Boolean(filters.forceFresh) });
   }
 
   async submitPrayerRequest(data: any) {
@@ -840,10 +2024,14 @@ class FirestoreService {
       const col = await this.getCollection('prayerRequests');
       const textVal = data.text || data.request || data.requestEn || '';
       const textTeVal = data.textTe || data.requestTe || '';
-      const authorIdVal = data.authorId || data.contactId || null;
+      const authorIdVal = data.authorId || data.contactId || data.uid || null;
+      const memberNameVal = data.name || data.memberName || data.authorName || 'Church Member';
       
-      await col.add({
+      const docRef = await col.add({
         ...data,
+        name: memberNameVal,
+        memberName: memberNameVal,
+        authorName: memberNameVal,
         text: textVal,
         request: textVal,
         requestEn: textVal,
@@ -851,10 +2039,68 @@ class FirestoreService {
         requestTe: textTeVal,
         authorId: authorIdVal,
         contactId: authorIdVal,
+        uid: data.uid || authorIdVal,
+        isPublic: data.isPublic ?? false,
         isAnswered: data.isAnswered ?? false,
         prayCount: data.prayCount ?? 0,
         createdAt: FieldValue.serverTimestamp()
       });
+
+      // Write direct notification to churches/{churchId}/notifications to guarantee Admin notification visibility
+      try {
+        const notifCol = await this.getCollection('notifications');
+        const excerpt = textVal.length > 80 ? `${textVal.substring(0, 80)}...` : textVal;
+        await notifCol.add({
+          type: 'prayer_request_admin',
+          title: `🙏 New Prayer Request: ${memberNameVal}`,
+          body: excerpt ? `${memberNameVal} submitted a prayer request: "${excerpt}"` : `${memberNameVal} submitted a new prayer request.`,
+          memberName: memberNameVal,
+          prayerId: docRef.id,
+          requestExcerpt: excerpt,
+          category: data.category || '',
+          isPublic: data.isPublic ?? false,
+          read: false,
+          createdAt: FieldValue.serverTimestamp()
+        });
+      } catch (notifErr) {
+        console.warn('⚠️ Could not write admin notification doc directly:', notifErr);
+      }
+
+      this.invalidateCache(['prayer_requests_']);
+      // Also deliver immediate push notification to Admins via the live processBroadcastPushNotifications trigger
+      try {
+        const allMembers = await this.getAllMembers();
+        const excerpt = textVal.length > 80 ? `${textVal.substring(0, 80)}...` : textVal;
+        const bcastTitle = `🙏 New Prayer Request: ${memberNameVal}`;
+        const bcastBody = excerpt ? `${memberNameVal} submitted a prayer request: "${excerpt}"` : `${memberNameVal} submitted a new prayer request.`;
+
+        const adminPhones: string[] = [];
+        allMembers.forEach((m: any) => {
+          const role = String(m.userType || '').toLowerCase();
+          if (role.includes('admin') || role.includes('pastor') || role.includes('super')) {
+            const p = m.phone || m.mobile || m.phoneNumber;
+            if (p) adminPhones.push(p);
+          }
+        });
+
+        // Write a broadcast doc targeted at each admin's phone so processBroadcastPushNotifications delivers instant push
+        const bcastCol = await this.getCollection('broadcasts');
+        const uniqueAdminPhones = Array.from(new Set(adminPhones));
+        for (const phone of uniqueAdminPhones) {
+          await bcastCol.add({
+            title: bcastTitle,
+            content: bcastBody,
+            type: 'prayer_request_admin',
+            prayerId: docRef.id,
+            targetPhone: phone,
+            targetRole: 'admin',
+            createdAt: FieldValue.serverTimestamp()
+          });
+        }
+      } catch (bcastErr) {
+        console.warn('⚠️ Could not trigger broadcast push:', bcastErr);
+      }
+
       return true;
     } catch (error) {
       throw error;
@@ -868,8 +2114,39 @@ class FirestoreService {
         isAnswered: true,
         updatedAt: FieldValue.serverTimestamp()
       });
+      this.invalidateCache(['prayer_requests_']);
       return true;
     } catch (e) {
+      throw e;
+    }
+  }
+
+  async closePrayerRequest(id: string) {
+    try {
+      const col = await this.getCollection('prayerRequests');
+      await col.doc(id).update({
+        isClosed: true,
+        updatedAt: FieldValue.serverTimestamp()
+      });
+      this.invalidateCache(['prayer_requests_']);
+      return true;
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  async incrementPrayCount(requestId: string, uid: string, memberName: string) {
+    try {
+      const col = await this.getCollection('prayerRequests');
+      await col.doc(requestId).update({
+        prayCount: FieldValue.increment(1),
+        prayedBy: FieldValue.arrayUnion(uid),
+        prayedByNames: FieldValue.arrayUnion(memberName)
+      });
+      this.invalidateCache(['prayer_requests_']);
+      return true;
+    } catch (e) {
+      console.error('Error incrementing pray count:', e);
       throw e;
     }
   }
@@ -884,6 +2161,7 @@ class FirestoreService {
         author: authorName,
         createdAt: FieldValue.serverTimestamp()
       });
+      this.invalidateCache(['prayer_requests_']);
       return true;
     } catch (e) {
       throw e;
@@ -894,6 +2172,7 @@ class FirestoreService {
     try {
       const col = await this.getCollection('prayerRequests');
       await col.doc(id).delete();
+      this.invalidateCache(['prayer_requests_']);
       return true;
     } catch (e) {
       throw e;
@@ -903,26 +2182,31 @@ class FirestoreService {
   // --- 💸 Giving ---
 
   async getDonations(limitNum = 200): Promise<ChurchDonation[]> {
-    try {
-      const col = await this.getCollection('donations');
-      const snapshot = await col.orderBy('createdAt', 'desc').limit(limitNum).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChurchDonation));
-    } catch (error) {
-      console.error('Error fetching donations:', error);
-      return [];
-    }
+    return this._swr(`donations_${limitNum}`, async () => {
+      try {
+        const col = await this.getCollection('donations');
+        const snapshot = await col.orderBy('createdAt', 'desc').limit(limitNum).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChurchDonation));
+      } catch (error) {
+        console.error('Error fetching donations:', error);
+        return [];
+      }
+    });
   }
 
   async saveDonation(data: Partial<ChurchDonation>): Promise<string> {
     try {
       const col = await this.getCollection('donations');
+      let id: string;
       if (data.id) {
         await col.doc(data.id).set({ ...data, updatedAt: firestore.FieldValue.serverTimestamp() }, { merge: true });
-        return data.id;
+        id = data.id;
       } else {
         const docRef = await col.add({ ...data, createdAt: firestore.FieldValue.serverTimestamp() });
-        return docRef.id;
+        id = docRef.id;
       }
+      this.invalidateCache(['donations_', 'member_donations_']);
+      return id;
     } catch (error) {
       console.error('Error saving donation:', error);
       throw error;
@@ -933,6 +2217,7 @@ class FirestoreService {
     try {
       const col = await this.getCollection('donations');
       await col.doc(id).delete();
+      this.invalidateCache(['donations_', 'member_donations_']);
     } catch (error) {
       console.error('Error deleting donation:', error);
       throw error;
@@ -942,11 +2227,51 @@ class FirestoreService {
   async createDonation(data: any) {
     try {
       const col = await this.getCollection('donations');
-      await col.add({ ...data, createdAt: firestore.FieldValue.serverTimestamp() });
-      return true;
+      const docRef = await col.add({ ...data, createdAt: firestore.FieldValue.serverTimestamp() });
+      this.invalidateCache(['donations_', 'member_donations_']);
+      return docRef.id;
     } catch (e) {
       throw e;
     }
+  }
+
+  async getMemberDonations(phone: string): Promise<any[]> {
+    return this._swr(`member_donations_${phone}`, async () => {
+      try {
+      const col = await this.getCollection('donations');
+      
+      // Execute two separate queries to avoid Firestore composite/OR index requirements
+      const [snapshotPhone, snapshotDonorPhone] = await Promise.all([
+        col.where('phone', '==', phone).get(),
+        col.where('donorPhone', '==', phone).get()
+      ]);
+      
+      // Merge results and deduplicate by ID
+      const donationMap = new Map();
+      
+      snapshotPhone.docs.forEach(doc => {
+        donationMap.set(doc.id, { id: doc.id, ...doc.data() });
+      });
+      
+      snapshotDonorPhone.docs.forEach(doc => {
+        donationMap.set(doc.id, { id: doc.id, ...doc.data() });
+      });
+      
+      let results = Array.from(donationMap.values());
+      
+      // Sort locally by createdAt desc
+      results.sort((a: any, b: any) => {
+        const dateA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const dateB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return dateB - dateA;
+      });
+      
+      return results;
+      } catch (error: any) {
+        console.error('Error fetching member donations:', error);
+        throw error; // Rethrow so the UI can show the actual error if it's something else
+      }
+    });
   }
 
   // --- 📖 Bible Progress ---
@@ -977,60 +2302,93 @@ class FirestoreService {
       // Strip undefined values to prevent Firestore errors
       const cleanData = Object.fromEntries(Object.entries(data).filter(([_, v]) => v !== undefined));
       
+      let id: any;
       if (cleanData.id) {
         await col.doc(cleanData.id as string).set({ ...cleanData, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-        return cleanData.id;
+        id = cleanData.id;
       } else {
         const docRef = await col.add({ ...cleanData, createdAt: FieldValue.serverTimestamp() });
-        return docRef.id;
+        id = docRef.id;
       }
+      this.invalidateCache(['promises_archive', 'calendar_']);
+      return id;
     } catch (e) {
       throw e;
     }
   }
 
   async getDailyPromisesArchive(): Promise<DailyPromise[]> {
-    try {
-      const col = await this.getCollection('promises');
-      const snapshot = await col.get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DailyPromise));
-    } catch (e) {
-      return [];
-    }
+    return this._swr('promises_archive', async () => {
+      try {
+        const col = await this.getCollection('promises');
+        const snapshot = await col.get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DailyPromise));
+      } catch (e) {
+        return [];
+      }
+    }, { ttlMs: 120_000 });
   }
 
 
   async getCalendarData(year: number, month: number): Promise<DailyPromise[]> {
-    try {
-      const col = await this.getCollection('promises');
-      const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
-      const endStr = `${year}-${String(month).padStart(2, '0')}-31`;
-      const snapshot = await col.where('date', '>=', startStr).where('date', '<=', endStr).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DailyPromise));
-    } catch (e) {
-      console.error('Error fetching calendar data:', e);
-      return [];
+    const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
+    const endStr = `${year}-${String(month).padStart(2, '0')}-31`;
+    const cachedArchive = this.getCachedSync<DailyPromise[]>('promises_archive');
+    if (cachedArchive) {
+      return cachedArchive.filter(p => p.date && p.date >= startStr && p.date <= endStr);
     }
+    return this._swr(`calendar_${year}_${month}`, async () => {
+      try {
+        const col = await this.getCollection('promises');
+        const snapshot = await col.where('date', '>=', startStr).where('date', '<=', endStr).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DailyPromise));
+      } catch (e) {
+        console.error('Error fetching calendar data:', e);
+        return [];
+      }
+    }, { ttlMs: 120_000 });
   }
 
-  async getDailyPromise(): Promise<DailyPromise | null> {
+  async getDailyPromise(forceFresh: boolean = false): Promise<DailyPromise | null> {
     try {
       const col = await this.getCollection('promises');
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const snapshot = await col
-        .where('date', '==', todayStr)
-        .where('status', 'in', ['Published', 'Scheduled'])
-        .get();
+      
+      let snapshot;
+      if (forceFresh) {
+        try {
+          snapshot = await col.where('date', '==', todayStr).get({ source: 'server' });
+        } catch (_) {
+          snapshot = await col.where('date', '==', todayStr).get();
+        }
+      } else {
+        snapshot = await col.where('date', '==', todayStr).get();
+      }
+
       if (!snapshot.empty) {
-        const promises = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DailyPromise));
-        promises.sort((a: any, b: any) => {
-          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
-          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
-          return tB - tA;
-        });
-        const withImage = promises.find(p => p.imageUrl && p.imageUrl.trim().length > 0);
-        return withImage || promises[0];
+        let promises = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DailyPromise));
+        
+        // Filter by Published or Scheduled status in JS to avoid composite index requirements
+        promises = promises.filter(p => p.status === 'Published' || p.status === 'Scheduled');
+        
+        if (promises.length > 0) {
+          promises.sort((a: any, b: any) => {
+            // 1. Published status takes priority over Scheduled
+            if (a.status === 'Published' && b.status !== 'Published') return -1;
+            if (b.status === 'Published' && a.status !== 'Published') return 1;
+
+            // 2. Latest updated or created timestamp takes priority
+            const getTime = (doc: any) => {
+              const u = doc.updatedAt?.toMillis ? doc.updatedAt.toMillis() : (doc.updatedAt?.seconds ? doc.updatedAt.seconds * 1000 : 0);
+              const c = doc.createdAt?.toMillis ? doc.createdAt.toMillis() : (doc.createdAt?.seconds ? doc.createdAt.seconds * 1000 : 0);
+              return Math.max(u, c);
+            };
+            return getTime(b) - getTime(a);
+          });
+
+          return promises[0];
+        }
       }
       return null;
     } catch (e) {
@@ -1039,26 +2397,89 @@ class FirestoreService {
     }
   }
 
+  async listenDailyPromise(callback: (promise: DailyPromise | null) => void): Promise<() => void> {
+    try {
+      const col = await this.getCollection('promises');
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+      return col.where('date', '==', todayStr).onSnapshot(
+        snapshot => {
+          if (!snapshot || snapshot.empty) {
+            callback(null);
+            return;
+          }
+          let promises = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as DailyPromise));
+          promises = promises.filter(p => p.status === 'Published' || p.status === 'Scheduled');
+          if (promises.length > 0) {
+            promises.sort((a: any, b: any) => {
+              if (a.status === 'Published' && b.status !== 'Published') return -1;
+              if (b.status === 'Published' && a.status !== 'Published') return 1;
+              const getTime = (doc: any) => {
+                const u = doc.updatedAt?.toMillis ? doc.updatedAt.toMillis() : (doc.updatedAt?.seconds ? doc.updatedAt.seconds * 1000 : 0);
+                const c = doc.createdAt?.toMillis ? doc.createdAt.toMillis() : (doc.createdAt?.seconds ? doc.createdAt.seconds * 1000 : 0);
+                return Math.max(u, c);
+              };
+              return getTime(b) - getTime(a);
+            });
+            callback(promises[0]);
+          } else {
+            callback(null);
+          }
+        },
+        err => {
+          console.warn('[FirestoreService] listenDailyPromise error:', err);
+        }
+      );
+    } catch (e) {
+      console.warn('Failed to listen to daily promise:', e);
+      return () => {};
+    }
+  }
+
   // --- 📅 Events ---
 
-  async getEvents(): Promise<ScheduleEvent[]> {
+  private _hasEventEndedToday(ev: ScheduleEvent, now: Date): boolean {
+    const timeToCompare = ev.endTime || ev.time;
+    if (!timeToCompare) return false;
     try {
-      const col = await this.getCollection('events');
-      const snapshot = await col.get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ScheduleEvent));
-    } catch (e) {
-      console.error('Error fetching events:', e);
-      return [];
+      let hour = 0, min = 0;
+      if (timeToCompare.includes('T')) {
+        const t = new Date(timeToCompare);
+        hour = t.getHours();
+        min = t.getMinutes();
+      } else {
+        const parts = timeToCompare.split(':');
+        hour = parseInt(parts[0], 10);
+        min = parseInt(parts[1], 10);
+      }
+      const nowHour = now.getHours();
+      const nowMin = now.getMinutes();
+      return hour < nowHour || (hour === nowHour && min < nowMin);
+    } catch {
+      return false;
     }
+  }
+
+  async getEvents(options?: { forceFresh?: boolean }): Promise<ScheduleEvent[]> {
+    return this._swr('events_all', async () => {
+      try {
+        const col = await this.getCollection('events');
+        const snapshot = await col.get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ScheduleEvent));
+      } catch (e) {
+        console.error('Error fetching events:', e);
+        return [];
+      }
+    }, { forceFresh: options?.forceFresh, ttlMs: 60_000 });
   }
 
   async getTodayEvents(): Promise<ScheduleEvent[]> {
     try {
-      const col = await this.getCollection('events');
+      const allEvents = await this.getEvents();
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const snapshot = await col.where('date', '==', todayStr).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ScheduleEvent));
+      return allEvents.filter(ev => ev.date === todayStr && !this._hasEventEndedToday(ev, today));
     } catch (e) {
       console.error('Error fetching today events:', e);
       return [];
@@ -1067,33 +2488,89 @@ class FirestoreService {
 
   async getUpcomingEvents(limit: number = 3): Promise<ScheduleEvent[]> {
     try {
-      const col = await this.getCollection('events');
+      const allEvents = await this.getEvents();
       const today = new Date();
       const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-      const snapshot = await col.where('date', '>=', todayStr).orderBy('date', 'asc').limit(limit).get();
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ScheduleEvent));
+      const events = allEvents
+        .filter(ev => {
+          if (!ev.date || ev.date < todayStr) return false;
+          if (ev.date === todayStr && this._hasEventEndedToday(ev, today)) return false;
+          return true;
+        })
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      return events.slice(0, limit);
     } catch (e) {
       console.error('Error fetching upcoming events:', e);
       return [];
     }
   }
 
-  private generateRecurringDates(startDateStr: string, recurringType: string, monthsAhead: number = 12): string[] {
+  async getPastEvents(limit: number = 3): Promise<ScheduleEvent[]> {
+    try {
+      const allEvents = await this.getEvents();
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      const past = allEvents.filter(ev => {
+        if (!ev.date) return false;
+        if (ev.date < todayStr) return true;
+        if (ev.date === todayStr && this._hasEventEndedToday(ev, today)) return true;
+        return false;
+      });
+      past.sort((a, b) => {
+        if (a.date !== b.date) {
+          return (b.date || '').localeCompare(a.date || '');
+        }
+        const aTime = a.endTime || a.time || '00:00';
+        const bTime = b.endTime || b.time || '00:00';
+        return bTime.localeCompare(aTime);
+      });
+      return past.slice(0, limit);
+    } catch (e) {
+      console.error('Error fetching past events:', e);
+      return [];
+    }
+  }
+
+  private generateRecurringDates(
+    startDateStr: string,
+    recurringType: string,
+    monthsAhead: number = 1,
+    explicitEndDateStr?: string
+  ): string[] {
     const dates: string[] = [];
+    if (!startDateStr) return dates;
+
     const [year, month, day] = startDateStr.split('-').map(Number);
-    // Note: JavaScript months are 0-indexed
     let current = new Date(year, month - 1, day);
-    const endDate = new Date(year, month - 1 + Number(monthsAhead), day);
-    
-    while (current <= endDate) {
+
+    // If an explicit end date is given and is after start date, use that as the series bound
+    let targetEndDate: Date;
+    if (explicitEndDateStr && explicitEndDateStr > startDateStr) {
+      const [ey, em, ed] = explicitEndDateStr.split('-').map(Number);
+      targetEndDate = new Date(ey, em - 1, ed, 23, 59, 59, 999);
+    } else {
+      // Fallback: use monthsAhead (defaults to 1 month)
+      const durationMonths = Number(monthsAhead) > 0 ? Number(monthsAhead) : 1;
+      targetEndDate = new Date(year, month - 1 + durationMonths, day, 23, 59, 59, 999);
+    }
+
+    const typeLower = (recurringType || '').toLowerCase().trim();
+    const MAX_OCCURRENCES = 366; // Safety ceiling to prevent unbounded loops
+
+    while (current <= targetEndDate && dates.length < MAX_OCCURRENCES) {
       const y = current.getFullYear();
       const m = String(current.getMonth() + 1).padStart(2, '0');
       const d = String(current.getDate()).padStart(2, '0');
       dates.push(`${y}-${m}-${d}`);
-      
-      const typeLower = (recurringType || '').toLowerCase();
 
-      if (typeLower.includes('week') || typeLower.includes('every sunday')) {
+      if (
+        typeLower.includes('daily') ||
+        typeLower.includes('every day') ||
+        typeLower.includes('everyday') ||
+        typeLower === 'daily'
+      ) {
+        current.setDate(current.getDate() + 1);
+      } else if (typeLower.includes('week') || typeLower.includes('every sunday')) {
         current.setDate(current.getDate() + 7);
       } else if (typeLower.includes('monthly') || typeLower === 'month') {
         current.setMonth(current.getMonth() + 1);
@@ -1103,8 +2580,6 @@ class FirestoreService {
         while (current.getDay() !== 0) {
           current.setDate(current.getDate() + 1);
         }
-      } else if (typeLower.includes('daily') || typeLower.includes('every day')) {
-        current.setDate(current.getDate() + 1);
       } else {
         console.warn(`[FirestoreService] Unsupported recurrence type: ${recurringType}`);
         break; // Unsupported recurrence type
@@ -1115,6 +2590,7 @@ class FirestoreService {
 
   async createEvent(data: any) {
     try {
+      this.invalidateCache(['events_all']);
       const col = await this.getCollection('events');
       
       // Extract custom update mode if passed
@@ -1127,17 +2603,30 @@ class FirestoreService {
         // UPDATING EXISTING
         if (cleanData.recurringGroupId && updateMode === 'future') {
            const allDocs = await col.where('recurringGroupId', '==', cleanData.recurringGroupId).get();
-           const batch = firestore().batch();
-           allDocs.docs.forEach(doc => {
-             const oldData = doc.data();
-             if (oldData.date >= (cleanData.date as string)) {
+           const docsToUpdate = allDocs.docs.filter(d => (d.data().date || '') >= (cleanData.date as string));
+
+           const BATCH_SIZE = 400;
+           for (let i = 0; i < docsToUpdate.length; i += BATCH_SIZE) {
+             const chunk = docsToUpdate.slice(i, i + BATCH_SIZE);
+             const batch = firestore().batch();
+             chunk.forEach(doc => {
+               const oldData = doc.data();
                const docRef = col.doc(doc.id);
-               // Preserve the original specific date of the future occurrence
-               const updatePayload = { ...cleanData, date: oldData.date, id: doc.id, updatedAt: FieldValue.serverTimestamp() };
+               // Preserve the occurrence-specific date and endDate
+               const updatePayload = { 
+                 ...cleanData, 
+                 date: oldData.date, 
+                 endDate: oldData.endDate || oldData.date,
+                 seriesStartDate: oldData.seriesStartDate || cleanData.seriesStartDate,
+                 seriesEndDate: oldData.seriesEndDate || cleanData.seriesEndDate,
+                 recurringGroupId: cleanData.recurringGroupId,
+                 id: doc.id, 
+                 updatedAt: FieldValue.serverTimestamp() 
+               };
                batch.set(docRef, updatePayload, { merge: true });
-             }
-           });
-           await batch.commit();
+             });
+             await batch.commit();
+           }
            return cleanData.id;
         } else {
            await col.doc(cleanData.id as string).set({ ...cleanData, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
@@ -1152,24 +2641,69 @@ class FirestoreService {
           cleanData.recurringGroupId = groupId;
           
           const monthsAhead = (cleanData.recurrenceDuration as number) || 1;
-          const futureDates = this.generateRecurringDates(cleanData.date as string, cleanData.recurring as string, monthsAhead);
-          const batch = firestore().batch();
-          
-          let firstId = '';
-          futureDates.forEach((dateStr, index) => {
-            const docRef = col.doc();
-            if (index === 0) firstId = docRef.id;
-            
-            const instanceData = { 
-              ...cleanData, 
-              id: docRef.id, 
-              date: dateStr, 
-              createdAt: FieldValue.serverTimestamp() 
+          const explicitEndDateStr = cleanData.endDate as string | undefined;
+          const futureDates = this.generateRecurringDates(
+            cleanData.date as string, 
+            cleanData.recurring as string, 
+            monthsAhead,
+            explicitEndDateStr
+          );
+
+          // Check if single occurrence spans overnight
+          let spansOvernight = false;
+          if (cleanData.startTime && cleanData.endTime) {
+            const getMinutes = (t: string) => {
+              try {
+                if (t.includes('Z') || t.includes(':')) {
+                  const parts = t.replace('Z', '').split(':').map(Number);
+                  return (parts[0] || 0) * 60 + (parts[1] || 0);
+                }
+                return 0;
+              } catch { return 0; }
             };
-            batch.set(docRef, instanceData);
-          });
-          
-          await batch.commit();
+            const sM = getMinutes(cleanData.startTime as string);
+            const eM = getMinutes(cleanData.endTime as string);
+            if (eM < sM) spansOvernight = true;
+          }
+
+          let firstId = '';
+          const BATCH_SIZE = 400;
+          for (let i = 0; i < futureDates.length; i += BATCH_SIZE) {
+            const chunk = futureDates.slice(i, i + BATCH_SIZE);
+            const batch = firestore().batch();
+
+            chunk.forEach((dateStr, indexInChunk) => {
+              const docRef = col.doc();
+              if (i === 0 && indexInChunk === 0) firstId = docRef.id;
+
+              let occurrenceEndDate = dateStr;
+              if (spansOvernight) {
+                const [cy, cm, cd] = dateStr.split('-').map(Number);
+                const nextD = new Date(cy, cm - 1, cd + 1);
+                const ny = nextD.getFullYear();
+                const nm = String(nextD.getMonth() + 1).padStart(2, '0');
+                const nd = String(nextD.getDate()).padStart(2, '0');
+                occurrenceEndDate = `${ny}-${nm}-${nd}`;
+              }
+
+              const instanceData = { 
+                ...cleanData, 
+                id: docRef.id, 
+                date: dateStr, 
+                endDate: occurrenceEndDate,
+                seriesStartDate: cleanData.date,
+                seriesEndDate: explicitEndDateStr && explicitEndDateStr > (cleanData.date as string) ? explicitEndDateStr : futureDates[futureDates.length - 1],
+                recurringGroupId: groupId,
+                occurrenceIndex: i + indexInChunk + 1,
+                totalOccurrences: futureDates.length,
+                createdAt: FieldValue.serverTimestamp() 
+              };
+              batch.set(docRef, instanceData);
+            });
+
+            await batch.commit();
+          }
+
           return firstId;
         } else {
           const docRef = await col.add({ ...cleanData, createdAt: FieldValue.serverTimestamp() });
@@ -1183,23 +2717,24 @@ class FirestoreService {
 
   async deleteEvent(id: string, deleteMode?: 'single' | 'future') {
     try {
+      this.invalidateCache(['events_all']);
       const col = await this.getCollection('events');
       
       if (deleteMode === 'future') {
         const doc = await col.doc(id).get();
         const data = doc.data();
-        if (data) {
-          if (data.recurringGroupId) {
-             const allDocs = await col.where('recurringGroupId', '==', data.recurringGroupId).get();
-             const batch = firestore().batch();
-             allDocs.docs.forEach(d => {
-               if (d.data().date >= data.date) {
-                 batch.delete(d.ref);
-               }
-             });
-             await batch.commit();
-             return true;
+        if (data && data.recurringGroupId) {
+          const allDocs = await col.where('recurringGroupId', '==', data.recurringGroupId).get();
+          const docsToDelete = allDocs.docs.filter(d => (d.data().date || '') >= data.date);
+
+          const BATCH_SIZE = 400;
+          for (let i = 0; i < docsToDelete.length; i += BATCH_SIZE) {
+            const chunk = docsToDelete.slice(i, i + BATCH_SIZE);
+            const batch = firestore().batch();
+            chunk.forEach(d => batch.delete(d.ref));
+            await batch.commit();
           }
+          return true;
         }
       }
       
@@ -1248,7 +2783,7 @@ class FirestoreService {
 
   // --- 🎉 Celebrations ---
 
-  async getAllCelebrations(): Promise<any[]> {
+  async getAllCelebrations(explicitChurchId?: string): Promise<any[]> {
     const normalizeDate = (dateStr: string) => {
       if (!dateStr) return null;
       const parts = dateStr.split(/[-/]/);
@@ -1261,29 +2796,41 @@ class FirestoreService {
       return dateStr;
     };
 
-    try {
-      const col = await this.getCollection('members');
-      const snapshot = await col.get();
-      return snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          ...data,
-          Id: doc.id,
-          Name: data.name || (data.firstName ? data.firstName + ' ' + (data.lastName || '') : 'Unknown'),
-          Phone: data.phone || data.mobile,
-          Birthdate: normalizeDate(data.dob || data.birthdate || data.dateOfBirth || data.birthday), // always YYYY-MM-DD
-          allBirthdates: [normalizeDate(data.dob), normalizeDate(data.birthdate), normalizeDate(data.dateOfBirth), normalizeDate(data.birthday)].filter(Boolean),
-          Anniversary_Date__c: normalizeDate(data.marriageDate || data.anniversaryDate || data.anniversary), // always YYYY-MM-DD
-          Baptism_Date__c: normalizeDate(data.baptismDate || data.baptism), // always YYYY-MM-DD
-          Gender__c: data.gender || data.Gender__c,
-          AccountId: data.accountId || data.familyId || doc.id,
-          ProfilePhoto: data.profilePhoto || data.photoURL || data.photoUrl || data.profileImageUrl || null
-        };
-      });
-    } catch (e) {
-      console.error('Error fetching celebrations:', e);
-      return [];
-    }
+    return this._swr('celebrations_all', async () => {
+      try {
+        const cid = explicitChurchId || (await this.getChurchId());
+        const snapshot = cid
+          ? await firestore().collection('churches').doc(cid).collection('members').get()
+          : await (await this.getCollection('members')).get();
+        return snapshot.docs.map(doc => {
+          const data = doc.data();
+          const directPhone = data.phone || data.mobile || '';
+          const refPhone = data.referencePhone || data.referenceNumber || '';
+          // For kids without a personal phone, use the parent reference phone as the effective contact
+          const effectivePhone = directPhone || refPhone;
+          return {
+            ...data,
+            Id: doc.id,
+            Name: data.name || (data.firstName ? data.firstName + ' ' + (data.lastName || '') : 'Unknown'),
+            Phone: effectivePhone,
+            // Preserve the raw phone fields for display/logic purposes
+            directPhone: directPhone,
+            referencePhone: refPhone,
+            isReferencePhone: !directPhone && !!refPhone, // true if phone is a parent reference
+            Birthdate: normalizeDate(data.dob || data.birthdate || data.dateOfBirth || data.birthday), // always YYYY-MM-DD
+            allBirthdates: [normalizeDate(data.dob), normalizeDate(data.birthdate), normalizeDate(data.dateOfBirth), normalizeDate(data.birthday)].filter(Boolean),
+            Anniversary_Date__c: normalizeDate(data.marriageDate || data.anniversaryDate || data.anniversary), // always YYYY-MM-DD
+            Baptism_Date__c: normalizeDate(data.baptismDate || data.baptism), // always YYYY-MM-DD
+            Gender__c: data.gender || data.Gender__c,
+            AccountId: data.accountId || data.familyId || doc.id,
+            ProfilePhoto: data.profilePhoto || data.photoURL || data.photoUrl || data.profileImageUrl || null
+          };
+        });
+      } catch (e) {
+        console.error('Error fetching celebrations:', e);
+        return [];
+      }
+    }, { churchId: explicitChurchId, ttlMs: 120_000 });
   }
 
   async getTodayBirthdays() {
@@ -1361,17 +2908,19 @@ class FirestoreService {
 
 
   async getPastorEvents(): Promise<any[]> {
-    try {
-      const col = await this.getCollection('pastorEvents');
-      const snapshot = await col.get();
-      return snapshot.docs.map((doc: any) => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-    } catch (e) {
-      console.error('Error fetching pastor events:', e);
-      return [];
-    }
+    return this._swr('pastor_events', async () => {
+      try {
+        const col = await this.getCollection('pastorEvents');
+        const snapshot = await col.get();
+        return snapshot.docs.map((doc: any) => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+      } catch (e) {
+        console.error('Error fetching pastor events:', e);
+        return [];
+      }
+    });
   }
 
   async createPastorEvent(payload: any): Promise<{ success: boolean; id?: string }> {
@@ -1381,6 +2930,7 @@ class FirestoreService {
         ...payload,
         createdAt: FieldValue.serverTimestamp()
       });
+      this.invalidateCache(['pastor_events']);
       return { success: true, id: docRef.id };
     } catch (e) {
       console.error('Error creating pastor event:', e);
@@ -1395,6 +2945,7 @@ class FirestoreService {
         ...payload,
         updatedAt: FieldValue.serverTimestamp()
       });
+      this.invalidateCache(['pastor_events']);
       return { success: true };
     } catch (e) {
       console.error('Error updating pastor event:', e);
@@ -1406,16 +2957,106 @@ class FirestoreService {
     try {
       const col = await this.getCollection('pastorEvents');
       await col.doc(eventId).delete();
+      this.invalidateCache(['pastor_events']);
       return { success: true };
     } catch (e) {
       console.error('Error deleting pastor event:', e);
       return { success: false };
     }
   }
+
+  async scanForDuplicateMembers(): Promise<any[]> {
+    try {
+      console.log('Scanning for duplicate members across all churches...');
+      const snapshot = await firestore().collectionGroup('members').get({ source: 'server' });
+      const phoneMap: Record<string, any[]> = {};
+      
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        let phone = data.phone || data.mobile || '';
+        phone = phone.replace(/\D/g, ''); // strip non-digits
+        
+        // Use last 10 digits as the unique identifier for grouping
+        if (phone.length >= 10) {
+          const last10 = phone.slice(-10);
+          if (!phoneMap[last10]) {
+            phoneMap[last10] = [];
+          }
+          phoneMap[last10].push({
+            id: doc.id,
+            churchId: doc.ref.parent.parent?.id,
+            name: data.name || data.firstName || 'Unknown',
+            phone: data.phone || data.mobile || '',
+            userType: data.userType || 'Member',
+            createdAt: data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Unknown'
+          });
+        }
+      });
+      
+      // Filter out those with only 1 document
+      const duplicates = Object.keys(phoneMap)
+        .filter(phone => phoneMap[phone].length > 1)
+        .map(phone => ({
+          phone,
+          documents: phoneMap[phone]
+        }));
+        
+      return duplicates;
+    } catch (error) {
+      console.error('Error scanning for duplicate members:', error);
+      return [];
+    }
+  }
+
+  async deleteDuplicateMember(churchId: string, docId: string): Promise<boolean> {
+    try {
+      if (!churchId || !docId) return false;
+      await firestore().collection('churches').doc(churchId).collection('members').doc(docId).delete();
+      return true;
+    } catch (error) {
+      console.error('Error deleting duplicate member:', error);
+      return false;
+    }
+  }
+
   async query(soql: string): Promise<any> { return null; }
   extractYoutubeId(url: string): string { return url; }
-  async getDashboardStats(): Promise<any> { return { members: 0, promises: 0 }; }
   async getEventMetadata(eventId: string): Promise<any> { return null; }
+
+  async getCustomEventTypes(): Promise<{ label: string; value: string }[]> {
+    try {
+      const churchDoc = await this.getChurchDoc();
+      if (!churchDoc) return [];
+      const snap = await churchDoc.get();
+      const data = snap.data();
+      if (Array.isArray(data?.customEventTypes)) {
+        return data.customEventTypes.map((item: any) => 
+          typeof item === 'string' ? { label: item, value: item } : item
+        );
+      }
+      return [];
+    } catch (e) {
+      console.warn('Error fetching custom event types:', e);
+      return [];
+    }
+  }
+
+  async saveCustomEventType(newType: { label: string; value: string } | string): Promise<void> {
+    try {
+      const churchDoc = await this.getChurchDoc();
+      if (!churchDoc) return;
+      const { FieldValue } = require('@react-native-firebase/firestore');
+      const itemToSave = typeof newType === 'string' ? { label: newType, value: newType } : newType;
+      await churchDoc.set({
+        customEventTypes: FieldValue.arrayUnion(itemToSave)
+      }, { merge: true });
+    } catch (e) {
+      console.warn('Error saving custom event type:', e);
+    }
+  }
+
+  async getDashboardStats(): Promise<any> { return { members: 0, promises: 0 }; }
+
   async searchMembers(query: string): Promise<any[]> {
     try {
       const col = await this.getCollection('members');
@@ -1449,6 +3090,7 @@ class FirestoreService {
 
   async createAttendanceRequest(data: { title: string; date: string; description?: string; startTime?: string; endTime?: string }) {
     try {
+      this.invalidateCache(['attendance_requests']);
       const col = await this.getCollection('attendanceRequests');
       const docRef = await col.add({
         ...data,
@@ -1466,6 +3108,7 @@ class FirestoreService {
     try {
       const col = await this.getCollection('attendanceRequests');
       await col.doc(requestId).update(data);
+      this.invalidateCache(['attendance_requests']);
       return true;
     } catch (e) {
       console.error('Error updating attendance request:', e);
@@ -1474,20 +3117,23 @@ class FirestoreService {
   }
 
   async getAttendanceRequests() {
-    try {
-      const col = await this.getCollection('attendanceRequests');
-      const snapshot = await col.orderBy('createdAt', 'desc').get();
-      return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
-    } catch (e) {
-      console.error('Error fetching attendance requests:', e);
-      return [];
-    }
+    return this._swr('attendance_requests', async () => {
+      try {
+        const col = await this.getCollection('attendanceRequests');
+        const snapshot = await col.orderBy('createdAt', 'desc').get();
+        return snapshot.docs.map((doc: any) => ({ id: doc.id, ...doc.data() }));
+      } catch (e) {
+        console.error('Error fetching attendance requests:', e);
+        return [];
+      }
+    });
   }
 
   async deleteAttendanceRequest(requestId: string) {
     try {
       const col = await this.getCollection('attendanceRequests');
       await col.doc(requestId).delete();
+      this.invalidateCache(['attendance_requests']);
       return true;
     } catch (e) {
       console.error('Error deleting attendance request:', e);
@@ -1547,7 +3193,7 @@ class FirestoreService {
     try {
       const col = await this.getCollection('attendanceRequests');
       // Get the most recent active request
-      const snapshot = await col.where('status', '==', 'active').orderBy('createdAt', 'desc').limit(1).get();
+      const snapshot = await col.where('status', '==', 'Active').orderBy('createdAt', 'desc').limit(1).get();
       
       if (snapshot.empty) return null;
       
@@ -1595,6 +3241,495 @@ class FirestoreService {
     } catch (e) {
       console.error('Error listening to attendance responses:', e);
       return () => {};
+    }
+  }
+
+  // ─── AI Ministry Tools ────────────────────────────────────────────────────
+
+  async saveAISermon(data: {
+    category: string;
+    topic: string;
+    language: string;
+    generatedSermonText: string;
+    status: string;
+    title?: string;
+    bibleRef?: string;
+  }) {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return;
+      const db = firestore();
+
+      let title = data.title;
+      let bibleRef = data.bibleRef;
+      if (!title && data.generatedSermonText) {
+        const titleMatch = data.generatedSermonText.match(/^#\s*(?:Sermon:\s*)?(.*)$/m);
+        if (titleMatch) title = titleMatch[1].replace(/[*_#]/g, '').trim();
+      }
+      if (!bibleRef && data.generatedSermonText) {
+        const refMatch = data.generatedSermonText.match(/^[|•\-\*]?\s*\*\*([^*]+)\*\*/m);
+        if (refMatch) bibleRef = refMatch[1].replace(/\|.*$/, '').trim();
+      }
+
+      await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiSermons')
+        .add({
+          ...data,
+          title: title || data.topic || 'Sermon',
+          bibleRef: bibleRef || '',
+          createdAt: FieldValue.serverTimestamp(),
+        });
+    } catch (e) {
+      console.error('saveAISermon error:', e);
+    }
+  }
+
+  async getAISermons(churchIdParam?: string): Promise<any[]> {
+    try {
+      const churchId = churchIdParam || await this.getChurchId();
+      if (!churchId) throw new Error('Church ID not found. Please select an active church.');
+      const db = firestore();
+
+      try {
+        const snapshot = await db
+          .collection('churches')
+          .doc(churchId)
+          .collection('aiSermons')
+          .orderBy('createdAt', 'desc')
+          .get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      } catch (orderErr) {
+        // Fallback without orderBy if index is still building or missing
+        const snapshot = await db
+          .collection('churches')
+          .doc(churchId)
+          .collection('aiSermons')
+          .get();
+        const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return docs.sort((a: any, b: any) => {
+          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+          return tB - tA;
+        });
+      }
+    } catch (e) {
+      console.error('getAISermons error:', e);
+      throw e;
+    }
+  }
+
+  async updateAISermon(
+    sermonId: string,
+    data: Partial<{ generatedSermonText: string; topic: string; title: string; bibleRef: string; language: string }>,
+    churchIdParam?: string
+  ): Promise<void> {
+    try {
+      const churchId = churchIdParam || await this.getChurchId();
+      if (!churchId || !sermonId) return;
+      const db = firestore();
+      await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiSermons')
+        .doc(sermonId)
+        .update({
+          ...data,
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+    } catch (e) {
+      console.error('updateAISermon error:', e);
+      throw e;
+    }
+  }
+
+  async deleteAISermon(sermonId: string, churchIdParam?: string): Promise<void> {
+    try {
+      const churchId = churchIdParam || await this.getChurchId();
+      if (!churchId || !sermonId) return;
+      const db = firestore();
+      await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiSermons')
+        .doc(sermonId)
+        .delete();
+    } catch (e) {
+      console.error('deleteAISermon error:', e);
+      throw e;
+    }
+  }
+
+  async saveAIContent(data: {
+    contentType: string;
+    topic: string;
+    language: string;
+    designStyle: string;
+    orientation?: string;
+    speaker?: string;
+    location?: string;
+    dateText?: string;
+    timeText?: string;
+    header?: string;
+    contactNumber?: string;
+    socialMedia?: string;
+    bibleVerse?: string;
+    verseReference?: string;
+    color?: string;
+    prompt: string;
+    imageUrl: string;
+    status: string;
+  }) {
+    try {
+      const churchId = await this.getChurchId();
+      if (!churchId) return;
+      const db = firestore();
+      await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiContent')
+        .add({ ...data, createdAt: FieldValue.serverTimestamp() });
+    } catch (e) {
+      console.error('saveAIContent error:', e);
+    }
+  }
+
+  async getAIContent(churchIdParam?: string): Promise<any[]> {
+    try {
+      const churchId = churchIdParam || await this.getChurchId();
+      if (!churchId) return [];
+      const db = firestore();
+      const snapshot = await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiContent')
+        .get();
+      const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return docs.sort((a: any, b: any) => {
+        const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+        const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+        return tB - tA;
+      });
+    } catch (e) {
+      console.error('getAIContent error:', e);
+      return [];
+    }
+  }
+
+  async deleteAIContent(contentId: string, churchIdParam?: string): Promise<void> {
+    try {
+      const churchId = churchIdParam || await this.getChurchId();
+      if (!churchId || !contentId) return;
+      const db = firestore();
+      await db
+        .collection('churches')
+        .doc(churchId)
+        .collection('aiContent')
+        .doc(contentId)
+        .delete();
+    } catch (e) {
+      console.error('deleteAIContent error:', e);
+      throw e;
+    }
+  }
+
+  // ── Baptism Requests & Approval Management ──
+
+  async createBaptismRequest(churchId: string, data: {
+    memberId: string;
+    memberName: string;
+    memberPhone: string;
+    churchName?: string;
+    dob?: string;
+    age?: number | string;
+    gender?: string;
+    address?: string;
+    previousBaptism?: boolean | string;
+    reason: string;
+    preferredDate?: string;
+    additionalNotes?: string;
+  }): Promise<{ success: boolean; id?: string; error?: string }> {
+    try {
+      this.invalidateCache(['baptism_'], churchId);
+      const db = firestore();
+      const col = db.collection('churches').doc(churchId).collection('baptism_requests');
+      
+      const newDoc = {
+        ...data,
+        churchId,
+        status: 'pending',
+        adminRemarks: '',
+        confirmedDate: '',
+        confirmedTime: '',
+        confirmedLocation: '',
+        history: [
+          {
+            status: 'pending',
+            note: 'Baptism request submitted by member',
+            changedBy: data.memberName,
+            timestamp: new Date().toISOString()
+          }
+        ],
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
+      };
+
+      const docRef = await col.add(newDoc);
+
+      const formattedPrefDate = data.preferredDate ? formatDateDisplay(data.preferredDate) : 'upcoming schedule';
+
+      // 1. Direct in-app notification doc for admins
+      try {
+        await db.collection('churches').doc(churchId).collection('notifications').add({
+          type: 'baptism_request_admin',
+          title: `💧 New Baptism Request: ${data.memberName}`,
+          body: `${data.memberName} (${data.memberPhone}) has submitted a baptism request for ${formattedPrefDate}.`,
+          memberName: data.memberName,
+          memberPhone: data.memberPhone,
+          requestId: docRef.id,
+          read: false,
+          createdAt: FieldValue.serverTimestamp()
+        });
+      } catch (err) {
+        console.warn('Could not write admin baptism notification:', err);
+      }
+
+      // 2. Broadcast push trigger to admin phones
+      try {
+        const membersSnap = await db.collection('churches').doc(churchId).collection('members').get();
+        const adminPhones: string[] = [];
+        membersSnap.docs.forEach(d => {
+          const m = d.data();
+          const role = String(m.userType || '').toLowerCase();
+          if (role.includes('admin') || role.includes('pastor') || role.includes('super')) {
+            const p = m.phone || m.mobile || m.phoneNumber;
+            if (p) adminPhones.push(p);
+          }
+        });
+
+        const bcastCol = db.collection('churches').doc(churchId).collection('broadcasts');
+        const uniquePhones = Array.from(new Set(adminPhones));
+        for (const phone of uniquePhones) {
+          await bcastCol.add({
+            title: `💧 New Baptism Request: ${data.memberName}`,
+            content: `${data.memberName} has requested baptism. Preferred date: ${formattedPrefDate}. Tap to review.`,
+            type: 'baptism_request_admin',
+            requestId: docRef.id,
+            targetPhone: phone,
+            targetRole: 'admin',
+            createdAt: FieldValue.serverTimestamp()
+          });
+        }
+      } catch (bErr) {
+        console.warn('Could not trigger baptism admin push:', bErr);
+      }
+
+      return { success: true, id: docRef.id };
+    } catch (e: any) {
+      console.error('createBaptismRequest error:', e);
+      return { success: false, error: e.message || 'Failed to submit baptism request' };
+    }
+  }
+
+  async getMemberBaptismRequests(churchId: string, memberId: string, phone?: string): Promise<BaptismRequest[]> {
+    if (!churchId) return [];
+    const cleanPhone = (phone || '').replace(/\D/g, '').slice(-10);
+    return this._swr(`baptism_member_${memberId || cleanPhone}`, async () => {
+      try {
+        const db = firestore();
+        const col = db.collection('churches').doc(churchId).collection('baptism_requests');
+        // Query by memberId directly instead of scanning all church baptism requests when possible
+        const byMemberSnap = memberId
+          ? await col.where('memberId', '==', memberId).get()
+          : await col.get();
+
+        const map = new Map<string, BaptismRequest>();
+        byMemberSnap.docs.forEach(doc => {
+          map.set(doc.id, { id: doc.id, ...doc.data() } as BaptismRequest);
+        });
+
+        // Fallback/supplement by phone if provided and no matches by memberId
+        if (cleanPhone && map.size === 0) {
+          const allSnap = await col.get();
+          allSnap.docs.forEach(doc => {
+            const d = doc.data();
+            const docPhone = (d.memberPhone || '').replace(/\D/g, '').slice(-10);
+            if (docPhone === cleanPhone) {
+              map.set(doc.id, { id: doc.id, ...d } as BaptismRequest);
+            }
+          });
+        }
+
+        return Array.from(map.values()).sort((a, b) => {
+          const tA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (new Date(a.createdAt || 0).getTime());
+          const tB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (new Date(b.createdAt || 0).getTime());
+          return tB - tA;
+        });
+      } catch (e) {
+        console.error('getMemberBaptismRequests error:', e);
+        return [];
+      }
+    }, { churchId });
+  }
+
+  async getChurchBaptismRequests(churchId: string): Promise<BaptismRequest[]> {
+    if (!churchId) return [];
+    return this._swr('baptism_church_all', async () => {
+      try {
+        const db = firestore();
+        const snap = await db.collection('churches').doc(churchId).collection('baptism_requests').get();
+        const list: BaptismRequest[] = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as BaptismRequest));
+
+        return list.sort((a, b) => {
+          const tA = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (new Date(a.createdAt || 0).getTime());
+          const tB = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : (new Date(b.createdAt || 0).getTime());
+          return tB - tA;
+        });
+      } catch (e) {
+        console.error('getChurchBaptismRequests error:', e);
+        return [];
+      }
+    }, { churchId });
+  }
+
+  async updateBaptismRequest(
+    churchId: string, 
+    requestId: string, 
+    updates: {
+      status?: 'pending' | 'under_review' | 'approved' | 'rejected' | 'completed';
+      adminRemarks?: string;
+      confirmedDate?: string;
+      confirmedTime?: string;
+      confirmedLocation?: string;
+      historyNote?: string;
+    }, 
+    adminName: string = 'Admin'
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const db = firestore();
+      const docRef = db.collection('churches').doc(churchId).collection('baptism_requests').doc(requestId);
+      const snap = await docRef.get();
+      if (!snap.exists) {
+        return { success: false, error: 'Request not found' };
+      }
+      const existing = snap.data() || {};
+      const newStatus = updates.status || existing.status || 'pending';
+
+      const historyEntry: BaptismHistoryItem = {
+        status: newStatus,
+        note: updates.historyNote || (
+          newStatus === 'approved' 
+            ? `Approved by ${adminName}${updates.confirmedDate ? ` - Scheduled for ${formatDateDisplay(updates.confirmedDate)}` : ''}`
+            : newStatus === 'rejected'
+            ? `Rejected by ${adminName}${updates.adminRemarks ? `: ${updates.adminRemarks}` : ''}`
+            : newStatus === 'completed'
+            ? `Marked Completed by ${adminName}`
+            : newStatus === 'under_review'
+            ? `Marked Under Review by ${adminName}`
+            : `Updated by ${adminName}`
+        ),
+        changedBy: adminName,
+        timestamp: new Date().toISOString()
+      };
+
+      const existingHistory: BaptismHistoryItem[] = Array.isArray(existing.history) ? existing.history : [];
+      const updatedHistory = [...existingHistory, historyEntry];
+
+      const updatePayload: any = {
+        ...updates,
+        history: updatedHistory,
+        updatedAt: FieldValue.serverTimestamp()
+      };
+      delete updatePayload.historyNote;
+
+      await docRef.update(updatePayload);
+
+      // Notify Member of status change / schedule update
+      const memberPhone = existing.memberPhone;
+      const memberId = existing.memberId;
+      const memberName = existing.memberName;
+      
+      let notifTitle = `💧 Baptism Request Update`;
+      let notifBody = `Your baptism request status is now: ${newStatus.toUpperCase().replace('_', ' ')}.`;
+      
+      const formattedConfirmedDate = updates.confirmedDate ? formatDateDisplay(updates.confirmedDate) : '';
+
+      if (newStatus === 'approved') {
+        notifTitle = `🎉 Baptism Request Approved!`;
+        notifBody = `Congratulations ${memberName}! Your baptism has been approved.${formattedConfirmedDate ? ` Scheduled for ${formattedConfirmedDate}${updates.confirmedTime ? ` at ${updates.confirmedTime}` : ''}${updates.confirmedLocation ? ` at ${updates.confirmedLocation}` : ''}.` : ''}`;
+      } else if (newStatus === 'rejected') {
+        notifTitle = `Baptism Request Update`;
+        notifBody = `Your baptism request status has been updated to rejected.${updates.adminRemarks ? ` Note: ${updates.adminRemarks}` : ''}`;
+      } else if (newStatus === 'completed') {
+        notifTitle = `✝️ Baptism Completed!`;
+        notifBody = `Praise the Lord! Your baptism record has been marked as completed. God bless your spiritual walk!`;
+      } else if (newStatus === 'under_review') {
+        notifTitle = `💧 Baptism Request Under Review`;
+        notifBody = `Your baptism request is currently being reviewed by the pastoral team.`;
+      }
+
+      // 1. Direct in-app notification doc in church notifications collection
+      try {
+        await db.collection('churches').doc(churchId).collection('notifications').add({
+          type: 'baptism_request_member',
+          title: notifTitle,
+          body: notifBody,
+          targetMemberId: memberId,
+          targetPhone: memberPhone,
+          status: newStatus,
+          requestId: requestId,
+          confirmedDate: updates.confirmedDate || existing.confirmedDate || '',
+          confirmedTime: updates.confirmedTime || existing.confirmedTime || '',
+          confirmedLocation: updates.confirmedLocation || existing.confirmedLocation || '',
+          adminRemarks: updates.adminRemarks || existing.adminRemarks || '',
+          read: false,
+          createdAt: FieldValue.serverTimestamp()
+        });
+      } catch (err) {
+        console.warn('Could not write member baptism notification doc:', err);
+      }
+
+      // 2. Broadcast push targeted to member's phone
+      if (memberPhone || memberId) {
+        try {
+          await db.collection('churches').doc(churchId).collection('broadcasts').add({
+            title: notifTitle,
+            content: notifBody,
+            type: 'baptism_request_member',
+            requestId: requestId,
+            targetPhone: memberPhone || '',
+            targetMemberId: memberId || '',
+            createdAt: FieldValue.serverTimestamp()
+          });
+        } catch (bErr) {
+          console.warn('Could not trigger member baptism push broadcast:', bErr);
+        }
+      }
+
+      this.invalidateCache(['baptism_'], churchId);
+      return { success: true };
+    } catch (e: any) {
+      console.error('updateBaptismRequest error:', e);
+      return { success: false, error: e.message || 'Failed to update baptism request' };
+    }
+  }
+
+  async deleteBaptismRequest(churchId: string, requestId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      if (!churchId || !requestId) {
+        return { success: false, error: 'Missing churchId or requestId' };
+      }
+      const db = firestore();
+      await db.collection('churches').doc(churchId).collection('baptism_requests').doc(requestId).delete();
+      this.invalidateCache(['baptism_'], churchId);
+      return { success: true };
+    } catch (e: any) {
+      console.error('deleteBaptismRequest error:', e);
+      return { success: false, error: e.message || 'Failed to delete baptism request' };
     }
   }
 }
