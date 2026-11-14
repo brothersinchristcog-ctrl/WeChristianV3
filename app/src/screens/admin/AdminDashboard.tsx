@@ -29,7 +29,8 @@ import {
   Moon,
   Video,
   Headset,
-  Wand2
+  Wand2,
+  HeartHandshake
 } from 'lucide-react-native';
 import { useChurch } from '../../context/ChurchContext';
 import HexagonDate from '../../components/HexagonDate';
@@ -92,13 +93,19 @@ const CATEGORIES = [
     title: 'Community & Members',
     icon: Users,
     color: '#581C87', // Deep Royal Purple/Eggplant for excellent contrast
-    keywords: ['Member', 'Attendance', 'Prayer', 'Care Cell', 'Testimon', 'Volunteer']
+    keywords: ['Member', 'Attendance', 'Prayer']
   },
   {
     title: 'Events & Celebrations',
     icon: Calendar,
     color: '#831843', // Deep Ruby/Berry for a festive, elegant look with high contrast
     keywords: ['Event', 'Celebration']
+  },
+  {
+    title: 'Ministry & Outreach',
+    icon: HeartHandshake,
+    color: '#047857', // Deep Pastoral Emerald for fellowship, care, and service
+    keywords: ['Testimon', 'Care Cell', 'Volunteer']
   },
   {
     title: 'AI Ministry Tools',
@@ -138,7 +145,7 @@ const CATEGORIES = [
   },
 ];
 
-const FULL_WIDTH_MODULES = ['Songs', 'Members', 'Subscription', 'WeCelebrations', 'Baptism'];
+const FULL_WIDTH_MODULES = ['Songs', 'Members', 'Volunteer Management', 'Subscription', 'WeCelebrations', 'Baptism'];
 
 const FONTS = {
   serif: Platform.OS === 'ios' ? 'Georgia' : 'serif',
@@ -430,7 +437,7 @@ const AdminDashboard = React.memo(function AdminDashboard({ navigation, allTabs 
                                   tab.name === 'Promises' && { transform: [{ translateY: -15 }] },
                                   tab.name === 'Members' && { transform: [{ scale: 1.35 }, { translateY: 15 }] }
                                 ]} 
-                                resizeMode={(tab.name === 'Prayers' || tab.name === 'Members' || tab.name === 'Subscription' || tab.name === 'Church Settings') ? "contain" : "cover"}
+                                resizeMode={(tab.name === 'Prayers' || tab.name === 'Members' || tab.name === 'Subscription' || tab.name === 'Church Settings' || tab.name === 'Testimonies' || tab.name === 'Care Cells') ? "contain" : "cover"}
                               />
                               <LinearGradient
                                 colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.7)']}
