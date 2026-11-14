@@ -124,6 +124,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             // FCM Setup
             try {
+              const notifSvc = require('../services/NotificationService').default;
+              await notifSvc.ensureAndroidNotificationChannels?.();
               const authStatus = await messaging().requestPermission();
               const enabled =
                 authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
@@ -132,29 +134,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               if (enabled) {
                 const token = await messaging().getToken();
                 console.log('🔔 [FCM] Token acquired:', token);
+                if (token) {
+                  await notifSvc.saveTokenToFirestore(token, globalUser?.primaryChurchId);
+                }
                 if (globalUser?.primaryChurchId) {
-                  await require('../services/firebaseConfig').firestore()
-                    .collection('churches').doc(globalUser.primaryChurchId)
-                    .collection('members').doc(userState.uid).set({
-                      fcmToken: token
-                  }, { merge: true });
-
                   // Explicitly subscribe to the topic now that we have permissions
-                  await require('../services/NotificationService').default.subscribeToChurchTopic(globalUser.primaryChurchId);
+                  await notifSvc.subscribeToChurchTopic(globalUser.primaryChurchId);
                 }
 
                 // Keep the token synced if Firebase rotates it
                 messaging().onTokenRefresh(async (newToken) => {
                   console.log('🔄 [FCM] Token refreshed:', newToken);
+                  if (newToken) {
+                    await notifSvc.saveTokenToFirestore(newToken, globalUser?.primaryChurchId);
+                  }
                   if (globalUser?.primaryChurchId) {
-                    await require('../services/firebaseConfig').firestore()
-                      .collection('churches').doc(globalUser.primaryChurchId)
-                      .collection('members').doc(userState.uid).set({
-                        fcmToken: newToken
-                      }, { merge: true });
-                    
                     // Resubscribe to the topic just to be safe after a token rotation
-                    await require('../services/NotificationService').default.subscribeToChurchTopic(globalUser.primaryChurchId);
+                    await notifSvc.subscribeToChurchTopic(globalUser.primaryChurchId);
                   }
                 });
               }

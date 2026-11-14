@@ -1,4 +1,5 @@
 import { Platform, PermissionsAndroid, Linking, Alert } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { getFirestore, doc, setDoc, serverTimestamp } from '@react-native-firebase/firestore';
 import { messaging, auth } from './firebaseConfig';
 
@@ -6,6 +7,35 @@ class NotificationService {
   private pendingDispatcher: ((remoteMessage: any) => void) | null = null;
   private foregroundUnsubscribe: (() => void) | null = null;
   private recentForegroundKeys: Map<string, number> = new Map();
+  private channelsInitialized = false;
+
+  /**
+   * Ensure Android 8+ notification channels used by FCM push payloads
+   * (especially 'church_alerts' for chat, care cells, roster, etc.) exist on the device.
+   */
+  async ensureAndroidNotificationChannels() {
+    if (Platform.OS !== 'android' || this.channelsInitialized) return;
+    try {
+      await Notifications.setNotificationChannelAsync('church_alerts', {
+        name: 'Church & Chat Alerts',
+        description: 'Direct messages, group chats, prayer requests, and church alerts',
+        importance: Notifications.AndroidImportance.MAX,
+        sound: 'default',
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#1a2d5a',
+        showBadge: true,
+      });
+      await Notifications.setNotificationChannelAsync('church_updates', {
+        name: 'Church Updates',
+        importance: Notifications.AndroidImportance.HIGH,
+        sound: 'default',
+        showBadge: true,
+      });
+      this.channelsInitialized = true;
+    } catch (err) {
+      console.warn('⚠️ Failed to ensure Android notification channels:', err);
+    }
+  }
 
   registerPendingDispatcher(dispatcher: ((remoteMessage: any) => void) | null) {
     this.pendingDispatcher = dispatcher;
@@ -31,6 +61,7 @@ class NotificationService {
 
   async requestUserPermission() {
     console.log('🧐 Requesting Notification Permissions...');
+    await this.ensureAndroidNotificationChannels();
     if (Platform.OS === 'android' && Platform.Version >= 33) {
       const granted = await PermissionsAndroid.request(
         PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
@@ -48,12 +79,13 @@ class NotificationService {
     return enabled;
   }
 
-  async getFcmToken() {
+  async getFcmToken(extraChurchId?: string) {
     try {
+      await this.ensureAndroidNotificationChannels();
       const token = await messaging().getToken();
       if (token) {
         console.log('✅ FCM Token Found:', token);
-        await this.saveTokenToFirestore(token);
+        await this.saveTokenToFirestore(token, extraChurchId);
         return token;
       } else {
         console.log('❌ No FCM token returned from messaging()');
@@ -64,47 +96,53 @@ class NotificationService {
     return null;
   }
 
-  async saveTokenToFirestore(token: string) {
+  async saveTokenToFirestore(token: string, extraChurchId?: string) {
     try {
       const user = auth().currentUser;
-      if (!user) {
+      if (!user || !token) {
         console.log('⚠️ Cannot save token: No user logged in');
         return;
       }
 
       console.log('📤 Fetching user global church association to save token for UID:', user.uid);
       const FirestoreService = require('./FirestoreService').default;
-      const globalUser = await FirestoreService.getGlobalUser(user.uid);
+      const globalUser = await FirestoreService.getGlobalUser(user.uid).catch(() => null);
+      const db = getFirestore();
 
-      if (globalUser?.primaryChurchId) {
-        const db = getFirestore();
-        // Save to church members subcollection
+      const churchIds = Array.from(
+        new Set(
+          [globalUser?.primaryChurchId, extraChurchId]
+            .filter((cid): cid is string => typeof cid === 'string' && cid.trim().length > 0)
+            .map((cid) => cid.trim())
+        )
+      );
+
+      for (const cid of churchIds) {
         await setDoc(
-          doc(db, 'churches', globalUser.primaryChurchId, 'members', user.uid),
+          doc(db, 'churches', cid, 'members', user.uid),
           {
+            uid: user.uid,
             fcmToken: token,
             lastTokenUpdate: serverTimestamp(),
             platform: Platform.OS,
           },
           { merge: true }
         );
-
-        // ALSO save to global users collection — Cloud Functions read tokens from here
-        await setDoc(
-          doc(db, 'users', user.uid),
-          {
-            fcmToken: token,
-            lastTokenUpdate: serverTimestamp(),
-            primaryChurchId: globalUser.primaryChurchId,
-            platform: Platform.OS,
-          },
-          { merge: true }
-        );
-
-        console.log('✨ Token saved successfully to member profile AND global users!');
-      } else {
-        console.log('⚠️ Token not saved: User does not belong to a church yet.');
       }
+
+      // ALWAYS save to global users collection — Cloud Functions resolve tokens from here too
+      const userPayload: Record<string, any> = {
+        uid: user.uid,
+        fcmToken: token,
+        lastTokenUpdate: serverTimestamp(),
+        platform: Platform.OS,
+      };
+      if (churchIds[0]) {
+        userPayload.primaryChurchId = churchIds[0];
+      }
+      await setDoc(doc(db, 'users', user.uid), userPayload, { merge: true });
+
+      console.log('✨ Token saved successfully to global users and church member doc(s):', churchIds);
     } catch (err) {
       console.error('❌ Firestore Token Save Error:', err);
     }
@@ -493,6 +531,7 @@ class NotificationService {
 
   // Handle notifications when the app is open (foreground)
   setupForegroundListener(navigation?: any) {
+    this.ensureAndroidNotificationChannels().catch(() => {});
     if (this.foregroundUnsubscribe) {
       this.foregroundUnsubscribe();
       this.foregroundUnsubscribe = null;

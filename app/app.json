@@ -46,6 +46,13 @@
       },
       "notificationChannels": [
         {
+          "name": "Church & Chat Alerts",
+          "importance": "MAX",
+          "showBadge": true,
+          "sound": "default",
+          "id": "church_alerts"
+        },
+        {
           "name": "Daily Verse",
           "importance": "HIGH",
           "showBadge": true,

@@ -18,12 +18,39 @@ function getMessagePreviewText(msgData: Record<string, any>): string {
   return 'New message';
 }
 
-async function resolveMemberTokens(
+interface ResolvedIdentity {
+  tokens: string[];
+  aliasIds: Set<string>;
+}
+
+const normalizePhoneLast10 = (raw: unknown): string => {
+  const digits = String(raw || '').replace(/\D/g, '');
+  return digits.length >= 7 ? digits.slice(-10) : '';
+};
+
+const normalizeEmailLower = (raw: unknown): string => {
+  const s = String(raw || '').trim().toLowerCase();
+  return s.includes('@') ? s : '';
+};
+
+/**
+ * Resolve every FCM token and identity alias (UID + member doc IDs) for a chat memberId.
+ * Falls back across participant hints, linked uid fields, normalized phone numbers, and email
+ * so non-UID member docs (e.g. Salesforce/admin-imported contacts) still receive chat pushes.
+ */
+async function resolveMemberIdentity(
   db: ReturnType<typeof getFirestore>,
   churchId: string,
-  memberId: string
-): Promise<string[]> {
+  memberId: string,
+  participantHint?: Record<string, any> | null
+): Promise<ResolvedIdentity> {
   const tokens = new Set<string>();
+  const aliasIds = new Set<string>();
+  const phones = new Set<string>();
+  const emails = new Set<string>();
+
+  if (memberId) aliasIds.add(memberId);
+
   const addToken = (val: unknown) => {
     if (typeof val === 'string' && val.trim().length > 10) {
       tokens.add(val.trim());
@@ -32,67 +59,138 @@ async function resolveMemberTokens(
   const addArray = (arr: unknown) => {
     if (Array.isArray(arr)) arr.forEach(addToken);
   };
+  const inspectData = (docId: string | null | undefined, data: Record<string, any> | undefined | null) => {
+    if (docId) aliasIds.add(String(docId));
+    if (!data) return;
+    if (typeof data.uid === 'string' && data.uid.trim()) aliasIds.add(data.uid.trim());
+    if (typeof data.memberId === 'string' && data.memberId.trim()) aliasIds.add(data.memberId.trim());
+    addToken(data.fcmToken);
+    addArray(data.fcmTokens);
+    const ph = normalizePhoneLast10(data.phone || data.mobile || data.phoneNumber);
+    if (ph) phones.add(ph);
+    const em = normalizeEmailLower(data.email);
+    if (em) emails.add(em);
+  };
 
-  try {
-    const memSnap = await db
-      .collection(CHURCHES_COLLECTION)
-      .doc(churchId)
-      .collection('members')
-      .doc(memberId)
-      .get();
-    if (memSnap.exists) {
-      const mData = memSnap.data() || {};
-      addToken(mData.fcmToken);
-      addArray(mData.fcmTokens);
-      if (typeof mData.uid === 'string' && mData.uid.trim() && mData.uid.trim() !== memberId) {
-        try {
-          const linkedUser = await db.collection('users').doc(mData.uid.trim()).get();
-          if (linkedUser.exists) {
-            addToken(linkedUser.data()?.fcmToken);
-            addArray(linkedUser.data()?.fcmTokens);
-          }
-        } catch {}
-        try {
-          const linkedMem = await db
-            .collection(CHURCHES_COLLECTION)
-            .doc(churchId)
-            .collection('members')
-            .doc(mData.uid.trim())
-            .get();
-          if (linkedMem.exists) {
-            addToken(linkedMem.data()?.fcmToken);
-            addArray(linkedMem.data()?.fcmTokens);
-          }
-        } catch {}
-      }
-    } else {
-      try {
+  if (participantHint) {
+    inspectData(memberId, participantHint);
+  }
+
+  const candidateIds = Array.from(aliasIds);
+
+  for (const candId of candidateIds) {
+    try {
+      const memSnap = await db
+        .collection(CHURCHES_COLLECTION)
+        .doc(churchId)
+        .collection('members')
+        .doc(candId)
+        .get();
+      if (memSnap.exists) {
+        inspectData(memSnap.id, memSnap.data());
+      } else {
         const byUid = await db
           .collection(CHURCHES_COLLECTION)
           .doc(churchId)
           .collection('members')
-          .where('uid', '==', memberId)
+          .where('uid', '==', candId)
           .limit(3)
           .get();
-        byUid.forEach((doc) => {
-          const d = doc.data() || {};
-          addToken(d.fcmToken);
-          addArray(d.fcmTokens);
+        byUid.forEach((doc) => inspectData(doc.id, doc.data()));
+      }
+    } catch {}
+
+    try {
+      const userSnap = await db.collection('users').doc(candId).get();
+      if (userSnap.exists) {
+        inspectData(userSnap.id, userSnap.data());
+      }
+    } catch {}
+  }
+
+  // Query any newly discovered linked UIDs not yet checked
+  for (const aliasId of Array.from(aliasIds)) {
+    if (candidateIds.includes(aliasId)) continue;
+    try {
+      const linkedUser = await db.collection('users').doc(aliasId).get();
+      if (linkedUser.exists) inspectData(linkedUser.id, linkedUser.data());
+    } catch {}
+    try {
+      const linkedMem = await db
+        .collection(CHURCHES_COLLECTION)
+        .doc(churchId)
+        .collection('members')
+        .doc(aliasId)
+        .get();
+      if (linkedMem.exists) inspectData(linkedMem.id, linkedMem.data());
+    } catch {}
+  }
+
+  // Fallback 1: resolve by normalized phone across church members & global users
+  if (tokens.size === 0 && phones.size > 0) {
+    try {
+      const membersSnap = await db
+        .collection(CHURCHES_COLLECTION)
+        .doc(churchId)
+        .collection('members')
+        .get();
+      membersSnap.forEach((d) => {
+        const dData = d.data() || {};
+        const dPhone = normalizePhoneLast10(dData.phone || dData.mobile || dData.phoneNumber);
+        if (dPhone && phones.has(dPhone)) {
+          inspectData(d.id, dData);
+        }
+      });
+    } catch {}
+
+    // If discovering a linked UID via member doc uncovered tokens/UIDs, check users/{uid}
+    for (const aliasId of Array.from(aliasIds)) {
+      if (candidateIds.includes(aliasId)) continue;
+      try {
+        const uSnap = await db.collection('users').doc(aliasId).get();
+        if (uSnap.exists) inspectData(uSnap.id, uSnap.data());
+      } catch {}
+    }
+
+    if (tokens.size === 0) {
+      try {
+        const usersSnap = await db.collection('users').get();
+        usersSnap.forEach((d) => {
+          const dData = d.data() || {};
+          const uPhone = normalizePhoneLast10(dData.phone || dData.mobile || dData.phoneNumber);
+          if (uPhone && phones.has(uPhone)) {
+            inspectData(d.id, dData);
+          }
         });
       } catch {}
     }
-  } catch {}
+  }
 
-  try {
-    const userSnap = await db.collection('users').doc(memberId).get();
-    if (userSnap.exists) {
-      const uData = userSnap.data() || {};
-      addToken(uData.fcmToken);
-      addArray(uData.fcmTokens);
+  // Fallback 2: resolve by email across church members & global users
+  if (tokens.size === 0 && emails.size > 0) {
+    for (const em of emails) {
+      try {
+        const mEmailSnap = await db
+          .collection(CHURCHES_COLLECTION)
+          .doc(churchId)
+          .collection('members')
+          .where('email', '==', em)
+          .limit(3)
+          .get();
+        mEmailSnap.forEach((d) => inspectData(d.id, d.data()));
+      } catch {}
+      try {
+        const uEmailSnap = await db
+          .collection('users')
+          .where('email', '==', em)
+          .limit(3)
+          .get();
+        uEmailSnap.forEach((d) => inspectData(d.id, d.data()));
+      } catch {}
     }
-  } catch {}
+  }
 
-  return Array.from(tokens);
+  return { tokens: Array.from(tokens), aliasIds };
 }
 
 /**
@@ -104,12 +202,12 @@ export const onChatMessageCreated = onDocumentCreated(
     const snap = event.data;
     if (!snap) return;
 
-    const { churchId, chatId } = event.params;
+    const { churchId, chatId, messageId } = event.params;
     const msgData = snap.data() || {};
     const msgType = String(msgData.type || 'text');
     if (msgType === 'system') return;
 
-    const senderId = String(msgData.senderId || '');
+    const senderId = String(msgData.senderId || '').trim();
     const senderName = String(msgData.senderName || 'Church Member');
 
     const db = getFirestore();
@@ -119,58 +217,89 @@ export const onChatMessageCreated = onDocumentCreated(
       .collection('chats')
       .doc(chatId)
       .get();
-    if (!chatDoc.exists) return;
+    if (!chatDoc.exists) {
+      console.warn(`[chatPush] Chat doc not found: churches/${churchId}/chats/${chatId}`);
+      return;
+    }
 
     const chatData = chatDoc.data() || {};
     const chatType = chatData.type === 'group' ? 'group' : 'direct';
     const participantIds: string[] = Array.isArray(chatData.participantIds)
       ? chatData.participantIds
       : [];
+    const participantsMap: Record<string, any> = chatData.participants || {};
     const mutedBy: Record<string, any> = chatData.mutedBy || {};
 
-    const recipients = participantIds.filter((id) => {
-      if (!id || id === senderId) return false;
+    // Collect sender aliases (e.g. if sender's member doc ID differs from auth uid)
+    const senderAliases = new Set<string>();
+    if (senderId) senderAliases.add(senderId);
+    const senderHint = participantsMap[senderId];
+    if (senderHint?.uid) senderAliases.add(String(senderHint.uid));
+    if (senderHint?.memberId) senderAliases.add(String(senderHint.memberId));
+
+    const initialRecipients = participantIds.filter((id) => {
+      if (!id || senderAliases.has(id)) return false;
+      const pHint = participantsMap[id];
+      if (pHint?.uid && senderAliases.has(String(pHint.uid))) return false;
       if (mutedBy[id] === true) return false;
+      if (pHint?.uid && mutedBy[String(pHint.uid)] === true) return false;
       return true;
     });
 
-    if (recipients.length === 0) return;
-
-    // Filter out recipients who blocked the sender
-    const unblockedRecipients: string[] = [];
-    await Promise.all(
-      recipients.map(async (recipientId) => {
-        try {
-          const blockDoc = await db
-            .collection(CHURCHES_COLLECTION)
-            .doc(churchId)
-            .collection('chat_blocks')
-            .doc(recipientId)
-            .get();
-          const blockedList: string[] = blockDoc.exists
-            ? blockDoc.data()?.blockedIds || []
-            : [];
-          if (!blockedList.includes(senderId)) {
-            unblockedRecipients.push(recipientId);
-          }
-        } catch {
-          unblockedRecipients.push(recipientId);
-        }
-      })
-    );
-
-    if (unblockedRecipients.length === 0) return;
+    if (initialRecipients.length === 0) {
+      console.log(`[chatPush] No unmuted non-sender recipients for chat=${chatId} msg=${messageId}`);
+      return;
+    }
 
     const tokenSet = new Set<string>();
     await Promise.all(
-      unblockedRecipients.map(async (recipientId) => {
-        const list = await resolveMemberTokens(db, churchId, recipientId);
-        list.forEach((t) => tokenSet.add(t));
+      initialRecipients.map(async (recipientId) => {
+        const identity = await resolveMemberIdentity(
+          db,
+          churchId,
+          recipientId,
+          participantsMap[recipientId] || null
+        );
+
+        // Skip if resolved identity actually belongs to the sender or has chat muted under an alias
+        const isSenderAlias = Array.from(identity.aliasIds).some((id) => senderAliases.has(id));
+        if (isSenderAlias) return;
+
+        const isMutedAlias = Array.from(identity.aliasIds).some((id) => mutedBy[id] === true);
+        if (isMutedAlias) return;
+
+        // Filter out recipients who blocked the sender under any alias
+        let isBlocked = false;
+        for (const aliasId of identity.aliasIds) {
+          try {
+            const blockDoc = await db
+              .collection(CHURCHES_COLLECTION)
+              .doc(churchId)
+              .collection('chat_blocks')
+              .doc(aliasId)
+              .get();
+            if (blockDoc.exists) {
+              const blockedList: string[] = blockDoc.data()?.blockedIds || [];
+              if (blockedList.some((b) => senderAliases.has(String(b)))) {
+                isBlocked = true;
+                break;
+              }
+            }
+          } catch {}
+        }
+        if (isBlocked) return;
+
+        identity.tokens.forEach((t) => tokenSet.add(t));
       })
     );
 
     const tokens = Array.from(tokenSet);
-    if (tokens.length === 0) return;
+    if (tokens.length === 0) {
+      console.warn(
+        `[chatPush] 0 FCM tokens resolved for church=${churchId} chat=${chatId} recipients=${JSON.stringify(initialRecipients)}`
+      );
+      return;
+    }
 
     const groupName = String(chatData.name || 'Church Group');
     const title = chatType === 'group' ? `${groupName}` : senderName;
@@ -181,7 +310,7 @@ export const onChatMessageCreated = onDocumentCreated(
     const chunkSize = 500;
     for (let i = 0; i < tokens.length; i += chunkSize) {
       const batchTokens = tokens.slice(i, i + chunkSize);
-      await messaging.sendEachForMulticast({
+      const res = await messaging.sendEachForMulticast({
         tokens: batchTokens,
         notification: { title, body },
         data: {
@@ -190,6 +319,7 @@ export const onChatMessageCreated = onDocumentCreated(
           chatId,
           chatType,
           title: chatType === 'group' ? groupName : senderName,
+          body,
         },
         android: {
           priority: 'high',
@@ -210,6 +340,15 @@ export const onChatMessageCreated = onDocumentCreated(
           },
         },
       });
+      console.log(
+        `[chatPush] Sent chat=${chatId} msg=${messageId} tokens=${batchTokens.length} success=${res.successCount} failure=${res.failureCount}`
+      );
+      if (res.failureCount > 0) {
+        const failedCodes = res.responses
+          .filter((r) => !r.success)
+          .map((r) => r.error?.code || r.error?.message || 'unknown');
+        console.warn(`[chatPush] Multicast failure details: ${JSON.stringify(failedCodes)}`);
+      }
     }
   }
 );

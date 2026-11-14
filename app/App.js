@@ -160,8 +160,18 @@ export default function App() {
 
     const recentKeys = new Map();
     const unsubscribe = messaging().onMessage(async remoteMessage => {
-      const title = remoteMessage.notification?.title || 'New Notification';
-      const body = remoteMessage.notification?.body || 'You have a new message.';
+      const rawData = remoteMessage?.data || {};
+      const title = remoteMessage.notification?.title || rawData.title || 'New Notification';
+      const body = remoteMessage.notification?.body || rawData.body || 'You have a new message.';
+
+      // Avoid showing an intrusive banner if the user is already viewing this exact chat thread
+      if (rawData.type === 'chat_message' && rawData.chatId && navigationRef.isReady()) {
+        const currentRoute = navigationRef.getCurrentRoute();
+        if (currentRoute?.name === 'ChatRoom' && currentRoute?.params?.chatId === rawData.chatId) {
+          return;
+        }
+      }
+
       const now = Date.now();
       const key = remoteMessage?.messageId || `${title}|${body}`;
       const lastSeen = recentKeys.get(key);
@@ -170,7 +180,6 @@ export default function App() {
       }
       recentKeys.set(key, now);
 
-      const rawData = remoteMessage?.data || {};
       const password = rawData.password || (body.match(/Passcode:\s*([A-Za-z0-9]+)/i)?.[1]) || '';
       
       setNotification({ title, body, password, remoteMessage });

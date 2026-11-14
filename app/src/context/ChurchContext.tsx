@@ -96,7 +96,9 @@ export const ChurchProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setTimeout(() => {
           fsSvc.prefetchChurchData(id).catch(() => {});
         }, 650);
-        await require('../services/NotificationService').default.subscribeToChurchTopic(id);
+        const notifSvc = require('../services/NotificationService').default;
+        await notifSvc.subscribeToChurchTopic(id);
+        notifSvc.getFcmToken(id).catch(() => {});
       } else {
         console.warn('Church not found for id:', id);
         if (churchId) {
