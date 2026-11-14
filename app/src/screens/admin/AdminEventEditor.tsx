@@ -119,6 +119,7 @@ export default function AdminEventEditor() {
   // ── Multi-Service & Setlist State ──
   const [eventServices, setEventServices] = useState<EventServiceItem[]>([]);
   const [allAvailableSongs, setAllAvailableSongs] = useState<WorshipSong[]>([]);
+  const [loadingSongsForPicker, setLoadingSongsForPicker] = useState(false);
   const [showSongPicker, setShowSongPicker] = useState(false);
   const [targetServiceIdForPicker, setTargetServiceIdForPicker] = useState<string | null>(null);
   const [songPickerSearch, setSongPickerSearch] = useState('');
@@ -414,11 +415,14 @@ export default function AdminEventEditor() {
     setSongPickerSearch('');
     setShowSongPicker(true);
     if (!allAvailableSongs || allAvailableSongs.length === 0) {
+      setLoadingSongsForPicker(true);
       try {
         const songs = await FirestoreService.getWorshipSongs();
         if (Array.isArray(songs)) setAllAvailableSongs(songs);
       } catch (e) {
         console.warn('Failed to load songs on modal open:', e);
+      } finally {
+        setLoadingSongsForPicker(false);
       }
     }
   };
@@ -1980,6 +1984,20 @@ export default function AdminEventEditor() {
 
             {/* Songs List */}
             {(() => {
+              if (loadingSongsForPicker) {
+                return (
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 }}>
+                    <ActivityIndicator size="large" color="#1a2d5a" />
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#1a2d5a' }}>
+                      Loading worship songs...
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center' }}>
+                      Please wait while songs are being fetched.
+                    </Text>
+                  </View>
+                );
+              }
+
               const q = songPickerSearch.trim().toLowerCase();
               const filtered = allAvailableSongs.filter(s => {
                 if (!s) return false;

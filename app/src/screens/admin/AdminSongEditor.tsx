@@ -245,6 +245,7 @@ export default function AdminSongEditor() {
   const [pickerSearch, setPickerSearch] = useState('');
   const [pickerCategory, setPickerCategory] = useState('All');
   const [pickerSelectedSongs, setPickerSelectedSongs] = useState<WorshipSong[]>([]);
+  const [addingSongsToService, setAddingSongsToService] = useState(false);
 
   const [showAddSetlistModal, setShowAddSetlistModal] = useState(false);
   const [editingSetlistIdx, setEditingSetlistIdx] = useState<number | null>(null);
@@ -571,6 +572,9 @@ export default function AdminSongEditor() {
     setShowAddCustomPresetInput(false);
     setCustomPresetInput('');
     setShowCreateServiceModal(true);
+    if (postedSongs.length === 0 && !loadingList) {
+      fetchPostedSongs();
+    }
   };
 
   const persistServices = async (updated: any[]) => {
@@ -699,6 +703,9 @@ export default function AdminSongEditor() {
     setPickerCategory('All');
     setPickerSelectedSongs([]);
     setShowSongPickerModal(true);
+    if (postedSongs.length === 0 && !loadingList) {
+      fetchPostedSongs();
+    }
   };
 
   const handleTogglePickerSongSelection = (song: WorshipSong) => {
@@ -713,40 +720,45 @@ export default function AdminSongEditor() {
   };
 
   const handleAddSelectedSongsToService = async () => {
-    if (pickerSelectedSongs.length === 0) return;
+    if (addingSongsToService || pickerSelectedSongs.length === 0) return;
     if (!activeService || !activeService.id) {
       Alert.alert('No Service', 'Please select or create a church service first.');
       return;
     }
 
-    const newSongItems = pickerSelectedSongs.map(song => ({
-      id: Math.random().toString(36).substring(7),
-      title: song.title,
-      titleTe: song.titleTe || '',
-      ledBy: song.ledBy || '',
-      key: song.key || 'F',
-      timeSignature: song.timeSignature || '4/4',
-      tempo: song.tempo || '100',
-      verses: song.verses || '4V',
-      prelude: song.prelude || '',
-      interlude: song.interlude || '',
-      notes: song.notes || '',
-      isOffertory: (song.category || '').toLowerCase().includes('offering'),
-    }));
+    setAddingSongsToService(true);
+    try {
+      const newSongItems = pickerSelectedSongs.map(song => ({
+        id: Math.random().toString(36).substring(7),
+        title: song.title,
+        titleTe: song.titleTe || '',
+        ledBy: song.ledBy || '',
+        key: song.key || 'F',
+        timeSignature: song.timeSignature || '4/4',
+        tempo: song.tempo || '100',
+        verses: song.verses || '4V',
+        prelude: song.prelude || '',
+        interlude: song.interlude || '',
+        notes: song.notes || '',
+        isOffertory: (song.category || '').toLowerCase().includes('offering'),
+      }));
 
-    const currentSongs = [...(activeService.songs || [])];
-    const updatedSongs = [...currentSongs, ...newSongItems];
+      const currentSongs = [...(activeService.songs || [])];
+      const updatedSongs = [...currentSongs, ...newSongItems];
 
-    const updatedServices = worshipServices.map(s => {
-      if (s && s.id === activeService.id) {
-        return { ...s, songs: updatedSongs };
-      }
-      return s;
-    });
+      const updatedServices = worshipServices.map(s => {
+        if (s && s.id === activeService.id) {
+          return { ...s, songs: updatedSongs };
+        }
+        return s;
+      });
 
-    await persistServices(updatedServices);
-    setShowSongPickerModal(false);
-    setPickerSelectedSongs([]);
+      await persistServices(updatedServices);
+      setShowSongPickerModal(false);
+      setPickerSelectedSongs([]);
+    } finally {
+      setAddingSongsToService(false);
+    }
   };
 
   const handleSelectSongFromPicker = (song: WorshipSong) => {
@@ -3402,7 +3414,14 @@ export default function AdminSongEditor() {
                 overflow: 'hidden'
               }}>
                 <ScrollView nestedScrollEnabled={true} showsVerticalScrollIndicator={true}>
-                  {displaySongsForCreate.length === 0 ? (
+                  {loadingList && displaySongsForCreate.length === 0 ? (
+                    <View style={{ padding: 28, alignItems: 'center', gap: 8 }}>
+                      <ActivityIndicator size="small" color="#1a2d5a" />
+                      <Text style={{ fontSize: 12, color: '#64748B', fontWeight: '600' }}>
+                        Loading worship songs...
+                      </Text>
+                    </View>
+                  ) : displaySongsForCreate.length === 0 ? (
                     <View style={{ padding: 24, alignItems: 'center' }}>
                       <Music size={24} color="#94A3B8" />
                       <Text style={{ fontSize: 12, color: '#64748B', marginTop: 6, fontWeight: '600' }}>
@@ -4082,17 +4101,30 @@ export default function AdminSongEditor() {
     const isAllFilteredSelected = filtered.length > 0 && filtered.every(f => pickerSelectedSongs.some(s => s.id === f.id));
 
     return (
-      <Modal transparent animationType="slide" visible={showSongPickerModal} onRequestClose={() => setShowSongPickerModal(false)}>
+      <Modal
+        transparent
+        animationType="slide"
+        visible={showSongPickerModal}
+        onRequestClose={() => {
+          if (!addingSongsToService) setShowSongPickerModal(false);
+        }}
+      >
         <View style={styles.editModalBg}>
           <View style={[styles.editModalCard, { height: '88%', paddingBottom: 0 }]}>
             <View style={styles.editModalHeader}>
               <View>
                 <Text style={styles.editModalTitle}>Select from All Songs</Text>
                 <Text style={{ fontSize: 11, color: '#64748B', fontWeight: '600' }}>
-                  Select multiple songs to add to {activeService?.name || 'Service'}
+                  {loadingList
+                    ? 'Fetching worship songs from library...'
+                    : `Select multiple songs to add to ${activeService?.name || 'Service'}`}
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => setShowSongPickerModal(false)} style={styles.editCloseBtn}>
+              <TouchableOpacity
+                disabled={addingSongsToService}
+                onPress={() => setShowSongPickerModal(false)}
+                style={[styles.editCloseBtn, addingSongsToService && { opacity: 0.5 }]}
+              >
                 <X size={20} color="#475569" />
               </TouchableOpacity>
             </View>
@@ -4197,88 +4229,103 @@ export default function AdminSongEditor() {
             </View>
 
             {/* Song List with Multi-Select Checkboxes */}
-            <FlatList
-              data={filtered}
-              keyExtractor={item => item.id}
-              contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item, index }) => {
-                const absoluteIndex = postedSongs.findIndex(ps => ps.id === item.id);
-                const displayNum = absoluteIndex >= 0 ? absoluteIndex + 1 : index + 1;
-                const isSelected = pickerSelectedSongs.some(s => s.id === item.id);
-                const isAlreadyInService = (activeService?.songs || []).some(
-                  (s: any) => s.title?.trim().toLowerCase() === item.title?.trim().toLowerCase()
-                );
+            {loadingList ? (
+              <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 10 }}>
+                <ActivityIndicator size="large" color="#1a2d5a" />
+                <Text style={{ fontSize: 14, fontWeight: '700', color: '#1a2d5a' }}>
+                  Loading worship songs...
+                </Text>
+                <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center' }}>
+                  Please wait while songs are being fetched.
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={filtered}
+                keyExtractor={item => item.id}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}
+                showsVerticalScrollIndicator={false}
+                refreshing={loadingList}
+                onRefresh={() => fetchPostedSongs(true)}
+                renderItem={({ item, index }) => {
+                  const absoluteIndex = postedSongs.findIndex(ps => ps.id === item.id);
+                  const displayNum = absoluteIndex >= 0 ? absoluteIndex + 1 : index + 1;
+                  const isSelected = pickerSelectedSongs.some(s => s.id === item.id);
+                  const isAlreadyInService = (activeService?.songs || []).some(
+                    (s: any) => s.title?.trim().toLowerCase() === item.title?.trim().toLowerCase()
+                  );
 
-                return (
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: isSelected ? '#EFF6FF' : '#FFFFFF',
-                      borderRadius: 12,
-                      padding: 12,
-                      marginBottom: 8,
-                      borderWidth: isSelected ? 1.5 : 1,
-                      borderColor: isSelected ? '#2563EB' : '#E2E8F0',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}
-                    onPress={() => handleTogglePickerSongSelection(item)}
-                    activeOpacity={0.7}
-                  >
-                    {/* Checkbox */}
-                    <View style={{
-                      width: 22,
-                      height: 22,
-                      borderRadius: 6,
-                      borderWidth: 1.5,
-                      borderColor: isSelected ? '#2563EB' : '#CBD5E1',
-                      backgroundColor: isSelected ? '#2563EB' : '#FFFFFF',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: 10
-                    }}>
-                      {isSelected && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
-                    </View>
+                  return (
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: isSelected ? '#EFF6FF' : '#FFFFFF',
+                        borderRadius: 12,
+                        padding: 12,
+                        marginBottom: 8,
+                        borderWidth: isSelected ? 1.5 : 1,
+                        borderColor: isSelected ? '#2563EB' : '#E2E8F0',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}
+                      disabled={addingSongsToService}
+                      onPress={() => handleTogglePickerSongSelection(item)}
+                      activeOpacity={0.7}
+                    >
+                      {/* Checkbox */}
+                      <View style={{
+                        width: 22,
+                        height: 22,
+                        borderRadius: 6,
+                        borderWidth: 1.5,
+                        borderColor: isSelected ? '#2563EB' : '#CBD5E1',
+                        backgroundColor: isSelected ? '#2563EB' : '#FFFFFF',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginRight: 10
+                      }}>
+                        {isSelected && <Check size={14} color="#FFFFFF" strokeWidth={3} />}
+                      </View>
 
-                    {/* Number Badge */}
-                    <View style={{ width: 28, height: 28, borderRadius: 6, backgroundColor: isSelected ? '#DBEAFE' : '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
-                      <Text style={{ fontSize: 11, fontWeight: '900', color: isSelected ? '#1D4ED8' : '#1a2d5a' }}>{displayNum}</Text>
-                    </View>
+                      {/* Number Badge */}
+                      <View style={{ width: 28, height: 28, borderRadius: 6, backgroundColor: isSelected ? '#DBEAFE' : '#F1F5F9', alignItems: 'center', justifyContent: 'center', marginRight: 10 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '900', color: isSelected ? '#1D4ED8' : '#1a2d5a' }}>{displayNum}</Text>
+                      </View>
 
-                    {/* Song Details */}
-                    <View style={{ flex: 1, marginRight: 8 }}>
-                      <Text style={{ fontSize: 13, fontWeight: '800', color: isSelected ? '#1D4ED8' : '#1a2d5a' }} numberOfLines={1}>
-                        {item.title}
-                      </Text>
-                      <Text style={{ fontSize: 11, color: '#64748B', marginTop: 1 }} numberOfLines={1}>
-                        {item.titleTe ? `${item.titleTe}${item.artist ? ` · ${item.artist}` : ''}` : (item.artist || 'Traditional')}
-                      </Text>
-                    </View>
+                      {/* Song Details */}
+                      <View style={{ flex: 1, marginRight: 8 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '800', color: isSelected ? '#1D4ED8' : '#1a2d5a' }} numberOfLines={1}>
+                          {item.title}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: '#64748B', marginTop: 1 }} numberOfLines={1}>
+                          {item.titleTe ? `${item.titleTe}${item.artist ? ` · ${item.artist}` : ''}` : (item.artist || 'Traditional')}
+                        </Text>
+                      </View>
 
-                    {/* Right Badges */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      {isAlreadyInService && (
-                        <View style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: '#FDE68A' }}>
-                          <Text style={{ fontSize: 9, fontWeight: '800', color: '#B45309' }}>In Service</Text>
-                        </View>
-                      )}
-                      {item.key ? (
-                        <View style={{ backgroundColor: isSelected ? '#DBEAFE' : '#F8FAFC', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: '#E2E8F0' }}>
-                          <Text style={{ fontSize: 9, fontWeight: '800', color: '#2563EB' }}>{item.key}</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </TouchableOpacity>
-                );
-              }}
-              ListEmptyComponent={() => (
-                <View style={{ padding: 40, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748B' }}>No matching songs found</Text>
-                  <Text style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>Try another search or create a new song.</Text>
-                </View>
-              )}
-            />
+                      {/* Right Badges */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        {isAlreadyInService && (
+                          <View style={{ backgroundColor: '#FEF3C7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: '#FDE68A' }}>
+                            <Text style={{ fontSize: 9, fontWeight: '800', color: '#B45309' }}>In Service</Text>
+                          </View>
+                        )}
+                        {item.key ? (
+                          <View style={{ backgroundColor: isSelected ? '#DBEAFE' : '#F8FAFC', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                            <Text style={{ fontSize: 9, fontWeight: '800', color: '#2563EB' }}>{item.key}</Text>
+                          </View>
+                        ) : null}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                }}
+                ListEmptyComponent={() => (
+                  <View style={{ padding: 40, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 14, fontWeight: '700', color: '#64748B' }}>No matching songs found</Text>
+                    <Text style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>Try another search or create a new song.</Text>
+                  </View>
+                )}
+              />
+            )}
 
             {/* Bottom Action Footer for Adding Multiple Selected Songs */}
             <View style={{
@@ -4299,8 +4346,10 @@ export default function AdminSongEditor() {
                     borderRadius: 10,
                     backgroundColor: '#F1F5F9',
                     alignItems: 'center',
-                    justifyContent: 'center'
+                    justifyContent: 'center',
+                    opacity: addingSongsToService ? 0.5 : 1,
                   }}
+                  disabled={addingSongsToService}
                   onPress={() => setPickerSelectedSongs([])}
                 >
                   <Text style={{ fontSize: 12, fontWeight: '700', color: '#64748B' }}>Clear</Text>
@@ -4309,24 +4358,38 @@ export default function AdminSongEditor() {
               <TouchableOpacity
                 style={{
                   flex: 1,
-                  backgroundColor: pickerSelectedSongs.length > 0 ? '#1a2d5a' : '#CBD5E1',
+                  backgroundColor: !loadingList && pickerSelectedSongs.length > 0 ? '#1a2d5a' : '#CBD5E1',
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
                   paddingVertical: 13,
                   borderRadius: 12,
-                  elevation: pickerSelectedSongs.length > 0 ? 2 : 0
+                  elevation: !loadingList && pickerSelectedSongs.length > 0 ? 2 : 0
                 }}
-                disabled={pickerSelectedSongs.length === 0}
+                disabled={loadingList || pickerSelectedSongs.length === 0 || addingSongsToService}
                 onPress={handleAddSelectedSongsToService}
               >
-                <Plus size={16} color="#FFFFFF" />
-                <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '800' }}>
-                  {pickerSelectedSongs.length === 0
-                    ? 'Select Songs Above'
-                    : `Add ${pickerSelectedSongs.length} Song${pickerSelectedSongs.length > 1 ? 's' : ''} to Service`}
-                </Text>
+                {addingSongsToService ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '800' }}>Adding songs...</Text>
+                  </>
+                ) : loadingList ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '800' }}>Loading songs...</Text>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} color="#FFFFFF" />
+                    <Text style={{ color: '#FFFFFF', fontSize: 13, fontWeight: '800' }}>
+                      {pickerSelectedSongs.length === 0
+                        ? 'Select Songs Above'
+                        : `Add ${pickerSelectedSongs.length} Song${pickerSelectedSongs.length > 1 ? 's' : ''} to Service`}
+                    </Text>
+                  </>
+                )}
               </TouchableOpacity>
             </View>
           </View>

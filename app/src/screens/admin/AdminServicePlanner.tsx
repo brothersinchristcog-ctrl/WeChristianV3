@@ -2631,6 +2631,9 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
     setSongLibrarySearch('');
     setSelectedSongIdsForBatch([]);
     setShowSongPickerModal(true);
+    if (churchSongs.length === 0 && !loadingSongs) {
+      fetchChurchSongs();
+    }
   };
 
   const toggleSongSelectionForBatch = (songId: string) => {
@@ -2642,7 +2645,7 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
   };
 
   const handleBatchAddSongsToSetlist = async () => {
-    if (selectedSongIdsForBatch.length === 0) return;
+    if (addingBatchSongs || selectedSongIdsForBatch.length === 0) return;
     try {
       setAddingBatchSongs(true);
       const chosenSongs = churchSongs.filter(s => selectedSongIdsForBatch.includes(s.id));
@@ -5547,7 +5550,14 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
       {/* ───────────────────────────────────────────────────────────────────────── */}
       {/* MODAL: SONG PICKER MODAL (PHASE 3) */}
       {/* ───────────────────────────────────────────────────────────────────────── */}
-      <Modal visible={showSongPickerModal} animationType="slide" transparent>
+      <Modal
+        visible={showSongPickerModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          if (!addingBatchSongs) setShowSongPickerModal(false);
+        }}
+      >
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           style={styles.modalOverlay}
@@ -5557,11 +5567,14 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
               <View style={{ flex: 1 }}>
                 <Text style={[styles.modalTitle, { color: primaryText }]}>Select Songs from Library</Text>
                 <Text style={[styles.modalSubtitle, { color: secondaryText }]}>
-                  {selectedSongIdsForBatch.length > 0 ? `${selectedSongIdsForBatch.length} song(s) selected · ` : ''}Choose from {churchSongs.length} Telugu & English praise songs.
+                  {loadingSongs
+                    ? 'Fetching worship songs from library...'
+                    : `${selectedSongIdsForBatch.length > 0 ? `${selectedSongIdsForBatch.length} song(s) selected · ` : ''}Choose from ${churchSongs.length} Telugu & English praise songs.`}
                 </Text>
               </View>
               <TouchableOpacity
-                style={[styles.modalCloseCircle, { backgroundColor: isDark ? '#334155' : '#F1F5F9' }]}
+                style={[styles.modalCloseCircle, { backgroundColor: isDark ? '#334155' : '#F1F5F9', opacity: addingBatchSongs ? 0.5 : 1 }]}
+                disabled={addingBatchSongs}
                 onPress={() => setShowSongPickerModal(false)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
@@ -5578,8 +5591,9 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
                 placeholderTextColor="#94A3B8"
                 value={songLibrarySearch}
                 onChangeText={setSongLibrarySearch}
+                editable={!addingBatchSongs}
               />
-              {songLibrarySearch.length > 0 && (
+              {songLibrarySearch.length > 0 && !addingBatchSongs && (
                 <TouchableOpacity onPress={() => setSongLibrarySearch('')}>
                   <X size={14} color="#94A3B8" />
                 </TouchableOpacity>
@@ -5588,7 +5602,27 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
 
             {/* Song List with Multi-Selection Checkboxes */}
             {loadingSongs ? (
-              <ActivityIndicator size="small" color={primaryBtnBg} style={{ marginVertical: 30 }} />
+              <View style={{ paddingVertical: 44, alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                <ActivityIndicator size="large" color={publishBtnBg} />
+                <Text style={{ fontSize: 13.5, fontWeight: '700', color: primaryText }}>
+                  Loading worship songs...
+                </Text>
+                <Text style={{ fontSize: 11.5, color: secondaryText, textAlign: 'center' }}>
+                  Please wait while songs are being fetched.
+                </Text>
+              </View>
+            ) : filteredLibrarySongs.length === 0 ? (
+              <View style={{ paddingVertical: 40, alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                <Music size={30} color="#94A3B8" />
+                <Text style={{ fontSize: 13.5, fontWeight: '700', color: primaryText }}>
+                  {churchSongs.length === 0 ? 'No songs available yet' : 'No matching songs found'}
+                </Text>
+                <Text style={{ fontSize: 11.5, color: secondaryText, textAlign: 'center' }}>
+                  {churchSongs.length === 0
+                    ? 'Add songs in your Church Song Library first.'
+                    : 'Try searching by a different title or artist.'}
+                </Text>
+              </View>
             ) : (
               <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
                 {filteredLibrarySongs.map((song, songIdx) => {
@@ -5603,6 +5637,7 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
                         isSelected && { backgroundColor: isDark ? 'rgba(46, 107, 79, 0.25)' : '#ECFDF5', borderColor: publishBtnBg },
                         isAlreadyInSetlist && { opacity: 0.65, backgroundColor: isDark ? '#1E293B' : '#F8FAFC' }
                       ]}
+                      disabled={addingBatchSongs}
                       onPress={() => {
                         if (isAlreadyInSetlist) {
                           Alert.alert('Already Added', `"${song.title}" is already in the setlist.`);
@@ -5650,7 +5685,8 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
 
             <View style={styles.modalFooter}>
               <TouchableOpacity
-                style={styles.modalCancelBtn}
+                style={[styles.modalCancelBtn, addingBatchSongs && { opacity: 0.5 }]}
+                disabled={addingBatchSongs}
                 onPress={() => setShowSongPickerModal(false)}
               >
                 <Text style={styles.modalCancelBtnTxt}>Cancel</Text>
@@ -5660,18 +5696,26 @@ export default function AdminServicePlanner({ navigation, routeParams }: any) {
                 style={[
                   styles.modalConfirmBtn,
                   {
-                    backgroundColor: selectedSongIdsForBatch.length > 0 ? publishBtnBg : '#94A3B8',
+                    backgroundColor: !loadingSongs && selectedSongIdsForBatch.length > 0 ? publishBtnBg : '#94A3B8',
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 6
                   }
                 ]}
-                disabled={selectedSongIdsForBatch.length === 0 || addingBatchSongs}
+                disabled={loadingSongs || selectedSongIdsForBatch.length === 0 || addingBatchSongs}
                 onPress={handleBatchAddSongsToSetlist}
                 activeOpacity={0.85}
               >
                 {addingBatchSongs ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.modalConfirmBtnTxt}>Adding songs...</Text>
+                  </>
+                ) : loadingSongs ? (
+                  <>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <Text style={styles.modalConfirmBtnTxt}>Loading songs...</Text>
+                  </>
                 ) : (
                   <>
                     <Music size={14} color="#FFFFFF" />
